@@ -21,10 +21,13 @@ import {
   SERVER_ACTIONS_ELSEWHERE,
   SHARED_RISK,
   addressesOf,
+  codelessLinesOf,
+  diffsByFile,
   importsOf,
   isSurface,
   lanesOfTest,
   loginSpecs,
+  onlyCommentsChanged,
   planFor,
   routeOf,
   specsOfLane,
@@ -702,5 +705,236 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
     const text = summaryOf(beta(files), files);
     expect(text).toContain('`signed-in:desktop` · `signed-in:mobile`');
     expect(text).toContain('| `anon` | 건너뛴다 |');
+  });
+});
+
+/**
+ * 주석만 바뀐 코드 파일은 정책으로 센다(ADR 0153). 여기서 재는 것은 좁혀지는 값보다 **애매한 줄이 주석으로 새지 않는가**다 —
+ * 주석으로 잘못 세면 코드 변경이 `policy` 만 돌고 머지된다.
+ */
+describe('CI 계획 — 주석만 바뀐 코드 파일은 정책이다 (ADR 0153)', () => {
+  /** 바뀐 자리 하나를 `git diff -U0` 꼴로 — 앞뒤의 같은 줄을 걷고 남은 가운데가 한 hunk 다 */
+  const diffOf = (file: string, before: string, after: string) => {
+    const old = before.split('\n');
+    const now = after.split('\n');
+    let head = 0;
+    while (head < old.length && head < now.length && old[head] === now[head]) head++;
+    let tail = 0;
+    while (tail < old.length - head && tail < now.length - head && old[old.length - 1 - tail] === now[now.length - 1 - tail]) tail++;
+    const removed = old.slice(head, old.length - tail);
+    const added = now.slice(head, now.length - tail);
+    const range = (start: number, count: number) => `${count === 0 ? start : start + 1},${count}`;
+    return [
+      `diff --git a/${file} b/${file}`,
+      'index 1111111..2222222 100644',
+      `--- a/${file}`,
+      `+++ b/${file}`,
+      `@@ -${range(head, removed.length)} +${range(head, added.length)} @@`,
+      ...removed.map((line) => `-${line}`),
+      ...added.map((line) => `+${line}`),
+      '',
+    ].join('\n');
+  };
+  /** 한 파일을 `before` → `after` 로 바꾼 PR 의 계획 — `others` 는 diff 없이 함께 바뀐 파일 */
+  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타') =>
+    planFor({
+      files: [file, ...others],
+      stage,
+      sourceOf: (one) => (one === file ? after : null),
+      diffOf: (one) => (one === file ? diffOf(file, before, after) : null),
+    });
+  const changes = (before: string, after: string) => onlyCommentsChanged('app/layout.tsx', diffOf('app/layout.tsx', before, after), after);
+
+  const LAYOUT = [
+    "import type { Metadata } from 'next';",
+    '',
+    '/**',
+    ' * **미리보기는 앱 전체의 것이다.**',
+    ' *',
+    ' * 「이거 한번 써 봐」 하고 `saju-snowy.vercel.app` 만 보내는 사람 — 에게는 대화창에',
+    ' * **파란 주소 한 줄**만 선다.',
+    ' */',
+    'export const metadata: Metadata = {',
+    '  // 미리보기 그림 — 앱 전체',
+    "  title: '만날지도',",
+    '};',
+    '',
+    'export default function RootLayout({ children }: { children: React.ReactNode }) {',
+    '  return (',
+    '    <html lang="ko">',
+    '      {/* 머리 */}',
+    '      <body>{children}</body>',
+    '    </html>',
+    '  );',
+    '}',
+    '',
+  ].join('\n');
+  const edit = (from: string, to: string) => {
+    expect(LAYOUT).toContain(from);
+    return LAYOUT.replace(from, to);
+  };
+  const URL_FIX = ['`saju-snowy.vercel.app`', '`mannalmap.com`'] as const;
+
+  it('#519 — layout.tsx 의 블록 주석 한 줄만 바뀌면 공용 위험이 아니라 policy 다', () => {
+    const plan = planOf('app/layout.tsx', LAYOUT, edit(...URL_FIX), ['docs/ops/runbook/deploy.md']);
+    expect(plan.tier).toBe('policy');
+    expect(plan.lanes).toEqual({ ...CORE_ONLY, core: false, policy: true });
+    expect(plan.reason).toContain('`app/layout.tsx`');
+  });
+
+  it('공개 출시에서도 주석만 바뀐 파일은 정책으로 센다', () => {
+    expect(planOf('src/lib/chat/index.ts', '// 옛 말\nexport const x = 1;\n', '// 새 말\nexport const x = 1;\n', [], '공개 출시').tier).toBe('policy');
+  });
+
+  it('주석이 아닌 줄이 하나라도 바뀌면 지금 규칙 그대로다 — layout 은 전부', () => {
+    const plan = planOf('app/layout.tsx', LAYOUT, edit("title: '만날지도'", "title: '만날 지도'"));
+    expect(plan.tier).toBe('full');
+    expect(plan.cause).toBe('layout');
+    expect(planOf('app/layout.tsx', LAYOUT, edit(' * **파란 주소 한 줄**만 선다.\n */', ' */\nconst x = 1;')).tier).toBe('full');
+  });
+
+  it('다른 파일이 함께 바뀌면 그 파일의 규칙을 탄다 — 주석만 바뀐 파일만 빠진다', () => {
+    expect(planOf('app/layout.tsx', LAYOUT, edit(...URL_FIX), ['src/lib/chat/index.ts']).tier).toBe('core');
+    expect(planOf('app/layout.tsx', LAYOUT, edit(...URL_FIX), ['proxy.ts']).tier).toBe('full');
+  });
+
+  it('더한 줄 · 지운 줄 둘 다 주석이어야 한다 — 빈 줄은 주석과 같다', () => {
+    expect(changes(LAYOUT, edit('  // 미리보기 그림 — 앱 전체\n', ''))).toBe(true);
+    expect(changes(LAYOUT, edit(' * **파란 주소 한 줄**만 선다.\n', ' * **파란 주소 한 줄**만 선다.\n *\n * 한 줄 더.\n'))).toBe(true);
+    expect(changes(LAYOUT, edit("import type { Metadata } from 'next';\n\n", "import type { Metadata } from 'next';\n\n\n"))).toBe(true);
+    expect(changes(LAYOUT, edit("  // 미리보기 그림 — 앱 전체\n  title: '만날지도',\n", "  title: '만날지도',\n"))).toBe(true);
+    // 주석 한 줄과 코드 한 줄을 함께 지운다
+    expect(changes(LAYOUT, edit("  // 미리보기 그림 — 앱 전체\n  title: '만날지도',\n", ''))).toBe(false);
+    // 주석을 코드로 바꾼다 — 지운 줄은 주석, 더한 줄은 코드
+    expect(changes(LAYOUT, edit('  // 미리보기 그림 — 앱 전체', "  description: '앱 전체',"))).toBe(false);
+  });
+
+  it('JSX 주석은 주석이 아니다', () => {
+    expect(changes(LAYOUT, edit('{/* 머리 */}', '{/* 머리 — 앱 전체 */}'))).toBe(false);
+  });
+
+  it('여러 줄 블록의 가운데 줄은 * 로 열 때만 주석이다 — 블록 앞뒤에 코드가 붙은 줄은 아니다', () => {
+    const block = 'const a = 1;\n/*\n  첫 줄\n  둘째 줄\n*/\nconst b = 2;\n';
+    expect(changes(block, block.replace('  둘째 줄', '  둘째 줄 고침'))).toBe(false);
+    const starred = 'const a = 1;\n/*\n * 첫 줄\n * 둘째 줄\n */\nconst b = 2;\n';
+    expect(changes(starred, starred.replace(' * 둘째 줄', ' * 둘째 줄 고침'))).toBe(true);
+    expect(changes(starred, starred.replace(' */\nconst b', ' */ const c = 3;\nconst b'))).toBe(false);
+    expect(changes(starred, starred.replace('/*\n * 첫', 'const d = 4; /*\n * 첫'))).toBe(false);
+  });
+
+  it('* 로 여는 줄이어도 블록 주석 밖이면 코드다 — 곱셈의 이음 줄', () => {
+    const product = 'const area = width\n  * height;\n';
+    expect(changes(product, product.replace('  * height;', '  * depth;'))).toBe(false);
+  });
+
+  it('문자열 · 템플릿 속의 // 와 * 는 주석이 아니다', () => {
+    const url = "const site = 'https://mannalmap.com';\n";
+    expect(changes(url, url.replace('mannalmap.com', 'example.com'))).toBe(false);
+    const template = 'const sql = `\n  // 이건 값이다\n  * 이것도\n`;\n';
+    expect(changes(template, template.replace('// 이건 값이다', '// 이건 바뀐 값이다'))).toBe(false);
+    expect(changes(template, template.replace('* 이것도', '* 이것도 값'))).toBe(false);
+    // 템플릿 속의 빈 줄도 값이다
+    expect(changes(template, template.replace('  * 이것도\n', '  * 이것도\n\n'))).toBe(false);
+    // 템플릿 구멍이 닫힌 뒤는 다시 코드다
+    const hole = 'const x = `${a /* 구멍 */}`;\n// 끝\n';
+    expect(changes(hole, hole.replace('// 끝', '// 끝 고침'))).toBe(true);
+  });
+
+  it('정규식 속의 /* 는 블록 주석을 열지 않는다', () => {
+    const regex = "const slash = /\\/*$/;\nconst next = 'x';\n// 꼬리\n";
+    expect(codelessLinesOf(regex)).toEqual([false, false, true, true]);
+    expect(changes(regex, regex.replace("const next = 'x';", "const next = 'y';"))).toBe(false);
+    expect(changes(regex, regex.replace('// 꼬리', '// 꼬리 고침'))).toBe(true);
+  });
+
+  it('도구가 읽는 주석은 주석이 아니다 — 린트 · 타입 · 번들러 지시', () => {
+    const base = 'const a = 1;\nconst b = 2;\n';
+    for (const directive of [
+      '/* eslint-enable no-console */',
+      '/* global window */',
+      '// @ts-expect-error 옛 타입',
+      '/// <reference types="next" />',
+      '/* webpackChunkName: "x" */',
+      '// istanbul ignore next',
+      '// prettier-ignore',
+    ]) {
+      expect(changes(base, base.replace('const b', `${directive}\nconst b`)), directive).toBe(false);
+    }
+  });
+
+  it('추가 · 삭제 · 이름 바꿈 · 모드 변경 · 코드가 아닌 파일은 가르지 않는다', () => {
+    const added = ['diff --git a/app/x.ts b/app/x.ts', 'new file mode 100644', 'index 0000000..1111111', '--- /dev/null', '+++ b/app/x.ts', '@@ -0,0 +1 @@', '+// 주석뿐인 새 파일', ''].join('\n');
+    expect(onlyCommentsChanged('app/x.ts', added, '// 주석뿐인 새 파일\n')).toBe(false);
+    const deleted = ['diff --git a/app/x.ts b/app/x.ts', 'deleted file mode 100644', '--- a/app/x.ts', '+++ /dev/null', '@@ -1 +0,0 @@', '-// 주석', ''].join('\n');
+    expect(onlyCommentsChanged('app/x.ts', deleted, null)).toBe(false);
+    const mode = ['diff --git a/scripts/x.mjs b/scripts/x.mjs', 'old mode 100644', 'new mode 100755', ''].join('\n');
+    expect(onlyCommentsChanged('scripts/x.mjs', mode, '// x\n')).toBe(false);
+    // 이름 바꿈은 `--no-renames` 로 지움 · 추가 둘이 된다 — 위 둘이다
+    expect(onlyCommentsChanged('supabase/migrations/1_x.sql', diffOf('supabase/migrations/1_x.sql', '-- a\n', '-- b\n'), '-- b\n')).toBe(false);
+    expect(onlyCommentsChanged('docs/x.md', diffOf('docs/x.md', 'a\n', 'b\n'), 'b\n')).toBe(false);
+    // supabase/ 는 주석을 가르기 전에 전부다
+    expect(planOf('supabase/functions/x.ts', '// a\nexport {};\n', '// b\nexport {};\n').tier).toBe('full');
+  });
+
+  it('diff 와 지금 소스가 안 맞으면 주석으로 안 센다', () => {
+    const diff = diffOf('app/layout.tsx', LAYOUT, edit(...URL_FIX));
+    expect(onlyCommentsChanged('app/layout.tsx', diff, LAYOUT)).toBe(false);
+    expect(onlyCommentsChanged('app/layout.tsx', diff, null)).toBe(false);
+    expect(onlyCommentsChanged('app/layout.tsx', 'diff --git a/app/layout.tsx b/app/layout.tsx\n', LAYOUT)).toBe(false);
+  });
+
+  it('diff 를 못 받으면 지금 규칙 그대로다 — 주입이 없거나 그 파일의 조각이 없다', () => {
+    const after = edit(...URL_FIX);
+    expect(planFor({ files: ['app/layout.tsx'], stage: '운영 베타', sourceOf: () => after }).tier).toBe('full');
+    expect(planFor({ files: ['app/layout.tsx'], stage: '운영 베타', sourceOf: () => after, diffOf: () => null }).tier).toBe('full');
+  });
+
+  it('main 푸시 · 일정 · 손으로 켠 실행은 주석만 바뀌어도 전부다', () => {
+    const after = edit(...URL_FIX);
+    for (const event of ['push', 'schedule', 'workflow_dispatch']) {
+      const plan = planFor({
+        files: ['app/layout.tsx'],
+        event,
+        stage: '운영 베타',
+        sourceOf: () => after,
+        diffOf: () => diffOf('app/layout.tsx', LAYOUT, after),
+      });
+      expect(plan.tier, event).toBe('full');
+    }
+  });
+
+  it('git diff 출력을 파일마다 자른다 — 문맥 줄이 있어도 같은 답이다', () => {
+    const text = [
+      'diff --git a/app/layout.tsx b/app/layout.tsx',
+      'index 97b9ba1..237f65b 100644',
+      '--- a/app/layout.tsx',
+      '+++ b/app/layout.tsx',
+      '@@ -5,3 +5,3 @@',
+      '  *',
+      '- * 「이거 한번 써 봐」 하고 `saju-snowy.vercel.app` 만 보내는 사람 — 에게는 대화창에',
+      '+ * 「이거 한번 써 봐」 하고 `mannalmap.com` 만 보내는 사람 — 에게는 대화창에',
+      '  * **파란 주소 한 줄**만 선다.',
+      'diff --git a/app/gone.ts b/app/gone.ts',
+      'deleted file mode 100644',
+      'index 1111111..0000000',
+      '--- a/app/gone.ts',
+      '+++ /dev/null',
+      '@@ -1 +0,0 @@',
+      '-export {};',
+      'diff --git a/scripts/x.mjs b/scripts/x.mjs',
+      'old mode 100644',
+      'new mode 100755',
+      '',
+    ].join('\n');
+    const diffs = diffsByFile(text);
+    expect([...diffs.keys()].sort()).toEqual(['app/gone.ts', 'app/layout.tsx', 'scripts/x.mjs']);
+    expect(onlyCommentsChanged('app/layout.tsx', diffs.get('app/layout.tsx') ?? null, edit(...URL_FIX))).toBe(true);
+    expect(diffsByFile('')).toEqual(new Map());
+  });
+
+  it('verify.yml 의 계획 단계는 PR 의 diff 를 --diff 로 넘긴다 — 못 받으면 빈 파일이다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    expect(yml).toMatch(/git diff --no-renames [^\n]*-U0 "origin\/\$BASE\.\.\.HEAD" > "\$diff" \|\| : > "\$diff"/);
+    expect(yml).toMatch(/node scripts\/ci-plan\.mjs [^\n]*--diff "\$diff"/);
   });
 });

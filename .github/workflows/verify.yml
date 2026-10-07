@@ -62,11 +62,14 @@ jobs:
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         run: |
           files=""
+          diff="$RUNNER_TEMP/pr.diff"
           if [ "$EVENT" = pull_request ]; then
             # 이름 바뀐 파일은 옛 이름·새 이름 둘 다 선다 — 지운 파일도 「바뀐 파일」이다.
             files=$(git diff --name-only --no-renames "origin/$BASE...HEAD")
+            # 바뀐 줄 — 주석만 바뀐 코드 파일을 정책으로 센다(ADR 0153). 못 받으면 빈 파일이라 지금 규칙 그대로다.
+            git diff --no-renames --no-color --no-ext-diff -U0 "origin/$BASE...HEAD" > "$diff" || : > "$diff"
           fi
-          printf '%s\n' "$files" | node scripts/ci-plan.mjs --event "$EVENT" --labels "$LABELS"
+          printf '%s\n' "$files" | node scripts/ci-plan.mjs --event "$EVENT" --labels "$LABELS" --diff "$diff"
 
   # ---------------------------------------------------------------------------
   # 정책 — 문서 · 도구 설정 · scripts 시험만 바뀐 PR (#145)
