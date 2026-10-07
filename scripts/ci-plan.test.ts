@@ -31,6 +31,9 @@ import {
   planFor,
   routeOf,
   settledGreen,
+  staticTextChanges,
+  testCorpusOf,
+  testsMayRead,
   specsOfLane,
   summaryOf,
 } from './ci-plan.mjs';
@@ -983,5 +986,155 @@ describe('CI 계획 — 문서만 바뀐 main 푸시는 policy 만 (ADR 0154)', 
     expect(plan).toContain('base="$BEFORE"');
     expect(plan).toMatch(/node scripts\/ci-plan\.mjs [^\n]*--before "\$BEFORE" --forced "\$FORCED"/);
     expect(plan).toMatch(/permissions:\n\s+contents: read\n\s+actions: read\n/);
+  });
+});
+
+describe('CI 계획 — 정적인 JSX 문구만 바뀐 화면 파일은 core 다 (ADR 0155)', () => {
+  const PAGE = [
+    "import Link from 'next/link';",
+    '',
+    'export default function Page({ open }: { open: boolean }) {',
+    '  return (',
+    '    <main className="grid gap-4">',
+    '      <h1>오늘의 인연을 만나 보세요</h1>',
+    "      <p>{'저장한 사람은 사람 탭에서 고칠 수 있어요'}</p>",
+    '      {open && <p>열려 있어요</p>}',
+    '      <input aria-label="닉네임 칸" placeholder="닉네임을 적어 주세요" title="닉네임" />',
+    '      <img alt="프로필 사진" src="/x.png" />',
+    "      <Link href=\"/me\" onClick={() => console.log('x')} data-x={'속성 값'}>",
+    '        내 화면으로 가기',
+    '      </Link>',
+    '    </main>',
+    '  );',
+    '}',
+    '',
+  ].join('\n');
+  const edit = (from: string, to: string, source = PAGE) => {
+    expect(source).toContain(from);
+    return source.replace(from, to);
+  };
+  const changes = (after: string, file = 'app/me/page.tsx', before: string | null = PAGE) => staticTextChanges(ts, file, before, after);
+  const EMPTY = { strings: [], regexes: [] };
+
+  it('JsxText 와 자식 자리의 문자열 리터럴이 바뀌면 옛 · 새 글의 짝을 낸다 — 공백은 다듬는다', () => {
+    expect(changes(edit('오늘의 인연을 만나 보세요', '오늘의   인연을\n        만나요'))).toEqual([['오늘의 인연을 만나 보세요', '오늘의 인연을 만나요']]);
+    expect(changes(edit("{'저장한 사람은 사람 탭에서 고칠 수 있어요'}", "{'저장한 사람은 홈에서 고쳐요'}"))).toEqual([
+      ['저장한 사람은 사람 탭에서 고칠 수 있어요', '저장한 사람은 홈에서 고쳐요'],
+    ]);
+    // 조건부 렌더링 안의 글도 글이다 — 조건은 그대로
+    expect(changes(edit('열려 있어요', '열렸어요'))).toEqual([['열려 있어요', '열렸어요']]);
+    // 공백만 바뀌면 보이게 달라진 글이 없다
+    expect(changes(edit('        내 화면으로 가기\n', '        내 화면으로 가기\n\n'))).toEqual([]);
+  });
+
+  it('className · 문자열 속성(aria-label · placeholder · title · alt) · 속성 자리의 {…} 는 대상이 아니다', () => {
+    expect(changes(edit('className="grid gap-4"', 'className="hidden"'))).toBeNull();
+    expect(changes(edit('aria-label="닉네임 칸"', 'aria-label="별명 칸"'))).toBeNull();
+    expect(changes(edit('placeholder="닉네임을 적어 주세요"', 'placeholder="별명을 적어 주세요"'))).toBeNull();
+    expect(changes(edit('title="닉네임"', 'title="별명"'))).toBeNull();
+    expect(changes(edit('alt="프로필 사진"', 'alt="얼굴 사진"'))).toBeNull();
+    expect(changes(edit("data-x={'속성 값'}", "data-x={'다른 값'}"))).toBeNull();
+  });
+
+  it('실행식 · props · 이벤트 · 조건부 렌더링 · import · export 가 바뀌면 문구가 함께 바뀌어도 대상이 아니다', () => {
+    expect(changes(edit("console.log('x')", "console.log('y')"))).toBeNull();
+    expect(changes(edit('href="/me"', 'href="/me/people"'))).toBeNull();
+    expect(changes(edit('{open && <p>', '{!open && <p>'))).toBeNull();
+    expect(changes(edit("import Link from 'next/link';", "import Link from 'next/link';\nimport x from './x';"))).toBeNull();
+    expect(changes(edit('export default function Page', 'export function Page'))).toBeNull();
+    expect(changes(edit('<h1>오늘의 인연을 만나 보세요</h1>', '<h2>오늘의 인연을 만나 보세요</h2>'))).toBeNull();
+    // 글을 둘로 쪼개는 태그 · 식 — 나무가 다르다
+    expect(changes(edit('오늘의 인연을 만나 보세요', '오늘의 <b>인연</b>을 만나 보세요'))).toBeNull();
+    expect(changes(edit('오늘의 인연을 만나 보세요', '오늘의 {name} 만나 보세요'))).toBeNull();
+  });
+
+  it('주석만 · 그대로 · 한쪽 없음 · 파싱 실패 · 뜻이 있는 주석이 바뀜은 대상이 아니다', () => {
+    expect(changes(edit('export default', '// 머리\nexport default'))).toBeNull();
+    expect(changes(PAGE)).toBeNull();
+    expect(changes(PAGE, 'app/me/page.tsx', null)).toBeNull();
+    expect(staticTextChanges(ts, 'app/me/page.tsx', PAGE, null)).toBeNull();
+    expect(changes(edit('오늘의 인연을 만나 보세요', '오늘의 인연을 {'))).toBeNull();
+    expect(changes(edit('export default', '// @ts-expect-error 옛\nexport default').replace('만나 보세요', '만나요'))).toBeNull();
+    expect(staticTextChanges(null, 'app/me/page.tsx', PAGE, edit('만나 보세요', '만나요'))).toBeNull();
+  });
+
+  it('시험이 그 글을 볼 수 있으면 원래 규칙 — 시험이 적은 글 · 한쪽에만 드는 부분 글 · 한쪽에만 맞는 정규식 · 짧거나 기호뿐인 글', () => {
+    const corpus = (strings: string[], regexes: RegExp[] = []) => ({ strings, regexes });
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', EMPTY)).toBe(false);
+    // 시험 소스에 옛 글이나 새 글이 부분 문자열로 든다
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus(['오늘의 인연을 만나 보세요 — 머리']))).toBe(true);
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus(['오늘의 인연을 만나요']))).toBe(true);
+    // getByText('인연') 은 양쪽에 다 들어 고르는 것이 그대로 — '보세요' 는 옛 글에만 든다
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus(['인연']))).toBe(false);
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus(['보세요']))).toBe(true);
+    // 정규식 — 한쪽에만 맞으면
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus([], [/만나 보세요/]))).toBe(true);
+    expect(testsMayRead('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요', corpus([], [/인연/]))).toBe(false);
+    // 대소문자는 안 가린다 — Playwright 의 getByText 처럼
+    expect(testsMayRead('Open the Door', 'Open the gate', corpus(['open the door']))).toBe(true);
+    // 판정이 불확실한 글 — 아주 짧음 · 숫자 · 기호뿐 · 지움
+    for (const [before, after] of [
+      ['취소', '닫'],
+      ['3 / 100', '4 / 100'],
+      ['→', '›'],
+      ['오늘의 인연', ''],
+    ]) {
+      expect(testsMayRead(before, after, EMPTY), `${before} → ${after}`).toBe(true);
+    }
+  });
+
+  it('시험의 소스 — e2e 전부 · 흐름 검사와 도우미 · 그 둘이 직접 import 하는 공용 상수까지 읽고, 글자 없는 정규식은 뺀다', () => {
+    const corpus = testCorpusOf(ts);
+    expect(corpus).not.toBeNull();
+    expect(corpus?.strings).toContain('테스트 코드');
+    // check-share.mjs 가 import 하는 src/lib/brand 의 상수
+    expect(corpus?.strings).toContain('나와 사람 사이를 이해하는 사주');
+    expect(corpus?.regexes.some((one) => one.source.includes('님에게 상세 궁합을 요청했어요'))).toBe(true);
+    expect(corpus?.regexes.some((one) => one.test('아무 글'))).toBe(false);
+  });
+
+  /** 화면 파일 하나를 `before` → `after` 로 바꾼 운영 베타 PR */
+  const planOf = (file: string, after: string, { corpus = EMPTY as { strings: string[]; regexes: RegExp[] } | null, stage = '운영 베타', others = [] as string[] } = {}) =>
+    planFor({
+      files: [file, ...others],
+      stage,
+      ts,
+      testCorpus: corpus,
+      sourceOf: (one) => (one === file ? after : null),
+      baseSourceOf: (one) => (one === file ? PAGE : null),
+    });
+  const TEXT_FIX = edit('오늘의 인연을 만나 보세요', '오늘의 인연을 만나요');
+
+  it('입구 page 의 문구만 바뀌면 그 주소의 e2e 를 안 부르고 core 하나다 — layout 도 공용 위험이 아니다', () => {
+    for (const file of ['app/me/(shelf)/readings/compat/page.tsx', 'app/me/people/page.tsx', 'app/layout.tsx', 'app/me/(shelf)/readings/layout.tsx', 'app/me/compat/not-found.tsx', 'app/me/chat/empty.tsx']) {
+      const plan = planOf(file, TEXT_FIX);
+      expect(plan.tier, file).toBe('core');
+      expect(plan.lanes, file).toEqual(CORE_ONLY);
+      expect(plan.reason, file).toContain(`정적인 JSX 문구만 바뀐 화면 파일은 core 로 셌다: \`${file}\``);
+    }
+    // 다른 파일이 함께 바뀌면 그 파일의 규칙을 탄다
+    expect(planOf('app/layout.tsx', TEXT_FIX, { others: ['proxy.ts'] }).tier).toBe('full');
+    expect(planOf('app/layout.tsx', TEXT_FIX, { others: ['docs/prd.md'] }).tier).toBe('core');
+  });
+
+  it('원래 규칙 그대로 — 시험이 그 글을 봄 · 속성이 바뀜 · 시험 소스를 못 읽음 · 인증 · Next 공용 경계 · 메타데이터 · 공개 출시', () => {
+    const file = 'app/me/(shelf)/readings/compat/page.tsx';
+    const narrowed = beta([file]);
+    expect(narrowed.tier).toBe('narrow');
+    const lanes = { lanes: narrowed.lanes, authedLanes: narrowed.authedLanes };
+    const same = (plan: ReturnType<typeof planFor>) => ({ lanes: plan.lanes, authedLanes: plan.authedLanes });
+    expect(same(planOf(file, TEXT_FIX, { corpus: { strings: ['오늘의 인연을 만나 보세요'], regexes: [] } }))).toEqual(lanes);
+    expect(same(planOf(file, edit('className="grid gap-4"', 'className="hidden"')))).toEqual(lanes);
+    expect(same(planOf(file, edit('placeholder="닉네임을 적어 주세요"', 'placeholder="별명"')))).toEqual(lanes);
+    expect(same(planOf(file, TEXT_FIX, { corpus: null }))).toEqual(lanes);
+    expect(planOf('app/layout.tsx', edit('className="grid gap-4"', 'className="hidden"')).cause).toBe('layout');
+    expect(planOf('app/auth/denied/page.tsx', TEXT_FIX).cause).toBe('인증');
+    expect(planOf('app/global-error.tsx', TEXT_FIX).cause).toBe('Next 공용 경계');
+    expect(planOf('app/opengraph-image.tsx', TEXT_FIX).lanes.anon).toBe(true);
+    expect(planOf(file, TEXT_FIX, { stage: '공개 출시' }).tier).toBe('full');
+    // 페이지 파일의 추가 · 삭제 · 이동은 옛 소스가 없어 원래 규칙이다
+    expect(planFor({ files: [file], stage: '운영 베타', ts, testCorpus: EMPTY, sourceOf: () => TEXT_FIX, baseSourceOf: () => null }).tier).toBe('narrow');
+    // 파서가 없으면 원래 규칙이다
+    expect(planFor({ files: ['app/layout.tsx'], stage: '운영 베타', testCorpus: EMPTY, sourceOf: () => TEXT_FIX, baseSourceOf: () => PAGE }).tier).toBe('full');
   });
 });

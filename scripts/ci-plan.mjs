@@ -123,7 +123,7 @@
  * 판정 차례:
  *
  * 1. 위의 「전부」 조건 그대로 — 계획 밖 이벤트(main 푸시는 아래 「문서만 바뀐 main 푸시」가 따로 가른다) ·`full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름. 공개 출시는 세 단계.
- *    그 뒤 주석만 바뀐 코드 파일은 정책으로 돌린다(아래 「주석만 바뀐 코드 파일」)
+ *    그 뒤 주석만 바뀐 코드 파일은 정책으로, 정적인 JSX 문구만 바뀐 화면 파일은 `core` 로 돌린다(아래 둘)
  * 2. **공용 위험**(`SHARED_RISK`) — 바뀐 파일 전체를 먼저 훑고 하나라도 들면 전부. 관문 · 인증 · `layout` · `route.ts` ·
  *    서버 액션 · spec 이 아닌 `e2e/**` · 시험 도구, 그리고 Next 의 공용 경계(`global-error` · `global-not-found` ·
  *    `forbidden` · `unauthorized` · 뿌리의 `instrumentation` · `instrumentation-client` · `middleware`). 주소 하나로는 그것을
@@ -164,6 +164,26 @@
  * - 파싱 실패 · 가르지 않는 확장자 · base 쪽을 못 읽음(추가 · 삭제 · 이름 바꿈 · 실행 비트 변경) · `typescript` 를 못 부름
  * - 일정 · 손으로 켠 실행은 전처럼 전부다. main 푸시는 아래 「문서만 바뀐 main 푸시」가 푸시 전 SHA 를 base 로 같은 판정을 쓴다.
  *   `supabase/**` 는 이것보다 먼저 전부다
+ *
+ * ## 정적인 JSX 문구만 바뀐 화면 파일은 `core` 로 센다 (ADR 0155)
+ *
+ * 운영 베타의 PR 에서 `app/**` 의 `.tsx`(입구 `page` · `layout` 포함)가 **정적인 JSX 문구만** 바뀌었으면 그 파일은 `core` 다 — 그 주소의
+ * e2e 차선을 켜지 않고, `layout` 이어도 공용 위험이 아니다. 같은 파서로 가른다(`staticTextChanges`): `JsxText` 와 JSX 자식 자리의
+ * `{'…'}` 문자열을 자리표 하나로 가린 나무가 base 와 같고 뜻이 있는 주석이 그대로여야 한다. 실행식 · props · 이벤트 · 조건부
+ * 렌더링 · import · export · 태그가 하나라도 다르면 원래 규칙이다. 원래 규칙 그대로 가는 것:
+ *
+ * - **속성 값** — `className`(`hidden` · `pointer-events-none` · 반응형 표시가 동작을 막는다)과 문자열 속성(`aria-label` ·
+ *   `placeholder` · `title` · `alt` — 시험이 이름으로 찾는다), 속성 자리의 `{'…'}` 도
+ * - **시험이 그 글을 볼 수 있음**(`testsMayRead`) — 바뀐 옛 · 새 글(공백을 다듬은 꼴)이 시험 소스의 문자열에 부분으로 든다,
+ *   시험의 문자열(글자 둘 이상)이 옛 · 새 글 중 한쪽에만 든다(`getByText('로그인')` 이 고르는 요소가 달라진다), 시험의 정규식이
+ *   한쪽에만 맞는다, 글자가 둘보다 적다(아주 짧음 · 숫자 · 기호뿐 · 지움). 시험 소스는 `e2e/**` 전부 · 흐름 검사와 그것이 부르는
+ *   `scripts/` 도우미 · 그 둘이 직접 import 하는 공용 상수 파일 한 겹이다(`testCorpusOf`, 하나라도 못 읽으면 원래 규칙). 글자가
+ *   하나도 없는 정규식(`/\s+/` · `/.*\/`)은 문구를 찾지 않으므로 뺀다
+ * - 인증(`app/auth/**`) · Next 공용 경계 · 메타데이터 파일(그림이 곧 화면) · 시험 파일
+ * - 옛 소스를 못 읽음(페이지의 추가 · 삭제 · 이동) · 파싱 실패 · 뜻이 있는 주석의 변경 · 파서 없음 · 공개 출시(좁히지 않는다)
+ *
+ * 남는 구멍: 시험 문자열이 문구 둘에 걸쳐 있거나(`{name}님, …`) 화면 밖 상수로 짜 맞춘 글을 찾는 시험은 부분 문자열로 안 잡힐 수
+ * 있다. 그 붉음은 머지 뒤 main 의 전체가 잡는다.
  *
  * ## 문서만 바뀐 main 푸시는 `policy` 만 (ADR 0154)
  *
@@ -517,40 +537,54 @@ const directivesIn = (comment) =>
  * 줄바꿈)을 놓치므로 나무의 모양까지 든다. JSDoc 노드는 주석이라 건너뛴다. 뜻이 있는 주석은 「열의 몇 번째 앞(뒤)에
  * 무엇이」로 적는다 — 열이 같을 때 그 자리가 같으면 같은 것에 붙은 것이다. 파싱 진단이 하나라도 있으면 `null`
  *
+ * `maskText` 면 정적인 JSX 문구(아래 「정적인 JSX 문구만 바뀐 화면 파일」)의 잎을 자리표 하나로 적고 그 글자를 `texts` 에
+ * 차례로 모은다 — 열이 같으면 문구 밖의 나무가 같다.
+ *
  * @param {typeof import('typescript')} ts
  * @param {string} file
  * @param {string} source
- * @returns {{ tokens: string[], meaningful: string[] } | null}
+ * @param {{ maskText?: boolean }} [options]
+ * @returns {{ tokens: string[], meaningful: string[], texts: string[] } | null}
  */
-export function syntaxOf(ts, file, source) {
+export function syntaxOf(ts, file, source, { maskText = false } = {}) {
   const kind = SCRIPT_KINDS[posix.extname(file)];
   if (!kind) return null;
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind[kind]);
   if (tree.parseDiagnostics?.length !== 0) return null;
   const tokens = [];
   const meaningful = [];
+  const texts = [];
   const note = (ranges, where) => {
     for (const range of ranges ?? []) {
       for (const directive of directivesIn(source.slice(range.pos, range.end))) meaningful.push(`${where}:${directive}`);
     }
   };
-  const walk = (node) => {
+  /** JSX 자식 자리의 글 — `JsxText`, 그리고 자식 자리 `{'…'}` 의 문자열(속성 값 `x={'…'}` 은 아니다) */
+  const isStaticText = (node, parent, grand) =>
+    node.kind === ts.SyntaxKind.JsxText ||
+    ((node.kind === ts.SyntaxKind.StringLiteral || node.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) &&
+      parent?.kind === ts.SyntaxKind.JsxExpression &&
+      grand?.kind === ts.SyntaxKind.SyntaxList);
+  const walk = (node, parent, grand) => {
     if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) return;
     const children = node.getChildren(tree);
     if (children.length > 0 && node.kind !== ts.SyntaxKind.JsxText) {
       tokens.push(`(${node.kind}`);
-      for (const child of children) walk(child);
+      for (const child of children) walk(child, node, parent);
       tokens.push(')');
       return;
     }
     note(ts.getLeadingCommentRanges(source, node.pos), `${tokens.length}<`);
-    tokens.push(`${node.kind}:${node.getText(tree)}`);
+    if (maskText && isStaticText(node, parent, grand)) {
+      texts.push(node.kind === ts.SyntaxKind.JsxText ? node.getText(tree) : node.text);
+      tokens.push(`${node.kind}:<글>`);
+    } else tokens.push(`${node.kind}:${node.getText(tree)}`);
     note(ts.getTrailingCommentRanges(source, node.end), `${tokens.length - 1}>`);
   };
-  walk(tree);
+  walk(tree, undefined, undefined);
   const shebang = ts.getShebang(source);
   if (shebang) meaningful.push(`#!${shebang}`);
-  return { tokens, meaningful };
+  return { tokens, meaningful, texts };
 }
 
 /**
@@ -567,8 +601,157 @@ export function onlyCommentsChanged(ts, file, before, after) {
   const old = syntaxOf(ts, file, before);
   const now = syntaxOf(ts, file, after);
   if (old === null || now === null) return false;
-  const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
   return same(old.tokens, now.tokens) && same(old.meaningful, now.meaningful);
+}
+
+const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
+
+// ---------------------------------------------------------------------------
+// 정적인 JSX 문구만 바뀐 화면 파일 — core 로 센다(위 「정적인 JSX 문구만 바뀐 화면 파일」, ADR 0155)
+// ---------------------------------------------------------------------------
+
+/** 문구를 견주는 꼴 — 공백을 한 칸으로 모으고 앞뒤를 걷는다(JSX 가 줄바꿈 공백을 걷듯) */
+const normalText = (text) => text.replace(/\s+/g, ' ').trim();
+/** 글자(문자)가 이만큼은 있어야 견준다 — 아주 짧거나 숫자 · 기호뿐이면 시험이 무엇으로 찾는지 모른다 */
+const MIN_LETTERS = 2;
+const lettersIn = (text) => (text.match(/\p{L}/gu) ?? []).length;
+
+/**
+ * 정적인 JSX 문구만 바뀌었는가 — 문구 자리를 가린 나무가 같고 뜻이 있는 주석이 그대로인데 문구가 다르다. 그렇다면 보이게
+ * 달라진 문구마다 `[옛 글, 새 글]`(다듬은 꼴)을 돌려준다(공백만 달라졌으면 빈 배열). 아니면 `null` — 한쪽을 못 읽음 · 파싱 실패 ·
+ * 문구 밖의 나무가 다름 · 문구가 그대로(주석만, 위 판정의 몫)
+ *
+ * @param {typeof import('typescript') | null} ts
+ * @param {string} file
+ * @param {string | null} before
+ * @param {string | null} after
+ * @returns {[string, string][] | null}
+ */
+export function staticTextChanges(ts, file, before, after) {
+  if (ts === null || before === null || after === null || before === after) return null;
+  const old = syntaxOf(ts, file, before, { maskText: true });
+  const now = syntaxOf(ts, file, after, { maskText: true });
+  if (old === null || now === null) return null;
+  if (!same(old.tokens, now.tokens) || !same(old.meaningful, now.meaningful)) return null;
+  const pairs = old.texts.map((text, at) => [text, now.texts[at]]).filter(([a, b]) => a !== b);
+  if (pairs.length === 0) return null;
+  return pairs.map(([a, b]) => [normalText(a), normalText(b)]).filter(([a, b]) => a !== b);
+}
+
+/**
+ * 시험이 이 문구 바뀜을 볼 수 있는가 — 불확실하면 참이다. 옛 글 → 새 글 하나에 대해:
+ *
+ * - 둘 중 하나라도 글자가 `MIN_LETTERS` 보다 적다(아주 짧음 · 숫자 · 기호뿐 · 지움)
+ * - 시험 소스의 문자열이 옛 글이나 새 글을 품는다 — 시험이 그 글을 적었다(대소문자 무시)
+ * - 시험 소스의 문자열(글자 `MIN_LETTERS` 이상)이 옛 글과 새 글 중 한쪽에만 든다 — `getByText('로그인')` 처럼 부분으로 찾는
+ *   시험이 고르는 요소가 달라진다. 양쪽에 다 들면 그 시험이 고르는 것은 그대로다
+ * - 시험의 정규식이 옛 글과 새 글 중 한쪽에만 맞는다
+ *
+ * @param {string} before 다듬은 옛 글
+ * @param {string} after 다듬은 새 글
+ * @param {{ strings: string[], regexes: RegExp[] }} corpus
+ */
+export function testsMayRead(before, after, corpus) {
+  if (lettersIn(before) < MIN_LETTERS || lettersIn(after) < MIN_LETTERS) return true;
+  const old = before.toLowerCase();
+  const now = after.toLowerCase();
+  if (corpus.strings.some((one) => one.includes(old) || one.includes(now))) return true;
+  if (corpus.strings.some((one) => lettersIn(one) >= MIN_LETTERS && old.includes(one) !== now.includes(one))) return true;
+  return corpus.regexes.some((one) => one.test(before) !== one.test(after));
+}
+
+/** 소스 하나의 문자열 · 템플릿 조각 · 정규식 — JSON 이면 그 값의 문자열 */
+function literalsOf(ts, file, source, into) {
+  if (file.endsWith('.json')) {
+    const visit = (value) => {
+      if (typeof value === 'string') into.strings.push(value);
+      else if (value && typeof value === 'object') Object.values(value).forEach(visit);
+    };
+    visit(JSON.parse(source));
+    return;
+  }
+  const kind = SCRIPT_KINDS[posix.extname(file)];
+  if (!kind) return;
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind[kind]);
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) into.strings.push(node.text);
+    else if (node.kind === ts.SyntaxKind.RegularExpressionLiteral) {
+      const literal = node.getText(tree);
+      const end = literal.lastIndexOf('/');
+      // 글자가 하나도 없는 정규식(`/\s+/` · `/.*/` · `/\d+/`)은 주소 · 공백 · 수를 고르는 것이라 문구를 찾지 않는다 — 넣으면 무엇에나 맞는다
+      const pattern = literal.slice(1, end);
+      if (lettersIn(pattern.replace(/\\./g, '')) === 0) return;
+      try {
+        into.regexes.push(new RegExp(pattern, literal.slice(end + 1).replace(/[gy]/g, '')));
+      } catch {
+        into.regexes.push(/(?:)/); // 못 읽는 정규식은 무엇에나 맞는 것으로 — 닫히는 쪽
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+}
+
+/**
+ * 시험이 문구를 찾는 소스 — `e2e/**` 전부, 흐름 검사(`scripts/check-*.mjs`)와 그것이 부르는 `scripts/` 도우미, 그리고 그 둘이 직접
+ * import 하는 저장소 파일(공용 상수 — `src/lib/brand` 같은 것) 한 겹. 하나라도 못 읽으면 `null` — 모르는 것이다
+ *
+ * @param {typeof import('typescript')} ts
+ * @returns {{ strings: string[], regexes: RegExp[] } | null}
+ */
+export function testCorpusOf(ts, sourceOf = sourceFromDisk) {
+  const corpus = { strings: [], regexes: [] };
+  const isTestSide = (file) => file.startsWith('e2e/') || file.startsWith('scripts/');
+  let start;
+  try {
+    const e2e = readdirSync(new URL('../e2e', import.meta.url), { recursive: true })
+      .map((name) => `e2e/${String(name).split('\\').join('/')}`)
+      .filter((file) => /\.(?:[cm]?[jt]sx?|json)$/.test(file));
+    start = [...e2e, ...Object.keys(testMap().addresses).filter(isFlowCheck)];
+  } catch {
+    return null;
+  }
+  const seen = new Set();
+  const queue = start.map((file) => [file, true]);
+  try {
+    while (queue.length > 0) {
+      const [file, follow] = queue.pop();
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const source = sourceOf(file);
+      if (source === null) return null;
+      literalsOf(ts, file, source, corpus);
+      if (!follow || file.endsWith('.json')) continue;
+      for (const name of importsOf(source)) {
+        const next = resolveImport(name, file, sourceOf);
+        if (next !== null && !seen.has(next)) queue.push([next, isTestSide(next)]);
+      }
+    }
+  } catch {
+    return null;
+  }
+  corpus.strings = [...new Set(corpus.strings.map((one) => normalText(one).toLowerCase()).filter((one) => one !== ''))];
+  return corpus;
+}
+
+/**
+ * 문구만 바뀌면 core 로 세는 화면 파일 — `app/**` 의 시험 아닌 `.tsx`. 인증 · Next 공용 경계 · 메타데이터(그림이 곧 화면)는
+ * 빼고, 공용 위험 가운데 `layout` 만 든다
+ */
+const isScreenFile = (file) =>
+  /^app\/.+\.tsx$/.test(file) && !isTestFile(file) && !METADATA.test(file) && !SHARED_RISK.some(([name, hits]) => name !== 'layout' && hits(file));
+
+/** 바뀐 파일 중 정적인 JSX 문구만 바뀌었고 시험이 그 문구를 읽지 않는 화면 파일 */
+function textOnlyOf(changed, { sourceOf, baseSourceOf, ts, testCorpus }) {
+  if (ts === null) return [];
+  let corpus;
+  return changed.filter((file) => {
+    if (!isScreenFile(file)) return false;
+    const texts = staticTextChanges(ts, file, baseSourceOf(file), sourceOf(file));
+    if (texts === null) return false;
+    corpus ??= testCorpus === undefined ? testCorpusOf(ts) : testCorpus;
+    return corpus !== null && !texts.some(([before, after]) => testsMayRead(before, after, corpus));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -592,12 +775,14 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
  *
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
- * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null }} input
+ * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null, testCorpus?: { strings: string[], regexes: RegExp[] } | null }} input
  * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
  */
-export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null }) {
+export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null, testCorpus = undefined }) {
   const decided =
-    event === 'push' ? decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) : decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts });
+    event === 'push'
+      ? decidePush({ files, pushed, sourceOf, baseSourceOf, ts })
+      : decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, testCorpus });
   const { lanes, authedLanes } = picked(decided.tier === 'full' ? EVERYTHING : decided.pick ?? {});
   return {
     tier: decided.tier,
@@ -618,7 +803,7 @@ function audits({ files, labels, event, tier }) {
 
 const full = (cause, reason) => ({ tier: 'full', cause, reason });
 
-function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
+function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, testCorpus }) {
   if (!PLANNED_EVENTS.has(event)) return full('계획 밖 이벤트', `\`${event}\` 은 계획을 안 본다`);
   if (labels.includes(FULL_LABEL)) return full('라벨', `\`${FULL_LABEL}\` 라벨`);
 
@@ -631,7 +816,11 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
 
   const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
   const judged = changed.filter((file) => !commentOnly.includes(file));
-  return notingComments(LAUNCHED[stage] ? decideLaunched(judged) : decideBeta(judged, stage, sourceOf), commentOnly);
+  if (LAUNCHED[stage]) return notingComments(decideLaunched(judged), commentOnly);
+  const textOnly = textOnlyOf(judged, { sourceOf, baseSourceOf, ts, testCorpus });
+  const decided = notingComments(decideBeta(judged, stage, sourceOf, textOnly), commentOnly);
+  if (textOnly.length === 0) return decided;
+  return { ...decided, reason: `${decided.reason} — 정적인 JSX 문구만 바뀐 화면 파일은 core 로 셌다: ${textOnly.map((one) => `\`${one}\``).join(' · ')}` };
 }
 
 /** 바뀐 파일 중 주석만 바뀐 코드 파일 — 파서가 없으면 없다(위 「주석만 바뀐 코드 파일」) */
@@ -685,10 +874,10 @@ function decideLaunched(changed) {
   return { tier: 'engine', reason: '엔진과 그것을 그리는 칸만 바뀌었다', pick: { core: true, anon: true } };
 }
 
-/** 공개 출시 전 — 공용 위험 → 정책 → 파일마다 그 주소에 닿는 차선. 좁힌 계획에도 `core` 는 늘 선다 */
-function decideBeta(changed, stage, sourceOf) {
+/** 공개 출시 전 — 공용 위험 → 정책 → 파일마다 그 주소에 닿는 차선. 좁힌 계획에도 `core` 는 늘 선다. `asCore` 는 정적인 JSX 문구만 바뀐 화면 파일(ADR 0155) */
+function decideBeta(changed, stage, sourceOf, asCore = []) {
   for (const file of changed) {
-    if (isTestFile(file)) continue;
+    if (isTestFile(file) || asCore.includes(file)) continue;
     const risk = SHARED_RISK.find(([, hits]) => hits(file));
     if (risk) return full(risk[0], `${stage} — \`${file}\` 은 공용 위험(${risk[0]})이라 머지 전에 전부 잰다`);
   }
@@ -704,7 +893,7 @@ function decideBeta(changed, stage, sourceOf) {
     }
   };
   for (const file of changed) {
-    if (isTestFile(file) || isPolicy(file)) continue;
+    if (isTestFile(file) || isPolicy(file) || asCore.includes(file)) continue;
     let tests;
     if (isSpec(file) || isFlowCheck(file)) tests = [file];
     else if (METADATA.test(file) && !reachesServer(file, sourceOf)) {
