@@ -344,8 +344,10 @@ npm audit --omit=dev --audit-level=high ; echo $?   # 0 이어야 한다
 
 1. **올린다.** 같은 메이저 안이면 올리고 끝이다. 메이저를 넘거나 `overrides` 로 누르면 그 판이 부모와 맞는지
    `npm run build` 와 e2e 로 본다 — `next` 가 그런 자리다(`1e1f6c8` 은 16.3.1 → 16.3.6).
-2. **PR 은 `fix(deps): ...`** 로 낸다. 잠금 파일이 바뀌므로 그 PR 에서 `audit` 이 다시 돌아 0 을 잰다.
-3. **고친 판이 아직 없으면** 막을 자리를 본다 — 그 경로를 우리가 부르나(`npm audit` 의 advisory 본문). 안 부르면
+2. **잠금 파일이 맞는지 `npm ci` 로 본다.** `npm audit fix` 가 `@emnapi/*` 를 `package-lock.json` 과 어긋난 채 두었고,
+   `npm install` 한 번이 다시 맞췄다(2026-10-07, #515). CI 의 차선은 `npm ci` 로 깐다(`.github/workflows/verify.yml`).
+3. **PR 은 `fix(deps): ...`** 로 낸다. 잠금 파일이 바뀌므로 그 PR 에서 `audit` 이 다시 돌아 0 을 잰다.
+4. **고친 판이 아직 없으면** 막을 자리를 본다 — 그 경로를 우리가 부르나(`npm audit` 의 advisory 본문). 안 부르면
    간극 대장 G-23 ① 에 패키지 · advisory · 까닭 · 다시 볼 날을 적고, 그동안 붉은 main 은 이슈가 들고 있다.
    `--audit-level` 을 critical 로 올리거나 차선을 끄지 않는다.
 
