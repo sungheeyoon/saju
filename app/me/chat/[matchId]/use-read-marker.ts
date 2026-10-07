@@ -3,8 +3,10 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
 import { supabaseInBrowser } from '../../../auth/browser-client';
+import { CHAT_MOVED, chatMovedOf } from '../chat-signal';
 import { announceChatUnreadMoved } from '../unread-signal';
 import { markChatReadUpTo } from './mark-read';
+import { startReadRetry, type ReadRetry } from './read-retry';
 import { readUpTo } from './thread';
 
 /** 말풍선이 이만큼 화면에 들어와야 「본 것」이다 — 화면보다 긴 말풍선은 이만큼의 높이가 들어오면 본 것이다 */
@@ -19,6 +21,9 @@ export const THEIR_SEQ = 'data-their-seq';
  * `mark_chat_read` 로 남긴다. 숨은 탭에서는 부르지 않고, 다시 보이면 그때 화면에 든 것으로 잰다. 남기고 나면 머리글의
  * 딱지가 다시 세게 알린다. 브라우저 클라이언트로 곧장 부르므로 활동으로 적히지 않는다(`mark-read.ts`).
  *
+ * 못 남겼으면 복구 신호(`online` · 라이브 층의 다시 대조 · 다시 보임)와 보이는 동안의 제한된 뒤물림에 다시 부른다
+ * (`read-retry.ts`).
+ *
  * `already` 는 들어올 때 이미 읽은 차례다(`readAlready`) — 안 읽은 것이 없던 방은 부르지 않는다.
  */
 export function useReadMarker(
@@ -32,6 +37,7 @@ export function useReadMarker(
   const seen = useRef(new Map<Element, number>());
   const marked = useRef(already);
   const busy = useRef(false);
+  const retry = useRef<ReadRetry | null>(null);
 
   const tryMark = useRef(() => {});
   useEffect(() => {
@@ -41,13 +47,17 @@ export function useReadMarker(
       if (upTo === null) return;
       busy.current = true;
       void (async () => {
-        // 못 남겼으면(망 · DB) 그대로 둔다 — 다음에 말풍선이 들거나 문서가 다시 보일 때 다시 부른다.
         const done = await markChatReadUpTo(supabaseInBrowser(), matchId, upTo).then(
           (result) => result.ok,
           () => false,
         );
         busy.current = false;
-        if (!done) return;
+        // 못 남겼으면(망 · DB) 다시 시도에 맡긴다 — 복구 신호나 뒤물림이 다시 부른다(`read-retry.ts`).
+        if (!done) {
+          retry.current?.failed();
+          return;
+        }
+        retry.current?.succeeded();
         marked.current = Math.max(marked.current, upTo);
         // 주소가 안 바뀌므로 머리글이 스스로 다시 세지 않는다 — 알린다.
         announceChatUnreadMoved();
@@ -86,8 +96,28 @@ export function useReadMarker(
   }, [log, enabled, bubbles]);
 
   useEffect(() => {
-    const onVisibility = () => tryMark.current();
+    const visible = () => document.visibilityState === 'visible';
+    const again = startReadRetry({ attempt: () => tryMark.current(), visible });
+    retry.current = again;
+
+    const onVisibility = () => {
+      again.recovered();
+      tryMark.current();
+    };
+    const onOnline = () => again.recovered();
+    /* 라이브 층의 다시 대조(방을 모르는 채팅 신호) — 채널이 다시 섰거나 대체 조회가 돌았다 */
+    const onChatMoved = (event: Event) => {
+      if (chatMovedOf(event).matchId === null) again.recovered();
+    };
     document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    window.addEventListener('online', onOnline);
+    window.addEventListener(CHAT_MOVED, onChatMoved);
+    return () => {
+      again.stop();
+      retry.current = null;
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener(CHAT_MOVED, onChatMoved);
+    };
   }, []);
 }

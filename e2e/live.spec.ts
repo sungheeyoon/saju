@@ -392,6 +392,31 @@ test.describe('앱이 스스로 갱신된다', () => {
     await expect.poll(readOf, { timeout: WITHIN_MS + 1_000 }).toBe(newest);
   });
 
+  test('(6) 읽음 저장이 한 번 실패해도, 손대지 않는 동안 다시 시도해 본 데까지 남긴다', async ({ openAs }) => {
+    const { a, b, tag, matchId, room } = await pair(openAs);
+    const bId = userIdOf(b.account.email);
+    const bLog = socketLog(b.page);
+    // 읽음 요청만 첫 번째를 망 오류로 떨어뜨린다 — 그 뒤로 새 말풍선은 들지 않는다
+    let refused = 0;
+    await b.page.route(/\/rest\/v1\/rpc\/mark_chat_read/, async (route) => {
+      if (refused === 0) {
+        refused += 1;
+        await route.abort('failed');
+      } else {
+        await route.continue();
+      }
+    });
+    await b.page.goto(room);
+    await channelUp(bLog, bId);
+
+    const body = `한 번 놓친 읽음 ${tag}`;
+    await sendAs(a, matchId, body);
+    await expect(talkOf(b.page).getByText(body)).toBeVisible({ timeout: WITHIN_MS });
+    await expect.poll(() => refused, { timeout: WITHIN_MS + 1_000 }).toBe(1);
+    // 첫 뒤물림(2초) 안에 다시 부른다(`read-retry.ts`)
+    await expect.poll(() => readOf(matchId, bId), { timeout: 6_000 }).toBe(newestOf(matchId));
+  });
+
   test('(6) 로그아웃하면 채널이 걷히고, 같은 창에서 다른 계정으로 들어가면 앞 계정의 사건을 받지 않는다', async ({ openAs, switchAccount }) => {
     const { a, b, tag, matchId } = await pair(openAs);
     const bId = userIdOf(b.account.email);
