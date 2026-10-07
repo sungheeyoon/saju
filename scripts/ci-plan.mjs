@@ -251,7 +251,17 @@ export const CORE_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm
  * 로그인 뒤 차선 — `verify.yml` 의 `authed` matrix 가 계획의 `authed_lanes` 로 받는다. 차선마다 `package.json` 에
  * `test:e2e:<차선>` 이 있고, 그 스크립트가 어느 spec 을 부르는지가 곧 그 차선이 재는 것이다(위 「그 주소에 닿는 차선만」)
  */
-export const AUTHED_LANES = ['signed-in:desktop', 'signed-in:mobile', 'match:desktop', 'match:mobile', 'chat:desktop', 'chat:mobile', 'notice'];
+export const AUTHED_LANES = [
+  'signed-in:desktop',
+  'signed-in:mobile',
+  'match:desktop',
+  'match:mobile',
+  'chat:desktop',
+  'chat:mobile',
+  /* 두 계정의 채널 — 넓은 화면 한 벌이다(ADR 0156) */
+  'live',
+  'notice',
+];
 
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 

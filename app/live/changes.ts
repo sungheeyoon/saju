@@ -43,8 +43,11 @@ export function liveChangeOf(payload: unknown): LiveChange | null {
  */
 const SIGNALS: Readonly<Record<Area, readonly string[]>> = {
   chat: [CHAT_UNREAD_MOVED],
-  // 요청의 상태가 바뀌면 소식도 함께 선다(수락 · 거절 · 만료의 소식) — 둘 다 다시 센다.
-  requests: [REQUESTS_TO_ANSWER_MOVED, NOTIFICATIONS_UNREAD_MOVED],
+  /*
+    요청의 상태가 바뀌면 소식도 함께 선다(수락 · 거절 · 만료의 소식). 보낸 요청은 풀이권 한 자리를 잡고 거두거나 만료되면
+    돌려준다(ADR 0038) — 셋 다 다시 센다.
+  */
+  requests: [REQUESTS_TO_ANSWER_MOVED, NOTIFICATIONS_UNREAD_MOVED, READING_CREDITS_MOVED],
   notifications: [NOTIFICATIONS_UNREAD_MOVED],
   credits: [READING_CREDITS_MOVED],
 };

@@ -25,9 +25,9 @@ describe('채널이 실어 온 한 건', () => {
 });
 
 describe('갈래 → 신호', () => {
-  it('채팅은 채팅 딱지, 요청은 인연 딱지와 종, 소식은 종, 풀이권은 잔액을 다시 센다', () => {
+  it('채팅은 채팅 딱지, 요청은 인연 딱지 · 종 · 잔액(요청이 풀이권을 잡는다), 소식은 종, 풀이권은 잔액을 다시 센다', () => {
     expect(signalsOf('chat')).toEqual([CHAT_UNREAD_MOVED]);
-    expect(signalsOf('requests')).toEqual([REQUESTS_TO_ANSWER_MOVED, NOTIFICATIONS_UNREAD_MOVED]);
+    expect(signalsOf('requests')).toEqual([REQUESTS_TO_ANSWER_MOVED, NOTIFICATIONS_UNREAD_MOVED, READING_CREDITS_MOVED]);
     expect(signalsOf('notifications')).toEqual([NOTIFICATIONS_UNREAD_MOVED]);
     expect(signalsOf('credits')).toEqual([READING_CREDITS_MOVED]);
   });

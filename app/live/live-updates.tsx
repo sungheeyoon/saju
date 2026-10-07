@@ -54,6 +54,11 @@ export function LiveUpdates() {
       if (redrawTimer !== null) clearTimeout(redrawTimer);
       redrawTimer = setTimeout(() => {
         redrawTimer = null;
+        /*
+          끊긴 동안은 다시 그리지 않는다 — Next 는 화면 조각을 못 받으면 페이지 이동으로 물러서고, 끊긴 망에서 그 이동은
+          브라우저의 오프라인 화면이 된다(2026-10-08 e2e 에서 잼). 망이 돌아오면(`online`) 다시 대조가 한 번 그린다.
+        */
+        if (!shown() || !navigator.onLine) return;
         router.refresh();
       }, REDRAW_AFTER_MS);
     };
