@@ -212,6 +212,29 @@ test.describe('앱이 스스로 갱신된다', () => {
     await expect(chatTab(b.page).getByText('2건 안 읽음')).toBeVisible();
   });
 
+  test('(2) 서버가 목록을 그린 뒤 채널이 서기 전에 온 메시지도, 채널이 처음 서면 손대지 않아도 목록에 선다', async ({ openAs }) => {
+    const { a, b, tag, matchId } = await pair(openAs);
+    // 채널의 첫 소켓을 붙잡아 둔다 — 화면은 서버가 그렸고 채널은 아직 안 섰다
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await b.page.routeWebSocket(/\/realtime\//, async (socket) => {
+      await held;
+      socket.connectToServer();
+    });
+    await b.page.goto('/me/chat');
+    const row = b.page.getByRole('link', { name: new RegExp(`가${tag}`) });
+    await expect(row).toBeVisible();
+    await expect(row.getByText('건 안 읽음')).toHaveCount(0);
+
+    await sendAs(a, matchId, `서기 전의 말 ${tag}`);
+    release();
+    // 30초 대체 조회보다 짧게 — 첫 다시 대조가 그린 것이다
+    await expect(row.getByText(`서기 전의 말 ${tag}`)).toBeVisible({ timeout: 15_000 });
+    await expect(row.getByText('1건 안 읽음')).toBeVisible();
+  });
+
   test('(2) 수락으로 새 방이 서면 보낸 쪽의 빈 대화방 목록에 그 방이 선다', async ({ openAs }) => {
     const tag = freshTag();
     const a = await openAs({ selfPerson: true });

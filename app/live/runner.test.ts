@@ -25,7 +25,7 @@ describe('시계 위의 채널 상태', () => {
 
     runner.feed({ type: 'subscribed' });
     expect(h.resync).toHaveBeenCalledTimes(3);
-    expect(h.resync).toHaveBeenLastCalledWith(true);
+    expect(h.resync).toHaveBeenLastCalledWith();
     vi.advanceTimersByTime(5 * 60_000);
     expect(h.resync).toHaveBeenCalledTimes(3);
     runner.stop();

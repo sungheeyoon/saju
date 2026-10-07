@@ -22,7 +22,15 @@ describe('채널의 상태', () => {
     expect(openingEffects(start)).toEqual([{ type: 'start-polling', every: FALLBACK_EVERY_MS }]);
     const { state, effects } = step(start, { type: 'subscribed' });
     expect(state.phase).toBe('subscribed');
-    expect(effects).toEqual([{ type: 'cancel-retry' }, { type: 'resync', first: true }, { type: 'stop-polling' }]);
+    expect(effects).toEqual([{ type: 'cancel-retry' }, { type: 'resync' }, { type: 'stop-polling' }]);
+  });
+
+  it('처음 선 때의 다시 대조는 다시 선 때와 같다 — 서버가 그린 뒤 채널이 서기 전의 변경을 놓치지 않는다', () => {
+    const first = step(opened(false), { type: 'subscribed' });
+    const down = step(first.state, { type: 'failed' }).state;
+    const again = step({ ...down, phase: 'joining' }, { type: 'subscribed' });
+    expect(first.effects).toContainEqual({ type: 'resync' });
+    expect(first.effects.filter((e) => e.type === 'resync')).toEqual(again.effects.filter((e) => e.type === 'resync'));
   });
 
   it('숨은 화면에서 열면 대체 조회를 돌지 않는다', () => {

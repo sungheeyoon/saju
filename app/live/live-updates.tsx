@@ -7,9 +7,10 @@ import { useEffect, useRef, useTransition } from 'react';
 import { supabaseInBrowser } from '../auth/browser-client';
 import { useBrowserSession } from '../auth/browser-session';
 import { announceChatMoved } from '../me/chat/chat-signal';
-import { ALL_SIGNALS, redrawsOn, redrawsOnResync, signalsOf, type LiveChange } from './changes';
+import { redrawsOn, signalsOf, type LiveChange } from './changes';
 import { closeUserChannel, openUserChannel } from './channel';
 import { clearLiveRedraw, markLiveRedraw } from './redraw-mark';
+import { resyncScreen } from './resync';
 import { startRunner } from './runner';
 
 /** 한 물결의 변경을 묶어 다시 그리는 간격 — 메시지 몇 개가 이어 와도 화면은 한 번 다시 그린다 */
@@ -80,11 +81,13 @@ export function LiveUpdates() {
       if (redrawsOn(change.area, here.current)) redraw();
     };
 
-    const resync = (first: boolean) => {
-      announce(ALL_SIGNALS);
-      announceChatMoved({ matchId: null, seq: null });
-      if (!first && redrawsOnResync(here.current)) redraw();
-    };
+    /* 채널이 처음 선 때도 같다 — 서버가 그린 뒤 서기 전의 변경을 놓치지 않는다(`resync.ts`) */
+    const resync = () =>
+      resyncScreen(here.current, {
+        announce,
+        chatMoved: () => announceChatMoved({ matchId: null, seq: null }),
+        redraw,
+      });
 
     const leave = () => {
       generation += 1;
