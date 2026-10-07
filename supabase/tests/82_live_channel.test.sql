@@ -2,14 +2,15 @@
 --
 --   a. `realtime.messages` 의 정책 — 남의 `user:` 주제는 못 읽고 제 것은 읽는다, 보내기(`insert`)는 안 된다
 --   b. 메시지 · 읽음 · 방 닫힘 · 요청 상태 · 소식 · 풀이권 · 인연 궁합이 맞는 주제에 맞는 area 로 줄을 남기고 본문을 안 싣는다
---   c. `mark_chat_read(p_match_id, p_up_to_seq)` — 있는 seq 까지만 · 뒤로 안 간다 · 남의 방 거절
+--   c. `mark_chat_read(p_match_id, p_up_to_seq)` — 있는 seq 까지만 · 뒤로 안 간다 · 남의 방 거절. 옛 한 칸 서명도 남아
+--      서고 같은 거절을 한다(넓히기, G-77)
 --
 -- 채널이 실제로 거절하는지 · 2초 안에 오는지는 소켓을 붙여야 안다 — `scripts/check-live-channel.mjs`.
 --
 -- `realtime.messages` 는 날마다 파티션이고 파티션은 Realtime 서버가 만든다. 오늘 것이 없으면 `realtime.send` 가 경고만
 -- 남기고 지나가 이 파일이 아무것도 못 잰다 — 그래서 없을 때만 오늘 몫을 세운다(트랜잭션이 되돌린다).
 begin;
-select plan(55);
+select plan(58);
 
 do $$
 begin
@@ -428,11 +429,35 @@ select ok(
 -- 문의 모양
 -- ---------------------------------------------------------------------------
 
+-- 넓히는 동안은 두 벌이다(`docs/ops/runbook/deploy.md` 「규약 넷」 3) — 좁히는 마이그레이션(G-77)이 이 둘을 고친다.
+select set_eq(
+  $$select pg_get_function_identity_arguments(p.oid)
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'mark_chat_read'$$,
+  $$values ('p_match_id uuid'), ('p_match_id uuid, p_up_to_seq bigint')$$,
+  '옛 한 칸 서명이 새 두 칸 서명 곁에 남아 있다 — 떠 있는 옛 앱 · 롤백이 부른다(G-77)');
+
+select ok(
+  has_function_privilege('authenticated', 'public.mark_chat_read(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.mark_chat_read(uuid)', 'execute'),
+  '옛 서명도 여전히 로그인한 사람에게만 열린다');
+
+-- 옛 한 칸 서명을 실제로 부른다 — 넓히는 동안 옛 앱이 부른다(G-77). 동작은 옛것(그 순간 방의 끝까지), 권한 판정은
+-- 새것과 같다. 김의 읽음은 위의 「상대는 읽음을 안 듣는다」를 건드리므로 그 뒤인 여기서 잰다.
+set local role authenticated;
+select pg_temp.acting((select park from folks));
+select throws_ok(
+  format($$select public.mark_chat_read(%L)$$, (select kim_lee from rooms)),
+  '42501',
+  'chat: no such room',
+  '옛 서명도 남의 방은 없는 방과 같은 답이다');
+
+select pg_temp.acting((select kim from folks));
 select is(
-  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'mark_chat_read'),
-  1,
-  '옛 한 칸 서명은 걷혔다 — mark_chat_read 는 하나다');
+  public.mark_chat_read((select kim_lee from rooms)),
+  (select s[4] from seqs),
+  '옛 서명은 여전히 서고, 그 순간 방의 마지막 차례까지 읽음으로 적는다');
+reset role;
 
 select ok(
   has_function_privilege('authenticated', 'public.mark_chat_read(uuid, bigint)', 'execute')
