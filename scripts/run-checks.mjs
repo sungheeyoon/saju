@@ -36,6 +36,7 @@ export const SCRIPTS = [
   'check-chat.mjs',
   'check-live-channel.mjs',
   'check-taste.mjs',
+  'check-push.mjs',
 ];
 
 /**

@@ -54,10 +54,21 @@ export const SECRET_ENV = [
    */
   'TASTE_BROWSER_SECRET',
   'TASTE_IP_SECRET',
+  /**
+   * 웹 푸시(ADR 0157) — VAPID 비밀 열쇠(공개 열쇠와 한 쌍)와, DB 가 배달 문을 깨울 때 싣는 비밀(Vault
+   * `push_dispatch_secret` 과 같은 값). 앞의 것이 없으면 배달 줄은 「설정 안 됨」으로 남고, 뒤의 것이 없으면 배달 문이 닫힌다
+   */
+  'WEB_PUSH_VAPID_PRIVATE_KEY',
+  'PUSH_DISPATCH_SECRET',
 ];
 
 /** 브라우저가 본다 — 빌드 때 번들에 박힌다. 비밀을 여기 두는 순간 공개된다 */
-export const PUBLIC_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'];
+export const PUBLIC_ENV = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  /** 웹 푸시의 VAPID 공개 열쇠 — 브라우저가 구독을 맺을 때 든다(ADR 0157). 비밀 열쇠는 위 `WEB_PUSH_VAPID_PRIVATE_KEY` */
+  'NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY',
+];
 
 /** 비밀도 공개 열쇠도 아닌 설정 — 주소 · 포트 · 단계 */
 export const CONFIG_ENV = [
@@ -75,6 +86,8 @@ export const CONFIG_ENV = [
   'AUDIT_EXPORT_ROLE_ARN',
   /** PortOne 의 상점 번호 — 비밀이 아니다(브라우저의 결제 창도 든다). 없으면 결제 알림은 503 이다 */
   'PORTONE_STORE_ID',
+  /** VAPID 의 주체(`mailto:` · `https:`) — 없으면 배포의 https 주소를 쓴다(`app/api/push/dispatch/send.ts`) */
+  'WEB_PUSH_SUBJECT',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */
