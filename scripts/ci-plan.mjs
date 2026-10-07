@@ -14,7 +14,7 @@
  * | 변경이 이 안에만 있으면 | 도는 것 |
  * |---|---|
  * | 정책(`docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts`) | `policy` (scripts 시험 · 타입 · 린트, 1분 안) |
- * | 주석만 바뀐 코드 파일 — 더하고 지운 줄이 전부 주석 · 빈 줄(아래 「주석만 바뀐 코드 파일」, 어느 단계든) | 정책으로 센다 |
+ * | 주석만 바뀐 코드 파일 — base 와 구문 나무가 같다(아래 「주석만 바뀐 코드 파일」, 어느 단계든) | 정책으로 센다 |
  * | 엔진(`src/lib/saju/**`) · 엔진을 그리는 칸(`app/saju/**`) | `core`(단위·타입·린트·빌드) + `anon`(익명 e2e) |
  * | 그 밖 전부 · **모르는 파일** | 전부 |
  *
@@ -151,17 +151,18 @@
  *
  * ## 주석만 바뀐 코드 파일은 정책으로 센다 (ADR 0153)
  *
- * `.ts` · `.tsx` · `.mjs` · `.js`(와 `.cjs` · `.mts` · `.cts` · `.jsx`)의 더한 줄과 지운 줄이 전부 주석이거나 빈 줄이면 그 파일은
- * 정책이다 — `layout.tsx` 주석 한 줄이 공용 위험으로 전부를 부르지 않는다. 다른 파일이 없으면 PR 이 `policy` 다. 판정은 계획
- * job 이 넘긴 `git diff`(`--diff`)와 HEAD 소스로 한다. 줄 하나로는 블록 주석 속인지 템플릿 속인지 모르므로, 더한 줄은 지금
- * 소스를, 지운 줄은 diff 로 되돌린 옛 소스를 훑어(`codelessLinesOf`) 코드 글자가 없고 주석 꼴(`//` · `/*` · `*`)로 여는 줄만
- * 주석으로 본다. 애매하면 주석이 아니다 — 닫히는 쪽으로 간다:
+ * `.ts` · `.tsx` · `.mjs` · `.js`(와 `.cjs` · `.mts` · `.cts` · `.jsx`)의 바뀐 것이 주석 · 공백뿐이면 그 파일은 정책이다 —
+ * `layout.tsx` 주석 한 줄이 공용 위험으로 전부를 부르지 않는다. 다른 파일이 없으면 PR 이 `policy` 다. 줄 무늬로 고르지 않고
+ * **파서로 가른다**: `typescript` 로 base 커밋(`--base`, 계획 job 이 merge-base 를 넘긴다)의 소스와 HEAD 소스를 읽어 주석 · 공백
+ * 트리비아와 위치를 뺀 구문 나무(노드 종류 · 식별자 · 리터럴 · 연산자)가 같아야 한다(`syntaxOf`). 줄바꿈이 자동 세미콜론으로
+ * 뜻을 바꾸면(`return` 뒤 줄바꿈) 나무가 다르다. JSX 주석 `{/* … *\/}` 안만 바뀐 것은 주석만이고, 문자열 · 템플릿 속의 `//` 나
+ * JSX 글자는 나무의 값이라 주석이 아니다. 지금 규칙 그대로 가는 것:
  *
- * - JSX 주석 `{/* … *\/}` · 블록 가운데의 `*` 없는 줄 · 문자열 · 템플릿 속의 `//` · 주석 뒤에 코드가 붙은 줄
- * - 도구가 읽는 주석(`eslint-…` · `@ts-…` · `///` · 번들러 · 커버리지 지시, `TOOL_DIRECTIVE`) — 정책 단계는 `scripts/` 밖을 린트하지 않는다
- * - 파일 추가 · 삭제 · 이름 바꿈 · 모드 변경 · 바이너리, diff 와 소스가 안 맞는 파일, diff 를 못 받은 PR — 지금 규칙 그대로
- *
- * `supabase/**` 는 이것보다 먼저 전부다(SQL 주석은 가르지 않는다).
+ * - 뜻이 있는 주석(`MEANINGFUL_COMMENT` — `@ts-…` · `eslint…` · `/// <reference` · `@jsx…` · 번들러 · 커버리지 지시)이 더해지거나
+ *   지워지거나 다른 노드에 붙은 파일. `'use client'` · `'use server'` 는 문자열이라 나무가 잡는다. 정책 단계는 `scripts/` 밖을
+ *   린트하지 않는다
+ * - 파싱 실패 · 가르지 않는 확장자 · base 쪽을 못 읽음(추가 · 삭제 · 이름 바꿈 · 실행 비트 변경) · `typescript` 를 못 부름
+ * - PR 계획 밖 — main 푸시 · 일정 · 손으로 켠 실행은 전처럼 전부다. `supabase/**` 는 이것보다 먼저 전부다
  *
  * ## 원칙
  *
@@ -170,6 +171,7 @@
  * - diff 를 못 받았으면(빈 목록) 모르는 것이므로 전부 돈다.
  * - `main` 푸시 · `schedule` · 손으로 켠 실행은 계획을 안 보고 전부 돈다.
  */
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -474,187 +476,81 @@ export const specsOfLane = (lane) => [...testMap().specsOfLane[lane]];
 // 주석만 바뀐 코드 파일 — 정책으로 센다(위 「주석만 바뀐 코드 파일」, ADR 0153)
 // ---------------------------------------------------------------------------
 
-/** 줄 단위로 주석을 가를 코드 파일 */
-const CODE_FILE = /\.(?:[cm]?[jt]sx?)$/;
+/** 파서로 가르는 코드 파일 — 확장자마다 TypeScript 의 읽는 법. 여기 없는 확장자는 가르지 않는다 */
+const SCRIPT_KINDS = { '.ts': 'TS', '.mts': 'TS', '.cts': 'TS', '.tsx': 'TSX', '.js': 'JS', '.mjs': 'JS', '.cjs': 'JS', '.jsx': 'JSX' };
+
 /**
- * 주석 꼴이어도 도구가 읽는 줄 — 린트 · 타입 · 번들러 · 시험 도구의 지시다. 정책 단계는 `scripts/` 밖을 린트하지 않으므로
- * 이 줄이 바뀌면 주석이 아니라고 본다
+ * 뜻이 있는 주석 — 타입 검사 · 린트 · 번들러 · 커버리지 · 런타임이 읽는다. 이것이 더해지거나 지워지거나 다른 토큰 앞으로 옮으면
+ * 주석만 바뀐 것이 아니다. 정책 단계는 `scripts/` 밖을 린트하지 않는다. 도구는 주석(이나 JSDoc 의 한 줄)의 **머리**에 선 지시만
+ * 읽으므로 머리에서 견준다 — 산문 가운데의 「`eslint` 은」은 지시가 아니다
  */
-const TOOL_DIRECTIVE =
-  /eslint|@ts-|@jsx|@vitest-environment|webpack|turbopack|istanbul|[cv]8 ignore|prettier-ignore|biome-ignore|__PURE__|__NO_SIDE_EFFECTS__|@refresh|^\s*\/\/\/|^\s*\/\*\s*(?:global|exported)\s/;
-/** 줄의 꼴 — `//` · `/*` · `*` 로 연다(`addressesOf` 의 주석 줄과 같은 정의). 지시 줄은 빼고 */
-const opensAsComment = (line) => isCommentLine(line) && !TOOL_DIRECTIVE.test(line);
-
-/** `/` 앞이 이것이면 나눗셈이 아니라 정규식이다 — 모자라게 고르면 정규식 속 글자를 코드로 읽어 닫히는 쪽으로 간다 */
-const REGEX_AFTER = /[(,=:[!&|?{};+\-*%<>~^]/;
-const REGEX_AFTER_WORD = /\b(?:return|typeof|instanceof|case|do|else|in|of|new|delete|void|throw|yield|await)$/;
-
-/**
- * 줄마다 코드 글자가 없는가 — 문자열 · 템플릿 · 정규식 · 블록 주석을 따라가는 작은 훑기다. 템플릿 속에서 시작하는 줄은
- * 빈 줄이어도 값이므로 `false`, JSX 주석 `{/* … *\/}` 은 중괄호가 코드라 `false`. 훑기가 틀리는 쪽은 코드를 코드로 읽는
- * 쪽이 되게 짰다 — 따옴표 문자열은 줄 끝에서 끊는다
- *
- * @param {string} source
- * @returns {boolean[]}
- */
-export function codelessLinesOf(source) {
-  const result = [];
-  let mode = 'code';
-  /** 열린 `${` 마다 그 안의 중괄호 깊이 */
-  const holes = [];
-  let previous = '';
-  for (const line of source.split('\n')) {
-    const startedIn = mode;
-    let code = false;
-    const mark = (char) => {
-      code = true;
-      previous = char;
-    };
-    for (let at = 0; at < line.length; at++) {
-      const char = line[at];
-      const next = line[at + 1];
-      if (mode === 'block') {
-        if (char === '*' && next === '/') {
-          mode = 'code';
-          at++;
-        }
-        continue;
-      }
-      if (mode === 'template') {
-        code = true;
-        if (char === '\\') at++;
-        else if (char === '`') mode = 'code';
-        else if (char === '$' && next === '{') {
-          holes.push(0);
-          mode = 'code';
-          at++;
-        }
-        previous = char;
-        continue;
-      }
-      if (/\s/.test(char)) continue;
-      if (char === '/' && next === '/') break;
-      if (char === '/' && next === '*') {
-        mode = 'block';
-        at++;
-        continue;
-      }
-      if (char === "'" || char === '"') {
-        at++;
-        while (at < line.length && line[at] !== char) at += line[at] === '\\' ? 2 : 1;
-        mark(char);
-        continue;
-      }
-      if (char === '`') {
-        mode = 'template';
-        mark(char);
-        continue;
-      }
-      if (char === '/' && (previous === '' || REGEX_AFTER.test(previous) || REGEX_AFTER_WORD.test(line.slice(0, at).trimEnd()))) {
-        let inClass = false;
-        for (at++; at < line.length; at++) {
-          if (line[at] === '\\') at++;
-          else if (line[at] === '[') inClass = true;
-          else if (line[at] === ']') inClass = false;
-          else if (line[at] === '/' && !inClass) break;
-        }
-        mark('/');
-        continue;
-      }
-      if (holes.length > 0 && char === '{') holes[holes.length - 1]++;
-      if (holes.length > 0 && char === '}') {
-        if (holes[holes.length - 1] === 0) {
-          holes.pop();
-          mode = 'template';
-        } else holes[holes.length - 1]--;
-      }
-      mark(char);
-    }
-    result.push(!code && startedIn !== 'template');
-  }
-  return result;
-}
-
-/** 줄마다 주석이거나 빈 줄인가 — 코드 글자가 없고, 빈 줄이 아니면 주석 꼴로 연다. 블록 가운데의 `*` 없는 줄은 아니다 */
-const commentLinesOf = (source) => {
-  const lines = source.split('\n');
-  return codelessLinesOf(source).map((codeless, at) => codeless && (/^\s*$/.test(lines[at]) || opensAsComment(lines[at])));
-};
+export const MEANINGFUL_COMMENT =
+  /^(?:@ts-|eslint|<(?:reference|amd)|@jsx|webpack|turbopack|@vite-ignore|istanbul|[cv]8 ignore|prettier-ignore|biome-ignore|#?__PURE__|#?__NO_SIDE_EFFECTS__|@refresh|@vitest-environment|global\s|exported\s)/;
+/** 주석 하나에서 지시로 읽히는 줄 — 여는 `//` · `///` · `/*` · `/**` 와 JSDoc 의 `*` 를 걷은 머리로 견준다 */
+const directivesIn = (comment) =>
+  comment
+    .split('\n')
+    .map((line) => line.replace(/^\s*(?:\/\/\/?|\/\*+|\*)?\s*/, ''))
+    .filter((line) => MEANINGFUL_COMMENT.test(line));
 
 /**
- * `git diff` 출력을 파일마다 자른다 — 열쇠는 새 경로(지운 파일이면 옛 경로). git 이 따옴표로 감싼 이름은 못 맞춰
- * 지금 규칙 그대로 간다
+ * 구문 나무를 펼친 열과 뜻이 있는 주석의 자리. 열은 노드마다 `(종류 … )` 로 감싸고 잎은 종류와 글자(식별자 · 리터럴 ·
+ * 연산자)다 — 위치와 트리비아(주석 · 공백)는 빠진다. 토큰만 견주면 줄바꿈이 자동 세미콜론으로 뜻을 바꾸는 것(`return` 뒤
+ * 줄바꿈)을 놓치므로 나무의 모양까지 든다. JSDoc 노드는 주석이라 건너뛴다. 뜻이 있는 주석은 「열의 몇 번째 앞(뒤)에
+ * 무엇이」로 적는다 — 열이 같을 때 그 자리가 같으면 같은 것에 붙은 것이다. 파싱 진단이 하나라도 있으면 `null`
  *
- * @param {string} text
- * @returns {Map<string, string>}
- */
-export function diffsByFile(text) {
-  const found = new Map();
-  for (const section of text.split(/^(?=diff --git )/m)) {
-    if (!section.startsWith('diff --git ')) continue;
-    const after = /^\+\+\+ b\/(.+)$/m.exec(section)?.[1];
-    const before = /^--- a\/(.+)$/m.exec(section)?.[1];
-    const named = /^diff --git a\/(\S+) b\/(\S+)$/m.exec(section)?.[2];
-    const file = after ?? before ?? named;
-    if (file) found.set(file, section);
-  }
-  return found;
-}
-
-/**
- * 이 파일의 바뀐 줄이 전부 주석 · 빈 줄인가. 더한 줄은 지금 소스(`source`)에서, 지운 줄은 diff 로 되돌린 옛 소스에서 가른다
- * — 블록 주석 속인지, 템플릿 속인지는 줄 하나로 모른다. 추가 · 삭제 · 모드 변경 · 바이너리 · diff 와 소스가 안 맞음은 `false`
- *
+ * @param {typeof import('typescript')} ts
  * @param {string} file
- * @param {string | null} diff 이 파일의 `git diff` 조각(문맥 줄 수는 상관없다)
- * @param {string | null} source 지금(HEAD) 내용
+ * @param {string} source
+ * @returns {{ tokens: string[], meaningful: string[] } | null}
  */
-export function onlyCommentsChanged(file, diff, source) {
-  if (!CODE_FILE.test(file) || diff === null || source === null) return false;
-  if (/^(?:new file mode|deleted file mode|old mode|new mode|Binary files|rename from|copy from)/m.test(diff)) return false;
-  const now = source.split('\n');
-  const before = [];
-  const added = [];
-  const removed = [];
-  let cursor = 0;
-  let hunks = 0;
-  const lines = diff.split('\n');
-  for (let at = 0; at < lines.length; at++) {
-    const head = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(lines[at]);
-    if (!head) continue;
-    hunks++;
-    const [oldStart, oldCount, newStart, newCount] = [head[1], head[2] ?? '1', head[3], head[4] ?? '1'].map(Number);
-    const newFrom = newCount === 0 ? newStart : newStart - 1;
-    const oldFrom = oldCount === 0 ? oldStart : oldStart - 1;
-    if (newFrom < cursor || newFrom > now.length) return false;
-    before.push(...now.slice(cursor, newFrom));
-    if (before.length !== oldFrom) return false;
-    let newAt = newFrom;
-    for (at++; at < lines.length && !lines[at].startsWith('@@') && !lines[at].startsWith('diff --git '); at++) {
-      const body = lines[at];
-      const text = body.slice(1);
-      if (body.startsWith('\\')) continue;
-      if (body.startsWith('+')) {
-        if (now[newAt] !== text) return false;
-        added.push(newAt++);
-      } else if (body.startsWith('-')) {
-        removed.push(before.length);
-        before.push(text);
-      } else if (body.startsWith(' ')) {
-        if (now[newAt] !== text) return false;
-        before.push(text);
-        newAt++;
-      } else if (body !== '') return false;
+export function syntaxOf(ts, file, source) {
+  const kind = SCRIPT_KINDS[posix.extname(file)];
+  if (!kind) return null;
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind[kind]);
+  if (tree.parseDiagnostics?.length !== 0) return null;
+  const tokens = [];
+  const meaningful = [];
+  const note = (ranges, where) => {
+    for (const range of ranges ?? []) {
+      for (const directive of directivesIn(source.slice(range.pos, range.end))) meaningful.push(`${where}:${directive}`);
     }
-    at--;
-    if (newAt - newFrom !== newCount) return false;
-    cursor = newAt;
-  }
-  if (hunks === 0) return false;
-  before.push(...now.slice(cursor));
-  const nowComments = commentLinesOf(source);
-  const beforeComments = commentLinesOf(before.join('\n'));
-  return added.every((line) => nowComments[line]) && removed.every((line) => beforeComments[line]);
+  };
+  const walk = (node) => {
+    if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) return;
+    const children = node.getChildren(tree);
+    if (children.length > 0 && node.kind !== ts.SyntaxKind.JsxText) {
+      tokens.push(`(${node.kind}`);
+      for (const child of children) walk(child);
+      tokens.push(')');
+      return;
+    }
+    note(ts.getLeadingCommentRanges(source, node.pos), `${tokens.length}<`);
+    tokens.push(`${node.kind}:${node.getText(tree)}`);
+    note(ts.getTrailingCommentRanges(source, node.end), `${tokens.length - 1}>`);
+  };
+  walk(tree);
+  const shebang = ts.getShebang(source);
+  if (shebang) meaningful.push(`#!${shebang}`);
+  return { tokens, meaningful };
+}
+
+/**
+ * 옛 소스와 지금 소스의 구문 나무가 같고 뜻이 있는 주석도 그대로인가 — 「주석만 바뀌었다」.
+ * 한쪽을 못 읽으면(추가 · 삭제 · 이름 바꿈), 가르지 않는 확장자면, 파싱이 실패하면, 둘이 글자째 같으면 `false`
+ *
+ * @param {typeof import('typescript') | null} ts
+ * @param {string} file
+ * @param {string | null} before base 쪽 내용
+ * @param {string | null} after HEAD 쪽 내용
+ */
+export function onlyCommentsChanged(ts, file, before, after) {
+  if (ts === null || before === null || after === null || before === after) return false;
+  const old = syntaxOf(ts, file, before);
+  const now = syntaxOf(ts, file, after);
+  if (old === null || now === null) return false;
+  const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
+  return same(old.tokens, now.tokens) && same(old.meaningful, now.meaningful);
 }
 
 // ---------------------------------------------------------------------------
@@ -671,15 +567,16 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
 /**
  * `stage` 는 `release-stage.mjs` 의 `currentStageOf` 가 낸 값이다 — `null` 이나 빠진 값은 모르는 단계다.
  * `sourceOf` 는 바뀐 파일의 지금 내용이다(서버에 닿는 `app/` 파일을 가른다) — 빠지면 저장소에서 읽는다.
- * `diffOf` 는 그 파일의 `git diff` 조각이다(주석만 바뀐 코드 파일을 가른다) — 빠지거나 `null` 이면 지금 규칙 그대로다.
+ * `baseSourceOf` 는 그 파일의 base 쪽 내용, `ts` 는 `typescript` 모듈이다(주석만 바뀐 코드 파일을 가른다) — 둘 중 하나가
+ * 빠지거나 `null` 이면 지금 규칙 그대로다.
  *
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
- * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, diffOf?: (file: string) => string | null }} input
+ * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null }} input
  * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
  */
-export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, diffOf = () => null }) {
-  const decided = decide({ files, labels, event, stage, sourceOf, diffOf });
+export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null }) {
+  const decided = decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts });
   const { lanes, authedLanes } = picked(decided.tier === 'full' ? EVERYTHING : decided.pick ?? {});
   return {
     tier: decided.tier,
@@ -699,7 +596,7 @@ function audits({ files, labels, event }) {
 
 const full = (cause, reason) => ({ tier: 'full', cause, reason });
 
-function decide({ files, labels, event, stage, sourceOf, diffOf }) {
+function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
   if (!PLANNED_EVENTS.has(event)) return full('계획 밖 이벤트', `\`${event}\` 은 계획을 안 본다`);
   if (labels.includes(FULL_LABEL)) return full('라벨', `\`${FULL_LABEL}\` 라벨`);
 
@@ -710,11 +607,8 @@ function decide({ files, labels, event, stage, sourceOf, diffOf }) {
   if (database) return full('DB', `\`${database}\` 은 DB 차선에서만 재어진다`);
   if (stage === null || !(stage in LAUNCHED)) return full('단계 모름', '출시 단계를 모른다 — PRD §7.0 의 「(지금)」');
 
-
-  const commentOnly = changed.filter((file) => {
-    const diff = diffOf(file);
-    return diff !== null && onlyCommentsChanged(file, diff, sourceOf(file));
-  });
+  const commentOnly =
+    ts === null ? [] : changed.filter((file) => posix.extname(file) in SCRIPT_KINDS && onlyCommentsChanged(ts, file, baseSourceOf(file), sourceOf(file)));
   const judged = changed.filter((file) => !commentOnly.includes(file));
   const decided = LAUNCHED[stage] ? decideLaunched(judged) : decideBeta(judged, stage, sourceOf);
   if (commentOnly.length === 0) return decided;
@@ -796,7 +690,22 @@ function argOf(name) {
   return at === -1 ? undefined : process.argv[at + 1];
 }
 
-function main() {
+/**
+ * base 커밋의 그 파일 — 못 읽으면(그 커밋에 없다 · git 실패) `null`. 실행 비트가 바뀐 파일도 `null` 이다: 토큰은 같아도
+ * 주석만 바뀐 것이 아니다
+ */
+function baseSourceFromGit(base, file) {
+  const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 26 });
+  try {
+    const modeOf = (ref) => git('ls-tree', ref, '--', file).split(/\s/)[0];
+    if (modeOf(base) !== modeOf('HEAD')) return null;
+    return git('show', `${base}:${file}`);
+  } catch {
+    return null;
+  }
+}
+
+async function main() {
   const files = readFileSync(0, 'utf8').split('\n').filter((one) => one.trim() !== '');
   const labels = (argOf('--labels') ?? '').split(',').map((one) => one.trim()).filter(Boolean);
   const event = argOf('--event') ?? 'pull_request';
@@ -807,15 +716,17 @@ function main() {
   } catch {
     // PRD 를 못 읽으면 모르는 단계다 — 전부로 간다
   }
-  // 바뀐 줄 — 못 읽으면(인자 없음 · git 실패로 빈 파일) 주석만 바뀐 파일을 안 가르고 지금 규칙 그대로 간다
-  let diffs = new Map();
-  try {
-    const at = argOf('--diff');
-    if (at) diffs = diffsByFile(readFileSync(at, 'utf8'));
-  } catch {
-    // 위와 같다
+  // 주석만 바뀐 코드 파일을 가르는 둘 — base 커밋과 파서. 하나라도 없으면(인자 없음 · 설치 전) 지금 규칙 그대로 간다
+  const base = argOf('--base') || null;
+  let ts = null;
+  if (base !== null) {
+    try {
+      ts = (await import('typescript')).default;
+    } catch {
+      // 위와 같다
+    }
   }
-  const plan = planFor({ files, labels, event, stage, diffOf: (file) => diffs.get(file) ?? null });
+  const plan = planFor({ files, labels, event, stage, ts, baseSourceOf: (file) => (base === null ? null : baseSourceFromGit(base, file)) });
 
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(
@@ -833,4 +744,4 @@ function main() {
   console.log(JSON.stringify({ ...plan, stage, files: files.length }, null, 2));
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
