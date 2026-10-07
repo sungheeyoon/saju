@@ -1,7 +1,7 @@
 /**
  * **미리보기 그림 속 이름은 상수와 같다**(G-58 ㉢).
  *
- * 그림 속 글자는 구워 둔 픽셀이라 `SERVICE_NAME` 을 바꿔도 따라오지 않는다 — 이름을 「만세력」에서 「점점」으로
+ * 그림 속 글자는 구워 둔 픽셀이라 `SERVICE_NAME` 을 바꿔도 따라오지 않는다 — 이름을 「만세력」에서 「점점」으로(2026-09-24)
  * 바꾼 날 메타데이터는 다 따라왔는데 그림 셋만 옛 이름으로 남았다. 굽는 도구(`brand-share-images.mjs`)가 구운
  * 이름을 옆 JSON 에 적고, 여기서 상수와 견준다. 붉으면 도구를 다시 돌린다.
  */
@@ -31,7 +31,7 @@ describe('공유 미리보기 그림', () => {
       expect(existsSync(join(root, 'public/brand', image))).toBe(true);
       expect(said).toContain(`/brand/${image}`);
     }
-    expect(said).not.toMatch(/share-v[12]\.jpg/);
+    expect(said).not.toMatch(/share-v[123]\.jpg/);
   });
 });
 

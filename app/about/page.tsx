@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { SERVICE_NAME, SERVICE_TAGLINE } from '@/src/lib/brand';
+import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
 import { SERVICE_FEATURES } from '../service-features';
@@ -35,7 +35,7 @@ export default function AboutPage() {
       <header className={`flex flex-col gap-3 ${PAPER}`}>
         <Logo className="size-11" />
         <p className={TYPE_META}>{SERVICE_TAGLINE}</p>
-        <h1 className={TYPE_TITLE}>{SERVICE_NAME}은 이런 곳이에요</h1>
+        <h1 className={TYPE_TITLE}>{SERVICE_NAME_TOPIC} 이런 곳이에요</h1>
         <p className="text-[15px] leading-7 text-cream-ink">
           나를 가운데 두고, 둘레의 사람을 점으로 놓아 봐요. 생년월일시로 사주를 세우고, 그 사주를 글로 풀어 나와 사람
           사이를 읽어 드려요.

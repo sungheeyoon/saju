@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { SERVICE_NAME } from '@/src/lib/brand';
+import { SERVICE_NAME_TOPIC } from '@/src/lib/brand';
 
 import { BUTTON_PRIMARY } from '../ui/buttons';
 import { Logo } from '../ui/logo';
@@ -46,7 +46,7 @@ export default function SharedReadingNotFound() {
       <Link href="/" className={BUTTON_PRIMARY}>
         무료로 내 사주 보기
       </Link>
-      <p className="text-[13px] leading-5 text-secondary">{SERVICE_NAME}은 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>
+      <p className="text-[13px] leading-5 text-secondary">{SERVICE_NAME_TOPIC} 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>
     </main>
   );
 }

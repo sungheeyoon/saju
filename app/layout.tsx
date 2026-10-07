@@ -13,7 +13,7 @@ const DESCRIPTION = "사주의 근거부터 두 사람의 궁합과 사주풀이
 
 /** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {
-  url: "/brand/saju-share-v3.jpg",
+  url: "/brand/saju-share-v4.jpg",
   width: 1200,
   height: 628,
   type: "image/jpeg",
@@ -37,7 +37,7 @@ const PREVIEW = {
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   /*
-    화면 제목은 이름만 적는다(`궁합`) — 뒤의 「— 점점」은 이 틀이 붙인다(G-58). 틀은 **아래** 화면에만
+    화면 제목은 이름만 적는다(`궁합`) — 뒤의 「— {서비스 이름}」은 이 틀이 붙인다(G-58). 틀은 **아래** 화면에만
     듣고 여기 적은 `default` 는 제목을 안 적은 화면(`/`)의 것이다.
   */
   title: { default: TITLE, template: SERVICE_TITLE_TEMPLATE },
