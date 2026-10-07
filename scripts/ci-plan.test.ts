@@ -30,6 +30,7 @@ import {
   onlyCommentsChanged,
   planFor,
   routeOf,
+  settledGreen,
   specsOfLane,
   summaryOf,
 } from './ci-plan.mjs';
@@ -511,7 +512,7 @@ describe('CI 계획 — 공개 출시', () => {
     expect(pr(['docs/prd.md'], ['docs-only']).tier).toBe('policy');
   });
 
-  it('main 푸시 · 일정 · 손으로 켠 실행은 계획을 안 본다', () => {
+  it('일정 · 손으로 켠 실행은 계획을 안 보고, main 푸시도 범위를 못 받으면 전부다', () => {
     for (const event of ['push', 'schedule', 'workflow_dispatch']) {
       expect(planFor({ files: ['docs/prd.md'], event }).tier, event).toBe('full');
     }
@@ -871,7 +872,7 @@ describe('CI 계획 — 주석만 바뀐 코드 파일은 정책이다 (ADR 0153
     expect(planFor({ files: ['app/layout.tsx'], stage: '운영 베타', sourceOf: () => after, baseSourceOf: () => LAYOUT }).tier).toBe('full');
   });
 
-  it('main 푸시 · 일정 · 손으로 켠 실행은 주석만 바뀌어도 전부다', () => {
+  it('일정 · 손으로 켠 실행 · 범위 없는 main 푸시는 주석만 바뀌어도 전부다', () => {
     const after = edit(...URL_FIX);
     for (const event of ['push', 'schedule', 'workflow_dispatch']) {
       const plan = planFor({ files: ['app/layout.tsx'], event, stage: '운영 베타', ts, sourceOf: () => after, baseSourceOf: () => LAYOUT });
@@ -887,11 +888,100 @@ describe('CI 계획 — 주석만 바뀐 코드 파일은 정책이다 (ADR 0153
     expect(changes(source, source.replace('세 단계뿐이다', '세 단계뿐이다 (고침)'), 'scripts/ci-plan.mjs')).toBe(true);
   });
 
-  it('verify.yml 의 계획 단계는 PR 에서만 파서를 깔고 merge-base 를 --base 로 넘긴다 — 못 구하면 빈 값이다', () => {
+  it('verify.yml 의 계획 단계는 PR · main 푸시에서 파서를 깔고 merge-base 를 --base 로 넘긴다 — 못 구하면 빈 값이다', () => {
     const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
     const plan = /\n {2}plan:\n([\s\S]*?)\n {2}[a-z]+:\n/.exec(yml)?.[1] ?? '';
-    expect(plan).toMatch(/- if: github\.event_name == 'pull_request'\n\s+continue-on-error: true\n\s+run: npm ci --ignore-scripts/);
+    expect(plan).toMatch(/- if: github\.event_name == 'pull_request' \|\| github\.event_name == 'push'\n\s+continue-on-error: true\n\s+run: npm ci --ignore-scripts/);
     expect(plan).toContain('base=$(git merge-base "origin/$BASE" HEAD) || base=""');
     expect(plan).toMatch(/node scripts\/ci-plan\.mjs [^\n]*--base "\$base"/);
+  });
+});
+
+describe('CI 계획 — 문서만 바뀐 main 푸시는 policy 만 (ADR 0154)', () => {
+  const BEFORE = 'c'.repeat(40);
+  const GREEN = { before: BEFORE, forced: false, beforeGreen: true };
+  const push = (files: string[], pushed: Parameters<typeof planFor>[0]['pushed'] = GREEN) => planFor({ files, event: 'push', pushed });
+  const POLICY_ONLY = { ...CORE_ONLY, core: false, policy: true };
+
+  it('범위 전체가 정책이면 policy 만 — 여러 PR 이 한 푸시에 들어도 범위 전체로 가르고, audit 도 건너뛴다', () => {
+    const plan = push(['docs/adr/0154-x.md', 'GLOSSARY.md', '.claude/settings.json', 'scripts/ci-plan.test.ts', 'docs/product/gaps.md']);
+    expect(plan.tier).toBe('policy');
+    expect(plan.lanes).toEqual(POLICY_ONLY);
+    expect(plan.authedLanes).toEqual([]);
+    expect(plan.reason).toContain(BEFORE.slice(0, 7));
+  });
+
+  it('범위에 정책 밖 파일이 하나라도 있으면 전부다 — 문서 PR 과 코드 PR 이 한 푸시에 들어도', () => {
+    for (const code of ['src/lib/chat/index.ts', 'app/me/(shelf)/readings/compat/page.tsx', 'scripts/ci-plan.mjs', 'package.json', 'newdir/thing.sh']) {
+      const plan = push(['docs/prd.md', code]);
+      expect(plan.tier, code).toBe('full');
+      expect(plan.cause, code).toBe('main 푸시');
+      expect(plan.lanes, code).toEqual({ ...FULL, audit: true });
+      expect(plan.authedLanes, code).toEqual(AUTHED_LANES);
+    }
+    expect(push(['docs/prd.md', 'supabase/migrations/20261008000000_x.sql']).cause).toBe('DB');
+  });
+
+  it('주석만 바뀐 코드 파일은 푸시 전 SHA 의 소스와 견줘 정책으로 센다 — 토큰이 바뀌면 전부', () => {
+    const before = '// 옛 말\nexport const x = 1;\n';
+    const pushOf = (after: string) =>
+      planFor({ files: ['app/layout.tsx', 'docs/prd.md'], event: 'push', pushed: GREEN, ts, sourceOf: () => after, baseSourceOf: () => before });
+    expect(pushOf('// 새 말\nexport const x = 1;\n').tier).toBe('policy');
+    expect(pushOf('// 새 말\nexport const x = 1;\n').reason).toContain('주석만 바뀐 코드 파일은 정책으로 셌다: `app/layout.tsx`');
+    expect(pushOf('// 옛 말\nexport const x = 2;\n').tier).toBe('full');
+    // 파서가 없으면 지금 규칙 그대로 — 코드 파일이라 전부
+    expect(planFor({ files: ['app/layout.tsx'], event: 'push', pushed: GREEN, sourceOf: () => '// 새\n', baseSourceOf: () => '// 옛\n' }).tier).toBe('full');
+  });
+
+  it('닫히는 쪽 — 범위 없음 · 0 SHA · 강제 갱신 · 빈 diff 는 전부다', () => {
+    const docs = ['docs/prd.md'];
+    expect(push(docs, null).cause).toBe('범위 모름');
+    expect(push(docs, { ...GREEN, before: null }).cause).toBe('범위 모름');
+    expect(push(docs, { ...GREEN, before: '0'.repeat(40) }).cause).toBe('범위 모름');
+    expect(push(docs, { ...GREEN, forced: true }).cause).toBe('강제 갱신');
+    expect(push([]).cause).toBe('빈 diff');
+    expect(push(['', ' ']).cause).toBe('빈 diff');
+    for (const pushed of [null, { ...GREEN, forced: true }]) expect(push(docs, pushed).lanes.audit).toBe(true);
+  });
+
+  it('앞 커밋의 verify 가 초록으로 끝나지 않았으면(끊김 · 붉음 · 못 읽음) 정책만이어도 전부다 — 끊긴 코드 커밋이 안 재어진 채 남지 않게', () => {
+    for (const beforeGreen of [false, null]) {
+      const plan = push(['docs/prd.md'], { ...GREEN, beforeGreen });
+      expect(plan.tier, String(beforeGreen)).toBe('full');
+      expect(plan.cause, String(beforeGreen)).toBe('앞 커밋 미검증');
+      expect(plan.lanes.audit).toBe(true);
+    }
+  });
+
+  it('앞 커밋의 초록 — main 의 실행 중 초록이 하나 이상이고 붉은 것이 없다. 끊긴 것 · 도는 것은 안 세고, PR 실행은 안 본다', () => {
+    expect(settledGreen([{ event: 'push', conclusion: 'success' }])).toBe(true);
+    expect(settledGreen([{ event: 'push', conclusion: 'cancelled' }, { event: 'schedule', conclusion: 'success' }])).toBe(true);
+    expect(settledGreen([{ event: 'push', conclusion: 'success' }, { event: 'schedule', conclusion: null }])).toBe(true);
+    expect(settledGreen([])).toBe(false);
+    expect(settledGreen([{ event: 'push', conclusion: 'cancelled' }])).toBe(false);
+    expect(settledGreen([{ event: 'push', conclusion: null }])).toBe(false);
+    expect(settledGreen([{ event: 'push', conclusion: 'success' }, { event: 'schedule', conclusion: 'failure' }])).toBe(false);
+    for (const red of ['failure', 'timed_out', 'startup_failure', 'action_required']) {
+      expect(settledGreen([{ event: 'push', conclusion: red }]), red).toBe(false);
+    }
+    expect(settledGreen([{ event: 'pull_request', conclusion: 'success' }])).toBe(false);
+  });
+
+  it('일정 · 손으로 켠 실행은 범위를 받아도 전부다', () => {
+    for (const event of ['schedule', 'workflow_dispatch']) {
+      expect(planFor({ files: ['docs/prd.md'], event, pushed: GREEN }).tier, event).toBe('full');
+    }
+  });
+
+  it('verify.yml — main 푸시는 푸시 전 SHA 부터의 diff 와 base · 범위를 넘기고, 계획 job 은 실행을 읽기만 한다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    const plan = /\n {2}plan:\n([\s\S]*?)\n {2}[a-z]+:\n/.exec(yml)?.[1] ?? '';
+    expect(plan).toContain('BEFORE: ${{ github.event.before }}');
+    expect(plan).toContain('FORCED: ${{ github.event.forced }}');
+    expect(plan).toContain('GH_TOKEN: ${{ github.token }}');
+    expect(plan).toContain('files=$(git diff --name-only --no-renames "$BEFORE" HEAD) || files=""');
+    expect(plan).toContain('base="$BEFORE"');
+    expect(plan).toMatch(/node scripts\/ci-plan\.mjs [^\n]*--before "\$BEFORE" --forced "\$FORCED"/);
+    expect(plan).toMatch(/permissions:\n\s+contents: read\n\s+actions: read\n/);
   });
 });
