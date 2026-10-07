@@ -47,6 +47,7 @@
 | 이미 정한 화면 문구 | `docs/product/copy-ledger.md` | 없으면 표로 묻는다 |
 | 맡기는 법 · 권한 · 병렬 · PR 의 칸 | `docs/agents/delegation.md` | 권한 표는 `.claude/settings.json` 과 시험이 견준다 |
 | 운영에서 무엇을 어떤 차례로 | `docs/ops/runbook.md` | — |
+| 운영 주소 · 도메인 | `docs/ops/runbook/domain.md` 맨 위 | 주석 · 다른 문서는 주소를 적지 않고 여기를 가리킨다 — `scripts/code-rules.test.ts` 가 잰다 |
 | 풀이 문장이 무엇까지 말하나 | `docs/text/` | — |
 | 법무 · 변호사 검토 | `docs/legal/README.md` | — |
 | 코드가 왜 이 모양이 됐나(사정) | `docs/notes/README.md` | 요구사항도 규칙도 아니다 — 코드가 맞다 |

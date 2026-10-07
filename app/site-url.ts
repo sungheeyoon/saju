@@ -9,7 +9,7 @@
  *
  * ## 도메인을 손으로 안 적는다
  *
- * 운영 주소는 `https://mannalmap.com` 이다(`docs/ops/runbook/domain.md`). 그 값을 파일에 적으면 도메인을
+ * 운영 주소는 `docs/ops/runbook/domain.md` 맨 위가 든다. 그 값을 파일에 적으면 도메인을
  * 옮기는 날 **아무도 이 파일을 안 고친다.** 배포판이 스스로 아는 값을 읽는다.
  *
  * - 프로덕션이면 `VERCEL_PROJECT_PRODUCTION_URL` — 그 프로젝트의 **대표 주소**다.
