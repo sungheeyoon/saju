@@ -5,7 +5,7 @@
 ## 배포
 
 **`main` 에 머지해도 배포되지 않는다**(ADR 0110). `vercel.json` 의 `git.deploymentEnabled: false` 가 가지 · `main` 의 푸시로
-생기는 배포를 전부 끈다 — Preview 도 Production 도 없다. 운영(https://mannalmap.com)에는 **기능 묶음이 끝났을 때
+생기는 배포를 전부 끈다 — Preview 도 Production 도 없다. 운영(주소는 `docs/ops/runbook/domain.md` 맨 위)에는 **기능 묶음이 끝났을 때
 `main` 의 정확한 SHA 를 손으로 한 번** 올린다(아래 「묶음 배포」). 화면 확인은 로컬 e2e 와 스크린샷으로 하고, 밖에서 열어 볼
 주소가 꼭 필요할 때만 Preview 를 손으로 하나 만든다(`vercel deploy`, `--prod` 없이).
 
@@ -33,7 +33,7 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 
 머지는 운영에 아무것도 안 올린다. 묶음이 끝났을 때(하루 한 번, 또는 한 라운드를 닫을 때) 한 번 올린다.
 
-0. **올리기 전에.** 머지를 기다리는 PR 이 없는지(`gh pr list`), 최신 `main` 의 CI(`verify` · `main-red`)가 초록인지, 지난
+0. **올리기 전에.** 올리라고 한 변경은 그 PR 이 main 에 들면 올린다(ADR 0152). 묶음이면 머지를 기다리는 PR 이 없는지(`gh pr list`), 최신 `main` 의 CI(`verify` · `main-red`)가 초록인지, 지난
    배포 뒤 `supabase/migrations/**` 가 바뀌었으면 **DB 를 먼저** 올리고 확인했는지(아래 규약 넷의 2 · 4) 본다. 올릴
    `main` 의 SHA 를 적는다. 한도 창의 남은 자리를 본다 — 모자라면 기다린다
 1. **최신 main 을 Production 으로 올린다.** 깨끗한 `main` 체크아웃(또는 그 SHA 의 워크트리)에서 `vercel deploy --prod`, 아니면
@@ -46,7 +46,7 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 2. **배포 커밋 = main HEAD 인지 본다** — `git ls-remote origin main` 의 SHA 와 대시보드의 Source 커밋(또는
    `vercel inspect <배포 URL>`)이 같아야 한다. 다르면 옛 코드가 Production 이다 — 1 로 돌아간다
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
-   `https://mannalmap.com` 이 선다
+   운영 주소가 선다
 4. **smoke — 다섯 화면.** 홈(`/`) · 로그인(`/auth`) · 궁합(두 사람을 고르는 칸이 서는 화면) · 사람 목록(`/me/people`) ·
    운영자 신고 화면(`/ops/reports`). 로그인이 드는 셋은 운영자 계정으로 본다. 각각 제 제목이 서고 500 · 빈 화면 ·
    브라우저 콘솔의 CSP 위반이 없어야 통과다
@@ -99,4 +99,4 @@ following Content Security Policy directive` 가 선다. 받는 서버(`report-u
    그 지시어에 **그 출처 하나만** 더한다 — `*` 이나 `https:` 로 넓히지 않는다. 우리 코드가 인라인 `eval`
    이나 `data:` 스크립트를 새로 부른 것이면 코드를 고친다.
 3. **다시 강제한다.** 고친 가지에서 e2e 전부를 돌린다 — 자동 손잡이(`e2e/csp.ts`)가 어긴 자리 0 을 든다.
-   `curl -sI https://mannalmap.com/ | grep -i content-security` 로 운영 헤더를 확인한다.
+   `curl -sI <운영 주소>/ | grep -i content-security` 로 운영 헤더를 확인한다.
