@@ -10,6 +10,7 @@
  * 수가 아니라 지문으로 잠그는 까닭은 ADR 0085 정정 둘째에 있다 — 수를 세면 하나를 지운 예산을
  * 다른 새 자리가 쓴다.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 
@@ -1659,5 +1660,38 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
     expect(files.filter((name) => !readme.includes(`| \`${name}\` |`))).toEqual([]);
     const listed = [...readme.matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)].map((match) => match[1]);
     expect(listed.filter((name) => !existsSync(join(dir, name)))).toEqual([]);
+  });
+});
+
+describe('운영 주소는 한 자리 (docs/ops/runbook/domain.md, ADR 0152)', () => {
+  /** 운영 주소를 적어도 되는 곳 — 원본 한 줄과, 그날의 글자로 남는 기록 · 고지한 판 · 흉내 낸 값 */
+  const RECORDED = /^(docs\/ops\/runbook\/domain\.md|docs\/(notes|adr|legal)\/|docs\/product\/(prd-changelog\.md|gaps\/records\/)|scripts\/check-share\.mjs$)/;
+  const HOSTS = /saju-snowy\.vercel\.app|mannalmap\.com/i;
+
+  it('코드 · 위임 규약 · 운영 절차 · 역할 문서는 운영 주소를 글자로 들지 않는다 — 원본을 가리킨다', () => {
+    const docs = ['docs/ops', 'docs/agents', 'docs/roles'].flatMap((dir) => walk(join(ROOT, dir)));
+    const files = [...SOURCE_FILES, ...docs, join(ROOT, 'AGENTS.md'), join(ROOT, 'docs/start.md')]
+      .map(relPath)
+      .filter((rel) => !isTest(rel) && !RECORDED.test(rel));
+    expect(files.length).toBeGreaterThan(100);
+    expect(files.filter((rel) => HOSTS.test(readFileSync(join(ROOT, rel), 'utf8')))).toEqual([]);
+  });
+});
+
+describe('공개 저장소의 개인정보 (docs/agents/delegation/working.md, ADR 0152)', () => {
+  /** 사람을 가리키는 꼴 — 아파트 동 · 호, 휴대폰 번호, 주민등록번호 */
+  const PERSONAL = [/\d+동 \d+호/, /\b01[016789]-?\d{3,4}-?\d{4}\b/, /\b\d{6}-[1-4]\d{6}\b/];
+  const TEXT = /\.(ts|tsx|mts|mjs|js|json|md|sql|ya?ml|toml|txt|css|sh)$/;
+
+  it('추적하는 글자 파일 어디에도 집 주소 · 휴대폰 · 주민번호 꼴이 없다', () => {
+    const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' })
+      .split('\n')
+      .filter((rel) => TEXT.test(rel) && rel !== 'package-lock.json' && existsSync(join(ROOT, rel)));
+    expect(tracked.length).toBeGreaterThan(500);
+    const hits = tracked.flatMap((rel) => {
+      const text = readFileSync(join(ROOT, rel), 'utf8');
+      return PERSONAL.filter((pattern) => pattern.test(text)).map((pattern) => `${rel} ${pattern}`);
+    });
+    expect(hits).toEqual([]);
   });
 });
