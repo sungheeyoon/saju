@@ -55,6 +55,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          cache: npm
+      # 주석만 바뀐 코드 파일을 파서(`typescript`)로 가른다(ADR 0153) — PR 에서만. 설치가 실패하면 계획이 파서 없이 지금 규칙 그대로 간다.
+      - if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - id: plan
         env:
           EVENT: ${{ github.event_name }}
@@ -62,11 +67,14 @@ jobs:
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         run: |
           files=""
+          base=""
           if [ "$EVENT" = pull_request ]; then
             # 이름 바뀐 파일은 옛 이름·새 이름 둘 다 선다 — 지운 파일도 「바뀐 파일」이다.
             files=$(git diff --name-only --no-renames "origin/$BASE...HEAD")
+            # 옛 소스를 읽을 커밋 — 위 diff 와 같은 merge-base. 못 구하면 빈 값이라 지금 규칙 그대로다(ADR 0153).
+            base=$(git merge-base "origin/$BASE" HEAD) || base=""
           fi
-          printf '%s\n' "$files" | node scripts/ci-plan.mjs --event "$EVENT" --labels "$LABELS"
+          printf '%s\n' "$files" | node scripts/ci-plan.mjs --event "$EVENT" --labels "$LABELS" --base "$base"
 
   # ---------------------------------------------------------------------------
   # 정책 — 문서 · 도구 설정 · scripts 시험만 바뀐 PR (#145)
