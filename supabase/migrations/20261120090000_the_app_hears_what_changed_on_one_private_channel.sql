@@ -21,10 +21,9 @@
 --   방 여럿을 비운다. 행 트리거면 같은 사람에게 같은 이벤트가 행 수만큼 간다. 그래서 트리거는 전이 표(transition table)를
 --   든 `for each statement` 이고, (사람 · 갈래 · match_id) 하나에 한 번만 보낸다. 전이 표는 사건 하나 · 열 목록 없는 트리거
 --   에만 붙으므로 insert · update · delete 를 따로 건다.
--- - 요청의 **만료는 쓰기다** — 크론 `match-request-expiry`(매시 7분)가 `expire_match_requests()` 로 `status = 'expired'` 를
---   적고, 수락 · 거절하려는 순간 문이 먼저 접기도 한다. 그래서 만료도 아래 `match_request` 트리거가 알린다. 다만 그 크론이
---   한 시간에 한 번이라 `expires_at` 이 지나고 최대 한 시간 동안은 아무 이벤트도 없다 — 화면이 그 사이를 맞게 그리려면
---   `my_match_requests` 가 내는 `expires_at` 으로 스스로 접어 보인다.
+-- - 요청의 **만료는 쓰기다** — 크론 `match-request-expiry` 가 `expire_match_requests()` 로 `status = 'expired'` 를
+--   적고, 수락 · 거절하려는 순간 문이 먼저 접기도 한다. 그래서 만료도 아래 `match_request` 트리거가 알린다. 그 크론이
+--   1분마다 돌므로(`20261122090000`) `expires_at` 이 지나고 1분 안에 이벤트가 간다.
 -- - 수락은 `respond_to_match_request` 안에서 **요청을 먼저 고치고 Match 를 나중에 넣는다.** 요청의 트리거가 도는 때(그 문장의
 --   끝)에는 Match 가 아직 없다. 그래서 Match 가 서는 순간에도 둘에게 `requests` 를 match_id 와 함께 한 번 더 보낸다.
 --
