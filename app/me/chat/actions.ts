@@ -5,7 +5,6 @@ import { rpcArgs } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
-import { refreshPaths } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 
 /**
@@ -18,9 +17,6 @@ import type { SaveResult } from '../../save-result';
  */
 
 type SendResult = { ok: true; outcome: SendOutcome } | { ok: false; message: string };
-
-/** 방 안의 주소는 방마다 다르다 — 표에 미리 못 적고 목록과 그 방을 함께 무른다 */
-const chatPaths = (matchId: string): readonly string[] => ['/me/chat', `/me/chat/${matchId}`];
 
 export async function sendChatMessage(matchId: string, body: string): Promise<SendResult> {
   /*
@@ -45,7 +41,10 @@ export async function sendChatMessage(matchId: string, body: string): Promise<Se
   // 모르는 값은 성공으로 세우지 않는다 — 보냈다고 말했는데 목록에 없는 편이 더 나쁘다.
   if (outcome === null) return { ok: false, message: userFacingDbMessage({ message: `chat: unknown outcome ${String(data)}` }, 'send_chat_message') };
 
-  refreshPaths(chatPaths(matchId));
+  /*
+    화면을 무르지 않는다 — 방은 보낸 뒤 제 메시지를 읽는 문으로 다시 읽어 합치고(쓰던 입력 · 스크롤이 그대로다), 목록과
+    다른 탭은 채널이 알린다(ADR 0156).
+  */
   return { ok: true, outcome };
 }
 
@@ -71,12 +70,17 @@ export async function reportChatMessage(
   return { ok: true };
 }
 
-export async function markChatRead(matchId: string): Promise<SaveResult> {
+/**
+ * 읽음 — **본 데까지만** 남긴다(ADR 0156). 방이 화면에 들어온 상대 말의 가장 큰 차례를 넘긴다. 함수는 그 방에 실제로 있는
+ * 차례까지만, 앞으로만 움직인다.
+ *
+ * 화면을 무르지 않는다 — 딱지는 창 신호로(`announceChatUnreadMoved`), 다른 탭 · 기기는 채널로 따라온다.
+ */
+export async function markChatRead(matchId: string, upToSeq: number): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('mark_chat_read', { p_match_id: matchId });
+  const { error } = await supabase.rpc('mark_chat_read', { p_match_id: matchId, p_up_to_seq: upToSeq });
   if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_chat_read') };
 
-  refreshPaths(chatPaths(matchId));
   return { ok: true };
 }

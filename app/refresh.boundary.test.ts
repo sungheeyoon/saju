@@ -154,10 +154,6 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '답한 뒤 `feedback_given` 이 다시 읽혀야 한다 — 역시 대상이 주소를 정한다',
     'app/me/reading/actions.ts::skipTasteCarry':
       '귀속 표를 걷으면 내 사주풀이의 「아까 보던 내용」이 내려가야 한다 — 그 화면의 주소를 무른다(ADR 0143)',
-    'app/me/chat/actions.ts::sendChatMessage':
-      '방 안의 주소가 방마다 다르다(`/me/chat/<matchId>`) — 목록과 그 방을 함께 무른다',
-    'app/me/chat/actions.ts::markChatRead':
-      '안 읽은 수가 목록과 그 방에 선다 — 같은 둘을 무른다',
   };
 
   /**
@@ -185,6 +181,10 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '등록을 열고 QR 을 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 확인 전 요소는 어느 화면에도 안 선다',
     'app/ops/mfa/actions.ts::confirmTotpCode':
       '바뀌는 것은 세션 쿠키(aal2)뿐이고 곧장 운영 화면으로 보낸다 — 운영 화면은 동적이라 새 쿠키로 다시 그려진다(ADR 0123)',
+    'app/me/chat/actions.ts::sendChatMessage':
+      '방은 보낸 뒤 제 메시지만 읽는 문으로 다시 읽어 합치고, 목록 · 다른 탭은 채널이 알린다 — 무르면 보낼 때마다 방 화면 전체를 서버가 다시 그린다(ADR 0156)',
+    'app/me/chat/actions.ts::markChatRead':
+      '딱지는 창 신호로, 다른 탭 · 기기는 채널로 따라온다 — 읽음은 말풍선이 화면에 들어올 때마다 부르므로, 무르면 그때마다 방 화면 전체를 다시 그린다(ADR 0156)',
     'app/me/chat/actions.ts::reportChatMessage':
       '신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 서버가 그리는 화면이 안 바뀐다. 접수됐다는 말은 누른 자리가 든다',
   };

@@ -95,6 +95,16 @@ export const CHAT_EMPTY_DETAIL = '요청이 수락돼 인연 궁합이 열리면
 export const CHAT_INPUT_PLACEHOLDER = '메시지를 입력해 주세요';
 export const CHAT_SEND_LABEL = '보내기';
 
+/**
+ * 방이 스스로 갱신되며 새로 선 자리(ADR 0156) — **시안이다, 운영자 승인 대기.** 확정되면 문구 대장에 줄을 더한다.
+ *
+ * - 위에서 과거를 읽는 동안 상대의 새 말이 왔을 때 대화 칸 아래에 서는 단추. 누르면 맨 아래로 간다.
+ * - 대화 칸 맨 위에서 가진 것 앞의 200건을 더 읽는 단추와 읽는 동안의 글자.
+ */
+export const NEW_MESSAGES_LABEL = '새 메시지';
+export const OLDER_MESSAGES_LABEL = '이전 메시지 더 보기';
+export const OLDER_LOADING_LABEL = '불러오는 중…';
+
 /** 방 제목 — `{닉네임} 님` */
 export const roomTitleOf = (nickname: string): string => `${nickname} 님`;
 

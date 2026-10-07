@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+
+/**
+ * **Supabase 의 Realtime 소켓 주소** — 같은 호스트의 `ws(s)://` 다(ADR 0156). `https://x.supabase.co` 는
+ * `wss://x.supabase.co`, 로컬 스택 `http://127.0.0.1:54321` 은 `ws://127.0.0.1:54321` 이다. CSP3 는 `https:` 출처가 같은 호스트의
+ * `wss:` 까지 덮지만, 그 규칙이 없는 브라우저에서도 소켓이 서게 따로 적는다.
+ */
+const supabaseSocket = supabaseUrl.replace(/^http(s?):\/\//, 'ws$1://');
+
 /**
  * **브라우저가 부를 수 있는 곳** — 강제한다(G-23 ②).
  *
@@ -20,7 +29,8 @@ const isDev = process.env.NODE_ENV !== 'production';
  * 어긴 자리는 곧 깨진 화면이라 e2e 의 손잡이(`e2e/csp.ts`)가 먼저 본다. 운영에서 깨지면 되돌리는
  * 법은 `docs/ops/runbook/deploy.md` 「CSP 가 화면을 막을 때」.
  *
- * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다.
+ * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다. Supabase 의 Realtime 소켓(같은 호스트의
+ * `wss:`)은 운영에서도 연다 — 화면이 스스로 갱신되는 채널이다(ADR 0156).
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -28,7 +38,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}${isDev ? ' ws: wss:' : ''}`.trimEnd(),
+  `connect-src 'self' ${supabaseUrl} ${supabaseSocket}${isDev ? ' ws: wss:' : ''}`.replace(/\s+/g, ' ').trimEnd(),
+  /* 웹 푸시의 서비스 워커(`/sw.js`)는 제 출처의 파일만 — 다른 출처 · blob 워커는 없다(ADR 0157) */
+  "worker-src 'self'",
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -72,6 +84,17 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
+        ],
+      },
+      /**
+       * **서비스 워커는 늘 새로 받는다** — 낡은 워커가 캐시에 남으면 고친 알림 처리가 기기에 안 닿는다(ADR 0157). 종류를
+       * 못 박는 것은 `nosniff` 아래에서 워커 등록이 자바스크립트로만 받기 때문이다.
+       */
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
     ];

@@ -11,7 +11,7 @@ import { readAccount } from '../../account';
 import { ChatFrame, RoomList } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
 import { roomTonesForViewer } from '../tones';
-import { bubbleDaysOf } from './bubbles';
+import { labelled } from './bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
 
@@ -53,7 +53,7 @@ export default async function ChatRoomPage({
   const room = rooms.find((one) => one.matchId === matchId) ?? null;
   if (room === null) notFound();
 
-  const [messages, tones] = await Promise.all([messagesForViewer(matchId), roomTonesForViewer(rooms)]);
+  const [messages, tones] = await Promise.all([messagesForViewer(supabase, matchId), roomTonesForViewer(rooms)]);
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col py-3 md:py-6 lg:py-8">
@@ -61,7 +61,9 @@ export default async function ChatRoomPage({
         opened
         list={<RoomList rooms={rooms} activeId={matchId} titleLevel="h2" tones={tones} />}
         pane={
+          /* 방마다 제 상태다 — 넓은 화면에서 다른 방을 누르면 가진 메시지 · 쓰던 글을 새로 시작한다 */
           <ChatRoomView
+            key={matchId}
             room={{
               matchId,
               heading: roomHeadingOf(room),
@@ -71,7 +73,7 @@ export default async function ChatRoomPage({
               notice: roomNoticeOf(room),
               activity: room.partnerActivity,
               unread: room.unread,
-              days: bubbleDaysOf(messages),
+              messages: messages.map(labelled),
               fromBeginning: messages.length < MESSAGE_WINDOW,
               tones: tones.get(matchId) ?? null,
             }}
