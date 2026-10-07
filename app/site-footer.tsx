@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { SERVICE_NAME, SERVICE_TAGLINE } from '@/src/lib/brand';
-import { businessInfoLines } from '@/src/lib/brand/business';
 
 import { GUIDE_LINKS } from './site-links';
 
@@ -17,8 +16,7 @@ import { GUIDE_LINKS } from './site-links';
  * 앱 안(`/me/**` · `/compat` · `/ops/**`)에는 안 세운다. 거기는 하단 독과 톱니가 길이고, 인연 탭은 문서를 한 화면 높이에
  * 묶는다(`globals.css` 의 `data-deck-fit`) — 바닥글이 끼면 그 묶음이 깨진다.
  *
- * 맨 아래 줄은 **사업자 정보**다(전자상거래법의 표시 · PG 심사, 운영자 2026-10-07, ADR 0149). 값은
- * `src/lib/brand/business.ts` 한 곳이고, 값을 모르는 줄은 그리지 않는다 — 자리표시를 화면에 내지 않는다.
+ * **사업자 정보는 싣지 않는다**(ADR 0151) — 사업장 주소가 운영자의 집 주소다.
  */
 export function SiteFooter() {
   const pathname = usePathname();
@@ -27,7 +25,7 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-border">
-      <div className="app-shell flex flex-col gap-4 pt-8 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="app-shell flex flex-col gap-4 py-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="font-rounded text-[17px] text-foreground">{SERVICE_NAME}</p>
           <p className="text-[13px] leading-5 text-secondary">{SERVICE_TAGLINE} · 비공개 베타</p>
@@ -47,16 +45,6 @@ export function SiteFooter() {
             ))}
           </ul>
         </nav>
-      </div>
-      <div className="app-shell pb-8">
-        <dl aria-label="사업자 정보" className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] leading-5 text-secondary">
-          {businessInfoLines().map((line) => (
-            <div key={line.label} className="flex gap-1.5">
-              <dt>{line.label}</dt>
-              <dd className="text-foreground/80">{line.value}</dd>
-            </div>
-          ))}
-        </dl>
       </div>
     </footer>
   );
