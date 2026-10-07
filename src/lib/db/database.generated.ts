@@ -2799,7 +2799,10 @@ export type Database = {
       }
       lock_my_photos: { Args: never; Returns: string }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
-      mark_chat_read: { Args: { p_match_id: string }; Returns: number }
+      mark_chat_read: {
+        Args: { p_match_id: string; p_up_to_seq: number }
+        Returns: number
+      }
       mark_notifications_read: { Args: never; Returns: number }
       mark_reading_webhook_processed: {
         Args: { p_event_id: string }
@@ -3773,6 +3776,15 @@ export type Database = {
         Returns: undefined
       }
       taste_today: { Args: never; Returns: string }
+      tell_changed: {
+        Args: {
+          p_area: string
+          p_match_id?: string
+          p_seq?: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       touch_activity: { Args: never; Returns: boolean }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }

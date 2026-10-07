@@ -168,7 +168,7 @@ from (values
                             '42501 저장한 사람 목록에 없는 사람입니다.', '정지되면 내 사람이 안 보인다 — 그 판정으로 막힌다'),
   ('leave_reading_feedback', format($$select public.leave_reading_feedback(%L, 4::smallint, 4::smallint, 'right')$$, (select v from kept where k = 'run')),
                             'P0002 답할 풀이를 찾지 못했습니다.', '풀이의 범위(`reading_scope_for`)가 활성 계정만 낸다'),
-  ('mark_chat_read',        format($$select public.mark_chat_read(%L)$$, (select v from kept where k = 'match')),
+  ('mark_chat_read',        format($$select public.mark_chat_read(%L, 1)$$, (select v from kept where k = 'match')),
                             '42501 chat: no such room', '방이 보이는가(`chat_room_readable`)가 활성 계정만 본다'),
   ('person_for_pair',       format($$select public.person_for_pair(%L, null, null, null, null, null, null, null, null, null, null, null, null)$$, (select v from kept where k = 'mom')),
                             '42501 저장한 사람 목록에 없는 사람입니다.', '정지되면 내 사람이 안 보인다'),
