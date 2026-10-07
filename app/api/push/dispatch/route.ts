@@ -20,7 +20,10 @@ import { pushSender } from './send';
  * 그쪽이 시간 초과를 남긴다. 받았다(202)고 답한 뒤 같은 함수 시간 안에서 보낸다.
  */
 
-/** 송신 한 묶음(50 · 동시 6 · 하나 10초)이 넉넉히 들어간다 */
+/**
+ * 함수 한도. 묶음은 35초가 지나면 새 송신을 시작하지 않고(`PUSH_BATCH_BUDGET_MS`), 송신 하나는 10초 안에 끝난다 — 마지막
+ * 송신과 닫는 쓰기가 한도 안에 든다. 이 값을 줄이면 그 마감도 줄인다
+ */
 export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<Response> {

@@ -39,6 +39,18 @@ export function setLocalPushVault({ url, secret }) {
   putSecret('push_dispatch_secret', secret);
 }
 
+/**
+ * 로컬 Vault 에 **시험용 푸시 호스트**를 연다 — `push_endpoint_allowed` 가 알려진 푸시 서비스 넷 말고도 받는다. 가짜 푸시
+ * 서비스(`localhost`)를 쓰는 `check-push.mjs` 만 부른다. 운영 Vault 에는 이 이름이 없다(닫힘). `null` 이면 걷는다.
+ */
+export function setLocalPushExtraHosts(hosts) {
+  if (hosts === null) {
+    sql(`delete from vault.secrets where name = 'push_extra_hosts'`);
+    return;
+  }
+  putSecret('push_extra_hosts', hosts);
+}
+
 export const localDispatchUrl = (port) => `http://host.docker.internal:${port}/api/push/dispatch`;
 
 function main() {

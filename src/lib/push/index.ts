@@ -30,11 +30,24 @@ export const PUSH_CLAIM_LIMIT = 50;
 /** 한 번에 열어 두는 송신 — 푸시 서비스 하나에 몰아 429 를 부르지 않을 만큼 */
 export const PUSH_SEND_CONCURRENCY = 6;
 
-/** 송신 하나를 기다리는 최대 시간(ms) — 넘으면 연결 실패와 같이 다시 보낸다 */
+/**
+ * 송신 하나의 **전체** 시한(ms) — 연결 · 보내기 · 답의 머리까지. 넘으면 소켓을 끊고 연결 실패와 같이 다시 보낸다. 답의
+ * 본문은 읽지 않는다 — 느리게 흘리는 서버도 이 안에서 끝난다.
+ */
 export const PUSH_SEND_TIMEOUT_MS = 10_000;
 
-/** 배달 줄을 닫는 말 — `settle_push_delivery(p_result)` 가 받는 넷 */
-export type SettleResult = 'sent' | 'gone' | 'retry' | 'unconfigured';
+/**
+ * 한 묶음이 **새 송신을 시작하는** 마감(ms, 묶음을 연 때부터). 지나면 남은 줄은 보내지 않고 놓아준다(`release` — 시도 수를
+ * 안 올리고 다음 깨움에 다시 잡힌다). 배달 문의 함수 한도(`maxDuration` 60초)에서 마지막 송신의 시한(10초)과 닫는 쓰기의 여유를
+ * 넉넉히 뺀 값이다 — 한도에 걸려 끊기면 보낸 줄을 닫지 못하고, 그 줄은 5분 뒤 실패로 세어진다(이중 배달).
+ */
+export const PUSH_BATCH_BUDGET_MS = 35_000;
+
+/** 배달 줄을 닫는 말 — `settle_push_delivery(p_result)` 가 받는 다섯 */
+export type SettleResult = 'sent' | 'gone' | 'retry' | 'unconfigured' | 'release';
+
+/** 송신 하나가 낼 수 있는 말 */
+export type SendResult = Extract<SettleResult, 'sent' | 'gone' | 'retry'>;
 
 /** 서비스 워커가 받는 값 전부 */
 export type PushPayload = { url: string; tag: string };
@@ -77,7 +90,7 @@ export function pushTopicFor(matchId: string): string {
  *
  * @param status 받은 답의 상태 코드. 답을 못 받았으면(연결 실패 · 시간 초과) `null`
  */
-export function settleResultOf(status: number | null): Exclude<SettleResult, 'unconfigured'> {
+export function settleResultOf(status: number | null): SendResult {
   if (status === null) return 'retry';
   if (status >= 200 && status < 300) return 'sent';
   if (status === 404 || status === 410) return 'gone';
@@ -146,6 +159,52 @@ export function pushRowState(env: PushEnvironment): PushRowState {
 export function looksLikeIos(userAgent: string, maxTouchPoints: number): boolean {
   if (/iPhone|iPad|iPod/.test(userAgent)) return true;
   return /Macintosh/.test(userAgent) && maxTouchPoints > 1;
+}
+
+/**
+ * **받는 푸시 서비스** — 구독 endpoint 의 호스트가 이 넷 중 하나여야 한다. 원본은 DB 의 `push_endpoint_allowed` 이고 여기는
+ * 같은 표다(앱이 먼저 거르고, 보내기 전에 한 번 더 본다).
+ *
+ * - `fcm.googleapis.com` — Chrome · 안드로이드 · Samsung Internet · Opera
+ * - `*.push.services.mozilla.com` — Firefox(`updates.push.services.mozilla.com`)
+ * - `*.notify.windows.com` — Edge(WNS, `wns2-*.notify.windows.com`)
+ * - `*.push.apple.com` — Safari · 홈 화면 웹 앱(Apple 은 「`*.push.apple.com` 을 허용하라」고 적는다)
+ *
+ * 아무 `https:` 주소나 받으면 배달 문(Vercel)이 남이 고른 주소로 POST 한다 — 내부망을 두드리는 길(SSRF)이 되고, 느린 서버
+ * 하나가 배달 묶음을 붙든다. 그래서 알려진 호스트만이고 포트를 적은 주소는 받지 않는다(늘 443).
+ */
+const PUSH_SERVICE_HOSTS = ['fcm.googleapis.com'] as const;
+const PUSH_SERVICE_SUFFIXES = ['.push.services.mozilla.com', '.notify.windows.com', '.push.apple.com'] as const;
+
+/**
+ * endpoint 가 받는 푸시 서비스의 것인가.
+ *
+ * @param extraHosts 시험용으로 더 여는 호스트(포트는 아무것이나) — 로컬의 가짜 푸시 서비스(`localhost`). 운영에는 없다
+ *   (앱은 `WEB_PUSH_EXTRA_HOSTS`, DB 는 Vault 의 `push_extra_hosts`)
+ */
+export function pushEndpointAllowed(endpoint: string, extraHosts: readonly string[] = []): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return false;
+  const host = url.hostname.toLowerCase();
+  if (extraHosts.some((extra) => extra.trim().toLowerCase() === host)) return true;
+  if (url.port !== '') return false;
+  return (
+    (PUSH_SERVICE_HOSTS as readonly string[]).includes(host) ||
+    PUSH_SERVICE_SUFFIXES.some((suffix) => host.endsWith(suffix) && host.length > suffix.length)
+  );
+}
+
+/** `WEB_PUSH_EXTRA_HOSTS` 같은 쉼표 목록 → 호스트들. 빈 칸은 버린다 */
+export function extraPushHostsOf(listed: string | undefined): readonly string[] {
+  return (listed ?? '')
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter((host) => host !== '');
 }
 
 /** 브라우저가 낸 구독 하나 — `PushSubscription.toJSON()` 의 세 칸 */

@@ -6,10 +6,15 @@
 --      gone 은 구독을 지운다, 설정 안 됨은 시도 수를 안 올린다
 --   4. 깨우기 — Vault 에 값이 없으면 아무 요청도 안 나가고, 있으면 그 문장에서 한 번 나간다
 --   5. 보존 7일 · 크론 둘 · 탈퇴 처분이 구독을 데려간다
+--   그리고 받는 푸시 서비스만 — 알려진 호스트 넷과 Vault 의 시험용 호스트(이 파일은 `push.example.com` 을 연다)
 --
 -- 같은 트랜잭션 안에서 `now()` 는 멈춰 있다 — 기한을 넘기는 자리는 `due_at` · `claimed_at` 을 손으로 당긴다.
 begin;
-select plan(64);
+select plan(80);
+
+-- 이 파일의 endpoint 는 `push.example.com` 이다 — 시험용 호스트로 연다. 트랜잭션과 함께 걷힌다
+delete from vault.secrets where name = 'push_extra_hosts';
+select vault.create_secret('push.example.com', 'push_extra_hosts');
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -146,6 +151,29 @@ select is(
   (select p256dh || ' ' || auth from public.push_subscription where endpoint = 'https://push.example.com/kim'),
   'BKimKey_-2 kimAuth2',
   '열쇠는 마지막 것이다');
+
+-- 받는 푸시 서비스만 — 배달 문이 남이 고른 주소로 POST 하지 않게
+select ok(public.push_endpoint_allowed('https://fcm.googleapis.com/fcm/send/abc'), 'Chrome(FCM)은 받는다');
+select ok(public.push_endpoint_allowed('https://updates.push.services.mozilla.com/wpush/v2/abc'), 'Firefox 는 받는다');
+select ok(public.push_endpoint_allowed('https://wns2-par02p.notify.windows.com/w/?token=abc'), 'Edge(WNS)는 받는다');
+select ok(public.push_endpoint_allowed('https://web.push.apple.com/QKabc'), 'Safari 는 받는다');
+select ok(not public.push_endpoint_allowed('https://evil.example/push'), '모르는 호스트는 안 받는다');
+select ok(not public.push_endpoint_allowed('https://fcm.googleapis.com.evil.example/x'), '알려진 이름을 앞에 단 남의 호스트는 안 받는다');
+select ok(not public.push_endpoint_allowed('https://evil.example@fcm.googleapis.com/x'), '사용자 칸을 끼운 주소는 안 받는다');
+select ok(not public.push_endpoint_allowed('https://fcm.googleapis.com:8443/x'), '포트를 적은 주소는 안 받는다');
+select ok(not public.push_endpoint_allowed('https://169.254.169.254/latest/meta-data'), '내부 주소는 안 받는다');
+select ok(not public.push_endpoint_allowed('http://fcm.googleapis.com/x'), 'https 가 아니면 안 받는다');
+
+delete from vault.secrets where name = 'push_extra_hosts';
+select ok(not public.push_endpoint_allowed('https://push.example.com/x'), 'Vault 에 시험용 호스트가 없으면 닫혀 있다');
+select vault.create_secret('push.example.com', 'push_extra_hosts');
+
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+select throws_ok(
+  $$select public.save_push_subscription('https://evil.example/push/kim', 'BKey', 'auth')$$,
+  '22023', null, '모르는 푸시 서비스의 구독은 남기지 않는다');
+reset role;
 
 -- endpoint 옮김 — 한 브라우저에서 다른 계정이 켠다
 set local role authenticated;
@@ -306,6 +334,15 @@ select results_eq(
   $$values (0, interval '5 minutes')$$,
   '시도 수 그대로 5분 뒤다');
 
+-- 묶음 마감에 놓아준 줄 — 시도 수를 안 올리고 지금이 기한이다
+select pg_temp.due_now();
+select pg_temp.claim();
+select is(pg_temp.settle('https://push.example.com/kim', 'release'), 'pending', '놓아준 줄은 기다리는 줄로 되돌린다');
+select results_eq(
+  $$select attempts, due_in from pg_temp.lines('https://push.example.com/kim') where status = 'pending'$$,
+  $$values (0, interval '0')$$,
+  '시도 수 그대로 지금이 기한이다 — 다음 깨움에 잡힌다');
+
 -- 보내는 중에 멈춘 줄 — 5분이 지나면 다시 잡히고 실패 한 번으로 센다
 select pg_temp.due_now();
 select pg_temp.claim();
@@ -352,6 +389,20 @@ select is(
   (select count(*)::int from public.push_subscription where endpoint = 'https://push.example.com/kim'),
   0,
   'gone 은 구독을 지운다');
+
+-- 받는 푸시 서비스가 아닌 구독(시험용 호스트를 걷은 뒤 남은 줄)은 잡혀도 내주지 않는다
+insert into public.push_subscription (user_id, endpoint, p256dh, auth)
+select kim, 'https://push.example.com/kim-3', 'BKimKey', 'kimAuth' from folks;
+select pg_temp.send((select park from folks), (select kim_park from rooms), '닫힌 호스트');
+select pg_temp.due_now();
+delete from vault.secrets where name = 'push_extra_hosts';
+select is_empty($$select * from pg_temp.claim()$$, '받는 푸시 서비스가 아닌 endpoint 는 내주지 않는다');
+select is(
+  (select status from pg_temp.lines('https://push.example.com/kim-3')),
+  'skipped',
+  '그 줄은 skipped 로 접힌다');
+select vault.create_secret('push.example.com', 'push_extra_hosts');
+delete from public.push_subscription where endpoint = 'https://push.example.com/kim-3';
 
 -- 열쇠 말고는 못 부른다
 set local role authenticated;

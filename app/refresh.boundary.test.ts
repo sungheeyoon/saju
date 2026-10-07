@@ -183,8 +183,6 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '바뀌는 것은 세션 쿠키(aal2)뿐이고 곧장 운영 화면으로 보낸다 — 운영 화면은 동적이라 새 쿠키로 다시 그려진다(ADR 0123)',
     'app/me/chat/actions.ts::sendChatMessage':
       '방은 보낸 뒤 제 메시지만 읽는 문으로 다시 읽어 합치고, 목록 · 다른 탭은 채널이 알린다 — 무르면 보낼 때마다 방 화면 전체를 서버가 다시 그린다(ADR 0155)',
-    'app/me/chat/actions.ts::markChatRead':
-      '딱지는 창 신호로, 다른 탭 · 기기는 채널로 따라온다 — 읽음은 말풍선이 화면에 들어올 때마다 부르므로, 무르면 그때마다 방 화면 전체를 다시 그린다(ADR 0155)',
     'app/me/push/actions.ts::savePushSubscription':
       '이 기기의 구독은 서버가 그리는 어느 화면에도 안 선다 — 설정 줄은 브라우저가 재서 그린다(ADR 0156)',
     'app/me/push/actions.ts::removePushSubscription': '위와 같다 — 끈 뒤의 상태도 누른 자리가 든다',

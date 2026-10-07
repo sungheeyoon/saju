@@ -123,7 +123,28 @@ async function channelUp(log: ReturnType<typeof socketLog>, userId: string): Pro
     .toBe(true);
 }
 
-const percentile = (values: readonly number[], p: number): number => {
+/** 그 사람의 마지막 활동 — 로컬 DB 에서 잰다. 줄이 없으면 `none` */
+const activityOf = (userId: string): string =>
+  sql(`select coalesce((select last_active_at::text from public.user_activity where user_id = '${userId}'), 'none')`);
+
+/**
+ * 활동을 10분 앞으로 민다 — 1분 억제(`presence_write_window`) 밖이라 무엇이든 적히면 값이 움직인다. 민 값을 낸다.
+ */
+const pushActivityBack = (userId: string): string => {
+  sql(`update public.user_activity set last_active_at = now() - interval '10 minutes' where user_id = '${userId}'`);
+  return activityOf(userId);
+};
+
+const readOf = (matchId: string, userId: string): number =>
+  Number(
+    sql(`select coalesce(max(r.last_read_seq), 0) from public.chat_read r join public.chat_room c on c.id = r.room_id
+         where c.match_id = '${matchId}' and r.user_id = '${userId}'`),
+  );
+
+const newestOf = (matchId: string): number =>
+  Number(sql(`select max(m.seq) from public.chat_message m join public.chat_room c on c.id = m.room_id where c.match_id = '${matchId}'`));
+
+const percentile =(values: readonly number[], p: number): number => {
   const sorted = [...values].sort((x, y) => x - y);
   return sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p))];
 };
@@ -422,6 +443,50 @@ test.describe('앱이 스스로 갱신된다', () => {
     await sendAs(a, matchId, '방 안의 말');
     const own = await a.api.rpc('my_chat_messages', { p_match_id: matchId, p_limit: 200 });
     expect((own.data ?? []).length).toBeGreaterThan(0);
+  });
+
+  test('(8) 손대지 않는 동안 온 메시지의 다시 그리기 · 자동 읽음은 활동이 아니다 — 사람이 옮기면 활동이다 (G-76)', async ({ openAs }) => {
+    const { a, b, tag, matchId, room } = await pair(openAs);
+    const bId = userIdOf(b.account.email);
+    const bLog = socketLog(b.page);
+    // 방 화면 — 채팅 갈래가 오면 다시 그리고(`router.refresh`), 상대 말이 화면에 들면 저절로 읽음을 남긴다
+    await b.page.goto(room);
+    await channelUp(bLog, bId);
+    await expect.poll(() => activityOf(bId), { timeout: 5_000 }).not.toBe('none');
+
+    const idle = pushActivityBack(bId);
+    const body = `자리 비운 동안 ${tag}`;
+    await sendAs(a, matchId, body);
+    await expect(talkOf(b.page).getByText(body)).toBeVisible({ timeout: WITHIN_MS });
+    // 자동 읽음이 그 말까지 남았다 — 브라우저가 곧장 부른 쓰기다
+    await expect.poll(() => readOf(matchId, bId), { timeout: WITHIN_MS + 1_000 }).toBe(newestOf(matchId));
+    // 다시 그리기(400ms 묶음)와 그 뒤의 `after` 가 끝날 만큼 기다린다
+    await b.page.waitForTimeout(2_000);
+    expect(activityOf(bId)).toBe(idle);
+    expect((await b.page.context().cookies()).some((cookie) => cookie.name === 'live-redraw')).toBe(false);
+
+    // 사람이 탭을 옮기면 활동이다 — 표지가 그 요청을 빼지 않는다
+    await matchingTab(b.page).click();
+    await expect(b.page).toHaveURL(/\/me\/matching/);
+    await expect.poll(() => activityOf(bId), { timeout: 5_000 }).not.toBe(idle);
+  });
+
+  test('(8) 채널이 내려가 30초 대체 조회가 목록을 다시 그려도 활동이 아니다 (G-76)', async ({ openAs }) => {
+    test.setTimeout(120_000);
+    const { a, b, tag, matchId } = await pair(openAs);
+    const bId = userIdOf(b.account.email);
+    // 채널의 소켓을 서버에 잇지 않고 닫는다 — 망은 살아 있고 채널만 못 선다
+    await b.page.routeWebSocket(/\/realtime\//, (socket) => socket.close());
+    await b.page.goto('/me/chat');
+    await expect.poll(() => activityOf(bId), { timeout: 5_000 }).not.toBe('none');
+
+    const idle = pushActivityBack(bId);
+    await sendAs(a, matchId, `대체 조회 ${tag}`);
+    const row = b.page.getByRole('link', { name: new RegExp(`가${tag}`) });
+    // 대체 조회가 다시 그린 목록에 새 말이 선다 — 다시 그리기가 정말 있었다
+    await expect(row.getByText(`대체 조회 ${tag}`)).toBeVisible({ timeout: 45_000 });
+    await b.page.waitForTimeout(1_500);
+    expect(activityOf(bId)).toBe(idle);
   });
 
   test('위에서 과거를 읽는 동안 새 말이 오면 자리를 지키고 「새 메시지」가 서며, 맨 위에서 이전 메시지를 더 읽는다', async ({ openAs }) => {

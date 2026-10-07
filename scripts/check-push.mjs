@@ -8,7 +8,7 @@ import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql, testNeed, keyedRpc, shapeOnlySummary, fetchWhole, sessionCookie } from './checks.mjs';
 import { startFakePushService } from './fake-push-service.mjs';
-import { localDispatchUrl, setLocalPushVault } from './push-local.mjs';
+import { localDispatchUrl, setLocalPushExtraHosts, setLocalPushVault } from './push-local.mjs';
 import { PUSH_TTL_SECONDS, pushPayloadFor, pushTopicFor } from '../src/lib/push/index.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
@@ -80,9 +80,12 @@ const { base: BASE, stop } = await startCheckServer({
     PUSH_DISPATCH_SECRET: dispatchSecret,
     // 가짜 푸시 서비스의 자기 서명 인증서만 더 믿는다 — 앱 코드에 시험 갈래가 없다
     NODE_EXTRA_CA_CERTS: fake.certPath,
+    // 가짜 푸시 서비스의 호스트만 더 연다 — 운영에는 없는 값이다(알려진 푸시 서비스 넷만)
+    WEB_PUSH_EXTRA_HOSTS: 'localhost',
   },
 });
 setLocalPushVault({ url: localDispatchUrl(PORT), secret: dispatchSecret });
+setLocalPushExtraHosts('localhost');
 
 /** 배달 줄 — 받는 사람의 그 방 줄들 */
 const deliveries = (matchId) =>
@@ -208,6 +211,34 @@ try {
     check('410 이면 그 구독이 지워진다', gone);
   }
 
+  // ── 5½. 모르는 푸시 서비스는 받지 않는다 — DB 와 앱 둘 다 ──────────────────────
+  {
+    const keys = fake.subscription('stranger');
+    for (const endpoint of ['https://evil.example/push/x', 'https://fcm.googleapis.com.evil.example/x',
+      'https://evil.example@fcm.googleapis.com/x', 'https://fcm.googleapis.com:8443/x', 'https://169.254.169.254/latest']) {
+      const refused = await b.rpc('save_push_subscription', { p_endpoint: endpoint, p_p256dh: keys.p256dh, p_auth: keys.auth });
+      check(`DB 가 모르는 호스트를 거절한다 — ${endpoint}`, refused.error?.code === '22023', refused.error?.message ?? 'saved');
+    }
+    const known = await b.rpc('save_push_subscription', {
+      p_endpoint: `https://fcm.googleapis.com/fcm/send/check-${tag}`, p_p256dh: keys.p256dh, p_auth: keys.auth });
+    check('DB 가 알려진 푸시 서비스는 받는다', !known.error, known.error?.message ?? '');
+    await b.rpc('remove_push_subscription', { p_endpoint: `https://fcm.googleapis.com/fcm/send/check-${tag}` });
+
+    const post = (jar, endpoint) => fetchWhole(`${BASE}/me/push/subscription`, {
+      method: 'POST',
+      headers: { cookie: jar, origin: BASE, 'content-type': 'application/json' },
+      body: JSON.stringify({ endpoint, p256dh: keys.p256dh, auth: keys.auth }),
+      redirect: 'manual',
+    });
+    const strange = await post(cookie.b, 'https://evil.example/push/x');
+    check('워커의 다시 남기기 주소도 모르는 호스트는 400 이다', strange.status === 400, String(strange.status));
+    const signedOut = await post('', keys.endpoint);
+    check('로그인 없는 다시 남기기는 401 이다 — DB 실패가 아니다', signedOut.status === 401, String(signedOut.status));
+    const resaved = await post(cookie.b, keys.endpoint);
+    check('로그인한 다시 남기기는 204 다', resaved.status === 204, String(resaved.status));
+    await b.rpc('remove_push_subscription', { p_endpoint: keys.endpoint });
+  }
+
   // ── 6. 계정 전환 — 같은 endpoint 를 다른 계정이 남기면 옮겨 간다 ─────────────────
   {
     const shared = fake.subscription('shared');
@@ -219,9 +250,31 @@ try {
     const { data: hers } = await b.rpc('push_subscription_registered', { p_endpoint: shared.endpoint });
     check('앞 계정에게는 등록이 없다 — 설정 줄은 꺼짐이다', hers === false, String(hers));
   }
+
+  // ── 7. 답하지 않는 푸시 서비스가 다른 구독을 세우지 않는다 ───────────────────────
+  {
+    const slow = fake.subscription('slow');
+    const quick = fake.subscription('quick');
+    fake.answer('slow', 'hang');
+    for (const one of [slow, quick]) {
+      await b.rpc('save_push_subscription', { p_endpoint: one.endpoint, p_p256dh: one.p256dh, p_auth: one.auth });
+    }
+    const started = Date.now();
+    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '느린 서버' });
+    const hung = await fake.waitFor((one) => one.name === 'slow');
+    const fast = await fake.waitFor((one) => one.name === 'quick');
+    check('답하지 않는 서버가 받는 동안에도 다른 구독은 간다', hung !== null && fast !== null && fast.at - started < 8000,
+      fast ? `${fast.at - started}ms` : '안 감');
+    const slowRow = () => JSON.parse(sql(`select coalesce(json_agg(d), '[]') from public.push_delivery d
+      join public.push_subscription s on s.id = d.subscription_id where s.endpoint = '${slow.endpoint}'`));
+    const cut = await waitUntil(() => slowRow().some((row) => row.status === 'pending' && row.attempts === 1), 20_000);
+    check('답하지 않는 서버는 전체 시한(10초)에 끊기고 다시 보내기가 된다', cut, JSON.stringify(slowRow()));
+    check('끊긴 것은 시한 뒤다 — 머리를 기다리다 끊는다', Date.now() - started >= 9000, `${Date.now() - started}ms`);
+  }
 } finally {
   stop();
   fake.stop();
+  setLocalPushExtraHosts(null);
 }
 
 finish();

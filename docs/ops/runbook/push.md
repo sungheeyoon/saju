@@ -36,8 +36,12 @@
    ```
 
    `<운영 주소>` 는 `docs/ops/runbook/domain.md` 맨 위의 그 한 줄이다(여기 적지 않는다). 도메인을 옮기면 이 값도 고친다.
+   **`push_extra_hosts` 는 넣지 않는다** — 로컬의 가짜 푸시 서비스를 여는 시험용 값이다. 없어야 알려진 푸시 서비스 넷(FCM · Mozilla ·
+   WNS · Apple)의 구독만 받는다(ADR 0156). Vercel 의 `WEB_PUSH_EXTRA_HOSTS` 도 같다.
 4. **Realtime 설정** — 대시보드 Project Settings → Realtime 에서 「Allow public access」를 끈다. 계정 채널(ADR 0155)은 비공개 채널만
-   쓰고, 켜 두면 정책 없이 듣는 public 채널이 열린다. 동시 연결 한도(Free 200)와 플랜은 G-75.
+   쓰고, 켜 두면 정책 없이 듣는 public 채널이 열린다 — 누구나 `user:<남>` 이라는 이름의 공개 채널에 쏠 수 있다. 그것이 그 사람의
+   비공개 구독에 닿지 않음은 `node scripts/check-live-channel.mjs` 4 가 잰다(로컬은 공개 채널이 열려 있다). 닿더라도 앱은 그 사건을
+   「다시 읽어라」로만 쓰고 내용을 믿지 않는다. 동시 연결 한도(Free 200)와 플랜은 G-75.
 
 ### 확인
 

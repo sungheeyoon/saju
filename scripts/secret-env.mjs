@@ -88,6 +88,11 @@ export const CONFIG_ENV = [
   'PORTONE_STORE_ID',
   /** VAPID 의 주체(`mailto:` · `https:`) — 없으면 배포의 https 주소를 쓴다(`app/api/push/dispatch/send.ts`) */
   'WEB_PUSH_SUBJECT',
+  /**
+   * 시험용으로 더 받는 푸시 호스트(쉼표 목록) — 로컬의 가짜 푸시 서비스(`localhost`)만. **운영에는 넣지 않는다** — 없으면
+   * 알려진 푸시 서비스 넷만 받는다(`app/me/push/hosts.ts`, ADR 0156)
+   */
+  'WEB_PUSH_EXTRA_HOSTS',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */

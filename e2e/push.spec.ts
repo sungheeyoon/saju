@@ -13,7 +13,8 @@ import { expect, sql, test } from './session';
  * 헤드리스 Chromium 은 FCM 에 구독을 맺지 못한다(`pushManager.subscribe` 가 「push service error」). 그래서
  * `PushManager.prototype.subscribe` · `getSubscription` 만 페이지 안에서 가짜 구독을 돌려주게 바꾼다(`addInitScript`).
  * 나머지는 진짜다 — 권한(`grantPermissions`), 서비스 워커 등록(`/sw.js`), 서버 액션, DB 의 구독 줄.
- * 가짜 구독의 endpoint 는 `https://push.invalid/…` 라 어디로도 안 간다. 실제 송신과 암호화는 흐름 검사
+ * 가짜 구독의 endpoint 는 FCM 모양(`https://fcm.googleapis.com/fcm/send/e2e-…` — 받는 푸시 서비스만 남긴다)이지만 이 시험의
+ * 서버에는 VAPID 비밀 열쇠도 배달 비밀도 없어 어디로도 안 간다. 실제 송신과 암호화는 흐름 검사
  * `scripts/check-push.mjs` 가 가짜 푸시 서비스로 잰다.
  *
  * 이 시험은 VAPID 공개 열쇠가 실린 dev 서버가 필요하다 — 없으면 줄이 「지원 안 함」으로 선다.
@@ -57,7 +58,7 @@ async function fakePushService(context: BrowserContext): Promise<void> {
     PushManager.prototype.subscribe = async function (options?: PushSubscriptionOptionsInit) {
       const key = options?.applicationServerKey;
       const raw = key instanceof Uint8Array ? Array.from(key as Uint8Array) : [];
-      const endpoint = `https://push.invalid/e2e/${crypto.randomUUID()}`;
+      const endpoint = `https://fcm.googleapis.com/fcm/send/e2e-${crypto.randomUUID()}`;
       localStorage.setItem(KEY, JSON.stringify({ endpoint, key: raw }));
       return held() as unknown as PushSubscription;
     };
@@ -102,7 +103,7 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     expect(subscriptionsOf(signedIn.email)).toBe(0);
   });
 
-  test('앞 계정의 구독이 브라우저에 남아 있으면 다음 계정에게는 꺼짐이고, 켜면 그 endpoint 가 옮겨 간다', async ({
+  test('앞 계정의 구독이 브라우저에 남은 채 다른 계정이 들어오면 그 구독을 풀고, 다음 계정은 꺼짐에서 새로 켠다', async ({
     page,
     context,
     signedIn,
@@ -122,13 +123,21 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     await context.clearCookies();
     await context.addCookies(theirs);
 
+    const before = await page.evaluate(() => localStorage.getItem('e2e-fake-push-subscription'));
+    expect(before).not.toBeNull();
+
     await page.goto('/me/settings');
     await expect(row(page).getByRole('button', { name: '알림 켜기' })).toBeVisible();
+    // 앞 계정의 구독은 이 브라우저에서 풀린다 — 앞 계정의 메시지 통보가 이 기기에 안 선다(`app/me/push/owner.ts`)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('e2e-fake-push-subscription'))).toBeNull();
 
     await row(page).getByRole('button', { name: '알림 켜기' }).click();
     await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
     expect(subscriptionsOf(other.account.email)).toBe(1);
-    expect(subscriptionsOf(signedIn.email)).toBe(0);
+    const after = await page.evaluate(() => localStorage.getItem('e2e-fake-push-subscription'));
+    expect(after).not.toBe(before);
+    // 앞 계정의 서버 줄은 지울 권한이 없어 남는다 — 다음 송신에 푸시 서비스가 410 을 답하면 배달 문이 지운다
+    expect(subscriptionsOf(signedIn.email)).toBe(1);
   });
 
   test('로그아웃하면 이 기기의 구독이 서버에서 지워진다', async ({ page, context, signedIn }) => {

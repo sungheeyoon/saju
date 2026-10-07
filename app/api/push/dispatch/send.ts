@@ -1,6 +1,9 @@
 import 'server-only';
 
-import webpush, { WebPushError } from 'web-push';
+import type { ClientRequest, IncomingMessage, RequestOptions } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+
+import webpush from 'web-push';
 
 import {
   PUSH_SEND_TIMEOUT_MS,
@@ -9,16 +12,66 @@ import {
   pushPayloadFor,
   pushTopicFor,
   settleResultOf,
-  type SettleResult,
+  type SendResult,
 } from '@/src/lib/push';
 
+import { endpointAllowedHere } from '../../../me/push/hosts';
 import { siteUrl } from '../../../site-url';
 
 /** 배달 줄 하나가 든 구독 — `claim_push_deliveries` 의 칸 그대로 */
 export type PushTarget = { endpoint: string; p256dh: string; auth: string };
 
 /** 구독 하나에 방 하나를 알리고, 배달 줄을 닫을 말을 낸다. 던지지 않는다 */
-export type PushSender = (target: PushTarget, matchId: string) => Promise<Exclude<SettleResult, 'unconfigured'>>;
+export type PushSender = (target: PushTarget, matchId: string) => Promise<SendResult>;
+
+/** 지은 요청 하나 — `web-push` 의 `generateRequestDetails` 가 낸 것 */
+export type PushRequest = {
+  method: string;
+  headers: Record<string, string | number>;
+  body: Buffer | null;
+};
+
+type RequestFn = (url: string, options: RequestOptions, answer: (response: IncomingMessage) => void) => ClientRequest;
+
+/**
+ * 요청 하나를 보내고 **답의 상태 코드만** 낸다 — 시한 안에 머리가 안 오면 `null`.
+ *
+ * `web-push` 의 `sendNotification` 을 쓰지 않는 까닭이 이것이다. 그 함수의 `timeout` 은 소켓이 쉬는 시간뿐이라 조금씩
+ * 흘리는 서버는 끝없이 붙들고, 답의 본문을 끝까지 모은다. 여기는 **전체 시한**이 지나면 소켓을 끊고, 머리가 오면 본문을
+ * 읽지 않고 끊는다. 넘겨주기(redirect)는 따르지 않는다 — 3xx 도 그대로 상태 코드다.
+ *
+ * @param send 시험이 `node:http` 를 끼운다. 운영은 늘 `https`
+ */
+export function postWithin(
+  endpoint: string,
+  request: PushRequest,
+  ms: number,
+  send: RequestFn = httpsRequest,
+): Promise<number | null> {
+  return new Promise((resolve) => {
+    let finished = false;
+    let outgoing: ClientRequest | null = null;
+    const finish = (status: number | null) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      outgoing?.destroy();
+      resolve(status);
+    };
+    const timer = setTimeout(() => finish(null), ms);
+    try {
+      outgoing = send(endpoint, { method: request.method, headers: request.headers }, (response) => {
+        finish(response.statusCode ?? null);
+        response.destroy();
+      });
+    } catch {
+      finish(null);
+      return;
+    }
+    outgoing.on('error', () => finish(null));
+    outgoing.end(request.body ?? undefined);
+  });
+}
 
 type VapidDetails = { subject: string; publicKey: string; privateKey: string };
 
@@ -56,29 +109,32 @@ function vapidDetails(): VapidDetails | null {
  * 웹 푸시 송신기 — 설정이 없으면 `null` 이다.
  *
  * 한 번 보낼 때마다 `vapidDetails` 를 함께 넘긴다 — `webpush.setVapidDetails` 의 모듈 전역 상태를 두지 않는다.
- * 암호화(aes128gcm)와 VAPID 서명은 `web-push` 가 한다. 송신은 늘 `https` 다.
+ * 암호화(aes128gcm)와 VAPID 서명은 `web-push` 가 짓고(`generateRequestDetails`), 보내는 것은 `postWithin` 이다.
  */
-export function pushSender(): PushSender | null {
+export function pushSender(post: typeof postWithin = postWithin): PushSender | null {
   const vapid = vapidDetails();
   if (vapid === null) return null;
 
   return async (target, matchId) => {
+    /*
+      모르는 푸시 서비스로는 보내지 않는다 — DB 가 이미 거르지만(`claim_push_deliveries`), 송신하는 손이 마지막으로 한 번
+      더 본다. 받을 수 없는 구독이니 지운다(`gone`).
+    */
+    if (!endpointAllowedHere(target.endpoint)) return 'gone';
+
+    let request: PushRequest & { endpoint: string };
     try {
-      const { statusCode } = await webpush.sendNotification(
+      request = webpush.generateRequestDetails(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
         JSON.stringify(pushPayloadFor(matchId)),
-        {
-          vapidDetails: vapid,
-          TTL: PUSH_TTL_SECONDS,
-          urgency: PUSH_URGENCY,
-          topic: pushTopicFor(matchId),
-          timeout: PUSH_SEND_TIMEOUT_MS,
-        },
-      );
-      return settleResultOf(statusCode);
-    } catch (thrown) {
-      // 답을 받은 실패는 상태 코드로, 못 받은 실패(연결 · 시간 초과 · 구독 열쇠 모양)는 다시 보내기로
-      return settleResultOf(thrown instanceof WebPushError ? thrown.statusCode : null);
+        { vapidDetails: vapid, TTL: PUSH_TTL_SECONDS, urgency: PUSH_URGENCY, topic: pushTopicFor(matchId) },
+      ) as PushRequest & { endpoint: string };
+    } catch {
+      // 구독 열쇠의 모양이 틀려 암호화하지 못했다 — 다시 보내다 접힌다
+      return 'retry';
     }
+
+    // 답을 받은 실패는 상태 코드로, 못 받은 실패(연결 · 시한)는 다시 보내기로
+    return settleResultOf(await post(request.endpoint, request, PUSH_SEND_TIMEOUT_MS));
   };
 }

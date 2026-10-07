@@ -5,6 +5,7 @@ import { pushSubscriptionShapeOk, type PushSubscriptionKeys } from '@/src/lib/pu
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import type { SaveResult } from '../../save-result';
+import { endpointAllowedHere } from './hosts';
 
 /**
  * 이 기기의 웹 푸시 구독 — **로그인한 사람의 세션으로** 남기고 지운다(ADR 0156).
@@ -17,6 +18,8 @@ const SHAPE_REFUSED = '이 브라우저의 알림 정보를 읽지 못했어요.
 
 export async function savePushSubscription(keys: PushSubscriptionKeys): Promise<SaveResult> {
   if (!pushSubscriptionShapeOk(keys)) return { ok: false, message: SHAPE_REFUSED };
+  // 모르는 푸시 서비스 — 받지 않는다. DB 도 같은 표로 거절한다. 새 문구를 들이지 않고 같은 문장을 세운다
+  if (!endpointAllowedHere(keys.endpoint)) return { ok: false, message: SHAPE_REFUSED };
 
   const supabase = await supabaseOnServer();
   const { error } = await supabase.rpc('save_push_subscription', {

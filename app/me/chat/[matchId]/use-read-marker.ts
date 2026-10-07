@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 
-import { markChatRead } from '../actions';
+import { supabaseInBrowser } from '../../../auth/browser-client';
 import { announceChatUnreadMoved } from '../unread-signal';
+import { markChatReadUpTo } from './mark-read';
 import { readUpTo } from './thread';
 
 /** 말풍선이 이만큼 화면에 들어와야 「본 것」이다 — 화면보다 긴 말풍선은 이만큼의 높이가 들어오면 본 것이다 */
@@ -16,7 +17,7 @@ export const THEIR_SEQ = 'data-their-seq';
 /**
  * **읽음은 본 데까지만**(ADR 0155) — 문서가 보이고 상대 말풍선이 대화 칸에 들어온(IntersectionObserver) 가장 큰 차례까지
  * `mark_chat_read` 로 남긴다. 숨은 탭에서는 부르지 않고, 다시 보이면 그때 화면에 든 것으로 잰다. 남기고 나면 머리글의
- * 딱지가 다시 세게 알린다.
+ * 딱지가 다시 세게 알린다. 브라우저 클라이언트로 곧장 부르므로 활동으로 적히지 않는다(`mark-read.ts`).
  *
  * `already` 는 들어올 때 이미 읽은 차례다(`readAlready`) — 안 읽은 것이 없던 방은 부르지 않는다.
  */
@@ -40,9 +41,13 @@ export function useReadMarker(
       if (upTo === null) return;
       busy.current = true;
       void (async () => {
-        const result = await markChatRead(matchId, upTo);
+        // 못 남겼으면(망 · DB) 그대로 둔다 — 다음에 말풍선이 들거나 문서가 다시 보일 때 다시 부른다.
+        const done = await markChatReadUpTo(supabaseInBrowser(), matchId, upTo).then(
+          (result) => result.ok,
+          () => false,
+        );
         busy.current = false;
-        if (!result.ok) return;
+        if (!done) return;
         marked.current = Math.max(marked.current, upTo);
         // 주소가 안 바뀌므로 머리글이 스스로 다시 세지 않는다 — 알린다.
         announceChatUnreadMoved();

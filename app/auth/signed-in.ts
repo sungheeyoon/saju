@@ -1,8 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 import { after } from 'next/server';
 import { cache } from 'react';
 
 import type { Database } from '@/src/lib/db';
+
+import { LIVE_REDRAW_COOKIE } from '../live/redraw-mark';
 
 type SignedInUser = { id: string; email: string | undefined };
 
@@ -30,12 +33,12 @@ type SignedInUser = { id: string; email: string | undefined };
 export async function signedInUser(supabase: SupabaseClient<Database>): Promise<SignedInUser | null> {
   const { data } = await supabase.auth.getClaims();
   if (data === null) return null;
-  noteActivity(supabase);
+  if (!(await redrawnByTheApp())) noteActivity(supabase);
   return { id: data.claims.sub, email: data.claims.email };
 }
 
 /**
- * **활동은 로그인한 사람의 화면이 실제로 그려진 것이다**(PRD §7.2, ADR 0118).
+ * **활동은 로그인한 사람의 화면이 실제로 그려진 것이다**(ADR 0118) — 앱이 스스로 다시 그린 것은 빼고(위 `redrawnByTheApp`).
  *
  * 관문(`proxy.ts`)에서 적던 동안 미리 받기(prefetch)도 활동이 됐다 — Next 가 미리 받기의 표식
  * (`next-router-prefetch`)을 관문에 넘기기 전에 지우므로(`server/web/adapter.js` 의 `FLIGHT_HEADERS`)
@@ -56,6 +59,14 @@ function noteActivity(supabase: SupabaseClient<Database>): void {
       if (error !== null) console.error('touch_activity', error.code);
     }),
   );
+}
+
+/**
+ * 라이브 층이 스스로 다시 그린 요청인가 — 그 표지 쿠키를 실었나(`app/live/redraw-mark.ts`, G-76). 사람이 연 화면이 아니라
+ * 상대의 메시지 · 대체 조회가 일으킨 그리기라 활동이 아니다.
+ */
+async function redrawnByTheApp(): Promise<boolean> {
+  return (await cookies()).has(LIVE_REDRAW_COOKIE);
 }
 
 /** 한 그림 안에서 하나 — 서버 컴포넌트 밖(서버 액션)에서는 부를 때마다 새것이다 */

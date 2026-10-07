@@ -8,7 +8,8 @@ import { userFacingDbMessage } from '../../db-error';
 import type { SaveResult } from '../../save-result';
 
 /**
- * 채팅의 누름 셋 — 보내기 · 메시지를 고른 신고 · 읽음.
+ * 채팅의 누름 둘 — 보내기 · 메시지를 고른 신고. 읽음은 사람이 누른 것이 아니라 브라우저가 곧장 부른다
+ * (`[matchId]/mark-read.ts`).
  *
  * **한도는 여기서 세지 않는다.** `send_chat_message` 가 계정 행을 잠그고 센다(ADR 0039 · 0091).
  * 함수가 값으로 내는 셋(`sent` · `closed` · `rate_limited`)은 방의 상태와 내 흐름이라 화면이
@@ -67,20 +68,5 @@ export async function reportChatMessage(
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_chat_message') };
 
   /* 신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 새로고침할 화면이 없다 */
-  return { ok: true };
-}
-
-/**
- * 읽음 — **본 데까지만** 남긴다(ADR 0155). 방이 화면에 들어온 상대 말의 가장 큰 차례를 넘긴다. 함수는 그 방에 실제로 있는
- * 차례까지만, 앞으로만 움직인다.
- *
- * 화면을 무르지 않는다 — 딱지는 창 신호로(`announceChatUnreadMoved`), 다른 탭 · 기기는 채널로 따라온다.
- */
-export async function markChatRead(matchId: string, upToSeq: number): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  const { error } = await supabase.rpc('mark_chat_read', { p_match_id: matchId, p_up_to_seq: upToSeq });
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_chat_read') };
-
   return { ok: true };
 }

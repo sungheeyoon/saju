@@ -118,6 +118,58 @@ try {
   check('내가 읽으면 내 주제(다른 탭)에 chat 이 온다',
     after.some((one) => !one.tab && one.area === 'chat' && one.match_id === matchId && one.seq === null), JSON.stringify(after));
   check('상대의 주제에는 내 읽음이 안 간다 — 읽음 표시는 범위 밖', !after.some((one) => one.tab === 'b'), JSON.stringify(after));
+
+  // ── 4. 공개 채널로 남의 주제에 쏘아도 비공개 구독에는 안 닿는다 ──────────────────
+  // 같은 이름의 공개 채널(`private: false`)은 정책을 안 거친다. 받는 쪽은 비공개로만 듣는다 — 둘이 섞이면 아무나 남의
+  // 화면에 「바뀌었다」를 넣을 수 있다(내용은 없어 다시 읽기뿐이지만, 다시 읽기를 마음대로 부른다)
+  {
+    const forged = { area: 'chat', match_id: matchId, seq: 1, forged: true };
+    const before = heard.length;
+
+    // 대조군 — 같은 이름의 공개 채널을 듣는 쪽은 받는다(보낸 것이 정말 나갔다)
+    const bystander = createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
+    const overheard = [];
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 10000);
+      bystander.channel(`user:${b.id}`, { config: { private: false } })
+        .on('broadcast', { event: 'changed' }, (message) => overheard.push(message.payload))
+        .subscribe((state) => {
+          if (state !== 'SUBSCRIBED') return;
+          clearTimeout(timer);
+          resolve();
+        });
+    });
+
+    const joined = await new Promise((resolve) => {
+      const channel = a.client.channel(`user:${b.id}`, { config: { private: false } });
+      const timer = setTimeout(() => resolve({ channel, state: 'NO_ANSWER' }), 10000);
+      channel.subscribe((state) => {
+        if (state === 'SUBSCRIBED' || state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') {
+          clearTimeout(timer);
+          resolve({ channel, state });
+        }
+      });
+    });
+    let sent = 'not sent';
+    if (joined.state === 'SUBSCRIBED') {
+      sent = await joined.channel.send({ type: 'broadcast', event: 'changed', payload: forged });
+    }
+    const outsider = createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
+    const viaRest = await outsider.channel(`user:${b.id}`, { config: { private: false } })
+      .httpSend('changed', forged)
+      .then(() => 'ok', (thrown) => String(thrown?.message ?? thrown));
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const landed = heard.slice(before).filter((one) => one.tab === 'b' && one.forged);
+    check('공개 채널 · REST 로 남의 주제에 보낸 changed 는 그 사람의 비공개 구독에 안 닿는다', landed.length === 0,
+      `공개 구독 ${joined.state} · 보냄 ${sent} · REST ${viaRest} · 닿음 ${landed.length}`);
+    // 로컬은 공개 채널을 연다(운영은 「Allow public access」를 끈다 — runbook 「웹 푸시를 켠다」 4). 열려 있으면 대조군이 받는다
+    check('대조군 — 같은 이름의 공개 채널은 따로 받는다(보낸 것이 나갔다)', joined.state !== 'SUBSCRIBED' || overheard.length > 0,
+      `공개로 들은 것 ${overheard.length}`);
+    await bystander.removeAllChannels();
+    await a.client.removeChannel(joined.channel);
+    await outsider.removeAllChannels();
+  }
 } finally {
   await a.client.removeAllChannels();
   await b.client.removeAllChannels();

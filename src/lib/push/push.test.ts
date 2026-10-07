@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   PUSH_TTL_SECONDS,
   applicationServerKeyOf,
+  extraPushHostsOf,
   looksLikeIos,
+  pushEndpointAllowed,
   pushPayloadFor,
   pushRowState,
   pushSubscriptionShapeOk,
@@ -162,5 +164,36 @@ describe('구독의 모양', () => {
     ['base64url 이 아니다', { ...good, auth: 'a b c' }],
   ])('%s — 받지 않는다', (_, keys) => {
     expect(pushSubscriptionShapeOk(keys)).toBe(false);
+  });
+});
+
+describe('받는 푸시 서비스 (ADR 0156)', () => {
+  it.each([
+    ['Chrome(FCM)', 'https://fcm.googleapis.com/fcm/send/abc'],
+    ['Firefox', 'https://updates.push.services.mozilla.com/wpush/v2/abc'],
+    ['Edge(WNS)', 'https://wns2-par02p.notify.windows.com/w/?token=abc'],
+    ['Safari', 'https://web.push.apple.com/QKabc'],
+    ['대문자 호스트', 'https://FCM.googleapis.com/fcm/send/abc'],
+  ])('%s — 받는다', (_, endpoint) => {
+    expect(pushEndpointAllowed(endpoint)).toBe(true);
+  });
+
+  it.each([
+    ['모르는 호스트', 'https://evil.example/push'],
+    ['알려진 이름을 앞에 단 남의 호스트', 'https://fcm.googleapis.com.evil.example/x'],
+    ['사용자 칸을 끼운 주소', 'https://evil.example@fcm.googleapis.com/x'],
+    ['포트를 적은 주소', 'https://fcm.googleapis.com:8443/x'],
+    ['접미사만 있는 호스트', 'https://push.apple.com/x'],
+    ['내부 주소', 'https://169.254.169.254/latest/meta-data'],
+    ['http', 'http://fcm.googleapis.com/x'],
+    ['주소가 아니다', 'not a url'],
+  ])('%s — 받지 않는다', (_, endpoint) => {
+    expect(pushEndpointAllowed(endpoint)).toBe(false);
+  });
+
+  it('시험용 호스트는 넘겨받을 때만 열린다 — 포트는 아무것이나', () => {
+    expect(pushEndpointAllowed('https://localhost:4443/push/b')).toBe(false);
+    expect(pushEndpointAllowed('https://localhost:4443/push/b', extraPushHostsOf(' localhost , '))).toBe(true);
+    expect(extraPushHostsOf(undefined)).toEqual([]);
   });
 });

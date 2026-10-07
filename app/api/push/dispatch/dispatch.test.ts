@@ -43,7 +43,7 @@ describe('배달 한 묶음 (ADR 0156)', () => {
     const summary = await dispatchPushBatch(db, sender);
 
     expect(summary?.claimed).toBe(3);
-    expect(summary?.settled).toEqual({ sent: 1, gone: 1, retry: 1, unconfigured: 0 });
+    expect(summary?.settled).toEqual({ sent: 1, gone: 1, retry: 1, unconfigured: 0, release: 0 });
     expect(settled.sort((a, b) => a.id.localeCompare(b.id))).toEqual([
       { id: 'delivery-1', result: 'sent' },
       { id: 'delivery-2', result: 'gone' },
@@ -105,6 +105,34 @@ describe('배달 한 묶음 (ADR 0156)', () => {
     expect(summary).toBeNull();
     expect(sender).not.toHaveBeenCalled();
     quiet.mockRestore();
+  });
+
+  it('마감이 지나면 남은 줄은 보내지 않고 놓아준다(release) — 느린 송신 하나가 묶음을 붙들어도', async () => {
+    const rows = Array.from({ length: 8 }, (_, i) => ({ ...row(1), delivery_id: `d-${i}`, endpoint: `e-${i}` }));
+    const { db, settled } = fakeDb(rows);
+    const sent: string[] = [];
+    const sender: PushSender = async (target) => {
+      sent.push(target.endpoint);
+      // 첫 여섯이 마감을 넘겨 끝난다 — 그 뒤의 둘은 마감 뒤에 차례가 온다
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return 'sent';
+    };
+
+    const summary = await dispatchPushBatch(db, sender, 30);
+
+    expect(sent).toHaveLength(6);
+    expect(summary?.settled).toMatchObject({ sent: 6, release: 2 });
+    expect(settled.filter(({ result }) => result === 'release').map(({ id }) => id).sort()).toEqual(['d-6', 'd-7']);
+  });
+
+  it('마감이 이미 지났으면 하나도 보내지 않는다', async () => {
+    const { db, settled } = fakeDb([row(1), row(2)]);
+    const sender = vi.fn<PushSender>(async () => 'sent');
+
+    await dispatchPushBatch(db, sender, 0);
+
+    expect(sender).not.toHaveBeenCalled();
+    expect(settled.map(({ result }) => result)).toEqual(['release', 'release']);
   });
 
   it('동시에 여는 송신은 여섯을 넘지 않는다', async () => {

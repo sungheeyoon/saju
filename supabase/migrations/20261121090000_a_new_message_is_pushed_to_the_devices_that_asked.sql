@@ -27,7 +27,9 @@
 --   막히므로, 넘치면 가장 오래 안 쓰인 것을 지운다. 메시지 하나가 만드는 배달 줄의 상한이다.
 -- - **보내는 중에 멈춘 줄**(5분 넘게 `sending`)을 다시 잡을 때는 실패 한 번으로 센다 — 배달 문이 그 줄에서 매번 죽으면
 --   영영 돌지 않게.
--- - 보내는 중이던 줄을 `retry` · `unconfigured` 로 되돌리려는데 그 사이 같은 방의 새 대기 줄이 섰으면, 되돌리지 않고
+-- - **받는 푸시 서비스만**(`push_endpoint_allowed`) — 알려진 호스트 넷과 시험용 Vault 값. 남기는 문과 잡는 문이 둘 다 본다.
+-- - **묶음 마감** — 배달 문이 함수 한도 전에 남은 줄을 `release` 로 놓아준다. 시도 수를 안 올리고 다음 깨움에 다시 잡힌다.
+-- - 보내는 중이던 줄을 `retry` · `unconfigured` · `release` 로 되돌리려는데 그 사이 같은 방의 새 대기 줄이 섰으면, 되돌리지 않고
 --   `skipped` 로 접는다 — 새 줄이 같은 소식을 나른다.
 --
 -- 재는 자리는 `supabase/tests/83_push_delivery.test.sql`.
@@ -74,6 +76,55 @@ language sql
 immutable
 set search_path = ''
 as $$ select 10 $$;
+
+/**
+ * **받는 푸시 서비스인가** — endpoint 의 호스트가 알려진 넷 중 하나다(포트를 적지 않은 `https://<호스트>/…`).
+ *
+ *   fcm.googleapis.com             Chrome · 안드로이드 · Samsung Internet · Opera
+ *   *.push.services.mozilla.com    Firefox
+ *   *.notify.windows.com           Edge(WNS — wns2-*.notify.windows.com)
+ *   *.push.apple.com               Safari · 홈 화면 웹 앱(Apple 이 허용하라고 적는 모양)
+ *
+ * 아무 `https:` 주소나 받으면 배달 문(Vercel)이 남이 고른 주소로 POST 한다 — 내부망을 두드리는 길(SSRF)이 되고, 일부러 느린
+ * 서버가 배달 묶음을 붙든다. 앱도 같은 표를 든다(`src/lib/push` 의 `pushEndpointAllowed`).
+ *
+ * **시험용 호스트** — Vault 의 `push_extra_hosts`(쉼표 목록, 포트는 아무것이나)가 있으면 그것도 받는다. 로컬의 가짜 푸시
+ * 서비스(`localhost`)를 위한 자리이고 **운영에는 넣지 않는다** — 없으면 닫혀 있다.
+ */
+create function public.push_endpoint_allowed(p_endpoint text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  parts text[] := regexp_match(coalesce(p_endpoint, ''), '^https://([A-Za-z0-9.-]+)(:[0-9]{1,5})?/');
+  host text;
+  extra text;
+begin
+  if parts is null then
+    return false;
+  end if;
+
+  host := lower(parts[1]);
+
+  if parts[2] is null and (
+       host = 'fcm.googleapis.com'
+       or host like '_%.push.services.mozilla.com'
+       or host like '_%.notify.windows.com'
+       or host like '_%.push.apple.com') then
+    return true;
+  end if;
+
+  select decrypted_secret into extra from vault.decrypted_secrets where name = 'push_extra_hosts';
+
+  return extra is not null and host in (
+    select lower(btrim(h)) from unnest(string_to_array(extra, ',')) as h where btrim(h) <> '');
+end;
+$$;
+
+revoke execute on function public.push_endpoint_allowed(text) from public, anon, authenticated, service_role;
 
 revoke execute on function public.push_room_quiet() from public, anon, authenticated, service_role;
 revoke execute on function public.push_max_attempts() from public, anon, authenticated, service_role;
@@ -190,6 +241,10 @@ begin
     raise exception 'push: the endpoint is not an https url' using errcode = '22023';
   end if;
 
+  if not public.push_endpoint_allowed(p_endpoint) then
+    raise exception 'push: the endpoint is not a known push service' using errcode = '22023';
+  end if;
+
   if p_p256dh is null or p_p256dh !~ '^[A-Za-z0-9_-]+=*$' or length(p_p256dh) > 256
      or p_auth is null or p_auth !~ '^[A-Za-z0-9_-]+=*$' or length(p_auth) > 256 then
     raise exception 'push: the keys are not base64url' using errcode = '22023';
@@ -278,7 +333,8 @@ grant execute on function public.push_subscription_registered(text) to authentic
  * 다섯 번째면 `gave_up`). `for update skip locked` 라 배달 문 둘이 겹쳐 돌아도 한 줄을 둘이 안 잡는다.
  *
  * 잡은 줄 가운데 **보낼 까닭이 없는 것은 `skipped` 로 접고 내주지 않는다** — 받는 사람이 상대의 마지막 메시지까지
- * 이미 읽었다, 방이 닫혔다, 구독의 주인이 그 방의 참여자가 아니다(옮겨 간 endpoint).
+ * 이미 읽었다, 방이 닫혔다, 구독의 주인이 그 방의 참여자가 아니다(옮겨 간 endpoint), endpoint 가 받는 푸시 서비스가
+ * 아니다(`push_endpoint_allowed` — 시험용 호스트를 걷은 뒤 남은 줄).
  *
  * @returns 보낼 줄 — endpoint · 열쇠 · match_id(이동할 방) · 지금까지의 시도 수. 본문은 없다
  */
@@ -312,6 +368,7 @@ begin
       d.attempts + case when d.status = 'sending' then 1 else 0 end as tries,
       s.endpoint, s.p256dh, s.auth, r.match_id,
       (r.closed_at is not null
+       or not public.push_endpoint_allowed(s.endpoint)
        or (s.user_id is distinct from r.user_low and s.user_id is distinct from r.user_high)
        or coalesce(k.last_read_seq, 0) >= coalesce(last.seq, 0)) as needless
     from picked p
@@ -350,6 +407,7 @@ $$;
  *   gone          404/410 — 구독을 지운다(배달 줄도 cascade 로 간다)
  *   retry         429 · 5xx · 연결 실패 — 시도 수를 올리고 1분 · 5분 · 30분 · 2시간 뒤로. 다섯 번째면 `gave_up`
  *   unconfigured  VAPID 열쇠가 없는 배포 — 시도 수 그대로 5분 뒤로
+ *   release       보내지 않았다 — 배달 문의 묶음 마감이 지났다. 시도 수 그대로 지금 기한으로(다음 깨움에 다시 잡힌다)
  *
  * `sending` 이 아닌 줄(이미 적혔다 · 5분이 지나 다시 잡혔다)은 건드리지 않고 지금 상태를 돌려준다. 없는 줄(구독이
  * 지워졌다)은 `missing` 이다.
@@ -367,7 +425,7 @@ declare
   tries integer;
   waiting boolean;
 begin
-  if p_result is null or p_result not in ('sent', 'gone', 'retry', 'unconfigured') then
+  if p_result is null or p_result not in ('sent', 'gone', 'retry', 'unconfigured', 'release') then
     raise exception 'push: unknown result %', p_result using errcode = '22023';
   end if;
 
@@ -420,8 +478,10 @@ begin
   set status = 'pending',
       attempts = tries,
       claimed_at = null,
-      due_at = now() + case when p_result = 'retry'
-        then public.push_retry_delay(tries) else interval '5 minutes' end
+      due_at = now() + case p_result
+        when 'retry' then public.push_retry_delay(tries)
+        when 'release' then interval '0 seconds'
+        else interval '5 minutes' end
   where x.id = d.id;
 
   return 'pending';

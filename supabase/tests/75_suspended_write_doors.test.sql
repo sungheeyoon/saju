@@ -155,7 +155,7 @@ from (values
   ('respond_to_match_request', format($$select public.respond_to_match_request(%L, true)$$, (select v from kept where k = 'to_park')),
                             '42501 이용이 정지된 계정입니다.', null),
   ('save_my_profile',       $$select public.save_my_profile('새이름', null)$$, '42501 이용이 정지된 계정입니다.', null),
-  ('save_push_subscription', $$select public.save_push_subscription('https://push.example.com/susp', 'BKey', 'auth')$$,
+  ('save_push_subscription', $$select public.save_push_subscription('https://fcm.googleapis.com/fcm/send/susp', 'BKey', 'auth')$$,
                             '42501 이용이 정지된 계정입니다.', null),
   ('save_service_survey',   $$select public.save_service_survey(array[]::text[], array[]::text[], array[]::text[], null, array[]::text[], array[]::text[], null, null, array[]::text[], null, array[]::text[], false)$$,
                             '42501 이용이 정지된 계정입니다.', null),
@@ -195,7 +195,7 @@ from (values
   ('acknowledge_warning',   $$select public.acknowledge_warning('W-0000')$$, 'OK', '의도적으로 열림 — 받은 경고를 읽었다고 적는다'),
   ('cancel_match_request',  format($$select public.cancel_match_request(%L)$$, (select v from kept where k = 'to_park')), 'OK',
                             '의도적으로 열림 — 내가 보낸 요청을 거둔다'),
-  ('remove_push_subscription', $$select public.remove_push_subscription('https://push.example.com/susp')$$, 'OK',
+  ('remove_push_subscription', $$select public.remove_push_subscription('https://fcm.googleapis.com/fcm/send/susp')$$, 'OK',
                             '의도적으로 열림 — 제 기기의 알림을 끈다(남에게 해가 없다, ADR 0156)')
 ) as d(name, call, answer, why);
 

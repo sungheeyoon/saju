@@ -2,13 +2,14 @@
 
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useTransition } from 'react';
 
 import { supabaseInBrowser } from '../auth/browser-client';
 import { useBrowserSession } from '../auth/browser-session';
 import { announceChatMoved } from '../me/chat/chat-signal';
 import { ALL_SIGNALS, redrawsOn, redrawsOnResync, signalsOf, type LiveChange } from './changes';
 import { closeUserChannel, openUserChannel } from './channel';
+import { clearLiveRedraw, markLiveRedraw } from './redraw-mark';
 import { startRunner } from './runner';
 
 /** 한 물결의 변경을 묶어 다시 그리는 간격 — 메시지 몇 개가 이어 와도 화면은 한 번 다시 그린다 */
@@ -27,11 +28,20 @@ const announce = (signals: readonly string[]) => {
  * 창 신호로 옮기고(머리글의 딱지 넷 · 방과 목록의 채팅 신호), 서버가 그리는 목록 화면은 그 갈래가 바뀌었을 때만
  * 묶어서 한 번 다시 그린다(`router.refresh()` — 쓰던 입력과 스크롤은 그대로다). 끊김 · 복귀 · 토큰 갱신의 다시
  * 대조와 대체 조회는 상태(`connection.ts`)가 정한다.
+ *
+ * 이 층이 내는 요청은 **활동이 아니다**(G-76) — 딱지와 방은 브라우저 클라이언트로 곧장 읽고(관문을 안 지난다), 다시
+ * 그리기는 표지 쿠키를 실어 서버가 활동을 건너뛴다(`redraw-mark.ts`).
  */
 export function LiveUpdates() {
   const { userId } = useBrowserSession();
   const router = useRouter();
   const pathname = usePathname();
+
+  /* 다시 그리기가 끝나면(전이가 닫히면) 표지를 걷는다 — 사람의 다음 요청은 활동이다 */
+  const [redrawing, startRedraw] = useTransition();
+  useEffect(() => {
+    if (!redrawing) clearLiveRedraw();
+  }, [redrawing]);
 
   /* 채널은 주소가 바뀌어도 그대로다 — 다시 그릴지는 사건이 온 그때의 주소로 정한다 */
   const here = useRef(pathname);
@@ -59,7 +69,8 @@ export function LiveUpdates() {
           브라우저의 오프라인 화면이 된다(2026-10-08 e2e 에서 잼). 망이 돌아오면(`online`) 다시 대조가 한 번 그린다.
         */
         if (!shown() || !navigator.onLine) return;
-        router.refresh();
+        markLiveRedraw();
+        startRedraw(() => router.refresh());
       }, REDRAW_AFTER_MS);
     };
 

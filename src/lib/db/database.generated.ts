@@ -3501,6 +3501,7 @@ export type Database = {
       profile_photo_upload_limit: { Args: never; Returns: number }
       profile_photo_version: { Args: { p_updated_at: string }; Returns: number }
       purge_closed_chat_messages: { Args: never; Returns: number }
+      push_endpoint_allowed: { Args: { p_endpoint: string }; Returns: boolean }
       push_max_attempts: { Args: never; Returns: number }
       push_retry_delay: { Args: { p_attempts: number }; Returns: string }
       push_room_quiet: { Args: never; Returns: string }

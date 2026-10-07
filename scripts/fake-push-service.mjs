@@ -7,7 +7,7 @@
  *    (`endpoint` · `p256dh` · `auth`)을 낸다. endpoint 는 이 서버의 주소다.
  * 2. 받는다 — 배달 문이 `web-push` 로 보낸 요청을 받아 머리(TTL · Urgency · Topic · VAPID)를 적고, 든 열쇠로
  *    본문(aes128gcm)을 **풀어** 페이로드를 확인한다. 푼 것은 `web-push` 와 같은 구현(`http_ece`)이다.
- * 3. 답한다 — endpoint 마다 낼 상태 코드를 시험이 정한다(201 · 410 · 500 …).
+ * 3. 답한다 — endpoint 마다 낼 상태 코드를 시험이 정한다(201 · 410 · 500 …). `'hang'` 이면 받기만 하고 답하지 않는다.
  *
  * `web-push` 는 늘 `https` 로 보내므로 이 서버도 TLS 다. 인증서는 그 자리에서 `openssl` 로 지은 자기 서명 하나이고,
  * 보내는 쪽(검사용 Next 서버)은 `NODE_EXTRA_CA_CERTS` 로 그것만 더 믿는다 — 앱 코드에 시험용 갈래가 없다.
@@ -67,6 +67,8 @@ export async function startFakePushService() {
         }
       }
       received.push({ name, status, headers: { ...request.headers }, payload, error, at: Date.now() });
+      // 답하지 않는 서버 — 보내는 쪽의 전체 시한이 끊어야 한다
+      if (status === 'hang') return;
       response.writeHead(status, { 'content-type': 'text/plain' });
       response.end(status < 300 ? '' : 'fake push service says no');
     });
@@ -105,6 +107,7 @@ export async function startFakePushService() {
       return null;
     },
     stop() {
+      server.closeAllConnections();
       server.close();
       rmSync(tls.dir, { recursive: true, force: true });
     },

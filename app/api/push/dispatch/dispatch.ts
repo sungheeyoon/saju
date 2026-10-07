@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '@/src/lib/db';
-import { PUSH_CLAIM_LIMIT, PUSH_SEND_CONCURRENCY, type SettleResult } from '@/src/lib/push';
+import { PUSH_BATCH_BUDGET_MS, PUSH_CLAIM_LIMIT, PUSH_SEND_CONCURRENCY, type SettleResult } from '@/src/lib/push';
 
 import { recordDbFailure } from '../../../db-error';
 import type { PushSender } from './send';
@@ -18,7 +18,9 @@ export type DispatchSummary = {
  * **깨움 한 번에 한 묶음** — 기한이 된 배달 줄을 잠그고(`claim_push_deliveries`), 보내고, 닫는다.
  *
  * 남은 줄은 여기서 더 돌지 않는다. 다음 깨움(새 배달 줄의 `pg_net` · 1분 `pg_cron`)이 집는다 — 한 요청이 오래
- * 살면 함수 시간 한도에 걸려 보낸 것을 닫지 못한 채 끊긴다.
+ * 살면 함수 시간 한도에 걸려 보낸 것을 닫지 못한 채 끊긴다. 그래서 **마감**(`PUSH_BATCH_BUDGET_MS`)이 지나면 잠근 줄 가운데
+ * 아직 안 보낸 것은 보내지 않고 놓아준다(`release` — 시도 수를 안 올리고 다음 깨움에 다시 잡힌다). 느린 푸시 서비스 하나가 묶음을
+ * 붙들어도 다른 줄은 다음 깨움에 간다.
  *
  * 송신기가 없으면(`null`, VAPID 설정 안 됨) 보내지 않고 줄마다 `unconfigured` 로 닫는다 — DB 가 그 줄을 지우지
  * 않고 다시 기한을 세운다(ADR 0156 「VAPID 열쇠 · 배달 비밀이 없으면」).
@@ -26,7 +28,10 @@ export type DispatchSummary = {
 export async function dispatchPushBatch(
   db: SupabaseClient<Database>,
   sender: PushSender | null,
+  /** 새 송신을 시작하는 마감(ms) — 시험이 줄인다 */
+  budgetMs: number = PUSH_BATCH_BUDGET_MS,
 ): Promise<DispatchSummary | null> {
+  const deadline = Date.now() + budgetMs;
   const { data, error } = await db.rpc('claim_push_deliveries', { p_limit: PUSH_CLAIM_LIMIT });
   if (error) {
     recordDbFailure(error, 'push dispatch: claim_push_deliveries');
@@ -36,7 +41,7 @@ export async function dispatchPushBatch(
   const rows = data ?? [];
   const summary: DispatchSummary = {
     claimed: rows.length,
-    settled: { sent: 0, gone: 0, retry: 0, unconfigured: 0 },
+    settled: { sent: 0, gone: 0, retry: 0, unconfigured: 0, release: 0 },
     unsettled: 0,
   };
 
@@ -44,9 +49,11 @@ export async function dispatchPushBatch(
     const result: SettleResult =
       sender === null
         ? 'unconfigured'
-        : await sender({ endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth }, row.match_id).catch(
-            () => 'retry' as const,
-          );
+        : Date.now() >= deadline
+          ? 'release'
+          : await sender({ endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth }, row.match_id).catch(
+              () => 'retry' as const,
+            );
 
     const { error: notSettled } = await db.rpc('settle_push_delivery', {
       p_delivery_id: row.delivery_id,
