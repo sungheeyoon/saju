@@ -307,6 +307,8 @@ test.describe('앱이 스스로 갱신된다', () => {
     await b.page.context().setOffline(false);
 
     for (const body of bodies) await expect(talkOf(b.page).getByText(body)).toHaveCount(1, { timeout: 10_000 });
+    // 끊긴 동안 화면을 다시 그리려다 페이지 이동으로 물러서지 않았다 — 같은 화면이 그대로 받았다
+    await expect(b.page).toHaveURL(new RegExp(`${room}$`));
     const order = await talkOf(b.page)
       .locator('li')
       .allInnerTexts()

@@ -69,10 +69,10 @@ export function LiveUpdates() {
       if (redrawsOn(change.area, here.current)) redraw();
     };
 
-    const resync = () => {
+    const resync = (first: boolean) => {
       announce(ALL_SIGNALS);
       announceChatMoved({ matchId: null, seq: null });
-      if (redrawsOnResync(here.current)) redraw();
+      if (!first && redrawsOnResync(here.current)) redraw();
     };
 
     const leave = () => {

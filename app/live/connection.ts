@@ -30,6 +30,8 @@ export type Connection = {
   readonly failures: number;
   /** 문서가 보이는가 — 대체 조회와 목록 다시 그리기는 보일 때만 한다 */
   readonly visible: boolean;
+  /** 이 채널이 한 번이라도 섰는가 — 처음 선 때와 다시 선 때의 다시 대조가 다르다(아래 `resync` 의 `first`) */
+  readonly joined: boolean;
 };
 
 export type Input =
@@ -50,8 +52,12 @@ export type Input =
   | { readonly type: 'token-refreshed' };
 
 export type Effect =
-  /** 딱지를 다시 세고 지금 화면이 든 갈래를 다시 읽는다 */
-  | { readonly type: 'resync' }
+  /**
+   * 딱지를 다시 세고 지금 화면이 든 갈래를 다시 읽는다. `first` 는 화면을 연 뒤 채널이 처음 선 때다 — 서버가 방금 그린
+   * 화면이라 목록은 다시 그리지 않는다(딱지와 방만 다시 읽는다). 다시 그리면 화면 하나를 여는 데 서버 그리기가 둘이 되고,
+   * 그 둘째가 사람이 하지 않은 활동으로 적힌다(ADR 0118).
+   */
+  | { readonly type: 'resync'; readonly first?: boolean }
   /** 지금 채널을 걷고 새로 연다 */
   | { readonly type: 'rejoin' }
   | { readonly type: 'schedule-retry'; readonly ms: number }
@@ -62,7 +68,7 @@ export type Effect =
 export type Step = { readonly state: Connection; readonly effects: readonly Effect[] };
 
 /** 처음 구독을 보낸 자리 — 보이는지는 드라이버가 문서에서 읽어 넣는다 */
-export const opened = (visible: boolean): Connection => ({ phase: 'joining', failures: 0, visible });
+export const opened = (visible: boolean): Connection => ({ phase: 'joining', failures: 0, visible, joined: false });
 
 /** 연이어 `failures` 번 실패한 뒤 기다릴 시간 — 1s · 2s · 4s … 60s 에서 멈춘다 */
 export function retryDelay(failures: number): number {
@@ -89,8 +95,8 @@ function advance(state: Connection, input: Input): Step {
     case 'subscribed':
       // 처음 섰든 다시 섰든 끊긴 동안의 변경이 있을 수 있다 — 다시 대조한다.
       return {
-        state: { ...state, phase: 'subscribed', failures: 0 },
-        effects: [{ type: 'cancel-retry' }, { type: 'resync' }],
+        state: { ...state, phase: 'subscribed', failures: 0, joined: true },
+        effects: [{ type: 'cancel-retry' }, state.joined ? { type: 'resync' } : { type: 'resync', first: true }],
       };
 
     case 'failed': {

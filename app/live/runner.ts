@@ -7,8 +7,8 @@ import { openingEffects, opened, step, type Connection, type Effect, type Input 
  * 그래서 vitest 의 가짜 시계로 「30초마다 · 보일 때만 · 서면 멈춘다」를 그대로 잰다.
  */
 export type Hands = {
-  /** 딱지를 다시 세고 지금 화면이 든 갈래를 다시 읽는다 */
-  readonly resync: () => void;
+  /** 딱지를 다시 세고 지금 화면이 든 갈래를 다시 읽는다 — `first` 면 목록은 다시 그리지 않는다(`connection.ts`) */
+  readonly resync: (first: boolean) => void;
   /** 지금 채널을 걷고 새로 연다 */
   readonly rejoin: () => void;
 };
@@ -40,7 +40,7 @@ export function startRunner(hands: Hands, visible: boolean): Runner {
       if (stopped) return;
       switch (effect.type) {
         case 'resync':
-          hands.resync();
+          hands.resync(effect.first === true);
           break;
         case 'rejoin':
           hands.rejoin();

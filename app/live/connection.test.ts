@@ -22,7 +22,7 @@ describe('채널의 상태', () => {
     expect(openingEffects(start)).toEqual([{ type: 'start-polling', every: FALLBACK_EVERY_MS }]);
     const { state, effects } = step(start, { type: 'subscribed' });
     expect(state.phase).toBe('subscribed');
-    expect(effects).toEqual([{ type: 'cancel-retry' }, { type: 'resync' }, { type: 'stop-polling' }]);
+    expect(effects).toEqual([{ type: 'cancel-retry' }, { type: 'resync', first: true }, { type: 'stop-polling' }]);
   });
 
   it('숨은 화면에서 열면 대체 조회를 돌지 않는다', () => {
@@ -41,6 +41,7 @@ describe('채널의 상태', () => {
     const retried = step(down.state, { type: 'retry-due' });
     expect(retried.effects).toEqual([{ type: 'rejoin' }]);
     const again = step(retried.state, { type: 'subscribed' });
+    // 다시 선 것이다 — 끊긴 동안의 변경이 있을 수 있어 목록까지 다시 그린다
     expect(again.effects).toContainEqual({ type: 'resync' });
     expect(again.state.failures).toBe(0);
   });
