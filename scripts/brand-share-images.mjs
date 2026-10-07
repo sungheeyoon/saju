@@ -89,7 +89,7 @@ const badge = (name, cx, cy, r, { dashed = false } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${ELEMENTS[name].soft}" stroke="${ELEMENTS[name].mid}" stroke-width="2" ${dashed ? 'stroke-dasharray="5 6"' : ''}/>` +
   symbol(name, cx, cy, r * 1.05);
 
-/** 점선 궤도 — 로고의 `stroke-dasharray="0.1 3.3"` 과 같은 둥근 점 */
+/** 점선 궤도 — 로고의 점선 궤도(`stroke-dasharray="0.1 …"`)와 같은 둥근 점 */
 const orbit = (cx, cy, r, { gap = 13, width = 4, color = T['border-strong'] } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="0.1 ${gap}"/>`;
 
@@ -99,11 +99,13 @@ const icon = (d, cx, cy, size, { fill = 'none', stroke = T.foreground, width = 1
   `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${size / 24})"><path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/></g>`;
 
 /** 로고(`app/ui/logo.tsx` · `app/icon.svg`) — 바탕 네모 없이 */
-const LOGO = `<svg viewBox="0 0 32 32" width="84" height="84">
-  <circle cx="16" cy="16.5" r="11" fill="none" stroke="${T.foreground}" stroke-opacity="0.5" stroke-width="1.8" stroke-dasharray="0.1 3.3" stroke-linecap="round"/>
-  <circle cx="16" cy="16.5" r="6" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="1.6"/>
-  <circle cx="17.4" cy="5.6" r="2" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="1.3"/>
-  <circle cx="24.9" cy="10" r="3" fill="${T['wood-mid']}" stroke="${T.foreground}" stroke-width="1.5"/>
+const LOGO = `<svg viewBox="0 0 64 64" width="84" height="84">
+  <circle cx="32" cy="32" r="24" fill="none" stroke="${T.foreground}" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="0.1 4.6" stroke-linecap="round"/>
+  <path d="M32 32 L52.8 44" stroke="${T.foreground}" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="9.5" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="2.4"/>
+  <circle cx="32" cy="8" r="4" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="1.8"/>
+  <circle cx="52.8" cy="44" r="5.6" fill="${T['wood-mid']}" stroke="${T.foreground}" stroke-width="2"/>
+  <circle cx="13" cy="46.5" r="3.6" fill="${T['earth-mid']}" stroke="${T.foreground}" stroke-width="1.6"/>
 </svg>`;
 
 /* ───────────── 그림 셋 — 오른쪽 그림판(1200×628 좌표의 SVG) ───────────── */

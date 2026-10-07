@@ -35,6 +35,25 @@ describe('공유 미리보기 그림', () => {
   });
 });
 
+/**
+ * **탭 그림의 대체판이 있다**(ADR 0149). `/favicon.ico` 가 404 라 탭에 기본 그림이 섰다(2026-10-07) — Safari 는 SVG 를 안 읽는다.
+ * 굽는 도구는 `scripts/brand-icons.mjs` 다.
+ */
+describe('탭 그림', () => {
+  it('favicon.ico 가 16 · 32 · 48 세 판을 든다', () => {
+    const ico = readFileSync(join(root, 'app/favicon.ico'));
+    expect(ico.readUInt16LE(2)).toBe(1);
+    const count = ico.readUInt16LE(4);
+    const sizes = Array.from({ length: count }, (_, index) => ico.readUInt8(6 + index * 16));
+    expect(sizes).toEqual([16, 32, 48]);
+  });
+
+  it('apple-icon.png 가 180 이다', () => {
+    const png = readFileSync(join(root, 'app/apple-icon.png'));
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([180, 180]);
+  });
+});
+
 function read(path: string) {
   return readFileSync(join(root, path), 'utf8');
 }

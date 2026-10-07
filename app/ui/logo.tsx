@@ -1,33 +1,35 @@
 import { SERVICE_NAME } from '@/src/lib/brand';
 
 /**
- * **로고 — 가운데 큰 점(나), 점선 궤도, 궤도 위에서 차례로 커지는 작은 점 둘.**
+ * **로고 — 궤도 지도(운영자가 고른 안 B, 2026-10-07, ADR 0149).** 가운데 큰 점이 나, 점선 궤도 위에 사람 셋이 점으로 앉고,
+ * 나에게서 그 가운데 하나로 선이 하나 닿는다 — 「만날지도」의 두 뜻, 나를 가운데 둔 관계 지도와 그 지도 위에서 만날지도 모를
+ * 한 사람이다. 선은 판정이 아니라 「닿았다」는 기록이다(ADR 0109 「4. 관계 지도는 판정이 아니라 기록이다」).
  *
- * 나를 가운데 두고 사람들이 둘레에 점으로 앉는 관계 지도를 가장 작게 줄인 그림이다. 앞 이름 「점점」(ADR 0109) 때
- * 그렸고, 두 점이 작은 것에서 큰 것으로 이어지는 것이 그 이름의 리듬(점 · 점)이었다. 지금 이름 「만날지도」(ADR 0149)의
- * 「지도」 — 나를 가운데 둔 관계 지도 — 와도 맞아 그림은 그대로 둔다. 색은 토큰에서
- * 온다 — 나는 불의 파스텔(`--fire-mid`), 두 점은 물 · 나무의 파스텔, 궤도는 글자색을 옅게. 그래서 다크 화면에서
- * 저절로 바뀐다. 탭의 작은 그림은 `app/icon.svg` 가 같은 모양을 든다.
+ * 색은 토큰에서 온다 — 나는 불의 파스텔(`--fire-mid`), 셋은 물 · 나무 · 흙의 파스텔, 궤도와 선은 글자색. 그래서 다크 화면에서
+ * 저절로 바뀐다. 이 부품은 32px 이상에서만 선다(머리글 · 공개 화면 머리). 탭의 작은 그림은 `app/icon.svg` 가 같은 모양을
+ * 종이 판 위에 들고, 16px 판(`app/favicon.ico`)은 궤도와 흙 점을 뺀 굵은 선으로 굽는다(`scripts/brand-icons.mjs`).
  *
  * 늘 `aria-hidden` 이다 — 이름은 옆의 글자(`BrandMark`)나 링크의 `aria-label` 이 든다.
  */
 export function Logo({ className = 'size-8' }: { className?: string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 32 32" className={`${className} shrink-0`}>
+    <svg aria-hidden="true" viewBox="0 0 64 64" className={`${className} shrink-0`}>
       <circle
-        cx="16"
-        cy="16"
-        r="12.5"
+        cx="32"
+        cy="32"
+        r="24"
         fill="none"
         stroke="var(--foreground)"
-        strokeOpacity="0.42"
-        strokeWidth="1.6"
-        strokeDasharray="0.1 3.4"
+        strokeOpacity="0.45"
+        strokeWidth="2"
+        strokeDasharray="0.1 4.6"
         strokeLinecap="round"
       />
-      <circle cx="16" cy="16" r="6.5" fill="var(--fire-mid)" stroke="var(--foreground)" strokeWidth="1.5" />
-      <circle cx="17.6" cy="3.6" r="2.1" fill="var(--water-mid)" stroke="var(--foreground)" strokeWidth="1.2" />
-      <circle cx="26.2" cy="8.9" r="3.3" fill="var(--wood-mid)" stroke="var(--foreground)" strokeWidth="1.4" />
+      <path d="M32 32 L52.8 44" stroke="var(--foreground)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="32" cy="32" r="9.5" fill="var(--fire-mid)" stroke="var(--foreground)" strokeWidth="2.4" />
+      <circle cx="32" cy="8" r="4" fill="var(--water-mid)" stroke="var(--foreground)" strokeWidth="1.8" />
+      <circle cx="52.8" cy="44" r="5.6" fill="var(--wood-mid)" stroke="var(--foreground)" strokeWidth="2" />
+      <circle cx="13" cy="46.5" r="3.6" fill="var(--earth-mid)" stroke="var(--foreground)" strokeWidth="1.6" />
     </svg>
   );
 }
