@@ -1,13 +1,34 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
-import { REMINDER, commitDirsOf, mainRootOf, responseOf, touchesMainCheckout } from './checkout-hint.mjs';
+import { REMINDER, commitDirsOf, responseOf, touchesMainCheckout } from './checkout-hint.mjs';
 
-const ROOT = '/home/me/saju';
+// 진짜 저장소를 세운다 — 메인 체크아웃인지는 경로가 아니라 git 이 답한다
+const BASE = realpathSync(mkdtempSync(join(tmpdir(), 'checkout-hint-')));
+const ROOT = join(BASE, 'saju');
 const TREE = `${ROOT}/.claude/worktrees/agent-1`;
+const LINKED = join(BASE, 'saju-task');
+const OTHER = join(BASE, 'other');
+const PLAIN = join(BASE, 'plain');
+
+const gitEnv = { ...process.env };
+for (const key of Object.keys(gitEnv)) if (key.startsWith('GIT_')) delete gitEnv[key];
+const git = (...args: string[]) => execFileSync('git', args, { env: gitEnv, stdio: 'ignore' });
+for (const repo of [ROOT, OTHER]) {
+  git('init', '-q', repo);
+  git('-C', repo, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-q', '--allow-empty', '-m', 'x');
+}
+git('-C', ROOT, 'worktree', 'add', '-q', '--detach', TREE);
+git('-C', ROOT, 'worktree', 'add', '-q', '--detach', LINKED);
+mkdirSync(join(ROOT, 'docs'));
+mkdirSync(PLAIN);
+
+afterAll(() => rmSync(BASE, { recursive: true, force: true }));
+
 const edit = (file_path: string, cwd = ROOT) => touchesMainCheckout({ tool_name: 'Edit', tool_input: { file_path }, cwd }, ROOT);
 const bash = (command: string, cwd = ROOT) => touchesMainCheckout({ tool_name: 'Bash', tool_input: { command }, cwd }, ROOT);
 
@@ -19,19 +40,36 @@ describe('checkout-hint — 메인 체크아웃에 쓸 때 한 줄을 일러 준
     expect(touchesMainCheckout({ tool_name: 'NotebookEdit', tool_input: { notebook_path: `${ROOT}/x.ipynb` }, cwd: ROOT }, ROOT)).toBe(true);
   });
 
+  it('아직 없는 폴더의 새 파일도 가장 가까운 있는 조상으로 가른다', () => {
+    expect(edit(`${ROOT}/new/deep/file.md`)).toBe(true);
+    expect(edit(`${LINKED}/new/deep/file.md`, LINKED)).toBe(false);
+  });
+
   it('워크트리 안과 저장소 밖은 지난다', () => {
     expect(edit(`${TREE}/docs/start.md`, TREE)).toBe(false);
     expect(edit('docs/start.md', TREE)).toBe(false);
     expect(edit('/home/me/.claude/projects/x/memory/MEMORY.md')).toBe(false);
-    expect(edit('/tmp/claude-1000/scratchpad/body.md')).toBe(false);
+    expect(edit(`${PLAIN}/scratchpad/body.md`)).toBe(false);
     // 이름이 뿌리로 시작할 뿐인 옆 폴더는 저장소 밖이다
-    expect(edit('/home/me/saju-old/README.md')).toBe(false);
+    expect(edit(`${ROOT}-old/README.md`)).toBe(false);
   });
 
-  it('워크트리에서 돌아도 메인 체크아웃의 뿌리를 안다 — CLAUDE_PROJECT_DIR 가 워크트리여도', () => {
-    expect(mainRootOf(TREE)).toBe(ROOT);
-    expect(mainRootOf(`${TREE}/`)).toBe(ROOT);
+  it('.claude/worktrees/ 밖에 선 연결된 워크트리도 지난다 — 경로가 아니라 git-dir 로 가른다', () => {
+    expect(edit(`${LINKED}/docs/start.md`, LINKED)).toBe(false);
+    expect(touchesMainCheckout({ tool_name: 'Edit', tool_input: { file_path: 'docs/x.md' }, cwd: LINKED }, LINKED)).toBe(false);
+    expect(bash('git commit -m x', LINKED)).toBe(false);
+    expect(bash(`cd ${LINKED} && git commit -m x`)).toBe(false);
+  });
+
+  it('다른 저장소의 메인 체크아웃과 저장소 밖 경로는 지난다', () => {
+    expect(edit(`${OTHER}/README.md`)).toBe(false);
+    expect(edit(`${PLAIN}/a.md`)).toBe(false);
+    expect(bash(`cd ${PLAIN} && git commit -m x`)).toBe(false);
+  });
+
+  it('워크트리에서 돌아도 메인 체크아웃에 쓰면 걸린다 — CLAUDE_PROJECT_DIR 가 워크트리여도', () => {
     expect(touchesMainCheckout({ tool_name: 'Edit', tool_input: { file_path: `${ROOT}/docs/x.md` }, cwd: TREE }, TREE)).toBe(true);
+    expect(touchesMainCheckout({ tool_name: 'Edit', tool_input: { file_path: `${ROOT}/docs/x.md` }, cwd: LINKED }, LINKED)).toBe(true);
     expect(touchesMainCheckout({ tool_name: 'Edit', tool_input: { file_path: `${TREE}/docs/x.md` }, cwd: TREE }, TREE)).toBe(false);
   });
 
@@ -86,5 +124,6 @@ describe('checkout-hint — 메인 체크아웃에 쓸 때 한 줄을 일러 준
       }).toString();
     expect(JSON.parse(run({ tool_name: 'Write', tool_input: { file_path: `${ROOT}/a.md` }, cwd: ROOT })).hookSpecificOutput.additionalContext).toBe(REMINDER);
     expect(run({ tool_name: 'Write', tool_input: { file_path: `${TREE}/a.md` }, cwd: TREE })).toBe('');
+    expect(run({ tool_name: 'Write', tool_input: { file_path: `${LINKED}/a.md` }, cwd: LINKED })).toBe('');
   });
 });

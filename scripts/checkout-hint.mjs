@@ -1,40 +1,67 @@
 /**
- * 메인 체크아웃에 쓰려 할 때 한 줄을 일러 준다 — Claude Code 의 PreToolUse 훅 (운영자 결정 2026-10-07).
+ * 메인 체크아웃에 쓰려 할 때 한 줄을 일러 준다 — Claude Code 의 PreToolUse 훅(ADR 0150).
  *
- * 대화가 저장소 일로 넘어가면 먼저 그 일의 역할 문서를 읽고 워크트리에서 한다(`docs/agents/delegation/coordinator.md`
- * 「조율자 세션」). 2026-10-07 에 대화로 연 세션이 역할을 안 고르고 메인 체크아웃을 직접 고쳤다. 이 훅은 **묻지도 막지도
- * 않는다** — 권한 결정(`permissionDecision`) 없이 `additionalContext` 한 줄만 모델에게 건넨다. 첫 번만 알리는 상태를 두지 않고
- * 걸릴 때마다 같은 한 줄이다.
+ * **묻지도 막지도 않는다** — 권한 결정(`permissionDecision`) 없이 `additionalContext` 한 줄만 모델에게 건넨다. 상태를 두지
+ * 않아 걸릴 때마다 같은 한 줄이다.
  *
- * - Edit · Write · NotebookEdit: 고칠 파일이 메인 체크아웃 안이고 `.claude/worktrees/` 밖이면
+ * - Edit · Write · NotebookEdit: 고칠 파일이 이 저장소의 메인 체크아웃 안이면. 새 파일은 가장 가까운 있는 조상 폴더로 가른다
  * - Bash: `git commit` 이 메인 체크아웃에서 돌면 — 앞의 `cd <곳>` 과 `git -C <곳>` 을 따라간다
- * - 저장소 밖(`~/.claude` 의 기억 · 스크래치 폴더 · `/tmp`)과 워크트리는 아무것도 안 찍는다
+ * - 연결된 워크트리(어디에 섰든) · 저장소 밖 · 다른 저장소 · git 이 실패한 자리는 아무것도 안 찍는다
  *
- * 메인 체크아웃의 뿌리는 `CLAUDE_PROJECT_DIR`(없으면 `cwd`)에서 `/.claude/worktrees/` 앞까지다. Claude Code 는 세션이
- * 워크트리로 들어가도 `CLAUDE_PROJECT_DIR` 를 처음 자리에 두고 `cwd` 만 옮긴다(https://code.claude.com/docs/en/hooks
- * 「Worktrees are different」). Claude Code 만 이 훅을 돈다 — 설정은 `.claude/settings.json` 의 `hooks`, 규약은
- * `docs/agents/delegation/permissions.md` 「훅 — 메인 체크아웃에서 일러 준다」.
+ * 메인 체크아웃인지는 경로가 아니라 git 이 답한다 — 메인 체크아웃은 `--git-dir` 이 `--git-common-dir` 과 같고, 연결된
+ * 워크트리는 제 git-dir(`.git/worktrees/<이름>`)을 가진다. 같은 저장소인지는 세션의 자리(`CLAUDE_PROJECT_DIR`, 없으면 `cwd`)의
+ * common-dir 과 견주는데, 그 둘째 부름은 대상이 메인 체크아웃일 때만 돈다 — 워크트리의 쓰기는 git 을 한 번 부른다.
+ * Claude Code 만 이 훅을 돈다 — 설정은 `.claude/settings.json` 의 `hooks`, 규약은 `docs/agents/delegation/permissions.md`
+ * 「훅 — 메인 체크아웃에서 일러 준다」.
  */
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { isAbsolute, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const WORKTREES = '/.claude/worktrees';
 
 export const REMINDER =
   '메인 체크아웃에 쓰려 한다 — 먼저 그 일의 역할 문서(docs/start.md 「역할 고르기」)를 읽고 워크트리에서 한다(docs/agents/delegation/coordinator.md 「조율자 세션」).';
 
-/** 워크트리 안의 경로여도 메인 체크아웃의 뿌리를 돌려준다 */
-export function mainRootOf(dir) {
-  const at = dir.indexOf(`${WORKTREES}/`);
-  return (at === -1 ? dir : dir.slice(0, at)).replace(/\/+$/, '');
+const isDirectory = (path) => {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+/** 가장 가까운 있는 조상 디렉터리 — 새 파일의 폴더는 아직 없을 수 있다 */
+export function existingDirOf(path) {
+  let dir = path;
+  while (!isDirectory(dir) && dirname(dir) !== dir) dir = dirname(dir);
+  return dir;
 }
 
-/** 메인 체크아웃 안이고 워크트리 밖인가 */
-export function inMainCheckout(path, root) {
-  if (path !== root && !path.startsWith(`${root}/`)) return false;
-  return path !== `${root}${WORKTREES}` && !path.startsWith(`${root}${WORKTREES}/`);
+/** 부모 프로세스의 `GIT_DIR` 따위가 `-C` 를 덮지 않게 걷는다 */
+const gitEnv = () => Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+
+/** 디렉터리가 든 저장소의 git-dir 과 common-dir — 저장소 밖이거나 git 이 실패하면 null */
+export function gitDirsOf(dir) {
+  try {
+    const [gitDir, commonDir] = execFileSync(
+      'git',
+      ['-C', dir, 'rev-parse', '--path-format=absolute', '--git-dir', '--git-common-dir'],
+      { encoding: 'utf8', env: gitEnv(), stdio: ['ignore', 'pipe', 'ignore'], timeout: 2000 },
+    )
+      .trim()
+      .split('\n');
+    return gitDir && commonDir ? { gitDir, commonDir } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 경로가 세션과 같은 저장소의 메인 체크아웃 안인가 — 연결된 워크트리는 git-dir 이 common-dir 과 다르다 */
+export function inMainCheckout(path, projectDir) {
+  const target = gitDirsOf(existingDirOf(path));
+  if (!target || target.gitDir !== target.commonDir) return false;
+  return gitDirsOf(existingDirOf(projectDir))?.commonDir === target.commonDir;
 }
 
 const expand = (path, base) => {
@@ -79,14 +106,14 @@ export function commitDirsOf(command, cwd) {
  */
 export function touchesMainCheckout(input, projectDir) {
   const cwd = input.cwd ?? process.cwd();
-  const root = mainRootOf(projectDir || cwd);
+  const project = projectDir || cwd;
   const toolInput = input.tool_input ?? {};
   if (['Edit', 'Write', 'NotebookEdit'].includes(input.tool_name ?? '')) {
     const target = toolInput.file_path ?? toolInput.notebook_path;
-    return typeof target === 'string' && target !== '' && inMainCheckout(expand(target, cwd), root);
+    return typeof target === 'string' && target !== '' && inMainCheckout(expand(target, cwd), project);
   }
   if (input.tool_name === 'Bash' && typeof toolInput.command === 'string') {
-    return commitDirsOf(toolInput.command, cwd).some((dir) => inMainCheckout(dir, root));
+    return commitDirsOf(toolInput.command, cwd).some((dir) => inMainCheckout(dir, project));
   }
   return false;
 }
