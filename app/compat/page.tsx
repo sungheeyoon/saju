@@ -102,7 +102,7 @@ export default async function CompatPage() {
   }));
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
+    <main className="app-shell flex max-w-[58rem] flex-1 flex-col gap-8 py-6 sm:gap-10 sm:py-10">
       {/* 제목은 화면 밖에서만 읽힌다 — 켜진 탭이 이미 「궁합」이라 말하고, 폰의 첫 화면은 고르는 칸이 차지한다 */}
       <h1 className="sr-only">궁합</h1>
 
