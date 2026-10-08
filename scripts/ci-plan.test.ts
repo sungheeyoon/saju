@@ -662,6 +662,22 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
     expect(lanesOfTest('scripts/check-chat.mjs')).toEqual(['flow']);
   });
 
+  /**
+   * **로그인 손잡이를 부르는 spec 은 로그인 무늬에 든다**(2026-10-08). 무늬(`playwright.config.ts` 의 `AUTHED` · `NOTICE`)에 없는
+   * spec 은 로그인 없는 프로젝트(`desktop-chromium` · `mobile-chromium`)가 집어 세션 없이 돌고, 로그인 차선은 그 파일을 모른다 —
+   * #537 은 새 spec 파일 대신 `signed-in.spec.ts` 에 시험을 넣어야 했다. 거꾸로 무늬에 든 spec 은 세션을 쓴다.
+   */
+  it('e2e/session.ts 를 부르는 spec 은 AUTHED · NOTICE 무늬에 들고, 무늬의 spec 은 그것을 부른다', () => {
+    const login = loginSpecs();
+    const specs = readdirSync(resolve(ROOT, 'e2e'))
+      .filter((name) => name.endsWith('.spec.ts'))
+      .map((name) => `e2e/${name}`);
+    const usesSession = (spec: string) => /from '\.\/session'/.test(readFileSync(resolve(ROOT, spec), 'utf8'));
+    expect(specs.length).toBeGreaterThan(5);
+    expect(specs.filter((spec) => usesSession(spec) && !login.includes(spec))).toEqual([]);
+    expect(login.filter((spec) => !usesSession(spec))).toEqual([]);
+  });
+
   it('주소의 무늬 — route group · slot 은 걷고, [x] 는 한 마디, page 밖은 그 아래 전부', () => {
     const route = (file: string) => routeOf(file) ?? /$^/;
     expect(route('app/me/(shelf)/readings/compat/page.tsx').test('/me/readings/compat')).toBe(true);

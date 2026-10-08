@@ -6,7 +6,8 @@
 
 `type(scope): 한국어 문장 (ADR NNNN) (#PR)` — 예를 들면
 `fix(lint): 층 시험을 AST 로 옮기고 화면 DB 호출을 지문으로 잠근다 (ADR 0085 정정 둘째) (#103)`.
-type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, 문장은 **무엇이 참이 되는가**다.
+type 은 `feat` · `fix` · `perf` · `refactor` · `ui` · `test` · `docs` · `chore` · `ci`, 문장은 **무엇이 참이 되는가**다.
+squash 가 PR 제목을 커밋 제목으로 쓰므로 `verify` 의 `plan` 이 PR 제목의 꼴을 잰다(`scripts/pr-title.mjs`) — 제목을 고친 뒤에는 `verify` 를 다시 돌린다.
 결정이 있으면 ADR 을 같은 PR 에 쓴다. PR 은 squash 로 main 에 들고 `gate` 가 필수 검사다
 (ADR 0082).
 
