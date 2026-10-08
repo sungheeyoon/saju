@@ -1,7 +1,6 @@
-import Link from 'next/link';
-
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { TYPE_TITLE } from './ui/surfaces';
+import { HomeLink } from './home-link';
 
 /**
  * **어느 라우트에도 안 맞는 주소**와, 제 `not-found` 가 없는 칸의 `notFound()` 가 오는 자리.
@@ -18,9 +17,9 @@ export default function NotFound() {
         주소가 잘못되었거나 페이지가 이동되었을 수 있어요.
       </p>
       <p className="flex flex-wrap gap-2">
-        <Link href="/" className={BUTTON_PRIMARY}>
+        <HomeLink className={BUTTON_PRIMARY}>
           홈으로
-        </Link>
+        </HomeLink>
       </p>
     </main>
   );

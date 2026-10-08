@@ -45,16 +45,15 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
   };
 
   return (
-    <>
+    // 넓은 화면에서도 폼은 42rem 한 축이다 — 칸이 이름표와 값을 양 끝으로 가르지 않는 한 손 너비(PRD §3.1). 위에 소개를 따로
+    // 세우지 않는다 — 폼이 첫 화면에 한 번에 보이는 쪽을 골랐다(운영자 2026-10-08)
+    <div className="mx-auto w-full max-w-[42rem]">
       <header className={`relative ${PAPER_TOP}`}>
         <VisitorFace entry={entry} onEntry={open} />
       </header>
 
-      {/*
-        머리와 폼이 **크림 종이 한 장**이다(`PAPER_TOP` · `PAPER_BOTTOM`, ADR 0132) — 이 자리가 `main` 의 틈만큼 올라붙어
-        머리의 아래 끝에 닿는다.
-      */}
-      <section id="calculator" className="-mt-8 scroll-mt-24 sm:-mt-10">
+      {/* 머리와 폼이 **크림 종이 한 장**이다(`PAPER_TOP` · `PAPER_BOTTOM`, ADR 0132) — 틈 없이 붙는다 */}
+      <section id="calculator" className="scroll-mt-24">
         <div id="self-panel" role="tabpanel" aria-labelledby="entry-self" hidden={pair}>
           {/* 제목은 눈에 안 보인다 — 바로 위 입구 「내 사주 보기」가 같은 말을 하고, 입구 아래 곧장 폼이 선다 */}
           <h2 className="sr-only">출생 정보를 입력해 주세요</h2>
@@ -71,7 +70,7 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 }
 

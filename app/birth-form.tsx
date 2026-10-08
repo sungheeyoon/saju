@@ -342,7 +342,6 @@ function NumberField({
   digits,
   min,
   max,
-  wide = false,
   placeholder,
   autoComplete,
 }: {
@@ -354,8 +353,6 @@ function NumberField({
   digits: number;
   min: number;
   max: number;
-  /** 네 자리(연도)라 옆 칸보다 조금 넓은가 */
-  wide?: boolean;
   placeholder: string;
   autoComplete?: string;
 }) {
@@ -368,7 +365,7 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className={cx(styles.digit, wide && styles.wide)}>
+    <label className={styles.digit}>
       <input
         type="text"
         inputMode="numeric"
@@ -451,7 +448,6 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        wide
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />

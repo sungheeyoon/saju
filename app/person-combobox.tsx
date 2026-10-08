@@ -206,7 +206,7 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
+          className={`h-11 w-full rounded-xl border border-border-strong bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
             chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
           }`}
         />

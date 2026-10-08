@@ -1209,6 +1209,26 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/privacy$/);
   });
 
+  /**
+   * **화면 안 「처음으로」 링크는 회원을 곧장 홈으로 보낸다**(`HomeLink`, 2026-10-08). `/` 를 거치면 옮기기 전 한 틱 동안 로그인
+   * 전 첫 화면이 보였다 — 서비스 소개 · 404 · 처리방침 · 열 수 없는 공유 링크의 링크가 `/me` 를 가리킨다.
+   */
+  test('회원이 누르는 처음으로 링크는 `/` 를 거치지 않고 홈에 선다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    for (const [from, name] of [
+      ['/about', '무료로 내 사주 보기'],
+      ['/no-such-page', '홈으로'],
+      ['/privacy', '처음으로'],
+      ['/share/readings/00000000-0000-0000-0000-000000000000', '무료로 내 사주 보기'],
+    ] as const) {
+      await page.goto(from);
+      const link = page.getByRole('link', { name, exact: true }).last();
+      await expect(link).toHaveAttribute('href', '/me');
+      await link.click();
+      await expect(page).toHaveURL(/\/me$/);
+    }
+  });
+
   /** 로그인 전 결과에서 복사한 링크(`/#입력`)를 회원이 열면 그 입력째 `/saju` 에 선다(ADR 0144) */
   test('회원이 입력이 실린 `/` 링크를 열면 /saju 에 그 사주가 선다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
