@@ -162,11 +162,13 @@ export function MatchingExperience({
     const passing = profile;
     setFailure(null);
     busy.current = true;
+    /* 꽉 찬 보관함에서는 지나침이 끝 사람을 밀어낸다 — 실패하면 그 사람까지 되세우게 지나치기 전 목록을 든다 */
+    const before = { passed: deck.passed, history: deck.history };
     dispatch({ type: 'pass', card: passing });
     leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
     const putBack = (message: string) => {
       cancelLeave();
-      dispatch({ type: 'unpass', card: passing });
+      dispatch({ type: 'unpass', card: passing, before });
       setAnnouncement('');
       setFailure(message);
     };

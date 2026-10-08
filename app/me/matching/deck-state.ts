@@ -10,7 +10,7 @@ export type DeckState = {
 type DeckEvent =
   | { type: 'sync'; cards: readonly DeckCard[]; passed: readonly DeckCard[] }
   | { type: 'pass'; card: DeckCard }
-  | { type: 'unpass'; card: DeckCard }
+  | { type: 'unpass'; card: DeckCard; before: { passed: readonly DeckCard[]; history: readonly DeckCard[] } }
   | { type: 'leave'; id: string }
   | { type: 'restore'; card: DeckCard; passed?: readonly DeckCard[] };
 
@@ -21,6 +21,17 @@ type DeckEvent =
  * 빼며 `seen` 에 적는다. 서버가 못 받았으면 `unpass` 가 그 셋을 한 사람 몫만 되돌린다 — 서버가 확인한 복원(`restore`)과
  * 이름을 가르는 까닭은 `restore` 는 서버가 보낸 보관함을 그대로 믿고, `unpass` 는 서버에 아무 일도 없었다는 것을 믿기 때문이다.
  */
+/**
+ * 물린 지나침이 밀어냈던 사람을 끝에 되세운다. `pass` 는 맨 앞에 넣고 `PASSED_LIMIT` 로 자르므로, 꽉 찬 목록에서는 끝 사람이
+ * 밀려난다 — 실패해서 그 사람 몫만 빼면 목록이 하나 준다. 밀려난 사람은 지나치기 전 목록(`before`)에서 다시 셈한다.
+ */
+function withoutPass(current: readonly DeckCard[], before: readonly DeckCard[], id: string): readonly DeckCard[] {
+  const kept = current.filter((card) => card.candidateUserId !== id);
+  const pushedOut = before.filter((card) => card.candidateUserId !== id).slice(PASSED_LIMIT - 1);
+  const back = pushedOut.filter((card) => !kept.some((k) => k.candidateUserId === card.candidateUserId));
+  return [...kept, ...back].slice(0, PASSED_LIMIT);
+}
+
 export function deckReducer(state: DeckState, event: DeckEvent): DeckState {
   if (event.type === 'sync') {
     const available = new Map(event.cards.map((card) => [card.candidateUserId, card]));
@@ -52,8 +63,8 @@ export function deckReducer(state: DeckState, event: DeckEvent): DeckState {
       state.remaining.find((card) => card.candidateUserId === id) ?? event.card,
       ...state.remaining.filter((card) => card.candidateUserId !== id),
     ],
-    passed: state.passed.filter((card) => card.candidateUserId !== id),
-    history: state.history.filter((card) => card.candidateUserId !== id),
+    passed: withoutPass(state.passed, event.before.passed, id),
+    history: withoutPass(state.history, event.before.history, id),
     seen: state.seen.filter((seen) => seen !== id),
   };
   if (event.type === 'pass') return {

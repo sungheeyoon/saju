@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deckReducer, type DeckState } from './deck-state';
+import { PASSED_LIMIT, deckReducer, type DeckState } from './deck-state';
 import type { DeckCard } from './deck-card';
 const card = (id: string): DeckCard => ({ candidateUserId: id, nickname: id, intro: null, hasPhoto: false, avatarElement: null, exploration: false, previewScore: 70, verdict: '', reason: '', balanceLabel: '', highlights: [] });
 const initial = (): DeckState => ({ remaining: ['a','b','c'].map(card), passed: [], history: [], seen: [] });
@@ -100,26 +100,28 @@ describe('채워지는 덱', () => {
  */
 describe('서버가 못 받은 지나침', () => {
   const ids = (cards: readonly DeckCard[]) => cards.map((c) => c.candidateUserId);
+  /** 보관함이 덜 찼으면 지나침이 밀어낸 사람이 없다 — 지나치기 전 목록이 무엇이든 돌려줄 것이 없다 */
+  const NOTHING_PUSHED_OUT = { passed: [], history: [] };
   const passedAndLeft = (state: DeckState, id: string) =>
     deckReducer(deckReducer(state, { type: 'pass', card: card(id) }), { type: 'leave', id });
 
   it('떠나기 전에 실패하면 카드는 맨 앞 그대로이고 보관함 · 이력이 비어 있던 대로 돌아온다', () => {
     let state = deckReducer(initial(), { type: 'pass', card: card('a') });
-    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    state = deckReducer(state, { type: 'unpass', card: card('a'), before: NOTHING_PUSHED_OUT });
     expect(state).toEqual(initial());
   });
 
   it('떠난 뒤에 실패하면 맨 앞에 한 장으로 되서고 seen 에서도 빠진다', () => {
     let state = passedAndLeft(initial(), 'a');
     expect(ids(state.remaining)).toEqual(['b', 'c']);
-    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    state = deckReducer(state, { type: 'unpass', card: card('a'), before: NOTHING_PUSHED_OUT });
     expect(state).toEqual(initial());
   });
 
   it('앞서 서버가 받은 지나침은 그대로 둔다 — 실패한 사람 몫만 물린다', () => {
     let state = passedAndLeft(initial(), 'a');
     state = passedAndLeft(state, 'b');
-    state = deckReducer(state, { type: 'unpass', card: card('b') });
+    state = deckReducer(state, { type: 'unpass', card: card('b'), before: NOTHING_PUSHED_OUT });
     expect(ids(state.remaining)).toEqual(['b', 'c']);
     expect(ids(state.passed)).toEqual(['a']);
     expect(ids(state.history)).toEqual(['a']);
@@ -128,7 +130,7 @@ describe('서버가 못 받은 지나침', () => {
 
   it('물린 뒤 늦게 온 서버 목록이 그 사람을 다시 세우거나 겹쳐 세우지 않는다', () => {
     let state = passedAndLeft(initial(), 'a');
-    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    state = deckReducer(state, { type: 'unpass', card: card('a'), before: NOTHING_PUSHED_OUT });
     /* 서버는 a 를 못 받았으니 a 는 아직 후보이고 보관함에 없다 — 덱 뒤에 채운 사람이 붙어 와도 a 는 맨 앞 한 장이다 */
     state = deckReducer(state, { type: 'sync', cards: ['a', 'b', 'c', 'd'].map(card), passed: [] });
     expect(ids(state.remaining)).toEqual(['a', 'b', 'c', 'd']);
@@ -144,15 +146,25 @@ describe('서버가 못 받은 지나침', () => {
   it('실패 뒤의 실행 취소는 그 앞에 서버가 받은 사람을 꺼낸다', () => {
     let state = passedAndLeft(initial(), 'a');
     state = passedAndLeft(state, 'b');
-    state = deckReducer(state, { type: 'unpass', card: card('b') });
+    state = deckReducer(state, { type: 'unpass', card: card('b'), before: NOTHING_PUSHED_OUT });
     expect(state.history[0].candidateUserId).toBe('a');
     state = deckReducer(state, { type: 'restore', card: card('a'), passed: [] });
     expect(ids(state.remaining)).toEqual(['a', 'b', 'c']);
     expect(state.history).toEqual([]);
   });
 
+  it('보관함이 꽉 찼을 때 실패하면 지나침이 밀어낸 끝 사람까지 돌아온다', () => {
+    const full = Array.from({ length: PASSED_LIMIT }, (_, i) => card(`p${i}`));
+    const before: DeckState = { ...initial(), passed: full, history: full };
+    let state = deckReducer(before, { type: 'pass', card: card('a') });
+    expect(ids(state.passed)).not.toContain(`p${PASSED_LIMIT - 1}`);
+    state = deckReducer(state, { type: 'leave', id: 'a' });
+    state = deckReducer(state, { type: 'unpass', card: card('a'), before: { passed: before.passed, history: before.history } });
+    expect(state).toEqual(before);
+  });
+
   it('첫 지나침이 실패하면 되돌릴 이력이 없다 — 실행 취소가 서지 않는다', () => {
-    const state = deckReducer(passedAndLeft(initial(), 'a'), { type: 'unpass', card: card('a') });
+    const state = deckReducer(passedAndLeft(initial(), 'a'), { type: 'unpass', card: card('a'), before: NOTHING_PUSHED_OUT });
     expect(state.history[0]).toBeUndefined();
   });
 });
