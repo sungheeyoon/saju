@@ -260,8 +260,9 @@ from audit.operator_access
 where actor_user_id = '<A>' and outcome = 'denied' and at > now() - interval '2 hours' order by id;
 ```
 
-**정리(⑬) — 무엇이 지워지고 무엇이 남나.** 두 테스트 계정을 `docs/ops/runbook/erasure.md` 「지우기」의 `forget_user` 로 **둘 다** 지우고 전용 코드를 닫는다
-(`update public.signup_code set max_uses = 0 where code = '<코드>'`). 그러면 방 · 메시지 · 궁합은 사라진다. 남는 것은 둘이다.
+**정리(⑬) — 무엇이 지워지고 무엇이 남나.** 두 테스트 계정을 `docs/ops/runbook/erasure.md` 「지우기」의 `forget_user` 로 **둘 다** 지우고 전용 코드를 지운다
+(`delete from public.signup_code where code = '<코드>'` — 그 코드로 들어온 계정이 둘 다 지워졌으면 FK 가 막지 않는다. `max_uses = 0` 은
+검사식 `between 1 and 1000` 에 걸린다). 그러면 방 · 메시지 · 궁합은 사라진다. 남는 것은 둘이다.
 
 - **신고와 스냅샷** — 지우기 전에 트리거가 `retention.report` 로 옮긴다(ADR 0098). 처분일부터 6개월 뒤 크론이 지운다.
   테스트 자료라 그 전에 지워도 되지만, 그 표를 손으로 지우는 길은 문서에 두지 않았다 — **6개월 뒤 자동 파기에 맡기고**
@@ -398,3 +399,25 @@ where p.pronamespace = 'public'::regnamespace
 끝나면 테스트 계정을 `docs/ops/runbook/erasure.md` 「지우기」로 정리한다 — **쌍의 두 계정을 다** 지운다. 한쪽만 지우면 방과 메시지는
 남는 쪽에 남는다(ADR 0094). 둘 다 지우면 Match 째 사라지고, 신고 · 스냅샷은 신고를 따라 사라진다.
 지우기 전에 위 검증의 결과를 이슈 #115 에 적는다.
+
+### 실시간 갱신의 운영 검증 — 두 계정 · 두 브라우저 (ADR 0155)
+
+받는 쪽 화면이 **다시 열지 않고** 메시지 · 딱지 · 읽음 · 닫힘을 받는지 운영에서 잰다. 처음 밟은 값은 #529 다. 잴 것은
+`e2e/live.spec.ts` 의 (1) · (2) · (3) · (4) · (5) 와 같다 — 그 시험의 셀렉터(`role=log` 「메시지」, 「채팅」 탭의 `건 안 읽음`,
+`summary[aria-label="신고 · 차단"]`, 닫힌 까닭의 `role=status`)를 그대로 쓴다. 웹 푸시는 따로다(`docs/ops/runbook/push.md`).
+
+1. **계정 둘** — 위 「신고 열람대의 운영 검증」 ① 과 같다(`createUser` · 전용 코드 `max_uses = 2` · `complete_signup` ·
+   `verification_account`). 자기 사주는 앱이 보내는 인자 그대로(`selfPersonArgs`, 가짜 출생정보)를 열쇠로 `create_self_person` 에 넣는다
+2. **매칭은 덱이 처음 서는 쪽이 청한다.** 덱은 **덱이 없거나 내 요약이 바뀔 때만** 새로 선다 — 24시간 재생성은 없다(`my_discovery_board`).
+   먼저 덱을 세운 계정은 참여를 끄고 켜도 같은 덱을 받으므로, 상대가 그 뒤에 풀에 들어왔으면 끝내 안 선다. 순서: 둘 다
+   `/me/settings` 의 「인연 찾기 다시 시작」으로 켠다 → 아직 덱이 없는 쪽이 `/me/matching` 을 열고 `request_match` → **곧바로 둘 다 끈다**.
+   실제 사용자가 많아 안 서면 그 계정의 (가짜) 출생 입력을 한 번 고쳐 덱을 새로 세운다 — 운영 SQL 로 덱 행을 쓰지 않는다
+3. **수락은 화면에서** — 받은 쪽이 `/me/matching` 의 「받은 요청」을 펼쳐 「수락하고 궁합 열기」. 궁합 풀이를 떠나보내는 것은 그
+   서버 액션의 `after` 다 — 문(`respond_to_match_request`)을 직접 부르면 시도만 열리고 모델은 안 불린다. 실호출 1회가 여기서 난다
+4. **두 독립 컨텍스트**(데스크톱 하나 · 모바일 에뮬레이션 하나)에 각자의 세션 쿠키를 넣고 운영 주소를 연다. 받는 쪽은 처음 `goto`
+   뒤로 reload · goto · 클릭 없이 기다린다. 지연은 「보내기를 누른 때 → 받는 화면에 글자가 선 때」(받는 페이지의 MutationObserver)로
+   적고, 기준을 이슈에 그대로 쓴다
+5. **연결 복구의 단서** — `context.setOffline` 은 열린 웹소켓을 끊지 않는다. 그 값은 「다시 읽기가 실패하고 다시 붙은 뒤 대조가
+   메운다」까지다. 소켓이 끊겼다 다시 구독하는 길은 실제 기기의 비행기 모드로 따로 본다
+6. **정리** — 지우기 **전에** 그날 `reading_spend_daily` 의 `verification_*` 칸을 이슈에 옮긴다(시도 행에서 세는 뷰라 계정을 지우면
+   빠진다). 둘 다 `forget_user` → 전용 코드 `delete`(들어온 계정이 다 지워졌으면 FK 가 막지 않는다) → 0행 확인
