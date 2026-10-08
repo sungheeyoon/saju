@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { isBlocked } from '@/src/lib/account';
+import { SAJU_PATH } from '@/src/lib/consent';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -130,29 +131,53 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         내가 받은 사주풀이가 선다.
       */}
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
-        {stood === null ? (
-          <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
-        ) : !stood.ok ? (
-          <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
-            <p className="text-sm">{stood.message}</p>
-            <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
-          </section>
-        ) : (
-          <SelfCard
-            personId={selfPersonId}
-            label={stood.query.name}
-            query={stood.query}
-            saju={stood.saju}
-            reading={selfReadingOf(readings)}
-            compact
-          />
-        )}
+        <div className="flex min-w-0 flex-col gap-3">
+          {stood === null ? (
+            <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
+          ) : !stood.ok ? (
+            <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
+              <p className="text-sm">{stood.message}</p>
+              <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
+            </section>
+          ) : (
+            <SelfCard
+              personId={selfPersonId}
+              label={stood.query.name}
+              query={stood.query}
+              saju={stood.saju}
+              reading={selfReadingOf(readings)}
+              compact
+            />
+          )}
+          <OtherSaju />
+        </div>
 
         <ReceivedReadings readings={readings} />
       </div>
 
       <MyPeople selfPersonId={selfPersonId} readings={readings} circle={circle} people={circlePeopleOf(circle, inputs)} />
     </>
+  );
+}
+
+/**
+ * **다른 사람 사주 보기** — 저장하지 않고 한 사람을 계산하는 자리(`/saju`, ADR 0144)로 가는 길. 내 사주 카드 바로 아래 한 줄이다.
+ *
+ * 처음에는 저장한 사람 구역 끝의 작은 보조 링크였다 — 홈의 주인공은 내 사주와 저장한 사람이라는 판단이었다. 남의 사주를 보는
+ * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 알림 띠와 같은 줄이다.
+ */
+function OtherSaju() {
+  return (
+    <Link
+      href={SAJU_PATH}
+      className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-water-soft text-water">
+        <Icon name="search" className="size-[18px]" />
+      </span>
+      <span className="min-w-0 flex-1">다른 사람 사주 보기</span>
+      <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+    </Link>
   );
 }
 

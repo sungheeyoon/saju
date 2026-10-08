@@ -336,10 +336,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * **홈 탭은 줄인 내 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례다**(u2, 운영자 2026-09-29 — ADR 0129 「2026-09-29 u2」).
    *
    * 저장한 사람 타일은 프로덕션 홈(`a45e34e`) 그대로 홈 탭에 다시 섰고, 이 화면에서 연 결과는 주소가 `from=me` 를 든다. 폰의
-   * 첫 화면(390×664, 머리글과 아래 탭을 뺀 자리)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지 든다 — 시안의 예산은 452px 였다.
+   * 첫 화면(390×664, 머리글과 아래 탭을 뺀 자리)에 카드 · 「다른 사람 사주 보기」 · 받은 사주풀이 머리까지 든다 — 저장한 사람 머리까지
+   * 들던 것(시안 예산 452px)은 그 줄이 카드 아래로 오며 바꿨다(운영자 2026-10-08, ADR 0144 덧).
    * 모델은 안 부른다: 사주풀이 넷(나 · 어머니 · 아버지 · 동생)을 `postgres` 로 심는다 — 셋만 서고 보관함 길이 선다.
    */
-  test('홈 탭은 줄인 내 카드 · 받은 사주풀이 셋 · 저장한 사람 차례이고 폰 첫 화면에 사람 머리까지 든다', async ({ openAs }, testInfo) => {
+  test('홈 탭은 줄인 내 카드 · 받은 사주풀이 셋 · 저장한 사람 차례이고 폰 첫 화면에 받은 사주풀이 머리까지 든다', async ({ openAs }, testInfo) => {
     const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니', '아버지', '동생'] });
     const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
     const idOf = (label: string) => (edges ?? []).find((row) => row.local_label === label)?.person_id as string;
@@ -374,10 +375,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(order.indexOf('내가 받은 사주풀이')).toBeLessThan(order.indexOf('저장한 사람'));
     await expect(page.getByRole('region', { name: '이번 달 흐름' })).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: '바로가기' })).toHaveCount(0);
-    /* 저장하지 않고 보는 한 사람의 사주는 저장한 사람 구역 끝의 작은 보조 링크 하나다(ADR 0144) */
-    const others = page.getByRole('region', { name: /저장한 사람/ }).getByRole('link', { name: '다른 사람 사주 보기' });
+    /* 저장하지 않고 보는 한 사람의 사주는 내 사주 카드 바로 아래 한 줄이다 — 저장한 사람 구역 안에는 없다(ADR 0144 덧, 2026-10-08) */
+    const others = page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' });
+    await expect(others).toHaveCount(1);
     await expect(others).toHaveAttribute('href', '/saju');
-    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveCount(1);
+    await expect(page.getByRole('region', { name: /저장한 사람/ }).getByRole('link', { name: '다른 사람 사주 보기' })).toHaveCount(0);
+    expect(order.indexOf('사주 자세히 보기')).toBeLessThan(order.indexOf('다른 사람 사주 보기'));
+    expect(order.indexOf('다른 사람 사주 보기')).toBeLessThan(order.indexOf('저장한 사람'));
 
     /* 줄인 카드도 출생 정보 한 줄은 든다(2026-09-25 에 일부러 남긴 줄) */
     const mine = page.getByRole('region', { name: '내 사주' });
@@ -405,19 +409,29 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('link', { name: '저장한 사람 관리' })).toHaveAttribute('href', '/me/people');
 
     /*
-      **폰 첫 화면에 사람 머리까지 든다.** 머리글 아래부터 아래 탭 위까지가 첫 화면이다 — 저장한 사람 제목의 아랫선이 그 안에
-      선다. 잰 값은 첨부로 남긴다(시안 예산 452px 와 견준다).
+      **폰 첫 화면에 받은 사주풀이 머리까지 든다.** 머리글 아래부터 아래 탭 위까지가 첫 화면이다 — 「다른 사람 사주 보기」와 받은
+      사주풀이 제목의 아랫선이 그 안에 선다. 잰 값은 첨부로 남긴다(저장한 사람 제목 · 옛 시안 예산 452px 와 견준다).
     */
     if (testInfo.project.name.includes('mobile')) {
       const people = page.getByRole('heading', { name: /^저장한 사람/ });
-      const box = (await people.boundingBox())!;
+      const peopleBox = (await people.boundingBox())!;
+      const box = (await received.getByRole('heading').first().boundingBox())!;
+      const others = (await page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' }).boundingBox())!;
       /* 아래 탭은 화면 바닥에 떠 있다 — 그 윗선이 첫 화면의 끝이다 */
       const fold = (await page.getByRole('navigation', { name: '모바일 내 메뉴' }).boundingBox())!.y;
       const top = (await page.getByRole('banner').boundingBox())?.height ?? 0;
       await testInfo.attach('me-tab-fold.json', {
-        body: JSON.stringify({ header: top, fold, peopleHeadingBottom: box.y + box.height, budget: top + 452 }),
+        body: JSON.stringify({
+          header: top,
+          fold,
+          othersBottom: others.y + others.height,
+          receivedHeadingBottom: box.y + box.height,
+          peopleHeadingBottom: peopleBox.y + peopleBox.height,
+          budget: top + 452,
+        }),
         contentType: 'application/json',
       });
+      expect(others.y + others.height).toBeLessThanOrEqual(fold);
       expect(box.y + box.height).toBeLessThanOrEqual(fold);
     }
   });
