@@ -147,7 +147,14 @@ export function refresh(changed: Changed): void {
  * 풀이의 화면은 대상마다 주소가 다르다(`/me/readings/<id>` · `/me/match/<id>`). 그
  * 갈래를 푸는 표는 이미 있고(`readingPathsOf`, ADR 0016·0033), 그 표가 내주는 것은
  * **값이 든 경로**라 위의 표에 미리 적을 수 없다.
+ *
+ * **지금 화면도 다시 그린다**(`refresh()`). 풀이 칸은 그 주소 아닌 화면에도 선다 — 보관함 틀의 `/me/readings/match/<id>` ·
+ * `/me/readings/compat` 은 `readingPathsOf` 의 `/me/match/<id>` · `/me/compat` 과 다르다. 지금은 경로 무르기의 「임시」
+ * 동작(위 머리말)이 어느 경로든 지금 화면을 싣지만, 그것이 좁혀지는 날에도 기다리던 칸이 끝난 글을 받게 한다 — 칸은 이 응답
+ * 말고 따로 다시 읽지 않는다(ADR 0016 덧). **`refresh()` 를 먼저 부른다** — 뒤에 부르면 경로 무르기가 세운
+ * 「정적까지 무름」을 「동적만」으로 덮어 클라이언트가 미리 받은 화면을 안 버린다(`next/dist/server/web/spec-extension/revalidate.js`).
  */
 export function refreshPaths(paths: readonly string[]): void {
+  redrawThisScreen();
   for (const path of paths) revalidatePath(path);
 }

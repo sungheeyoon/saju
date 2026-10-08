@@ -14,7 +14,7 @@ import type { ReadingTarget } from './target';
  * 없었다 — 그래서 **어느 갈래에서 어떤 문장이 서는지를 아무도 재지 않았다.**
  *
  * **부수효과를 하지는 않되, 무엇을 할지는 여기서 정한다.** 풀이권을 외치는
- * 일(`announceCreditsMoved`)과 화면을 다시 읽는 일(`router.refresh`)을 실제로 하는 것은
+ * 일(`announceCreditsMoved`)을 실제로 하는 것은
  * 칸이지만, **언제 하는가**는 이 파일이 값으로 답한다(`afterPress` · `afterAsking` 이
  * 내는 `FlowDecision`). 그 둘이 칸 안에 있을 때는 갈래마다 손으로 적혀 있었고, 그래서
  * **거절이 예시 글로 덮이는 갈래도 못 물은 갈래도 아무도 안 쟀다.**
@@ -169,12 +169,10 @@ export type FlowDecision = {
   readonly event: ReadingEvent | null;
   /** 풀이권이 움직였을 수 있다고 외치는가 */
   readonly announcesCredits: boolean;
-  /** 서버에서 화면을 다시 읽어 오는가 */
-  readonly rereads: boolean;
 };
 
 const nothing = (event: ReadingEvent | null): FlowDecision =>
-  ({ event, announcesCredits: false, rereads: false });
+  ({ event, announcesCredits: false });
 
 /**
  * 누름이 끝난 자리 — **예시 글을 세울 수 있으면 실패는 그것으로 덮인다.**
@@ -200,7 +198,6 @@ export function afterPress(outcome: PressOutcome, preview: CurrentReading | null
       return {
         event: { type: 'opened', started: outcome.started },
         announcesCredits: true,
-        rereads: false,
       };
 
     case 'refused':
@@ -231,13 +228,12 @@ export function afterAsking(answer: RunAnswer): FlowDecision {
     끝난 자리에서 외친다. 성공이면 잡고 있던 자리가 쓴 자리로 옮겨 가고 실패면 그
     자리가 풀린다 — 어느 쪽이든 헤더가 들고 있는 숫자는 낡았다.
 
-    그리고 **언제나 다시 읽는다.** 결과는 서버에만 있고 칸이 들고 있는 것은 마지막으로
-    그린 화면이다. 다시 안 읽으면 교체로 사라진 옛 글을 계속 세운다.
+    **화면은 따로 다시 읽지 않는다.** 결과는 서버에만 있지만, 끝난 것을 본 그 물음의 응답이 이미 지금 화면을 다시 그려
+    싣는다(`readingRunState` 의 `refreshPaths`, ADR 0016 덧). 칸이 한 번 더 읽으면 같은 화면을 두 번 그린다.
   */
   return {
     event: { type: 'settled', status: answer.status },
     announcesCredits: true,
-    rereads: true,
   };
 }
 

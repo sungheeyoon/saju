@@ -33,6 +33,7 @@ import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
 import { coverFace, readingMinutes } from './essay';
 import { readingOutline, type OutlineRow } from './outline';
+import { watchRun, type PageVisibility } from './watch-run';
 import flow from './flow.module.css';
 import { skipCarriedTaste, takeTasteArrival } from '../../carried-taste';
 import {
@@ -166,21 +167,25 @@ export function panelChrome({
   };
 }
 
+/** 이 탭이 보이는가 — 지켜보는 고리(`watchRun`)가 숨긴 탭에서 쉬게 */
+const documentVisibility: PageVisibility = {
+  hidden: () => document.visibilityState === 'hidden',
+  onChange: (listener) => {
+    document.addEventListener('visibilitychange', listener);
+    return () => document.removeEventListener('visibilitychange', listener);
+  },
+};
+
 /**
  * 흐름이 정한 것을 **실제로 한다** — 여기에는 판단이 없다.
  *
  * 무엇을 할지는 `afterPress` · `afterAsking` 이 이미 값으로 답했고, 이 함수가 하는 일은
- * 그 셋을 순서대로 집행하는 것뿐이다. **칸 밖에 두는 까닭**은 지켜보는 고리의 의존성에
+ * 그 둘을 순서대로 집행하는 것뿐이다. **칸 밖에 두는 까닭**은 지켜보는 고리의 의존성에
  * 들지 않게 하려는 것이다 — 칸 안에서 새로 지어지면 그림마다 고리가 다시 선다.
  */
-function apply(
-  decision: FlowDecision,
-  dispatch: (event: ReadingEvent) => void,
-  reread: () => void,
-): void {
+function apply(decision: FlowDecision, dispatch: (event: ReadingEvent) => void): void {
   if (decision.event !== null) dispatch(decision.event);
   if (decision.announcesCredits) announceCreditsMoved();
-  if (decision.rereads) reread();
 }
 
 export function ReadingPanel({
@@ -315,11 +320,12 @@ export function ReadingPanel({
   const reading = flow.mock ?? initialReading;
 
   /**
-   * **도는 시도를 지켜본다.** 끝나면 화면을 다시 읽는다.
+   * **도는 시도를 지켜본다.** 끝난 것을 본 그 물음의 응답이 이 화면을 다시 그려 싣는다(`readingRunState` 의 `refreshPaths`).
    *
    * 누른 그 화면에서만 도는 것이 아니다. 새로고침하고 돌아오거나 다른 기기에서 열어도
    * 서버에는 도는 시도가 있으므로(`initialRunning`), 이 고리는 **마운트될 때부터**
-   * 돈다. 만드는 일이 요청에서 떨어져 나온 뒤로 그것이 가능해졌다.
+   * 돈다. 만드는 일이 요청에서 떨어져 나온 뒤로 그것이 가능해졌다. 언제 묻는가 — 답이 온 뒤 · 숨긴 탭은 쉼 — 는
+   * `watchRun` 이 든다.
    */
   useEffect(() => {
     if (phase !== 'loading') return;
@@ -342,17 +348,16 @@ export function ReadingPanel({
       /* 못 물었으면 앞서 본 진행을 그대로 둔다 — 한 번 끊긴 것으로 목차를 비우지 않는다 */
       if (seen !== undefined) setProgress(seen);
 
-      apply(afterAsking(answer), dispatch, () => router.refresh());
+      apply(afterAsking(answer), dispatch);
     };
 
-    // 물어보는 간격은 짧게 잡지 않는다 — 4분짜리 일에 1초짜리 왕복은 값만 쓴다.
-    const tick = setInterval(ask, 3000);
+    const stop = watchRun({ ask, visibility: documentVisibility });
 
     return () => {
       alive = false;
-      clearInterval(tick);
+      stop();
     };
-  }, [phase, target, router]);
+  }, [phase, target]);
 
   const generate = async () => {
     dispatch({ type: 'press' });
@@ -397,7 +402,7 @@ export function ReadingPanel({
       outcome = { kind: 'threw' };
     }
 
-    apply(afterPress(outcome, preview), dispatch, () => router.refresh());
+    apply(afterPress(outcome, preview), dispatch);
   };
 
   /**

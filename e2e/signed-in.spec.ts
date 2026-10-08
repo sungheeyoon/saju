@@ -3691,3 +3691,135 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toHaveCount(0);
   });
 });
+
+/** 기다리는 풀이 칸이 언제 묻고 끝나면 무엇을 다시 받는가 — 다른 묶음과 나란히 고쳐지지 않게 따로 둔다 */
+test.describe('풀이를 기다리는 화면', () => {
+  /**
+   * **기다리는 화면은 숨긴 탭에서 안 묻고, 끝난 것을 본 그 물음 하나로 다시 그린다**(ADR 0016 덧).
+   *
+   * 모델은 안 부른다. 시도를 열어 둔 채 화면을 열고, 탭을 숨겼다 되돌리고(`visibilitychange` — 헤드리스는 탭을 진짜로
+   * 못 숨긴다), `postgres` 로 글을 저장한다. 서버 액션 POST(`next-action`)와 화면 재조회(`_rsc` GET)를 센다 — 끝난 것을
+   * 본 액션의 응답이 지금 화면을 다시 그려 싣으므로(`refreshPaths`) 그 뒤에 `_rsc` 가 따로 가지 않는다.
+   */
+  test('기다리는 화면은 숨긴 탭에서 묻지 않고 돌아오면 곧바로 묻고, 끝나면 화면을 따로 다시 읽지 않는다', async ({
+    openAs,
+  }, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), '묻는 고리는 화면 폭과 무관하다 — 데스크톱 한 번이면 된다');
+    test.setTimeout(90_000);
+    const { page, api } = await openAs({ selfPerson: true });
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self',
+      p_idempotency_key: 'e2e-wait-hidden-self',
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    const runId = started.data?.[0]?.run_id as string;
+
+    const asks: number[] = [];
+    const rereads: number[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.headers()['next-action']) asks.push(Date.now());
+      if (request.method() === 'GET' && (request.url().includes('_rsc=') || request.headers()['rsc'] === '1')) {
+        rereads.push(Date.now());
+      }
+    });
+    const since = (list: number[], from: number) => list.filter((at) => at >= from).length;
+    const setHidden = (hidden: boolean) =>
+      page.evaluate((value) => {
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (value ? 'hidden' : 'visible') });
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => value });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }, hidden);
+
+    await page.goto('/me/readings/self');
+    await expect(page.getByRole('list', { name: '풀이 목차' })).toBeVisible();
+
+    /* 보이는 동안은 3초마다 하나씩 — 첫 물음은 하이드레이션 뒤라 7초에 하나나 둘이다 */
+    const shown = Date.now();
+    await page.waitForTimeout(7_000);
+    const visibleAsks = since(asks, shown);
+
+    /* 숨긴 동안은 하나도 */
+    await setHidden(true);
+    const hid = Date.now() + 500;
+    await page.waitForTimeout(10_000);
+    const hiddenAsks = since(asks, hid);
+
+    /* 돌아오면 3초를 안 기다리고 곧바로 하나 */
+    const back = Date.now();
+    await setHidden(false);
+    await page.waitForTimeout(1_000);
+    const backAsks = since(asks, back);
+
+    /* 끝나면 그것을 본 물음 하나가 화면까지 데려온다 */
+    const settled = Date.now();
+    sql(`select public.save_reading('${runId}'::uuid, '## 풀이', null, '고요히 차오르는 물',
+           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    await expect(page.getByText('고요히 차오르는 물').first()).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(3_000);
+    const settleAsks = since(asks, settled);
+    const settleRereads = since(rereads, settled);
+
+    testInfo.annotations.push({
+      type: '잰 값',
+      description: `보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · _rsc ${settleRereads}`,
+    });
+    writeSync(1, `잰 값 — 보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · _rsc ${settleRereads}\n`);
+
+    expect(visibleAsks).toBeGreaterThanOrEqual(1);
+    expect(visibleAsks).toBeLessThanOrEqual(2);
+    expect(hiddenAsks).toBe(0);
+    expect(backAsks).toBe(1);
+    expect(settleAsks).toBe(1);
+    expect(settleRereads).toBe(0);
+  });
+
+  /**
+   * **칸이 선 주소가 무르는 주소와 달라도 끝난 글이 선다.** 보관함 틀의 궁합풀이(`/me/readings/compat`)는 `readingPathsOf` 가
+   * 무르는 `/me/compat` 과 다른 주소다 — 끝난 것을 본 응답이 지금 화면을 싣는 것은 `refreshPaths` 의 `refresh()` 몫이다.
+   */
+  test('보관함 틀의 궁합풀이도 끝난 것을 본 물음 하나로 글이 서고 화면을 따로 다시 읽지 않는다', async ({ openAs }, testInfo) => {
+    test.skip(testInfo.project.name.includes('mobile'), '묻는 고리는 화면 폭과 무관하다 — 데스크톱 한 번이면 된다');
+    test.setTimeout(60_000);
+    const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니'] });
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const mother = (edges ?? []).find((row) => row.local_label === '어머니')?.person_id as string;
+    const me = account.selfPersonId as string;
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'private',
+      p_idempotency_key: `e2e-wait-shelf-${me}-${mother}`,
+      p_person_a: me,
+      p_person_b: mother,
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    const runId = started.data?.[0]?.run_id as string;
+
+    const rereads: number[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'GET' && (request.url().includes('_rsc=') || request.headers()['rsc'] === '1')) {
+        rereads.push(Date.now());
+      }
+    });
+
+    await page.goto(`/me/readings/compat?a=${me}&b=${mother}`);
+    await expect(page.getByRole('button', { name: '궁합풀이 받는 중…' })).toBeVisible();
+
+    /*
+      라이브 채널이 처음 서면 `/me/readings/*` 를 한 번 다시 그린다(`app/live/resync.ts` — 서기 전의 변경을 놓치지 않게).
+      그 그리기를 끝남의 재조회로 세지 않게 먼저 지나 보낸다.
+    */
+    await expect.poll(() => rereads.length, { timeout: 15_000 }).toBeGreaterThan(0);
+    await page.waitForTimeout(500);
+
+    const settled = Date.now();
+    sql(`select public.save_reading('${runId}'::uuid, '## 궁합', null, '나란히 흐르는 두 물줄기',
+           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    await expect(page.getByText('나란히 흐르는 두 물줄기').first()).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(3_000);
+
+    expect(rereads.filter((at) => at >= settled)).toEqual([]);
+  });
+});
