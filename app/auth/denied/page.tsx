@@ -4,6 +4,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { Logo } from '../../ui/logo';
 import { TYPE_TITLE } from '../../ui/surfaces';
 import { withReturnPath } from '@/src/lib/consent';
+import { HomeLink } from '../../home-link';
 
 /**
  * 로그인이 끝나지 못한 자리.
@@ -47,9 +48,9 @@ export default async function DeniedPage({
           <Link href={again} className={BUTTON_PRIMARY}>
             다시 로그인
           </Link>
-          <Link href="/" className={BUTTON_SECONDARY}>
+          <HomeLink className={BUTTON_SECONDARY}>
             사주 보러 가기
-          </Link>
+          </HomeLink>
         </p>
       </section>
     </main>

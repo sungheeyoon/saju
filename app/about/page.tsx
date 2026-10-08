@@ -7,6 +7,7 @@ import { SERVICE_FEATURES } from '../service-features';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
 import { CARD, PAPER, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
+import { HomeLink } from '../home-link';
 
 export const metadata = {
   title: '서비스 소개',
@@ -83,9 +84,9 @@ export default function AboutPage() {
       </section>
 
       <p className="flex flex-col gap-2 sm:flex-row">
-        <Link href="/" className={BUTTON_PRIMARY}>
+        <HomeLink className={BUTTON_PRIMARY}>
           무료로 내 사주 보기
-        </Link>
+        </HomeLink>
         <Link href="/help" className={BUTTON_SECONDARY}>
           자주 묻는 질문
         </Link>

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { BUTTON_TERTIARY } from '../ui/buttons';
 import { CARD, TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
 import {
@@ -11,6 +9,7 @@ import {
 
 import { supabaseOnServer } from '../auth/server-client';
 import { currentSchedule } from '../beta-schedule';
+import { HomeLink } from '../home-link';
 
 /** 조항의 한 줄 — 앞에 작은 점을 찍는다. 목록이 길어도 줄의 머리가 보인다 */
 const DOT_LINE =
@@ -148,9 +147,9 @@ export default async function PrivacyPage() {
         </>
       )}
 
-      <Link href="/" className={`${BUTTON_TERTIARY} w-fit`}>
+      <HomeLink className={`${BUTTON_TERTIARY} w-fit`}>
         처음으로
-      </Link>
+      </HomeLink>
     </main>
   );
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { TYPE_TITLE } from './ui/surfaces';
+import { HomeLink } from './home-link';
 
 /**
  * **오류 경계 둘이 세우는 한 화면** — `app/error.tsx`(화면 한 칸)와 `app/global-error.tsx`(루트 레이아웃).
@@ -31,9 +30,9 @@ export function ErrorScreen({ retry }: { retry: () => void }) {
         <button type="button" onClick={() => retry()} className={BUTTON_PRIMARY}>
           다시 시도하기
         </button>
-        <Link href="/" className={BUTTON_SECONDARY}>
+        <HomeLink className={BUTTON_SECONDARY}>
           홈으로
-        </Link>
+        </HomeLink>
       </p>
     </main>
   );

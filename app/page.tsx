@@ -24,8 +24,8 @@ const READING_OUTLINE: readonly string[] = selfSectionTexts(CONTROL).map((text) 
  */
 export default function Home() {
   return (
-    // 넓은 화면에서도 폼은 한 손 너비다 — 넓은 판에 칸이 퍼지면 이름표와 값이 화면 양 끝으로 갈린다
-    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[42rem]">
+    // 넓은 화면에서도 폼과 「할 수 있는 것」이 42rem 한 축이다(`HomeHero` · `LandingGuide`)
+    <main className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
       <HomeHero
         calculator={
           // 미리 그려진 HTML 은 첫 화면이다 — 자리표시도 그 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)

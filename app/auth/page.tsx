@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
@@ -11,6 +10,7 @@ import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
 import { signedInUser } from './signed-in';
 import { RESUME_PAIR_PATH, RESUME_READING_PATH, afterSignIn, safeReturnPath } from '@/src/lib/consent';
+import { HomeLink } from '../home-link';
 
 export default async function SignInPage({
   searchParams,
@@ -70,9 +70,9 @@ export default async function SignInPage({
       */}
       <div className="flex flex-col gap-1">
         <p className="text-[13px] leading-5 text-secondary">코드가 없어도 내 사주와 궁합 첫 신호는 지금 볼 수 있어요.</p>
-        <Link href="/" className={`${BUTTON_TERTIARY} w-fit`}>
+        <HomeLink className={`${BUTTON_TERTIARY} w-fit`}>
           사주로 돌아가기
-        </Link>
+        </HomeLink>
       </div>
       </section>
     </main>

@@ -18,8 +18,18 @@ test('첫 화면은 두 입구와 생일 칸이고, 코드 띠와 이야기 칸�
   await expect(entries.getByRole('tab', { name: /궁합 보기/ })).toHaveAttribute('aria-selected', 'false');
   await expect(page.getByRole('button', { name: '무료로 내 사주 보기' })).toBeVisible();
 
+  /* 제목은 폼 종이의 물음이고, 폼 아래는 「할 수 있는 것」이다 — 조건(로그인 · 풀이권)은 안 싣는다 */
+  await expect(page.getByRole('heading', { level: 1, name: '나는 어떤 사람일까?' })).toBeVisible();
+  const guide = page.getByRole('region', { name: '할 수 있는 것' });
+  await expect(guide.getByRole('heading', { level: 3 })).toHaveText(['사주풀이', '궁합', '인연']);
+  await expect(guide).not.toContainText('풀이권');
+
   await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
   await expect(page.getByText('사주풀이에서 만날 이야기')).toHaveCount(0);
+
+  /* 로그인 전의 「처음으로」 링크는 이 화면이다 — 회원만 곧장 홈으로 간다(`HomeLink`) */
+  await page.goto('/about');
+  await expect(page.getByRole('link', { name: '무료로 내 사주 보기' })).toHaveAttribute('href', '/');
 });
 
 test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목차 · 접힌 만세력 → 로그인은 입력을 주소에 안 싣는다', async ({ page }) => {
@@ -32,8 +42,8 @@ test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목�
   await expect(card).toContainText('민수');
   await expect(card.getByRole('list', { name: '오행 분포' })).toBeVisible();
 
-  /* 무엇이 어디로 가는지 — 누르는 단추 곁의 고지(운영자가 정한 문구, ADR 0143) */
-  await expect(page.getByText('입력한 생년월일시는 우리 서버에서 사주를 계산하는 데만 쓰고 저장하지 않아요.', { exact: false })).toBeVisible();
+  /* 주 단추 아래의 고지 한 줄은 걷었다(운영자 결정 2026-10-08, ADR 0143 마지막 덧) — 처리는 그대로다 */
+  await expect(page.getByText('입력한 생년월일시는', { exact: false })).toHaveCount(0);
 
   /* 로그인 전 사주 문단 — 모델이 없는 시험 서버에서는 실패로 선다. 엔진 문장으로 바꿔치기하지 않고 다음 걸음이 선다 */
   const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
