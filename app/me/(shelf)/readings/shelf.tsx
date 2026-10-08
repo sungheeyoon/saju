@@ -187,12 +187,13 @@ export function BlankBook({
       <CoverLink
         href={href}
         from={from}
-        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9rem] sm:min-h-[14rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9rem] px-2 py-4 sm:min-h-[14rem] sm:p-4' : 'min-h-[14rem] p-4'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
         </span>
-        <span className="text-[15px] font-semibold text-foreground">{label}</span>
+        {/* 홈의 한 줄 셋(`row`)은 폰에서 표지 폭이 110px 남짓이라 「사주풀이 받기」가 두 줄로 접혔다 — 그 자리만 14px 한 줄이다 */}
+        <span className={`font-semibold text-foreground ${row ? 'whitespace-nowrap text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{label}</span>
       </CoverLink>
     </li>
   );

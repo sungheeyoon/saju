@@ -107,19 +107,25 @@ export function SelfCard({
 
       <ElementCounts saju={saju} compact={compact} />
 
-      {/* 폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다 */}
+      {/*
+        폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다. **반반이다**: 남는 폭을 나눠 갖게(`flex-1`) 두었더니
+        글자가 긴 「사주 자세히 보기」가 폭을 더 가져가 「사주풀이 받기」가 두 줄로 접혔다(2026-10-08). 380px 아래와 「수정 전」 딱지가
+        붙은 때는 두 단추가 한 줄에 못 들어 쌓는다.
+      */}
       {personId === null ? (
         <div className="relative flex flex-wrap items-center gap-2">{actions}</div>
       ) : (
-        <div className="relative flex flex-wrap items-center gap-2">
-          <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
+        <div
+          className={`relative grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center ${reading !== null && !reading.fromCurrentChart ? '' : 'min-[380px]:grid-cols-2'}`}
+        >
+          <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY} whitespace-nowrap px-3 sm:min-w-52 sm:px-5`}>
             <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
             {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
             {reading !== null && !reading.fromCurrentChart && (
               <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
             )}
           </Link>
-          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}>
+          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} whitespace-nowrap px-3 sm:px-5`}>
             사주 자세히 보기
             <Icon name="arrow" className="hidden size-4 sm:block" />
           </Link>
