@@ -95,10 +95,18 @@ const deliveries = (matchId) =>
        join public.chat_room r on r.id = d.room_id where r.match_id = '${matchId}'`);
 const rowsOf = (matchId) => JSON.parse(deliveries(matchId));
 
-/** 기다리는 줄을 지금 기한으로 당긴다 — 60초 묶음 · 뒤물림을 시험이 기다리지 않게 */
-const dueNow = (matchId) =>
+/**
+ * 기다리는 줄을 지금 기한으로 당긴다 — 60초 묶음 · 뒤물림을 시험이 기다리지 않게. 잡는 문은 기한과 따로 마지막 보냄 + 60초를
+ * 지키므로 그 방의 보냄도 61초 전 일로 민다.
+ */
+const dueNow = (matchId) => {
+  sql(`update public.push_delivery d
+       set sent_at = least(d.sent_at, now() - interval '61 seconds'), settled_at = least(d.settled_at, now() - interval '61 seconds')
+       from public.chat_room r
+       where r.id = d.room_id and r.match_id = '${matchId}' and d.status = 'sent'`);
   sql(`update public.push_delivery d set due_at = now() from public.chat_room r
        where r.id = d.room_id and r.match_id = '${matchId}' and d.status = 'pending'`);
+};
 
 /** 아직 안 닫힌 줄(기다림 · 보내는 중) */
 const open = (row) => row.status === 'pending' || row.status === 'sending';

@@ -10,8 +10,13 @@
 --
 -- - **본문을 안 든다.** 배달 줄은 구독과 방만 가리킨다. 배달 문이 받는 것도 endpoint · 열쇠 · match_id · 시도 수뿐이다.
 -- - **방 하나에 대기 줄 하나** — 같은 방의 다음 메시지는 대기 줄을 새로 만들지 않는다(부분 유일 색인). 보낸 뒤 60초 안에
---   다시 보내지 않는다 — 새 대기 줄의 기한은 그 구독 · 방의 마지막 보냄(또는 보내는 중) + 60초와 지금 중 늦은 쪽이고,
---   보내는 중에 선 대기 줄은 그 보냄이 `sent` 로 닫힐 때 보낸 시각 + 60초로 다시 민다(`settle_push_delivery`).
+--   다시 보내지 않는다 — **잡는 문이 지킨다**: 같은 구독 · 방에 보내는 중인 줄이 있거나 마지막 보냄(`sent_at`)이 60초 안이면
+--   대기 줄을 잡지 않고 기한을 그 보냄 + 60초로 민다. 앞 푸시는 `sent_at` 을 적기 전에 푸시 서비스가 받았고 다음 푸시는 잡힌
+--   뒤에 나가므로, 같은 구독 · 방의 두 푸시는 60초 넘게 떨어진다. 기한(`due_at`)은 그 앞에서 깨우기를 아끼는 값이다 — 새 대기
+--   줄은 마지막 보냄 + 60초로 서고, 보내는 중에 선 줄은 그 보냄이 `sent` 로 닫힐 때 민다(`settle_push_delivery`).
+-- - **(구독 · 방)마다 자물쇠 하나** — 대기 줄을 세우는 트리거 · 잡는 문 · 닫는 문이 같은 트랜잭션 자물쇠
+--   (`push_room_key` — `pg_advisory_xact_lock`)를 먼저 잡는다. 그래서 「보내는 중」 줄이 닫히는 것과 대기 줄이 서는 것이 겹쳐도
+--   뒤에 온 쪽이 앞의 커밋을 본다(`scripts/check-push-race.mjs`). 차례와 교착은 `push_room_key` 의 주석이 든다.
 -- - **이미 읽었으면 안 보낸다** — 잡는 순간(`claim`) 받는 사람이 상대의 마지막 메시지까지 읽었으면 `skipped` 로 접는다.
 --   방이 닫혔거나 구독의 주인이 그 방의 참여자가 아니어도(옮겨 간 endpoint) `skipped` 다.
 -- - **다시 보내기** — 실패는 1분 · 5분 · 30분 · 2시간 뒤에 다시, 다섯 번째 실패에 `gave_up`. 404/410 은 구독을 지운다.
@@ -126,6 +131,32 @@ end;
 $$;
 
 revoke execute on function public.push_endpoint_allowed(text) from public, anon, authenticated, service_role;
+
+/**
+ * **(구독 · 방)의 자물쇠 열쇠** — `pg_advisory_xact_lock(public.push_room_key(구독, 방))` 으로 쓴다. 트랜잭션이 끝날 때 풀린다.
+ *
+ * 잡는 자리는 셋이고, 그 (구독 · 방)의 줄을 읽거나 쓰기 **전에** 잡는다.
+ *
+ *   queue_push_for_chat_message  받는 구독마다 — 대기 줄을 세우기 전(그래야 막 닫힌 보냄을 본다)
+ *   claim_push_deliveries        잡을 줄을 `for update skip locked` 로 고른 뒤, 판정 · 갱신 전
+ *   settle_push_delivery         그 줄을 `for update` 로 잠근 뒤, 갱신 전(`gone` 은 빼고 — 아래)
+ *
+ * **교착이 없는 까닭.** (1) 여러 열쇠를 잡는 둘(트리거 · 잡는 문)은 열쇠 값의 오름차순으로 잡는다. (2) 줄 자물쇠 → 이 자물쇠
+ * 순서만 있고, 이 자물쇠를 쥔 채 남의 줄 자물쇠를 기다리는 자리가 없다 — 잡는 문은 `skip locked` 라 기다리지 않고, 트리거의
+ * 대기 줄 삽입이 기다릴 수 있는 것(같은 (구독 · 방)의 커밋 안 된 `pending`)은 이 자물쇠를 쥔 쪽만 쓴다. (3) `gone` 은 구독을
+ * 지워 그 대기 줄을 cascade 로 지우는데, 그 줄을 잡는 문이 줄 자물쇠로 쥔 채 이 자물쇠를 기다릴 수 있다 — 그래서 `gone` 은 이
+ * 자물쇠를 잡지 않는다.
+ *
+ * `hashtext` 라 다른 (구독 · 방)이 같은 열쇠를 받을 수 있다 — 그러면 둘이 줄을 설 뿐이다.
+ */
+create function public.push_room_key(p_subscription_id uuid, p_room_id uuid)
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$ select hashtext('push:room:' || p_subscription_id::text || ':' || p_room_id::text) $$;
+
+revoke execute on function public.push_room_key(uuid, uuid) from public, anon, authenticated, service_role;
 
 revoke execute on function public.push_room_quiet() from public, anon, authenticated, service_role;
 revoke execute on function public.push_max_attempts() from public, anon, authenticated, service_role;
@@ -337,6 +368,11 @@ grant execute on function public.push_subscription_registered(text) to authentic
  * 이미 읽었다, 방이 닫혔다, 구독의 주인이 그 방의 참여자가 아니다(옮겨 간 endpoint), endpoint 가 받는 푸시 서비스가
  * 아니다(`push_endpoint_allowed` — 시험용 호스트를 걷은 뒤 남은 줄).
  *
+ * **보낸 뒤 60초는 여기서 선다.** 대기 줄의 같은 구독 · 방에 보내는 중인 줄이 있거나 마지막 보냄(`sent_at`)이 60초 안이면
+ * 그 대기 줄은 잡지 않고 `pending` 그대로 둔다 — 마지막 보냄이 있으면 기한을 그 보냄 + 60초로 민다. 기한이 틀려 있어도(닫는
+ * 문이 민 것을 놓쳤어도) 여기가 막는다. 판정 전에 고른 줄들의 (구독 · 방) 자물쇠를 오름차순으로 잡으므로(`push_room_key`),
+ * 막 닫힌 보냄과 막 선 대기 줄을 판정이 본다 — 판정은 자물쇠 뒤의 새 문장이라 그 커밋을 보는 스냅숏으로 돈다.
+ *
  * @returns 보낼 줄 — endpoint · 열쇠 · match_id(이동할 방) · 지금까지의 시도 수. 본문은 없다
  */
 create function public.claim_push_deliveries(p_limit integer default 50)
@@ -352,9 +388,12 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  picked uuid[];
+  room_key integer;
 begin
-  return query
-  with picked as (
+  select array_agg(p.id) into picked
+  from (
     select d.id
     from public.push_delivery d
     where (d.status = 'pending' and d.due_at <= now())
@@ -362,7 +401,23 @@ begin
     order by d.due_at
     limit least(greatest(coalesce(p_limit, 50), 1), 500)
     for update skip locked
-  ), judged as (
+  ) p;
+
+  if picked is null then
+    return;
+  end if;
+
+  for room_key in
+    select distinct public.push_room_key(d.subscription_id, d.room_id)
+    from public.push_delivery d
+    where d.id = any (picked)
+    order by 1
+  loop
+    perform pg_advisory_xact_lock(room_key);
+  end loop;
+
+  return query
+  with judged as (
     select
       d.id,
       d.status as was,
@@ -371,9 +426,10 @@ begin
       (r.closed_at is not null
        or not public.push_endpoint_allowed(s.endpoint)
        or (s.user_id is distinct from r.user_low and s.user_id is distinct from r.user_high)
-       or coalesce(k.last_read_seq, 0) >= coalesce(last.seq, 0)) as needless
-    from picked p
-    join public.push_delivery d on d.id = p.id
+       or coalesce(k.last_read_seq, 0) >= coalesce(last.seq, 0)) as needless,
+      (d.status = 'pending' and (quiet.busy or quiet.sent_at > now() - public.push_room_quiet())) as held,
+      quiet.sent_at as last_sent_at
+    from public.push_delivery d
     join public.push_subscription s on s.id = d.subscription_id
     join public.chat_room r on r.id = d.room_id
     left join public.chat_read k on k.room_id = r.id and k.user_id = s.user_id
@@ -381,15 +437,31 @@ begin
       select max(m.seq) as seq from public.chat_message m
       where m.room_id = r.id and m.sender_user_id is distinct from s.user_id
     ) last on true
+    cross join lateral (
+      select
+        coalesce(bool_or(x.status = 'sending'), false) as busy,
+        max(x.sent_at) as sent_at
+      from public.push_delivery x
+      where x.subscription_id = d.subscription_id and x.room_id = d.room_id and x.id <> d.id
+        and x.status in ('sending', 'sent')
+    ) quiet
+    where d.id = any (picked)
   ), moved as (
     update public.push_delivery d
     set status = case
           when j.needless then 'skipped'
+          when j.held then 'pending'
           when j.tries >= public.push_max_attempts() then 'gave_up'
           else 'sending' end,
         attempts = j.tries,
-        claimed_at = case when j.needless or j.tries >= public.push_max_attempts() then null else now() end,
-        settled_at = case when j.needless or j.tries >= public.push_max_attempts() then now() else null end
+        due_at = case
+          when not j.needless and j.held and j.last_sent_at is not null
+            then greatest(d.due_at, j.last_sent_at + public.push_room_quiet())
+          else d.due_at end,
+        claimed_at = case
+          when j.needless or j.held or j.tries >= public.push_max_attempts() then null else now() end,
+        settled_at = case
+          when j.needless or (not j.held and j.tries >= public.push_max_attempts()) then now() else null end
     from judged j
     where d.id = j.id
     returning d.id, d.status
@@ -440,6 +512,15 @@ begin
     return d.status;
   end if;
 
+  if p_result = 'gone' then
+    -- (구독 · 방) 자물쇠를 잡지 않는다 — 교착을 피한다(`push_room_key` 의 (3))
+    delete from public.push_subscription s where s.id = d.subscription_id;
+    return 'gone';
+  end if;
+
+  -- 줄 자물쇠 → (구독 · 방) 자물쇠. 대기 줄을 세우는 트리거와 잡는 문이 이 자물쇠에서 줄을 선다
+  perform pg_advisory_xact_lock(public.push_room_key(d.subscription_id, d.room_id));
+
   if p_result = 'sent' then
     update public.push_delivery x
     set status = 'sent', sent_at = now(), settled_at = now(), claimed_at = null
@@ -448,10 +529,9 @@ begin
     /*
       「보낸 뒤 60초」는 **보낸 시각**부터다. 보내는 중에 선 대기 줄은 기한을 잡은 시각(`claimed_at`) + 60초로 받았다 — 보낸
       시각은 그때 아직 없었다. 그래서 보냄이 닫히는 여기서 같은 구독 · 방의 대기 줄을 보낸 시각 + 60초로 민다(앞으로만,
-      `greatest`). claim 에서 거르는 길보다 단순하다 — 기한이 한 칸에 남아 크론의 「기한이 된 줄이 있나」와 잡는 문이 같은
-      것을 본다. 경쟁: 그 대기 줄은 기한(잡은 시각 + 60초) 전에는 잡히지 않고 송신은 10초 시한 안에 닫히므로, 여기가 먼저 온다.
-      새 줄의 삽입과 이 문이 동시에 커밋되는 틈에서는 민 것을 못 보고 잡은 시각 + 60초가 남는다 — 어긋남은 송신 시간(10초
-      이하)뿐이다.
+      `greatest`) — 크론의 「기한이 된 줄이 있나」가 헛되이 깨우지 않게. 대기 줄을 세우는 트리거와 이 문은 (구독 · 방) 자물쇠에서
+      줄을 서므로, 이 갱신은 먼저 커밋된 대기 줄을 보고 뒤에 서는 대기 줄은 이 보냄을 본다. 기한이 어떻든 60초를 지키는 것은
+      잡는 문이다(`claim_push_deliveries`) — 이 갱신은 깨우기를 아끼는 값이다.
     */
     update public.push_delivery x
     set due_at = greatest(x.due_at, now() + public.push_room_quiet())
@@ -459,11 +539,6 @@ begin
 
     update public.push_subscription s set last_success_at = now() where s.id = d.subscription_id;
     return 'sent';
-  end if;
-
-  if p_result = 'gone' then
-    delete from public.push_subscription s where s.id = d.subscription_id;
-    return 'gone';
   end if;
 
   tries := d.attempts + case when p_result = 'retry' then 1 else 0 end;
@@ -581,7 +656,10 @@ revoke execute on function public.wake_push_dispatch_when_due() from public, ano
  * 안 만든다 — 그 줄이 이 메시지도 나른다. 기한은 그 구독 · 방의 마지막 보냄(보내는 중이면 잡은 시각) + 60초와 지금 중
  * 늦은 쪽이다. 보내는 중이었으면 그 보냄이 닫힐 때 보낸 시각 + 60초로 다시 밀린다(`settle_push_delivery`).
  *
- * 실패를 삼킨다 — 통보는 부속이다. 메시지는 저장돼야 한다.
+ * 세우기 전에 받는 (구독 · 방)마다 자물쇠를 오름차순으로 잡는다(`push_room_key`) — 막 닫히는 보냄이 있으면 그 커밋을 기다렸다가
+ * 보낸 시각으로 기한을 받는다. 세우는 문장은 자물쇠 뒤의 새 문장이라 그 커밋을 보는 스냅숏으로 돈다.
+ *
+ * 실패를 삼킨다 — 통보는 부속이다. 메시지는 저장돼야 한다. 자물쇠도 그 안이라, 교착으로 넘어지면 이 메시지의 통보만 빠진다.
  */
 create function public.queue_push_for_chat_message()
 returns trigger
@@ -589,7 +667,23 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  room_key integer;
 begin
+  for room_key in
+    select distinct public.push_room_key(s.id, t.room_id)
+    from (
+      select distinct a.room_id,
+             case when a.sender_user_id = r.user_low then r.user_high else r.user_low end as recipient
+      from added a
+      join public.chat_room r on r.id = a.room_id
+    ) t
+    join public.push_subscription s on s.user_id = t.recipient
+    order by 1
+  loop
+    perform pg_advisory_xact_lock(room_key);
+  end loop;
+
   insert into public.push_delivery (subscription_id, room_id, due_at)
   select s.id, t.room_id,
          greatest(now(), coalesce((

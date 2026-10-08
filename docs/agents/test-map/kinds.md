@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- |
 | **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | `npm test` 의 끝 줄 — 실호출 백필 파일은 통째로 건너뛴다 |
 | **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | `npm run test:db` 의 끝 줄 — 전부 고정 plan(2026-09-26, `no_plan` 둘을 수로 잠갔다 — 단언이 조용히 빠지면 plan 이 붉힌다) |
-| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | `scripts/check-*.mjs` 한 벌마다 — `npm run test:flow` 가 찍는다 |
+| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` · `check-push-race` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | `scripts/check-*.mjs` 한 벌마다 — `npm run test:flow` 가 찍는다 |
 | **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | `npx playwright test --list` — 익명 · 로그인은 기기 둘에서, 관문은 한 번 돈다 |
 
 **vitest 는 `.tsx` 를 불러올 수는 있어도 그리지는 못한다** — `vitest.config.mts` 의 include 가 `src/**` · `app/**` ·

@@ -10,7 +10,7 @@
 --
 -- 같은 트랜잭션 안에서 `now()` 는 멈춰 있다 — 기한을 넘기는 자리는 `due_at` · `claimed_at` 을 손으로 당긴다.
 begin;
-select plan(83);
+select plan(85);
 
 -- 이 파일의 endpoint 는 `push.example.com` 이다 — 시험용 호스트로 연다. 트랜잭션과 함께 걷힌다
 delete from vault.secrets where name = 'push_extra_hosts';
@@ -294,6 +294,14 @@ select ok(
   (select due_in from pg_temp.lines('https://push.example.com/kim') where status = 'pending') >= interval '60 seconds',
   '보내는 중에 선 대기 줄의 기한은 보낸 시각 + 60초 뒤다 — 잡은 시각 + 60초(50초 뒤)가 아니다');
 
+-- 기한이 틀려 있어도(닫는 문이 민 것을 놓친 경쟁 — `scripts/check-push-race.mjs`) 60초는 잡는 문이 지킨다
+select pg_temp.due_now();
+select is_empty($$select * from pg_temp.claim()$$, '기한을 당겨도 마지막 보냄 + 60초 전에는 잡지 않는다');
+select is(
+  (select due_in from pg_temp.lines('https://push.example.com/kim') where status = 'pending'),
+  interval '60 seconds',
+  '잡지 않은 줄의 기한은 마지막 보냄 + 60초로 다시 선다');
+
 -- 읽었으면 skipped
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
@@ -307,6 +315,9 @@ select is(
   '그 줄은 skipped 로 접힌다');
 
 -- 다시 보내기 — 1분 · 5분 · 30분 · 2시간, 다섯 번째에 gave_up
+-- 앞의 보냄은 5분 전 일로 민다 — 같은 트랜잭션의 now() 는 멈춰 있어 그대로면 잡는 문이 60초로 막는다
+update public.push_delivery set sent_at = now() - interval '5 minutes', settled_at = now() - interval '5 minutes'
+where status = 'sent' and subscription_id = (select id from public.push_subscription where endpoint = 'https://push.example.com/kim');
 select pg_temp.send((select lee from folks), (select kim_lee from rooms), '넷째 메시지');
 select pg_temp.due_now();
 

@@ -3503,6 +3503,10 @@ export type Database = {
       push_endpoint_allowed: { Args: { p_endpoint: string }; Returns: boolean }
       push_max_attempts: { Args: never; Returns: number }
       push_retry_delay: { Args: { p_attempts: number }; Returns: string }
+      push_room_key: {
+        Args: { p_room_id: string; p_subscription_id: string }
+        Returns: number
+      }
       push_room_quiet: { Args: never; Returns: string }
       push_subscription_limit: { Args: never; Returns: number }
       push_subscription_registered: {
