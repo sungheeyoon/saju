@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import {
@@ -299,7 +298,6 @@ export function ReadingPanel({
    */
   carry?: TasteCarryView | null;
 }) {
-  const router = useRouter();
   /** 이 화면에서 만드는 버튼을 눌렀나 — 이어 쓴 글을 새로 받으면 「아까 보던 내용」을 내린다 */
   const [pressed, setPressed] = useState(false);
   const showsCarry = carry !== null && !(carry.state === 'shown' && pressed);
@@ -533,7 +531,6 @@ export function ReadingPanel({
   const skipCarry = () => {
     startSkipping(async () => {
       await skipCarriedTaste(() => sessionStorage, skipTasteCarry);
-      router.refresh();
     });
   };
 

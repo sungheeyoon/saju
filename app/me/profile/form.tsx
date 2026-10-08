@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import {
@@ -50,7 +49,6 @@ export function ProfileForm({
   photos: readonly MyPhoto[];
   userId: string;
 }) {
-  const router = useRouter();
   const [profile, setProfile] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -85,9 +83,8 @@ export function ProfileForm({
         setFailure(result.message);
         return;
       }
-      setSaved(true);
       /* 고친 사람은 이 화면에 그대로 둔다 — 다른 데로 끌고 가면 방금 고친 것을 못 본다 */
-      router.refresh();
+      setSaved(true);
     });
   };
 

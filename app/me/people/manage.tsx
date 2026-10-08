@@ -93,7 +93,6 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       setQuery({ ...DEFAULT_QUERY, name: '' });
       setNote('');
       setOpen(false);
-      router.refresh();
       return { done: true };
     }
     if (result.kind === 'failed') return { failed: result.message };
@@ -263,7 +262,6 @@ export function NoteEditor({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const router = useRouter();
   const [value, setValue] = useState(note);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -274,12 +272,8 @@ export function NoteEditor({
     setFailure(null);
     startSaving(async () => {
       const result = await updateNote(personId, value);
-      if (result.ok) {
-        onDone();
-        router.refresh();
-      } else {
-        setFailure(result.message);
-      }
+      if (result.ok) onDone();
+      else setFailure(result.message);
     });
   };
 
@@ -318,7 +312,6 @@ export function RemoveConfirm({
   label: string;
   onCancel: () => void;
 }) {
-  const router = useRouter();
   const confirming = useRef<HTMLDialogElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [removing, startRemoving] = useTransition();
@@ -331,8 +324,7 @@ export function RemoveConfirm({
     setFailure(null);
     startRemoving(async () => {
       const result = await removeFromList(personId);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 

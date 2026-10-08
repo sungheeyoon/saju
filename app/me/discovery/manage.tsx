@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 
@@ -28,7 +27,6 @@ import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
  * 날 설명도 칸과 함께 선다.
  */
 export function PreferenceForm({ current }: { current: PreferGender }) {
-  const router = useRouter();
   const [preferGender, setPreferGender] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -41,12 +39,8 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
     setSaved(false);
     startSaving(async () => {
       const result = await savePreferGender(preferGender);
-      if (result.ok) {
-        setSaved(true);
-        router.refresh();
-      } else {
-        setFailure(result.message);
-      }
+      if (result.ok) setSaved(true);
+      else setFailure(result.message);
     });
   };
 
@@ -124,7 +118,6 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
  * 직전에도 무엇이 다시 나가는지 보여야 한다 — 두 누름 다 남에게 보이는 범위를 바꾼다.
  */
 export function ParticipationToggle({ resting }: { resting: boolean }) {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
 
@@ -132,8 +125,7 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
     setFailure(null);
     startWorking(async () => {
       const result = await setDiscoveryParticipation(on);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 

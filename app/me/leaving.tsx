@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
@@ -23,7 +22,6 @@ import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
  * 카드로 서던 동안, 이 자리는 계정 관리의 다른 칸들과 다른 언어를 쓰고 있었다.
  */
 export function RequestDeletion() {
-  const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
@@ -33,8 +31,7 @@ export function RequestDeletion() {
     startWorking(async () => {
       const result = await requestAccountDeletion();
       // 성공하면 이 화면이 통째로 「탈퇴를 신청한 계정입니다」로 바뀐다(`AccountNotice`).
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 
