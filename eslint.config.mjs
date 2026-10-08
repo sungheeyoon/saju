@@ -122,6 +122,7 @@ export const KEY_HOLDERS = [
   "app/api/cron/reading/route.ts",
   "app/api/openai/webhook/route.ts",
   "app/api/portone/webhook/route.ts",
+  "app/api/push/dispatch/route.ts",
   "app/keyed-taste.ts",
   "app/me/keyed-chart-writes.ts",
   "app/me/keyed-taste-claims.ts",

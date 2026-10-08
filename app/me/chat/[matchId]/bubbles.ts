@@ -1,11 +1,11 @@
 import type { ChatMessage } from './messages';
 
 /**
- * 방 안의 말풍선이 서는 모양 — **서버에서 한 번 짓는다.**
+ * 방 안의 말풍선이 서는 모양 — **시각 글자는 메시지마다 한 번 짓는다**(`labelled`).
  *
- * 시각 글자(「오후 8:05」)와 날짜 구분(「2026년 9월 22일」)은 지금 시각과 시간대에 기댄다. 서버(UTC)와
- * 브라우저가 따로 지으면 수화가 어긋나고 「오늘」의 경계가 아홉 시간 밀린다 — 그래서 한국 시간으로 여기서
- * 한 번 짓고 화면은 받은 글자를 그린다(`messageTimeLabel` 과 같은 까닭).
+ * 시각 글자(「오후 8:05」)와 날짜 구분(「2026년 9월 22일」)은 늘 한국 시간으로 짓는다 — 시간대를 안 박으면 서버(UTC)와
+ * 「오늘」의 경계가 아홉 시간 밀린다(`messageTimeLabel` 과 같은 까닭). 첫 200건은 서버가 지어 넘기고 브라우저는 그 글자를
+ * 다시 짓지 않는다(수화가 어긋나지 않는다). 방이 새로 읽은 메시지는 브라우저가 같은 함수로 짓는다(ADR 0155).
  *
  * 같은 사람이 3분 안에 이어 보낸 말은 **한 묶음**이다(카카오톡 · iMessage 의 관례) — 머리(사진)는 묶음의
  * 첫 말에만, 시각은 끝 말에만 선다. 묶음은 모양일 뿐이다: 말풍선 하나하나가 제 줄(`li`)이라 신고는 여전히
@@ -18,6 +18,8 @@ const GROUP_GAP_MS = 3 * 60 * 1000;
 
 export type Bubble = {
   readonly id: string;
+  /** 읽음을 어디까지 남길지 재는 값 — 화면에 들어온 상대 말의 가장 큰 차례(ADR 0155) */
+  readonly seq: number;
   readonly body: string;
   readonly createdAt: string;
   readonly mine: boolean;
@@ -44,16 +46,32 @@ const dayLabelOf = (at: Date): string =>
 const timeOf = (at: Date): string =>
   at.toLocaleTimeString('ko-KR', { timeZone: KST, hour: 'numeric', minute: '2-digit' });
 
+/**
+ * 시각 글자를 **한 번** 지어 메시지에 붙인다. 서버가 첫 200건에, 브라우저가 새로 읽은 것에 붙인다 — 첫 그리기의 글자를
+ * 브라우저가 다시 짓지 않으므로 서버와 브라우저의 시간대 · 글꼴 차이가 수화에서 어긋나지 않는다.
+ */
+export type Labels = { readonly dayKey: string; readonly dayLabel: string; readonly time: string };
+
+export type ShownMessage = ChatMessage & Labels;
+
+export function labelled(message: ChatMessage & Partial<Labels>): ShownMessage {
+  if (message.dayKey !== undefined && message.dayLabel !== undefined && message.time !== undefined) {
+    return message as ShownMessage;
+  }
+  const at = new Date(message.createdAt);
+  return { ...message, dayKey: dayKeyOf(at), dayLabel: dayLabelOf(at), time: timeOf(at) };
+}
+
 /** 오래된 것부터 온 메시지를 날짜로 나누고, 날짜 안에서 묶음의 처음과 끝을 적는다 */
-export function bubbleDaysOf(messages: readonly ChatMessage[]): readonly BubbleDay[] {
+export function bubbleDaysOf(messages: readonly (ChatMessage & Partial<Labels>)[]): readonly BubbleDay[] {
   const days: { key: string; label: string; bubbles: Bubble[] }[] = [];
 
-  messages.forEach((message, index) => {
-    const at = new Date(message.createdAt);
-    const key = dayKeyOf(at);
+  messages.forEach((raw, index) => {
+    const message = labelled(raw);
+    const key = message.dayKey;
     let day = days.at(-1);
     if (day === undefined || day.key !== key) {
-      day = { key, label: dayLabelOf(at), bubbles: [] };
+      day = { key, label: message.dayLabel, bubbles: [] };
       days.push(day);
     }
 
@@ -63,11 +81,12 @@ export function bubbleDaysOf(messages: readonly ChatMessage[]): readonly BubbleD
 
     day.bubbles.push({
       id: message.messageId,
+      seq: message.seq,
       body: message.body,
       createdAt: message.createdAt,
       mine: message.mine,
       fromLeftPartner: message.fromLeftPartner,
-      time: timeOf(at),
+      time: message.time,
       first: !joins,
       last: true,
     });

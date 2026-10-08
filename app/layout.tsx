@@ -3,6 +3,8 @@ import { Gowun_Dodum } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
+import { LiveUpdates } from './live/live-updates';
+import { PushOwnerCheck } from './me/push/push-owner';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 import { siteUrl } from './site-url';
@@ -90,6 +92,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
+        {/* 로그인한 사람의 채널 하나 — 그리는 것은 없다(ADR 0155) */}
+        <LiveUpdates />
+        {/* 이 브라우저의 푸시 구독이 앞 계정의 것이면 푼다 — 그리는 것은 없다(ADR 0156) */}
+        <PushOwnerCheck />
         {children}
         <SiteFooter />
       </body>

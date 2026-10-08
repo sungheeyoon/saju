@@ -271,8 +271,8 @@ function useReadingCredits(enabled: boolean): string | null {
  * 메시지는 소식이 아니다). 요청이 왔다는 소식은 종이 안 센다 — 그 요청은 인연 탭이 센다(ADR 0130).
  *
  * 문은 각각 하나다(`me/chat/unread.ts` · `me/requests/unread.ts`, ADR 0078). 못 읽었거나 0 이면 안 세운다 —
- * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 그 화면이 읽음 처리가 끝났다고 창에
- * 알릴 때(`*_UNREAD_MOVED`) 다시 센다 — 실시간은 아니다.
+ * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 창 신호(`*_UNREAD_MOVED`)가 올 때 다시 센다 —
+ * 그 신호는 화면의 읽음 처리와 계정 채널의 「바뀌었다」(라이브 층, ADR 0155)가 낸다.
  */
 function useUnreadCount(
   enabled: boolean,

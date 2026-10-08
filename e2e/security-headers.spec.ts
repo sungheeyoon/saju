@@ -15,7 +15,22 @@ const ENFORCED = [
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  // 웹 푸시의 서비스 워커는 제 출처의 파일만(ADR 0156)
+  "worker-src 'self'",
 ];
+
+/**
+ * `connect-src` 에 Supabase 가 서 있으면 그 호스트의 Realtime 소켓(`ws(s)://`)도 서 있다(ADR 0155). 주소는 환경마다
+ * 달라 헤더에서 읽는다 — CI 의 껍데기 접속값이든 로컬 스택이든 같은 규칙이다.
+ */
+function socketsMissing(policy: string): string[] {
+  const connect = policy.split(';').map((part) => part.trim()).find((part) => part.startsWith('connect-src')) ?? '';
+  const sources = connect.split(/\s+/).slice(1);
+  return sources
+    .filter((source) => /^https?:\/\//.test(source))
+    .map((source) => source.replace(/^http(s?):\/\//, 'ws$1://'))
+    .filter((socket) => !sources.includes(socket));
+}
 
 test('강제하는 헤더가 모든 응답에 선다', async ({ request }) => {
   for (const path of PAGES) {
@@ -28,6 +43,7 @@ test('강제하는 헤더가 모든 응답에 선다', async ({ request }) => {
     for (const directive of ENFORCED) {
       expect(headers['content-security-policy'], path).toContain(directive);
     }
+    expect(socketsMissing(headers['content-security-policy'] ?? ''), path).toEqual([]);
     // 보고만 하는 정책은 걷었다 — 둘이 서면 어느 쪽이 막는지 헷갈린다
     expect(headers['content-security-policy-report-only'], path).toBeUndefined();
   }

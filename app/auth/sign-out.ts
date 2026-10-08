@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { forgetThisDevicePush } from '../me/push/browser';
 import { supabaseInBrowser } from './browser-client';
 
 /**
@@ -19,6 +20,11 @@ export function useSignOut(): { leaving: boolean; failure: string | null; signOu
   const signOut = async () => {
     setLeaving(true);
     setFailure(null);
+    /*
+      이 기기의 새 메시지 알림을 **세션이 있는 동안** 서버에서 지운다 — 나간 뒤에는 누구의 구독인지 물을 세션이 없다.
+      못 지워도 로그아웃은 간다(ADR 0156).
+    */
+    await forgetThisDevicePush();
     const { error } = await supabaseInBrowser().auth.signOut();
     if (error) {
       setLeaving(false);

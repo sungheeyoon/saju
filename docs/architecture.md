@@ -10,7 +10,7 @@
 | 층 | 자리 | 아는 것 | 모르는 것 |
 | --- | --- | --- | --- |
 | **엔진** | `src/lib/saju/` | 자기 자신뿐 | 다른 lib · app · React/Next · supabase · 실행 환경(`node:*`) |
-| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
+| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence,push,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
 | **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 넷 | — |
 | **화면** | `app/**/*.tsx` | 문과 액션, 도메인 lib 의 타입·순수 함수 | **DB 호출**(`.rpc()`·`.from()`) |
 
@@ -80,7 +80,7 @@
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
 | `app/me/keyed-chart-writes.ts` | **풀에 오르는 값을 열쇠로 쓰는 자리** — 「사용자 경로에 열쇠를 안 쓴다」의 제한된 예외(G-64, ADR 0136). 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation`)만 부른다. 사람 id 는 세션에서, 값은 저장된 입력에서 서버가 짓는다. 열쇠(`app/keyed-client.ts`)를 부르는 파일은 `eslint.config.mjs` 의 `KEY_HOLDERS` 가 이름으로 들고 `scripts/layers.test.ts` 가 견준다 | 도메인 lib · `summary` · 열쇠 · 세션 |
 | `app/keyed-taste.ts` · `app/me/keyed-taste-claims.ts` | **로그인 전 사주 문단의 문 일곱을 열쇠로 부르는 자리**(ADR 0143) — 로그인 전 쪽 넷(`reserve_taste` · `finish_taste` · `taste_session_view` · `count_taste_step`)은 방문자가 로그인 전이라, 가입한 회원 쪽 셋(`claim_taste_session` · `link_taste_reading_run` · `taste_continuation_of_run`)은 판정이 서버가 다시 잰 지문과 서버만 짓는 HMAC 에 기대서 열쇠에만 열렸다. 지문 · HMAC 은 서버가 짓고(`app/taste-run.ts` · `app/taste-visitor.ts`), 회원 id 는 세션에서 얻는다. 둘로 가른 것은 풀이 회수(webhook · 크론)가 퍼널을 세며 로그인 세션을 읽는 모듈에 닿지 않게다 | 도메인 lib · 열쇠 · 세션(회원 쪽만) |
-| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 열) · `app/taste-visitor.ts`(로그인 전 사주 문단의 HMAC 비밀 둘, ADR 0143) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
+| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 열) · `app/taste-visitor.ts`(로그인 전 사주 문단의 HMAC 비밀 둘, ADR 0143) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) · `app/api/push/dispatch/route.ts` · `app/api/push/dispatch/send.ts`(웹 푸시의 배달 비밀과 VAPID 비밀 열쇠, ADR 0156) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
 
 ## 새 것을 놓을 때
 

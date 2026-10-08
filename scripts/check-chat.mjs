@@ -153,7 +153,7 @@ try {
     check('상대의 이메일과 출생 원문은 방 화면에 새지 않는다',
       !html.includes(mail.a) && !html.includes(BIRTH.a.date) && !html.includes('1990'));
 
-    const marked = await b.rpc('mark_chat_read', { p_match_id: matchId });
+    const marked = await b.rpc('mark_chat_read', { p_match_id: matchId, p_up_to_seq: Number.MAX_SAFE_INTEGER });
     const { data: after } = await b.rpc('unread_chat_count');
     check('읽으면 안 읽은 수가 0 이다', !marked.error && after === 0, `${after}`);
 

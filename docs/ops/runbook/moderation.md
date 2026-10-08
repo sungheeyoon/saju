@@ -344,7 +344,7 @@ select * from public.chat_policy();
 
 ### 접속 상태 — 구간만 나간다 (ADR 0092)
 
-로그인된 요청마다 `proxy.ts` 가 `touch_activity()` 를 부르고, 그 문은 **1분에 한 번**만
+사람이 낸 로그인된 요청마다 `touch_activity()` 가 불리고(ADR 0118 · 0155), 그 문은 **1분에 한 번**만
 `user_activity.last_active_at` 을 적는다. 상대에게 나가는 것은 구간 셋(`now` 5분 미만 · `day` 24시간
 미만 · `earlier`)뿐이고 시각은 어느 읽는 문에도 없다. 표는 앱 역할에 닫혀 있어 여기서만 읽는다.
 

@@ -39,6 +39,9 @@ import { NOTICE_UNREAD, RETURN_PATH_HEADER, gateFor } from '@/src/lib/consent';
  */
 const SESSION_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
 
+/** 서비스 워커가 바뀐 푸시 구독을 남기는 주소(`app/me/push/subscription/route.ts`) — 사람이 낸 요청이 아니다 */
+const PUSH_RESUBSCRIBE_PATH = '/me/push/subscription';
+
 export async function proxy(request: NextRequest) {
   const { url, publishableKey } = supabaseEnv();
 
@@ -110,13 +113,19 @@ export async function proxy(request: NextRequest) {
     보내고, 화면이 「계정을 읽지 못했습니다」라고 말한다.
   */
   /*
-    **활동은 로그인된 요청이 서버에 온 것이다**(PRD §7.2) — 그런데 여기서는 **서버 액션만** 적는다(ADR 0118).
+    **활동은 사람이 낸 로그인된 요청이 서버에 온 것이다** — 그런데 여기서는 **서버 액션만** 적는다(ADR 0118).
     미리 받기(prefetch)는 사람이 연 것이 아닌데, Next 가 그 표식(`next-router-prefetch`)을 여기 넘기기 전에
     지워서(`FLIGHT_HEADERS`) 이 자리에서는 앱 안 이동과 미리 받기를 못 가른다 — 전에 적어 둔 가름은 한 번도
     안 걸렸다. 화면을 여는 것(GET)은 그 화면이 그려질 때 `signedInUser` 가 적는다. 미리 받기는 언제나 GET 이라
     GET 이 아닌 요청은 사람이 누른 것이다. 1분에 한 번만 실제로 적히고(ADR 0092), 답은 안 쓴다.
   */
-  const pressed = request.method !== 'GET' && request.method !== 'HEAD';
+  /*
+    **서비스 워커가 보내는 것은 뺀다**(G-76) — 브라우저가 구독을 바꿨을 때(`pushsubscriptionchange`) 워커가 POST 하는 주소는
+    사람이 없을 때도 간다. 앱이 저절로 내는 나머지(라이브 층의 딱지 · 방 다시 읽기, 자동 읽음)는 브라우저 클라이언트로 곧장 가서
+    여기를 안 지나고, 라이브 층의 다시 그리기(GET)는 화면이 표지 쿠키를 보고 건너뛴다(`app/live/redraw-mark.ts`).
+  */
+  const pressed =
+    request.method !== 'GET' && request.method !== 'HEAD' && request.nextUrl.pathname !== PUSH_RESUBSCRIBE_PATH;
 
   const [{ data: account, error: accountError }, schedule] = await Promise.all([
     supabase

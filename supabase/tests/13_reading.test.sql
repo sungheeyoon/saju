@@ -908,6 +908,8 @@ select is(
     'audit_export_done',
     'audit_export_finish',
     'cancel_reading_order',
+    /** 웹 푸시의 배달 문이 대기 줄을 잡고 결과를 적는 문 둘 — endpoint · 열쇠 · match_id 만, 본문은 없다(ADR 0156) */
+    'claim_push_deliveries',
     'claim_reading_job',
     /**
      * 사람마다의 로그인 전 맛보기의 문 일곱(`20261118090000`, ADR 0131 을 대체할 ADR 예정) — 방문자는 로그인 전이라 서버가 지은
@@ -969,12 +971,13 @@ select is(
      * **입력 판**을 함께 받아, 그 사이 입력이 바뀌었으면 쓰지 않고 `false` 로 답한다.
      */
     'set_person_chart',
+    'settle_push_delivery',
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
     'take_reading_job',
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 서른네 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 서른일곱 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

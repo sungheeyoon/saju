@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 
+import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat';
 import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
@@ -22,11 +23,14 @@ import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
-import { Composer, ReadOnVisit } from '../composer';
+import { Composer } from '../composer';
 import type { RoomTones } from '../tones';
-import type { Bubble, BubbleDay } from './bubbles';
+import { bubbleDaysOf, type Bubble, type ShownMessage } from './bubbles';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
+import { readAlready } from './thread';
+import { THEIR_SEQ, useReadMarker } from './use-read-marker';
+import { useThread, type MergeKind } from './use-thread';
 
 /**
  * 방 안에서 사람이 서는 모양 — 서버가 다 지어서 넘긴다(시각 글자 · 묶음 · 닫힌 까닭).
@@ -44,7 +48,8 @@ type RoomView = {
   /** 열린 방에만 온다(ADR 0092) */
   readonly activity: ActivityBand | null;
   readonly unread: number;
-  readonly days: readonly BubbleDay[];
+  /** 서버가 읽은 최근 200건 — 시각 글자를 붙여 넘긴다(`labelled`). 그 뒤는 방이 브라우저에서 합친다(ADR 0155) */
+  readonly messages: readonly ShownMessage[];
   /** 읽는 문이 준 것이 방의 처음부터다(200건 아래) — 그때만 첫머리를 세운다 */
   readonly fromBeginning: boolean;
   /** 두 사람의 일간 — 인연 궁합이 연 값이 있을 때만(`roomTonesForViewer`). 없으면 중립 색이다 */
@@ -63,6 +68,75 @@ const GHOST_ICON =
   'grid size-11 shrink-0 place-items-center rounded-full text-foreground hover:bg-surface-soft active:scale-95';
 
 type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageId: string | null };
+
+/** 맨 아래에서 이만큼 안이면 「맨 아래에 있다」 — 새 메시지가 오면 그대로 따라 내려간다 */
+const NEAR_BOTTOM_PX = 48;
+
+/** 말풍선 줄이 메시지를 가리키는 자리 — 스크롤 자리를 지킬 때 같은 줄을 다시 찾는다 */
+const MESSAGE_ID = 'data-message-id';
+
+/**
+ * 대화 칸의 스크롤 자리를 지킨다 — **과거를 읽는 사람의 눈 앞이 움직이지 않는다**(ADR 0155).
+ *
+ * 대화 칸은 거꾸로 쌓여(`flex-col-reverse`) 스크롤의 0 이 맨 아래다. 맨 아래에 있으면 새 말이 붙어도 그대로 맨 아래다.
+ * 위에서 읽는 중이면 합치기 직전에 맨 위에 보이는 말풍선과 그 높이를 재어 두고, 그린 뒤 그 말풍선이 같은 높이에 오게
+ * 스크롤을 옮긴다 — 아래에 새 말이 붙든 위에 이전 말이 붙든 같은 규칙이다. 브라우저의 스크롤 고정이 이미 지켰으면
+ * 옮길 것이 0 이다.
+ */
+function useScrollKeeper(messages: readonly ShownMessage[]) {
+  const log = useRef<HTMLDivElement>(null);
+  const anchor = useRef<{ id: string; top: number } | null>(null);
+  /** 위에서 읽는 동안 상대의 새 말이 왔다 — 「새 메시지」 단추가 선다 */
+  const [fresh, setFresh] = useState(false);
+
+  const atBottom = useCallback(() => {
+    const element = log.current;
+    return element === null || Math.abs(element.scrollTop) < NEAR_BOTTOM_PX;
+  }, []);
+
+  const beforeMerge = useCallback(
+    (kind: MergeKind, incoming: readonly ShownMessage[]) => {
+      const element = log.current;
+      anchor.current = null;
+      if (element === null) return;
+      if (kind === 'newer' && atBottom()) return;
+      const top = element.getBoundingClientRect().top;
+      for (const row of element.querySelectorAll(`[${MESSAGE_ID}]`)) {
+        const box = row.getBoundingClientRect();
+        if (box.bottom > top) {
+          anchor.current = { id: row.getAttribute(MESSAGE_ID) ?? '', top: box.top };
+          break;
+        }
+      }
+      if (kind === 'newer' && incoming.some((message) => !message.mine)) setFresh(true);
+    },
+    [atBottom],
+  );
+
+  /* 그린 뒤 — 재어 둔 말풍선이 같은 높이에 오게 스크롤을 옮긴다 */
+  useLayoutEffect(() => {
+    const keep = anchor.current;
+    anchor.current = null;
+    const element = log.current;
+    if (keep === null || element === null) return;
+    const row = element.querySelector(`[${MESSAGE_ID}="${CSS.escape(keep.id)}"]`);
+    if (row === null) return;
+    const moved = row.getBoundingClientRect().top - keep.top;
+    if (moved !== 0) element.scrollTop += moved;
+  }, [messages]);
+
+  const toBottom = useCallback(() => {
+    log.current?.scrollTo({ top: 0 });
+    setFresh(false);
+  }, []);
+
+  const onScroll = useCallback(() => {
+    if (atBottom()) setFresh(false);
+  }, [atBottom]);
+
+  return { log, fresh, beforeMerge, toBottom, onScroll };
+}
+
 
 /**
  * **방 하나 — 머리와 입력이 붙어 있고 대화만 스크롤한다.**
@@ -89,13 +163,24 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const picked = slot.kind === 'report' ? slot.messageId : null;
   const theirTone = room.tones?.theirs.element ?? null;
 
+  /* 메시지는 방이 든다 — 서버의 첫 200건에서 시작해 채널이 알릴 때마다 합친다(ADR 0155) */
+  /* 방이 합치기 직전에 스크롤 자리를 재는 손 — 스크롤 자리는 합쳐진 메시지를 보고 지키므로 손을 뒤에서 잇는다 */
+  const measure = useRef<(kind: MergeKind, incoming: readonly ShownMessage[]) => void>(() => {});
+  const thread = useThread(room.matchId, room.messages, room.fromBeginning, (kind, incoming) => measure.current(kind, incoming));
+  const { log, fresh, beforeMerge, toBottom, onScroll } = useScrollKeeper(thread.messages);
+  useEffect(() => {
+    measure.current = beforeMerge;
+  }, [beforeMerge]);
+  const days = useMemo(() => bubbleDaysOf(thread.messages), [thread.messages]);
+  /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
+  const [already] = useState(() => readAlready(room.messages, room.unread));
+  useReadMarker(log, room.matchId, already, !closed, days);
+
   return (
     <section
       aria-label={room.heading}
       className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden rounded-[1.75rem] bg-surface ring-1 ring-border lg:rounded-[2rem]`}
     >
-      {/* 들어오면 읽은 것으로 남긴다 — 신고 · 차단 칸이 입력 자리를 차지해도 읽음은 그대로다 */}
-      {!closed && <ReadOnVisit matchId={room.matchId} unread={room.unread} />}
       <header className="flex items-center gap-2 border-b border-border px-2.5 py-2.5 sm:gap-3 sm:px-4">
         <Link href="/me/chat" aria-label="대화방 목록" className={`${GHOST_ICON} lg:hidden`}>
           <Icon name="back" />
@@ -133,10 +218,31 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         )}
       </header>
 
-      <div role="log" aria-label="메시지" className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto overscroll-contain">
+      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 칸이 입력 자리를 차지해도 그대로다(`useReadMarker`) */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={log}
+        onScroll={onScroll}
+        role="log"
+        aria-label="메시지"
+        className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto overscroll-contain"
+      >
         <div className="flex flex-col gap-5 px-3 py-5 sm:px-6">
-          {room.fromBeginning && <RoomStart room={room} />}
-          {room.days.map((day) => (
+          {thread.reachedStart ? (
+            <RoomStart room={room} />
+          ) : (
+            thread.messages.length > 0 && (
+              <button
+                type="button"
+                onClick={thread.loadOlder}
+                disabled={thread.loadingOlder}
+                className={`${BUTTON_SECONDARY_SMALL} self-center`}
+              >
+                {thread.loadingOlder ? OLDER_LOADING_LABEL : OLDER_MESSAGES_LABEL}
+              </button>
+            )
+          )}
+          {days.map((day) => (
             <div key={day.key} className="flex flex-col gap-1">
               <p className="mb-2 self-center rounded-full bg-surface-soft px-3 py-1 text-[12px] font-medium text-secondary">
                 {day.label}
@@ -157,6 +263,17 @@ export function ChatRoomView({ room }: { room: RoomView }) {
             </div>
           ))}
         </div>
+      </div>
+      {fresh && (
+        <button
+          type="button"
+          onClick={toBottom}
+          className={`${BUTTON_SECONDARY_SMALL} absolute bottom-3 left-1/2 -translate-x-1/2 shadow-float`}
+        >
+          <Icon name="arrow" className="size-4 rotate-90" />
+          {NEW_MESSAGES_LABEL}
+        </button>
+      )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
@@ -184,7 +301,14 @@ export function ChatRoomView({ room }: { room: RoomView }) {
             {room.notice}
           </p>
         ) : (
-          <Composer matchId={room.matchId} />
+          <Composer
+            matchId={room.matchId}
+            onSent={() => {
+              // 보낸 사람은 제 말을 본다 — 맨 아래로 내려가고 그 말을 읽는 문으로 읽어 합친다.
+              toBottom();
+              thread.catchUp();
+            }}
+          />
         )}
       </div>
     </section>
@@ -330,7 +454,10 @@ function BubbleRow({
   const corner = bubble.first ? (mine ? 'rounded-tr-md' : 'rounded-tl-md') : '';
 
   return (
-    <li className={`flex min-w-0 gap-2 ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}>
+    <li
+      {...{ [MESSAGE_ID]: bubble.id, ...(mine ? {} : { [THEIR_SEQ]: bubble.seq }) }}
+      className={`flex min-w-0 gap-2 ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}
+    >
       {!mine &&
         (bubble.first ? (
           <span className="shrink-0 self-start">

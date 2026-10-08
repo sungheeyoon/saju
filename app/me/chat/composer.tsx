@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 
 import {
   CHAT_INPUT_PLACEHOLDER,
@@ -12,21 +12,21 @@ import {
   checkBody,
 } from '@/src/lib/chat';
 
-import { markChatRead, sendChatMessage } from './actions';
-import { announceChatUnreadMoved } from './unread-signal';
+import { sendChatMessage } from './actions';
 import { Icon } from '../../ui/icons';
 
 /** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
 
 /**
- * 입력 칸 — 보내고 나면 화면을 다시 읽는다. 실시간 갱신은 채팅 안전 베타에 없다(PRD 「앱 내 채팅」).
+ * 입력 칸 — 보내고 나면 방에 알린다(`onSent`). 방이 제 메시지를 읽는 문으로 읽어 합치므로 화면을 다시 그리지 않고,
+ * 이 칸과 초점 · 쓰던 글은 방이 갱신되어도 다시 그려지지 않는다(ADR 0155).
  *
  * **거절은 누른 뒤에 말한다**(GLOSSARY 「화면 문구 규칙」) — 버튼을 잠그지 않고, 못 보낸 그때
  * 무엇이 막았는지 한 줄로 말한다. 한도(`rate_limited`)와 닫힘(`closed`)은 값으로 오고, 나머지는
  * 문이 옮긴 문장이다(ADR 0078 · 0091). 빈 본문은 보내지 않는다 — 말할 것이 없다.
  */
-export function Composer({ matchId }: { matchId: string }) {
+export function Composer({ matchId, onSent }: { matchId: string; onSent: () => void }) {
   const router = useRouter();
   const [body, setBody] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function Composer({ matchId }: { matchId: string }) {
       }
       setBody('');
       field.current?.focus();
-      router.refresh();
+      onSent();
     });
   };
 
@@ -123,33 +123,4 @@ export function Composer({ matchId }: { matchId: string }) {
       )}
     </form>
   );
-}
-
-/**
- * 방에 들어오면 읽은 것으로 남긴다 — 소식 화면의 `ReadNotificationsOnVisit` 와 같은 모양.
- * 안 읽은 것이 없으면 부르지 않는다.
- */
-export function ReadOnVisit({ matchId, unread }: { matchId: string; unread: number }) {
-  const router = useRouter();
-  const started = useRef(false);
-
-  useEffect(() => {
-    if (unread === 0) {
-      started.current = false;
-      return;
-    }
-    // 개발 모드의 이중 effect 와 같은 화면의 재렌더가 RPC 를 거듭 부르지 않게 한다.
-    if (started.current) return;
-    started.current = true;
-
-    void (async () => {
-      const result = await markChatRead(matchId);
-      if (!result.ok) return;
-      router.refresh();
-      // 주소가 안 바뀌므로 헤더가 스스로 다시 세지 않는다 — 알린다.
-      announceChatUnreadMoved();
-    })();
-  }, [matchId, router, unread]);
-
-  return null;
 }

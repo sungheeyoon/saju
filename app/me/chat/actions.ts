@@ -5,11 +5,11 @@ import { rpcArgs } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
-import { refreshPaths } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 
 /**
- * 채팅의 누름 셋 — 보내기 · 메시지를 고른 신고 · 읽음.
+ * 채팅의 누름 둘 — 보내기 · 메시지를 고른 신고. 읽음은 사람이 누른 것이 아니라 브라우저가 곧장 부른다
+ * (`[matchId]/mark-read.ts`).
  *
  * **한도는 여기서 세지 않는다.** `send_chat_message` 가 계정 행을 잠그고 센다(ADR 0039 · 0091).
  * 함수가 값으로 내는 셋(`sent` · `closed` · `rate_limited`)은 방의 상태와 내 흐름이라 화면이
@@ -18,9 +18,6 @@ import type { SaveResult } from '../../save-result';
  */
 
 type SendResult = { ok: true; outcome: SendOutcome } | { ok: false; message: string };
-
-/** 방 안의 주소는 방마다 다르다 — 표에 미리 못 적고 목록과 그 방을 함께 무른다 */
-const chatPaths = (matchId: string): readonly string[] => ['/me/chat', `/me/chat/${matchId}`];
 
 export async function sendChatMessage(matchId: string, body: string): Promise<SendResult> {
   /*
@@ -45,7 +42,10 @@ export async function sendChatMessage(matchId: string, body: string): Promise<Se
   // 모르는 값은 성공으로 세우지 않는다 — 보냈다고 말했는데 목록에 없는 편이 더 나쁘다.
   if (outcome === null) return { ok: false, message: userFacingDbMessage({ message: `chat: unknown outcome ${String(data)}` }, 'send_chat_message') };
 
-  refreshPaths(chatPaths(matchId));
+  /*
+    화면을 무르지 않는다 — 방은 보낸 뒤 제 메시지를 읽는 문으로 다시 읽어 합치고(쓰던 입력 · 스크롤이 그대로다), 목록과
+    다른 탭은 채널이 알린다(ADR 0155).
+  */
   return { ok: true, outcome };
 }
 
@@ -68,15 +68,5 @@ export async function reportChatMessage(
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_chat_message') };
 
   /* 신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 새로고침할 화면이 없다 */
-  return { ok: true };
-}
-
-export async function markChatRead(matchId: string): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  const { error } = await supabase.rpc('mark_chat_read', { p_match_id: matchId });
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_chat_read') };
-
-  refreshPaths(chatPaths(matchId));
   return { ok: true };
 }

@@ -53,7 +53,7 @@ function localStack(): Record<string, string> {
  * 함께 쓰기 때문이다. 옮겨 두면 상대 경로가 길어지고, 길어진 경로는 어느 쪽이
  * 백엔드를 요구하는지 말해 주지 않는다.
  */
-const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts', '**/chat.spec.ts'];
+const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts', '**/chat.spec.ts', '**/live.spec.ts', '**/push.spec.ts'];
 
 /**
  * 안내 관문은 **혼자 돈다.**
@@ -147,6 +147,12 @@ export default defineConfig({
        */
       TASTE_BROWSER_SECRET: 'e2e-taste-browser-secret-0123456789abcdef',
       TASTE_IP_SECRET: 'e2e-taste-ip-secret-0123456789abcdefghijkl',
+      /**
+       * **웹 푸시의 공개 열쇠 — 시험용 값**(ADR 0156). 없으면 설정의 「새 메시지 알림」 줄이 「지원 안 함」으로 선다
+       * (`e2e/push.spec.ts`). 비밀 열쇠는 안 싣는다 — 시험은 푸시 서비스로 보내지 않는다. 운영 값이 아니다
+       * (`node scripts/push-vapid-keys.mjs` 로 지은 것).
+       */
+      NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY: 'BD0_wTlWifV3ptuLdECfHKY2CSi9GFv3bX71YZHhVqX3PqO02fVGidtMdEUNGIgbqqcJmM68fela3C_nWYdvh8s',
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,

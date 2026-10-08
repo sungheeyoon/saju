@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pending: Promise<unknown>[] = [];
 vi.mock('next/server', () => ({ after: (task: Promise<unknown>) => pending.push(task) }));
+const jar = new Set<string>();
+vi.mock('next/headers', () => ({ cookies: async () => ({ has: (name: string) => jar.has(name) }) }));
 
 import { signedInUser } from './signed-in';
 
@@ -23,6 +25,7 @@ const client = (claims: { sub: string; email?: string } | null) => {
 
 beforeEach(() => {
   pending.length = 0;
+  jar.clear();
 });
 
 describe('signedInUser', () => {
@@ -35,6 +38,16 @@ describe('signedInUser', () => {
     expect(getClaims).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith('touch_activity');
     expect(pending).toHaveLength(1);
+  });
+
+  it('라이브 층이 스스로 다시 그린 요청(표지 쿠키)은 사람이지만 활동을 적지 않는다 (G-76)', async () => {
+    const { supabase, rpc } = client({ sub: 'u-1' });
+    jar.add('live-redraw');
+
+    await expect(signedInUser(supabase)).resolves.toEqual({ id: 'u-1', email: undefined });
+
+    expect(rpc).not.toHaveBeenCalled();
+    expect(pending).toHaveLength(0);
   });
 
   it('서명이 확인되지 않으면 아무도 아니고, 활동을 적지 않는다', async () => {
