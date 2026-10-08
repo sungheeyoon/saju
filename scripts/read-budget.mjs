@@ -52,7 +52,7 @@ export const MAX_SLACK = 10000;
  * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: { name: string, routes: string[] }[] }[] }>}
  */
 export const READ_BUDGET = {
-  coordinator: { bytes: 80000, routes: [], choices: [] },
+  coordinator: { bytes: 65000, routes: [], choices: [] },
   db: { bytes: 85000, routes: [], choices: [] },
   docs: { bytes: 60000, routes: [], choices: [] },
   feature: { bytes: 95000, routes: ['docs/product/prd/'], choices: [] },

@@ -115,7 +115,7 @@ describe('비밀을 읽는 모듈은 서버에만 있다 (G-23 ⑧)', () => {
 
   it('빌드가 끝에 산출물 검사를 부른다 — Vercel 의 운영 빌드도 지난다', () => {
     const { scripts } = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
-    expect(scripts.build).toBe('next build && node scripts/secret-env.mjs');
+    expect(scripts.build).toBe('node scripts/heavy.mjs next build && node scripts/secret-env.mjs');
   });
 });
 
