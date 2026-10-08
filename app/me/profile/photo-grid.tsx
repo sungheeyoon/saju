@@ -158,8 +158,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
   /*
     옮기기 · 지우기는 화면이 본 **그 장의 판본**을 함께 보낸다(`20261027090000`). 다른 탭이 먼저 목록을 바꿨으면
-    DB 가 옮기기를 거절하고 지우기는 지나간다 — 어느 쪽이든 목록을 다시 받아 지금 모양을 그린다.
+    DB 가 옮기기를 거절하고 지우기는 지나간다 — 어느 쪽이든 목록을 다시 받아 지금 모양을 그린다. 받아들인 누름은
+    액션의 응답이 화면을 다시 그려 오고(`account-changed`), 거절된 누름은 서버가 아무것도 안 무르므로 여기서 다시 읽는다.
   */
+  const failed = (message: string) => {
+    setFailure(message);
+    router.refresh();
+  };
   const move = (from: number, to: number) => {
     const photo = order[from - 1];
     if (photo === undefined || from === to || to < 1 || to > total) return;
@@ -168,8 +173,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     startWorking(async () => {
       moveInView({ from, to });
       const result = await movePhoto(from, to, photo.version);
-      if (!result.ok) setFailure(result.message);
-      router.refresh();
+      if (!result.ok) failed(result.message);
     });
   };
 
@@ -179,8 +183,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     setFailure(null);
     startWorking(async () => {
       const result = await removePhoto({ position, version: photo.version });
-      if (!result.ok) setFailure(result.message);
-      router.refresh();
+      if (!result.ok) failed(result.message);
     });
   };
 
@@ -193,12 +196,12 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
         for (const file of chosen) {
           const shrunk = await shrink(file);
           if (!shrunk.ok) {
-            setFailure(shrunk.message);
+            failed(shrunk.message);
             break;
           }
           const result = await addPhoto({ contentType: shrunk.contentType, base64: shrunk.base64 });
           if (!result.ok) {
-            setFailure(result.message);
+            failed(result.message);
             break;
           }
         }
@@ -208,9 +211,8 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
           액션이 던진 오류(운영의 Next 는 영어 안내로 바꿔 보낸다). 우리 문장 하나로 선다
           (`app/db-error.boundary.test.ts`).
         */
-        setFailure('사진을 열지 못했어요. 다른 사진을 골라 주세요.');
+        failed('사진을 열지 못했어요. 다른 사진을 골라 주세요.');
       }
-      router.refresh();
     });
   };
 

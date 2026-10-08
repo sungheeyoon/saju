@@ -19,20 +19,28 @@ import { refresh as redrawThisScreen, revalidatePath } from 'next/cache';
  *
  * 그리고 Next 문서가 이렇게 적는다 — *"Server Functions: … it also causes **all
  * previously visited pages** to refresh when navigated to again."* **어느 경로를 적든
- * 이미 전부를 무르게 한다.** 호출부 서른 자리는 그 위에 `router.refresh()` 까지 부른다.
+ * 이미 전부를 무르게 한다.**
  *
  * ## 그래서 왜 안 지우고 표로 세우나
  *
  * 남은 일이 둘 있기 때문이다.
  *
  * 1. **지금 보고 있는 화면**은 이 호출이 응답에 실어 주는 RSC 페이로드로 그 자리에서
- *    갱신된다. `router.refresh()` 를 안 부르는 자리가 실제로 있다(덱) — 그 자리는 경로가 아니라
- *    **지금 화면**(`THIS_SCREEN`)을 적는다. 아래.
+ *    갱신된다 — 누른 쪽이 `router.refresh()` 를 또 부르지 않는 까닭이 이것이다(아래 「브라우저는 다시 읽지 않는다」).
+ *    표에 그 화면의 경로가 없으면 **지금 화면**(`THIS_SCREEN`)을 적는다. 아래.
  * 2. `/` 하나는 **정말로 미리 그려져 있다.** 계정이 닫히면 그 화면도 갈려야 한다.
  *
  * 그리고 문서가 「이 동작은 임시이고 앞으로 그 경로에만 적용되도록 바뀐다」고 적어 두었다.
  * 그날이 오면 **고칠 자리가 여기 하나**여야 한다. 스무 곳에 흩어져 있으면 그때 아무도
  * 전부를 못 찾는다.
+ *
+ * ## 브라우저는 다시 읽지 않는다 (ADR 0076)
+ *
+ * 액션 응답이 이미 지금 화면을 실어 오므로, 누른 쪽이 그 위에 `router.refresh()` 를 부르면 서버가 같은 화면을 한 번 더
+ * 그린다 — 누름 하나에 액션 POST 하나와 `_rsc` GET 하나가 나가고, 화면은 둘째가 끝나야 선다. 그래서 액션을 부른 자리는
+ * `router.refresh()` 를 부르지 않고, **누른 화면이 이 표의 경로에 없으면 표에 `THIS_SCREEN` 을 더한다** — 「어느 경로든
+ * 무르면 지금 화면이 다시 그려진다」는 위 「임시」 동작에 기대지 않는다. 브라우저가 따로 다시 읽는 자리는 액션이 아닌 갱신
+ * (로그아웃 · 라이브 층)과 서버가 무르지 않는 갈래뿐이고, 그 목록과 까닭은 `app/refresh.boundary.test.ts` 가 든다.
  *
  * ## 지금 화면을 다시 그리는 것은 경로가 아니다 (2026-09-30)
  *
@@ -78,7 +86,10 @@ export type Changed =
   | 'account-changed'
   /** 계정이 닫혔다 — 상태 하나가 모든 화면의 답을 바꾸고, 여기에만 정적 라우트가 걸린다 */
   | 'account-closed'
-  /** 선택 동의를 켜거나 껐다 */
+  /**
+   * 선택 동의를 켜거나 껐다 — 계정 관리 화면 밖에서도 켠다(설문의 「동의하고 설문 열기」, `app/me/survey/consent-switch.tsx`).
+   * 누른 화면은 `THIS_SCREEN` 이 다시 그린다 — 경로 표에 그 화면이 없어도 브라우저가 따로 다시 읽지 않는다.
+   */
   | 'consent-changed'
   /** 만나볼 상대의 조건, 참여를 켜고 끄기 */
   | 'discovery-settings-changed'
@@ -93,7 +104,11 @@ export type Changed =
   | 'deck-moved'
   /** 상세 궁합을 청했다 — 인연 탭의 보낸 요청이 는다(ADR 0130) */
   | 'match-requested'
-  /** 받은 요청에 답했거나, 거뒀거나, 차단했거나, 소식을 읽었다 — 요청은 인연 탭, 소식은 종(ADR 0130) */
+  /**
+   * 받은 요청에 답했거나, 거뒀거나, 차단했거나, 소식을 읽었다 — 요청은 인연 탭, 소식은 종(ADR 0130).
+   * 차단은 궁합 화면(`/me/match/<id>`) · 채팅 방 · 지난 요청(`/me/matching/history`)에서도 누른다 — 누른 화면은
+   * `THIS_SCREEN` 이 다시 그린다.
+   */
   | 'requests-changed'
   /** 신고했다 — 소식은 안 바뀐다(운영자가 볼 기록이다) */
   | 'report-filed'
@@ -118,11 +133,11 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'person-list-changed': [{ path: '/me/people' }],
   'account-changed': [{ path: '/me', scope: 'layout' }],
   'account-closed': [{ path: '/', scope: 'layout' }],
-  'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
+  'consent-changed': [{ path: '/me/settings' }, { path: '/me' }, THIS_SCREEN],
   'discovery-settings-changed': [{ path: '/me/settings' }],
   'deck-moved': [THIS_SCREEN],
   'match-requested': [{ path: '/me' }, { path: '/me/matching' }],
-  'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }],
+  'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }, THIS_SCREEN],
   'report-filed': [{ path: '/me/matching' }],
   'survey-submitted': [{ path: '/me/survey' }],
   'pair-opened': [{ path: '/me/compat' }],
@@ -135,9 +150,16 @@ export const REFRESH_SCREENS = SCREENS;
 
 /** 이 누름이 바꾼 것을 말하면, 무를 화면은 표가 안다 */
 export function refresh(changed: Changed): void {
-  for (const screen of SCREENS[changed]) {
-    if (screen === THIS_SCREEN) redrawThisScreen();
-    else revalidatePath(screen.path, screen.scope);
+  const screens = SCREENS[changed];
+  /*
+    **지금 화면이 먼저다 — 표의 차례와 상관없이.** `refresh()` 는 액션의 표지를 「동적만」으로 덮어쓰고
+    (`node_modules/next/dist/server/web/spec-extension/revalidate.js` 의 `refresh` — 83행), `revalidatePath` 는 「정적과 동적」으로
+    세운다(같은 파일 222행). 뒤에 부른 쪽이 이기므로 경로를 먼저 무르면 표지가 「동적만」으로 남고, 브라우저는 미리 받아 둔
+    다른 화면을 버리지 않는다(`router-reducer/reducers/server-action-reducer.js` 의 `invalidateEntirePrefetchCache`).
+  */
+  if (screens.includes(THIS_SCREEN)) redrawThisScreen();
+  for (const screen of screens) {
+    if (screen !== THIS_SCREEN) revalidatePath(screen.path, screen.scope);
   }
 }
 
@@ -147,7 +169,14 @@ export function refresh(changed: Changed): void {
  * 풀이의 화면은 대상마다 주소가 다르다(`/me/readings/<id>` · `/me/match/<id>`). 그
  * 갈래를 푸는 표는 이미 있고(`readingPathsOf`, ADR 0016·0033), 그 표가 내주는 것은
  * **값이 든 경로**라 위의 표에 미리 적을 수 없다.
+ *
+ * **지금 화면도 다시 그린다**(`refresh()`). 풀이 칸은 그 주소 아닌 화면에도 선다 — 보관함 틀의 `/me/readings/match/<id>` ·
+ * `/me/readings/compat` 은 `readingPathsOf` 의 `/me/match/<id>` · `/me/compat` 과 다르다. 지금은 경로 무르기의 「임시」
+ * 동작(위 머리말)이 어느 경로든 지금 화면을 싣지만, 그것이 좁혀지는 날에도 기다리던 칸이 끝난 글을 받게 한다 — 칸은 이 응답
+ * 말고 따로 다시 읽지 않는다(ADR 0016 덧). **`refresh()` 를 먼저 부른다** — 뒤에 부르면 경로 무르기가 세운
+ * 「정적까지 무름」을 「동적만」으로 덮어 클라이언트가 미리 받은 화면을 안 버린다(`next/dist/server/web/spec-extension/revalidate.js`).
  */
 export function refreshPaths(paths: readonly string[]): void {
+  redrawThisScreen();
   for (const path of paths) revalidatePath(path);
 }
