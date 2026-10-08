@@ -27,10 +27,10 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { BUTTON_PRIMARY, SEGMENT, SEGMENT_ON, SEGMENTS } from './ui/buttons';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
-import { TYPE_META } from './ui/surfaces';
+import { CARD_FRAME, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -198,8 +198,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
     : null;
 
   return (
-    <div ref={root} className="overflow-hidden rounded-[1.75rem] border border-border bg-surface">
-      <h3 className="px-5 pt-6 text-xl text-foreground sm:px-6">누구와 누구를 볼까요?</h3>
+    <div ref={root} className={CARD_FRAME}>
+      <h3 className={`px-5 pt-6 sm:px-6 ${TYPE_NAME}`}>누구와 누구를 볼까요?</h3>
       <div className="grid items-start sm:grid-cols-[1fr_auto_1fr]">
         {SIDES.map((side) => (
           <Fragment key={side}>
@@ -218,7 +218,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
       {/*
         **「궁합 보기」는 사이를 묻는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩 아래 따로 선 줄이면 사이를 고른 손이
-        다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 카드 아래에 선다.
+        다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 칩 줄 아래, 이 띠
+        안에 선다 — 실패 알림도 같은 자리다. 판 바로 아래(띠 밖)에 두면 제 테두리가 판의 테에 붙어 두 줄로 겹쳤다(2026-10-08).
       */}
       <div className="border-t border-border bg-surface-soft/60 p-5 sm:p-6">
         <RelationChoice
@@ -251,24 +252,26 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             {reason}
           </p>
         )}
+
+        {question !== null && (
+          <div className="mt-4">
+            <SameChartAsk
+              question={question}
+              busy={opening}
+              onAnswer={(sameperson) => {
+                setFailure(null);
+                startOpening(async () => settle(await question.answer(sameperson)));
+              }}
+            />
+          </div>
+        )}
+
+        {failure !== null && (
+          <p role="alert" className="mt-4 rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
+            {failure}
+          </p>
+        )}
       </div>
-
-      {question !== null && (
-        <SameChartAsk
-          question={question}
-          busy={opening}
-          onAnswer={(sameperson) => {
-            setFailure(null);
-            startOpening(async () => settle(await question.answer(sameperson)));
-          }}
-        />
-      )}
-
-      {failure !== null && (
-        <p role="alert" className="rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
-          {failure}
-        </p>
-      )}
     </div>
   );
 }
@@ -316,7 +319,7 @@ function SlotCard({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-sunken p-1">
+      <div className={`${SEGMENTS} grid-cols-2`}>
         {(
           [
             ['saved', '저장한 사람'],
@@ -328,14 +331,18 @@ function SlotCard({
             type="button"
             aria-pressed={slot.from === from}
             disabled={from === 'saved' && people.length === 0}
-            onClick={() =>
-              onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
-            }
-            className={`min-h-11 rounded-lg px-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-45 ${
-              slot.from === from
-                ? 'bg-surface font-semibold text-foreground shadow-soft'
-                : 'text-secondary hover:text-foreground'
-            }`}
+            /*
+              **누르는 동안 위 이름 칸이 초점을 잃지 않게**(목록의 옵션과 같은 까닭). 이 단추는 펼친 목록 **아래**에 선다 —
+              누르는 순간 칸이 초점을 잃으면 목록이 닫히며 단추가 위로 올라가고, 손을 뗀 자리에 단추가 없어 누름이 사라졌다
+              (2026-10-09 운영자 재현, #543 이 칸을 단추 위로 올리며 생겼다). 초점은 누른 뒤 이 단추에 준다 — 직접 입력으로
+              바뀌면 이름 칸이 사라져 초점이 갈 곳을 잃는다.
+            */
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY });
+            }}
+            className={slot.from === from ? SEGMENT_ON : SEGMENT}
           >
             {label}
           </button>

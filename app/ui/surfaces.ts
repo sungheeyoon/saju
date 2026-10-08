@@ -14,6 +14,13 @@
  */
 export const CARD = 'rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-6';
 
+/**
+ * 카드의 **테만** — 모서리 · 가는 테 · 흰 면. 속을 띠로 나눠 띠마다 제 여백을 두는 판이 쓴다(궁합 고르는 판 — 위 띠는
+ * 두 칸, 아래 띠는 사이 · 단추). 띠의 면이 모서리 밖으로 새지 않게 `overflow-hidden` 을 함께 단다. 그림자가 없는 것은
+ * 운영자가 승인한 모양 그대로다(#543, 2026-10-08) — `CARD` 와 같은 모서리 · 테를 갈라 적지 않으려고 둔다.
+ */
+export const CARD_FRAME = 'overflow-hidden rounded-[1.75rem] border border-border bg-surface';
+
 /** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나 */
 export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
 
@@ -36,6 +43,12 @@ export const TILE = 'rounded-[1.5rem] bg-[var(--tile)] p-4 text-foreground';
 
 /** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄) */
 export const ROW_CARD = 'rounded-[1.25rem] border border-border bg-surface px-4 py-3';
+
+/**
+ * 선 줄 — 판 없이 위아래 가는 선 사이에 서는 한 줄. 카드와 카드 사이에 끼는 요약 한 줄(궁합 탭의 「궁합풀이」)이 쓴다 —
+ * 줄 카드(`ROW_CARD`)로 세우면 위아래 카드 사이에서 판이 하나 더 늘어 보인다(#543, 2026-10-08 운영자 승인 모양)
+ */
+export const ROW_LINE = 'rounded-xl border-y border-border px-2 py-4';
 
 /** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록) */
 export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border-strong p-6';
