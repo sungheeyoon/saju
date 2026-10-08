@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
@@ -24,7 +23,6 @@ import { saveSelfPerson } from './actions';
  * 장식이다 — 저장하면 그 자리에 내 일간의 색이 선다.
  */
 export function Onboarding({ nickname }: { nickname: string }) {
-  const router = useRouter();
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: nickname });
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -35,8 +33,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
     setFailure(null);
     startSaving(async () => {
       const result = await saveSelfPerson(query);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 

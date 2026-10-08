@@ -1661,6 +1661,19 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
     const listed = [...readme.matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)].map((match) => match[1]);
     expect(listed.filter((name) => !existsSync(join(dir, name)))).toEqual([]);
   });
+
+  /**
+   * **「최근」은 여덟 줄까지다**(ADR 0147 「2026-10-08 덧」). 조율자가 먼저 읽는 것은 이 절뿐이라, 자라면 노트 수와 함께 읽기량이
+   * 늘어 라운드 노트 PR 이 천장을 넘는다. 넘치면 가장 오래된 줄을 「차례」로 옮긴다. 절이 없으면 읽기량 셈이 이 절을 못 찾는다.
+   */
+  it('세션 기록의 「최근」은 여덟 줄까지다', () => {
+    const readme = readFileSync(join(ROOT, 'docs/notes/README.md'), 'utf8');
+    const recent = /\n## 최근[^\n]*\n([\s\S]*?)\n## /.exec(readme)?.[1];
+    expect(recent, '「최근」 절').toBeDefined();
+    const rows = [...(recent ?? '').matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(8);
+  });
 });
 
 describe('운영 주소는 한 자리 (docs/ops/runbook/domain.md, ADR 0152)', () => {

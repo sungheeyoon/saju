@@ -9,7 +9,7 @@
 `docs/notes/` 에 그날의 사정째로 있다(차례는 `docs/notes/README.md`). 노트는 요구사항도 규칙도
 아니다 — 코드가 왜 이 모양인지 되짚을 때 연다. **새 기억은 저장소에 적는다** — 규약이면 위임 규약,
 틈이면 `docs/product/gaps.md`, 사정이면 노트에 날짜와 함께. 노트도 가지 → PR → `--auto` 로 넣는다(ADR 0121) —
-새 노트는 차례(`docs/notes/README.md`)에 줄을 더하고, 적은 `ADR NNNN` 이 main 에 있는지 `scripts/code-rules.test.ts` 로 먼저 본다.
+새 노트는 차례(`docs/notes/README.md`)의 「최근」 맨 위에 줄을 더하고, 적은 `ADR NNNN` 이 main 에 있는지 `scripts/code-rules.test.ts` 로 먼저 본다.
 
 **라운드 노트는 다른 문서에 없는 것만 적는다(운영자 답 2026-10-05).** 권한 봉투(`docs/agents/delegation/unattended.md` 「무인 라운드」) · 조율자의 판단과
 그 까닭 · 배운 것 · 헤맨 것이다. 머지 목록은 PR, 배포 SHA 와 smoke 값은 배포 기록(`docs/ops/runbook/deploy.md` 「묶음 배포」의 5 가 적게 하는 그 일의 이슈),

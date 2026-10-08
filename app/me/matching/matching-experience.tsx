@@ -46,7 +46,8 @@ type View = 'today' | 'passed';
   고지는 ⓘ 시트가 든다. **넓은 화면은 두 열이다** — 왼쪽에 같은 카드, 오른쪽에 「내 궤도로 다가오는 인연」 지도와 폰의
   시트가 들던 것을 펼쳐 둔다. 참고 점수 고지는 넓은 화면에서는 목록 머리 한 줄이다.
 
-  동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate`), 요청은 확인 창을 지나야 나가며(`requestMatch`),
+  동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate` — 카드는 누르는 순간 떠나고 서버가 못 받으면 돌아온다),
+  요청은 확인 창을 지나야 나가며(`requestMatch` — 서버가 받은 뒤에 떠난다),
   되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`).
 
   **덱은 여섯 자리이고 떠나면 채워진다**(ADR 0115). 넘기거나 요청하면 응답이 실어 온 새 목록에 채운 사람이 뒤에
@@ -118,8 +119,8 @@ export function MatchingExperience({
   }, [cards, passedFromServer, working, exit]);
 
   /**
-   * 카드를 화면에서 떠나보낸다 — 움직임과 알림만 맡는다. 서버에 적는 일은 부르는 쪽이
-   * 먼저 끝낸다(지나침은 `passCandidate`, 요청은 `requestMatch`)
+   * 카드를 화면에서 떠나보낸다 — 움직임과 알림만 맡는다. 서버에 적는 일은 부르는 쪽이 맡는다 — 요청은 `requestMatch` 가
+   * 끝난 뒤에 부르고, 지나침은 `passCandidate` 를 보내며 함께 부른다(`pass`)
    */
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
@@ -145,22 +146,38 @@ export function MatchingExperience({
     setLeaving(false);
   }
 
+  /**
+   * **지나침은 누르는 순간 카드를 넘긴다**(ADR 0115 「2026-10-08 덧」, 운영자 2026-10-08). 서버가 받기를 기다리면 저장과 후보를
+   * 다시 그리는 왕복이 끝나야 카드가 움직였다. 서버가 못 받으면 `unpass` 로 그 사람을 맨 앞에 되세우고 실패를 알린다 —
+   * 아직 돌던 이동 타이머도 걷는다(`cancelLeave`). 그러지 않으면 되세운 카드가 타이머에 다시 떠난다.
+   *
+   * **저장이 끝날 때까지 다음 누름은 막는다** — 또 지나치기 · 되돌리기(`restoreCard`) · 다시 만나보기 · 요청 모두
+   * (`busy`, 단추는 `working`). Next 는 서버 액션을 차례로 보내니 순서는 서버에서 지켜지지만, 되돌릴 화면이 꼬인다:
+   * 아직 확인 안 된 지나침 위에 되돌리기가 얹히면 그 지나침이 실패했을 때 되돌리기는 보관함에 없는 사람을 꺼내러 가고,
+   * 지나침이 둘 겹치면 앞의 것이 실패했을 때 뒤의 사람과 차례를 다시 맞춰야 한다. 막으면 실패가 되돌릴 것은 늘 한 사람
+   * 몫(`unpass`)이다. 카드가 떠나는 데 0.46초가 들어 연달아 누르는 빠르기는 어차피 그만큼에 묶인다.
+   */
   function pass() {
     if (exit || busy.current || !profile) return;
     const passing = profile;
     setFailure(null);
-    const finish = () => {
-      dispatch({ type: 'pass', card: passing });
-      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
-    };
     busy.current = true;
+    /* 꽉 찬 보관함에서는 지나침이 끝 사람을 밀어낸다 — 실패하면 그 사람까지 되세우게 지나치기 전 목록을 든다 */
+    const before = { passed: deck.passed, history: deck.history };
+    dispatch({ type: 'pass', card: passing });
+    leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
+    const putBack = (message: string) => {
+      cancelLeave();
+      dispatch({ type: 'unpass', card: passing, before });
+      setAnnouncement('');
+      setFailure(message);
+    };
     startWorking(async () => {
       try {
         const result = await passCandidate(passing.candidateUserId);
-        if (!result.ok) { setFailure(result.message); return; }
-        finish();
+        if (!result.ok) putBack(result.message);
       } catch {
-        setFailure('지나친 인연으로 옮기지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+        putBack('지나친 인연으로 옮기지 못했어요. 잠시 뒤 다시 시도해 주세요.');
       } finally { busy.current = false; }
     });
   }

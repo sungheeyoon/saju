@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat';
@@ -533,20 +532,15 @@ function BubbleRow({
 
 /** 차단 — 두 걸음: 알림 글과 확인 단추. 되돌릴 수 없어서 위험 색의 주 단추다 */
 function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }) {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
 
   const block = () => {
     setFailure(null);
     startWorking(async () => {
+      // 방이 닫혔다 — 액션의 응답이 이 방을 다시 그려 입력 자리에 닫힌 까닭이 선다(`requests-changed` 의 `THIS_SCREEN`)
       const result = await blockUser(userId);
-      // 방이 닫혔다 — 다시 읽으면 입력 자리에 닫힌 까닭이 선다.
-      if (result.ok) {
-        router.refresh();
-      } else {
-        setFailure(result.message);
-      }
+      if (!result.ok) setFailure(result.message);
     });
   };
 
