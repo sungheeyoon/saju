@@ -45,3 +45,18 @@ export const BUTTON_ON_TILE = `inline-flex min-h-11 items-center justify-center 
 
 /** 오행 판 안의 주 — 아직 없는 것을 받을 때만. 한 판에 하나 */
 export const BUTTON_ON_TILE_PRIMARY = `inline-flex min-h-11 items-center justify-center gap-1 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent hover:bg-accent-strong active:scale-[0.96]`;
+
+/**
+ * **고르는 칸 묶음** — 둘 · 셋 가운데 하나를 고르는 칸이 한 면 위에 붙어 선다(궁합 고르는 판의 「저장한 사람 · 직접 입력」).
+ * 칸 수는 부르는 쪽이 `grid-cols-*` 로 정한다. 탭 목록(`app/saju/card-tabs.tsx` 의 알약)과는 다르다 — 이것은 화면을
+ * 바꾸는 탭이 아니라 입력 방법을 고르는 단추라 모서리가 조금 각지다(#543 의 운영자 승인 모양, 2026-10-08). 글자는 작은
+ * 단추와 같은 14px(`text-sm`)이다.
+ */
+export const SEGMENTS = 'grid gap-1 rounded-xl bg-surface-sunken p-1';
+
+const SEGMENT_SHAPE = 'min-h-11 rounded-lg px-3 text-sm disabled:cursor-not-allowed disabled:opacity-45';
+
+/** 고르는 칸 한 칸 — 안 고른 칸. 고른 칸은 `SEGMENT_ON` 한 벌을 쓴다(굵기 · 면을 덧붙이지 않는다, 아이콘 단추와 같은 까닭) */
+export const SEGMENT = `${SEGMENT_SHAPE} font-medium text-secondary hover:text-foreground`;
+
+export const SEGMENT_ON = `${SEGMENT_SHAPE} bg-surface font-semibold text-foreground shadow-soft`;

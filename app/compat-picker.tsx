@@ -27,10 +27,10 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { BUTTON_PRIMARY, SEGMENT, SEGMENT_ON, SEGMENTS } from './ui/buttons';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
-import { TYPE_META } from './ui/surfaces';
+import { CARD_FRAME, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -198,8 +198,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
     : null;
 
   return (
-    <div ref={root} className="overflow-hidden rounded-[1.75rem] border border-border bg-surface">
-      <h3 className="px-5 pt-6 text-xl text-foreground sm:px-6">누구와 누구를 볼까요?</h3>
+    <div ref={root} className={CARD_FRAME}>
+      <h3 className={`px-5 pt-6 sm:px-6 ${TYPE_NAME}`}>누구와 누구를 볼까요?</h3>
       <div className="grid items-start sm:grid-cols-[1fr_auto_1fr]">
         {SIDES.map((side) => (
           <Fragment key={side}>
@@ -218,7 +218,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
       {/*
         **「궁합 보기」는 사이를 묻는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩 아래 따로 선 줄이면 사이를 고른 손이
-        다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 카드 아래에 선다.
+        다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 칩 줄 아래, 이 띠
+        안에 선다 — 실패 알림도 같은 자리다. 판 바로 아래(띠 밖)에 두면 제 테두리가 판의 테에 붙어 두 줄로 겹쳤다(2026-10-08).
       */}
       <div className="border-t border-border bg-surface-soft/60 p-5 sm:p-6">
         <RelationChoice
@@ -251,24 +252,26 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             {reason}
           </p>
         )}
+
+        {question !== null && (
+          <div className="mt-4">
+            <SameChartAsk
+              question={question}
+              busy={opening}
+              onAnswer={(sameperson) => {
+                setFailure(null);
+                startOpening(async () => settle(await question.answer(sameperson)));
+              }}
+            />
+          </div>
+        )}
+
+        {failure !== null && (
+          <p role="alert" className="mt-4 rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
+            {failure}
+          </p>
+        )}
       </div>
-
-      {question !== null && (
-        <SameChartAsk
-          question={question}
-          busy={opening}
-          onAnswer={(sameperson) => {
-            setFailure(null);
-            startOpening(async () => settle(await question.answer(sameperson)));
-          }}
-        />
-      )}
-
-      {failure !== null && (
-        <p role="alert" className="rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
-          {failure}
-        </p>
-      )}
     </div>
   );
 }
@@ -306,7 +309,7 @@ function SlotCard({
           <PersonCombobox
             label={SIDE_LABEL[side]}
             hideLabel
-            placeholder="상대를 골라 주세요"
+            placeholder={SLOT_CALL[side].choose}
             people={people}
             taken={taken}
             chosenId={slot.personId}
@@ -316,7 +319,7 @@ function SlotCard({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-sunken p-1">
+      <div className={`${SEGMENTS} grid-cols-2`}>
         {(
           [
             ['saved', '저장한 사람'],
@@ -331,11 +334,7 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-lg px-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-45 ${
-              slot.from === from
-                ? 'bg-surface font-semibold text-foreground shadow-soft'
-                : 'text-secondary hover:text-foreground'
-            }`}
+            className={slot.from === from ? SEGMENT_ON : SEGMENT}
           >
             {label}
           </button>
@@ -383,16 +382,28 @@ function useStoredRelation(
 const complete = (slot: Slot): boolean =>
   slot.from === 'saved' ? slot.personId !== '' : missingAnswer(slot.query) === null;
 
+/**
+ * **빈 칸을 부르는 말** — 빈 이름 칸의 자리표시와 잠긴 까닭이 같은 말을 쓴다.
+ *
+ * 화면에서 「첫 번째 · 두 번째」 제목을 걷었으니(#543) 보이는 글자도 순서로 부르지 않는다 — 없는 이름을 가리키면
+ * 어느 칸인지 찾아야 한다. 첫 칸은 대개 내 사주로 차서 서므로(`firstSlot`) 둘째 칸이 「상대」다. 순서 이름
+ * (`SIDE_LABEL`)은 보조기기의 묶음 이름에만 남는다.
+ */
+const SLOT_CALL: Record<CompatSide, { choose: string; of: string }> = {
+  a: { choose: '궁합을 볼 사람을 골라 주세요', of: '궁합을 볼 사람의' },
+  b: { choose: '상대를 골라 주세요', of: '상대의' },
+};
+
 /** 먼저 비어 있는 칸 하나 — 둘을 한꺼번에 늘어놓지 않는다 */
 const missing = (slots: Record<CompatSide, Slot>): string | null => {
   for (const side of SIDES) {
     const slot = slots[side];
     if (slot.from === 'saved') {
-      if (slot.personId === '') return `${SIDE_LABEL[side]} 사람을 골라 주세요.`;
+      if (slot.personId === '') return `${SLOT_CALL[side].choose}.`;
       continue;
     }
     const gap = missingAnswer(slot.query);
-    if (gap !== null) return `${SIDE_LABEL[side]} 사람의 ${gap}`;
+    if (gap !== null) return `${SLOT_CALL[side].of} ${gap}`;
   }
   return null;
 };
