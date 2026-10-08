@@ -24,11 +24,12 @@ import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
 import { Composer } from '../composer';
+import { settlePending, withPending, type Pending } from './pending';
 import type { RoomTones } from '../tones';
 import { bubbleDaysOf, type Bubble, type ShownMessage } from './bubbles';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
-import { readAlready } from './thread';
+import { newestSeq, readAlready } from './thread';
 import { THEIR_SEQ, useReadMarker } from './use-read-marker';
 import { useThread, type MergeKind } from './use-thread';
 
@@ -171,7 +172,17 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   useEffect(() => {
     measure.current = beforeMerge;
   }, [beforeMerge]);
-  const days = useMemo(() => bubbleDaysOf(thread.messages), [thread.messages]);
+  /*
+    **보내는 중인 내 말** — 누르는 순간 흐린 말풍선으로 서고, 읽혀 온 진짜 말이 그 자리를 잇는다(`pending.ts`). 읽음 · 스크롤 자리는
+    진짜 말만 본다 — 보내는 중인 말은 그리는 목록에만 붙는다.
+  */
+  const [held, setPending] = useState<readonly Pending[]>([]);
+  const pendingSerial = useRef(0);
+  /* 걷힌 것은 그릴 때 뺀다 — 들고 있는 목록은 다음에 맡길 때 함께 비운다 */
+  const pending = useMemo(() => settlePending(held, thread.messages), [held, thread.messages]);
+  const shown = useMemo(() => withPending(thread.messages, pending), [thread.messages, pending]);
+  const pendingIds = useMemo(() => new Set(pending.map((one) => one.id)), [pending]);
+  const days = useMemo(() => bubbleDaysOf(shown), [shown]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
   useReadMarker(log, room.matchId, already, !closed, days);
@@ -253,6 +264,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                     key={bubble.id}
                     bubble={bubble}
                     room={room}
+                    sending={pendingIds.has(bubble.id)}
                     /* 신고는 상대의 말에만 선다 — 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다 */
                     pickable={picking && !bubble.mine && !bubble.fromLeftPartner}
                     chosen={picked === bubble.id}
@@ -303,10 +315,20 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         ) : (
           <Composer
             matchId={room.matchId}
-            onSent={() => {
-              // 보낸 사람은 제 말을 본다 — 맨 아래로 내려가고 그 말을 읽는 문으로 읽어 합친다.
+            onPending={(body) => {
+              // 보낸 사람은 제 말을 곧장 본다 — 맨 아래로 내려가고, 흐린 말풍선이 선다.
+              const id = `pending-${++pendingSerial.current}`;
+              setPending((now) => [
+                ...settlePending(now, thread.messages),
+                { id, body, after: newestSeq(thread.messages), sentAt: new Date().toISOString() },
+              ]);
               toBottom();
-              thread.catchUp();
+              return id;
+            }}
+            onSettled={(id, sent) => {
+              // 서버가 받았으면 그 말을 읽는 문으로 읽어 합친다 — 합쳐지면 흐린 말풍선이 걷힌다. 못 보냈으면 곧장 걷는다.
+              if (sent) thread.catchUp();
+              else setPending((now) => now.filter((one) => one.id !== id));
             }}
           />
         )}
@@ -428,12 +450,15 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
 function BubbleRow({
   bubble,
   room,
+  sending = false,
   pickable,
   chosen,
   onPick,
 }: {
   bubble: Bubble;
   room: RoomView;
+  /** 보내는 중 — 서버가 받은 말이 아직 안 읽혀 왔다. 흐리게 서고 시각이 안 선다 */
+  sending?: boolean;
   pickable: boolean;
   chosen: boolean;
   onPick: () => void;
@@ -456,7 +481,8 @@ function BubbleRow({
   return (
     <li
       {...{ [MESSAGE_ID]: bubble.id, ...(mine ? {} : { [THEIR_SEQ]: bubble.seq }) }}
-      className={`flex min-w-0 gap-2 ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}
+      aria-busy={sending || undefined}
+      className={`flex min-w-0 gap-2 transition-opacity ${sending ? 'opacity-55' : ''} ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}
     >
       {!mine &&
         (bubble.first ? (
@@ -493,7 +519,8 @@ function BubbleRow({
             <Icon name="flag" className="size-[18px]" />
           </button>
         ) : (
-          bubble.last && (
+          bubble.last &&
+          !sending && (
             <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-[12px] tabular-nums text-secondary">
               {bubble.time}
             </time>

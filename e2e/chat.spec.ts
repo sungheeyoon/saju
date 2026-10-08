@@ -221,8 +221,9 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.getByRole('button', { name: '보내기' }).click();
     // `getByRole('alert')` 는 Next 의 라우트 안내와 겹친다 — 글자로 잡는다
     await expect(a.page.getByText(RATE_LIMITED_TEXT)).toBeVisible();
-    // 거절된 본문은 그대로 남는다 — 잠시 뒤 다시 보낼 수 있게
+    // 거절된 본문은 칸에 돌아온다 — 잠시 뒤 다시 보낼 수 있게. 먼저 섰던 흐린 말풍선은 걷힌다(`pending.ts`)
     await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveValue('31');
+    await expect(talkOf(a).getByText('31', { exact: true })).toHaveCount(0);
   });
 
   test('차단이 방을 닫고, 닫힌 뒤 두 쪽 다 이전 대화를 본다', async ({ openAs }) => {
