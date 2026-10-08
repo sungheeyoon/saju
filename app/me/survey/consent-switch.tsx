@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BUTTON_PRIMARY } from '../../ui/buttons';
@@ -16,7 +15,6 @@ import { setOptionalConsent } from '../actions';
  * (남긴 답이 함께 사라진다), 그 경고가 이미 서 있는 계정 관리 화면의 일이다.
  */
 export function ConsentSwitch() {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -29,11 +27,7 @@ export function ConsentSwitch() {
           setFailure(null);
           startSaving(async () => {
             const result = await setOptionalConsent('improvement', true);
-            if (result.ok) {
-              router.refresh();
-              return;
-            }
-            setFailure(result.message);
+            if (!result.ok) setFailure(result.message);
           });
         }}
         className={`${BUTTON_PRIMARY} self-stretch sm:self-start`}

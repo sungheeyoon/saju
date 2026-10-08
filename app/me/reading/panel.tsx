@@ -528,7 +528,6 @@ export function ReadingPanel({
   const skipCarry = () => {
     startSkipping(async () => {
       await skipCarriedTaste(() => sessionStorage, skipTasteCarry);
-      router.refresh();
     });
   };
 

@@ -262,6 +262,40 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
 });
 
 /**
+ * **누른 자리는 화면을 다시 읽지 않는다** (ADR 0076).
+ *
+ * 액션이 `refresh(…)` 를 부르면 그 응답이 지금 화면을 다시 그려 싣는다. 그 위에 `router.refresh()` 를 또 부르면 누름
+ * 하나에 액션 POST 와 `_rsc` GET 이 하나씩 나가 서버가 같은 화면을 두 번 그리고, 화면은 둘째가 끝나야 선다(2026-10-08 에
+ * 메모 저장 · 목록에서 빼기로 쟀다). 그래서 브라우저가 화면을 다시 읽는 자리를 파일로 적고 까닭을 든다 — 새 자리가
+ * 들어오려면 「액션이 무르지 않는 무엇을 다시 읽는가」를 적어야 한다.
+ */
+describe('브라우저가 화면을 다시 읽는 자리', () => {
+  const CALLS_ROUTER_REFRESH = /\.refresh\(\)/;
+  const withoutProse = (source: string) =>
+    source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(?<!:)\/\/.*$/gm, '');
+
+  const REDRAWS: Readonly<Record<string, string>> = {
+    'app/auth/sign-out.ts': '로그아웃은 액션이 아니다 — 브라우저의 Supabase 가 쿠키를 지운 뒤 서버 화면을 다시 읽는다',
+    'app/live/live-updates.tsx': '라이브 층 — 남이나 다른 탭이 바꾼 것을 채널이 알린다. 누름이 아니라 서버가 무를 액션이 없다(ADR 0155)',
+    'app/me/chat/composer.tsx':
+      '방이 닫힌 갈래(`closed`)만 — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
+    'app/me/profile/photo-grid.tsx':
+      '거절된 누름만 — 서버가 아무것도 안 무르므로, 다른 탭이 바꾼 목록을 다시 받아 지금 모양을 그린다',
+    'app/me/reading/panel.tsx':
+      '풀이 생성은 누름(`generateReading`)이 무르지 않고 응답 뒤에 끝난다 — 끝난 것을 본 패널이 다시 읽는다(ADR 0016)',
+  };
+
+  it('`router.refresh()` 를 부르는 파일은 까닭이 적힌 것들뿐이다', () => {
+    const found = shipped
+      .filter(({ text }) => CALLS_ROUTER_REFRESH.test(withoutProse(text)))
+      .map(({ path }) => path)
+      .sort();
+
+    expect(found).toEqual(Object.keys(REDRAWS).sort());
+  });
+});
+
+/**
  * **표가 적은 것이 실제로 무는가.**
  *
  * 경로는 손으로 적는 값이라 오타가 조용하다 — `revalidatePath` 는 없는 경로를 받아도
@@ -286,15 +320,22 @@ describe('표가 가리키는 것', () => {
   });
 
   /**
-   * **지금 화면을 다시 그리는 것은 덱 하나다.** 경로 무르기의 「임시」 부수효과에 기대던 자리를 `refresh()` 로 옮겼다
-   * (2026-09-30). 다른 이름이 지금 화면을 적기 시작하면 그 누름이 어느 화면을 바꾸는지 표가 말하지 않게 된다.
+   * **지금 화면을 적는 이름과 그 까닭.** 경로 무르기의 「임시」 부수효과(어느 경로든 지금 화면이 다시 그려진다)에 기대던
+   * 자리를 `refresh()` 로 옮긴 것들이다. 누른 화면이 경로 표에 없는데 브라우저가 따로 다시 읽지도 않는 자리다(ADR 0076).
+   * 다른 이름이 지금 화면을 적기 시작하면 그 누름이 어느 화면에서 일어나는지를 여기 적는다.
    */
-  it('지금 화면을 다시 그리는 이름은 덱 하나뿐이다', () => {
+  const REDRAWS_THIS_SCREEN: Readonly<Partial<Record<Changed, string>>> = {
+    'consent-changed': '설문의 「동의하고 설문 열기」가 `/me/survey` 에서 켠다',
+    'deck-moved': '덱은 `/me/matching` 에 서고, 응답의 새 목록을 사람 id 로 합친다(ADR 0115)',
+    'requests-changed': '차단은 궁합 화면 · 채팅 방 · 지난 요청(`/me/matching/history`)에서도 누른다',
+  };
+
+  it('지금 화면을 다시 그리는 이름은 까닭이 적힌 것들뿐이다', () => {
     const here = (Object.keys(REFRESH_SCREENS) as Changed[]).filter((changed) =>
       REFRESH_SCREENS[changed].includes(THIS_SCREEN),
     );
 
-    expect(here).toEqual(['deck-moved']);
+    expect(here.sort()).toEqual(Object.keys(REDRAWS_THIS_SCREEN).sort());
   });
 
   /**
@@ -368,11 +409,11 @@ describe('표의 값은 계약과 글자까지 같다', () => {
     'person-list-changed': [{ path: '/me/people' }],
     'account-changed': [{ path: '/me', scope: 'layout' }],
     'account-closed': [{ path: '/', scope: 'layout' }],
-    'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
+    'consent-changed': [{ path: '/me/settings' }, { path: '/me' }, THIS_SCREEN],
     'discovery-settings-changed': [{ path: '/me/settings' }],
     'deck-moved': [THIS_SCREEN],
     'match-requested': [{ path: '/me' }, { path: '/me/matching' }],
-    'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }],
+    'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }, THIS_SCREEN],
     'report-filed': [{ path: '/me/matching' }],
     'survey-submitted': [{ path: '/me/survey' }],
     'pair-opened': [{ path: '/me/compat' }],
