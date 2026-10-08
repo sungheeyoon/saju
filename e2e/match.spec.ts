@@ -61,11 +61,17 @@ async function passUntilShown(page: Person['page'], target: Locator): Promise<vo
   await expect(target).toBeVisible();
 }
 
-/** 보이는 카드 한 장을 넘기고 다음 장이 서거나 덱이 빌 때까지 선다 */
+/**
+ * 보이는 카드 한 장을 넘기고 다음 장이 서거나 덱이 빌 때까지 선다 — 그리고 **저장이 끝날 때까지** 선다. 카드는 저장을
+ * 기다리지 않고 떠나고 단추는 저장이 끝나야 풀리므로(ADR 0115 「2026-10-08 덧」), 제목만 보고 다음을 누르려 하면 잠긴 단추를
+ * 만나 고리가 먼저 끝난다. 카드가 바쁜 동안은 `aria-busy` 다.
+ */
 async function passShownCard(page: Person['page'], heading: Locator, next: Locator): Promise<void> {
   const shown = (await heading.textContent()) ?? '';
   await next.click();
-  await expect(page.getByRole('region', { name: '인연 카드' }).getByRole('heading', { name: shown, exact: true })).toHaveCount(0);
+  const deck = page.getByRole('region', { name: '인연 카드' });
+  await expect(deck.getByRole('heading', { name: shown, exact: true })).toHaveCount(0);
+  await expect(deck.locator('article[aria-busy="true"]')).toHaveCount(0);
 }
 
 /**
@@ -880,7 +886,7 @@ test.describe('보관함 복원 회귀', () => {
     await asker.page.goto('/me/matching');
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
     await asker.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
-    await expect(asker.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
+    await expect(asker.page.getByRole('button', { name: '실행 취소' })).toBeEnabled(); // 저장이 끝나야 풀린다 — 보이기만 해서는 새로 고침이 아직 가는 넘김을 끊는다
     await asker.page.reload();
     await asker.page.getByRole('button', { name: /지나친 인연/ }).click();
     const panel = asker.page.getByRole('region', { name: /지나친 인연/ });
@@ -962,7 +968,8 @@ test.describe('매칭 덱 상태 회귀', () => {
       await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
       await expect(article.getByRole('heading', { name: names[i] })).not.toBeVisible();
     }
-    expect((await viewer.api.rpc('my_passed_connections')).data).toHaveLength(2);
+    // 카드는 저장을 기다리지 않고 떠난다 — 둘째 저장이 끝날 때까지 묻는다(ADR 0115 「2026-10-08 덧」)
+    await expect.poll(async () => (await viewer.api.rpc('my_passed_connections')).data).toHaveLength(2);
     for (const name of names.toReversed()) {
       /*
         덱이 비면 카드 아래의 되돌리기 단추도 카드와 함께 걷히고 「실행 취소」 한 줄만 남는다 —
@@ -988,7 +995,8 @@ test.describe('매칭 덱 상태 회귀', () => {
     /*
       저장 뒤 떠나는 동안 복원한다. 되돌리는 길은 **그때 서 있는 쪽**이다 — 카드가 아직 서 있으면 카드 아래의 ↶, 한 장뿐인
       덱이 이미 비었으면 「실행 취소」 줄(카드 위에는 되돌리기 줄이 없다, 2026-09-25). 둘은 같은 복원 경로다. ↶ 는 저장이 끝날
-      때까지 잠기고 카드는 그 뒤 0.46초면 떠나므로, 한쪽만 기다리면 느린 러너에서 그 틈을 놓친다(CI 36085813111).
+      때까지 잠기고 카드는 누른 뒤 0.46초면 떠나므로(저장을 기다리지 않는다, ADR 0115 「2026-10-08 덧」), 저장이 그보다 빠르면
+      ↶ 가, 느리면 「실행 취소」가 선다 — 한쪽만 기다리면 느린 러너에서 그 틈을 놓친다(CI 36085813111).
     */
     const back = viewer.page
       .getByRole('button', { name: '이전 인연으로 되돌리기' })
@@ -1017,6 +1025,88 @@ test.describe('매칭 덱 상태 회귀', () => {
     expect((await viewer.api.rpc('my_passed_connections')).data).toEqual([]);
   });
 
+  /**
+   * **지나치기는 서버를 기다리지 않는다**(ADR 0115 「2026-10-08 덧」). 넘김의 서버 액션을 붙잡아 지연을, 500 으로 실패를 만든다
+   * (위 복원 실패와 같은 손잡이 — 서버 액션은 이 화면 주소로 가는 POST 다). 재는 것: 붙잡힌 동안 카드가 이미 떠났는가 · 그동안
+   * 되돌리기가 잠겼는가 · 실패하면 카드 · 보관함 수 · 되돌릴 줄이 누르기 전대로 돌아오는가 · 떠나기 전에 실패하면 이동 타이머가
+   * 걷혀 카드가 다시 떠나지 않는가 · 다시 누르면 저장되는가.
+   */
+  test('지나치기는 저장을 기다리지 않고 넘기고, 서버가 못 받으면 카드와 보관함이 돌아온다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await bothParticipate(viewer, partner, tag);
+    await viewer.page.goto('/me/matching');
+    const heading = viewer.page.getByRole('article').getByRole('heading', { name: `나${tag}` });
+    await expect(heading).toBeVisible();
+    const pass = viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' });
+    const undo = viewer.page.getByRole('button', { name: '실행 취소' });
+    const vault = viewer.page.getByRole('button', { name: /지나친 인연/ });
+    const failed = viewer.page.getByText('지나친 인연으로 옮기지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    const passedOnServer = async () => (await viewer.api.rpc('my_passed_connections')).data;
+
+    /** 넘김의 POST 를 붙잡는다 — `release` 를 부르기 전에는 서버에 닿지 않는다 */
+    const holdPass = async (answer: 'pass-through' | 'fail') => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      await viewer.page.route('**/me/matching', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue();
+        await held;
+        if (answer === 'fail') await route.fulfill({ status: 500, body: 'test pass failure' });
+        else await route.continue();
+      });
+      return release;
+    };
+
+    // 지연 — 서버가 붙잡힌 동안 카드는 이미 떠났고 보관함 수도 올랐다. 되돌리기는 저장이 끝날 때까지 잠긴다.
+    let release = await holdPass('pass-through');
+    await pass.click();
+    await expect(heading).toHaveCount(0);
+    await expect(vault).toHaveText(/1\s*명/);
+    await expect(undo).toBeDisabled();
+    expect(await passedOnServer()).toEqual([]);
+    release();
+    await expect(undo).toBeEnabled();
+    expect(await passedOnServer()).toHaveLength(1);
+    await viewer.page.unroute('**/me/matching');
+    await undo.click();
+    await expect(heading).toBeVisible();
+    await expect(pass).toBeEnabled();
+    expect(await passedOnServer()).toEqual([]);
+
+    // 떠난 뒤 실패 — 카드가 맨 앞으로 돌아오고, 보관함 수와 되돌릴 줄이 누르기 전대로다.
+    release = await holdPass('fail');
+    await pass.click();
+    await expect(heading).toHaveCount(0);
+    await expect(undo).toBeVisible();
+    release();
+    await expect(failed).toBeVisible();
+    await expect(heading).toBeVisible();
+    await expect(vault).toHaveText(/0\s*명/);
+    await expect(undo).toHaveCount(0);
+    expect(await passedOnServer()).toEqual([]);
+    await viewer.page.unroute('**/me/matching');
+
+    // 떠나기 전에 실패 — 실패가 이동 타이머보다 먼저 오면 타이머를 걷는다. 안 걷으면 되세운 카드가 그 타이머에 다시 떠난다.
+    await viewer.page.route('**/me/matching', async (route) => {
+      if (route.request().method() === 'POST') await route.fulfill({ status: 500, body: 'test pass failure' });
+      else await route.continue();
+    });
+    await pass.click();
+    await expect(failed).toBeVisible();
+    await viewer.page.waitForTimeout(1000);
+    await expect(heading).toBeVisible();
+    await expect(vault).toHaveText(/0\s*명/);
+    await viewer.page.unroute('**/me/matching');
+
+    // 다시 누르면 실패 줄이 걷히고 저장된다.
+    await pass.click();
+    await expect(failed).toHaveCount(0);
+    await expect(heading).toHaveCount(0);
+    await expect(undo).toBeEnabled();
+    expect(await passedOnServer()).toHaveLength(1);
+  });
+
   test('보관함은 실제 사진을 읽고 예시 안내를 표시하지 않는다', async ({ openAs }) => {
     const tag = freshTag();
     const viewer = await openAs({ selfPerson: true });
@@ -1027,7 +1117,7 @@ test.describe('매칭 덱 상태 회귀', () => {
     expect(uploaded.error).toBeNull();
     await viewer.page.goto('/me/matching');
     await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
-    await expect(viewer.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
+    await expect(viewer.page.getByRole('button', { name: '실행 취소' })).toBeEnabled(); // 위와 같다 — 저장이 끝난 뒤에 새로 고친다
     await viewer.page.reload();
     await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
     const panel = viewer.page.getByRole('region', { name: /지나친 인연/ });

@@ -93,3 +93,66 @@ describe('채워지는 덱', () => {
     expect(state.remaining).toEqual([]);
   });
 });
+
+/**
+ * **지나침은 서버보다 먼저 선다**(ADR 0115 「2026-10-08 덧」). 화면은 누르는 순간 `pass` → (0.46초 뒤) `leave` 를 밟고, 서버가 못
+ * 받으면 `unpass` 를 밟는다. 실패는 떠나기 전에도, 떠난 뒤에도 올 수 있고, 그 뒤에 서버 목록(`sync`)이 늦게 올 수 있다.
+ */
+describe('서버가 못 받은 지나침', () => {
+  const ids = (cards: readonly DeckCard[]) => cards.map((c) => c.candidateUserId);
+  const passedAndLeft = (state: DeckState, id: string) =>
+    deckReducer(deckReducer(state, { type: 'pass', card: card(id) }), { type: 'leave', id });
+
+  it('떠나기 전에 실패하면 카드는 맨 앞 그대로이고 보관함 · 이력이 비어 있던 대로 돌아온다', () => {
+    let state = deckReducer(initial(), { type: 'pass', card: card('a') });
+    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    expect(state).toEqual(initial());
+  });
+
+  it('떠난 뒤에 실패하면 맨 앞에 한 장으로 되서고 seen 에서도 빠진다', () => {
+    let state = passedAndLeft(initial(), 'a');
+    expect(ids(state.remaining)).toEqual(['b', 'c']);
+    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    expect(state).toEqual(initial());
+  });
+
+  it('앞서 서버가 받은 지나침은 그대로 둔다 — 실패한 사람 몫만 물린다', () => {
+    let state = passedAndLeft(initial(), 'a');
+    state = passedAndLeft(state, 'b');
+    state = deckReducer(state, { type: 'unpass', card: card('b') });
+    expect(ids(state.remaining)).toEqual(['b', 'c']);
+    expect(ids(state.passed)).toEqual(['a']);
+    expect(ids(state.history)).toEqual(['a']);
+    expect(state.seen).toEqual(['a']);
+  });
+
+  it('물린 뒤 늦게 온 서버 목록이 그 사람을 다시 세우거나 겹쳐 세우지 않는다', () => {
+    let state = passedAndLeft(initial(), 'a');
+    state = deckReducer(state, { type: 'unpass', card: card('a') });
+    /* 서버는 a 를 못 받았으니 a 는 아직 후보이고 보관함에 없다 — 덱 뒤에 채운 사람이 붙어 와도 a 는 맨 앞 한 장이다 */
+    state = deckReducer(state, { type: 'sync', cards: ['a', 'b', 'c', 'd'].map(card), passed: [] });
+    expect(ids(state.remaining)).toEqual(['a', 'b', 'c', 'd']);
+    expect(state.passed).toEqual([]);
+    expect(state.history).toEqual([]);
+  });
+
+  it('물리지 않았으면 늦게 온 옛 목록이 떠난 사람을 되살리지 않는다 — seen 을 지우는 것은 물림뿐이다', () => {
+    const state = deckReducer(passedAndLeft(initial(), 'a'), { type: 'sync', cards: ['a', 'b', 'c'].map(card), passed: [card('a')] });
+    expect(ids(state.remaining)).toEqual(['b', 'c']);
+  });
+
+  it('실패 뒤의 실행 취소는 그 앞에 서버가 받은 사람을 꺼낸다', () => {
+    let state = passedAndLeft(initial(), 'a');
+    state = passedAndLeft(state, 'b');
+    state = deckReducer(state, { type: 'unpass', card: card('b') });
+    expect(state.history[0].candidateUserId).toBe('a');
+    state = deckReducer(state, { type: 'restore', card: card('a'), passed: [] });
+    expect(ids(state.remaining)).toEqual(['a', 'b', 'c']);
+    expect(state.history).toEqual([]);
+  });
+
+  it('첫 지나침이 실패하면 되돌릴 이력이 없다 — 실행 취소가 서지 않는다', () => {
+    const state = deckReducer(passedAndLeft(initial(), 'a'), { type: 'unpass', card: card('a') });
+    expect(state.history[0]).toBeUndefined();
+  });
+});
