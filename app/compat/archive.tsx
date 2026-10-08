@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { Icon } from '../ui/icons';
-import { ROW_CARD } from '../ui/surfaces';
 import type { ReadingEntry } from '../me/reading/current';
 
 /**
@@ -37,7 +36,7 @@ export function CompatSummary({ readings }: { readings: readonly ReadingEntry[] 
   return (
     <Link
       href={COMPAT_SHELF_HREF}
-      className={`${ROW_CARD} flex w-full items-center gap-3 text-left hover:bg-surface-sunken active:scale-[0.99]`}
+      className="flex w-full items-center gap-3 rounded-xl border-y border-border px-2 py-4 text-left hover:bg-surface-soft active:scale-[0.99]"
     >
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-foreground">

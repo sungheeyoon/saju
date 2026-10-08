@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { Fragment, useEffect, useRef, useState, useTransition } from 'react';
 
 import type { Relation } from '@/src/lib/people';
 import {
@@ -13,15 +13,13 @@ import {
   toSearchParams,
   type Query,
 } from '@/src/lib/input/query';
-import type { CompatSide, Element } from '@/src/lib/saju';
+import type { CompatSide } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
 import { SIDE_LABEL, SIDES } from './compat-view';
-import { elementScope } from './ui/element-tone';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { PersonCombobox, type Choosable } from './person-combobox';
-import { FaceSymbol } from './ui/stem-symbol';
 import { RelationChoice } from './relation-choice';
 import {
   SameChartAsk,
@@ -30,10 +28,9 @@ import {
   type SameChartQuestion,
 } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
-import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
-import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { TYPE_META } from './ui/surfaces';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -61,7 +58,6 @@ import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
  */
 /** 한 칸이 들고 있는 것 — 고른 사람이거나 적어 넣은 입력이다 */
 type Slot = { from: 'saved'; personId: string } | { from: 'typed'; query: Query };
-
 
 /** 주소에 담긴 한 칸을 읽는다 — `a.person` 이 있으면 고른 사람이다 */
 function slotFrom(params: URLSearchParams, side: CompatSide, people: Choosable[]): Slot | null {
@@ -202,22 +198,21 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
     : null;
 
   return (
-    <div ref={root} className="flex flex-col gap-4 sm:gap-5">
-      <PairStage
-        sides={{ a: stageOf(slots.a, people, 'a'), b: stageOf(slots.b, people, 'b') }}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div ref={root} className="overflow-hidden rounded-[1.75rem] border border-border bg-surface">
+      <h3 className="px-5 pt-6 text-xl text-foreground sm:px-6">누구와 누구를 볼까요?</h3>
+      <div className="grid items-start sm:grid-cols-[1fr_auto_1fr]">
         {SIDES.map((side) => (
-          <SlotCard
-            key={side}
-            side={side}
-            slot={slots[side]}
-            people={people}
-            /* 다른 칸에서 고른 사람은 여기서 뺀다 — 같은 사람 둘은 애초에 못 고른다 */
-            taken={otherSaved(slots, side)}
-            onChange={(next) => setSlot(side, next)}
-          />
+          <Fragment key={side}>
+            {side === 'b' && <span aria-hidden="true" className="self-center text-center text-2xl text-secondary">×</span>}
+            <SlotCard
+              side={side}
+              slot={slots[side]}
+              people={people}
+              /* 다른 칸에서 고른 사람은 여기서 뺀다 — 같은 사람 둘은 애초에 못 고른다 */
+              taken={otherSaved(slots, side)}
+              onChange={(next) => setSlot(side, next)}
+            />
+          </Fragment>
         ))}
       </div>
 
@@ -225,7 +220,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         **「궁합 보기」는 사이를 묻는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩 아래 따로 선 줄이면 사이를 고른 손이
         다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 카드 아래에 선다.
       */}
-      <div className={CARD}>
+      <div className="border-t border-border bg-surface-soft/60 p-5 sm:p-6">
         <RelationChoice
           value={relation}
           onChange={(next) => {
@@ -240,7 +235,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${BUTTON_PRIMARY} min-w-40 sm:min-w-44`}
               >
                 <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
@@ -279,7 +274,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 }
 
 /**
- * 한 칸 — **어디서 올지를 먼저 고르고 그다음에 답한다.**
+ * 한 칸 — 저장한 이름을 먼저 보여 주고, 바로 아래에서 직접 입력으로 바꿀 수 있다.
  *
  * 두 갈래가 한 카드 안에 서는 것이 요점이다. 화면을 갈라 두면 「이 사람은 저장돼 있고
  * 저 사람은 아니다」가 갈 곳이 없어진다.
@@ -297,25 +292,31 @@ function SlotCard({
   taken: string | null;
   onChange: (next: Slot) => void;
 }) {
-  const name = slot.from === 'typed' ? slot.query.name.trim() : labelOf(people, slot.personId);
+  const name = slot.from === 'typed'
+    ? slot.query.name.trim()
+    : people.find((one) => one.personId === slot.personId)?.label;
 
   return (
-    <fieldset className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
-      {/*
-        묶음의 이름은 **그 칸이 든 사람**이다 — 비어 있을 때만 「첫 번째 사람」. 몇 번째 칸인지는 이름이 찬 뒤에도
-        보이게 위에 작게 적되(이름이 찼을 때만) 보조기기에는 이름만 읽힌다. `float-left w-full` — 안 두면 legend 가 판 위 가장자리에
-        걸터앉는다.
-      */}
-      <legend className="float-left w-full">
-        {name !== '' && (
-          <span aria-hidden="true" className={`block ${TYPE_META}`}>
-            {SIDE_LABEL[side]} 사람
-          </span>
-        )}
-        <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
-      </legend>
+    <fieldset className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
+      <legend className="sr-only">{name || `${SIDE_LABEL[side]} 사람`}</legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {slot.from === 'saved' && (
+        <div className="min-w-0">
+          {/* 찾아 고르는 칸 — 저장한 사람이 스물 · 백이어도 읽히게(ADR 0102) */}
+          <PersonCombobox
+            label={SIDE_LABEL[side]}
+            hideLabel
+            placeholder="상대를 골라 주세요"
+            people={people}
+            taken={taken}
+            chosenId={slot.personId}
+            onChoose={(personId) => onChange({ from: 'saved', personId })}
+          />
+          {people.length === 0 && <span className={TYPE_META}>아직 저장한 사람이 없어요.</span>}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-sunken p-1">
         {(
           [
             ['saved', '저장한 사람'],
@@ -330,9 +331,9 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`min-h-11 rounded-lg px-3 text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-45 ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
+                ? 'bg-surface font-semibold text-foreground shadow-soft'
                 : 'text-secondary hover:text-foreground'
             }`}
           >
@@ -341,94 +342,17 @@ function SlotCard({
         ))}
       </div>
 
-      {slot.from === 'saved' ? (
-        <>
-          {/* 찾아 고르는 칸 — 저장한 사람이 스물 · 백이어도 읽히게(ADR 0102) */}
-          <PersonCombobox
-            label={SIDE_LABEL[side]}
-            people={people}
-            taken={taken}
-            chosenId={slot.personId}
-            onChoose={(personId) => onChange({ from: 'saved', personId })}
+      {slot.from === 'typed' && (
+        <div className="min-w-0">
+          <BirthFields
+            value={slot.query}
+            onChange={(next) => onChange({ from: 'typed', query: next })}
+            namePlaceholder="이름"
+            surface="flat"
           />
-          {people.length === 0 && <span className={TYPE_META}>아직 저장한 사람이 없어요.</span>}
-        </>
-      ) : (
-        <BirthFields
-          value={slot.query}
-          onChange={(next) => onChange({ from: 'typed', query: next })}
-          namePlaceholder={SIDE_LABEL[side]}
-          surface="flat"
-        />
+        </div>
       )}
     </fieldset>
-  );
-}
-
-/** 두 원이 그리는 한 사람 — 이름과, 알면 일간 오행. 적는 칸의 사람은 아직 명식이 없어 물음표 원이다 */
-type StageSide = { name: string; element: Element | null; stem: string | null; filled: boolean };
-
-const stageOf = (slot: Slot, people: Choosable[], side: CompatSide): StageSide => {
-  if (slot.from === 'typed') {
-    const name = slot.query.name.trim();
-    return { name: name === '' ? `${SIDE_LABEL[side]} 사람` : name, element: null, stem: null, filled: complete(slot) };
-  }
-  const one = people.find((person) => person.personId === slot.personId);
-  return one === undefined
-    ? { name: `${SIDE_LABEL[side]} 사람`, element: null, stem: null, filled: false }
-    : { name: one.label, element: one.element ?? null, stem: one.stem ?? null, filled: true };
-};
-
-/**
- * **나와 그 사람** — 고른 두 사람이 크림 종이 위에 두 원으로 마주 선다(홈의 관계 지도와 같은 말투).
- *
- * 원은 그 사람의 일간 색 · 상징을 입고, 둘 사이를 연필 선이 잇는다. 칸을 바꾸면 곧장 따라 바뀌어 「누구와
- * 누구를 보는가」를 입력칸을 읽기 전에 한눈에 말한다. 빈 칸은 점선 원이다. 그림이라 보조기기에는 안 읽히고,
- * 같은 사실은 아래 두 칸의 이름(`legend`)이 든다.
- */
-function PairStage({ sides }: { sides: Record<CompatSide, StageSide> }) {
-  return (
-    <div aria-hidden="true" className={`${PAPER} relative overflow-hidden px-4 py-6 sm:px-8`}>
-      <svg viewBox="0 0 300 60" preserveAspectRatio="none" className="absolute inset-x-[18%] top-[2.9rem] h-12 w-[64%] sm:top-[3.4rem]">
-        <path
-          d="M4 34 C 80 4, 220 4, 296 34"
-          fill="none"
-          stroke="var(--cream-ink)"
-          strokeOpacity="0.45"
-          strokeWidth="2"
-          strokeDasharray="1 7"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <div className="relative grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-        <StageOne one={sides.a} />
-        {/* 두 사람 사이의 그림은 첫 화면 「궁합 보기」 입구의 태극이다(운영자 2026-09-29 — 하트를 걷었다) */}
-        <span className="mt-5 grid size-11 place-items-center rounded-full bg-surface text-foreground shadow-lift ring-1 ring-border sm:mt-7">
-          <TaijiMark className="size-6" />
-        </span>
-        <StageOne one={sides.b} />
-      </div>
-    </div>
-  );
-}
-
-function StageOne({ one }: { one: StageSide }) {
-  return (
-    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
-      <span
-        className={`${elementScope(one.element)} grid size-20 place-items-center rounded-full sm:size-24 ${
-          one.filled
-            ? 'bg-[var(--tile)] shadow-raise ring-4 ring-surface'
-            : 'border-2 border-dashed border-border-strong bg-[color-mix(in_srgb,var(--surface)_60%,transparent)]'
-        }`}
-      >
-        <FaceSymbol stem={one.stem} element={one.element} className="size-10 sm:size-12" />
-      </span>
-      <span className={`max-w-full truncate font-rounded text-[1.15rem] leading-7 ${one.filled ? 'text-foreground' : 'text-secondary'}`}>
-        {one.name}
-      </span>
-    </div>
   );
 }
 
@@ -477,9 +401,6 @@ const otherSaved = (slots: Record<CompatSide, Slot>, side: CompatSide): string |
   const other = slots[side === 'a' ? 'b' : 'a'];
   return other.from === 'saved' && other.personId !== '' ? other.personId : null;
 };
-
-const labelOf = (people: Choosable[], personId: string): string =>
-  people.find((one) => one.personId === personId)?.label ?? '';
 
 const sideOf = (slot: Slot): PairSide =>
   slot.from === 'saved'

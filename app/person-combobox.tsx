@@ -63,12 +63,16 @@ const KEY_STEP: Partial<Record<string, Step>> = { ArrowDown: 'next', ArrowUp: 'p
 
 export function PersonCombobox({
   label,
+  hideLabel = false,
+  placeholder = PLACEHOLDER,
   people,
   taken,
   chosenId,
   onChoose,
 }: {
   label: string;
+  hideLabel?: boolean;
+  placeholder?: string;
   people: Choosable[];
   /** 다른 칸에서 고른 사람 — 여기서는 안 선다 */
   taken: string | null;
@@ -164,7 +168,7 @@ export function PersonCombobox({
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
+      <label htmlFor={inputId} className={hideLabel ? 'sr-only' : 'text-[13px] font-semibold text-secondary'}>
         {label}
       </label>
       <div className="relative min-w-0">
@@ -191,7 +195,7 @@ export function PersonCombobox({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          placeholder={PLACEHOLDER}
+          placeholder={placeholder}
           value={typed ?? (chosen === undefined ? '' : shownLabel(chosen))}
           onFocus={(event) => event.currentTarget.select()}
           onClick={(event) => {
