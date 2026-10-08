@@ -168,8 +168,6 @@ describe('누름이 무엇으로 끝났는가', () => {
 
     expect(decision.event).toEqual({ type: 'opened', started: true });
     expect(decision.announcesCredits).toBe(true);
-    /* 아직 볼 것이 없다 — 다시 읽는 것은 끝난 것을 본 자리의 일이다 */
-    expect(decision.rereads).toBe(false);
   });
 
   /**
@@ -207,12 +205,11 @@ describe('누름이 무엇으로 끝났는가', () => {
     expect(afterPress({ kind: 'threw' }, preview).event).toEqual({ type: 'mock', reading: preview });
   });
 
-  /** 아무 시도도 안 열렸다 — 잔액은 그대로고 서버에 새로 읽어 올 것도 없다 */
-  it('예시 글을 세우는 길에서는 풀이권도 화면도 안 건드린다', () => {
+  /** 아무 시도도 안 열렸다 — 잔액은 그대로다 */
+  it('예시 글을 세우는 길에서는 풀이권을 안 건드린다', () => {
     const decision = afterPress({ kind: 'threw' }, preview);
 
     expect(decision.announcesCredits).toBe(false);
-    expect(decision.rereads).toBe(false);
   });
 });
 
@@ -225,7 +222,6 @@ describe('지켜보다 본 것', () => {
     expect(afterAsking({ kind: 'unreachable' })).toEqual({
       event: null,
       announcesCredits: false,
-      rereads: false,
     });
   });
 
@@ -242,17 +238,19 @@ describe('지켜보다 본 것', () => {
     expect(afterAsking({ kind: 'none' }).event).toBeNull();
   });
 
-  it('끝난 것을 보면 그 사실을 세우고 풀이권과 화면을 함께 무르게 한다', () => {
+  /**
+   * **화면을 다시 읽으라고는 안 한다.** 끝난 것을 본 그 물음의 응답이 지금 화면을 다시 그려 싣는다(`readingRunState` 의
+   * `refreshPaths`) — 칸이 한 번 더 읽으면 같은 화면을 두 번 받는다(ADR 0016 덧, e2e 가 `_rsc` 0 을 잰다).
+   */
+  it('끝난 것을 보면 그 사실을 세우고 풀이권을 다시 묻게 한다', () => {
     expect(afterAsking({ kind: 'settled', status: 'succeeded' })).toEqual({
       event: { type: 'settled', status: 'succeeded' },
       announcesCredits: true,
-      rereads: true,
     });
-    /* 실패도 잡고 있던 자리가 풀리는 일이라 똑같이 셋을 한다 */
+    /* 실패도 잡고 있던 자리가 풀리는 일이라 똑같이 한다 */
     expect(afterAsking({ kind: 'settled', status: 'failed' })).toEqual({
       event: { type: 'settled', status: 'failed' },
       announcesCredits: true,
-      rereads: true,
     });
   });
 });

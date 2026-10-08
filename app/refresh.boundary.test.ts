@@ -281,8 +281,6 @@ describe('브라우저가 화면을 다시 읽는 자리', () => {
       '방이 닫힌 갈래(`closed`)만 — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
     'app/me/profile/photo-grid.tsx':
       '거절된 누름만 — 서버가 아무것도 안 무르므로, 다른 탭이 바꾼 목록을 다시 받아 지금 모양을 그린다',
-    'app/me/reading/panel.tsx':
-      '풀이 생성은 누름(`generateReading`)이 무르지 않고 응답 뒤에 끝난다 — 끝난 것을 본 패널이 다시 읽는다(ADR 0016)',
   };
 
   it('`router.refresh()` 를 부르는 파일은 까닭이 적힌 것들뿐이다', () => {
