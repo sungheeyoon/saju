@@ -150,9 +150,16 @@ export const REFRESH_SCREENS = SCREENS;
 
 /** 이 누름이 바꾼 것을 말하면, 무를 화면은 표가 안다 */
 export function refresh(changed: Changed): void {
-  for (const screen of SCREENS[changed]) {
-    if (screen === THIS_SCREEN) redrawThisScreen();
-    else revalidatePath(screen.path, screen.scope);
+  const screens = SCREENS[changed];
+  /*
+    **지금 화면이 먼저다 — 표의 차례와 상관없이.** `refresh()` 는 액션의 표지를 「동적만」으로 덮어쓰고
+    (`node_modules/next/dist/server/web/spec-extension/revalidate.js` 의 `refresh` — 83행), `revalidatePath` 는 「정적과 동적」으로
+    세운다(같은 파일 222행). 뒤에 부른 쪽이 이기므로 경로를 먼저 무르면 표지가 「동적만」으로 남고, 브라우저는 미리 받아 둔
+    다른 화면을 버리지 않는다(`router-reducer/reducers/server-action-reducer.js` 의 `invalidateEntirePrefetchCache`).
+  */
+  if (screens.includes(THIS_SCREEN)) redrawThisScreen();
+  for (const screen of screens) {
+    if (screen !== THIS_SCREEN) revalidatePath(screen.path, screen.scope);
   }
 }
 
