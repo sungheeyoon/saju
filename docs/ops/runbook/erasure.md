@@ -42,7 +42,9 @@ select * from public.forget_user('<user uuid>');
 코드가 살아 있는 동안에는 다시 들어올 수 있다. 막으려면 **그 코드를 닫는다.**
 
 ```sql
-update public.signup_code set max_uses = 0 where code = '<그 사람에게 준 코드>';
+-- 정원은 1 아래로 못 내린다(검사식 `max_uses between 1 and 1000`) — 사는 하루를 어제로 옮겨 닫는다
+update public.signup_code set valid_on = (now() at time zone 'Asia/Seoul')::date - 1, valid_until = (now() at time zone 'Asia/Seoul')::date - 1
+where code = '<그 사람에게 준 코드>';
 ```
 
 ### 종료일이 되면 — **저절로 닫힌다**

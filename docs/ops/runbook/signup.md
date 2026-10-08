@@ -115,8 +115,9 @@ order by u.signed_up_at desc nulls last;
 -- 아직 아무도 안 쓴 코드만 지워진다. 쓰인 코드는 FK 가 막는다 — 그게 맞다.
 delete from public.signup_code where code = 'SAJU1001';
 
--- 정원을 줄이거나 하루를 옮기는 편이 낫다
-update public.signup_code set max_uses = 0 where code = 'SAJU1001';
+-- 쓰인 코드는 하루를 어제로 옮겨 닫는다. 정원은 1 아래로 못 내린다(검사식 `max_uses between 1 and 1000`) —
+-- `max_uses = 0` 은 검사식이 거절한다(20260911090000 의 `signup_code`)
+update public.signup_code set valid_on = (now() at time zone 'Asia/Seoul')::date - 1, valid_until = (now() at time zone 'Asia/Seoul')::date - 1 where code = 'SAJU1001';
 ```
 
 > **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠다. **원격
