@@ -309,7 +309,7 @@ function SlotCard({
           <PersonCombobox
             label={SIDE_LABEL[side]}
             hideLabel
-            placeholder={SLOT_CALL[side].choose}
+            placeholder="상대를 골라 주세요"
             people={people}
             taken={taken}
             chosenId={slot.personId}
@@ -331,9 +331,17 @@ function SlotCard({
             type="button"
             aria-pressed={slot.from === from}
             disabled={from === 'saved' && people.length === 0}
-            onClick={() =>
-              onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
-            }
+            /*
+              **누르는 동안 위 이름 칸이 초점을 잃지 않게**(목록의 옵션과 같은 까닭). 이 단추는 펼친 목록 **아래**에 선다 —
+              누르는 순간 칸이 초점을 잃으면 목록이 닫히며 단추가 위로 올라가고, 손을 뗀 자리에 단추가 없어 누름이 사라졌다
+              (2026-10-09 운영자 재현, #543 이 칸을 단추 위로 올리며 생겼다). 초점은 누른 뒤 이 단추에 준다 — 직접 입력으로
+              바뀌면 이름 칸이 사라져 초점이 갈 곳을 잃는다.
+            */
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY });
+            }}
             className={slot.from === from ? SEGMENT_ON : SEGMENT}
           >
             {label}
@@ -382,28 +390,16 @@ function useStoredRelation(
 const complete = (slot: Slot): boolean =>
   slot.from === 'saved' ? slot.personId !== '' : missingAnswer(slot.query) === null;
 
-/**
- * **빈 칸을 부르는 말** — 빈 이름 칸의 자리표시와 잠긴 까닭이 같은 말을 쓴다.
- *
- * 화면에서 「첫 번째 · 두 번째」 제목을 걷었으니(#543) 보이는 글자도 순서로 부르지 않는다 — 없는 이름을 가리키면
- * 어느 칸인지 찾아야 한다. 첫 칸은 대개 내 사주로 차서 서므로(`firstSlot`) 둘째 칸이 「상대」다. 순서 이름
- * (`SIDE_LABEL`)은 보조기기의 묶음 이름에만 남는다.
- */
-const SLOT_CALL: Record<CompatSide, { choose: string; of: string }> = {
-  a: { choose: '궁합을 볼 사람을 골라 주세요', of: '궁합을 볼 사람의' },
-  b: { choose: '상대를 골라 주세요', of: '상대의' },
-};
-
 /** 먼저 비어 있는 칸 하나 — 둘을 한꺼번에 늘어놓지 않는다 */
 const missing = (slots: Record<CompatSide, Slot>): string | null => {
   for (const side of SIDES) {
     const slot = slots[side];
     if (slot.from === 'saved') {
-      if (slot.personId === '') return `${SLOT_CALL[side].choose}.`;
+      if (slot.personId === '') return `${SIDE_LABEL[side]} 사람을 골라 주세요.`;
       continue;
     }
     const gap = missingAnswer(slot.query);
-    if (gap !== null) return `${SLOT_CALL[side].of} ${gap}`;
+    if (gap !== null) return `${SIDE_LABEL[side]} 사람의 ${gap}`;
   }
   return null;
 };
