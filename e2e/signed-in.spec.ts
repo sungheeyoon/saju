@@ -3691,3 +3691,45 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toHaveCount(0);
   });
 });
+
+test.describe('누름 하나는 요청 하나다', () => {
+  /**
+   * **누름 하나는 요청 하나다**(ADR 0076). 메모 저장 · 목록에서 빼기의 액션은 `/me/people` 을 무르고, 그 응답이 지금
+   * 화면을 다시 그려 싣는다. 누른 자리가 `router.refresh()` 를 또 부르면 `_rsc` GET 이 하나 더 나가 서버가 같은 화면을
+   * 두 번 그리고, 화면은 둘째가 끝나야 섰다(2026-10-08 에 쟀다). 화면이 바뀐 것까지 보고 요청을 센다 — 응답이 화면을
+   * 안 실어 왔다면 메모가 안 선다.
+   */
+  test('메모 저장과 목록에서 빼기는 액션 요청 하나로 화면을 다시 그린다', async ({ page, signedIn }) => {
+    const kin = signedIn.managed[0];
+    expect(kin).not.toBe(undefined);
+    await page.goto('/me/people');
+
+    const sent: string[] = [];
+    page.on('request', (request) => {
+      const headers = request.headers();
+      if (headers['next-action'] !== undefined) sent.push('action');
+      else if (headers['rsc'] === '1') sent.push('rsc');
+    });
+
+    const card = page.locator('section').filter({
+      has: page.getByRole('heading', { name: kin, exact: true }),
+    });
+    await card.getByLabel(`${kin} 관리`, { exact: true }).click();
+    await card.getByRole('button', { name: '메모 넣기' }).click();
+    await card.locator('textarea').fill('한 번만 그린다');
+    sent.length = 0;
+    await card.getByRole('button', { name: '메모 저장' }).click();
+    await expect(card.locator('p', { hasText: '한 번만 그린다' })).toBeVisible();
+    await expect(card.locator('textarea')).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    expect(sent).toEqual(['action']);
+
+    await card.getByLabel(`${kin} 관리`, { exact: true }).click();
+    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+    sent.length = 0;
+    await page.getByRole('dialog').getByRole('button', { name: '목록에서 빼기' }).click();
+    await expect(page.getByRole('heading', { name: kin, exact: true })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    expect(sent).toEqual(['action']);
+  });
+});

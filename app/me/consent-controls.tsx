@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 
 import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
 
@@ -36,7 +35,6 @@ export function ConsentControls({
   improvement: boolean;
   contact: boolean;
 }) {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const now: Record<string, boolean> = { improvement, contact };
@@ -45,11 +43,7 @@ export function ConsentControls({
     setFailure(null);
     startSaving(async () => {
       const result = await setOptionalConsent(key, next);
-      if (result.ok) {
-        router.refresh();
-        return;
-      }
-      setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { announceIfMoved } from '../reading/credits-signal';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
@@ -67,7 +66,6 @@ export function MatchConsentQuestion() {
  * 낀 판본 수정이다. 그때 「수락했습니다」라고 말하면 사용자는 없는 Match 를 찾는다.
  */
 export function RespondButtons({ requestId }: { requestId: string }) {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [settled, setSettled] = useState<RequestStatus | null>(null);
   const [working, startWorking] = useTransition();
@@ -86,7 +84,6 @@ export function RespondButtons({ requestId }: { requestId: string }) {
       }
       // 인연 탭의 딱지는 주소가 안 바뀌면 다시 안 센다 — 답한 것을 바로 알린다(ADR 0130)
       announceRequestsToAnswerMoved();
-      router.refresh();
     });
   };
 
@@ -120,7 +117,6 @@ export function RespondButtons({ requestId }: { requestId: string }) {
 
 /** 보낸 요청을 거둔다 — 상대에게 알리지 않는다 */
 export function CancelButton({ requestId }: { requestId: string }) {
-  const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
 
@@ -129,8 +125,7 @@ export function CancelButton({ requestId }: { requestId: string }) {
     startWorking(async () => {
       const result = await cancelRequest(requestId);
       announceIfMoved(result);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (!result.ok) setFailure(result.message);
     });
   };
 
@@ -151,7 +146,6 @@ export function CancelButton({ requestId }: { requestId: string }) {
  * 무엇이 일어나는지 읽고 누르게 한다.
  */
 export function BlockButton({ userId }: { userId: string }) {
-  const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
@@ -163,7 +157,6 @@ export function BlockButton({ userId }: { userId: string }) {
       if (result.ok) {
         // 차단은 그 사람의 요청을 거둔다 — 답할 요청 수가 준다
         announceRequestsToAnswerMoved();
-        router.refresh();
       } else setFailure(result.message);
     });
   };
@@ -209,7 +202,6 @@ export function BlockButton({ userId }: { userId: string }) {
  * 반대가 된다. 그래서 무엇이 다른지를 사유를 고르는 자리에서 먼저 읽힌다.
  */
 export function ReportButton({ userId }: { userId: string }) {
-  const router = useRouter();
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0].value);
   const [detail, setDetail] = useState('');
@@ -224,7 +216,6 @@ export function ReportButton({ userId }: { userId: string }) {
       if (result.ok) {
         setDone(true);
         setAsking(false);
-        router.refresh();
       } else {
         setFailure(result.message);
       }
@@ -312,7 +303,6 @@ export function ReportButton({ userId }: { userId: string }) {
  * 어느 길로 왔든 같은 사건으로 남긴다.
  */
 export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
-  const router = useRouter();
   const started = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -330,10 +320,9 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
       if (result.ok) {
         // 머리글의 종은 주소가 안 바뀌면 다시 안 센다 — 읽은 것을 바로 알린다
         announceNotificationsUnreadMoved();
-        router.refresh();
       } else setFailure(result.message);
     })();
-  }, [router, unread]);
+  }, [unread]);
 
   if (failure === null) return null;
   return <p role="alert" className="text-[13px] text-danger">소식을 읽은 것으로 표시하지 못했어요. 새로고침한 뒤 다시 확인해 주세요.</p>;

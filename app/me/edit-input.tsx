@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
@@ -97,7 +96,6 @@ export function EditInputForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -112,12 +110,8 @@ export function EditInputForm({
     setFailure(null);
     startSaving(async () => {
       const result = await editPersonInput(personId, query);
-      if (result.ok) {
-        onDone();
-        router.refresh();
-      } else {
-        setFailure(result.message);
-      }
+      if (result.ok) onDone();
+      else setFailure(result.message);
     });
   };
 
