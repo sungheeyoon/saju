@@ -371,7 +371,7 @@ export function previewSummaryFor(row: {
 
 /** 여기서 멈추는 이유와 다음 — **상세 궁합은 서로 동의한 뒤에 열린다** */
 export const DISCOVERY_TEASER =
-  '두 사람의 오행 구성을 바탕으로 계산한 참고 점수예요. 상세 궁합 요청하기를 누르면 두 사람의 자세한 궁합을 함께 확인할 수 있어요.';
+  '두 사람의 오행 구성을 바탕으로 계산한 참고 점수예요. 「궁합 요청」을 누르면 두 사람의 자세한 궁합을 함께 확인할 수 있어요.';
 
 /**
  * 목록이 **빈 자리**에 서는 말 — 첫 주에는 이것이 기본 상태다.
@@ -393,8 +393,8 @@ export const DISCOVERY_TEASER =
  */
 export const DISCOVERY_EMPTY = {
   /** 제목이라 마침표가 없다(`docs/context/copy.md` 의 문구 규칙) */
-  title: '소개해 드릴 인연이 없습니다',
-  line: '지금은 새로운 인연을 찾지 못했어요.',
+  title: '아직 소개해 드릴 인연이 없어요',
+  line: '지금은 소개할 인연을 찾지 못했어요. 잠시 후 다시 확인해 주세요.',
 } as const;
 
 const EXPLORATION_NOTE =
