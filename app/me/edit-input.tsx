@@ -150,12 +150,15 @@ export function EditInputForm({
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
+            /*
+              여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다.
+              「이름 저장」은 이름만 바뀐 때뿐이다 — 아무것도 안 바뀐 잠긴 단추가 그 이름이면 출생 정보 폼이 이름만 저장하는 것처럼 읽힌다.
+            */
             onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
             disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
             className={BUTTON_PRIMARY}
           >
-            {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
+            {saving ? '저장하는 중…' : pillarsSame && nameChanged ? '이름 저장' : '변경 사항 저장'}
           </button>
           <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
             작성 그만두기
