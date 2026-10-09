@@ -22,8 +22,9 @@ import { TYPE_NAME } from './ui/surfaces';
  * 흰 면 · 가는 테 · 보이는 높이 36px 이고, 고른 것은 옅은 크림 면 · 한 단계 짙은 테 · 먹색 글자에 **체크 표시**를 단다 — 색만으로
  * 「골랐다」를 말하지 않는다. 눌리는 자리는 그대로 44px 다(보이는 알약 밖의 투명한 위아래 4px).
  *
- * **누를 것은 칩 줄의 오른쪽 끝에 선다**(`action`). 넓은 화면은 칩 · 단추가 한 줄이고, 폰에서 줄이 넘치면 단추만 다음 줄의
- * 오른쪽 끝으로 내려간다.
+ * **누를 것은 칩 줄의 오른쪽 끝에 선다**(`action`). 넓은 화면은 칩 · 단추가 한 줄이고, 줄이 넘치면 단추만 다음 줄의
+ * 오른쪽 끝으로 내려간다. **칩은 한 묶음으로 넘친다** — 칩과 단추가 한 줄에 흩어져 있으면 칩만 줄을 바꿀 때 「아직 모르겠음」이
+ * 단추 곁으로 내려가 고를 것과 누를 것이 한 줄에 섞였다(2026-10-09 화면 감사). 묶음이 한 줄에 다 안 들면 단추는 그 아래 줄이다.
  *
  * **안 고르는 것도 답이다.** 필수로 두면 사람들은 아무거나 고르고, 그러면 틀린 값이
  * 「모른다」보다 나쁜 자리에 앉는다.
@@ -50,43 +51,46 @@ export function RelationChoice({
       </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
-        {[...RELATIONS, null].map((choice) => {
-          const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
-          const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
-          const picked = value === choice;
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+          {[...RELATIONS, null].map((choice) => {
+            const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
+            const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
+            const picked = value === choice;
 
-          return (
-            <label
-              key={id}
-              htmlFor={id}
-              className="group relative inline-flex min-h-11 cursor-pointer items-center active:scale-[0.97]"
-            >
-              {/*
-                칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
-                숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는 손에는 누를 것이
-                없는 칸이 된다(`birth-form.tsx` 와 같은 규율).
-              */}
-              <input
-                type="radio"
-                id={id}
-                name={`${idPrefix}-relation`}
-                checked={picked}
-                onChange={() => onChange(choice)}
-                className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
-              />
-              <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
-                  picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
-                }`}
+            return (
+              <label
+                key={id}
+                htmlFor={id}
+                className="group relative inline-flex min-h-11 cursor-pointer items-center active:scale-[0.97]"
               >
-                {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}
-                {label}
-              </span>
-            </label>
-          );
-        })}
+                {/*
+                  칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
+                  숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는 손에는 누를 것이
+                  없는 칸이 된다(`birth-form.tsx` 와 같은 규율). 위아래로 1px 씩 넘친다 — 꼭 44px 이면 칸의 위치가 반 픽셀에
+                  걸릴 때 눌리는 높이가 43.5 로 재였다(2026-10-09 #549, `e2e/target.ts`). 보이는 모양과 줄 높이는 그대로다. 칩이 두 줄로 접히면 그 1px 이 윗줄 · 아랫줄 칩을 덮으므로 줄 사이를 4px 띄운다(`gap-y-1`).
+                */}
+                <input
+                  type="radio"
+                  id={id}
+                  name={`${idPrefix}-relation`}
+                  checked={picked}
+                  onChange={() => onChange(choice)}
+                  className="peer absolute inset-x-0 -inset-y-px cursor-pointer appearance-none opacity-0"
+                />
+                <span
+                  className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                    picked
+                      ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
+                      : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                  }`}
+                >
+                  {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}
+                  {label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
         {action !== undefined && <div className="ml-auto flex min-w-0 justify-end pl-1.5">{action}</div>}
       </div>
     </fieldset>

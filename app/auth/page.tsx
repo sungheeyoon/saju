@@ -32,7 +32,7 @@ export default async function SignInPage({
         <span className="grid size-16 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-10" />
         </span>
-        <h1 className={`mt-3 ${TYPE_TITLE}`}>
+        <h1 className={`mt-3 text-balance ${TYPE_TITLE}`}>
           {forCompat ? '궁합은 로그인 후 이용할 수 있습니다' : forReading ? '내 사주풀이로 이어갈까요?' : `${SERVICE_NAME} 시작하기`}
         </h1>
         <p className="text-[15px] leading-7 text-secondary">
