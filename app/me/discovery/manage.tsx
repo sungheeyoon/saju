@@ -91,8 +91,8 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
         </div>
       </fieldset>
 
-      {/* 마지막 줄이 이 카드의 꼬리다 — 왼쪽은 지켜 주는 약속, 오른쪽은 시작하는 누름 */}
-      <SettingsRow note="내 출생 정보는 다른 사람에게 공개되지 않아요.">
+      {/* 마지막 줄이 이 카드의 꼬리다 — 왼쪽은 고른 값이 어떻게 쓰이는지(양쪽 조건이 다 맞아야 소개된다), 오른쪽은 시작하는 누름 */}
+      <SettingsRow note="서로 고른 성별이 맞는 사람끼리 소개돼요.">
         {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}
         <button type="button" onClick={save} disabled={saving || !changed} className={SETTINGS_PRIMARY}>
           {saving ? '저장하는 중…' : '저장'}
