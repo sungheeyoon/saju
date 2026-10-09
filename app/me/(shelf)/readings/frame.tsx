@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from 'next/navigation';
-import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import type { Element } from '@/src/lib/saju';
 
@@ -12,7 +12,15 @@ import { Icon } from '../../../ui/icons';
 import { TYPE_TITLE } from '../../../ui/surfaces';
 import { backOf, isOpenResult, placeOf, resultKindOf, withCameFrom, type CameFrom } from '../../../came-from';
 import { SHELF_KIND_LABEL, SHELF_KINDS, SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './kind';
-import { openingHref } from './opening';
+import {
+  LAST_OPENED_KEY,
+  lastOpenedOf,
+  openBookOf,
+  openingHref,
+  withOpened,
+  type LastOpened,
+  type ShelfLists,
+} from './opening';
 
 /**
  * **책장과 읽는 자리 — 두 칸, 주소 하나에 글 하나.**
@@ -43,6 +51,32 @@ function useShelfKind(): ShelfKind {
   return shelfKindOf(useSearchParams().get('kind'));
 }
 
+/**
+ * 붙는 머리(`sticky`)가 지금 붙어 있나 — 제 자리보다 위로 밀려 붙는 선(`top`)에 닿았으면 붙은 것이다. 두 칸 화면은
+ * 머리가 붙지 않으므로 늘 아니다.
+ */
+function useStuck() {
+  const ref = useRef<HTMLElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (element === null) return;
+    const wide = window.matchMedia(TWO_COLUMNS);
+    const measure = () => {
+      const line = Number.parseFloat(getComputedStyle(element).top);
+      setOn(!wide.matches && window.scrollY > 0 && element.getBoundingClientRect().top <= line + 0.5);
+    };
+    measure();
+    window.addEventListener('scroll', measure, { passive: true });
+    wide.addEventListener('change', measure);
+    return () => {
+      window.removeEventListener('scroll', measure);
+      wide.removeEventListener('change', measure);
+    };
+  }, []);
+  return [ref, on] as const;
+}
+
 /** 지금 글이 어디서 열렸나 — 주소의 `?from=` 과 `?kind=`(ADR 0134) */
 function usePlace() {
   const params = useSearchParams();
@@ -51,12 +85,15 @@ function usePlace() {
 
 export function ReadingsFrame({
   shelves,
+  lists,
   nothing,
   singles,
   children,
 }: {
   /** 필터 칸마다의 책장 — 서버가 넷을 다 그려 두고, 여기서는 주소가 고른 하나만 세운다 */
   shelves: Record<ShelfKind, ReactNode>;
+  /** 필터 칸마다 책장에 선 차례의 주소 — 넓은 화면에서 펼 한 권을 고른다(`openingHref`) */
+  lists: ShelfLists;
   /** 한 권도 없을 때의 안내 — 있으면 목록 주소에서는 두 칸 대신 이것 한 장이 선다 */
   nothing: ReactNode | null;
   /** 한 사람 풀이 — DB 가 준 차례(최근 것이 먼저) */
@@ -65,28 +102,48 @@ export function ReadingsFrame({
 }) {
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
   const kind = useShelfKind();
   const reading = segment !== null;
-  /*
-    궁합 칸 · 인연 칸에는 저절로 펼 한 사람 풀이가 없다 — 그 표지는 눌러야 옆 칸에 펼친다(`/me/readings/compat` · `match/[id]`, ADR 0134).
-    사주풀이 칸에서 펼 때는 칸을 들고 간다 — 펼친 뒤에도 책장이 같은 칸에 남는다.
-  */
-  const openingBook = kind === 'all' || kind === 'saju' ? openingHref(singles) : null;
-  const opening = openingBook === null ? null : withCameFrom(openingBook, 'shelf', kind);
+  /* 이 칸에 펼 글이 있나 — 어느 글인지는 이 브라우저의 기억을 읽어야 해서 아래 효과가 고른다. 있나 없나는 기억과 무관하다 */
+  const hasOpening = lists[kind].length > 0;
+
+  /* 펼친 글을 기억한다 — 그 권이 선 칩(전체와 제 칸)에서 다음에 목록만 열면 이 글을 편다 */
+  useEffect(() => {
+    if (!reading) return;
+    const book = openBookOf(lists, pathname, search);
+    if (book === null) return;
+    try {
+      const last = lastOpenedOf(window.localStorage.getItem(LAST_OPENED_KEY));
+      window.localStorage.setItem(LAST_OPENED_KEY, JSON.stringify(withOpened(last, lists, book)));
+    } catch {
+      /* 저장을 못 하는 브라우저(사생활 창 등)는 기억 없이 칩의 기본을 편다 */
+    }
+  }, [reading, lists, pathname, search]);
 
   /*
-    **넓은 화면에서 목록만 열면 한 권을 편다** — 내 사주풀이가 있으면 그것, 없으면 가장 최근 글(`openingHref`).
-    주소를 그 글로 **바꿔 끼운다**(`replace`) — 뒤로 가기가 빈 오른쪽을 한 번 더 지나지 않는다. 폰은
-    목록이 곧 첫 화면이라 옮기지 않는다.
+    **넓은 화면에서 목록만 열면 한 권을 편다** — 그 칩에서 마지막으로 연 글, 없으면 그 칩의 기본(`openingHref`).
+    펼 때는 칩을 들고 간다 — 펼친 뒤에도 책장이 같은 칸에 남는다. 주소를 그 글로 **바꿔 끼운다**(`replace`) —
+    뒤로 가기가 빈 오른쪽을 한 번 더 지나지 않는다. 폰은 목록이 곧 첫 화면이라 옮기지 않는다.
   */
   useEffect(() => {
-    if (reading || opening === null) return;
-    if (window.matchMedia(TWO_COLUMNS).matches) router.replace(opening, { scroll: false });
-  }, [reading, opening, router]);
+    if (reading || !hasOpening) return;
+    if (!window.matchMedia(TWO_COLUMNS).matches) return;
+    let last: LastOpened = {};
+    try {
+      last = lastOpenedOf(window.localStorage.getItem(LAST_OPENED_KEY));
+    } catch {
+      /* 못 읽으면 기억이 없는 것과 같다 */
+    }
+    const book = openingHref(kind, lists, last);
+    if (book !== null) router.replace(withCameFrom(book, 'shelf', kind), { scroll: false });
+  }, [reading, hasOpening, kind, lists, router]);
 
   if (!reading && nothing !== null) {
+    /* 안내 한 장은 가운데 한 기둥에 선다 — 넓은 화면에서 전폭 카드에 글과 타일이 왼쪽으로 몰리지 않게 */
     return (
-      <div className="flex flex-col gap-10">
+      <div className="mx-auto flex w-full max-w-[40rem] flex-col gap-10">
         <ShelfHead kind={null} />
         {nothing}
       </div>
@@ -105,7 +162,7 @@ export function ReadingsFrame({
 
       <div className={`${reading ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-8`}>
         {/* 곧 펼 글로 옮겨 갈 자리에 「표지를 누르면」을 잠깐 세우지 않는다 */}
-        {reading || opening === null ? children : null}
+        {reading || !hasOpening ? children : null}
         {next !== null && <NextCard book={next} />}
       </div>
     </div>
@@ -189,12 +246,20 @@ function NextCard({ book }: { book: NextBook }) {
  * 폰에서는 이 덩어리가 머리글 바로 아래에 붙어 따라 내려온다. 책장을 한참 내려도 「어디서 무엇을 보고 있나」를
  * 잃지 않는다. 넓은 화면은 책장이 한 칸이라 붙이지 않는다.
  *
+ * **바탕 띠는 붙었을 때만 선다**(2026-10-09). 늘 깔아 두었더니 맨 위에서도 배경 그라데이션 위에 밝은 띠가 튀었다 —
+ * 책장이 그 밑으로 지나갈 때에만 글자를 가릴 바탕이 필요하다.
+ *
  * 칩은 주소를 바꾼다(`replace`) — 칩을 누를 때마다 뒤로 가기가 쌓이지 않고, 새로고침 · 공유해도 같은 칸이 열린다.
  * 안내 한 장만 서는 빈 보관함(`kind === null`)에는 칩이 안 선다 — 가를 것이 없다.
  */
 function ShelfHead({ kind }: { kind: ShelfKind | null }) {
+  const [ref, stuck] = useStuck();
   return (
-    <header className="sticky top-16 z-30 -mx-4 flex flex-col gap-3 bg-background/90 px-4 pb-3 pt-2 backdrop-blur-xl lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+    <header
+      ref={ref}
+      data-stuck={stuck ? 'true' : undefined}
+      className="sticky top-16 z-30 -mx-4 flex flex-col gap-3 px-4 pb-3 pt-2 transition-colors data-[stuck=true]:bg-background/90 data-[stuck=true]:backdrop-blur-xl lg:static lg:mx-0 lg:p-0"
+    >
       <h1 className={TYPE_TITLE}>{SHELF_TITLE}</h1>
       {kind !== null && (
         <nav aria-label="풀이 종류">
