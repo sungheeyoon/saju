@@ -59,3 +59,12 @@ export const makingPeopleOf = (running: readonly Pick<RunningReading, 'target'>[
 /** 내 사주풀이를 지금 만드는 중인가 — 카드의 단추와 빈 표지가 이 값으로 갈린다 */
 export const makingSelf = (running: readonly Pick<RunningReading, 'target'>[]): boolean =>
   running.some((one) => one.target.kind === 'self');
+
+/**
+ * 홈의 줄 하나가 그릴 것 — **서버가 다 지어 내려보낸다.** 단계의 이름(절 이름)은 프롬프트 모듈이 들고 그 모듈은 브라우저로 안
+ * 가므로(`scripts/layers.test.ts`), 줄을 다시 묻는 작은 섬(`running-band-live.tsx`)은 글자만 받는다.
+ */
+export type RunningLine = { readonly key: string; readonly href: string; readonly name: string; readonly stage: string };
+
+export const runningLinesOf = (running: readonly RunningReading[]): RunningLine[] =>
+  running.map((one) => ({ key: runningHref(one.target), href: runningHref(one.target), name: runningName(one), stage: runningStage(one) }));
