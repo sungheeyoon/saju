@@ -14,7 +14,13 @@ export default function MatchNotFound() {
   return (
     <NoticeScreen
       title="찾을 수 없어요"
-      description={<p>주소에 적힌 인연 궁합을 찾지 못했어요. 인연 탭에서 다시 열어 주세요.</p>}
+      description={
+        <p>
+          주소에 적힌 인연 궁합을 찾지 못했어요.
+          <br />
+          인연 탭에서 다시 열어 주세요.
+        </p>
+      }
       actions={
         <Link href="/me/matching" className={BUTTON_PRIMARY}>
           인연 탭으로

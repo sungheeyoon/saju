@@ -18,7 +18,13 @@ export default function PersonNotFound() {
   return (
     <NoticeScreen
       title="찾을 수 없어요"
-      description={<p>주소에 적힌 사람을 찾지 못했어요. 목록에서 다시 골라 주세요.</p>}
+      description={
+        <p>
+          주소에 적힌 사람을 찾지 못했어요.
+          <br />
+          목록에서 다시 골라 주세요.
+        </p>
+      }
       actions={
         <>
           <Link href="/compat" className={BUTTON_PRIMARY}>
