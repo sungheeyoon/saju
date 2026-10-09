@@ -19,7 +19,7 @@ import { selfReadingOf } from '../home/map/model';
 import { ReceivedReadings } from '../home/received-readings';
 import { runningReadings } from '../home/running';
 import { RunningReadings } from '../home/running-band';
-import { makingSelf } from '../home/running-line';
+import { makingPeopleOf, makingSelf } from '../home/running-line';
 import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
@@ -165,7 +165,13 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         <ReceivedReadings readings={readings} makingSelf={makingSelf(running)} />
       </div>
 
-      <MyPeople selfPersonId={selfPersonId} readings={readings} circle={circle} people={circlePeopleOf(circle, inputs)} />
+      <MyPeople
+        selfPersonId={selfPersonId}
+        readings={readings}
+        circle={circle}
+        people={circlePeopleOf(circle, inputs)}
+        making={makingPeopleOf(running)}
+      />
     </>
   );
 }
