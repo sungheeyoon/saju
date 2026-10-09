@@ -394,7 +394,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
 }
 
 /**
- * 대화의 첫머리 — 누구와 이야기하는지와 인연 궁합으로 가는 길.
+ * 대화의 첫머리 — 누구와 이야기하는지와 (폰에서) 인연 궁합으로 가는 길.
  *
  * 두 일간을 아는 방은 **두 사람의 카드**다: 나와 상대가 제 일간 오행의 파스텔 한 장씩으로 나란히 서고(결과 화면의
  * 「각자의 사주」와 같은 조각 `DayMasterChip`), 아래로 인연 궁합이 이어진다. 「이 사람과 왜 이야기하게
@@ -403,8 +403,12 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
  */
 function RoomStart({ room }: { room: RoomView }) {
   const tones = room.tones;
+  /*
+    **폰에서만 선다** — 넓은 화면(sm 이상)은 머리에 같은 단추가 늘 서 있어, 여기도 서면 한 화면에 「인연 궁합」이 둘이었다
+    (화면 감사 2026-10-09). 폰의 머리는 이름에 자리를 주느라 그 단추가 없다. 서는 조건은 머리와 같다(상대가 있고 열린 방).
+  */
   const toMatch = room.partnerUserId !== null && room.notice === null && (
-    <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={BUTTON_SECONDARY_SMALL}>
+    <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={`${BUTTON_SECONDARY_SMALL} sm:hidden`}>
       <Icon name="heart" className="size-4 text-danger" />
       인연 궁합
       <Icon name="arrow" className="size-4" />
