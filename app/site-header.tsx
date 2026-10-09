@@ -151,8 +151,9 @@ export function SiteHeader() {
             aria-label={`${SERVICE_NAME} 홈`}
           >
             {/* 폰 폭에서는 풀이권 · 종 · 톱니가 자리를 먼저 쓴다 — 이름은 로고가 대신한다. 네 글자 「만날지도」는 그 셋과
-                393px 에 함께 못 서서(11px 넘쳤다) 회원 머리글은 430px 부터, 그 셋이 없는 머리글은 380px 부터 이름을 세운다 */}
-            <BrandMark nameClassName={memberNavigation ? 'hidden min-[430px]:inline' : 'hidden min-[380px]:inline'} />
+                393px 에 함께 못 서서(11px 넘쳤다) 회원 머리글은 430px 부터, 그 셋이 없는 머리글은 380px 부터 이름을 세운다.
+                가입 · 종료 화면(`ended`)은 톱니 하나만 남으므로 380px 쪽이다 — 430 을 따르면 390 폰에서 이름이 빠졌다 */}
+            <BrandMark nameClassName={live ? 'hidden min-[430px]:inline' : 'hidden min-[380px]:inline'} />
           </Link>
 
           {/*

@@ -6,6 +6,10 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  * `home/received-readings.tsx` · `(shelf)/readings/shelf.tsx` 의 `row` 표지)을 따른다 — 어긋나면 다 불러온 순간 화면이
  * 출렁인다(2026-10-09 화면 갤러리 감사).
  *
+ * **있을지 없을지 모르는 줄은 늘 두지 않는다**(2026-10-10). 「만드는 중」 줄(`home/running-band.tsx`)은 만드는 풀이가 있을 때만
+ * 서므로 뼈대에 자리를 두지 않는다 — 늘 두면 대부분의 사람에게 빈 띠가 섰다가 걷혀 아래 전부가 올라간다. 받은 사주풀이의
+ * 둘째 줄도 같은 까닭으로 안 둔다.
+ *
  * **이 무리(`(home)`)는 홈 하나만 품는다.** `app/me/loading.tsx` 로 두면 `/me` 아래 모든 화면(사람 · 계정 관리 · 궁합 ·
  * 인연 결과)이 이 뼈대로 열리고, 그 화면들이 곧바로 보내는 404 · 307 도 스트리밍 뒤의 200 으로 바뀐다(흐름 검사가 그 상태
  * 코드를 잰다, ADR 0116).
@@ -21,11 +25,11 @@ export default function HomeLoading() {
 
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
-          {/* 줄인 내 사주 카드 — 폰에서는 오행 칸과 출생 정보 상자가 없어 낮고, 넓은 화면은 그 둘이 선다 */}
-          <div className="flex flex-col gap-3 rounded-[2rem] bg-surface p-4 sm:gap-6 sm:p-8">
+          {/* 줄인 내 사주 카드 — 폰에서는 오행 칸과 출생 정보 상자가 없어 낮고(224px), 넓은 화면은 그 둘이 선다(594px) */}
+          <div className="flex min-h-56 flex-col justify-between gap-3 rounded-[2rem] bg-surface p-4 sm:min-h-[37.125rem] sm:gap-6 sm:p-8">
             <div className="flex flex-col gap-2 sm:gap-3">
               <div className="flex flex-col gap-1">
-                <Bone className="h-6 w-20 rounded-full" />
+                <Bone className="h-8 w-20 rounded-full" />
                 <Bone className="h-8 w-40 rounded-full sm:h-[2.875rem] sm:w-56" />
               </div>
               <Bone className="h-[1.6rem] w-3/4 rounded-full sm:h-[1.875rem]" />
@@ -44,28 +48,40 @@ export default function HomeLoading() {
               <Bone className="h-12 rounded-full sm:w-44" />
             </div>
           </div>
-          {/* 「다른 사람 사주 보기」 한 줄 */}
-          <Bone className="h-14 w-full rounded-[1.25rem]" />
+          {/* 「다른 사람 사주 보기」 한 줄 — 넓은 화면은 글자 줄이 커 62px 다 */}
+          <Bone className="h-14 w-full rounded-[1.25rem] sm:h-[3.875rem]" />
         </div>
 
-        {/* 내가 받은 사주풀이 — 폰 · md 는 한 줄 셋, lg 는 두 줄 둘(넷째 권은 lg 에서만 선다) */}
+        {/*
+          내가 받은 사주풀이 — 폰 · md 는 한 줄 셋, lg 는 한 줄 둘. 실제는 lg 에서 넷까지 두 줄로 서지만 몇 권인지는 모른다 —
+          둘째 줄을 늘 두면 권이 둘 이하인 사람(가장 흔하다)에게 236px 가 비었다가 걷혔다. 머리 줄은 「풀이 보관함」 단추 높이(44px)다
+        */}
         <div className="flex min-w-0 flex-col gap-2 sm:gap-4">
-          <Bone className="h-8 w-48 rounded-full" />
+          <div className="flex h-11 items-end">
+            <Bone className="h-8 w-48 rounded-full" />
+          </div>
           <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-2">
-            {[0, 1, 2, 3].map((book) => (
+            {[0, 1, 2].map((book) => (
               <Bone
                 key={book}
-                className={`min-h-[9rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem] sm:min-h-[14rem] sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] ${book === 3 ? 'hidden lg:block' : ''}`}
+                className={`min-h-[9.125rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem] sm:min-h-[14rem] sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] ${book === 2 ? 'lg:hidden' : ''}`}
               />
             ))}
           </div>
         </div>
       </div>
 
+      {/*
+        저장한 사람 — 타일 둘과 끝의 「사람 추가」 타일(`home/circle-view.tsx`). 사람 타일은 딱지 · 이름 · 두 줄 평 · 단추 줄이라 폰
+        220px · 넓은 화면 224px 이고, 추가 타일은 같은 줄이면 그 높이를 따르고 홀로 선 줄이면 제 min-h(176px)다
+      */}
       <div className="flex flex-col gap-4">
-        <Bone className="h-8 w-40 rounded-full" />
+        <div className="flex h-11 items-end">
+          <Bone className="h-8 w-40 rounded-full" />
+        </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          <Bone className="min-h-44 rounded-[1.5rem]" />
+          <Bone className="min-h-[13.75rem] rounded-[1.5rem] sm:min-h-56" />
+          <Bone className="min-h-[13.75rem] rounded-[1.5rem] sm:min-h-56" />
           <Bone className="min-h-44 rounded-[1.5rem]" />
         </div>
       </div>
