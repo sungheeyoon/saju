@@ -1319,7 +1319,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.locator('#chart')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('heading', { name: '사주가 보여 주는 나' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: '전체 사주풀이 목차' })).toHaveCount(0);
     expect(asked, '회원의 `/#…` · `/saju#…` 에서 서버 액션이 나갔다').toEqual([]);
   });
 
@@ -3463,7 +3463,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
   });
 
   /**
-   * **로그인 전 사주 문단 → 더보기 → 가입 왕복 → 「아까 보던 내용」 → 생성 중 → 완성**(ADR 0143). 모델은 안 부른다 — 이 입력의
+   * **로그인 전 사주 문단(잠긴 목차의 첫 절) → 로그인하고 전체 풀이 받기 → 가입 왕복 → 「아까 보던 내용」 → 생성 중 → 완성**(ADR 0143). 모델은 안 부른다 — 이 입력의
    * 글을 DB 에 성공으로 심어 두면 서버가 재사용으로 내준다(지문은 앱이 쓰는 그 함수로 잰다). 풀이도 시도를 그 사람으로 열고
    * 서버가 열쇠로 부르는 문(잇기 · 저장)을 `postgres` 로 부른다.
    */
@@ -3492,17 +3492,15 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await context.setExtraHTTPHeaders({ 'x-forwarded-for': `10.143.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
 
     await page.goto(`/#${input}`);
-    const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
+    const taste = page.getByRole('region', { name: '전체 사주풀이 목차' });
     await expect(taste).toContainText('새벽빛이 들기 전에', { timeout: 30_000 });
-    await taste.getByRole('button', { name: '더보기' }).click();
-    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    await taste.getByRole('link', { name: '로그인하고 전체 풀이 받기' }).click();
     await expect(page).toHaveURL(/\/auth\?next=%2Fsaju%23resume-reading$/);
 
     /* 뒤로가기 — 같은 글이 다시 선다(같은 세션을 다시 쓴다) */
     await page.goBack();
     await expect(taste).toContainText('새벽빛이 들기 전에', { timeout: 30_000 });
-    await taste.getByRole('button', { name: '더보기' }).click();
-    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    await taste.getByRole('link', { name: '로그인하고 전체 풀이 받기' }).click();
     const sessionId = await page.evaluate(() => sessionStorage.getItem('saju:taste-session'));
     expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
 
@@ -3605,10 +3603,9 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await context.setExtraHTTPHeaders({ 'x-forwarded-for': `10.144.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
 
     await page.goto(`/#${input}`);
-    const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
+    const taste = page.getByRole('region', { name: '전체 사주풀이 목차' });
     await expect(taste).toContainText('한낮 가까이에', { timeout: 30_000 });
-    await taste.getByRole('button', { name: '더보기' }).click();
-    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    await taste.getByRole('link', { name: '로그인하고 전체 풀이 받기' }).click();
     const sessionId = await page.evaluate(() => sessionStorage.getItem('saju:taste-session'));
     expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
 
