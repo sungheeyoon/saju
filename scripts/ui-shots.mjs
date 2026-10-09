@@ -82,6 +82,9 @@ const PLAN = [
       { id: 'auth-compat', at: '/auth?next=/compat', name: '로그인 — 궁합에서 온 사람' },
       { id: 'auth-denied', at: '/auth/denied', name: '로그인하지 못했습니다' },
       { id: 'privacy', at: '/privacy', name: '개인정보 처리방침' },
+      { id: 'about', at: '/about', name: '서비스 소개' },
+      { id: 'help', at: '/help', name: '도움말' },
+      { id: 'not-found', at: '/no-such-page', name: '없는 주소' },
     ],
   },
   {
@@ -119,6 +122,36 @@ const PLAN = [
           await page.getByText('출생 정보 수정').first().waitFor();
         },
       },
+      {
+        id: 'people-edit',
+        at: '/me/people',
+        name: '저장한 사람 — 출생 정보 수정',
+        act: async (page) => {
+          await page.locator('summary[aria-label$="관리"]').first().click();
+          await page.getByText('출생 정보 수정').first().click();
+          await page.waitForTimeout(500);
+        },
+      },
+      {
+        id: 'people-note',
+        at: '/me/people',
+        name: '저장한 사람 — 메모',
+        act: async (page) => {
+          await page.locator('summary[aria-label$="관리"]').first().click();
+          await page.getByText(/메모 (넣기|고치기)/).first().click();
+          await page.waitForTimeout(500);
+        },
+      },
+      {
+        id: 'people-remove',
+        at: '/me/people',
+        name: '저장한 사람 — 빼기 확인',
+        act: async (page) => {
+          await page.locator('summary[aria-label$="관리"]').first().click();
+          await page.getByText('목록에서 빼기').first().click();
+          await page.waitForTimeout(500);
+        },
+      },
       { id: 'person', at: (one) => `/me/people/${one.managed[0].personId}`, name: '저장한 사람 — 상세' },
       {
         id: 'person-reading',
@@ -127,17 +160,60 @@ const PLAN = [
       },
       { id: 'person-self', at: (one) => `/me/people/${one.selfPersonId}`, name: '내 사주 상세' },
       { id: 'readings', at: '/me/readings', name: '사주풀이 목록' },
+      { id: 'inspect', at: '/me/reading/inspect?kind=self', name: '해석 내부 보기 (검산)' },
       {
-        id: 'feedback',
-        at: '/me/readings/self',
-        name: '풀이 설문',
+        id: 'reading-making',
+        at: (one) => `/me/readings/${one.managed[1].personId}`,
+        name: '사주풀이 — 받는 중',
+        /* 서버 액션을 붙잡아 둔 채 누른다 — 답이 안 오는 동안의 화면이다 */
         act: async (page) => {
-          await page.getByText('이 풀이는 어떠셨어요').waitFor();
+          await page.route('**/*', (route) =>
+            route.request().method() === 'POST' && route.request().headers()['next-action'] ? undefined : route.fallback(),
+          );
+          await page.locator('main button', { hasText: /받기$/ }).first().click();
+          await page.locator('dialog[open] button', { hasText: /받기$/ }).click();
+          await page.waitForTimeout(1500);
         },
       },
-      { id: 'inspect', at: '/me/reading/inspect?kind=self', name: '해석 내부 보기 (검산)' },
+      {
+        id: 'me-making',
+        at: '/me',
+        name: '홈 — 풀이를 만드는 중일 때',
+        /* 모델 없이 시도만 열어 둔다 — 「동생」의 사주풀이가 도는 동안의 홈이다 */
+        before: async (one) => {
+          const started = await one.api.rpc('start_reading_run', {
+            p_kind: 'person',
+            p_idempotency_key: `ui-making-${Math.random().toString(36).slice(2)}`,
+            p_person_a: one.managed[1].personId,
+            p_person_b: null,
+            p_match_id: null,
+            p_model: 'gpt-ui-walk',
+            p_prompt_version: 'reading-prompt-v7',
+          });
+          if (started.error) console.log(`    ↳ ${started.error.message}`);
+        },
+      },
+      {
+        id: 'person-making',
+        at: (one) => `/me/readings/${one.managed[1].personId}`,
+        name: '사주풀이 — 다시 열었을 때도 만드는 중',
+      },
+      { id: 'requests-after-reading', at: '/me/requests', name: '소식 — 풀이를 만든 뒤' },
       { id: 'discovery', at: '/me/discovery', name: '인연 찾기 설정' },
       { id: 'requests', at: '/me/requests', name: '소식' },
+      { id: 'matching', at: '/me/matching', name: '인연 탭' },
+      { id: 'matching-history', at: '/me/matching/history', name: '인연 — 지난 기록' },
+      { id: 'readings-compat', at: '/me/readings/compat', name: '사주풀이 — 궁합' },
+      { id: 'survey', at: '/me/survey', name: '설문' },
+      { id: 'chat-rooms', at: '/me/chat', name: '대화 목록' },
+      {
+        id: 'account-menu',
+        at: '/me',
+        name: '계정 메뉴',
+        act: async (page) => {
+          await page.locator('header details > summary').last().click();
+        },
+      },
       { id: 'compat-anon', at: '/compat', name: '궁합 — 직접 입력' },
       {
         id: 'compat-anon-result',
@@ -154,7 +230,10 @@ const PLAN = [
   {
     state: 'board',
     group: '인연',
-    shots: [{ id: 'me-board', at: '/me', name: '내 계정 (홈) — 오늘의 인연이 섰을 때' }],
+    shots: [
+      { id: 'me-board', at: '/me', name: '내 계정 (홈) — 오늘의 인연이 섰을 때' },
+      { id: 'matching-board', at: '/me/matching', name: '인연 탭 — 오늘의 인연' },
+    ],
   },
   {
     state: 'pair',
@@ -162,6 +241,9 @@ const PLAN = [
     shots: [
       { id: 'match', at: (one, all) => `/me/match/${all.matchId}`, name: '인연 궁합' },
       { id: 'requests-matched', at: '/me/matching', name: '인연 탭의 요청 — 맺어진 뒤' },
+      { id: 'chat', at: (one, all) => `/me/chat/${all.matchId}`, name: '대화방' },
+      { id: 'chat-rooms-matched', at: '/me/chat', name: '대화 목록 — 맺어진 뒤' },
+      { id: 'match-reading', at: (one, all) => `/me/readings/match/${all.matchId}`, name: '사주풀이 — 인연 궁합' },
       {
         id: 'inspect-match',
         at: (one, all) => `/me/reading/inspect?kind=match&m=${all.matchId}`,
@@ -184,6 +266,9 @@ const PLAN = [
     ],
   },
 ];
+
+/** 개발 서버가 얹는 표시(왼쪽 아래 N · Rendering…)는 화면이 아니다 */
+const DEV_ONLY = 'nextjs-portal { display: none !important; }';
 
 const SIZES = [
   { id: 'desktop', width: 1280, height: 900 },
@@ -240,6 +325,8 @@ for (const step of PLAN) {
     const page = await context.newPage();
 
     for (const shot of shots) {
+      /* 화면 밖에서 상태를 먼저 세울 줄이 있다 — 한 번만(데스크톱 차례에서) */
+      if (shot.before && size.id === 'desktop') await shot.before(person, built);
       const at = typeof shot.at === 'function' ? shot.at(person, built) : shot.at;
       await page.goto(`${from}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
       /* 화면이 누름 뒤에만 서면 그 누름까지 하고 찍는다 — 실패해도 찍는다(그 화면도 값이다) */
@@ -253,13 +340,58 @@ for (const step of PLAN) {
       const file = `${shot.id}-${size.id}.jpg`;
       await page.screenshot({
         path: join(out, file),
-        fullPage: true,
+        /* 창이 떠 있으면 덮인 화면만 — 긴 화면 전체를 찍으면 가림막이 첫 한 화면에만 선다 */
+        fullPage: (await page.locator('dialog[open]').count()) === 0,
+        style: DEV_ONLY,
         type: 'jpeg',
         quality: 72,
       });
 
       if (size.id === 'desktop') {
         index.push({ id: shot.id, group: step.group, name: shot.name, at, landed });
+      }
+
+      /*
+        **팝업은 그 화면에 이미 들어 있다.** 확인 창(`<dialog>`)은 누르기 전에도 DOM 에 서 있으므로
+        누를 손잡이를 화면마다 찾지 않고 하나씩 직접 연다. 같은 창을 두 화면이 들면 둘 다 찍힌다.
+        `act` 가 있는 줄은 이미 무엇을 편 상태라 건너뛴다.
+      */
+      const dialogs = shot.act ? 0 : await page.locator('dialog').count();
+      for (let n = 0; n < dialogs; n += 1) {
+        const label = await page
+          .locator('dialog')
+          .nth(n)
+          .evaluate((one) => {
+            one.showModal();
+            const by = one.getAttribute('aria-labelledby');
+            return (
+              one.getAttribute('aria-label') ??
+              (by ? document.getElementById(by)?.textContent : null) ??
+              one.textContent ??
+              ''
+            )
+              .trim()
+              .slice(0, 40);
+          })
+          .catch(() => null);
+        /* 고른 것이 없으면 빈 창이다 — 그런 창은 그 손잡이를 누르는 줄이 따로 찍는다 */
+        if (label === null || label === '') {
+          await page.locator('dialog').nth(n).evaluate((one) => one.close()).catch(() => {});
+          continue;
+        }
+        await page.waitForTimeout(300);
+        const popup = `${shot.id}-dialog${n + 1}`;
+        await page.screenshot({
+          path: join(out, `${popup}-${size.id}.jpg`),
+          style: DEV_ONLY,
+          type: 'jpeg',
+          quality: 72,
+        });
+        if (size.id === 'desktop') {
+          index.push({ id: popup, group: step.group, name: `${shot.name} — 팝업: ${label}`, at, landed });
+        }
+        console.log(`  ${step.group} · ${shot.name} — 팝업 ${n + 1} (${size.id})`);
+        await page.locator('dialog').nth(n).evaluate((one) => one.close()).catch(() => {});
       }
       console.log(`  ${step.group} · ${shot.name} (${size.id})`);
     }
