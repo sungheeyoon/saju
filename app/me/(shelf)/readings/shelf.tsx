@@ -11,6 +11,7 @@ import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
+import { READING_MAKING } from '../../home/making';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
@@ -44,6 +45,8 @@ const COVER =
  * 84.7px 로 칸(84px)을 넘겨 두 줄로 꺾였고 표지 셋이 18px 씩 자라 저장한 사람 머리가 첫 화면 밖(598.9px > 584)으로 나갔다.
  * 위아래 여백(`py-2`)과 최소 높이(9rem), 홈의 폰 틈(`app/me/(home)/page.tsx` · `app/me/home/received-readings.tsx`)도 그때 줄여 첫 화면
  * 끝까지 19px 를 남겼다 — 두 서체 모두 564.8px 로 쟀다. 같은 날 웹 글꼴을 뺐다(ADR 0109 추기) — 이제 모든 기기가 시스템 서체다.
+ *
+ * 2026-10-10(B13) 폰의 홈은 셋을 한 줄 격자가 아니라 옆으로 넘기는 줄에 세운다 — 한 권이 줄의 72% 다. 높이 · 글자 크기는 그대로다.
  */
 const COVER_ROW =
   'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
@@ -180,12 +183,15 @@ export function BlankBook({
   row = false,
   wide = false,
   from,
+  className,
 }: {
   href: string;
   element: Element;
   label: string;
   row?: boolean;
   wide?: boolean;
+  /** 이 권이 선 칸의 모양 — 홈의 폰 가로 줄(`received-readings.tsx`)이 칸 폭을 준다 */
+  className?: string;
   /** 결과로 가는 빈 표지(「내 사주풀이」)만 싣는다 — 만드는 자리로 가는 표지에는 `CoverLink` 가 안 붙인다 */
   from?: CameFrom;
 }) {
@@ -193,7 +199,7 @@ export function BlankBook({
     ? 'flex-row justify-start gap-4 px-5 py-4 text-left'
     : `${row ? 'min-h-[9rem] px-2 py-4 sm:min-h-[14rem] sm:p-4' : 'min-h-[14rem] p-4'} flex-col justify-center gap-3 text-center`;
   return (
-    <li className={wide ? 'col-span-full' : undefined}>
+    <li className={wide ? 'col-span-full' : className}>
       <CoverLink
         href={href}
         from={from}
@@ -206,6 +212,36 @@ export function BlankBook({
         <span className={`font-semibold text-foreground ${row ? 'whitespace-nowrap text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{label}</span>
       </CoverLink>
     </li>
+  );
+}
+
+/**
+ * **만드는 중인 한 권** — 한 사람 풀이 · 궁합풀이가 아직 도는 동안 책장에 선다(2026-10-10 화면 점검 B3).
+ *
+ * 홈에서 「만드는 중」을 보고 보관함에 오면 그 풀이가 사라진 것처럼 읽혔다 — 넓은 화면에서는 지금 펼친 글이 옆 책장에 없었다.
+ * 인연 궁합의 편지(`MakingShelf`)와 같은 크림 면 · 흐르는 띠 · 「만드는 중…」이고, 크기는 곁의 표지와 같다. 누르면 그 풀이
+ * 화면으로 가서 같은 목차를 본다. 이름은 홈의 줄과 같은 말이다(`runningName`).
+ */
+export function MakingCover({ href, name, from }: { href: string; name: string; from?: CameFrom }) {
+  return (
+    <CoverLink href={href} from={from} className={`${COVER} bg-cream`}>
+      <Spine background="var(--cream-ink)" />
+      <span className="relative flex min-w-0 flex-col gap-1">
+        <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface text-cream-ink">
+          <Icon name="spark" className="size-4" />
+        </span>
+        <span className="mt-2 line-clamp-2 text-[15px] font-semibold text-foreground">{name}</span>
+      </span>
+      <span className="relative mt-auto flex flex-col gap-2">
+        <span
+          aria-hidden="true"
+          className="block h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]"
+        >
+          <span className={`${flow.flow} block h-full rounded-full`} />
+        </span>
+        <span className="text-[13px] font-semibold text-cream-ink">{READING_MAKING}</span>
+      </span>
+    </CoverLink>
   );
 }
 
@@ -264,7 +300,7 @@ export function MakingShelf({
                     aria-hidden="true"
                     className="block h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]"
                   >
-                    <span className={`${flow.flow} block h-full w-full rounded-full`} />
+                    <span className={`${flow.flow} block h-full rounded-full`} />
                   </span>
                   <span className="text-[13px] font-semibold text-cream-ink">궁합풀이 만드는 중…</span>
                 </span>
@@ -289,12 +325,16 @@ export function MakingShelf({
  * 간다 — 탭을 한 번 더 지나게 하지 않는다.
  */
 export function Nothing({ hasSelf }: { hasSelf: boolean }) {
+  /*
+    **그림은 그 자리의 탭 아이콘이다**(2026-10-10 화면 점검 A10) — 책 · 사람 · 태극. 오행 기호는 다른 화면에서 실제 뜻(오행 분포)을
+    나르므로 장식으로 쓰면 뜻이 있는 것처럼 읽혔다. 바탕색만 표지와 같은 결을 입는다.
+  */
   const slots = [
     hasSelf
-      ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const }
-      : { href: '/me', label: '내 사주 등록하기', element: '木' as const },
-    { href: '/me/people', label: '저장한 사람 보기', element: '土' as const },
-    { href: '/compat', label: '궁합 보러 가기', element: '火' as const },
+      ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const, icon: 'reading' as const }
+      : { href: '/me', label: '내 사주 등록하기', element: '木' as const, icon: 'reading' as const },
+    { href: '/me/people', label: '저장한 사람 보기', element: '土' as const, icon: 'people' as const },
+    { href: '/compat', label: '궁합 보러 가기', element: '火' as const, icon: 'taiji' as const },
   ];
   return (
     <section className={`${PAPER} flex flex-col gap-6`}>
@@ -304,16 +344,20 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
           내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
         </p>
       </div>
-      <ul className="grid grid-cols-3 gap-2.5 sm:gap-3">
+      {/* 폰은 한 줄에 한 타일이다 — 세 칸으로 나누면 칸이 좁아 이름이 두 줄로 꺾였다(A10) */}
+      <ul className="flex flex-col gap-2.5 sm:grid sm:grid-cols-3 sm:gap-3">
         {slots.map((slot) => (
           <li key={slot.href}>
             <Link
               href={slot.href}
-              className={`${elementScope(slot.element)} relative flex h-full min-h-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-4 pr-2 text-center shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]`}
+              className={`${elementScope(slot.element)} relative flex h-full min-h-16 items-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-36 sm:flex-col sm:justify-center sm:pl-4 sm:pr-2 sm:text-center`}
             >
               <Spine background="var(--mid)" />
-              <ElementSymbol element={slot.element} className="size-9" />
-              <span className="text-[14px] font-semibold leading-5 text-foreground sm:text-[15px]">{slot.label}</span>
+              <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-[var(--ink)] sm:size-12">
+                <Icon name={slot.icon} className="size-5 sm:size-6" />
+              </span>
+              <span className="text-[15px] font-semibold leading-5 text-foreground">{slot.label}</span>
+              <Icon name="chevron" className="ml-auto size-4 shrink-0 text-secondary sm:hidden" />
             </Link>
           </li>
         ))}

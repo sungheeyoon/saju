@@ -8,7 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
+import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
@@ -92,9 +92,12 @@ const NOTIFICATION_WARNS: readonly NotificationKind[] = ['request_invalidated', 
  * 점으로 선다. 갈 자리가 있는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다.
  */
 function Notifications({ inbox }: { inbox: Inbox }) {
+  /*
+    **소제목이 없다 — 이 화면의 머리는 「소식」 h1 하나다**(운영자 결정 2026-10-10, 화면 점검 B21). 「새 소식」 h2 가 바로 아래 같은
+    크기로 서서 머리가 둘이었고, 목록이 한 장이라 읽은 줄까지 「새 소식」 아래 섰다. 새것은 줄의 크림 면과 점이 가른다.
+  */
   return (
     <section className="flex flex-col gap-3">
-      <h2 className={TYPE_SECTION}>새 소식</h2>
 
       {inbox.notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong px-5 py-7 text-center">

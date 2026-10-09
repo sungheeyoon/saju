@@ -20,6 +20,9 @@ const SHOWN = 3;
  */
 const SHOWN_WIDE = 4;
 
+/** 폰 한 줄에서 한 권의 폭 — 다음 권이 오른쪽에 걸친다(B13) */
+const PHONE_ITEM = 'w-[72%] shrink-0 snap-start sm:w-auto';
+
 /**
  * **내가 받은 사주풀이** — 한 사람 풀이(나 · 저장한 사람)만, 책장의 표지 그대로(ADR 0129).
  *
@@ -58,13 +61,26 @@ export function ReceivedReadings({
         </Link>
       </div>
 
-      <ul className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-2">
+      {/*
+        **폰은 옆으로 넘기는 한 줄이다**(2026-10-10 화면 점검 B13) — 세 칸 격자에서 한 권이 110px 남짓이라 비유가 세 줄에서 잘리고
+        오른쪽이 비었다. 한 권이 줄의 72% 를 쓰고 다음 권이 오른쪽에 걸쳐 「더 있다」를 말한다. 줄은 화면 끝까지 닿는다
+        (`-mx-4` — 폰의 `app-shell` 여백이 1rem 이다). `sm` 부터는 그대로 셋(`lg` 는 두 줄 둘)이다. 넷째 권은 폰에서도 숨는다 — 홈은 셋까지, 전부는 보관함이 든다.
+      */}
+      <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-2">
         {shown.map((book, index) => (
-          <li key={book.key} className={index < narrow ? undefined : 'hidden lg:block'}>
+          <li key={book.key} className={`${PHONE_ITEM} ${index < narrow ? '' : 'hidden lg:block'}`}>
             <SingleCover book={{ ...book, href: withFromMe(book.href) }} row />
           </li>
         ))}
-        {!hasSelf && <BlankBook href={withFromMe('/me/readings/self')} element="木" label={makingSelf ? SELF_READING_MAKING : '사주풀이 받기'} row />}
+        {!hasSelf && (
+          <BlankBook
+            href={withFromMe('/me/readings/self')}
+            element="木"
+            label={makingSelf ? SELF_READING_MAKING : '사주풀이 받기'}
+            row
+            className={PHONE_ITEM}
+          />
+        )}
       </ul>
     </section>
   );

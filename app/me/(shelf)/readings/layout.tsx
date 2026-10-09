@@ -9,12 +9,15 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { myReadings } from '../../reading/current';
 import { matchesForViewer } from '../../requests/inbox';
+import { runningReadings } from '../../home/running';
+import { runningName } from '../../home/running-line';
+import { readingHrefOf } from '../../reading/target';
 import { withCameFrom } from '../../../came-from';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
 import type { ShelfLists } from './opening';
-import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
+import { BlankBook, MakingCover, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
 
 /**
  * **풀이 보관함** — 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
@@ -62,7 +65,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     시작하던 동안 탭 이동이 한 물결 더 길었다. 이용이 멈춘 계정이면 안 쓰고 버린다 — 아래에서 따로 받아 보므로, 여기서
     안 잡으면 버린 쪽의 실패가 처리되지 않은 거절로 뜬다.
   */
-  const reading = Promise.all([myReadings(), matchesForViewer()]);
+  const reading = Promise.all([myReadings(), matchesForViewer(), runningReadings()]);
   reading.catch(() => {});
 
   /** 빈 상태의 길이 내 사주 등록 여부를 묻는다 — 온보딩으로 보내지는 않는다 */
@@ -76,7 +79,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   }
   const selfPersonId = selfPersonIdOf(state);
 
-  const [readings, matches] = await reading;
+  const [readings, matches, runningRead] = await reading;
   const madeMatchIds = new Set(
     readings.flatMap((reading) =>
       reading.kind === 'match' && reading.matchId !== null ? [reading.matchId] : [],
@@ -91,12 +94,36 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     books.filter(({ book, kind }) => !book.single && (only === null || kind === only));
   const hasSelfReading = readings.some((entry) => entry.kind === 'self');
 
+  /*
+    **만드는 중인 한 사람 풀이 · 궁합풀이도 책장에 선다**(2026-10-10 화면 점검 B3) — 홈에서 「만드는 중」을 보고 오면 그 풀이가
+    사라진 것처럼 읽혔다. 무엇이 도는가는 DB 가 정하고(`my_running_readings`), 여기서는 **이미 꽂힌 권을 한 번 더 세우지 않는
+    것**만 가른다 — 다시 받는 중인 글은 제 표지가 그대로 선다. 인연 궁합은 위의 편지(`MakingShelf`)가 든다. 못 읽으면 안 선다(부속
+    정보, ADR 0078).
+  */
+  const shelved = new Set(books.map(({ book }) => book.href));
+  const runningBooks = (runningRead.ok ? runningRead.value : []).flatMap((one) => {
+    const href = readingHrefOf(one.target);
+    return one.target.kind === 'match' || shelved.has(href)
+      ? []
+      : [{ key: href, href, name: runningName(one), single: one.target.kind === 'self' || one.target.kind === 'person' }];
+  });
+  const makingSingles = runningBooks.filter((one) => one.single);
+  const makingPairs = runningBooks.filter((one) => !one.single);
+  const makingSelfReading = runningBooks.some((one) => one.href === readingHrefOf({ kind: 'self' }));
+  const makingCovers = (entries: typeof runningBooks) =>
+    entries.map((one) => (
+      <li key={one.key}>
+        <MakingCover href={one.href} name={one.name} from="shelf" />
+      </li>
+    ));
+
   const sajuShelf = (
     /*
       **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
       보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
     */
     <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이예요.">
+      {makingCovers(makingSingles)}
       {singles.map((book) => (
         <li key={book.key}>
           <SingleCover book={book} from="shelf" />
@@ -105,7 +132,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       {selfPersonId === null ? (
         <BlankBook href="/me" element="木" label="내 사주 등록하기" />
       ) : (
-        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
+        !hasSelfReading && !makingSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
       )}
     </Shelf>
   );
@@ -116,14 +143,17 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
    */
   const pairShelf = (only: 'compat' | 'match' | null, blank: ReactNode) => {
     const pairs = pairsOf(only);
+    /* 직접 본 궁합(`private`)만 여기서 만드는 중으로 선다 — 인연 궁합은 편지가 든다 */
+    const makingHere = only === 'match' ? [] : makingPairs;
     return (
       <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이예요.">
+        {makingCovers(makingHere)}
         {pairs.map(({ book, kind }) => (
           <li key={book.key}>
             <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" />
           </li>
         ))}
-        {pairs.length === 0 && blank}
+        {pairs.length === 0 && makingHere.length === 0 && blank}
       </Shelf>
     );
   };
@@ -152,15 +182,17 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   };
 
   /* 한 권도 없으면 목록 주소에는 두 칸 대신 안내 한 장이 선다 — 글 주소(`/me/readings/self`)는 그래도 두 칸이다 */
-  const nothing = books.length === 0 && making.length === 0 ? <Nothing hasSelf={selfPersonId !== null} /> : null;
+  const nothing = books.length === 0 && making.length === 0 && runningBooks.length === 0 ? <Nothing hasSelf={selfPersonId !== null} /> : null;
 
   /* 칩마다 책장에 선 차례 그대로의 주소 — 넓은 화면에서 목록만 열면 이 가운데 한 권을 편다(`opening.ts`) */
   const makingHrefs = making.map((match) => `/me/match/${match.matchId}`);
   const hrefsOf = (entries: readonly { book: { href: string } }[]) => entries.map(({ book }) => book.href);
+  const singleHrefs = [...makingSingles.map((one) => one.href), ...singles.map((book) => book.href)];
+  const pairHrefsOf = (only: 'compat' | null) => [...makingPairs.map((one) => one.href), ...hrefsOf(pairsOf(only))];
   const lists: ShelfLists = {
-    all: [...makingHrefs, ...singles.map((book) => book.href), ...hrefsOf(pairsOf(null))],
-    saju: singles.map((book) => book.href),
-    compat: hrefsOf(pairsOf('compat')),
+    all: [...makingHrefs, ...singleHrefs, ...pairHrefsOf(null)],
+    saju: singleHrefs,
+    compat: pairHrefsOf('compat'),
     match: [...makingHrefs, ...hrefsOf(pairsOf('match'))],
   };
 

@@ -203,7 +203,22 @@ export function ReadingFeedback({
         )}
 
         <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-7 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-7">
-          <button type="button" onClick={send} disabled={!ready || saving} className={`${BUTTON_PRIMARY} w-full sm:w-auto`}>
+          {/*
+            **잠겨 있을 때만 까닭이 단추 옆에 선다**(2026-10-10 화면 점검 B20) — 셋을 다 골라야 열리는데 어느 것이 필수인지 말이
+            없어 왜 안 눌리는지 몰랐다. 다 고르면 말은 걷힌다. 확정(대장 26, 운영자 2026-10-10)
+          */}
+          {!ready && (
+            <p id={`feedback-locked-${runId}`} className="text-[13px] leading-5 text-secondary">
+              필수 질문 3개에 답하면 보낼 수 있어요.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={send}
+            disabled={!ready || saving}
+            aria-describedby={ready ? undefined : `feedback-locked-${runId}`}
+            className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
+          >
             {saving ? '보내는 중…' : '의견 보내기'}
           </button>
         </div>

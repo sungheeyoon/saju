@@ -38,8 +38,11 @@ export async function ReadingSection({
    *
    * `person` 은 「{이름}의 사주풀이」라서 부르는 쪽만 알 수 있다. 여기서 이름을 다시
    * 읽어 오면 화면이 이미 들고 있는 것을 한 번 더 묻게 된다.
+   *
+   * `null` 은 **부르는 화면의 머리가 이미 이 제목을 세웠다**는 뜻이다 — 칸은 제목 없이 단추만 세운다(2026-10-10 화면 점검
+   * B12: 한 사람 풀이 화면이 같은 이름을 세 줄로 말했다).
    */
-  heading?: string;
+  heading?: string | null;
   /** 제목을 보조기기에만 읽힌다 — 화면 머리가 이미 같은 대상을 부를 때(`ReadingPanel`) */
   headingHidden?: boolean;
   /**
@@ -108,7 +111,7 @@ export async function ReadingSection({
           좁히는 판단은 이 자리에서 한 번 보이게 한다 — 설문이 닫히는 이유가 둘이다.
         */
         consented={consented.ok && consented.value}
-        heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이')}
+        heading={heading === undefined ? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이') : heading}
         headingHidden={headingHidden}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         automatic={automatic}
