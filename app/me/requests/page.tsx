@@ -8,7 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
+import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
@@ -93,16 +93,11 @@ const NOTIFICATION_WARNS: readonly NotificationKind[] = ['request_invalidated', 
  */
 function Notifications({ inbox }: { inbox: Inbox }) {
   /*
-    **「새 소식」 소제목은 새 소식과 지난 소식이 섞일 때만이다**(2026-10-10 화면 점검 B21) — 모두 새것이거나 하나도 없으면 「소식」
-    바로 아래 같은 크기의 제목이 한 번 더 서서 머리가 둘이었다. 모두 지난 것이면 「새 소식」은 틀린 이름이다. 둘이 섞였을 때만
-    무엇이 새것인지 가를 이름이 든다.
+    **소제목이 없다 — 이 화면의 머리는 「소식」 h1 하나다**(운영자 결정 2026-10-10, 화면 점검 B21). 「새 소식」 h2 가 바로 아래 같은
+    크기로 서서 머리가 둘이었고, 목록이 한 장이라 읽은 줄까지 「새 소식」 아래 섰다. 새것은 줄의 크림 면과 점이 가른다.
   */
-  const mixed =
-    inbox.notifications.some((notification) => !notification.unread) &&
-    inbox.notifications.some((notification) => notification.unread);
   return (
     <section className="flex flex-col gap-3">
-      {mixed && <h2 className={TYPE_SECTION}>새 소식</h2>}
 
       {inbox.notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong px-5 py-7 text-center">
