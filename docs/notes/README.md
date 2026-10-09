@@ -18,7 +18,7 @@ smoke 값은 PR · 배포 기록 · `docs/product/gaps.md` 가 원본이고 노�
 
 | 파일 | 무엇 | 언제 |
 | --- | --- | --- |
-| `2026-10-09-ui-audit-round.md` | 화면 감사 라운드 — 갤러리 · 일곱 갈래 · 문구 PR 분리 · 합치면 넘는 읽기 천장 · 진행 검사의 함정 | 2026-10-09 |
+| `2026-10-09-ui-audit-round.md` | 화면 감사 라운드 — 갤러리 · 일곱 갈래 · 문구 PR 분리 · 합치면 넘는 읽기 천장 · 진행 검사의 함정 · **인계**(운영 상태 · 먼저 할 G-82) | 2026-10-09 |
 | `2026-10-08-perf-round.md` | 최적화 라운드 — 겹친 왕복 · WSL 메모리 | 2026-10-08 |
 | `2026-10-08-home-ui.md` | 로그인 전 홈 개편 — 폭 · 걷은 것 · 확인 | 2026-10-08 |
 | `2026-10-08-live-updates-night.md` | 스스로 갱신 · 웹 푸시 밤 — 권한 봉투 · 헤맨 것 | 2026-10-08 |
@@ -106,7 +106,7 @@ smoke 값은 PR · 배포 기록 · `docs/product/gaps.md` 가 원본이고 노�
 
 | 무엇 | 어디 | 메모 |
 | --- | --- | --- |
-| 화면 갤러리(65화면 · 팝업 · 로딩 × 두 폭) | <https://claude.ai/artifact/38WMpTFWyA1gZbcjpQUorw> | 찍는 법은 `ui-walk-and-gallery.md`. 2026-10-09 감사 전. 고친 전후는 <https://claude.ai/artifact/JuMBN7odh4bydXzcsSF7Wo> |
+| 화면 갤러리(65화면 · 팝업 · 로딩 × 두 폭) | <https://claude.ai/artifact/38WMpTFWyA1gZbcjpQUorw> | 찍는 법은 `ui-walk-and-gallery.md`. 2026-10-09 감사 전. 고친 뒤 지금 화면은 <https://claude.ai/artifact/JuMBN7odh4bydXzcsSF7Wo> |
 | 점점 화면 문구 대장 — 보기용 | <https://claude.ai/code/artifact/263b0f15-c2f5-48a1-a327-d747a58ed639> | **원본은 2026-09-29 에 `docs/product/copy-ledger.md` 로 옮겼다** — 아티팩트는 보기용이고 옛 판(2026-09-03)의 「과거 기록」만 거기 있다. 규칙의 원본은 `CONTEXT.md` §8. 남은 「결정 필요」는 `docs/product/gaps.md` G-05 · G-36 |
 | overlaps A/B 블라인드 | <https://claude.ai/code/artifact/49ead318-80b6-4431-a977-b6bdc94abc74> | 결론은 `async-generation-and-overlaps-ab.md` |
 | 서울 이전 대장 | <https://claude.ai/code/artifact/a3927607-808c-4405-981e-b3a15f0fb51c> | 남은 규칙은 runbook |
