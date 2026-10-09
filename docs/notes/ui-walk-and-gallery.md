@@ -7,7 +7,14 @@
 >
 > **지금은:** 도구는 `scripts/ui-dev.mjs` · `ui-seed.mjs` · `ui-states.mjs` · `ui-walk.mjs` · `ui-shots.mjs`(PR #51). 갤러리 HTML 을 엮는 스크립트는 저장소에 없다 — 발행된 것을 읽어 그림만 갈아 끼운다. 갤러리 주소는 `docs/notes/README.md` 「바깥 자료」.
 
-**화면 갤러리** — https://claude.ai/code/artifact/4db17a58-26dc-43af-9054-35d1dfcaeaee
+**2026-10-09 — 갤러리를 새 주소로 다시 지었다.** 옛 주소(`4db17a58…`)는 더 읽히지 않는다. 새 갤러리는
+`docs/notes/README.md` 「바깥 자료」에 있다. `ui-shots.mjs` 가 **팝업을 스스로 찍는다** — 화면마다 DOM 에 든
+`<dialog>` 를 하나씩 `showModal()` 로 열어 `<id>-dialogN` 으로 남긴다(라벨이 빈 창은 건너뛴다). 줄에 `before` 를 달면
+화면 밖에서 상태를 먼저 세운다(「만드는 중」 홈은 `start_reading_run` 만 열어 둔다). `ui-dev.mjs` 는 `VERCEL_ENV=development`
+를 얹는다 — 안 그러면 해석 내부 보기가 404 로 찍힌다. **로딩 뼈대(`loading.tsx`)는 이 도구가 못 찍는다** — 그날은
+뼈대를 그대로 띄우는 임시 미리보기 페이지를 커밋하지 않고 손으로 두고 찍었다.
+
+**옛 화면 갤러리** — https://claude.ai/code/artifact/4db17a58-26dc-43af-9054-35d1dfcaeaee (읽히지 않음)
 **30화면** × 데스크톱·모바일. 사람이 지나가는 차례로 서 있고 상태가 달라지면 같은 경로도
 따로 찍혀 있다. **같은 주소에 갱신한다** — 고친 뒤 다시 찍어 republish.
 
