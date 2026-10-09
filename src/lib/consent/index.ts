@@ -222,7 +222,7 @@ export function notificationText({
  * 완성 소식이 부르는 이름 — 모두 「풀이」(모음)로 끝나 조사는 「가」다.
  *
  * 이름을 못 읽으면(엣지를 지웠다) 사람을 부르지 않고 실패 소식과 같은 이름까지만 말한다 — 「이름 없음」으로 지어 부르지 않는다.
- * 시안이다(운영자 승인 대기, ADR 0157).
+ * 확정 문구다(대장 15, ADR 0157).
  */
 function readyReadingName(
   readingKind: Exclude<ReadingKind, 'match'>,

@@ -55,7 +55,7 @@ export const READ_BUDGET = {
   coordinator: { bytes: 65000, routes: [], choices: [] },
   db: { bytes: 85000, routes: [], choices: [] },
   docs: { bytes: 60000, routes: [], choices: [] },
-  feature: { bytes: 95000, routes: ['docs/product/prd/'], choices: [] },
+  feature: { bytes: 100000, routes: ['docs/product/prd/'], choices: [] },
   ops: { bytes: 50000, routes: [], choices: [] },
   reading: {
     bytes: 85000,
