@@ -1901,7 +1901,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const mine = page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true });
     await expect(mine).toHaveAttribute('href', '/me/readings/self');
-    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람 보기', exact: true })).toHaveAttribute(
       'href',
       '/me/people',
     );
