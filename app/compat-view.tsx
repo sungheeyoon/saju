@@ -39,6 +39,15 @@ import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
  */
 export const SIDE_LABEL: Record<CompatSide, string> = { a: '첫 번째', b: '두 번째' };
 
+/**
+ * 칸 · 판의 머리 표지 — 「첫 번째 사람」 · 「두 번째 사람」. 결과 판과 고르는 칸(`compat-picker.tsx`)이 같은 글자를 쓴다 —
+ * 한쪽에서만 고치면 고른 칸과 결과 판이 같은 사람을 다른 이름으로 부른다.
+ */
+export const SIDE_PERSON: Record<CompatSide, string> = {
+  a: `${SIDE_LABEL.a} 사람`,
+  b: `${SIDE_LABEL.b} 사람`,
+};
+
 export const SIDES: readonly CompatSide[] = ['a', 'b'];
 
 export function CompatView({
@@ -182,7 +191,7 @@ function PairSide({
       <div className="relative flex min-w-0 flex-col gap-2">
         <DayMasterChip stem={chart.dayMaster} className="self-start" />
         <div className="min-w-0">
-          <p className={TYPE_META}>{side === 'a' ? '첫 번째 사람' : '두 번째 사람'}</p>
+          <p className={TYPE_META}>{SIDE_PERSON[side]}</p>
           <h3 className={`${TYPE_NAME} truncate`}>{name}</h3>
           <p className={TYPE_META}>
             {chart.gender !== undefined && `${GENDER_KO[chart.gender]} · `}
