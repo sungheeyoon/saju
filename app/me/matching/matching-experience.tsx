@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import { SAJU_PATH } from '@/src/lib/consent';
-import { MATCH_PILLARS_DISCLOSURE, REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/consent/notice';
+import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
+import { REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/matching/copy';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 

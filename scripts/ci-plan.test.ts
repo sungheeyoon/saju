@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AUTHED_LANES,
+  COPY_FILES,
   CORE_STEPS,
   DEPENDENCY_LISTS,
   ENGINE_DB_FACING,
@@ -22,6 +23,10 @@ import {
   SERVER_ACTIONS_ELSEWHERE,
   SHARED_RISK,
   addressesOf,
+  copyConstantsShape,
+  copyLanesOf,
+  copyOnlyChanged,
+  deployRangeOf,
   syntaxOf,
   importsOf,
   isSurface,
@@ -999,5 +1004,283 @@ describe('CI 계획 — 문서만 바뀐 main 푸시는 policy 만 (ADR 0154)', 
     expect(plan).toContain('base="$BEFORE"');
     expect(plan).toMatch(/node scripts\/ci-plan\.mjs [^\n]*--before "\$BEFORE" --forced "\$FORCED"/);
     expect(plan).toMatch(/permissions:\n\s+contents: read\n\s+actions: read\n/);
+  });
+});
+
+describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는 시험의 차선만 더한다 (ADR 0159)', () => {
+  /** 한 파일을 `before` → `after` 로 바꾼 PR 의 계획 — `others` 는 base 쪽이 없는(새) 파일로 함께 바뀐다 */
+  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타') =>
+    planFor({
+      files: [file, ...others],
+      stage,
+      ts,
+      sourceOf: (one) => (one === file ? after : null),
+      baseSourceOf: (one) => (one === file ? before : null),
+    });
+  const copyOf = (before: string, after: string, file = 'app/me/matching/request-card.tsx') => copyOnlyChanged(ts, file, before, after);
+
+  /** 입구가 아닌 화면 — 문구가 아닌 것이 바뀌어도 지금 규칙으로 core 이므로, 갈림은 `copyOnlyChanged` 로 잰다 */
+  const CARD = [
+    "'use client';",
+    '',
+    "import { REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/matching/copy';",
+    '',
+    "const LABEL = '요청 보내기';",
+    '',
+    'export function RequestCard({ open, ready, onSend }: { open: boolean; ready: boolean; onSend: () => void }) {',
+    '  return (',
+    '    <div className="mt-2 flex flex-col gap-2">',
+    '      <p>',
+    '        요청을 보내면 상대의 인연 탭에',
+    '        하나가 뜹니다.',
+    '      </p>',
+    '      {open && <p>{REQUEST_OPENS_CHAT_NOTE}</p>}',
+    '      <p>{ready ? `${LABEL} 준비됨` : `준비 중`}</p>',
+    '      <a href="/me/requests" aria-label="받은 요청 보기">받은 요청</a>',
+    '      <button type="button" onClick={() => onSend()} data-testid="send">{LABEL}</button>',
+    '      <select name="side"><option>요청자</option></select>',
+    '    </div>',
+    '  );',
+    '}',
+    '',
+  ].join('\n');
+  const edit = (from: string, to: string, source = CARD) => {
+    expect(source).toContain(from);
+    return source.replace(from, to);
+  };
+
+  it('JSX 글자(요소 사이의 글자)만 바뀌면 문구만이다 — 옛 글자는 공백을 접어 돌려준다', () => {
+    expect(copyOf(CARD, edit('하나가 뜹니다.', '요청 하나가 뜹니다.'))).toEqual(['요청을 보내면 상대의 인연 탭에 하나가 뜹니다.']);
+    expect(copyOf(CARD, edit('>받은 요청</a>', '>받은 요청 열기</a>'))).toEqual(['받은 요청']);
+    // 주석과 함께 바뀌어도 문구만이다
+    expect(copyOf(CARD, edit("const LABEL = '요청 보내기';", "// 단추 글자\nconst LABEL = '요청 보내기';", edit('요청을 보내면', '요청을 꼭 보내면')))).toEqual([
+      '요청을 보내면 상대의 인연 탭에 하나가 뜹니다.',
+    ]);
+    // JSX 주석 `{/* */}` 을 새로 세우는 것은 식 자리 하나가 느는 것이라 구조다
+    expect(copyOf(CARD, edit('      <p>\n        요청을', '      {/* 안내 */}\n      <p>\n        요청을 꼭'))).toBeNull();
+  });
+
+  it('JSX 속성 값은 문구가 아니다 — className · href · aria-label · data-* · type', () => {
+    expect(copyOf(CARD, edit('flex flex-col gap-2', 'flex flex-col gap-3'))).toBeNull();
+    expect(copyOf(CARD, edit('href="/me/requests"', 'href="/me/inbox"'))).toBeNull();
+    expect(copyOf(CARD, edit('aria-label="받은 요청 보기"', 'aria-label="받은 요청 열기"'))).toBeNull();
+    expect(copyOf(CARD, edit('data-testid="send"', 'data-testid="send-request"'))).toBeNull();
+    expect(copyOf(CARD, edit('type="button"', 'type="submit"'))).toBeNull();
+  });
+
+  it('조건식 · 이벤트 핸들러 · 식별자 · 구조가 바뀌면 문구가 아니다', () => {
+    expect(copyOf(CARD, edit('{open && <p>', '{!open && <p>'))).toBeNull();
+    expect(copyOf(CARD, edit('{open && <p>', '{open || <p>'))).toBeNull();
+    expect(copyOf(CARD, edit('{ready ? `${LABEL} 준비됨` : `준비 중`}', '{!ready ? `${LABEL} 준비됨` : `준비 중`}'))).toBeNull();
+    expect(copyOf(CARD, edit('onClick={() => onSend()}', 'onClick={() => undefined}'))).toBeNull();
+    expect(copyOf(CARD, edit('onClick=', 'onDoubleClick='))).toBeNull();
+    expect(copyOf(CARD, edit('<p>{REQUEST_OPENS_CHAT_NOTE}</p>', '<span>{REQUEST_OPENS_CHAT_NOTE}</span>'))).toBeNull();
+    // 새 줄(요소)을 더하는 것도 구조다 — #570 의 모양
+    expect(copyOf(CARD, edit('      <a href', '      <p>새 줄</p>\n      <a href'))).toBeNull();
+  });
+
+  it('템플릿의 식 · 글자 조각 · 목록 밖 문자열 상수 · import 경로는 문구가 아니다', () => {
+    expect(copyOf(CARD, edit('`${LABEL} 준비됨`', '`${LABEL.trim()} 준비됨`'))).toBeNull();
+    expect(copyOf(CARD, edit('`${LABEL} 준비됨`', '`${LABEL} 준비 끝`'))).toBeNull();
+    expect(copyOf(CARD, edit('`준비 중`', '`준비하는 중`'))).toBeNull();
+    expect(copyOf(CARD, edit("const LABEL = '요청 보내기';", "const LABEL = '인연 요청 보내기';"))).toBeNull();
+    expect(copyOf(CARD, edit("from '@/src/lib/matching/copy'", "from '@/src/lib/matching/words'"))).toBeNull();
+    // 목록 밖 파일의 `export const` 문자열 — 경로 · 키일 수 있다
+    expect(copyOnlyChanged(ts, 'src/lib/matching/paths.ts', "export const INBOX = '/me/requests';\n", "export const INBOX = '/me/inbox';\n")).toBeNull();
+  });
+
+  it('값이 곧 동작인 요소의 글자(option · textarea · style · script)는 문구가 아니다', () => {
+    expect(copyOf(CARD, edit('<option>요청자</option>', '<option>보낸 사람</option>'))).toBeNull();
+    const style = 'export const S = () => <style>body {"{"} color: red {"}"}</style>;\n';
+    expect(copyOf(style, style.replace('color: red', 'color: blue'), 'app/s.tsx')).toBeNull();
+  });
+
+  it('문구와 동작이 한 파일에 섞이면 문구가 아니다', () => {
+    const both = edit('flex flex-col gap-2', 'flex flex-col gap-3', edit('하나가 뜹니다.', '요청 하나가 뜹니다.'));
+    expect(copyOf(CARD, both)).toBeNull();
+  });
+
+  it('판별이 불확실하면 문구로 세지 않는다 — 파싱 실패 · 한쪽 없음 · 파서 없음 · 앱 밖 · 시험 파일 · 글자째 같음 · 주석만', () => {
+    expect(copyOf(`${CARD}\nconst broken = (;\n`, `${edit('하나가 뜹니다.', '하나가 떠요.')}\nconst broken = (;\n`)).toBeNull();
+    expect(copyOf(CARD, edit('<p>\n        요청을', '<p\n        요청을'))).toBeNull();
+    expect(copyOnlyChanged(ts, 'app/new.tsx', null, CARD)).toBeNull();
+    expect(copyOnlyChanged(ts, 'app/gone.tsx', CARD, null)).toBeNull();
+    expect(copyOnlyChanged(null, 'app/me/matching/request-card.tsx', CARD, edit('하나가 뜹니다.', '하나가 떠요.'))).toBeNull();
+    expect(copyOnlyChanged(ts, 'e2e/card.tsx', CARD, edit('하나가 뜹니다.', '하나가 떠요.'))).toBeNull();
+    expect(copyOnlyChanged(ts, 'app/me/card.test.tsx', CARD, edit('하나가 뜹니다.', '하나가 떠요.'))).toBeNull();
+    expect(copyOf(CARD, CARD)).toBeNull();
+    expect(copyOf(CARD, edit("'use client';", "'use client';\n// 주석만"))).toBeNull();
+    // 파싱이 실패한 파일은 PR 계획에서도 지금 규칙 그대로다 — layout 은 전부
+    const layout = 'export default function L() {\n  return <body><p>머리 글 하나</p></body>;\n}\nconst broken = (;\n';
+    expect(planOf('app/layout.tsx', layout, layout.replace('하나', '둘')).cause).toBe('layout');
+  });
+
+  it('목록 안 문구 상수 파일의 문자열 값만 바뀌면 문구다 — 이름 · 모양이 바뀌면 아니다', () => {
+    const file = 'src/lib/matching/copy.ts';
+    const before = "/** 셋째 줄 */\nexport const NOTE = '상대가 수락하면 채팅방이 열려요.';\nexport const OTHER = `둘째`;\n";
+    expect(copyOnlyChanged(ts, file, before, before.replace('채팅방이 열려요', '대화방이 열려요'))).toEqual(['상대가 수락하면 채팅방이 열려요.']);
+    expect(copyOnlyChanged(ts, file, before, before.replace('`둘째`', '`둘째 줄`'))).toEqual(['둘째']);
+    expect(copyOnlyChanged(ts, file, before, before.replace('NOTE', 'NOTE_2'))).toBeNull();
+    expect(copyOnlyChanged(ts, file, before, `${before}export const MORE = '셋';\n`)).toBeNull();
+    // 모양을 벗어난 파일(import · 식 · 타입 표기 · let · 내보내지 않음)은 문자열이 문구 자리가 아니다
+    for (const extra of ["import { x } from './x';\n", 'export const N = 1;\n', "export const T: string = 'a';\n", "export let L = 'a';\n", "const HIDDEN = 'a';\n"]) {
+      const shaped = `${extra}${before}`;
+      expect(copyOnlyChanged(ts, file, shaped, shaped.replace('채팅방이 열려요', '대화방이 열려요')), extra).toBeNull();
+    }
+  });
+
+  it('문구 상수 파일은 목록과 이름이 짝이고, 모양을 지키고, 그 이름은 화면(.tsx)과 시험만 부른다 — 용도가 확인된 문구만 든다', () => {
+    const libs = readdirSync(resolve(ROOT, 'src/lib'), { withFileTypes: true }).filter((one) => one.isDirectory());
+    const named = libs.map((one) => `src/lib/${one.name}/copy.ts`).filter((file) => existsSync(resolve(ROOT, file)));
+    expect([...named].sort()).toEqual([...COPY_FILES].sort());
+    const walk = (dir: string): string[] =>
+      readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? (entry.name === 'node_modules' ? [] : walk(`${dir}/${entry.name}`)) : /\.(?:tsx?|mjs)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
+      );
+    const sources = ['app', 'src', 'e2e', 'scripts']
+      .flatMap(walk)
+      .concat(['proxy.ts'])
+      .map((file) => [file, readFileSync(resolve(ROOT, file), 'utf8')] as const);
+    for (const file of COPY_FILES) {
+      const source = readFileSync(resolve(ROOT, file), 'utf8');
+      const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+      expect(copyConstantsShape(ts, tree), file).toBe(true);
+      const names = [...source.matchAll(/^export const (\w+)/gm)].map((one) => one[1]);
+      expect(names.length, file).toBeGreaterThan(0);
+      for (const name of names) {
+        const callers = sources.filter(([one, text]) => one !== file && new RegExp(`\\b${name}\\b`).test(text)).map(([one]) => one);
+        expect(callers.length, name).toBeGreaterThan(0);
+        expect(
+          callers.filter((one) => !/^app\/.+\.tsx$/.test(one) && !/\.test\.tsx?$/.test(one)),
+          name,
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it('관문 공용 위험 자리라도 문구만이면 core 다 — layout 의 JSX 글자 · 옛 글자를 말하는 시험이 없으면 core 하나', () => {
+    const layout = 'export default function L({ children }: { children: React.ReactNode }) {\n  return <body><p>머리 글 하나</p>{children}</body>;\n}\n';
+    const plan = planOf('app/layout.tsx', layout, layout.replace('머리 글 하나', '머리 글 둘'));
+    expect(plan.tier).toBe('core');
+    expect(plan.lanes).toEqual(CORE_ONLY);
+    expect(plan.reason).toContain('문구만 바뀐 파일은 core 로 셌다: `app/layout.tsx`');
+    // 같은 파일의 속성을 바꾸면 그대로 공용 위험이다
+    expect(planOf('app/layout.tsx', layout, layout.replace('<body>', '<body className="x">')).cause).toBe('layout');
+    // 문서와 함께여도 core 다 — 정책 단계로 내려가지 않는다
+    expect(planOf('app/layout.tsx', layout, layout.replace('머리 글 하나', '머리 글 둘'), ['docs/product/copy-ledger.md']).lanes).toEqual(CORE_ONLY);
+    // 다른 파일이 전부를 부르면 그대로 전부다
+    expect(planOf('app/layout.tsx', layout, layout.replace('머리 글 하나', '머리 글 둘'), ['proxy.ts']).tier).toBe('full');
+  });
+
+  it('옛 글자를 흐름 검사가 말하면 flow 가 더 선다 — check-share 가 「테스트 코드가 필요해요」를 찾는다', () => {
+    const file = 'src/lib/account/copy.ts';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    const plan = planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['docs/product/copy-ledger.md']);
+    expect(plan.tier).toBe('narrow');
+    expect(plan.lanes.core).toBe(true);
+    expect(plan.lanes.flow).toBe(true);
+    expect(plan.reason).toContain('`scripts/check-share.mjs`');
+  });
+
+  it('옛 글자를 spec 이 말하면 그 spec 의 차선이 선다 — 통째로든 리터럴 · 정규식 조각으로든, spec 아닌 e2e 면 전부', () => {
+    const olds = new Map([['app/me/matching/request-card.tsx', ['요청을 보내면 상대의 인연 탭에 하나가 뜹니다.']]]);
+    const spec = (body: string) => [['e2e/match.spec.ts', body] as const];
+    expect(copyLanesOf(olds, spec("await expect(page.getByText('요청을 보내면 상대의 인연 탭에 하나가 뜹니다.')).toBeVisible();"))).toEqual({
+      lanes: lanesOfTest('e2e/match.spec.ts'),
+      tests: ['e2e/match.spec.ts'],
+    });
+    expect(lanesOfTest('e2e/match.spec.ts')).toEqual(['match:desktop', 'match:mobile']);
+    expect(copyLanesOf(olds, spec('await page.getByText(/인연 탭에/).click();')).tests).toEqual(['e2e/match.spec.ts']);
+    expect(copyLanesOf(olds, spec("await page.getByText('하나가 뜹니다').click();")).tests).toEqual(['e2e/match.spec.ts']);
+    expect(copyLanesOf(olds, spec("await page.getByRole('button', { name: '보내기' }).click();"))).toEqual({ lanes: [], tests: [] });
+    expect(copyLanesOf(olds, [['e2e/session.ts', "const x = '인연 탭에';"]]).lanes).toBeNull();
+    expect(copyLanesOf(olds, [['scripts/check-chat.mjs', "check('x', html.includes('인연 탭에'));"]]).lanes).toEqual(['flow']);
+  });
+
+  it('PR 계획 — 옛 글자를 말하는 spec 이 저장소에 있으면 그 차선이 선다(match.spec 의 「수락해서 인연 궁합이 열렸어요.」)', () => {
+    const screen = 'export const S = () => <p>수락해서 인연 궁합이 열렸어요.</p>;\n';
+    const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'));
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes).toEqual(expect.arrayContaining(['match:desktop', 'match:mobile']));
+    expect(plan.reason).toContain('`e2e/match.spec.ts`');
+  });
+
+  it('공개 출시에는 문구로 좁히지 않는다 — 화면 하나도 전부다', () => {
+    const screen = 'export const L = () => <p>머리 글 하나</p>;\n';
+    expect(planOf('app/me/x.tsx', screen, screen.replace('하나', '둘'), [], '공개 출시').tier).toBe('full');
+  });
+
+  it('main 푸시는 문구만이어도 전부다 — 머지 뒤의 전체 검증은 그대로다', () => {
+    const screen = 'export const L = () => <p>머리 글 하나</p>;\n';
+    const plan = planFor({
+      files: ['app/me/x.tsx'],
+      event: 'push',
+      pushed: { before: 'c'.repeat(40), forced: false, beforeGreen: true },
+      ts,
+      sourceOf: () => screen.replace('하나', '둘'),
+      baseSourceOf: () => screen,
+    });
+    expect(plan.tier).toBe('full');
+  });
+});
+
+describe('묶음 배포의 기다림 — 마지막 초록부터 HEAD 까지가 문구 · 문서뿐인가 (ADR 0159)', () => {
+  const GREEN = 'a'.repeat(40);
+  const HEAD = 'b'.repeat(40);
+  const CARD = 'export const C = () => <p>요청을 보냈어요</p>;\n';
+  const range = (
+    files: string[],
+    sources: Record<string, [string | null, string | null]> = {},
+    more: Partial<Parameters<typeof deployRangeOf>[0]> = {},
+  ) =>
+    deployRangeOf({
+      lastGreen: GREEN,
+      head: HEAD,
+      files,
+      ts,
+      sourceOf: (file) => sources[file]?.[1] ?? null,
+      baseSourceOf: (file) => sources[file]?.[0] ?? null,
+      unpassed: [],
+      ...more,
+    });
+  const copyCard: Record<string, [string, string]> = { 'app/me/card.tsx': [CARD, CARD.replace('보냈어요', '보냈습니다')] };
+
+  it('문구 · 문서뿐인 범위는 기다리지 않는다 — 문서 · 주석뿐이면 docs-only', () => {
+    const copy = range(['docs/product/copy-ledger.md', 'app/me/card.tsx'], copyCard);
+    expect(copy.verdict).toBe('copy');
+    expect(copy.copy).toEqual(['app/me/card.tsx']);
+    expect(range(['docs/prd.md', 'scripts/ci-plan.test.ts']).verdict).toBe('docs-only');
+    const commented: Record<string, [string, string]> = { 'src/lib/chat/index.ts': ['// 옛\nexport const x = 1;\n', '// 새\nexport const x = 1;\n'] };
+    expect(range(['docs/prd.md', 'src/lib/chat/index.ts'], commented).verdict).toBe('docs-only');
+  });
+
+  it('동작이 바뀐 커밋이 하나라도 섞이면 기다린다 — 그 파일을 이름으로 든다', () => {
+    const mixed = range(['app/me/card.tsx', 'src/lib/chat/index.ts', 'docs/prd.md'], {
+      ...copyCard,
+      'src/lib/chat/index.ts': ['export const x = 1;\n', 'export const x = 2;\n'],
+    });
+    expect(mixed.verdict).toBe('wait');
+    expect(mixed.behavior).toEqual(['src/lib/chat/index.ts']);
+    expect(range(['supabase/migrations/20261009000000_x.sql']).verdict).toBe('wait');
+    expect(range(['app/me/new.tsx'], { 'app/me/new.tsx': [null, CARD] }).verdict).toBe('wait');
+  });
+
+  it('마지막 초록을 못 찾거나 · diff 를 못 읽거나 · 파서가 없거나 · PR 검사가 초록이 아니거나 못 읽으면 기다린다', () => {
+    expect(range(['docs/prd.md'], {}, { lastGreen: null }).verdict).toBe('wait');
+    expect(range([]).verdict).toBe('wait');
+    expect(range(['docs/prd.md'], {}, { files: null }).verdict).toBe('wait');
+    expect(range(['app/me/card.tsx'], copyCard, { ts: null }).verdict).toBe('wait');
+    expect(range(['app/me/card.tsx'], copyCard, { unpassed: null }).verdict).toBe('wait');
+    const red = range(['app/me/card.tsx'], copyCard, { unpassed: ['c'.repeat(40)] });
+    expect(red.verdict).toBe('wait');
+    expect(red.reason).toContain('ccccccc');
+  });
+
+  it('마지막 초록이 HEAD 면 green 이다', () => {
+    expect(range([], {}, { lastGreen: HEAD }).verdict).toBe('green');
+  });
+
+  it('배포 범위 명령은 CI · 개발 도구다 — 공용 위험(시험 도구)으로 안 걸린다', () => {
+    expect(beta(['scripts/deploy-range.mjs']).tier).toBe('core');
   });
 });

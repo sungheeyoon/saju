@@ -15,6 +15,7 @@
  * |---|---|
  * | 정책(`docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts`) | `policy` (scripts 시험 · 타입 · 린트, 1분 안) |
  * | 주석만 바뀐 코드 파일 — base 와 구문 나무가 같다(아래 「주석만 바뀐 코드 파일」, 어느 단계든) | 정책으로 센다 |
+ * | 문구만 바뀐 파일 — 화면 문구 자리의 글자만 다르다(아래 「문구만 바뀐 파일」, 운영 베타의 PR 만) | `core` + 옛 글자를 말하는 시험의 차선 |
  * | 엔진(`src/lib/saju/**`) · 엔진을 그리는 칸(`app/saju/**`) | `core`(단위·타입·린트·빌드) + `anon`(익명 e2e) |
  * | 그 밖 전부 · **모르는 파일** | 전부 |
  *
@@ -123,7 +124,8 @@
  * 판정 차례:
  *
  * 1. 위의 「전부」 조건 그대로 — 계획 밖 이벤트(main 푸시는 아래 「문서만 바뀐 main 푸시」가 따로 가른다) ·`full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름. 공개 출시는 세 단계.
- *    그 뒤 주석만 바뀐 코드 파일은 정책으로 돌린다(아래 「주석만 바뀐 코드 파일」)
+ *    그 뒤 주석만 바뀐 코드 파일은 정책으로 돌린다(아래 「주석만 바뀐 코드 파일」). 운영 베타면 문구만 바뀐 파일을 아래 판정에서
+ *    빼 두었다가 끝에 `core` 와 옛 글자를 말하는 시험의 차선으로 얹는다(아래 「문구만 바뀐 파일」)
  * 2. **공용 위험**(`SHARED_RISK`) — 바뀐 파일 전체를 먼저 훑고 하나라도 들면 전부. 관문 · 인증 · `layout` · `route.ts` ·
  *    서버 액션 · spec 이 아닌 `e2e/**` · 시험 도구, 그리고 Next 의 공용 경계(`global-error` · `global-not-found` ·
  *    `forbidden` · `unauthorized` · 뿌리의 `instrumentation` · `instrumentation-client` · `middleware`). 주소 하나로는 그것을
@@ -164,6 +166,29 @@
  * - 파싱 실패 · 가르지 않는 확장자 · base 쪽을 못 읽음(추가 · 삭제 · 이름 바꿈 · 실행 비트 변경) · `typescript` 를 못 부름
  * - 일정 · 손으로 켠 실행은 전처럼 전부다. main 푸시는 아래 「문서만 바뀐 main 푸시」가 푸시 전 SHA 를 base 로 같은 판정을 쓴다.
  *   `supabase/**` 는 이것보다 먼저 전부다
+ *
+ * ## 문구만 바뀐 파일은 `core` 에 옛 글자를 찾는 시험의 차선만 더한다 (ADR 0159)
+ *
+ * #570 은 확인 창의 문구 한 줄이었는데 상수가 `src/lib/consent` 에 들어가 공용 위험(관문)으로 전부를 돌았다. 그래서 운영 베타의 PR 은
+ * **화면 문구 자리의 글자만** 바뀐 파일을 공용 위험 · 주소 대응에서 빼고 `core` 로 센다. 위치나 PR 설명이 아니라 위와 같은 파서로
+ * 가른다: 문구 자리의 잎을 글자 없이 `종류:<문구>` 로 적은 나무와 뜻이 있는 주석이 base 와 같고, 그 자리의 글자가 하나 이상 다르다
+ * (`copyOnlyChanged`). 판정은 `app/**` · `src/**` 의 시험 아닌 코드 파일에서만 한다. 주석만 바뀐 파일은 먼저 정책으로 빠진다.
+ *
+ * - **인정하는 자리는 둘뿐이다** — JSX 글자(요소 사이의 글자, `option` · `textarea` · `style` · `script` 안은 빼고), 그리고 `COPY_FILES`
+ *   의 파일이 모양(`export const 이름 = '글자'` 만, `copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. 「상수의 문자열」이라는
+ *   까닭만으로는 안 센다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다. 목록의 파일이 모양을 지키는지와 그 이름을 화면
+ *   (`.tsx`)과 시험만 부르는지는 시험이 잰다
+ * - **인정하지 않는 것** — JSX 속성 값 전부(`className` · `href` · `src` · `aria-*` · `role` · `data-*` …) · 조건식 · 이벤트 핸들러 ·
+ *   식별자 · 구조(요소 · JSX 주석 `{/* *\/}` 을 새로 세움) · 템플릿 리터럴(식도 글자 조각도) · 목록 밖 문자열. 문구와 이것이 한 파일에
+ *   섞이면 그 파일은 지금 규칙 그대로다
+ * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
+ * - **옛 글자를 찾는 시험의 차선을 더한다** — 바뀌기 전 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면(통째로, 또는 시험의
+ *   리터럴 글자 넉 자 이상이 옛 글자의 조각이면) 그 spec 의 차선 · `flow` 를 켠다. spec 이 아닌 `e2e/**` 면 전부다. **이 검색은 검사를
+ *   더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 안 걸리고, 그 구멍은 머지 뒤 main 의 전체와 `ci-main-red` 가 잡는다
+ * - 공개 출시 · main 푸시 · 일정 · 손으로 켠 실행은 문구만이어도 지금 규칙 그대로다
+ *
+ * 같은 판정을 묶음 배포가 쓴다 — 마지막으로 전부를 잰 main 의 초록부터 올릴 SHA 까지가 정책 · 주석만 · 문구만뿐이고 PR 마다 `gate` 가
+ * 초록이면 배포가 main 의 전체 CI 를 기다리지 않는다(`deployRangeOf`, `scripts/deploy-range.mjs`).
  *
  * ## 문서만 바뀐 main 푸시는 `policy` 만 (ADR 0154)
  *
@@ -229,7 +254,7 @@ export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local
  * 새 도우미(`scripts/beta-dates.mjs` 같은 것)는 이름을 안 적어도 걸리고, 여기 든 이름이 없어져도 넓어질 뿐이다
  */
 const NOT_HARNESS =
-  /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|merge-sim|read-budget|brand-share-images|checkout-hint|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
+  /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|merge-sim|read-budget|deploy-range|brand-share-images|checkout-hint|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
 const isHarness = (file) => HARNESS.includes(file) || (/^scripts\/[^/]+\.mjs$/.test(file) && !NOT_HARNESS.test(file));
 /** 관문 — 여기서 import 를 따라가 닿는 `app/` 파일은 입구다(위 「관문이 import 하는 `app/` 파일」) */
 const GATE = 'proxy.ts';
@@ -529,18 +554,24 @@ const directivesIn = (comment) =>
  * 줄바꿈)을 놓치므로 나무의 모양까지 든다. JSDoc 노드는 주석이라 건너뛴다. 뜻이 있는 주석은 「열의 몇 번째 앞(뒤)에
  * 무엇이」로 적는다 — 열이 같을 때 그 자리가 같으면 같은 것에 붙은 것이다. 파싱 진단이 하나라도 있으면 `null`
  *
+ * `copy` 면 화면 문구 자리(`copySlotsOf`)의 잎을 글자 없이 `종류:<문구>` 로 적고 그 글자를 `slots` 에 차례로 모은다 —
+ * 두 열이 같으면 바뀐 것이 그 자리의 글자뿐이다(아래 「문구만 바뀐 파일」)
+ *
  * @param {typeof import('typescript')} ts
  * @param {string} file
  * @param {string} source
- * @returns {{ tokens: string[], meaningful: string[] } | null}
+ * @param {{ copy?: boolean }} [options]
+ * @returns {{ tokens: string[], meaningful: string[], slots: string[] } | null}
  */
-export function syntaxOf(ts, file, source) {
+export function syntaxOf(ts, file, source, { copy = false } = {}) {
   const kind = SCRIPT_KINDS[posix.extname(file)];
   if (!kind) return null;
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind[kind]);
   if (tree.parseDiagnostics?.length !== 0) return null;
+  const masked = copy ? copySlotsOf(ts, file, tree) : new Set();
   const tokens = [];
   const meaningful = [];
+  const slots = [];
   const note = (ranges, where) => {
     for (const range of ranges ?? []) {
       for (const directive of directivesIn(source.slice(range.pos, range.end))) meaningful.push(`${where}:${directive}`);
@@ -556,13 +587,16 @@ export function syntaxOf(ts, file, source) {
       return;
     }
     note(ts.getLeadingCommentRanges(source, node.pos), `${tokens.length}<`);
-    tokens.push(`${node.kind}:${node.getText(tree)}`);
+    if (masked.has(node)) {
+      tokens.push(`${node.kind}:<문구>`);
+      slots.push(node.text);
+    } else tokens.push(`${node.kind}:${node.getText(tree)}`);
     note(ts.getTrailingCommentRanges(source, node.end), `${tokens.length - 1}>`);
   };
   walk(tree);
   const shebang = ts.getShebang(source);
   if (shebang) meaningful.push(`#!${shebang}`);
-  return { tokens, meaningful };
+  return { tokens, meaningful, slots };
 }
 
 /**
@@ -581,6 +615,183 @@ export function onlyCommentsChanged(ts, file, before, after) {
   if (old === null || now === null) return false;
   const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
   return same(old.tokens, now.tokens) && same(old.meaningful, now.meaningful);
+}
+
+// ---------------------------------------------------------------------------
+// 문구만 바뀐 파일 — core 에 옛 글자를 찾는 시험의 차선만 더한다(위 「문구만 바뀐 파일」, ADR 0159)
+// ---------------------------------------------------------------------------
+
+/**
+ * 문구 상수만 모은 파일 — **용도가 확인된 문구 상수**는 이 목록의 파일에 선 것뿐이다. 파일마다 `export const 이름 = '글자';`
+ * 만 서야 하고(`copyConstantsShape`), 그 이름은 화면(`.tsx`)만 부른다 — 둘 다 `scripts/ci-plan.test.ts` 가 잰다. 문자열 상수라는
+ * 까닭만으로는 문구로 세지 않는다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다
+ */
+export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/matching/copy.ts'];
+
+/** 글자가 화면 글자가 아닌 요소 — 그 글자가 값(`option` 은 `value` 가 없으면 글자를 보낸다 · `textarea`)이거나 코드(`style` · `script`)다 */
+const NOT_SCREEN_TEXT = new Set(['option', 'textarea', 'style', 'script']);
+
+/**
+ * 문구 상수 파일의 모양 — 문 하나하나가 `export const 이름 = '글자'`(따옴표 · 식 없는 백틱, 타입 표기 없음) 하나다. 하나라도
+ * 다르면(import · 함수 · 식 · 둘 이상의 선언) `false` 라 그 파일의 문자열은 문구 자리가 아니다
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').SourceFile} tree
+ */
+export function copyConstantsShape(ts, tree) {
+  return (
+    tree.statements.length > 0 &&
+    tree.statements.every((statement) => {
+      if (!ts.isVariableStatement(statement)) return false;
+      const modifiers = statement.modifiers ?? [];
+      if (modifiers.length !== 1 || modifiers[0].kind !== ts.SyntaxKind.ExportKeyword) return false;
+      const list = statement.declarationList;
+      if ((list.flags & ts.NodeFlags.BlockScoped) !== ts.NodeFlags.Const || list.declarations.length !== 1) return false;
+      const [one] = list.declarations;
+      return (
+        ts.isIdentifier(one.name) &&
+        one.type === undefined &&
+        one.exclamationToken === undefined &&
+        one.initializer !== undefined &&
+        (ts.isStringLiteral(one.initializer) || ts.isNoSubstitutionTemplateLiteral(one.initializer))
+      );
+    })
+  );
+}
+
+/**
+ * 화면 문구 자리 — 인정하는 것은 둘뿐이다. ① JSX 글자(요소 사이의 글자, `NOT_SCREEN_TEXT` 안은 빼고) ② `COPY_FILES` 의
+ * 파일이 모양(`copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. JSX 속성 값(`className` · `href` · `aria-*` …) · 식 ·
+ * 템플릿의 식 · 그 밖의 문자열은 자리가 아니다 — 그대로 나무의 글자로 견준다
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {string} file
+ * @param {import('typescript').SourceFile} tree
+ * @returns {Set<import('typescript').Node>}
+ */
+function copySlotsOf(ts, file, tree) {
+  const slots = new Set();
+  if (COPY_FILES.includes(file) && copyConstantsShape(ts, tree)) {
+    for (const statement of tree.statements) slots.add(statement.declarationList.declarations[0].initializer);
+  }
+  const visit = (node, element) => {
+    if (node.kind === ts.SyntaxKind.JsxText && !NOT_SCREEN_TEXT.has(element)) slots.add(node);
+    const inner = ts.isJsxElement(node) ? node.openingElement.tagName.getText(tree) : ts.isJsxFragment(node) ? '' : element;
+    ts.forEachChild(node, (child) => visit(child, inner));
+  };
+  visit(tree, '');
+  return slots;
+}
+
+/** 문구로 가를 수 있는 파일 — 앱 소스(`app/**` · `src/**`)의 시험 아닌 코드 파일. 시험 · 도구 · 설정은 가르지 않는다 */
+const copyJudged = (file) => /^(?:app|src)\//.test(file) && !isTestFile(file) && posix.extname(file) in SCRIPT_KINDS;
+
+/** 글자를 견줄 모양 — 공백을 하나로 접고 양 끝을 걷는다. JSX 글자는 줄바꿈 · 들여쓰기를 끼고 화면에는 한 칸으로 선다 */
+const squeezed = (text) => text.replace(/\s+/g, ' ').trim();
+
+/**
+ * 옛 소스와 지금 소스가 **화면 문구 자리의 글자만** 다른가 — 그렇다면 바뀌기 전 글자들, 아니면 `null`.
+ * 문구 자리를 가린 나무 · 뜻이 있는 주석이 같고 글자가 하나 이상 달라야 한다. 판별이 불확실하면 `null` 이다 —
+ * 파서 없음 · 한쪽이 없음(추가 · 삭제 · 이름 바꿈) · 파싱 실패 · 가르지 않는 자리 · 글자째 같음 · 주석만 바뀜
+ *
+ * @param {typeof import('typescript') | null} ts
+ * @param {string} file
+ * @param {string | null} before base 쪽 내용
+ * @param {string | null} after HEAD 쪽 내용
+ * @returns {string[] | null}
+ */
+export function copyOnlyChanged(ts, file, before, after) {
+  if (ts === null || before === null || after === null || before === after || !copyJudged(file)) return null;
+  const old = syntaxOf(ts, file, before, { copy: true });
+  const now = syntaxOf(ts, file, after, { copy: true });
+  if (old === null || now === null) return null;
+  const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
+  if (!same(old.tokens, now.tokens) || !same(old.meaningful, now.meaningful)) return null;
+  const gone = old.slots.filter((text, at) => text !== now.slots[at]);
+  if (gone.length === 0) return null;
+  return [...new Set(gone.map(squeezed).filter((text) => text !== ''))];
+}
+
+/** 바뀐 파일 중 문구만 바뀐 것과 그 옛 글자 — 파서가 없으면 없다 */
+const copyOnlyOf = (changed, { sourceOf, baseSourceOf, ts }) => {
+  const found = new Map();
+  if (ts === null) return found;
+  for (const file of changed) {
+    const gone = copyJudged(file) ? copyOnlyChanged(ts, file, baseSourceOf(file), sourceOf(file)) : null;
+    if (gone !== null) found.set(file, gone);
+  }
+  return found;
+};
+
+/** 시험 소스의 따옴표 · 백틱 · 정규식 리터럴 속 글자 — 옛 글자의 한 조각을 찾는 시험(`getByText('수락하면')` · `/채팅방이/`)도 잡으려고 */
+const literalsIn = (source) => [
+  ...[...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2]),
+  ...[...source.matchAll(/\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/[dgimsuy]*/g)].map((one) => one[1]),
+];
+
+/**
+ * 조각으로 찾는 리터럴의 가장 짧은 길이(공백 빼고) — 두 자(「하나」 · 「요청」)로 두니 낱말 하나가 아무 spec 에나 걸려 문구 한 줄이
+ * 로그인 차선 여섯을 불렀다(2026-10-09 잼). 넉 자면 「채팅방이」 · 「인연 탭에」 같은 실제 selector 조각은 잡고 낱말 하나는 안 잡는다
+ */
+const MENTION_PIECE = 4;
+
+/**
+ * 옛 글자를 말하는 시험 — 소스에 옛 글자가 통째로 있거나, 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 옛 글자의 조각이다.
+ * **검사를 더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 여기 안 걸린다. 그 구멍은 머지 뒤 main 의 전체가 잡는다
+ *
+ * @param {readonly string[]} olds 바뀌기 전 글자
+ * @param {readonly (readonly [string, string])[]} tests `[시험 파일, 소스]`
+ * @returns {string[]}
+ */
+export function testsMentioning(olds, tests) {
+  return tests
+    .filter(([, source]) => {
+      const flat = squeezed(source);
+      if (olds.some((old) => flat.includes(old))) return true;
+      return literalsIn(source).some((literal) => {
+        const piece = squeezed(literal);
+        return piece.replace(/ /g, '').length >= MENTION_PIECE && olds.some((old) => old.includes(piece));
+      });
+    })
+    .map(([test]) => test);
+}
+
+/** 옛 글자를 찾을 시험들 — `e2e/**` 의 글 파일 전부와 흐름 검사. 저장소에서 한 번 읽는다 */
+let mentionCache = null;
+function mentionSources() {
+  if (mentionCache) return mentionCache;
+  const walk = (dir) => {
+    try {
+      return readdirSync(new URL(`../${dir}`, import.meta.url), { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? walk(`${dir}/${entry.name}`) : /\.(?:ts|mts|mjs|js|txt|json)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
+      );
+    } catch {
+      return [];
+    }
+  };
+  const files = [...walk('e2e'), ...walk('scripts').filter(isFlowCheck)];
+  mentionCache = files.map((file) => [file, sourceFromDisk(file) ?? '']);
+  return mentionCache;
+}
+
+/**
+ * 문구만 바뀐 파일들이 더 켜는 차선 — 옛 글자를 말하는 시험의 차선. spec 은 그 차선(`lanesOfTest`), 흐름 검사는 `flow`,
+ * spec 이 아닌 `e2e/**`(여러 spec 이 부르는 도우미 · 픽스처)나 차선을 못 찾는 spec 은 `null`(전부)
+ *
+ * @param {Map<string, string[]>} copyOnly
+ * @param {readonly (readonly [string, string])[]} [tests]
+ * @returns {{ lanes: string[] | null, tests: string[] }}
+ */
+export function copyLanesOf(copyOnly, tests = mentionSources()) {
+  const olds = [...copyOnly.values()].flat();
+  const hit = testsMentioning(olds, tests);
+  const lanes = [];
+  for (const test of hit) {
+    const of = isSpec(test) || isFlowCheck(test) ? lanesOfTest(test) : null;
+    if (of === null) return { lanes: null, tests: hit };
+    lanes.push(...of);
+  }
+  return { lanes: [...new Set(lanes)], tests: hit };
 }
 
 // ---------------------------------------------------------------------------
@@ -642,8 +853,33 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
   if (stage === null || !(stage in LAUNCHED)) return full('단계 모름', '출시 단계를 모른다 — PRD §7.0 의 「(지금)」');
 
   const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
-  const judged = changed.filter((file) => !commentOnly.includes(file));
-  return notingComments(LAUNCHED[stage] ? decideLaunched(judged) : decideBeta(judged, stage, sourceOf), commentOnly);
+  const rest = changed.filter((file) => !commentOnly.includes(file));
+  if (LAUNCHED[stage]) return notingComments(decideLaunched(rest), commentOnly);
+  // 문구만 바뀐 파일은 공용 위험 · 주소 대응에서 빠지고 core 에 옛 글자를 찾는 시험의 차선을 더한다(위 「문구만 바뀐 파일」)
+  const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
+  const judged = rest.filter((file) => !copyOnly.has(file));
+  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), copyOnly, stage), commentOnly);
+}
+
+/** 나머지 파일의 계획에 문구만 바뀐 파일을 얹는다 — core 는 늘 서고, 옛 글자를 말하는 시험의 차선이 더 선다 */
+function withCopy(decided, copyOnly, stage) {
+  if (copyOnly.size === 0) return decided;
+  const named = [...copyOnly.keys()].map((one) => `\`${one}\``).join(' · ');
+  if (decided.tier === 'full') return { ...decided, reason: `${decided.reason} — 문구만 바뀐 파일: ${named}` };
+  const { lanes, tests } = copyLanesOf(copyOnly);
+  const cited = tests.map((one) => `\`${one}\``).join(' · ');
+  if (lanes === null) return full('문구의 옛 글자', `${stage} — 문구만 바뀐 ${named} 의 옛 글자를 ${cited} 가 말하는데 그 차선을 못 가른다`);
+  const before = decided.pick ?? {};
+  const pick = {
+    core: true,
+    anon: Boolean(before.anon) || lanes.includes('anon'),
+    flow: Boolean(before.flow) || lanes.includes('flow'),
+    authedLanes: [...new Set([...(before.authedLanes ?? []), ...lanes.filter((one) => one !== 'anon' && one !== 'flow')])],
+  };
+  const extra = tests.length === 0 ? '옛 글자를 말하는 시험 없음' : `옛 글자를 말하는 시험: ${cited}`;
+  const narrowed = decided.tier === 'narrow' || tests.length > 0;
+  const head = decided.tier === 'policy' ? `${stage} — 문구만 바뀌었다` : decided.reason;
+  return { tier: narrowed ? 'narrow' : 'core', reason: `${head} — 문구만 바뀐 파일은 core 로 셌다: ${named} (${extra})`, pick };
 }
 
 /** 바뀐 파일 중 주석만 바뀐 코드 파일 — 파서가 없으면 없다(위 「주석만 바뀐 코드 파일」) */
@@ -687,6 +923,47 @@ function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
     return full('앞 커밋 미검증', `main 푸시 — 정책만 바뀌었지만 앞 커밋 \`${before}\` 의 verify 가 초록으로 끝나지 않았다(끊김 · 붉음 · 못 읽음)`);
   }
   return notingComments({ tier: 'policy', reason: `main 푸시 — \`${before}\` 부터 정책만 바뀌었다`, pick: { policy: true } }, commentOnly);
+}
+
+// ---------------------------------------------------------------------------
+// 묶음 배포의 기다림 — 마지막 초록부터 HEAD 까지가 문구 · 문서뿐인가(ADR 0159, `scripts/deploy-range.mjs`)
+// ---------------------------------------------------------------------------
+
+/**
+ * 묶음 배포가 main 의 전체 CI 를 기다려야 하는가 — 위 판정(정책 · 주석만 · 문구만)을 범위 전체에 그대로 쓴다. 배포는 묶음이라
+ * (ADR 0110) 「이 PR 이 문구만」이 아니라 **범위 전체**를 본다. 답은 넷이다.
+ *
+ * - `green` — 마지막으로 전부를 잰 초록이 HEAD 다. 기다릴 것이 없다
+ * - `docs-only` — 범위가 정책 · 주석만 바뀐 코드 파일뿐이다. 앱은 그 초록과 같다 — 기다리지 않는다
+ * - `copy` — 범위가 정책 · 주석만 · 문구만 바뀐 파일뿐이고 범위의 커밋마다 그 PR 의 `gate` 가 초록이었다. main 의 전체 CI 완료를
+ *   기다리지 않는다
+ * - `wait` — 그 밖 전부. 동작이 바뀐 파일이 하나라도 · 마지막 초록을 못 찾음 · diff 를 못 읽음 · 파서 없음 · PR 검사를 못
+ *   읽었거나 하나라도 초록이 아님
+ *
+ * `unpassed` 는 범위의 커밋 중 PR 의 `gate` 가 초록으로 끝나지 않은 것(PR 없음 포함)이다 — 못 읽었으면 `null`.
+ *
+ * @param {{ lastGreen: string | null, head: string, files: readonly string[] | null, ts: typeof import('typescript') | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null, unpassed: readonly string[] | null }} input
+ * @returns {{ verdict: 'green' | 'docs-only' | 'copy' | 'wait', reason: string, copy: string[], behavior: string[] }}
+ */
+export function deployRangeOf({ lastGreen, head, files, ts, sourceOf, baseSourceOf, unpassed }) {
+  const wait = (reason, behavior = []) => ({ verdict: 'wait', reason, copy: [], behavior });
+  if (lastGreen === null) return wait('마지막으로 전부를 잰 main 의 초록을 못 찾았다');
+  if (lastGreen === head) return { verdict: 'green', reason: `HEAD \`${head.slice(0, 7)}\` 가 마지막 초록이다`, copy: [], behavior: [] };
+  const changed = (files ?? []).map((one) => one.trim()).filter((one) => one !== '');
+  if (changed.length === 0) return wait('범위의 바뀐 파일을 못 읽었다');
+  if (ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
+  const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
+  const rest = changed.filter((file) => !isPolicy(file) && !commentOnly.includes(file));
+  const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
+  const behavior = rest.filter((file) => !copyOnly.has(file));
+  const range = `\`${lastGreen.slice(0, 7)}..${head.slice(0, 7)}\``;
+  if (behavior.length > 0) return wait(`${range} 에 동작이 바뀐 파일이 있다 — main 의 전체 CI 를 기다린다`, behavior);
+  if (unpassed === null) return wait(`${range} 의 PR 검사(\`gate\`)를 못 읽었다`);
+  if (unpassed.length > 0) {
+    return wait(`${range} 에 PR 검사(\`gate\`)가 초록이 아닌 커밋이 있다: ${unpassed.map((one) => `\`${one.slice(0, 7)}\``).join(' · ')}`);
+  }
+  if (copyOnly.size === 0) return { verdict: 'docs-only', reason: `${range} 는 정책 · 주석뿐이다 — 앱은 마지막 초록과 같다`, copy: [], behavior: [] };
+  return { verdict: 'copy', reason: `${range} 는 문구 · 문서뿐이다 — main 의 전체 CI 완료를 기다리지 않는다`, copy: [...copyOnly.keys()], behavior: [] };
 }
 
 /** 공개 출시 — 위 「세 단계뿐이다」 그대로. 엔진 단계는 `core` + `anon` 이다 */
@@ -768,11 +1045,11 @@ function argOf(name) {
  * base 커밋의 그 파일 — 못 읽으면(그 커밋에 없다 · git 실패) `null`. 실행 비트가 바뀐 파일도 `null` 이다: 토큰은 같아도
  * 주석만 바뀐 것이 아니다
  */
-function baseSourceFromGit(base, file) {
+export function baseSourceFromGit(base, file, head = 'HEAD') {
   const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 26 });
   try {
     const modeOf = (ref) => git('ls-tree', ref, '--', file).split(/\s/)[0];
-    if (modeOf(base) !== modeOf('HEAD')) return null;
+    if (modeOf(base) !== modeOf(head)) return null;
     return git('show', `${base}:${file}`);
   } catch {
     return null;

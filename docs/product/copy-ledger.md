@@ -315,7 +315,7 @@ DB 가 내는 닉네임 중복 거절 「이미 쓰고 있는 닉네임입니다
 
 | 자리 | 이전 | 확정 |
 | --- | --- | --- |
-| 받은 공유본 아래 단추 곁 `app/share/view.tsx` — 서비스 소개와 같은 상수 `BETA_SIGNUP_CODE_NOTE`(`src/lib/consent`) | 지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요. | 지금은 비공개 베타라 가입에 테스트 코드가 필요해요. 코드는 운영자가 테스터에게 직접 알려 드려요. — 베타가 끝나면 지운다 |
+| 받은 공유본 아래 단추 곁 `app/share/view.tsx` — 서비스 소개와 같은 상수 `BETA_SIGNUP_CODE_NOTE`(`src/lib/account/copy.ts`) | 지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요. | 지금은 비공개 베타라 가입에 테스트 코드가 필요해요. 코드는 운영자가 테스터에게 직접 알려 드려요. — 베타가 끝나면 지운다 |
 | 저장한 사람 타일의 단추, 만드는 중 `app/me/home/person-tile.tsx` (`TILE_READING_MAKING`) | 풀이 만드는 중… | 풀이 중… — 390px 에서 잘렸다. 내 사주 카드 · 빈 표지 · `/me/people` 카드는 「풀이 만드는 중…」 그대로(19) |
 | 그 타일의 한 줄, 만드는 중 | 풀이 없음 | 풀이 만드는 중… (19 의 글자) |
 | 가입, 코드 빈 채로 누름 `app/signup/form.tsx` | (단추 잠김) | 테스트 코드를 입력해 주세요. |
@@ -375,7 +375,7 @@ DB 가 내는 닉네임 중복 거절 「이미 쓰고 있는 닉네임입니다
 
 | 자리 | 이전 | 확정 |
 | --- | --- | --- |
-| 인연 요청 확인 창 `app/me/matching/matching-experience.tsx` — `REQUEST_OPENS_CHAT_NOTE`(`src/lib/consent`) | (없음 — 풀이권 예약 · 여덟 글자 공개 두 줄) | 상대가 수락하면 채팅방이 열려요. — 화면은 채팅방, 낱말은 대화방(용어집) |
+| 인연 요청 확인 창 `app/me/matching/matching-experience.tsx` — `REQUEST_OPENS_CHAT_NOTE`(`src/lib/matching/copy.ts`) | (없음 — 풀이권 예약 · 여덟 글자 공개 두 줄) | 상대가 수락하면 채팅방이 열려요. — 화면은 채팅방, 낱말은 대화방(용어집) |
 
 ## 검토 대기
 

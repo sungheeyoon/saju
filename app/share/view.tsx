@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
+import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/account/copy';
 import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
