@@ -2329,7 +2329,7 @@ async function typeInto(
 
   await fillBirthDate(card, date);
   await fillBirthTime(card, time);
-  // 이름을 채우면 묶음의 이름이 그 이름으로 바뀐다 — 그래서 마지막이다.
+  // 이름은 마지막이다 — 앞의 칸을 채우는 동안 묶음을 다시 찾지 않게(묶음의 이름은 「첫 번째 사람」 그대로다).
   await card.getByLabel('이름', { exact: true }).fill(name);
 }
 
@@ -2413,7 +2413,10 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(params.get('a.date')).toBe('1990-05-15');
     expect(params.get('b.date')).toBe('1992-08-20');
     expect(params.get('a.hour')).toBe('11:20');
-    await expectBirthDate(page.getByRole('group', { name: '민수' }), '1990-05-15');
+    // 칸 묶음의 이름은 머리 표지 「첫 번째 사람」이다(B10) — 적은 사람이 그 칸에 그대로 앉았는지는 이름 칸의 값으로 본다
+    const first = page.getByRole('group', { name: '첫 번째 사람', exact: true });
+    await expect(first.getByLabel('이름', { exact: true })).toHaveValue('민수');
+    await expectBirthDate(first, '1990-05-15');
 
     expect(consoleErrors).toEqual([]);
   });
