@@ -179,20 +179,29 @@ test.describe('시작하기 전에', () => {
     await improvement.check();
 
     /*
-      **확인 없이는 눌리지 않는다.** 버튼 하나가 확인을 겸하던 자리를 칸으로 꺼냈다 —
+      **확인 없이는 안 넘어간다.** 버튼 하나가 확인을 겸하던 자리를 칸으로 꺼냈다 —
       가입 폼에서는 버튼이 「가입」을 뜻하므로, 읽었다는 표시가 그 안에 섞이면 남는
-      기록이 무엇에 대한 것인지 흐려진다.
+      기록이 무엇에 대한 것인지 흐려진다. 단추는 잠그지 않고, 누르면 위에서부터 처음 걸린
+      칸을 말하고 그 칸으로 초점을 옮긴다(2026-10-09 — 잠근 단추 옆에 닉네임 규칙만 서 있었다).
     */
     const start = page.getByRole('button', { name: '가입하고 시작하기' });
-    await expect(start).toBeDisabled();
+    const gap = page.locator('#signup-gap');
+    await start.click();
+    await expect(gap).toHaveText('테스트 코드를 입력해 주세요.');
+    await expect(page.getByLabel('테스트 코드')).toBeFocused();
 
     await page.getByLabel('테스트 코드').fill(E2E_CODE);
     await page.getByLabel('닉네임').fill(`벗${String(Date.now()).slice(-6)}`);
     await page.getByRole('button', { name: '중복 확인' }).click();
     await expect(page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
 
+    await start.click();
+    await expect(gap).toHaveText('‘위 내용을 확인했습니다’에 표시해 주세요.');
+    await expect(page.getByRole('checkbox', { name: /위 내용을 확인/ })).toBeFocused();
+    await expect(page).toHaveURL(/\/signup/);
+
     await page.getByRole('checkbox', { name: /위 내용을 확인/ }).check();
-    await expect(start).toBeEnabled();
+    await expect(gap).toHaveCount(0);
     await start.click();
 
     /*

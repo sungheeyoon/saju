@@ -13,7 +13,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
-import { SELF_READING_MAKING } from './making';
+import { SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
@@ -85,8 +85,9 @@ export function PersonTile({
       </div>
 
       <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
+        {/* 만드는 중이면 「풀이 없음」이 아니다 — 같은 타일의 단추가 그 일을 말하는 동안 이 줄이 반대말을 하지 않는다 */}
         {reading === null ? (
-          <span className="text-secondary">풀이 없음</span>
+          <span className="text-secondary">{making ? SELF_READING_MAKING : '풀이 없음'}</span>
         ) : (
           <>
             {!reading.fromCurrentChart && (
@@ -106,7 +107,7 @@ export function PersonTile({
           href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
           className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} whitespace-nowrap`}
         >
-          {reading !== null ? '풀이 보기' : making ? SELF_READING_MAKING : '풀이 받기'}
+          {reading !== null ? '풀이 보기' : making ? TILE_READING_MAKING : '풀이 받기'}
         </Link>
         {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
         <CompatFillLink

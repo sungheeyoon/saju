@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
+import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
 import { SERVICE_FEATURES } from '../service-features';
@@ -81,7 +82,7 @@ export default function AboutPage() {
           ))}
         </ol>
         <p className="text-sm leading-6 text-secondary">
-          지금은 비공개 베타라 가입에 테스트 코드가 필요해요. 코드는 운영자가 테스터에게 직접 알려 드려요.
+          {BETA_SIGNUP_CODE_NOTE}
         </p>
       </section>
 
