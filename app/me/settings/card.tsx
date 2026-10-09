@@ -17,8 +17,9 @@ import { Icon } from '../../ui/icons';
  *
  * 1. **무리는 제목과 한 장의 줄 목록이다.** 제목은 판 밖 위에, 줄은 한 장의 흰 판 안에 서고
  *    줄 사이는 실선 하나(설정 앱의 무리 지은 목록).
- * 2. **누름은 줄의 오른쪽이다.** 좁은 화면에서는 글 아래로 내려오고 차례는 그대로다. 다른 화면으로
- *    가는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다(`SettingsLinkRow`).
+ * 2. **누름은 줄의 오른쪽이다.** 좁은 화면에서는 글 아래 제 줄로 내려오되 **오른쪽 끝을 맞춘다** — 차례는
+ *    그대로다(2026-10-09, 운영자). 상태 글자가 함께 서는 줄(선택 동의의 「현재 동의 중」)은 상태가 왼쪽 끝,
+ *    누름이 오른쪽 끝이다(`ROW_STATUS`). 다른 화면으로 가는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다(`SettingsLinkRow`).
  * 3. **버튼은 공용 단추의 작은 층이다**(`app/ui/buttons.ts`). 먹색은 시작하는 누름, 흰 알약은
  *    되돌릴 수 있는 누름, 붉은 글자는 되돌리기 어려운 누름.
  */
@@ -35,6 +36,9 @@ export const SETTINGS_QUIET = BUTTON_SECONDARY_SMALL;
  */
 export const SETTINGS_DANGER =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-danger hover:border-danger active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55';
+
+/** 누름과 함께 서는 상태 글자 — 폰에서 누름이 오른쪽 끝으로 가도 상태는 왼쪽 끝에 남는다(규칙 2) */
+export const ROW_STATUS = 'max-sm:mr-auto';
 
 /** 줄 하나의 껍데기 — 직접 `<fieldset>` 으로 감싸야 하는 자리가 있어 클래스도 내준다 */
 export const SETTINGS_ROW =
@@ -89,7 +93,7 @@ export function SettingsRow({
         {note !== undefined && <p className="text-[13px] leading-5 text-muted">{note}</p>}
       </div>
       {children !== undefined && (
-        <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-3 sm:shrink-0">
           {children}
         </div>
       )}
