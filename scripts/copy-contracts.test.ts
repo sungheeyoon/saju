@@ -15,7 +15,8 @@ import { describe, expect, it } from 'vitest';
 
 import { RATE_LIMITED_TEXT } from '../src/lib/chat';
 import { CONSENT_FLOW_STEPS } from '../src/lib/consent';
-import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS, REQUEST_OPENS_CHAT_NOTE } from '../src/lib/consent/notice';
+import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS } from '../src/lib/consent/notice';
+import { REQUEST_OPENS_CHAT_NOTE } from '../src/lib/matching/copy';
 import { READING_USES_TICKET_NOTE, REQUEST_RESERVES_NOTE } from '../src/lib/reading';
 
 describe('계약 문구', () => {

@@ -112,9 +112,6 @@ export const noticeAckHolds = (version: string | null): boolean => {
 export const MATCH_PILLARS_DISCLOSURE =
   '수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.';
 
-/** 인연 요청 확인 창의 셋째 줄 — 수락이 무엇을 여는지(운영자 2026-10-09, G-86). 낱말은 대화방, 화면은 채팅방이다(용어집). */
-export const REQUEST_OPENS_CHAT_NOTE = '상대가 수락하면 채팅방이 열려요.';
-
 /**
  * 지금 일정 — **표에서 온다**(`current_beta_schedule`).
  *
@@ -416,17 +413,6 @@ export const NOTICE_ACK_NOTE =
  */
 export const SIGNUP_CODE_NOTE =
   '초대한 분에게 받은 코드를 입력해 주세요. 코드는 받은 날에만 쓸 수 있고, 하루에 가입할 수 있는 인원이 정해져 있어요.';
-
-/**
- * 가입 **전에** 서는 한 줄 — 가입에 테스트 코드가 들고, 코드는 어디서 오는가.
- *
- * 서비스 소개(`app/about/page.tsx`)와 받은 공유본(`app/share/view.tsx`)이 같은 사실을 적는다. 공유본은 코드 없이 열리지만
- * 그 화면의 단추는 로그인 · 가입으로 간다 — 링크를 받은 사람 대부분은 코드가 없어, 누르고 나서 알게 하면 막힌 문을 만난다.
- *
- * **베타가 끝나 가입에서 코드를 빼면 이 상수와 부르는 자리를 함께 지운다**(운영자 2026-10-09).
- */
-export const BETA_SIGNUP_CODE_NOTE =
-  '지금은 비공개 베타라 가입에 테스트 코드가 필요해요. 코드는 운영자가 테스터에게 직접 알려 드려요.';
 
 /** 안내가 바뀌어 다시 지나는 사람에게 — **가입이 아니라 재확인이다** */
 export const NOTICE_AGAIN_NOTE =

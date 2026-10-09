@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
-import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
+import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/account/copy';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
 import { SERVICE_FEATURES } from '../service-features';

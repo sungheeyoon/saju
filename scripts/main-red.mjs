@@ -90,7 +90,7 @@ const jobsOf = (repo, runId) =>
     });
 
 /** main 의 마지막 초록 중 전부를 잰 것 — 정책만 돈 초록은 e2e 의 범위를 말하지 않는다. 최근 30 개 안에 없으면 `null` */
-function lastFullGreen(repo, workflowId) {
+export function lastFullGreen(repo, workflowId) {
   const runs = gh('run', 'list', '--repo', repo, '--workflow', String(workflowId), '--branch', 'main', '--status', 'success', '--limit', '30', '--json', 'databaseId,headSha', '--jq', '.[] | [.databaseId, .headSha] | @tsv');
   for (const line of runs.split('\n').filter(Boolean)) {
     const [id, sha] = line.split('\t');
