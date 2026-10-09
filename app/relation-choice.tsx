@@ -51,7 +51,7 @@ export function RelationChoice({
       </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
           {[...RELATIONS, null].map((choice) => {
             const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
             const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
@@ -67,7 +67,7 @@ export function RelationChoice({
                   칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
                   숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는 손에는 누를 것이
                   없는 칸이 된다(`birth-form.tsx` 와 같은 규율). 위아래로 1px 씩 넘친다 — 꼭 44px 이면 칸의 위치가 반 픽셀에
-                  걸릴 때 눌리는 높이가 43.5 로 재였다(2026-10-09 #549, `e2e/target.ts`). 보이는 모양과 줄 높이는 그대로다.
+                  걸릴 때 눌리는 높이가 43.5 로 재였다(2026-10-09 #549, `e2e/target.ts`). 보이는 모양과 줄 높이는 그대로다. 칩이 두 줄로 접히면 그 1px 이 윗줄 · 아랫줄 칩을 덮으므로 줄 사이를 4px 띄운다(`gap-y-1`).
                 */}
                 <input
                   type="radio"
