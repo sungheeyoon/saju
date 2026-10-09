@@ -114,7 +114,7 @@ try {
     check('로그인 없이는 목록이 안 열린다', sentAway, String(anonymous.status));
 
     const empty = plain(await body('/me/chat', cookie.a));
-    check('방이 없으면 빈 목록이 말한다', empty.includes('아직 채팅방이 없습니다'));
+    check('방이 없으면 빈 목록이 말한다', empty.includes('아직 채팅방이 없어요'));
   }
 
   // ── 2. 후보 → 요청 → 수락 → 방 ────────────────────────────────────────────
