@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
 import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
-import { CARD, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, COLUMN_READING, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
 
@@ -51,7 +52,12 @@ export async function SharedReadingView({
   const whose = titleOf(expect, shared.nameA, shared.nameB);
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">
+    /*
+      **한 기둥에 선다**(`COLUMN_READING`) — 제목 · 인용 판 · 본문 판 · 초대 판의 왼쪽 끝이 한 선이고, 판 안의 글은 모두 같은
+      안쪽 여백(`sm:px-8`)에서 시작한다. 전폭 판 안 가운데에 본문 열(36rem)이 따로 서 있어 데스크톱에서 시작선이 셋으로
+      갈렸다(2026-10-09 화면 점검).
+    */
+    <main className={`app-shell flex ${COLUMN_READING} flex-1 flex-col gap-7 py-8 sm:py-12`}>
       {/*
         **로고를 여기서 다시 안 그린다.** 전역 헤더가 이미 이고 있고, 두 번 그리면
         좁은 화면에서 같은 것이 위아래로 두 줄 선다. 이 자리가 맡는 것은 브랜드 표시가
@@ -104,7 +110,8 @@ export async function SharedReadingView({
         </section>
       )}
 
-      <article className={`${CARD} overflow-hidden sm:p-8 lg:p-10`}>
+      {/* 안쪽 여백은 `sm:p-8` 하나다 — 기둥에서 양쪽 2rem 을 빼면 본문 열(36rem)이 판을 꽉 채워 위아래 판의 글과 같은 선에서 시작한다 */}
+      <article className={`${CARD} overflow-hidden sm:p-8`}>
         <Markdown source={body} />
       </article>
 
@@ -125,9 +132,8 @@ export async function SharedReadingView({
         <div className="mt-1">
           <StartButton variant="loud" />
         </div>
-        <p className="text-[13px] leading-5 text-secondary">
-          지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요.
-        </p>
+        {/* 베타가 끝나 가입에서 코드를 빼면 이 줄을 지운다 — 서비스 소개와 같은 상수다 */}
+        <p className="text-[13px] leading-5 text-secondary">{BETA_SIGNUP_CODE_NOTE}</p>
       </section>
     </main>
   );

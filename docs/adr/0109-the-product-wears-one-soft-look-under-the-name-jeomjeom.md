@@ -94,4 +94,4 @@ sans-serif`)을 `--font-sans` · `--font-rounded` 의 대체 · `body` · `.glyp
 ## 추기 — 화면의 기둥 폭 (2026-10-09)
 
 `.app-shell` 안에서 본문을 가운데로 묶는 폭은 `app/ui/surfaces.ts` 의 `COLUMN_*` 가 든다 — 폼 한 장은 `COLUMN_FORM`, 저장한 사람
-목록 · 상세는 `COLUMN_PEOPLE`. 다른 화면의 폭을 합치는 일은 G-83 에 남는다.
+목록 · 상세는 `COLUMN_PEOPLE`, 받은 공유본은 `COLUMN_READING`. 다른 화면의 폭을 합치는 일은 G-83 에 남는다.
