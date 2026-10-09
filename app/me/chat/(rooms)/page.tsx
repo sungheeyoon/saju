@@ -9,7 +9,7 @@ import { TYPE_TITLE } from '../../../ui/surfaces';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { EmptyChat, NoRoomChosen } from '../empty';
-import { ChatFrame, RoomList } from '../room-list';
+import { ChatFrame, RoomList, RoomListPanel } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
 import { roomTonesForViewer } from '../tones';
 
@@ -56,12 +56,18 @@ export default async function ChatRoomsPage() {
 async function Rooms({ hasSelf, reading }: { hasSelf: boolean; reading: ReturnType<typeof chatRoomsForViewer> }) {
   const rooms = await reading;
 
+  /* 방이 없어도 같은 두 칸 틀이다 — 빈 안내는 왼쪽 판 안에 서고 제목 자리가 하나로 잠긴다(화면 점검 C9) */
   if (rooms.length === 0) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className={TYPE_TITLE}>{CHAT_TAB_LABEL}</h1>
-        <EmptyChat hasSelf={hasSelf} />
-      </div>
+      <ChatFrame
+        opened={false}
+        list={
+          <RoomListPanel titleLevel="h1">
+            <EmptyChat hasSelf={hasSelf} />
+          </RoomListPanel>
+        }
+        pane={<NoRoomChosen empty />}
+      />
     );
   }
 

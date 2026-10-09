@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isNavigationActive } from './site-header';
+import { dockStandsOn, isNavigationActive } from './site-header';
 
 const TABS = ['/me', '/compat', '/me/matching', '/me/chat'] as const;
 
@@ -89,6 +89,17 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () =
     for (const pathname of ['/me/profile', '/me/settings', '/me/survey']) {
       expect(activeTabs(pathname), pathname).toEqual([]);
       expect(isNavigationActive(pathname, '/me/requests')).toBe(false);
+    }
+  });
+});
+
+describe('폰의 하단 독이 서는 화면 (화면 점검 2026-10-10 C5)', () => {
+  it('대화방 하나에서만 안 서고, 대화방 목록과 그 밖의 화면에서는 선다', () => {
+    for (const pathname of ['/me/chat/abc', '/me/chat/94da8469-8925-4426-890e-d3a2fdfaec77', '/me/chat/abc/']) {
+      expect(dockStandsOn(pathname), pathname).toBe(false);
+    }
+    for (const pathname of ['/me/chat', '/me/chat/', '/me', '/me/matching', '/me/match/abc', '/compat', '/me/chatx/abc']) {
+      expect(dockStandsOn(pathname), pathname).toBe(true);
     }
   });
 });
