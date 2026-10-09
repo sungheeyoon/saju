@@ -5,7 +5,7 @@ import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
 import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { BUTTON_PRIMARY } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
 import { CARD, COLUMN_READING, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
@@ -63,8 +63,11 @@ export async function SharedReadingView({
         좁은 화면에서 같은 것이 위아래로 두 줄 선다. 이 자리가 맡는 것은 브랜드 표시가
         아니라 **여기가 무엇을 하는 곳인가** 한 줄이다.
       */}
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1.5">
+      {/*
+        **머리에는 단추가 없다**(운영자 2026-10-09). 위아래 둘이던 「로그인하고 시작하기」에서 위의 것을 걷었다 — 시작하는 길은
+        다 읽은 자리의 초대 판 하나이고, 가입에 코드가 든다는 말이 그 곁에 함께 선다.
+      */}
+      <header className="flex min-w-0 flex-col gap-1.5">
           <p className="text-[13px] font-semibold text-cream-ink">{eyebrow}</p>
           {/*
             **누구 것인지가 제목이다.**
@@ -78,8 +81,6 @@ export async function SharedReadingView({
             대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은 없어야 한다.
           */}
           <h1 className={`text-pretty ${TYPE_TITLE}`}>{whose}</h1>
-        </div>
-        <StartButton variant="quiet" />
       </header>
 
       {(metaphor !== null || score !== null) && (
@@ -116,8 +117,7 @@ export async function SharedReadingView({
       </article>
 
       {/*
-        **다 읽은 자리에서 한 번 더 묻는다.** 위의 것은 「여기가 어디인가」에 붙은
-        길이고, 이것은 글을 읽고 나서 생긴 마음에 붙은 길이다.
+        **다 읽은 자리에서 묻는다** — 글을 읽고 나서 생긴 마음에 붙은 길이고, 이 화면의 유일한 시작 단추다.
 
         가입에 코드가 필요하다는 것을 여기서 적는다. 이 화면은 코드 없이 열리지만
         **가입은 아직 코드로만 열린다**(ADR 0042) — 누르고 나서 알게 하면, 그 사람은
@@ -130,7 +130,7 @@ export async function SharedReadingView({
         <h2 className={TYPE_SECTION}>{invitation.heading}</h2>
         <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
         <div className="mt-1">
-          <StartButton variant="loud" />
+          <StartButton />
         </div>
         {/* 베타가 끝나 가입에서 코드를 빼면 이 줄을 지운다 — 서비스 소개와 같은 상수다 */}
         <p className="text-[13px] leading-5 text-secondary">{BETA_SIGNUP_CODE_NOTE}</p>
@@ -163,18 +163,15 @@ function titleOf(kind: ShareKind, nameA: string | null, nameB: string | null): s
 }
 
 /**
- * 시작하는 자리로 보내는 버튼 — 위아래 둘이 같은 곳을 가리킨다.
+ * 시작하는 자리로 보내는 버튼 — 초대 판 하나에만 선다(머리의 것은 2026-10-09 걷었다).
  *
  * **「내 사주풀이 보기」가 아니다.** 이 글을 읽는 사람에게는 열 풀이가 아직 없고, 이
  * 누름이 여는 것은 로그인이다(가입에는 테스트 코드가 더 필요하다 — 그 말은 바로 아래
  * 줄이 든다). 없는 것을 「보기」라고 적으면 눌러서 도착한 자리가 약속과 다르다.
  */
-function StartButton({ variant }: { variant: 'quiet' | 'loud' }) {
+function StartButton() {
   return (
-    <Link
-      href="/auth"
-      className={variant === 'loud' ? `${BUTTON_PRIMARY} w-full sm:w-auto` : `${BUTTON_SECONDARY_SMALL} shrink-0`}
-    >
+    <Link href="/auth" className={`${BUTTON_PRIMARY} w-full sm:w-auto`}>
       로그인하고 시작하기
     </Link>
   );

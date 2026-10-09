@@ -3235,7 +3235,7 @@ test.describe('사주풀이 공유하기', () => {
     await theirs.goto(copied);
 
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' }).first()).toBeVisible();
+    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' })).toBeVisible();
     /* 원본 사용자의 자리는 하나도 안 선다 */
     await expect(theirs.getByRole('button', { name: '사주풀이 다시 받기' })).toHaveCount(0);
     await expect(theirs.getByText('이 풀이는 어떠셨어요')).toHaveCount(0);
@@ -3268,7 +3268,7 @@ test.describe('사주풀이 공유하기', () => {
     const theirs = await guest.newPage();
     await theirs.goto(copied);
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' }).first()).toBeVisible();
+    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' })).toBeVisible();
 
     /**
      * **누구 것인지가 제목에 선다.** 이름이 없으면 링크를 받은 사람은 글을 다 읽고도

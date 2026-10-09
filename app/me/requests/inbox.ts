@@ -13,8 +13,7 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { withCameFrom } from '../../came-from';
-import { dbFailure, type SkippableRead } from '../../db-error';
-import { readUnreadNotifications } from './unread';
+import { dbFailure } from '../../db-error';
 
 /**
  * **요청·Match·알림이 브라우저로 내려가는 유일한 문.**
@@ -262,12 +261,4 @@ export async function inboxForViewer(): Promise<Inbox> {
     notifications: notificationRows.flatMap(notificationOf),
     unread: notificationRows.filter((row) => row.read_at === null).length,
   };
-}
-
-/**
- * 다른 화면이 배지 하나를 세우려고 부른다 — **머리글의 종과 같은 수**다(`readUnreadNotifications`, ADR 0130).
- * 요청이 왔다는 소식은 인연 탭이 세므로 여기서 빠진다.
- */
-export async function unreadCount(): Promise<SkippableRead<number>> {
-  return readUnreadNotifications(await supabaseOnServer());
 }

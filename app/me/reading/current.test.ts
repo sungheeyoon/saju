@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { unreadCount } from '../requests/inbox';
+import { readUnreadNotifications } from '../requests/unread';
 import { myReadings, readingCredits } from './current';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
@@ -109,7 +109,7 @@ describe('부속 정보는 값으로 말한다', () => {
    */
   it('소식 0건은 읽어서 안 값이고, 못 읽은 것과 갈린다', async () => {
     answering({ data: [], error: null });
-    expect(await unreadCount()).toEqual({ ok: true, value: 0 });
+    expect(await readUnreadNotifications(await supabaseOnServer())).toEqual({ ok: true, value: 0 });
 
     /* 요청이 왔다는 소식은 인연 탭이 센다 — 종의 수에서 빠진다(ADR 0130) */
     answering({
@@ -120,9 +120,9 @@ describe('부속 정보는 값으로 말한다', () => {
       ],
       error: null,
     });
-    expect(await unreadCount()).toEqual({ ok: true, value: 1 });
+    expect(await readUnreadNotifications(await supabaseOnServer())).toEqual({ ok: true, value: 1 });
 
     answering(BROKEN);
-    expect((await unreadCount()).ok).toBe(false);
+    expect((await readUnreadNotifications(await supabaseOnServer())).ok).toBe(false);
   });
 });
