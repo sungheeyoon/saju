@@ -293,7 +293,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
     hasSelf
       ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const }
       : { href: '/me', label: '내 사주 등록하기', element: '木' as const },
-    { href: '/me/people', label: '저장한 사람', element: '土' as const },
+    { href: '/me/people', label: '저장한 사람 보기', element: '土' as const },
     { href: '/compat', label: '궁합 보러 가기', element: '火' as const },
   ];
   return (

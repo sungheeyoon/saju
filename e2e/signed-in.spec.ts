@@ -1205,7 +1205,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await page.getByRole('link', { name: '내 사주로' }).click();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname}님, 오늘도 반가워요` })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname} 님, 오늘도 반가워요` })).toBeVisible();
   });
 
   /**
@@ -1217,7 +1217,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/privacy');
     await page.goto('/');
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname}님, 오늘도 반가워요` })).toBeAttached();
+    await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname} 님, 오늘도 반가워요` })).toBeAttached();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/privacy$/);
@@ -1263,7 +1263,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' }).click();
     await expect(page).toHaveURL(/\/saju$/);
 
-    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봅니다.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봐요' })).toBeVisible();
     await expect(page.locator('a[href="/me"][aria-current="page"]:visible')).toHaveCount(1);
     await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
 
@@ -2136,7 +2136,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
     await expectTargets(
       Object.fromEntries(
-        ['남성', '여성', '상관없음'].map((label) => [
+        ['남자', '여자', '상관없음'].map((label) => [
           label,
           account.locator('label', { has: page.getByRole('radio', { name: label, exact: true }) }),
         ]),
