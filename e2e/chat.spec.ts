@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import {
   expect,
   forgetBoards,
@@ -80,6 +82,12 @@ async function openRoomMenu(person: Person): Promise<void> {
   await roomMenuOf(person).click();
 }
 
+/** 신고 목록의 거르기 판은 폰에서 접혀 있다 — 머리 단추가 보이면 편다(넓은 화면에는 그 단추가 없다) */
+async function openReportFilters(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /^거르기/ });
+  if (await toggle.isVisible()) await toggle.click();
+}
+
 async function pair(openAs: (seed: { selfPerson: true }) => Promise<Person>) {
   const tag = freshTag();
   const a = await openAs({ selfPerson: true });
@@ -153,7 +161,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
    * 있는 것이다. 주소를 직접 열면(`from` 없음) 인연 탭 첫 화면으로 간다.
    */
   test('채팅방에서 연 인연 궁합은 채팅 탭 불이고 ← 「채팅」이 그 방으로 돌아간다', async ({ openAs }) => {
-    const { a, matchId, room } = await pair(openAs);
+    const { a, tag, matchId, room } = await pair(openAs);
     const lit = a.page
       .locator('nav[aria-label="내 메뉴"], nav[aria-label="모바일 내 메뉴"]')
       .filter({ visible: true })
@@ -162,7 +170,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.goto(room);
     await a.page.getByRole('link', { name: /인연 궁합/ }).filter({ visible: true }).first().click();
     await expect(a.page).toHaveURL(new RegExp(`/me/match/${matchId}\\?from=chat$`));
-    await expect(a.page.getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
+    /* 제목이 상대를 부른다(화면 점검 C12) */
+    await expect(a.page.getByRole('heading', { name: `나${tag} 님과의 인연 궁합`, exact: true })).toBeVisible();
     await expect(lit).toHaveCount(1);
     await expect(lit).toContainText(/^채팅/);
 
@@ -479,9 +488,10 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       ops.page.getByText('신고 당시 저장된 대화 일부입니다. 전체 대화는 열 수 없습니다.'),
     ).toBeVisible();
 
-    // 읽기 전용이다 — 누름도 폼도 없고, 방으로 가는 길도, 이메일도 없다
+    // 읽기 전용이다 — 누름은 신고 id 복사 하나뿐이고 폼도 없고, 방으로 가는 길도, 이메일도 없다
     const main = ops.page.getByRole('main');
-    await expect(main.getByRole('button')).toHaveCount(0);
+    await expect(main.getByRole('button')).toHaveCount(1);
+    await expect(main.getByRole('button', { name: '신고 id 복사' })).toBeVisible();
     await expect(main.locator('form')).toHaveCount(0);
     await expect(main.locator('a[href^="/me/chat"]')).toHaveCount(0);
     await expect(main.getByText(a.account.email)).toHaveCount(0);
@@ -515,6 +525,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const filters = ops.page.getByRole('navigation', { name: '신고 거르기' });
 
     await ops.page.goto('/ops/reports');
+    await openReportFilters(ops.page);
     await expect(filters.getByText('처리 상태', { exact: true })).toBeVisible();
     await expect(rowOf(fresh).getByText('처리 필요', { exact: true })).toBeVisible();
     await expect(rowOf(held).getByText('처리 필요 · 추가 확인 필요', { exact: true })).toBeVisible();
@@ -601,6 +612,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
 
     // 운영자는 안내번호로 찾는다 — 소문자로 쳐도
     await ops.page.goto('/ops/reports');
+    await openReportFilters(ops.page);
     await ops.page.getByLabel('안내번호').fill(firstRef.toLowerCase());
     await ops.page.getByRole('button', { name: '찾기' }).click();
     // 주소는 친 글자 그대로 싣고, 찾는 것은 표의 모양으로 고쳐서다

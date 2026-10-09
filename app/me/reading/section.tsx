@@ -22,6 +22,7 @@ import { CARD } from '../../ui/surfaces';
 export async function ReadingSection({
   target,
   heading,
+  headingHidden = false,
   automatic,
   ask,
   betweenSummaryAndBody,
@@ -42,6 +43,8 @@ export async function ReadingSection({
    * B12: 한 사람 풀이 화면이 같은 이름을 세 줄로 말했다).
    */
   heading?: string | null;
+  /** 제목을 보조기기에만 읽힌다 — 화면 머리가 이미 같은 대상을 부를 때(`ReadingPanel`) */
+  headingHidden?: boolean;
   /**
    * 이 글을 **동의가 만드는가** (ADR 0038). 성공 경로에는 누를 것이 없다 —
    * 뜻은 `ReadingPanel` 이 든다.
@@ -109,6 +112,7 @@ export async function ReadingSection({
         */
         consented={consented.ok && consented.value}
         heading={heading === undefined ? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이') : heading}
+        headingHidden={headingHidden}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         automatic={automatic}
         ask={ask}

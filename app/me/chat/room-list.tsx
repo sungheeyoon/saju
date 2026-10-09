@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, roomNoticeOf } from '@/src/lib/chat';
+import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, ROOM_NO_MESSAGES_YET, roomNoticeOf } from '@/src/lib/chat';
 import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
@@ -55,13 +55,8 @@ export function RoomList({
   /** 목록 화면에서는 화면 제목(h1), 방 화면에서는 곁의 칸이라 h2 다 — 방 화면의 h1 은 상대의 이름이다 */
   titleLevel: 'h1' | 'h2';
 }) {
-  const Title = titleLevel;
   return (
-    <section
-      aria-label="대화방 목록"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-[2rem] lg:bg-surface lg:ring-1 lg:ring-border"
-    >
-      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-[1.5rem]`}>{CHAT_TAB_LABEL}</Title>
+    <RoomListPanel titleLevel={titleLevel}>
       <ul className="-mx-2 flex min-h-0 flex-col gap-0.5 overflow-y-auto lg:mx-0 lg:p-2">
         {rooms.map((room) => (
           <li key={room.matchId}>
@@ -69,6 +64,23 @@ export function RoomList({
           </li>
         ))}
       </ul>
+    </RoomListPanel>
+  );
+}
+
+/**
+ * 목록 판 — 제목 「채팅」과 그 아래 내용. **방이 없을 때도 같은 판이다**(화면 점검 2026-10-09 C9) — 전에는 빈 목록이 판 밖 제목과
+ * 가운데 큰 판 하나로 서서, 방이 생기는 순간 · 뼈대(`(rooms)/loading.tsx`)에서 바뀌는 순간 제목이 판 안팎으로 옮겨 갔다.
+ */
+export function RoomListPanel({ titleLevel, children }: { titleLevel: 'h1' | 'h2'; children: React.ReactNode }) {
+  const Title = titleLevel;
+  return (
+    <section
+      aria-label="대화방 목록"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-[2rem] lg:bg-surface lg:ring-1 lg:ring-border"
+    >
+      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-[1.5rem]`}>{CHAT_TAB_LABEL}</Title>
+      {children}
     </section>
   );
 }
@@ -115,7 +127,8 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
               unread > 0 && !closed ? 'font-semibold text-foreground' : 'text-secondary'
             }`}
           >
-            {notice ?? room.lastMessageBody ?? ''}
+            {/* 말이 없는 방은 빈 줄 대신 그 사실을 적는다 — 이름만 위에 붙어 깨진 줄처럼 보였다(화면 점검 C4). 줄 높이는 그대로다 */}
+            {notice ?? room.lastMessageBody ?? ROOM_NO_MESSAGES_YET}
           </span>
           {unread > 0 && (
             <span className={`${BADGE} shrink-0 px-1.5`}>

@@ -5,21 +5,22 @@ import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat';
 import { ELEMENT_TONE } from '../../ui/element-tone';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { PAPER, TYPE_DISPLAY } from '../../ui/surfaces';
+import { TYPE_DISPLAY } from '../../ui/surfaces';
 
 /**
- * **아직 방이 없을 때** — 비어 있다는 말보다 「여기에 두 사람의 말이 오간다」는 그림을 먼저 건넨다.
+ * **아직 방이 없을 때** — 목록 판(`RoomListPanel`) 안에 선다. 폰은 제목 아래 크림 판에 그림과 함께, 넓은 화면은 21rem 판 안에
+ * 글과 단추만 서고 그림은 오른쪽 칸(`NoRoomChosen`)이 든다 — 방이 생겨도 틀이 그대로다(화면 점검 C9).
  *
  * 문구는 승인된 두 줄 그대로이고 갈 길은 하나다. 방은 매칭에서 요청이 수락돼야 서므로 매칭으로 보내고,
  * 내 사주가 아직 없으면 매칭에 설 수 없으므로 그 자리에 등록(홈)이 선다.
  */
 export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
   return (
-    <section className={`${PAPER} flex flex-col items-center gap-6 py-10 text-center sm:py-14`}>
-      <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem]" />
+    <section className="flex flex-col items-center gap-6 rounded-[2rem] bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
+      <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem] lg:hidden" />
       <div className="flex max-w-md flex-col gap-2">
-        <h2 className={TYPE_DISPLAY}>{CHAT_EMPTY_TITLE}</h2>
-        <p className="text-[15px] leading-6 text-secondary">{CHAT_EMPTY_DETAIL}</p>
+        <h2 className={`${TYPE_DISPLAY} lg:text-[1.3rem] lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
+        <p className="text-[15px] leading-6 text-secondary lg:text-[14px] lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
       </div>
       {hasSelf ? (
         <Link href="/me/matching" className={BUTTON_PRIMARY}>
@@ -36,12 +37,12 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
   );
 }
 
-/** 넓은 화면에서 아직 방을 안 고른 오른쪽 칸 — 그림과 한 줄 */
-export function NoRoomChosen() {
+/** 넓은 화면에서 아직 방을 안 고른 오른쪽 칸 — 그림과 한 줄. 방이 하나도 없으면(`empty`) 그림만 선다 — 할 말은 왼쪽 판이 든다 */
+export function NoRoomChosen({ empty = false }: { empty?: boolean }) {
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-surface px-6 text-center ring-1 ring-border">
-      <ChatIllustration className="h-auto w-[11rem] opacity-80" />
-      <p className="text-[15px] text-secondary">대화방을 고르면 여기에 대화가 열려요.</p>
+      <ChatIllustration className={`h-auto opacity-80 ${empty ? 'w-[16rem]' : 'w-[11rem]'}`} />
+      {!empty && <p className="text-[15px] text-secondary">대화방을 고르면 여기에 대화가 열려요.</p>}
     </section>
   );
 }

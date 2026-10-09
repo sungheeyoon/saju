@@ -198,6 +198,7 @@ export function ReadingPanel({
   credits,
   consented,
   heading,
+  headingHidden = false,
   allowMockFallback,
   automatic = false,
   ask,
@@ -261,6 +262,11 @@ export function ReadingPanel({
    * 묻는 일이 된다.
    */
   heading: string | null;
+  /**
+   * 제목을 보조기기에만 읽힐까 — 화면 머리가 이미 같은 대상을 부를 때(인연 궁합의 「{상대} 님과의 인연 궁합」, 화면 점검 C12).
+   * 칸의 구조(`h2`)는 그대로 남는다. 공유 · 다시 받기 단추가 서면 그 줄은 그대로 보인다.
+   */
+  headingHidden?: boolean;
   allowMockFallback: boolean;
   /**
    * **다음 풀이를 위해 먼저 정할 것.**
@@ -570,14 +576,14 @@ export function ReadingPanel({
     <>
       {/* 부르는 화면이 제목을 이미 세웠고(`heading === null`) 누를 것도 없으면 머리는 통째로 안 선다 — 빈 칸이 틈만 남긴다 */}
       {(heading !== null || chrome.canShare || chrome.makeInHeader) && (
-      <header className="flex flex-col gap-3">
+      <header className={headingHidden && !chrome.canShare && !chrome.makeInHeader ? 'sr-only' : 'flex flex-col gap-3'}>
         {/*
           **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.** 좁은 화면에서는 위에서 아래로 쌓이고, 그때
           버튼 둘은 **줄을 반씩 나눠 쓴다** — 가운데에 모아 두면 누르는 자리가 화면마다 옮겨 다닌다. 400px 아래
           폰에서는 반쪽에 「사주풀이 다시 받기」가 두 줄로 꺾이므로 위아래로 쌓는다.
         */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          {heading !== null && <h2 className={TYPE_NAME}>{heading}</h2>}
+          {heading !== null && <h2 className={headingHidden ? 'sr-only' : TYPE_NAME}>{heading}</h2>}
 
           {/*
             **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그 둘이고, 같은 일에

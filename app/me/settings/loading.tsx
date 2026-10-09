@@ -9,13 +9,33 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  * 머리글의 톱니에서 여는 화면이다. 탭 넷과 같은 까닭으로 뼈대를 둔다(ADR 0116) — 로그인을 읽는 동적 화면이라 뼈대가
  * 없으면 누른 뒤 서버 응답이 다 올 때까지 지금 화면에 머문다. 이 폴더는 이 화면 하나만 품고 `notFound()` 가 없다.
  */
+/**
+ * 줄마다 글 상자의 높이(폰 · 넓은 화면)와 손잡이 폭 — 2026-10-10 에 실제 화면을 390 · 1280 에서 잰 값이다. 같은 높이의 줄로 두면
+ * 넓은 화면에서 어떤 상대 판이 86 대 162px, 선택 동의 판이 240 대 336px 로 어긋났다(2026-10-09 화면 갤러리 감사). 어떤 상대는
+ * 줄이 둘(성별 세 칸 · 그 아래 저장 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
+ */
 const GROUPS = [
-  { rows: 0, link: true, description: false },
-  { rows: 1, link: false, description: false },
-  { rows: 1, link: false, description: false },
-  { rows: 3, link: false, description: true },
-  { rows: 1, link: false, description: false },
-  { rows: 1, link: false, description: false },
+  { link: true, description: false, rows: [] },
+  {
+    link: false,
+    description: false,
+    rows: [
+      { text: 'h-5', handle: 'w-64' },
+      { text: 'h-5', handle: 'w-16' },
+    ],
+  },
+  { link: false, description: false, rows: [{ text: 'h-17 sm:h-12', handle: 'w-32' }] },
+  {
+    link: false,
+    description: true,
+    rows: [
+      { text: 'h-19', handle: 'w-40' },
+      { text: 'h-30 sm:h-25', handle: 'w-48' },
+      { text: 'h-13', handle: 'w-32' },
+    ],
+  },
+  { link: false, description: false, rows: [{ text: 'h-6', handle: 'w-24' }] },
+  { link: false, description: false, rows: [{ text: 'h-18 sm:h-12', handle: 'w-16' }] },
 ] as const;
 
 export default function SettingsLoading() {
@@ -41,16 +61,26 @@ export default function SettingsLoading() {
                 </div>
               </div>
             )}
-            {Array.from({ length: group.rows }, (_, row) => (
+            {group.rows.map((row, line) => (
               <div
-                key={row}
+                key={line}
                 className="flex flex-col gap-3 border-t border-border py-4 first:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
               >
-                <div className="flex min-w-0 flex-col gap-1 sm:flex-1">
-                  <Bone className="h-5 w-32 rounded-full" />
-                  <Bone className="h-5 w-56 max-w-full rounded-full" />
+                {/*
+                  글 상자 — 제목 한 줄과, 남는 높이에 다 드는 만큼의 설명 줄. 세로로 접히는(`flex-wrap`) 단이라 다 들지 못한 줄은
+                  오른쪽 다음 단으로 넘어가 잘린다 — 반쯤 잘린 줄이 남지 않는다
+                */}
+                <div className={`flex min-w-0 flex-col flex-wrap content-start gap-x-8 gap-y-1 overflow-hidden sm:flex-1 ${row.text}`}>
+                  <span className="flex w-full shrink-0">
+                    <Bone className="h-5 w-32 max-w-full rounded-full" />
+                  </span>
+                  {[0, 1, 2, 3, 4].map((sentence) => (
+                    <span key={sentence} className="flex w-full shrink-0 items-center">
+                      <Bone className="h-4 w-full max-w-sm rounded-full" />
+                    </span>
+                  ))}
                 </div>
-                <Bone className="h-11 w-28 shrink-0 self-end rounded-full sm:self-auto" />
+                <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
               </div>
             ))}
           </div>

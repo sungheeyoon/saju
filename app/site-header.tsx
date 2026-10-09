@@ -48,6 +48,11 @@ const MEMBER_TABS = [
   { href: '/me/chat', label: CHAT_TAB_LABEL, icon: 'chat' },
 ] as const satisfies readonly { href: string; label: string; icon: IconName }[];
 
+/** 운영 화면인가 — `/ops` 와 그 아래 */
+export function isOperatorPath(pathname: string): boolean {
+  return within(pathname, '/ops');
+}
+
 /** `base` 그 자리이거나 그 아래인가 — `/me/peoplex` 는 `/me/people` 아래가 아니다 */
 function within(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
@@ -72,6 +77,17 @@ export function isNavigationActive(pathname: string, href: string, from: string 
   }
   if (href === '/compat') return pathname === '/compat';
   return within(pathname, href);
+}
+
+/**
+ * 폰의 하단 독이 서는 화면인가 — **대화방 하나(`/me/chat/[matchId]`)에서는 안 선다**(화면 점검 2026-10-10 C5).
+ *
+ * 방은 화면 높이의 판이고 대화 칸만 스크롤한다. 독이 늘 떠 있으면 그 6rem 을 비워 두느라 390×844 에서 말풍선이 쓰는 높이가 약
+ * 400px 이었고, 대화 중에는 탭을 옮길 일이 드물다 — 방 머리의 ← 가 목록으로 간다. 목록(`/me/chat`)에서는 그대로 선다.
+ * 독이 안 서면 `globals.css` 가 그 판의 `id` 를 보고 비우던 아래 여백도 함께 사라지고, 방의 높이(`room.module.css`)가 그만큼 는다.
+ */
+export function dockStandsOn(pathname: string): boolean {
+  return !/^\/me\/chat\/[^/]+\/?$/.test(pathname);
 }
 
 /**
@@ -114,10 +130,15 @@ export function SiteHeader() {
    * 길이 아니다. 보낸 사람이 자기 링크를 열어 확인할 때도 같아야 한다. 로고 한 줄만 남는다.
    */
   const shared = isSharePath(pathname);
-  const memberNavigation = !shared && (protectedPath || session === 'in');
+  /**
+   * **운영 화면(`/ops/**`)에는 이 머리글이 안 선다** — 운영자에게 회원의 탭 · 풀이권 · 채팅 딱지는 길이 아니다. 운영 화면은
+   * 제 머리(`ops/ops-header.tsx`)를 단다. 읽는 문도 안 부른다 — 안 그릴 수를 셀 까닭이 없다.
+   */
+  const operator = isOperatorPath(pathname);
+  const memberNavigation = !shared && !operator && (protectedPath || session === 'in');
   const live = memberNavigation && !ended;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
-  const creditsLabel = useReadingCredits(session === 'in' && !ended);
+  const creditsLabel = useReadingCredits(session === 'in' && !ended && !operator);
   const unreadChat = useUnreadCount(live, pathname, readUnreadChat, CHAT_UNREAD_MOVED);
   const unreadNews = useUnreadCount(live, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
   const toAnswer = useUnreadCount(live, pathname, readRequestsToAnswer, REQUESTS_TO_ANSWER_MOVED);
@@ -129,6 +150,8 @@ export function SiteHeader() {
   /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
   const onAuthScreen = pathname.startsWith('/auth');
 
+  if (operator) return null;
+
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
@@ -139,8 +162,9 @@ export function SiteHeader() {
             aria-label={`${SERVICE_NAME} 홈`}
           >
             {/* 폰 폭에서는 풀이권 · 종 · 톱니가 자리를 먼저 쓴다 — 이름은 로고가 대신한다. 네 글자 「만날지도」는 그 셋과
-                393px 에 함께 못 서서(11px 넘쳤다) 회원 머리글은 430px 부터, 그 셋이 없는 머리글은 380px 부터 이름을 세운다 */}
-            <BrandMark nameClassName={memberNavigation ? 'hidden min-[430px]:inline' : 'hidden min-[380px]:inline'} />
+                393px 에 함께 못 서서(11px 넘쳤다) 회원 머리글은 430px 부터, 그 셋이 없는 머리글은 380px 부터 이름을 세운다.
+                가입 · 종료 화면(`ended`)은 톱니 하나만 남으므로 380px 쪽이다 — 430 을 따르면 390 폰에서 이름이 빠졌다 */}
+            <BrandMark nameClassName={live ? 'hidden min-[430px]:inline' : 'hidden min-[380px]:inline'} />
           </Link>
 
           {/*
@@ -214,7 +238,7 @@ export function SiteHeader() {
           )}
         </div>
       </header>
-      {live && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
+      {live && dockStandsOn(pathname) && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
     </>
   );
 }
