@@ -20,6 +20,7 @@ import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
+import { bellCount } from '../src/lib/consent/counts.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -159,8 +160,17 @@ const logOf = (html) => markupOf(html, 'requests-log');
 /** 지난 요청은 인연 탭이 아니라 인연 기록에 선다(2026-09-29 u2) */
 const HISTORY = '/me/matching/history';
 
-/** `/me` 의 「요청과 알림」 옆에 선 수 — 없으면 `'0'` */
-const badge = async (cookie) => (/(\d+) 건 안 읽음/.exec(text(await body('/me', cookie))) ?? [null, '0'])[1];
+/**
+ * 머리글 종의 수 — 머리글이 브라우저에서 읽는 문(`readUnreadNotifications`)과 같은 목록 · 같은 셈(`bellCount`).
+ *
+ * 전에는 `/me` 의 서버 HTML 에서 홈의 소식 띠 배지(`건 안 읽음`)를 쟀다. 그 띠는 종과 겹쳐 걷었고(운영자 2026-10-09),
+ * 종은 브라우저에서 세므로 서버 HTML 에는 수가 없다 — HTML 로 재면 늘 「0」이라 검사가 소리 없이 통과한다.
+ */
+const bell = async (client) => {
+  const { data, error } = await client.rpc('my_notifications');
+  if (error) throw error;
+  return String(bellCount((data ?? []).map((row) => ({ kind: row.kind, unread: row.read_at === null }))));
+};
 
 try {
   /**
@@ -280,12 +290,12 @@ try {
   // ── 5. 요청 하나는 딱지 하나만 켠다(ADR 0130) ─────────────────────────────────
   {
     /*
-      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 「답할 요청」으로 센다. 홈 탭의 띠는 종과 같은 수다.
+      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 「답할 요청」으로 센다.
       인연 탭의 딱지는 머리글이 브라우저에서 세므로 e2e 가 잰다(`match.spec.ts`).
     */
-    check('받은 요청의 도착은 내 사주 화면의 소식 수에 안 선다', (await badge(bCookie)) === '0', await badge(bCookie));
+    check('받은 요청의 도착은 종의 수에 안 선다', (await bell(b)) === '0', await bell(b));
     check('청한 쪽에는 알림이 서지 않는다 — 자기가 한 일이다',
-      (await badge(aCookie)) === '0', await badge(aCookie));
+      (await bell(a)) === '0', await bell(a));
   }
 
   // ── 6. 요청·알림·Match 는 표로 직접 안 보인다 ───────────────────────────────
@@ -465,13 +475,9 @@ try {
   // ── 11. 읽음은 사건이다 ─────────────────────────────────────────────────────
   {
     await b.rpc('mark_notifications_read');
-    /**
-     * **배지만 본다.** 예전에는 「요청과 알림」 뒤에 아무 태그나 하나 온 뒤의 숫자를
-     * 찾았는데, 그 그물에는 화면 아래 붙는 RSC 자료까지 걸린다 — 그 안에도 같은 낱말이
-     * 있고 뒤따르는 값은 화면과 무관하다. 재려는 것은 **그려진 배지**다.
-     */
-    const shown = /([1-9]\d*) 건 안 읽음/.exec(text(await body('/me', bCookie)));
-    check('읽고 나면 수가 서지 않는다', shown === null, shown?.[1] ?? '');
+    /* 종이 세는 수를 그대로 잰다(`bell`) — 홈의 소식 띠는 걷었다(2026-10-09) */
+    const shown = await bell(b);
+    check('읽고 나면 수가 서지 않는다', shown === '0', shown);
   }
 } finally {
   stop();

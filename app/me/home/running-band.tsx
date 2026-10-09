@@ -13,7 +13,7 @@ import type { RunningReading } from './running';
  * (`running-band-live.tsx`). 다 되면 소식이 서고 계정 채널이 홈을 다시 그린다(ADR 0155 의 `notifications`) — 섬도 줄이 사라진 것을
  * 보면 한 번 다시 그린다. 다시 그린 홈이 새 줄을 내려보내면 섬은 그 줄로 새로 선다(`key`).
  *
- * 모양은 아래 「다른 사람 사주 보기」 · 안 읽은 소식 띠와 같은 줄이다. 둘 이상이면 차례로 쌓는다 — 최근 것이 앞이다.
+ * 모양은 아래 「다른 사람 사주 보기」와 같은 줄이다. 둘 이상이면 차례로 쌓는다 — 최근 것이 앞이다.
  */
 export function RunningReadings({ running }: { running: readonly RunningReading[] }) {
   if (running.length === 0) return null;

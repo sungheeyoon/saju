@@ -8,7 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { Icon } from '../../ui/icons';
-import { BADGE, COLUMN_FORM, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { COLUMN_FORM, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
@@ -24,7 +24,6 @@ import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
-import { unreadCount } from '../requests/inbox';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -61,7 +60,6 @@ export default async function MePage() {
           ) : (
             <>
               <Greeting name={nickname} />
-              <Unread />
               <Home selfPersonId={selfPersonId} />
             </>
           )}
@@ -196,42 +194,6 @@ function OtherSaju() {
         <Icon name="search" className="size-[18px]" />
       </span>
       <span className="min-w-0 flex-1">다른 사람 사주 보기</span>
-      <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
-    </Link>
-  );
-}
-
-/**
- * 안 읽은 알림 — **있을 때만 선다.**
- *
- * 알림은 앱 안에서만 온다(용어집). 그러니 들어왔을 때 **여기서** 눈에 띄어야 한다 — 로그인한 사람이
- * 도착하는 자리가 이 화면이라 더 그렇다. 길은 머리글의 종에 늘 있고, **띠는 알림이 실제로 있을 때만**
- * 세운다. 늘 서 있는 줄은 곧 안 읽히고, 그때 정작 무언가 왔을 때도 안 읽힌다.
- *
- * 목록 전체를 읽지 않고 개수만 묻는다. 이 화면은 알림의 내용을 그리지 않는다.
- */
-async function Unread() {
-  const unread = await unreadCount();
-  /* 못 읽었으면 띠를 안 세운다 — 「0 건」과 「못 읽음」을 가른 값이 온다(ADR 0078) */
-  if (!unread.ok || unread.value === 0) return null;
-
-  return (
-    <Link
-      href="/me/requests"
-      className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fire-soft text-fire">
-        <Icon name="bell" className="size-[18px]" />
-      </span>
-      <span className="min-w-0 flex-1">아직 확인하지 않은 새 소식이 있어요.</span>
-      {/*
-        수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
-        한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
-      */}
-      <span className={BADGE}>
-        {unread.value}
-        <span className="sr-only">건 안 읽음</span>
-      </span>
       <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
     </Link>
   );

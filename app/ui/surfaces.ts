@@ -12,9 +12,11 @@
  * - `COLUMN_FORM` — 폼 판 한 장이 본문인 화면(홈의 등록 전). 폼의 폭(40rem, `birth-form.module.css`)에 `PAPER` 의 여백(양쪽 2rem)
  * - `COLUMN_PEOPLE` — 저장한 사람 목록과 사람 상세. 폼의 폭에 타일 · 수정 판의 안쪽 여백을 더해, 목록에서 연 수정 판이 제 줄을
  *   혼자 쓰면 폼이 남는 데 없이 든다. 카드는 두 장씩 놓인다(`app/me/people/finder.tsx`)
+ * - `COLUMN_READING` — 받은 공유본(`app/share/view.tsx`). 풀이 본문의 열(36rem, `READING_COLUMN`)에 판의 안쪽 여백(양쪽 2rem)
  */
 export const COLUMN_FORM = 'max-w-[44rem]';
 export const COLUMN_PEOPLE = 'max-w-[46rem]';
+export const COLUMN_READING = 'max-w-[40rem]';
 
 /**
  * 카드 한 장 — 흰 면 · 가는 테 · 카드 그림자. 앱에서 가장 많이 부르는 판이다(스무 자리 넘게).
