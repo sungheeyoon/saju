@@ -61,7 +61,7 @@ export async function readTaste(sessionId: string): Promise<TasteAnswer> {
 }
 
 /**
- * 화면만 아는 퍼널 두 단계 — 더보기 · 가입 시작. **세션당 한 번**이다 — 세션 id 와 이 브라우저의 쿠키가 함께 맞아야 DB 가
+ * 화면만 아는 퍼널 두 단계 — 더보기 · 가입 시작(더보기는 2026-10-09 부터 화면이 안 부른다 — `TASTE_SESSION_STEPS`). **세션당 한 번**이다 — 세션 id 와 이 브라우저의 쿠키가 함께 맞아야 DB 가
  * 세고(`count_taste_step_once`), 쿠키가 없거나 id 꼴이 아니면 DB 까지 안 간다.
  */
 export async function noteTasteStep(step: 'more_clicked' | 'signup_started', sessionId: string): Promise<void> {
