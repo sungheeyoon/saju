@@ -117,6 +117,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
    * 뒤로가기 · 궁합 입구를 다녀와 다시 선 결과는 제출이 아니라 움직이지 않는다.
    */
   const arriving = useRef(false);
+  /** 제출 횟수 — 같은 입력을 다시 보내도 결과가 바뀐 줄 알게 한다(입력 글자만 보면 그대로라 안 움직였다) */
+  const [submits, setSubmits] = useState(0);
   const takeArrival = useCallback(() => {
     const was = arriving.current;
     arriving.current = false;
@@ -127,6 +129,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
     const params = toSearchParams(next).toString();
     shown.current = params;
     arriving.current = true;
+    setSubmits((n) => n + 1);
     // 제출은 "지금 다시 봐 달라"는 뜻이기도 하다.
     setViewedAt(Date.now());
     writeParams(params, query === null ? 'push' : 'replace');
@@ -224,7 +227,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
             `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
             저장하면 화면에 서 있는 사주와 다른 사람이 목록에 남는다.
           */}
-          <CalculatorResult model={model!} query={query} signedIn={signedIn} outline={outline} arriving={takeArrival} />
+          <CalculatorResult model={model!} query={query} signedIn={signedIn} outline={outline} arriving={takeArrival} submits={submits} />
         </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
@@ -247,12 +250,14 @@ function CalculatorResult({
   signedIn,
   outline,
   arriving,
+  submits,
 }: {
   model: SajuViewModel;
   query: Query | null;
   signedIn: boolean;
   outline: readonly string[];
   arriving: () => boolean;
+  submits: number;
 }) {
   const sessionKnown = useSessionKnown();
   if (signedIn || query === null) {
@@ -270,6 +275,7 @@ function CalculatorResult({
       outline={outline}
       detail={<SajuView {...model} />}
       arriving={arriving}
+      submits={submits}
     />
   );
 }

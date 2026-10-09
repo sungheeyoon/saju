@@ -45,6 +45,7 @@ export function Taste({
   outline,
   detail,
   arriving,
+  submits,
 }: {
   /** 화면에 서 있는 사주의 입력 — 로그인을 다녀와 되찾는 것이 이것이다 */
   query: Query;
@@ -55,6 +56,8 @@ export function Taste({
   detail: ReactNode;
   /** 방금 제출해서 선 결과인가 — 한 번 물으면 지워진다(`saju-calculator.tsx`) */
   arriving: () => boolean;
+  /** 제출 횟수 — 같은 입력을 다시 보내도 머리로 데려가려고 센다 */
+  submits: number;
 }) {
   const name = query.name.trim();
   const draft = toSearchParams(query).toString();
@@ -68,7 +71,7 @@ export function Taste({
     if (head.current === null || !arriving()) return;
     head.current.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'instant' : 'smooth' });
     head.current.focus({ preventScroll: true });
-  }, [draft, arriving]);
+  }, [draft, arriving, submits]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -127,7 +130,7 @@ async function askTaste(draft: string, alive: () => boolean): Promise<TasteAnswe
 /**
  * 지금 입력의 로그인 전 사주 문단 — 답이 아직 없으면 `null`(기다리는 중).
  *
- * 「다시 읽기」는 걷었다(2026-10-09) — 못 선 글은 첫 절이 조용히 잠긴 채 서고, 같은 입력을 다시 넣거나 새로고침하면 다시 묻는다.
+ * 「다시 읽기」는 걷었다(2026-10-09) — 못 선 글은 첫 절이 조용히 잠긴 채 서고, 입력을 바꾸거나 새로고침하면 다시 묻는다(같은 입력을 다시 보내면 안 묻는다).
  */
 function useTasteAnswer(draft: string): TasteAnswer | null {
   const [passage, setPassage] = useState<Passage | null>(null);
