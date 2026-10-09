@@ -1335,17 +1335,41 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(planOf('app/layout.tsx', layout, layout.replace('머리 글 하나', '머리 글 둘'), ['proxy.ts']).tier).toBe('full');
   });
 
-  it('옛 글자를 흐름 검사가 말하면 flow 가 더 선다 — check-share 가 「테스트 코드가 필요해요」를 찾는다', () => {
+  it('문구 판정은 좁히기만 한다 — check-share 가 옛 글자를 말해도 지금 규칙이 core 인 문구 파일은 core 그대로 (운영자 2026-10-09)', () => {
     const file = 'src/lib/account/copy.ts';
     const before = readFileSync(resolve(ROOT, file), 'utf8');
     const share = 'scripts/check-share.mjs';
     const plan = planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['docs/product/copy-ledger.md'], '운영 베타', [
       [share, readFileSync(resolve(ROOT, share), 'utf8')],
     ]);
-    expect(plan.tier).toBe('narrow');
-    expect(plan.lanes.core).toBe(true);
-    expect(plan.lanes.flow).toBe(true);
-    expect(plan.reason).toContain('`scripts/check-share.mjs`');
+    expect(plan.tier).toBe('core');
+    expect(plan.lanes).toEqual(CORE_ONLY);
+  });
+
+  it('입구 page 의 문구 — 말하는 시험 없음은 core, 지금 규칙 안의 차선이면 그것, 넓으면 지금 규칙, 동작이 섞이면 지금 규칙', () => {
+    const file = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    expect(after).not.toBe(before);
+    const existing = planFor({ files: [file], stage: '운영 베타' });
+    expect(existing.tier).toBe('narrow');
+    // 말하는 시험 없음 → core
+    expect(planOf(file, before, after).lanes).toEqual(CORE_ONLY);
+    // 지금 규칙 안의 차선(match) → core + match
+    const inside = planOf(file, before, after, [], '운영 베타', [['e2e/match.spec.ts', "page.getByText('저장한 사람');"]]);
+    expect(inside.tier).toBe('narrow');
+    expect(inside.lanes).toEqual({ ...CORE_ONLY, authed: true });
+    expect(inside.authedLanes).toEqual(['match:desktop', 'match:mobile']);
+    // 지금 규칙에 없는 차선(chat)을 켜면 지금 규칙 그대로 — 넓히지 않는다
+    const wider = planOf(file, before, after, [], '운영 베타', [['e2e/chat.spec.ts', "page.getByText('저장한 사람');"]]);
+    expect(wider.lanes).toEqual(existing.lanes);
+    expect(wider.authedLanes).toEqual(existing.authedLanes);
+    // 검색이 전부(spec 아닌 도우미)를 부르면 지금 규칙 그대로
+    const helper = planOf(file, before, after, [], '운영 베타', [['e2e/session.ts', "const x = '저장한 사람';"]]);
+    expect(helper.lanes).toEqual(existing.lanes);
+    // 문구와 동작이 섞이면 문구가 아니라 지금 규칙
+    const mixed = planOf(file, before, after.replace('className={TYPE_TITLE}', 'className={TYPE_DISPLAY}'));
+    expect(mixed.lanes).toEqual(existing.lanes);
   });
 
   it('정규식은 확실히 풀 수 있는 모양(통째 리터럴 · 이스케이프 · 맨 위 `|` 갈래 · 맨 앞뒤 `^ $`)만 글자로 푼다', () => {
@@ -1433,7 +1457,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(lanesFor(notes, [['e2e/fixture.txt', '/^\\d+$/'] as const]).tests).toEqual([]);
   });
 
-  it('실측 — 저장소의 시험 파일을 파서로 읽어 정규식 리터럴을 다 잡고, G-86 문구 한 줄이 지금은 전부를 부른다', () => {
+  it('실측 — 저장소의 시험 파일을 파서로 읽어 정규식 리터럴을 다 잡고, 문구 한 줄은 검색이 전부를 불러도 지금 규칙(core)보다 넓어지지 않는다', () => {
     const walk = (dir: string): string[] =>
       readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
         entry.isDirectory() ? walk(`${dir}/${entry.name}`) : /\.(?:ts|mts|mjs|js)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
@@ -1453,19 +1477,43 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     // 2026-10-09 검토 에이전트가 센 리터럴 315 개 — 그 뒤 시험이 늘면 늘 뿐 줄지 않게(줄면 셈이 빠진 것인지 본다)
     expect(walked).toBeGreaterThanOrEqual(315);
     expect(literals).toBeGreaterThanOrEqual(walked);
-    // G-86 한 줄 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` · `e2e/second-factor.ts`)의 `.exec` · `.test` 에 서서 전부다(보고만, 줄이지 않는다)
-    const file = 'src/lib/matching/copy.ts';
-    const before = readFileSync(resolve(ROOT, file), 'utf8');
-    const plan = planFor({
-      files: [file],
+    // 검색만 보면 G-86 한 줄이 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` · `e2e/second-factor.ts`)의 `.exec` ·
+    // `.test` 에 선다. 그래도 문구 판정은 좁히기만 하므로 계획은 지금 규칙(core)보다 넓어지지 않는다
+    const note = 'src/lib/matching/copy.ts';
+    const noteBefore = readFileSync(resolve(ROOT, note), 'utf8');
+    const noteTexts = copyOnlyChanged(ts, note, noteBefore, noteBefore.replace('채팅방이 열려요', '대화방이 열려요'))!;
+    const sources = files.map((file) => [file, readFileSync(resolve(ROOT, file), 'utf8')] as const);
+    expect(lanesFor(new Map([[note, noteTexts]]), sources).lanes).toBeNull();
+    // 다른 파일은 디스크에서 읽는다 — 아무 경로에나 같은 소스를 주면 관문의 import 를 끝없이 따라간다
+    const disk = (one: string) => {
+      try {
+        return readFileSync(resolve(ROOT, one), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const notePlan = planFor({
+      files: [note],
       stage: '운영 베타',
       ts,
-      sourceOf: () => before.replace('채팅방이 열려요', '대화방이 열려요'),
-      baseSourceOf: () => before,
+      sourceOf: (one) => (one === note ? noteBefore.replace('채팅방이 열려요', '대화방이 열려요') : disk(one)),
+      baseSourceOf: (one) => (one === note ? noteBefore : disk(one)),
     });
-    expect(plan.tier).toBe('full');
-    expect(plan.cause).toBe('문구의 옛 글자');
-    expect(plan.reason).toContain('`e2e/birth-form.ts`');
+    expect(notePlan.lanes).toEqual(CORE_ONLY);
+    // 입구가 아닌 컴포넌트의 JSX 글자 한 줄 → core(#572 전과 같다)
+    const screen = 'app/me/matching/matching-experience.tsx';
+    const screenBefore = readFileSync(resolve(ROOT, screen), 'utf8');
+    const screenAfter = screenBefore.replace('>오늘의 인연<', '>오늘의 사람<');
+    expect(screenAfter).not.toBe(screenBefore);
+    const screenPlan = planFor({
+      files: [screen],
+      stage: '운영 베타',
+      ts,
+      sourceOf: (one) => (one === screen ? screenAfter : disk(one)),
+      baseSourceOf: (one) => (one === screen ? screenBefore : disk(one)),
+    });
+    expect(screenPlan.tier).toBe('core');
+    expect(screenPlan.lanes).toEqual(CORE_ONLY);
   });
 
   it('새 글자를 말하는 spec 도 차선을 켠다 — 「없어야」 하는 글자 · getByRole 의 이름과 겹칠 수 있다', () => {
@@ -1493,15 +1541,59 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(lanesFor(olds, [['scripts/check-chat.mjs', "check('x', html.includes('인연 탭에'));"]]).lanes).toEqual(['flow']);
   });
 
-  it('PR 계획 — 옛 글자를 말하는 spec 이 있으면 그 차선이 선다(저장소의 match.spec 이 「수락해서 인연 궁합이 열렸어요.」를 말한다)', () => {
+  it('좁히기는 부분집합일 때만 — 같으면 같고, 비교할 수 없으면(다른 차선이 섞이면) 지금 규칙, 차선을 바꿔치지 않는다', () => {
+    const file = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    const existing = planFor({ files: [file], stage: '운영 베타' });
+    const withMention = (spec: string) => planOf(file, before, after, [], '운영 베타', [[spec, "page.getByText('저장한 사람');"]]);
+    // 부분집합(core + match ⊂ 지금 규칙) → 채택
+    expect(withMention('e2e/match.spec.ts').authedLanes).toEqual(['match:desktop', 'match:mobile']);
+    // 같다(signed-in 이 지금 규칙의 차선 · 그 밖은 core 하나 더) → 부분집합이라 채택, 넓어지지 않는다
+    const same = withMention('e2e/signed-in.spec.ts');
+    expect(same.authedLanes.every((lane) => existing.authedLanes.includes(lane))).toBe(true);
+    // 비교할 수 없다 — chat 은 지금 규칙에 없다. 차선 수는 더 적어도(core + chat 둘 < 지금 일곱) 지금 규칙 그대로다
+    const swapped = withMention('e2e/chat.spec.ts');
+    expect(swapped.lanes).toEqual(existing.lanes);
+    expect(swapped.authedLanes).toEqual(existing.authedLanes);
+    expect(swapped.authedLanes).not.toContain('chat:desktop');
+  });
+
+  it('여러 파일이 섞인 PR — 파일마다 정한 계획의 합이라 동작이 바뀐 파일의 차선은 문구 파일 때문에 빠지지 않는다', () => {
+    const page = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, page), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    const mixed = (others: string[]) =>
+      planFor({
+        files: [page, ...others],
+        stage: '운영 베타',
+        ts,
+        mentions: [],
+        sourceOf: (one) => (one === page ? after : null),
+        baseSourceOf: (one) => (one === page ? before : null),
+      });
+    // 문구만 바뀐 page + 동작이 바뀐 공용 위험 파일 → 전부
+    expect(mixed(['proxy.ts']).tier).toBe('full');
+    // 문구만 바뀐 page + `supabase/**` → 전부
+    expect(mixed(['supabase/migrations/20261010000000_x.sql']).tier).toBe('full');
+    // 문구만 바뀐 page + 동작이 바뀐 다른 page → 그 page 의 주소 차선이 남는다
+    const other = 'app/me/matching/page.tsx';
+    const alone = planFor({ files: [other], stage: '운영 베타' });
+    const both = mixed([other]);
+    expect(alone.authedLanes.length).toBeGreaterThan(0);
+    for (const lane of alone.authedLanes) expect(both.authedLanes, lane).toContain(lane);
+    expect(both.lanes.flow).toBe(alone.lanes.flow);
+    expect(both.lanes.anon).toBe(alone.lanes.anon);
+  });
+
+  it('PR 계획 — 입구가 아닌 컴포넌트는 옛 글자를 말하는 spec 이 있어도 core 다(저장소의 match.spec 이 「수락해서 인연 궁합이 열렸어요.」를 말한다)', () => {
     const screen = 'export const S = () => <p>수락해서 인연 궁합이 열렸어요.</p>;\n';
     const match = 'e2e/match.spec.ts';
     const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'), [], '운영 베타', [
       [match, readFileSync(resolve(ROOT, match), 'utf8')],
     ]);
-    expect(plan.tier).toBe('narrow');
-    expect(plan.authedLanes).toEqual(expect.arrayContaining(['match:desktop', 'match:mobile']));
-    expect(plan.reason).toContain('`e2e/match.spec.ts`');
+    expect(plan.tier).toBe('core');
+    expect(plan.lanes).toEqual(CORE_ONLY);
   });
 
   it('공개 출시에는 문구로 좁히지 않는다 — 화면 하나도 전부다', () => {

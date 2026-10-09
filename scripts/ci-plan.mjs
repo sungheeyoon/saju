@@ -185,7 +185,8 @@
  * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
  *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 정규식은 파서로 모아 글자가 있으면
  *   바뀐 글자와 관련될 때 · 판단이 안 설 때, 글자가 없으면 문자열 정리 자리가 아닐 때 켠다(`regexUsesIn` · `regexTurnsOn`). spec 이
- *   아닌 `e2e/**` 면 전부다 — 2026-10-09 저장소에서는 도우미의 글자 없는 정규식 때문에 문구 한 줄도 전부다. **이 검색은 검사를
+ *   아닌 `e2e/**` 면 전부다. **문구 판정은 좁히기만 한다** — `core` + 그렇게 켠 차선이 그 파일의 지금 규칙 차선의 부분집합일 때만
+ *   그것으로 세고, 아니면 지금 규칙 그대로다. 여러 파일이면 파일마다 정한 계획의 합이다(`narrowedCopyOf`, 운영자 2026-10-09). **이 검색은 검사를
  *   더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 안 걸리고, 그 구멍은 머지 뒤 main 의 전체와 `ci-main-red` 가 잡는다
  * - 공개 출시 · main 푸시 · 일정 · 손으로 켠 실행은 문구만이어도 지금 규칙 그대로다
  *
@@ -1227,20 +1228,56 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
   const rest = changed.filter((file) => !commentOnly.includes(file));
   if (LAUNCHED[stage]) return notingComments(decideLaunched(rest), commentOnly);
-  // 문구만 바뀐 파일은 공용 위험 · 주소 대응에서 빠지고 core 에 바뀐 글자를 찾는 시험의 차선을 더한다(위 「문구만 바뀐 파일」)
+  // 문구만 바뀐 파일은 좁힐 수 있을 때만 core + 바뀐 글자를 찾는 시험의 차선으로 센다(위 「문구만 바뀐 파일」)
   const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
-  const judged = rest.filter((file) => !copyOnly.has(file));
-  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), copyOnly, stage, ts, mentions), commentOnly);
+  const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: mentions ?? mentionSources() });
+  const judged = rest.filter((file) => !narrowed.has(file));
+  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
 }
 
-/** 나머지 파일의 계획에 문구만 바뀐 파일을 얹는다 — core 는 늘 서고, 옛 글자를 말하는 시험의 차선이 더 선다 */
-function withCopy(decided, copyOnly, stage, ts, mentions) {
-  if (copyOnly.size === 0) return decided;
-  const named = [...copyOnly.keys()].map((one) => `\`${one}\``).join(' · ');
+/** 계획이 돌리는 차선 — 전부면 `null`(가장 넓다) */
+const lanesRun = (decided) => {
+  if (decided.tier === 'full') return null;
+  const pick = decided.pick ?? {};
+  return new Set([
+    ...(pick.policy ? ['policy'] : []),
+    ...(pick.core ? ['core'] : []),
+    ...(pick.anon ? ['anon'] : []),
+    ...(pick.flow ? ['flow'] : []),
+    ...(pick.authedLanes ?? []),
+  ]);
+};
+
+/**
+ * 문구만 바뀐 파일 가운데 **좁혀지는 것** — 문구 판정은 차선을 좁히기만 하고 넓히지 않는다(운영자 2026-10-09). 파일마다 두 계획을
+ * 견준다. 하나는 그 파일을 문구로 안 셌을 때의 지금 규칙(`decideBeta`), 하나는 `core` + 바뀐 글자를 찾는 시험의 차선
+ * (`copyLanesOf`)이다. 뒤의 것이 앞의 것에 들어갈 때만 뒤의 것으로 센다. 검색이 전부를 부르거나, 앞에 없는 차선을 켜거나(둘이 서로
+ * 포함하지 않을 때도) 그 파일은 지금 규칙 그대로다 — 입구가 아닌 컴포넌트(지금 규칙으로 `core`)의 문구가 #572 전보다 넓어지지 않는다.
+ * 정규식의 쓰임 자리 규칙은 그대로이고, 좁힐 때의 근거로만 쓰인다
+ *
+ * @param {Map<string, string[]>} copyOnly
+ * @returns {Map<string, { lanes: string[], tests: string[] }>}
+ */
+function narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions }) {
+  const narrowed = new Map();
+  for (const [file, texts] of copyOnly) {
+    const searched = copyLanesOf(new Map([[file, texts]]), mentions, ts);
+    if (searched.lanes === null) continue;
+    const existing = lanesRun(decideBeta([file], stage, sourceOf));
+    if (existing !== null && !['core', ...searched.lanes].every((lane) => existing.has(lane))) continue;
+    narrowed.set(file, { lanes: searched.lanes, tests: searched.tests });
+  }
+  return narrowed;
+}
+
+/** 나머지 파일의 계획에 좁혀진 문구 파일을 얹는다 — core 는 늘 서고, 바뀐 글자를 말하는 시험의 차선이 더 선다 */
+function withCopy(decided, narrowed, stage) {
+  if (narrowed.size === 0) return decided;
+  const named = [...narrowed.keys()].map((one) => `\`${one}\``).join(' · ');
   if (decided.tier === 'full') return { ...decided, reason: `${decided.reason} — 문구만 바뀐 파일: ${named}` };
-  const { lanes, tests } = copyLanesOf(copyOnly, mentions ?? mentionSources(), ts);
+  const lanes = [...new Set([...narrowed.values()].flatMap((one) => one.lanes))];
+  const tests = [...new Set([...narrowed.values()].flatMap((one) => one.tests))];
   const cited = tests.map((one) => `\`${one}\``).join(' · ');
-  if (lanes === null) return full('문구의 옛 글자', `${stage} — 문구만 바뀐 ${named} 의 옛 글자를 ${cited} 가 말하는데 그 차선을 못 가른다`);
   const before = decided.pick ?? {};
   const pick = {
     core: true,
@@ -1248,10 +1285,10 @@ function withCopy(decided, copyOnly, stage, ts, mentions) {
     flow: Boolean(before.flow) || lanes.includes('flow'),
     authedLanes: [...new Set([...(before.authedLanes ?? []), ...lanes.filter((one) => one !== 'anon' && one !== 'flow')])],
   };
-  const extra = tests.length === 0 ? '옛 글자를 말하는 시험 없음' : `옛 글자를 말하는 시험: ${cited}`;
-  const narrowed = decided.tier === 'narrow' || tests.length > 0;
+  const extra = tests.length === 0 ? '바뀐 글자를 말하는 시험 없음' : `바뀐 글자를 말하는 시험: ${cited}`;
+  const isNarrow = decided.tier === 'narrow' || lanes.length > 0;
   const head = decided.tier === 'policy' ? `${stage} — 문구만 바뀌었다` : decided.reason;
-  return { tier: narrowed ? 'narrow' : 'core', reason: `${head} — 문구만 바뀐 파일은 core 로 셌다: ${named} (${extra})`, pick };
+  return { tier: isNarrow ? 'narrow' : 'core', reason: `${head} — 문구만 바뀐 파일은 core 로 셌다: ${named} (${extra})`, pick };
 }
 
 /** 바뀐 파일 중 주석만 바뀐 코드 파일 — 파서가 없으면 없다(위 「주석만 바뀐 코드 파일」) */
