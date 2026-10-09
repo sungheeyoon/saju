@@ -20,7 +20,6 @@ import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
-  BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
@@ -281,7 +280,8 @@ export function NoteEditor({
     <div className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card">
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={!changed || saving} className={BUTTON_SECONDARY_SMALL}>
+        {/* 저장은 판마다 같은 주 단추다 — 출생 정보 · 프로필과 한 벌(2026-10-10 화면 점검 B17) */}
+        <button type="button" onClick={save} disabled={!changed || saving} className={BUTTON_PRIMARY}>
           {saving ? '저장하는 중…' : '메모 저장'}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>

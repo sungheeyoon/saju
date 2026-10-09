@@ -149,9 +149,20 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
     ...(context.readPair ? (['pair'] as const) : []),
   ];
 
+  /*
+    **카드마다 몇 번째인지 단다**(2026-10-10 화면 점검 B22) — 폰에서 카드 일곱이 한 줄로 길게 서면 얼마나 남았는지 모른다.
+    값을 묻는 두 카드는 읽어 본 종류가 있을 때만 서므로 전체 수도 그것을 따른다. 안에 든 「새로 나왔으면 하는 것」은
+    「바라는 것」 카드의 한 부분이라 세지 않는다.
+  */
+  const total = asked.length > 0 ? 7 : 5;
+  const step = (n: number) => `${n}/${total}`;
+
   return (
     <div className="flex flex-col gap-5">
+      <p className="px-1 text-[13px] leading-5 text-secondary">{SURVEY_COPY.autosave}</p>
+
       <Picks
+        step={step(1)}
         question={QUESTION.liked}
         hint={SURVEY_COPY.multiple}
         options={LIKED_OPTIONS}
@@ -162,6 +173,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       />
 
       <Picks
+        step={step(2)}
         question={QUESTION.unknown}
         hint={`${SURVEY_COPY.multiple} · ${SURVEY_COPY.optional}`}
         options={UNKNOWN_OPTIONS}
@@ -172,6 +184,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       />
 
       <Picks
+        step={step(3)}
         question={QUESTION.improve}
         hint={SURVEY_COPY.multiple}
         options={IMPROVE_OPTIONS}
@@ -189,6 +202,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       </Picks>
 
       <Picks
+        step={step(4)}
         question={QUESTION.wants}
         hint={SURVEY_COPY.multiple}
         options={WANT_OPTIONS}
@@ -222,6 +236,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       */}
       {asked.length > 0 && (
         <section className={PANEL}>
+          <Step>{step(5)}</Step>
           <p className={ASK}>{PRICE_STEM}</p>
           <p className="text-[13px] leading-5 text-secondary">{PRICE_NOTE}</p>
           {asked.map((subject) => (
@@ -256,6 +271,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
       {asked.length > 0 && (
         <Picks
+          step={step(6)}
           question={QUESTION.priceFactors}
           hint={`${SURVEY_COPY.multiple} · ${SURVEY_COPY.optional}`}
           options={PRICE_FACTORS}
@@ -267,6 +283,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       )}
 
       <section className={PANEL}>
+        <Step>{step(total)}</Step>
         <Writing
           label={QUESTION.freeText}
           limit={TEXT_LIMIT.free}
@@ -322,8 +339,18 @@ function DraftMark({ state }: { state: 'idle' | 'saving' | 'saved' | 'failed' })
   );
 }
 
+/** 카드 머리의 차례 표지 — 「3/7」. 물음을 읽는 화면 읽기에는 숫자 셈이 군말이라 감춘다 */
+function Step({ children }: { children: string }) {
+  return (
+    <span aria-hidden="true" className="text-[13px] font-semibold tabular-nums leading-5 text-muted">
+      {children}
+    </span>
+  );
+}
+
 /** 여러 개 고르는 문항. 단독 항목의 규칙은 `afterPicking` 하나가 든다 */
 function Picks<T extends string>({
+  step,
   question,
   hint,
   note,
@@ -335,6 +362,8 @@ function Picks<T extends string>({
   nested = false,
   children,
 }: {
+  /** 카드 차례(「1/7」) — 안에 든 문항(`nested`)은 안 단다 */
+  step?: string;
   question: string;
   hint: string;
   note?: string;
@@ -349,6 +378,7 @@ function Picks<T extends string>({
   return (
     <fieldset className={nested ? 'flex flex-col gap-3 border-t border-border pt-4' : PANEL}>
       <legend className="contents">
+        {step !== undefined && <Step>{step}</Step>}
         <span className={nested ? 'block text-[15px] font-bold leading-6' : ASK}>{question}</span>
       </legend>
       <p className="text-[13px] text-muted">{hint}</p>

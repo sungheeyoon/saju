@@ -146,10 +146,17 @@ export function NowOverlaps({ now }: { now: CurrentFortune }) {
       */}
       <ul className="mt-3 flex flex-col gap-1.5 text-sm">
         {[...groupOverlaps(now.overlaps)].map(([key, group]) => (
-          <li key={key} className="flex flex-wrap items-baseline gap-x-2">
-            <span className="glyph font-medium">{group.char}</span>
+          /*
+            **한자와 조사는 한 흐름이다**(2026-10-10 화면 점검 B15). 둘을 따로 선 플렉스 칸으로 두면 폰에서 「午」 혼자 한 줄에
+            남고 「가 원국…」이 다음 줄로 떨어졌다. 줄 전체를 글 한 흐름으로 두고 한자와 조사만 끊기지 않게 묶는다.
+          */
+          <li key={key}>
+            <span className="whitespace-nowrap">
+              <span className="glyph font-medium">{group.char}</span>
+              <span className="ml-0.5 text-secondary">{subjectParticle(group.char)}</span>
+            </span>
             <span className="text-secondary">
-              {subjectParticle(group.char)} 원국{' '}
+              {' '}원국{' '}
               {group.seats.map((seat) => PILLAR_POSITION_KO[seat]).join('·')}의 같은 자리를
               다시 밟습니다 —{' '}
               <span className="text-foreground">{group.names.join(' · ')}</span>
