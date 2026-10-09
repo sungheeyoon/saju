@@ -8,10 +8,11 @@
 --   4. **남의 시도는 안 보인다** · 익명은 못 부른다
 --   5. **목록에서 뺀 사람의 시도는 안 선다** — `my_readings` 와 같은 좁힘
 --   6. **소식이 시도의 두 사람을 내가 부르는 이름으로 낸다** — 내 사주는 이름이 없다
+--   7. **인연 궁합은 상대의 별명으로 서고, 차단으로 내려간 Match 의 시도는 안 선다** — `visible_matches()` 의 좁힘
 --
 -- 3 의 `created_at > now() - reading_run_timeout()` 을 지우면 3 이 붉다.
 begin;
-select plan(11);
+select plan(13);
 
 /** 풀이권은 여기서 안 잰다 — 시도를 여는 것이 목적이다(59번과 같은 손잡이) */
 create or replace function public.reading_credit_limit()
@@ -172,6 +173,32 @@ select is(
   (select count(*)::int from public.my_notifications() where reading_label_a is not null),
   0,
   '남의 소식 · 이름은 보이지 않는다');
+
+-- ── 7. 인연 궁합 ──────────────────────────────────────────────────────────
+
+/* Match 와 시도를 문을 안 거치고 세운다(82번과 같은 손잡이) — 재는 것은 읽는 문의 좁힘이다 */
+reset role;
+insert into public.match (user_low, user_high)
+select least(kim, lee), greatest(kim, lee) from folks;
+insert into public.reading_run (user_id, kind, match_id, idempotency_key)
+select f.kim, 'match', m.id, 'running-match-0001'
+from folks f join public.match m on m.user_low = least(f.kim, f.lee) and m.user_high = greatest(f.kim, f.lee);
+create temporary table lee_name as
+select nickname from public.app_user where id = (select lee from folks);
+grant select on lee_name to authenticated;
+
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+select is(
+  (select array[kind, label_a] from public.my_running_readings() where kind = 'match'),
+  array['match', (select nickname from lee_name)],
+  '인연 궁합의 시도는 상대의 공개 별명으로 선다');
+
+select public.block_user((select lee from folks));
+select is(
+  (select count(*)::int from public.my_running_readings() where kind = 'match'),
+  0,
+  '차단으로 내려간 Match 의 시도는 서지 않는다');
 
 select * from finish();
 rollback;
