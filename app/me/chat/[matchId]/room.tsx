@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { REPORT_DONE } from '@/src/lib/account';
 import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat';
+import { ROOM_FIRST_HELLO, ROOM_SAFETY_NOTE } from '@/src/lib/chat/copy';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
@@ -234,7 +235,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       >
         <div className="flex flex-col gap-5 px-3 py-5 sm:px-6">
           {thread.reachedStart ? (
-            <RoomStart room={room} />
+            <RoomStart room={room} quiet={thread.messages.length === 0 && pending.length === 0} />
           ) : (
             thread.messages.length > 0 && (
               <button
@@ -352,8 +353,19 @@ function Activity({ band }: { band: ActivityBand }) {
  * 됐나」를 두 색이 되짚는다. 점수 · 궁합 한 줄은 방의 문이 주지 않으므로 싣지 않는다(지어낸 점수는 함께 보는
  * 궁합의 점수와 갈린다). 두 일간을 모르는 방은 상대의 사진과 이름만 선다.
  */
-function RoomStart({ room }: { room: RoomView }) {
+function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
   const tones = room.tones;
+  /*
+    **막 열린 방은 무엇을 하면 되는지와 어디서 끊는지를 말한다**(운영자 2026-10-10, 화면 점검 C4). 두 사람 카드와 빈 입력칸만
+    서 있으면 첫 말을 기다리는 방인지 고장 난 방인지 갈리지 않는다. 첫 말이 오가면 걷힌다. 열린 방 · 상대가 있는 방에만 선다 —
+    닫힌 방은 입력이 없고, 떠난 상대의 방에는 「⋯」가 없다.
+  */
+  const hello = quiet && room.partnerUserId !== null && room.notice === null && (
+    <div className="flex max-w-sm flex-col gap-1 text-center">
+      <p className="text-[15px] font-semibold leading-6 text-foreground">{ROOM_FIRST_HELLO}</p>
+      <p className="text-[13px] leading-5 text-secondary">{ROOM_SAFETY_NOTE}</p>
+    </div>
+  );
   /*
     **폰에서만 선다** — 넓은 화면(sm 이상)은 머리에 같은 단추가 늘 서 있어, 여기도 서면 한 화면에 「인연 궁합」이 둘이었다
     (화면 감사 2026-10-09). 폰의 머리는 이름에 자리를 주느라 그 단추가 없다. 서는 조건은 머리와 같다(상대가 있고 열린 방).
@@ -372,6 +384,7 @@ function RoomStart({ room }: { room: RoomView }) {
         <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={72} />
         <p className={TYPE_NAME}>{room.heading}</p>
         {toMatch}
+        {hello}
       </div>
     );
   }
@@ -383,6 +396,7 @@ function RoomStart({ room }: { room: RoomView }) {
         <StartSide label={room.name} stem={tones.theirs.stem} />
       </div>
       {toMatch}
+      {hello}
     </div>
   );
 }

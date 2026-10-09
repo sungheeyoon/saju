@@ -75,6 +75,17 @@ export function isNavigationActive(pathname: string, href: string, from: string 
 }
 
 /**
+ * 폰의 하단 독이 서는 화면인가 — **대화방 하나(`/me/chat/[matchId]`)에서는 안 선다**(화면 점검 2026-10-10 C5).
+ *
+ * 방은 화면 높이의 판이고 대화 칸만 스크롤한다. 독이 늘 떠 있으면 그 6rem 을 비워 두느라 390×844 에서 말풍선이 쓰는 높이가 약
+ * 400px 이었고, 대화 중에는 탭을 옮길 일이 드물다 — 방 머리의 ← 가 목록으로 간다. 목록(`/me/chat`)에서는 그대로 선다.
+ * 독이 안 서면 `globals.css` 가 그 판의 `id` 를 보고 비우던 아래 여백도 함께 사라지고, 방의 높이(`room.module.css`)가 그만큼 는다.
+ */
+export function dockStandsOn(pathname: string): boolean {
+  return !/^\/me\/chat\/[^/]+\/?$/.test(pathname);
+}
+
+/**
  * **주소의 `?from=` 을 읽는 자리는 `Suspense` 안에만 둔다**(ADR 0134).
  *
  * `useSearchParams` 는 미리 그려지는 화면(`/` 등)에서 가장 가까운 `Suspense` 까지를 브라우저로 미룬다. 경계 없이
@@ -214,7 +225,7 @@ export function SiteHeader() {
           )}
         </div>
       </header>
-      {live && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
+      {live && dockStandsOn(pathname) && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
     </>
   );
 }

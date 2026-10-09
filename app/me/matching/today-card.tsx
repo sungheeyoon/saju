@@ -270,6 +270,10 @@ export function DeckButtons({ actions }: { actions: DeckActions }) {
 /**
  * ⓘ 시트 — 폰에서 사진 위에 못 둔 것(까닭 · 기운의 문장 · 소개 전문 · 궤도 · 참고 점수 고지)을 아래에서 올려 보인다.
  * 제 안에서 스크롤하고, 손잡이를 아래로 끌거나 바깥을 누르거나 Esc 로 닫힌다. 넓은 화면은 같은 것을 옆 열이 든다.
+ *
+ * **넓은 화면(lg)에서는 가운데 대화상자다**(화면 점검 2026-10-09 C15). 바닥에 붙은 판과 끌 손잡이는 엄지의 모양이라, 1280 폭에서는
+ * 화면 아래로 이어지는 폰 시트로 읽혔다. 거기서는 손잡이가 없고 끌어 닫지 않으며, 아래에서 올라오지 않고 제자리에서 떠오른다.
+ * ⓘ 자체는 넓은 화면에 안 선다(내용이 옆 열에 있다) — 넓은 화면에서 이 판을 여는 것은 「받은 요청 N」 띠다(`requests-band.tsx`).
  */
 export function DetailSheet({
   sheet,
@@ -296,7 +300,10 @@ export function DetailSheet({
     if (dialog === null || !dialog.open) return;
     const settle = () => { dialog.close(); setDrag(0); };
     if (reducedMotion()) { settle(); return; }
-    dialog.animate([{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }], { duration: 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
+    const frames = wideSheet()
+      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(12px)' }]
+      : [{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }];
+    dialog.animate(frames, { duration: wideSheet() ? 160 : 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
   };
 
   return (
@@ -310,12 +317,16 @@ export function DetailSheet({
         폭은 40rem 에서 멈추고 가운데 선다 — ⓘ 는 `lg` 아래에서 열리므로 640~1023px 에서 시트가 화면 끝까지 늘어나 한 줄이
         너무 길었다(화면 감사 2026-10-09). 폰 폭에서는 그대로 꽉 찬다.
       */
-      className="mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-[40rem] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-background p-0 text-foreground backdrop:bg-black/40"
+      className="mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-[40rem] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:max-h-[min(85dvh,48rem)] lg:rounded-[2rem] lg:shadow-float"
     >
-      <div className="flex flex-col gap-4 px-5 pb-10">
+      <div className="flex flex-col gap-4 px-5 pb-10 lg:px-6 lg:pb-6">
         <div
-          className="sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col gap-2 bg-background px-5 pb-1 pt-3"
-          onPointerDown={(event) => { press.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
+          className="sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col gap-2 bg-background px-5 pb-1 pt-3 lg:-mx-6 lg:touch-auto lg:px-6 lg:pt-5"
+          onPointerDown={(event) => {
+            if (wideSheet()) return;
+            press.current = event.clientY;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
           onPointerMove={(event) => { if (press.current !== null) setDrag(Math.max(0, event.clientY - press.current)); }}
           onPointerUp={() => {
             press.current = null;
@@ -324,7 +335,7 @@ export function DetailSheet({
           }}
           onPointerCancel={() => { press.current = null; setDrag(0); }}
         >
-          <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong" />
+          <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />
           <div className="flex items-center justify-between gap-3">
             <h2 className="min-w-0 truncate font-rounded text-[1.5rem]">{nickname}</h2>
             <span className="flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
@@ -341,11 +352,19 @@ export function DetailSheet({
   );
 }
 
-/** 시트를 연다 — 아래에서 올라온다 */
+/** 넓은 화면인가 — 시트가 가운데 대화상자로 서는 폭(`lg`, 클래스의 `lg:` 와 같은 문턱) */
+const wideSheet = (): boolean => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
+/** 시트를 연다 — 폰은 아래에서 올라오고, 넓은 화면은 제자리에서 떠오른다 */
 export function openSheet(sheet: HTMLDialogElement | null) {
   if (sheet === null || sheet.open) return;
   sheet.showModal();
-  if (!reducedMotion()) sheet.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  if (reducedMotion()) return;
+  if (wideSheet()) {
+    sheet.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    return;
+  }
+  sheet.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
 }
 
 /**

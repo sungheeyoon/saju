@@ -89,10 +89,16 @@ export async function MatchScreen({
           <Icon name="back" className="size-4" />
           {back.label}
         </Link>
+        {/*
+          **머리는 한 줄이 상대를 부른다**(운영자 2026-10-10, 화면 점검 C12). 「인연」 눈썹 → 「인연 궁합」 → 「… 님과의 궁합풀이」가
+          같은 대상을 세 번 불렀다. 제목이 상대 이름을 품고, 눈썹은 걷고, 아래 풀이 칸의 이름표는 보조기기에만 읽힌다. 닫힌 결과는
+          상대가 안 실려 와 「인연 궁합」 그대로다.
+        */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-[13px] font-semibold text-secondary">인연</p>
           <div className="flex items-center justify-between gap-3">
-            <Title className={TYPE_TITLE}>인연 궁합</Title>
+            <Title className={`${TYPE_TITLE} min-w-0 break-keep`}>
+              {outcome.kind === 'ok' ? `${outcome.result.partnerNickname} 님과의 인연 궁합` : '인연 궁합'}
+            </Title>
             <div className="flex shrink-0 items-center gap-1">
               {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
               {toRoom !== null && (
@@ -170,6 +176,7 @@ function Result({ result }: { result: SharedResult }) {
       <ReadingSection
         target={{ kind: 'match', matchId: result.matchId }}
         heading={`${result.partnerNickname} 님과의 궁합풀이`}
+        headingHidden
         automatic
         bare
         matchNames={{ me: '나', partner: result.partnerNickname }}

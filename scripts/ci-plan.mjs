@@ -630,7 +630,7 @@ export function onlyCommentsChanged(ts, file, before, after) {
  * 만 서야 하고(`copyConstantsShape`), 그 이름은 화면(`.tsx`)만 부른다 — 둘 다 `scripts/ci-plan.test.ts` 가 잰다. 문자열 상수라는
  * 까닭만으로는 문구로 세지 않는다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다
  */
-export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/matching/copy.ts'];
+export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/chat/copy.ts', 'src/lib/matching/copy.ts'];
 
 /**
  * 글자가 화면 글자가 아닌 요소 — 그 글자가 값(`option` 은 `value` 가 없으면 글자를 보낸다 · `textarea`)이거나 코드(`style` · `script` ·

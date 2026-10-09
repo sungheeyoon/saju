@@ -330,8 +330,8 @@ test.describe('동의로 열리는 흐름', () => {
       /* 신고 · 차단은 머리의 「⋯」 안이다(ADR 0158) — 여는 자리는 `<summary>` 라 이름으로 찾는다 */
       await expect(main.getByLabel('신고 · 차단', { exact: true })).toBeVisible();
 
-      /* 옆 책장에도 「인연 궁합」 절 제목이 서므로 글 칸(`article`) 안에서 찾는다 */
-      await expect(main.getByRole('article').getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
+      /* 제목이 상대를 부른다(화면 점검 C12) — 옆 책장에도 「인연 궁합」 절 제목이 서므로 글 칸(`article`) 안에서 찾는다 */
+      await expect(main.getByRole('article').getByRole('heading', { name: `${partner} 님과의 인연 궁합`, exact: true })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       /* 두 사람의 여덟 글자가 각자의 네 기둥 띠로 선다(`PillarPair`) — 관계 표는 없다 */
@@ -365,7 +365,8 @@ test.describe('동의로 열리는 흐름', () => {
 
         그래서 시각에 안 달린 것을 잰다: **그 버튼은 실패한 자리에서만 선다.**
       */
-      await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합풀이` })).toBeVisible();
+      /* 풀이 칸의 이름표는 머리 제목과 겹쳐 보조기기에만 읽힌다(화면 점검 C12) — 칸은 서 있다 */
+      await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합풀이` })).toHaveCount(1);
 
       const make = person.page.getByRole('button', { name: '궁합풀이 받기' });
       if ((await make.count()) > 0) {
