@@ -1894,7 +1894,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       고르는 칸이 이미 그 말을 하고 있었다. 여기는 메뉴에서 눌러 들어온 제 화면이라 그
       말을 대신해 줄 것이 없다.
     */
-    await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없어요' })).toBeVisible();
     /*
       「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
       표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
@@ -3235,7 +3235,7 @@ test.describe('사주풀이 공유하기', () => {
     await theirs.goto(copied);
 
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' }).first()).toBeVisible();
+    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' })).toBeVisible();
     /* 원본 사용자의 자리는 하나도 안 선다 */
     await expect(theirs.getByRole('button', { name: '사주풀이 다시 받기' })).toHaveCount(0);
     await expect(theirs.getByText('이 풀이는 어떠셨어요')).toHaveCount(0);
@@ -3268,7 +3268,7 @@ test.describe('사주풀이 공유하기', () => {
     const theirs = await guest.newPage();
     await theirs.goto(copied);
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' }).first()).toBeVisible();
+    await expect(theirs.getByRole('link', { name: '로그인하고 시작하기' })).toBeVisible();
 
     /**
      * **누구 것인지가 제목에 선다.** 이름이 없으면 링크를 받은 사람은 글을 다 읽고도

@@ -23,8 +23,8 @@ export const SERVICE_FEATURES: readonly { icon: IconName; title: string; body: s
   {
     icon: 'taiji',
     title: '궁합',
-    body: '두 사람을 골라 궁합을 보고, 궁합풀이를 받아요. 저장하지 않은 사람과도 볼 수 있어요.',
-    note: '로그인 · 풀이는 풀이권 1번',
+    body: '두 사람을 골라 궁합 첫 신호를 보고, 궁합풀이를 받아요. 저장하지 않은 사람과도 볼 수 있어요.',
+    note: '첫 신호는 로그인 없이 · 궁합풀이는 로그인 · 풀이권 1번',
   },
   {
     icon: 'people',
@@ -34,3 +34,16 @@ export const SERVICE_FEATURES: readonly { icon: IconName; title: string; body: s
   },
 ];
 
+
+/**
+ * **로그인 없이 되는 것** — 한 사실 한 표기(2026-10-09 화면 점검 A6). 첫 화면은 로그인 없이 한 사람의 사주와 두 사람의
+ * 궁합 첫 신호(엔진 계산의 한 줄 · 가린 점수)를 연다. 궁합풀이 · 사주풀이 · 저장 · 인연은 로그인한 뒤다.
+ *
+ * 로그인 화면(`auth/page.tsx`)과 로그인 실패(`auth/denied/page.tsx`)가 출구 단추(`SIGNED_OUT_EXIT`) 위에 이 한 줄을 함께
+ * 쓴다 — 전에는 한쪽이 「궁합 첫 신호는 지금」, 다른 쪽이 「궁합은 로그인한 뒤」라고 적어 같은 사실을 반대로 말했다.
+ * 위 넷의 궁합 `note` 와 자주 묻는 질문(`help/page.tsx`)도 같은 갈래(첫 신호 = 로그인 없이, 궁합풀이 = 로그인 + 풀이권)다.
+ */
+export const SIGNED_OUT_REACH = '로그인 없이도 내 사주와 궁합 첫 신호는 볼 수 있어요.';
+
+/** 로그인하지 않고 첫 화면으로 가는 출구의 이름 — 로그인 화면 · 로그인 실패가 같이 쓴다(`e2e/auth.spec.ts` 가 잰다) */
+export const SIGNED_OUT_EXIT = '사주로 돌아가기';

@@ -4,8 +4,8 @@ import { SERVICE_NAME } from '@/src/lib/brand';
 
 import { BUTTON_TERTIARY } from '../ui/buttons';
 import { Icon, type IconName } from '../ui/icons';
-import { Logo } from '../ui/logo';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { NoticeScreen } from '../ui/notice-screen';
+import { SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '../service-features';
 import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
 import { signedInUser } from './signed-in';
@@ -26,16 +26,10 @@ export default async function SignInPage({
   const forReading = returnTo === RESUME_READING_PATH;
 
   return (
-    <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
-      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] bg-cream p-6 sm:p-10">
-      <header className="flex flex-col gap-2">
-        <span className="grid size-16 place-items-center rounded-full bg-surface shadow-card">
-          <Logo className="size-10" />
-        </span>
-        <h1 className={`mt-3 text-balance ${TYPE_TITLE}`}>
-          {forCompat ? '궁합풀이는 로그인하면 볼 수 있어요' : forReading ? '내 사주풀이로 이어갈까요?' : `${SERVICE_NAME} 시작하기`}
-        </h1>
-        <p className="text-[15px] leading-7 text-secondary">
+    <NoticeScreen
+      title={forCompat ? '궁합풀이는 로그인하면 볼 수 있어요' : forReading ? '내 사주풀이로 이어갈까요?' : `${SERVICE_NAME} 시작하기`}
+      description={
+        <p>
           {/*
             궁합 쪽은 제목이 이미 「왜 여기 섰는가」를 다 말한다 — 본문이 그 이유를 한 번 더
             적으면 바로 아래 선 베타 안내까지 같이 안 읽힌다.
@@ -45,8 +39,19 @@ export default async function SignInPage({
           지금은 비공개 베타라, 처음 오셨다면 로그인 뒤에 <strong className="font-semibold">테스트 코드</strong>가
           필요해요.
         </p>
-      </header>
-
+      }
+      actions={<SignInButton returnTo={returnTo} />}
+      note={
+        /*
+          코드가 없는 사람의 길 — 막다른 자리로 두지 않는다. 첫 화면은 로그인 없이 사주와 궁합 첫 신호까지 연다.
+          까닭 한 줄과 출구 이름은 로그인 실패 화면과 같은 상수다(`SIGNED_OUT_REACH` · `SIGNED_OUT_EXIT`, e2e 가 잰다).
+        */
+        <>
+          <p>{SIGNED_OUT_REACH}</p>
+          <HomeLink className={`${BUTTON_TERTIARY} w-fit`}>{SIGNED_OUT_EXIT}</HomeLink>
+        </>
+      }
+    >
       {/*
         **누르기 전에 무엇이 열리는지 본다**(그로스 시안, 2026-10-03). 구글 단추 하나만 서 있으면 「로그인해서 뭘
         하지?」의 답이 화면에 없다. 적는 것은 로그인 뒤 실제로 있는 화면뿐이다(사주풀이 · 저장한 사람 · 궁합풀이 · 인연).
@@ -61,21 +66,7 @@ export default async function SignInPage({
           </li>
         ))}
       </ul>
-
-      <SignInButton returnTo={returnTo} />
-
-      {/*
-        코드가 없는 사람의 길 — 막다른 자리로 두지 않는다. 첫 화면은 로그인 없이 사주와 궁합 첫 신호까지 연다.
-        이름은 그대로 둔다(「사주로 돌아가기」, e2e 가 잰다) — 바로 위 줄이 까닭을 든다.
-      */}
-      <div className="flex flex-col gap-1">
-        <p className="text-[13px] leading-5 text-secondary">코드가 없어도 내 사주와 궁합 첫 신호는 지금 볼 수 있어요.</p>
-        <HomeLink className={`${BUTTON_TERTIARY} w-fit`}>
-          사주로 돌아가기
-        </HomeLink>
-      </div>
-      </section>
-    </main>
+    </NoticeScreen>
   );
 }
 

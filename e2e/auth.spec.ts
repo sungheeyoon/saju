@@ -100,7 +100,7 @@ test('로그인이 끊기면 왜인지 모른다고 말한다', async ({ page })
   await page.goto('/auth/callback?error=access_denied&error_description=cancelled');
 
   await expect(page).toHaveURL(/\/auth\/denied$/);
-  await expect(page.getByRole('heading', { name: '로그인하지 못했습니다' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '로그인하지 못했어요' })).toBeVisible();
 });
 
 /**

@@ -239,7 +239,10 @@ check('근거 절은 화면에 없다', !html.includes('analysis.strength') && !
 check('프롬프트와 근거 자료는 화면에 없다', !html.includes(PROMPT) && !html.includes('검사근거'));
 check('자기 풀이 화면이 누구 것인지 말한다', html.includes(`${NAME.a}님의 사주풀이`),
   '제목에 닉네임이 없다');
-check('시작하는 길이 위아래로 둘 선다', (html.match(/로그인하고 시작하기/g) ?? []).length >= 2);
+/* 머리의 단추는 걷었다(운영자 2026-10-09) — 시작하는 길은 다 읽은 자리의 초대 판 하나다 */
+/* 그린 링크만 센다 — 같은 글자가 페이지 데이터(RSC 페이로드)에도 한 번 더 실린다 */
+const starts = (html.match(/>로그인하고 시작하기<\/a>/g) ?? []).length;
+check('시작하는 길은 초대 판에 하나 선다', starts === 1, String(starts));
 check('가입에 코드가 필요하다는 것을 미리 말한다', html.includes('테스트 코드가 필요해요'));
 
 /* 원본 사용자의 손잡이는 하나도 없다 */
@@ -448,7 +451,7 @@ for (const kind of ['readings', 'people', 'compat']) {
   const missing = await get(`/share/${kind}/0123456789abcdef0123456789abcdef`);
   const missingHtml = await missing.text();
   check(`${kind} — 없는 토큰은 404 로 안내한다`,
-    missing.status === 404 && missingHtml.includes('열 수 없는 링크입니다'), `HTTP ${missing.status}`);
+    missing.status === 404 && missingHtml.includes('열 수 없는 링크예요'), `HTTP ${missing.status}`);
 }
 
 // ── 다시 만들어도 보낸 글은 그대로 ─────────────────────────────────────────

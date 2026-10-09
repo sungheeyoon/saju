@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 
 import {
   NOTICE_ACK_LABEL,
@@ -26,13 +26,19 @@ import { completeSignup } from './actions';
 
 /** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft aria-invalid:border-danger';
 
 /** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
 const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
 
 const LABEL = 'text-[15px] font-semibold';
+
+/** 눌렀을 때 코드 칸이 비어 있으면 — 닉네임은 `missingNickname` 이 제 말을 든다 */
+const CODE_MISSING = '테스트 코드를 입력해 주세요.';
+
+/** 눌렀을 때 안내 확인을 안 했으면 — 무엇에 표시하는지는 그 칸의 글자를 그대로 부른다 */
+const ACK_MISSING = `‘${NOTICE_ACK_LABEL}’에 표시해 주세요.`;
 
 /**
  * 가입 폼 — **한 번 눌러 셋을 적는다** (ADR 0042).
@@ -86,11 +92,26 @@ export function SignupForm({
   const missing = needsName ? missingNickname(nickname) : null;
   const answer = checked?.key === nicknameKey(nickname) ? checked : null;
 
-  const blocked =
-    !acknowledged ||
-    missing !== null ||
-    (needsCode && code.trim().length === 0) ||
-    working;
+  /*
+    **단추를 잠그지 않고, 누르면 거절한다** — 내 사주 등록(`app/saju-calculator.tsx`)과 같은 방식이다. 잠근 단추 옆에
+    닉네임 규칙만 서 있어, 코드가 비었거나 확인을 안 한 사람은 왜 안 눌리는지 몰랐다(2026-10-09 화면 점검).
+    눌렀을 때 **위에서부터 처음 걸린 칸 하나**를 말하고 그 칸으로 초점을 옮긴다. 칸을 고치면 말도 다음 칸으로 넘어간다.
+  */
+  const [tried, setTried] = useState(false);
+  const codeField = useRef<HTMLInputElement>(null);
+  const nicknameField = useRef<HTMLInputElement>(null);
+  const ackField = useRef<HTMLInputElement>(null);
+  const gap: { field: 'code' | 'nickname' | 'ack'; message: string } | null =
+    needsCode && code.trim().length === 0
+      ? { field: 'code', message: CODE_MISSING }
+      : missing !== null
+        ? { field: 'nickname', message: missing }
+        : !acknowledged
+          ? { field: 'ack', message: ACK_MISSING }
+          : null;
+  const shownGap = tried ? gap : null;
+  const invalid = (field: 'code' | 'nickname' | 'ack') =>
+    shownGap?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'signup-gap' } : {};
 
   const check = () => {
     setFailure(null);
@@ -103,6 +124,12 @@ export function SignupForm({
 
   const send = () => {
     setFailure(null);
+    if (gap !== null) {
+      setTried(true);
+      ({ code: codeField, nickname: nicknameField, ack: ackField })[gap.field].current?.focus();
+      return;
+    }
+    setTried(false);
     startWorking(async () => {
       /*
         **성공하면 이 줄 아래로 안 온다.** 서버 액션이 스스로 목적지로 보낸다 — 여기서
@@ -132,6 +159,8 @@ export function SignupForm({
           </label>
           <input
             id="signup-code"
+            ref={codeField}
+            {...invalid('code')}
             type="text"
             inputMode="text"
             autoCapitalize="characters"
@@ -158,6 +187,8 @@ export function SignupForm({
           <div className="flex items-center gap-2">
             <input
               id="signup-nickname"
+              ref={nicknameField}
+              {...invalid('nickname')}
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value.slice(0, NICKNAME_MAX))}
@@ -223,6 +254,8 @@ export function SignupForm({
         <input
           type="checkbox"
           id="notice-ack"
+          ref={ackField}
+          {...invalid('ack')}
           checked={acknowledged}
           onChange={(event) => setAcknowledged(event.target.checked)}
           className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
@@ -269,10 +302,21 @@ export function SignupForm({
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
-        <button type="button" onClick={send} disabled={blocked} className={BUTTON_PRIMARY}>
+        <button
+          type="button"
+          onClick={send}
+          disabled={working}
+          aria-describedby={shownGap !== null ? 'signup-gap' : undefined}
+          className={BUTTON_PRIMARY}
+        >
           {working ? '가입하는 중…' : needsCode ? '가입하고 시작하기' : '확인하고 계속하기'}
         </button>
-        {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
+        {/* 눌렀는데 못 간 이유를 단추 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
+        {shownGap !== null && (
+          <p id="signup-gap" role="alert" className="text-sm font-medium text-danger">
+            {shownGap.message}
+          </p>
+        )}
       </div>
     </div>
   );
