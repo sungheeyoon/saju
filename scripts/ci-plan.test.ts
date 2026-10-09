@@ -23,6 +23,8 @@ import {
   SERVER_ACTIONS_ELSEWHERE,
   SHARED_RISK,
   addressesOf,
+  COPY_ATTRIBUTES,
+  copyConstantMisuses,
   copyConstantsShape,
   copyLanesOf,
   copyOnlyChanged,
@@ -32,14 +34,21 @@ import {
   isSurface,
   lanesOfTest,
   loginSpecs,
+  mainRedOf,
   onlyCommentsChanged,
   planFor,
+  regexShape,
+  regexTurnsOn,
+  regexUsesIn,
   routeOf,
   settledGreen,
   specsOfLane,
   summaryOf,
 } from './ci-plan.mjs';
 import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
+
+/** 바뀐 글자를 찾는 시험들의 차선 — 정규식은 파서로 가른다 */
+const lanesFor = (copyOnly: Map<string, string[]>, tests: readonly (readonly [string, string])[]) => copyLanesOf(copyOnly, tests, ts);
 
 /** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
 const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '공개 출시' });
@@ -736,11 +745,12 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
  */
 describe('CI 계획 — 주석만 바뀐 코드 파일은 정책이다 (ADR 0153)', () => {
   /** 한 파일을 `before` → `after` 로 바꾼 PR 의 계획 — `others` 는 base 쪽이 없는(새) 파일로 함께 바뀐다 */
-  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타') =>
+  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타', mentions: [string, string][] = []) =>
     planFor({
       files: [file, ...others],
       stage,
       ts,
+      mentions,
       sourceOf: (one) => (one === file ? after : null),
       baseSourceOf: (one) => (one === file ? before : null),
     });
@@ -1009,11 +1019,12 @@ describe('CI 계획 — 문서만 바뀐 main 푸시는 policy 만 (ADR 0154)', 
 
 describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는 시험의 차선만 더한다 (ADR 0159)', () => {
   /** 한 파일을 `before` → `after` 로 바꾼 PR 의 계획 — `others` 는 base 쪽이 없는(새) 파일로 함께 바뀐다 */
-  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타') =>
+  const planOf = (file: string, before: string, after: string, others: string[] = [], stage = '운영 베타', mentions: [string, string][] = []) =>
     planFor({
       files: [file, ...others],
       stage,
       ts,
+      mentions,
       sourceOf: (one) => (one === file ? after : null),
       baseSourceOf: (one) => (one === file ? before : null),
     });
@@ -1049,15 +1060,43 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     return source.replace(from, to);
   };
 
-  it('JSX 글자(요소 사이의 글자)만 바뀌면 문구만이다 — 옛 글자는 공백을 접어 돌려준다', () => {
-    expect(copyOf(CARD, edit('하나가 뜹니다.', '요청 하나가 뜹니다.'))).toEqual(['요청을 보내면 상대의 인연 탭에 하나가 뜹니다.']);
-    expect(copyOf(CARD, edit('>받은 요청</a>', '>받은 요청 열기</a>'))).toEqual(['받은 요청']);
+  it('JSX 글자(요소 사이의 글자)만 바뀌면 문구만이다 — 앞뒤 글자를 공백을 접어 돌려준다', () => {
+    expect(copyOf(CARD, edit('하나가 뜹니다.', '요청 하나가 뜹니다.'))).toEqual([
+      '요청을 보내면 상대의 인연 탭에 하나가 뜹니다.',
+      '요청을 보내면 상대의 인연 탭에 요청 하나가 뜹니다.',
+    ]);
+    expect(copyOf(CARD, edit('>받은 요청</a>', '>받은 요청 열기</a>'))).toEqual(['받은 요청', '받은 요청 열기']);
     // 주석과 함께 바뀌어도 문구만이다
     expect(copyOf(CARD, edit("const LABEL = '요청 보내기';", "// 단추 글자\nconst LABEL = '요청 보내기';", edit('요청을 보내면', '요청을 꼭 보내면')))).toEqual([
       '요청을 보내면 상대의 인연 탭에 하나가 뜹니다.',
+      '요청을 꼭 보내면 상대의 인연 탭에 하나가 뜹니다.',
+    ]);
+    // 표에 없는 엔티티가 바뀐 글자에 있으면 판별하지 않는다(반쯤 푼 글자로 찾지 않게)
+    expect(copyOf(CARD, edit('하나가 뜹니다.', '하나가 뜹니다 &rarr;'))).toBeNull();
+    expect(copyOf(CARD, edit('하나가 뜹니다.', '하나가 뜹니다 &#x2192;'))).toEqual([
+      '요청을 보내면 상대의 인연 탭에 하나가 뜹니다.',
+      '요청을 보내면 상대의 인연 탭에 하나가 뜹니다 →',
+    ]);
+    // JSX 엔티티는 풀어서 견준다 — `&nbsp;` 는 공백으로 접힌다
+    expect(copyOf(CARD, edit('하나가 뜹니다.', '하나가&nbsp;떠요&hellip;'))).toEqual([
+      '요청을 보내면 상대의 인연 탭에 하나가 뜹니다.',
+      '요청을 보내면 상대의 인연 탭에 하나가 떠요…',
     ]);
     // JSX 주석 `{/* */}` 을 새로 세우는 것은 식 자리 하나가 느는 것이라 구조다
     expect(copyOf(CARD, edit('      <p>\n        요청을', '      {/* 안내 */}\n      <p>\n        요청을 꼭'))).toBeNull();
+  });
+
+  it('글자 속성에 문구 상수를 쓰는 것과 속성의 글자를 직접 바꾸는 것은 다르다 — 앞은 상수 값 변경이 문구, 뒤는 문구가 아니다', () => {
+    // 속성 글자를 직접 바꾸는 diff 는 aria-label · title · alt · placeholder 라도 문구가 아니다
+    for (const attribute of COPY_ATTRIBUTES) {
+      const screen = `export const S = () => <input ${attribute}="가나다" />;\n`;
+      expect(copyOnlyChanged(ts, 'app/s.tsx', screen, screen.replace('가나다', '라마바')), attribute).toBeNull();
+    }
+    // 그 속성에 문구 상수를 쓰는 것은 잠금이 허용하고, 상수 값이 바뀐 diff 는 문구다
+    const screen = "import { NOTE } from '@/src/lib/matching/copy';\nexport const S = () => <input aria-label={NOTE} />;\n";
+    expect(copyConstantMisuses(ts, 'app/s.tsx', screen, ['NOTE'])).toEqual([]);
+    const copyFile = "export const NOTE = '가나다';\n";
+    expect(copyOnlyChanged(ts, 'src/lib/matching/copy.ts', copyFile, copyFile.replace('가나다', '라마바'))).toEqual(['가나다', '라마바']);
   });
 
   it('JSX 속성 값은 문구가 아니다 — className · href · aria-label · data-* · type', () => {
@@ -1089,10 +1128,46 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(copyOnlyChanged(ts, 'src/lib/matching/paths.ts', "export const INBOX = '/me/requests';\n", "export const INBOX = '/me/inbox';\n")).toBeNull();
   });
 
-  it('값이 곧 동작인 요소의 글자(option · textarea · style · script)는 문구가 아니다', () => {
+  it('값이 곧 동작인 요소의 글자(option · textarea · style · script · Script)는 몇 겹 아래든 문구가 아니다', () => {
     expect(copyOf(CARD, edit('<option>요청자</option>', '<option>보낸 사람</option>'))).toBeNull();
     const style = 'export const S = () => <style>body {"{"} color: red {"}"}</style>;\n';
     expect(copyOf(style, style.replace('color: red', 'color: blue'), 'app/s.tsx')).toBeNull();
+    // 바로 위 요소만 보면 아래 글자가 문구로 통과했다(2026-10-09 외부 검토) — 조상 전체로 내려간다
+    const deep = (inner: string) => `export const S = () => <div><p>머리</p>${inner}</div>;\n`;
+    for (const [inner, from, to] of [
+      ['<select><option><span>allow</span></option></select>', 'allow', 'deny'],
+      ['<select><option><>월</></option></select>', '월', '화'],
+      ['<select><option>{x ? <b><i>하나</i></b> : null}</option></select>', '하나', '둘'],
+      ['<textarea><span>기본 값</span></textarea>', '기본 값', '다른 값'],
+      ['<style><span>a {"{"} color: red {"}"}</span></style>', 'red', 'blue'],
+      ['<script><span>window.x = 1</span></script>', 'window.x = 1', 'window.x = 2'],
+      ['<Script id="s">window.x = 1</Script>', 'window.x = 1', 'window.x = 2'],
+      ['<Script id="s"><>window.x = 1</></Script>', 'window.x = 1', 'window.x = 2'],
+    ] as const) {
+      const before = deep(inner);
+      expect(copyOf(before, before.replace(from, to), 'app/s.tsx'), inner).toBeNull();
+    }
+    // 그 밖의 자리는 그대로 문구다 — 같은 파일의 바깥 글자, 이름 모르는 대문자 컴포넌트의 글자
+    const outside = deep('<select><option><span>allow</span></option></select>');
+    expect(copyOf(outside, outside.replace('머리', '머리글'), 'app/s.tsx')).toEqual(['머리', '머리글']);
+    // `next/script` 를 다른 이름으로 받으면 그 이름도 뺀다 · 이름 붙여 · 네임스페이스로 받으면 그 파일은 문구로 세지 않는다
+    const renamed = "import NS from 'next/script';\nexport const S = () => <div><p>머리</p><NS id=\"s\">window.x = 1</NS></div>;\n";
+    expect(copyOf(renamed, renamed.replace('window.x = 1', 'window.x = 2'), 'app/s.tsx')).toBeNull();
+    expect(copyOf(renamed, renamed.replace('머리', '머리글'), 'app/s.tsx')).toEqual(['머리', '머리글']);
+    for (const binding of ['* as NS', '{ default as NS }']) {
+      const unknown = renamed.replace('NS from', `${binding} from`);
+      expect(copyOf(unknown, unknown.replace('머리', '머리글'), 'app/s.tsx'), binding).toBeNull();
+    }
+    // `require` · 동적 `import()` 로 부르면 판별이 안 선다(재검토)
+    for (const load of ["const NS = require('next/script');", "const NS = (await import('next/script')).default;"]) {
+      const loaded = renamed.replace("import NS from 'next/script';", load);
+      expect(copyOf(loaded, loaded.replace('머리', '머리글'), 'app/s.tsx'), load).toBeNull();
+    }
+    expect(
+      copyConstantMisuses(ts, 'app/a.tsx', "const S = require('next/script');\nexport const A = () => <p>{NOTE}</p>;\n", ['NOTE']),
+    ).toEqual(['app/a.tsx: next/script 를 판별 못 함']);
+    const button = 'export const S = () => <Button>보내기</Button>;\n';
+    expect(copyOf(button, button.replace('보내기', '요청 보내기'), 'app/s.tsx')).toEqual(['보내기', '요청 보내기']);
   });
 
   it('문구와 동작이 한 파일에 섞이면 문구가 아니다', () => {
@@ -1118,8 +1193,11 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
   it('목록 안 문구 상수 파일의 문자열 값만 바뀌면 문구다 — 이름 · 모양이 바뀌면 아니다', () => {
     const file = 'src/lib/matching/copy.ts';
     const before = "/** 셋째 줄 */\nexport const NOTE = '상대가 수락하면 채팅방이 열려요.';\nexport const OTHER = `둘째`;\n";
-    expect(copyOnlyChanged(ts, file, before, before.replace('채팅방이 열려요', '대화방이 열려요'))).toEqual(['상대가 수락하면 채팅방이 열려요.']);
-    expect(copyOnlyChanged(ts, file, before, before.replace('`둘째`', '`둘째 줄`'))).toEqual(['둘째']);
+    expect(copyOnlyChanged(ts, file, before, before.replace('채팅방이 열려요', '대화방이 열려요'))).toEqual([
+      '상대가 수락하면 채팅방이 열려요.',
+      '상대가 수락하면 대화방이 열려요.',
+    ]);
+    expect(copyOnlyChanged(ts, file, before, before.replace('`둘째`', '`둘째 줄`'))).toEqual(['둘째', '둘째 줄']);
     expect(copyOnlyChanged(ts, file, before, before.replace('NOTE', 'NOTE_2'))).toBeNull();
     expect(copyOnlyChanged(ts, file, before, `${before}export const MORE = '셋';\n`)).toBeNull();
     // 모양을 벗어난 파일(import · 식 · 타입 표기 · let · 내보내지 않음)은 문자열이 문구 자리가 아니다
@@ -1129,7 +1207,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     }
   });
 
-  it('문구 상수 파일은 목록과 이름이 짝이고, 모양을 지키고, 그 이름은 화면(.tsx)과 시험만 부른다 — 용도가 확인된 문구만 든다', () => {
+  it('문구 상수 파일은 목록과 이름이 짝이고, 모양을 지키고, 그 이름은 화면(.tsx)의 글자 자리와 시험만 부른다 — 용도가 확인된 문구만 든다', () => {
     const libs = readdirSync(resolve(ROOT, 'src/lib'), { withFileTypes: true }).filter((one) => one.isDirectory());
     const named = libs.map((one) => `src/lib/${one.name}/copy.ts`).filter((file) => existsSync(resolve(ROOT, file)));
     expect([...named].sort()).toEqual([...COPY_FILES].sort());
@@ -1137,9 +1215,13 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
         entry.isDirectory() ? (entry.name === 'node_modules' ? [] : walk(`${dir}/${entry.name}`)) : /\.(?:tsx?|mjs)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
       );
+    // 뿌리의 `*.ts` · `*.mjs`(`proxy.ts` · `next.config.ts` · `instrumentation.ts` …)도 훑는다
+    const roots = readdirSync(ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && /\.(?:tsx?|mjs)$/.test(entry.name))
+      .map((entry) => entry.name);
     const sources = ['app', 'src', 'e2e', 'scripts']
       .flatMap(walk)
-      .concat(['proxy.ts'])
+      .concat(roots)
       .map((file) => [file, readFileSync(resolve(ROOT, file), 'utf8')] as const);
     for (const file of COPY_FILES) {
       const source = readFileSync(resolve(ROOT, file), 'utf8');
@@ -1147,15 +1229,96 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       expect(copyConstantsShape(ts, tree), file).toBe(true);
       const names = [...source.matchAll(/^export const (\w+)/gm)].map((one) => one[1]);
       expect(names.length, file).toBeGreaterThan(0);
+      // 이름으로 부르든 모듈을 들이든(별칭 · 네임스페이스) 부르는 파일이다
+      const copyModule = file.replace(/\.ts$/, '');
+      const importing = new RegExp(`(?:\\bfrom|\\bimport\\s*\\()\\s*['"][^'"\\n]*${copyModule.replace(/^src\//, '')}(?:\\.ts)?['"]`);
       for (const name of names) {
-        const callers = sources.filter(([one, text]) => one !== file && new RegExp(`\\b${name}\\b`).test(text)).map(([one]) => one);
+        const callers = sources
+          .filter(([one, text]) => one !== file && (new RegExp(`\\b${name}\\b`).test(text) || importing.test(text)))
+          .map(([one]) => one);
         expect(callers.length, name).toBeGreaterThan(0);
         expect(
           callers.filter((one) => !/^app\/.+\.tsx$/.test(one) && !/\.test\.tsx?$/.test(one)),
           name,
         ).toEqual([]);
+        // 화면 안에서도 글자 자리(JSX 자식 `{NAME}` · 글자 속성의 값)에만 선다 — `href={NAME}` · 함수 인자 · 비교 · 키 · 다시 내보내기는 안 된다
+        for (const caller of callers.filter((one) => /^app\/.+\.tsx$/.test(one))) {
+          const text = sources.find(([one]) => one === caller)![1];
+          expect(copyConstantMisuses(ts, caller, text, names, copyModule), `${caller} 의 ${name}`).toEqual([]);
+        }
       }
     }
+  });
+
+  it('문구 상수는 JSX 자식 · 글자 속성(aria-label · title · alt · placeholder)의 값으로만 쓰인다 — 경로 · 키로 쓰면 잠금이 붉다', () => {
+    expect(COPY_ATTRIBUTES).toEqual(['aria-label', 'title', 'alt', 'placeholder']);
+    const ok = [
+      "import { NOTE } from '@/src/lib/matching/copy';",
+      'export const A = () => (',
+      '  <div title={NOTE}>',
+      '    <p>{NOTE}</p>',
+      '    <><span>{NOTE}</span></>',
+      '    <input placeholder={NOTE} aria-label={NOTE} />',
+      '    <img alt={NOTE} src="/a.png" />',
+      '  </div>',
+      ');',
+      '',
+    ].join('\n');
+    expect(copyConstantMisuses(ts, 'app/a.tsx', ok, ['NOTE'])).toEqual([]);
+    // 검토가 든 재현 — 문구 파일에 경로를 두고 `href` 로 쓰면 그 값 변경이 문구로 셌다
+    const misuse = (line: string) =>
+      copyConstantMisuses(ts, 'app/a.tsx', `import { NOTE } from '@/src/lib/matching/copy';\nexport const A = () => ${line};\n`, ['NOTE']);
+    expect(misuse('<a href={NOTE}>도움말</a>')).toEqual(['NOTE:2']);
+    expect(misuse('<p key={NOTE}>x</p>')).toEqual(['NOTE:2']);
+    expect(misuse('<p data-testid={NOTE}>x</p>')).toEqual(['NOTE:2']);
+    expect(misuse('<p>{NOTE.trim()}</p>')).toEqual(['NOTE:2']);
+    expect(misuse('<p>{NOTE === "a" ? 1 : 2}</p>')).toEqual(['NOTE:2']);
+    expect(misuse('<p>{`${NOTE}`}</p>')).toEqual(['NOTE:2']);
+    expect(misuse('fetch(NOTE)')).toEqual(['NOTE:2']);
+    expect(misuse('({ [NOTE]: 1 })')).toEqual(['NOTE:2']);
+    expect(copyConstantMisuses(ts, 'app/a.tsx', 'const broken = (;\n', ['NOTE'])).toEqual(['app/a.tsx: 파싱 실패']);
+  });
+
+  it('문구 상수 쓰임 — 값 · 코드 요소 안의 자식 식 · 별칭 · 네임스페이스 · 다시 내보내기도 잰다 (2026-10-09 독립 검토)', () => {
+    const head = "import { NOTE } from '@/src/lib/matching/copy';\n";
+    const use = (body: string, prefix = head) => copyConstantMisuses(ts, 'app/a.tsx', `${prefix}${body}\n`, ['NOTE'], 'src/lib/matching/copy');
+    // 값 · 코드 요소 안이면 몇 겹 아래든, 프래그먼트를 넘어서도 오용이다
+    for (const inner of [
+      '<select><option>{NOTE}</option></select>',
+      '<select><option><>{NOTE}</></option></select>',
+      '<select><option><span>{NOTE}</span></option></select>',
+      '<textarea>{NOTE}</textarea>',
+      '<style>{NOTE}</style>',
+      '<script>{NOTE}</script>',
+      '<Script id="s">{NOTE}</Script>',
+    ]) {
+      expect(use(`export const A = () => <div>${inner}</div>;`), inner).toEqual(['NOTE:2']);
+    }
+    expect(use('export const A = () => <NS>{NOTE}</NS>;', `import NS from 'next/script';\n${head}`)).toEqual(['NOTE:3']);
+    expect(use('export const A = () => <div><p>{NOTE}</p></div>;')).toEqual([]);
+    // 별칭은 같은 상수다
+    const alias = "import { NOTE as X } from '@/src/lib/matching/copy';\n";
+    expect(use('export const A = () => <a href={X}>x</a>;', alias)).toEqual(['X:2']);
+    expect(use('export const A = () => <p>{X}</p>;', alias)).toEqual([]);
+    // 네임스페이스 — `C.NOTE` 는 같은 판정, `C` 를 통째로 쓰면 오용
+    const space = "import * as C from '@/src/lib/matching/copy';\n";
+    expect(use('export const A = () => <p title={C.NOTE}>{C.NOTE}</p>;', space)).toEqual([]);
+    expect(use('export const A = () => <a href={C.NOTE}>x</a>;', space)).toEqual(['NOTE:2']);
+    expect(use('export const all = Object.values(C);', space)).toEqual(['C:2']);
+    expect(use('export const A = () => <a href={C.NOTE}>x</a>;', "import * as C from '../../src/lib/matching/copy';\n")).toEqual([]);
+    expect(
+      copyConstantMisuses(ts, 'app/me/a.tsx', "import * as C from '../../src/lib/matching/copy';\nexport const A = () => <a href={C.NOTE}>x</a>;\n", ['NOTE'], 'src/lib/matching/copy'),
+    ).toEqual(['NOTE:2']);
+    // 다시 내보내기는 오용이다
+    expect(use('export { NOTE };')).toEqual(['NOTE:2']);
+    expect(use("export { NOTE as PATH } from '@/src/lib/matching/copy';", '')).toEqual(['NOTE:1']);
+    expect(use("export * from '@/src/lib/matching/copy';", '')).toEqual(['*:1']);
+    expect(use("export * as C from '@/src/lib/matching/copy';", '')).toEqual(['*:1']);
+    // 동적으로 들이면 오용이다 — 그 이름이 어디서 쓰이는지 따라가지 못한다
+    expect(use("export const load = async () => (await import('@/src/lib/matching/copy')).NOTE;", '')).toEqual(['import():1']);
+    expect(use("const c = require('../src/lib/matching/copy');", '')).toEqual(['import():1']);
+    // `next/script` 를 이름 붙여 받으면 판별이 안 선다
+    expect(use('export const A = () => <p>{NOTE}</p>;', `import { default as S } from 'next/script';\n${head}`)).toEqual(['app/a.tsx: next/script 를 판별 못 함']);
   });
 
   it('관문 공용 위험 자리라도 문구만이면 core 다 — layout 의 JSX 글자 · 옛 글자를 말하는 시험이 없으면 core 하나', () => {
@@ -1172,37 +1335,265 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(planOf('app/layout.tsx', layout, layout.replace('머리 글 하나', '머리 글 둘'), ['proxy.ts']).tier).toBe('full');
   });
 
-  it('옛 글자를 흐름 검사가 말하면 flow 가 더 선다 — check-share 가 「테스트 코드가 필요해요」를 찾는다', () => {
+  it('문구 판정은 좁히기만 한다 — check-share 가 옛 글자를 말해도 지금 규칙이 core 인 문구 파일은 core 그대로 (운영자 2026-10-09)', () => {
     const file = 'src/lib/account/copy.ts';
     const before = readFileSync(resolve(ROOT, file), 'utf8');
-    const plan = planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['docs/product/copy-ledger.md']);
-    expect(plan.tier).toBe('narrow');
-    expect(plan.lanes.core).toBe(true);
-    expect(plan.lanes.flow).toBe(true);
-    expect(plan.reason).toContain('`scripts/check-share.mjs`');
+    const share = 'scripts/check-share.mjs';
+    const plan = planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['docs/product/copy-ledger.md'], '운영 베타', [
+      [share, readFileSync(resolve(ROOT, share), 'utf8')],
+    ]);
+    expect(plan.tier).toBe('core');
+    expect(plan.lanes).toEqual(CORE_ONLY);
+  });
+
+  it('입구 page 의 문구 — 말하는 시험 없음은 core, 지금 규칙 안의 차선이면 그것, 넓으면 지금 규칙, 동작이 섞이면 지금 규칙', () => {
+    const file = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    expect(after).not.toBe(before);
+    const existing = planFor({ files: [file], stage: '운영 베타' });
+    expect(existing.tier).toBe('narrow');
+    // 말하는 시험 없음 → core
+    expect(planOf(file, before, after).lanes).toEqual(CORE_ONLY);
+    // 지금 규칙 안의 차선(match) → core + match
+    const inside = planOf(file, before, after, [], '운영 베타', [['e2e/match.spec.ts', "page.getByText('저장한 사람');"]]);
+    expect(inside.tier).toBe('narrow');
+    expect(inside.lanes).toEqual({ ...CORE_ONLY, authed: true });
+    expect(inside.authedLanes).toEqual(['match:desktop', 'match:mobile']);
+    // 지금 규칙에 없는 차선(chat)을 켜면 지금 규칙 그대로 — 넓히지 않는다
+    const wider = planOf(file, before, after, [], '운영 베타', [['e2e/chat.spec.ts', "page.getByText('저장한 사람');"]]);
+    expect(wider.lanes).toEqual(existing.lanes);
+    expect(wider.authedLanes).toEqual(existing.authedLanes);
+    // 검색이 전부(spec 아닌 도우미)를 부르면 지금 규칙 그대로
+    const helper = planOf(file, before, after, [], '운영 베타', [['e2e/session.ts', "const x = '저장한 사람';"]]);
+    expect(helper.lanes).toEqual(existing.lanes);
+    // 문구와 동작이 섞이면 문구가 아니라 지금 규칙
+    const mixed = planOf(file, before, after.replace('className={TYPE_TITLE}', 'className={TYPE_DISPLAY}'));
+    expect(mixed.lanes).toEqual(existing.lanes);
+  });
+
+  it('정규식은 확실히 풀 수 있는 모양(통째 리터럴 · 이스케이프 · 맨 위 `|` 갈래 · 맨 앞뒤 `^ $`)만 글자로 푼다', () => {
+    expect(regexShape('채팅방이')).toEqual({ literals: ['채팅방이'] });
+    expect(regexShape('^채팅방이 열려요\\.$')).toEqual({ literals: ['채팅방이 열려요.'] });
+    expect(regexShape('예시|연결 준비 중')).toEqual({ literals: ['예시', '연결 준비 중'] });
+    expect(regexShape('\\/me\\/requests')).toEqual({ literals: ['/me/requests'] });
+    // 그 밖은 기호를 지워 견주지 않는다 — 기호 사이의 글자 조각과, `\d` · `\s` 류에 붙은 조각만 든다
+    expect(regexShape('수락하면.*열려요')).toEqual({ fragments: ['수락하면', '열려요'], nearClass: [] });
+    expect(regexShape('(?:예시|연결 준비 중)')).toEqual({ fragments: ['예시', '연결 준비 중'], nearClass: [] });
+    expect(regexShape('상대가\\s+수락[가-힣]{2}열려요')).toEqual({ fragments: ['상대가', '수락', '열려요'], nearClass: ['상대가', '수락'] });
+    expect(regexShape('열려요?')).toEqual({ fragments: ['열려요'], nearClass: [] });
+    expect(regexShape('<[^>]+>')).toEqual({ fragments: ['<', '>'], nearClass: [] });
+    expect(regexShape('\\d+개')).toEqual({ fragments: ['개'], nearClass: ['개'] });
+    expect(regexShape('1\\s*명')).toEqual({ fragments: ['1', '명'], nearClass: ['1', '명'] });
+    expect(regexShape('^\\d+초$')).toEqual({ fragments: ['초'], nearClass: ['초'] });
+  });
+
+  it('정규식도 바뀐 글자와 관련될 수 있으면 차선을 켠다 — 한글 두 자 · 그 밖 넉 자부터, 글자 갈래에 붙은 한글은 한 자도', () => {
+    const notes = new Map([['src/lib/matching/copy.ts', ['상대가 수락하면 채팅방이 열려요.', '상대가 수락하면 대화방이 열려요.']]]);
+    const spec = (line: string) => [['e2e/match.spec.ts', line] as const];
+    const hits = (texts: string[], line: string) => lanesFor(new Map([['app/x.tsx', texts]]), spec(line)).tests;
+    // 검토가 든 재현 — 기호가 낀 정규식이 「상대가 수락하면 채팅방이 열려요.」를 말하는 spec 을 못 찾았다
+    for (const body of ['/채팅방이 열려요\\./', '/수락하면.*열려요/', '/^상대가 수락하면/', '/수락하면\\s+채팅방이/', '/(채팅|대화)방이 열려요/']) {
+      expect(lanesFor(notes, spec(`await expect(page.getByText(${body})).toBeVisible();`)).tests, body).toEqual(['e2e/match.spec.ts']);
+    }
+    // 둘째 검토가 든 재현 — 확실히 푼 정규식이 넉 자 문턱에 걸렸다(Playwright 의 정규식은 부분 일치)
+    for (const body of ['/수락/', '/채팅/', '/^상대/']) {
+      expect(lanesFor(notes, spec(`await page.getByRole('dialog', { name: ${body} }).click();`)).tests, body).toEqual(['e2e/match.spec.ts']);
+    }
+    expect(hits(['인연 요청', '인연 신청'], "page.getByRole('heading', { name: /^인연/ })")).toEqual(['e2e/match.spec.ts']);
+    // 한글 없는 것은 넉 자부터 · `i` 깃발이면 대소문자를 접는다
+    expect(hits(['Send Request'], 'page.getByText(/send/)')).toEqual([]);
+    expect(hits(['Send Request'], 'page.getByText(/send request/)')).toEqual([]);
+    expect(hits(['Send Request'], 'page.getByText(/send request/i)')).toEqual(['e2e/match.spec.ts']);
+    // 글자 갈래(`\d` · `\s`)에 붙은 한글은 한 자라도 견준다 — 붙지 않은 한 자는 안 본다
+    expect(hits(['3개 남았어요', '3개 있어요'], 'expect(text).toMatch(/\\d+개/);')).toEqual(['e2e/match.spec.ts']);
+    expect(hits(['함께 1 명', '함께 한 명'], 'expect(text).toMatch(/1\\s*명/);')).toEqual(['e2e/match.spec.ts']);
+    expect(hits(['10초 뒤', '곧'], 'expect(text).toMatch(/^\\d+초$/);')).toEqual(['e2e/match.spec.ts']);
+    // 글자가 있는데 견줄 만큼 길지 않으면 판단이 안 서 켠다(운영자 2026-10-09)
+    expect(hits(['함께 3명', '함께 셋'], 'expect(text).toMatch(/명.*/);')).toEqual(['e2e/match.spec.ts']);
+    // 글자 조각이 길고 바뀐 글자와 관련 없으면 켜지 않는다
+    expect(lanesFor(notes, spec('page.getByText(/잠깐.*기다려/)')).tests).toEqual([]);
+    // 재검토가 든 재현 — `=>` 뒤 · `+` 뒤 · `case` 뒤의 정규식도 읽는다
+    for (const line of ['const ok = (t: string) => /수락/.test(t);', "const r = '' + /수락/.source;", 'switch (x) { case /수락/.source: break; }']) {
+      expect(hits(['수락하기', '받기'], line), line).toEqual(['e2e/match.spec.ts']);
+    }
+    // 파서가 가른다 — 주석 속 `/…/` 와 나눗셈은 정규식이 아니다
+    expect(lanesFor(notes, spec('// 화면 a/채팅방이/b 를 본다\nconst x = a / 채팅 / b;')).tests).toEqual([]);
+  });
+
+  it('글자 없는 정규식은 쓰임 자리로 가른다 — 화면 자리 · 그 밖 · 글자 모름은 켜고, 문자열 정리만 안 켠다 (운영자 2026-10-09)', () => {
+    const notes = new Map([['src/lib/matching/copy.ts', ['상대가 수락하면 채팅방이 열려요.', '상대가 수락하면 대화방이 열려요.']]]);
+    const on = (line: string) => lanesFor(notes, [['e2e/match.spec.ts', line] as const]).tests.length === 1;
+    // 화면 요소를 찾거나 재는 자리
+    for (const line of [
+      'page.getByText(/^\\s*$/);',
+      "page.getByRole('button', { name: /^\\d+$/ });",
+      'page.getByLabel(/.+/);',
+      'rows.filter({ hasText: /\\d/ });',
+      'rows.filter({ hasNotText: /\\d/ });',
+      'await expect(el).toHaveText([/.+/, /\\d+/]);',
+      'await expect(el).toContainText(/\\d+/);',
+      'await expect(el).toHaveAccessibleName(/.+/);',
+      'await expect(page).toHaveTitle(/.+/);',
+    ]) {
+      expect(regexUsesIn(ts, 'e2e/match.spec.ts', line)!.every((use) => use.place === 'screen'), line).toBe(true);
+      expect(on(line), line).toBe(true);
+    }
+    // 문자열 정리 — 그것만으로 켜지 않는다
+    for (const line of ["const t = s.replace(/\\s+/g, ' ');", "const t = s.replaceAll(/\\d/g, '');", 'const parts = s.split(/,\\s*/);', "const t = s.replace(new RegExp(v, 'g'), '');"]) {
+      expect(regexUsesIn(ts, 'e2e/match.spec.ts', line)!.every((use) => use.place === 'cleanup'), line).toBe(true);
+      expect(on(line), line).toBe(false);
+    }
+    // 그 밖 · 판별 불가 — 켠다
+    for (const line of ['const ok = /^\\d+$/.test(x);', 'const m = s.match(/\\d+/);', 'const re = /^\\d+$/;', 'const re = new RegExp(name);', "check('x', /\\s+/.exec(s));"]) {
+      expect(on(line), line).toBe(true);
+    }
+    // 글자 모르는 RegExp 는 정리 자리만 빼고 켠다 · `replace` 의 둘째 인자 자리는 정리가 아니다
+    expect(regexTurnsOn({ body: null, flags: '', place: 'cleanup' }, ['x'])).toBe(false);
+    expect(regexTurnsOn({ body: null, flags: '', place: 'other' }, ['x'])).toBe(true);
+    expect(on("const t = s.replace('a', String(/\\d/));")).toBe(true);
+    // 파싱이 실패한 시험은 판별 불가라 켠다 · 정규식을 안 읽는 확장자는 글자만 견준다
+    expect(on('const broken = (;')).toBe(true);
+    expect(lanesFor(notes, [['e2e/fixture.txt', '/^\\d+$/'] as const]).tests).toEqual([]);
+  });
+
+  it('실측 — 저장소의 시험 파일을 파서로 읽어 정규식 리터럴을 다 잡고, 문구 한 줄은 검색이 전부를 불러도 지금 규칙(core)보다 넓어지지 않는다', () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? walk(`${dir}/${entry.name}`) : /\.(?:ts|mts|mjs|js)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
+      );
+    const files = [...walk('e2e'), ...walk('scripts').filter((file) => /^scripts\/check-[^/]+\.mjs$/.test(file))];
+    let literals = 0;
+    let walked = 0;
+    for (const file of files) {
+      const source = readFileSync(resolve(ROOT, file), 'utf8');
+      const uses = regexUsesIn(ts, file, source);
+      expect(uses, `${file} 파싱`).not.toBeNull();
+      const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+      const count = (node: ts.Node): number => (node.kind === ts.SyntaxKind.RegularExpressionLiteral ? 1 : 0) + node.getChildren(tree).reduce((sum, child) => sum + count(child), 0);
+      walked += count(tree);
+      literals += uses!.filter((use) => use.body !== null).length;
+    }
+    // 2026-10-09 검토 에이전트가 센 리터럴 315 개 — 그 뒤 시험이 늘면 늘 뿐 줄지 않게(줄면 셈이 빠진 것인지 본다)
+    expect(walked).toBeGreaterThanOrEqual(315);
+    expect(literals).toBeGreaterThanOrEqual(walked);
+    // 검색만 보면 G-86 한 줄이 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` · `e2e/second-factor.ts`)의 `.exec` ·
+    // `.test` 에 선다. 그래도 문구 판정은 좁히기만 하므로 계획은 지금 규칙(core)보다 넓어지지 않는다
+    const note = 'src/lib/matching/copy.ts';
+    const noteBefore = readFileSync(resolve(ROOT, note), 'utf8');
+    const noteTexts = copyOnlyChanged(ts, note, noteBefore, noteBefore.replace('채팅방이 열려요', '대화방이 열려요'))!;
+    const sources = files.map((file) => [file, readFileSync(resolve(ROOT, file), 'utf8')] as const);
+    expect(lanesFor(new Map([[note, noteTexts]]), sources).lanes).toBeNull();
+    // 다른 파일은 디스크에서 읽는다 — 아무 경로에나 같은 소스를 주면 관문의 import 를 끝없이 따라간다
+    const disk = (one: string) => {
+      try {
+        return readFileSync(resolve(ROOT, one), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const notePlan = planFor({
+      files: [note],
+      stage: '운영 베타',
+      ts,
+      sourceOf: (one) => (one === note ? noteBefore.replace('채팅방이 열려요', '대화방이 열려요') : disk(one)),
+      baseSourceOf: (one) => (one === note ? noteBefore : disk(one)),
+    });
+    expect(notePlan.lanes).toEqual(CORE_ONLY);
+    // 입구가 아닌 컴포넌트의 JSX 글자 한 줄 → core(#572 전과 같다)
+    const screen = 'app/me/matching/matching-experience.tsx';
+    const screenBefore = readFileSync(resolve(ROOT, screen), 'utf8');
+    const screenAfter = screenBefore.replace('>오늘의 인연<', '>오늘의 사람<');
+    expect(screenAfter).not.toBe(screenBefore);
+    const screenPlan = planFor({
+      files: [screen],
+      stage: '운영 베타',
+      ts,
+      sourceOf: (one) => (one === screen ? screenAfter : disk(one)),
+      baseSourceOf: (one) => (one === screen ? screenBefore : disk(one)),
+    });
+    expect(screenPlan.tier).toBe('core');
+    expect(screenPlan.lanes).toEqual(CORE_ONLY);
+  });
+
+  it('새 글자를 말하는 spec 도 차선을 켠다 — 「없어야」 하는 글자 · getByRole 의 이름과 겹칠 수 있다', () => {
+    const screen = 'export const S = () => <p>연결 중이에요</p>;\n';
+    const texts = copyOnlyChanged(ts, 'app/me/s.tsx', screen, screen.replace('연결 중이에요', '연결 준비 중'));
+    expect(texts).toEqual(['연결 중이에요', '연결 준비 중']);
+    const absent = [['e2e/match.spec.ts', 'await expect(page.getByText(/예시|연결 준비 중/)).toHaveCount(0);'] as const];
+    expect(lanesFor(new Map([['app/me/s.tsx', texts!]]), absent).tests).toEqual(['e2e/match.spec.ts']);
+    // 옛 글자만 찾으면 안 걸렸다
+    expect(lanesFor(new Map([['app/me/s.tsx', ['연결 중이에요']]]), absent).tests).toEqual([]);
   });
 
   it('옛 글자를 spec 이 말하면 그 spec 의 차선이 선다 — 통째로든 리터럴 · 정규식 조각으로든, spec 아닌 e2e 면 전부', () => {
     const olds = new Map([['app/me/matching/request-card.tsx', ['요청을 보내면 상대의 인연 탭에 하나가 뜹니다.']]]);
     const spec = (body: string) => [['e2e/match.spec.ts', body] as const];
-    expect(copyLanesOf(olds, spec("await expect(page.getByText('요청을 보내면 상대의 인연 탭에 하나가 뜹니다.')).toBeVisible();"))).toEqual({
+    expect(lanesFor(olds, spec("await expect(page.getByText('요청을 보내면 상대의 인연 탭에 하나가 뜹니다.')).toBeVisible();"))).toEqual({
       lanes: lanesOfTest('e2e/match.spec.ts'),
       tests: ['e2e/match.spec.ts'],
     });
     expect(lanesOfTest('e2e/match.spec.ts')).toEqual(['match:desktop', 'match:mobile']);
-    expect(copyLanesOf(olds, spec('await page.getByText(/인연 탭에/).click();')).tests).toEqual(['e2e/match.spec.ts']);
-    expect(copyLanesOf(olds, spec("await page.getByText('하나가 뜹니다').click();")).tests).toEqual(['e2e/match.spec.ts']);
-    expect(copyLanesOf(olds, spec("await page.getByRole('button', { name: '보내기' }).click();"))).toEqual({ lanes: [], tests: [] });
-    expect(copyLanesOf(olds, [['e2e/session.ts', "const x = '인연 탭에';"]]).lanes).toBeNull();
-    expect(copyLanesOf(olds, [['scripts/check-chat.mjs', "check('x', html.includes('인연 탭에'));"]]).lanes).toEqual(['flow']);
+    expect(lanesFor(olds, spec('await page.getByText(/인연 탭에/).click();')).tests).toEqual(['e2e/match.spec.ts']);
+    expect(lanesFor(olds, spec("await page.getByText('하나가 뜹니다').click();")).tests).toEqual(['e2e/match.spec.ts']);
+    expect(lanesFor(olds, spec("await page.getByRole('button', { name: '보내기' }).click();"))).toEqual({ lanes: [], tests: [] });
+    expect(lanesFor(olds, [['e2e/session.ts', "const x = '인연 탭에';"]]).lanes).toBeNull();
+    expect(lanesFor(olds, [['scripts/check-chat.mjs', "check('x', html.includes('인연 탭에'));"]]).lanes).toEqual(['flow']);
   });
 
-  it('PR 계획 — 옛 글자를 말하는 spec 이 저장소에 있으면 그 차선이 선다(match.spec 의 「수락해서 인연 궁합이 열렸어요.」)', () => {
+  it('좁히기는 부분집합일 때만 — 같으면 같고, 비교할 수 없으면(다른 차선이 섞이면) 지금 규칙, 차선을 바꿔치지 않는다', () => {
+    const file = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    const existing = planFor({ files: [file], stage: '운영 베타' });
+    const withMention = (spec: string) => planOf(file, before, after, [], '운영 베타', [[spec, "page.getByText('저장한 사람');"]]);
+    // 부분집합(core + match ⊂ 지금 규칙) → 채택
+    expect(withMention('e2e/match.spec.ts').authedLanes).toEqual(['match:desktop', 'match:mobile']);
+    // 같다(signed-in 이 지금 규칙의 차선 · 그 밖은 core 하나 더) → 부분집합이라 채택, 넓어지지 않는다
+    const same = withMention('e2e/signed-in.spec.ts');
+    expect(same.authedLanes.every((lane) => existing.authedLanes.includes(lane))).toBe(true);
+    // 비교할 수 없다 — chat 은 지금 규칙에 없다. 차선 수는 더 적어도(core + chat 둘 < 지금 일곱) 지금 규칙 그대로다
+    const swapped = withMention('e2e/chat.spec.ts');
+    expect(swapped.lanes).toEqual(existing.lanes);
+    expect(swapped.authedLanes).toEqual(existing.authedLanes);
+    expect(swapped.authedLanes).not.toContain('chat:desktop');
+  });
+
+  it('여러 파일이 섞인 PR — 파일마다 정한 계획의 합이라 동작이 바뀐 파일의 차선은 문구 파일 때문에 빠지지 않는다', () => {
+    const page = 'app/me/people/page.tsx';
+    const before = readFileSync(resolve(ROOT, page), 'utf8');
+    const after = before.replace('>저장한 사람<', '>저장한 이<');
+    const mixed = (others: string[]) =>
+      planFor({
+        files: [page, ...others],
+        stage: '운영 베타',
+        ts,
+        mentions: [],
+        sourceOf: (one) => (one === page ? after : null),
+        baseSourceOf: (one) => (one === page ? before : null),
+      });
+    // 문구만 바뀐 page + 동작이 바뀐 공용 위험 파일 → 전부
+    expect(mixed(['proxy.ts']).tier).toBe('full');
+    // 문구만 바뀐 page + `supabase/**` → 전부
+    expect(mixed(['supabase/migrations/20261010000000_x.sql']).tier).toBe('full');
+    // 문구만 바뀐 page + 동작이 바뀐 다른 page → 그 page 의 주소 차선이 남는다
+    const other = 'app/me/matching/page.tsx';
+    const alone = planFor({ files: [other], stage: '운영 베타' });
+    const both = mixed([other]);
+    expect(alone.authedLanes.length).toBeGreaterThan(0);
+    for (const lane of alone.authedLanes) expect(both.authedLanes, lane).toContain(lane);
+    expect(both.lanes.flow).toBe(alone.lanes.flow);
+    expect(both.lanes.anon).toBe(alone.lanes.anon);
+  });
+
+  it('PR 계획 — 입구가 아닌 컴포넌트는 옛 글자를 말하는 spec 이 있어도 core 다(저장소의 match.spec 이 「수락해서 인연 궁합이 열렸어요.」를 말한다)', () => {
     const screen = 'export const S = () => <p>수락해서 인연 궁합이 열렸어요.</p>;\n';
-    const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'));
-    expect(plan.tier).toBe('narrow');
-    expect(plan.authedLanes).toEqual(expect.arrayContaining(['match:desktop', 'match:mobile']));
-    expect(plan.reason).toContain('`e2e/match.spec.ts`');
+    const match = 'e2e/match.spec.ts';
+    const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'), [], '운영 베타', [
+      [match, readFileSync(resolve(ROOT, match), 'utf8')],
+    ]);
+    expect(plan.tier).toBe('core');
+    expect(plan.lanes).toEqual(CORE_ONLY);
   });
 
   it('공개 출시에는 문구로 좁히지 않는다 — 화면 하나도 전부다', () => {
@@ -1224,60 +1615,117 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
   });
 });
 
-describe('묶음 배포의 기다림 — 마지막 초록부터 HEAD 까지가 문구 · 문서뿐인가 (ADR 0159)', () => {
+describe('묶음 배포의 기다림 — 마지막 초록부터 HEAD 까지의 커밋마다 문구 · 문서뿐인가 (ADR 0159)', () => {
   const GREEN = 'a'.repeat(40);
   const HEAD = 'b'.repeat(40);
+  const FROM = 'f'.repeat(40);
   const CARD = 'export const C = () => <p>요청을 보냈어요</p>;\n';
-  const range = (
-    files: string[],
-    sources: Record<string, [string | null, string | null]> = {},
-    more: Partial<Parameters<typeof deployRangeOf>[0]> = {},
-  ) =>
-    deployRangeOf({
-      lastGreen: GREEN,
-      head: HEAD,
-      files,
-      ts,
-      sourceOf: (file) => sources[file]?.[1] ?? null,
-      baseSourceOf: (file) => sources[file]?.[0] ?? null,
-      unpassed: [],
-      ...more,
-    });
-  const copyCard: Record<string, [string, string]> = { 'app/me/card.tsx': [CARD, CARD.replace('보냈어요', '보냈습니다')] };
+  type Commit = NonNullable<Parameters<typeof deployRangeOf>[0]['commits']>[number];
+  let serial = 0;
+  /** 커밋 하나 — `sources` 는 파일마다 `[부모 쪽, 이 커밋 쪽]` */
+  const commit = (files: string[] | null, sources: Record<string, [string | null, string | null]> = {}): Commit => ({
+    sha: `${(serial += 1).toString(16).padStart(7, '0')}${'c'.repeat(33)}`,
+    files,
+    sourceOf: (file) => sources[file]?.[1] ?? null,
+    baseSourceOf: (file) => sources[file]?.[0] ?? null,
+  });
+  const range = (commits: Commit[] | null, more: Partial<Parameters<typeof deployRangeOf>[0]> = {}) =>
+    deployRangeOf({ lastGreen: GREEN, head: HEAD, commits, ts, unpassed: [], mainRed: null, ...more });
+  const copyCommit = () => commit(['app/me/card.tsx'], { 'app/me/card.tsx': [CARD, CARD.replace('보냈어요', '보냈습니다')] });
+  const docsCommit = () => commit(['docs/prd.md', 'scripts/ci-plan.test.ts']);
+  const behaviorCommit = () => commit(['src/lib/chat/index.ts'], { 'src/lib/chat/index.ts': ['export const x = 1;\n', 'export const x = 2;\n'] });
+  const revertCommit = () => commit(['src/lib/chat/index.ts'], { 'src/lib/chat/index.ts': ['export const x = 2;\n', 'export const x = 1;\n'] });
 
-  it('문구 · 문서뿐인 범위는 기다리지 않는다 — 문서 · 주석뿐이면 docs-only', () => {
-    const copy = range(['docs/product/copy-ledger.md', 'app/me/card.tsx'], copyCard);
+  it('문구 커밋만 · 문서 커밋과 문구 커밋은 copy, 문서 · 주석뿐이면 docs-only', () => {
+    const copy = range([copyCommit(), copyCommit(), copyCommit()]);
     expect(copy.verdict).toBe('copy');
     expect(copy.copy).toEqual(['app/me/card.tsx']);
-    expect(range(['docs/prd.md', 'scripts/ci-plan.test.ts']).verdict).toBe('docs-only');
-    const commented: Record<string, [string, string]> = { 'src/lib/chat/index.ts': ['// 옛\nexport const x = 1;\n', '// 새\nexport const x = 1;\n'] };
-    expect(range(['docs/prd.md', 'src/lib/chat/index.ts'], commented).verdict).toBe('docs-only');
+    expect(range([docsCommit(), copyCommit()]).verdict).toBe('copy');
+    expect(range([docsCommit()]).verdict).toBe('docs-only');
+    const commented = commit(['src/lib/chat/index.ts'], { 'src/lib/chat/index.ts': ['// 옛\nexport const x = 1;\n', '// 새\nexport const x = 1;\n'] });
+    expect(range([docsCommit(), commented]).verdict).toBe('docs-only');
+    // 바꾼 파일이 없는 커밋은 문서로 센다
+    expect(range([commit([])]).verdict).toBe('docs-only');
   });
 
-  it('동작이 바뀐 커밋이 하나라도 섞이면 기다린다 — 그 파일을 이름으로 든다', () => {
-    const mixed = range(['app/me/card.tsx', 'src/lib/chat/index.ts', 'docs/prd.md'], {
-      ...copyCard,
-      'src/lib/chat/index.ts': ['export const x = 1;\n', 'export const x = 2;\n'],
-    });
-    expect(mixed.verdict).toBe('wait');
-    expect(mixed.behavior).toEqual(['src/lib/chat/index.ts']);
-    expect(range(['supabase/migrations/20261009000000_x.sql']).verdict).toBe('wait');
-    expect(range(['app/me/new.tsx'], { 'app/me/new.tsx': [null, CARD] }).verdict).toBe('wait');
+  it('범위를 끝과 끝이 아니라 커밋마다 가른다 — 동작 변경 → 되돌림 → 문구 커밋이면 기다린다', () => {
+    const waited = range([behaviorCommit(), revertCommit(), copyCommit()]);
+    expect(waited.verdict).toBe('wait');
+    expect(waited.behavior).toHaveLength(2);
+    expect(waited.behavior.every((one) => one.endsWith(':src/lib/chat/index.ts'))).toBe(true);
+    expect(range([copyCommit(), behaviorCommit()]).verdict).toBe('wait');
+    expect(range([commit(['supabase/migrations/20261009000000_x.sql'])]).verdict).toBe('wait');
+    expect(range([commit(['app/me/new.tsx'], { 'app/me/new.tsx': [null, CARD] })]).verdict).toBe('wait');
+    // 바뀐 파일을 못 읽은 커밋(부모 없음 · 읽기 실패)은 동작이다
+    expect(range([copyCommit(), commit(null)]).verdict).toBe('wait');
+    // 머지 커밋은 바꾼 것이 문구뿐이어도 동작이다 — 첫 부모와의 차이가 다른 가지의 동작 → 되돌림을 뭉친다
+    const merged = range([copyCommit(), { ...copyCommit(), merge: true }]);
+    expect(merged.verdict).toBe('wait');
+    expect(merged.behavior[0]).toContain('머지 커밋');
   });
 
-  it('마지막 초록을 못 찾거나 · diff 를 못 읽거나 · 파서가 없거나 · PR 검사가 초록이 아니거나 못 읽으면 기다린다', () => {
-    expect(range(['docs/prd.md'], {}, { lastGreen: null }).verdict).toBe('wait');
+  it('마지막 초록을 못 찾거나 · 커밋을 못 읽거나 · 파서가 없거나 · PR 검사가 초록이 아니거나 못 읽거나 · main 이 붉으면 기다린다', () => {
+    expect(range([docsCommit()], { lastGreen: null }).verdict).toBe('wait');
     expect(range([]).verdict).toBe('wait');
-    expect(range(['docs/prd.md'], {}, { files: null }).verdict).toBe('wait');
-    expect(range(['app/me/card.tsx'], copyCard, { ts: null }).verdict).toBe('wait');
-    expect(range(['app/me/card.tsx'], copyCard, { unpassed: null }).verdict).toBe('wait');
-    const red = range(['app/me/card.tsx'], copyCard, { unpassed: ['c'.repeat(40)] });
+    expect(range(null).verdict).toBe('wait');
+    expect(range([copyCommit()], { ts: null }).verdict).toBe('wait');
+    expect(range([copyCommit()], { unpassed: null }).verdict).toBe('wait');
+    const red = range([copyCommit()], { unpassed: ['c'.repeat(40)] });
     expect(red.verdict).toBe('wait');
     expect(red.reason).toContain('ccccccc');
+    const mainRed = range([copyCommit()], { mainRed: '`ci-main-red` 이슈가 열려 있다 — main 이 붉다' });
+    expect(mainRed.verdict).toBe('wait');
+    expect(mainRed.reason).toContain('ci-main-red');
+    expect(range([], { lastGreen: HEAD, mainRed: 'x' }).verdict).toBe('wait');
   });
 
-  it('마지막 초록이 HEAD 면 green 이다', () => {
-    expect(range([], {}, { lastGreen: HEAD }).verdict).toBe('green');
+  it('마지막 초록이 HEAD 일 때만 green 이다', () => {
+    expect(range([], { lastGreen: HEAD }).verdict).toBe('green');
+  });
+
+  it('--from 은 근거가 되지 못한다 — --from X --head X 도 마지막 초록 없이는 wait, 답은 docs-only 아니면 wait', () => {
+    // 검토가 든 재현 — 예전에는 `--from` 이 마지막 초록 자리에 들어 `green` 이었다
+    expect(range(null, { lastGreen: null, from: HEAD, fromCommits: [] }).verdict).toBe('wait');
+    // 마지막 초록부터 동작이 바뀌었으면 운영과 같아도 wait
+    expect(range([behaviorCommit()], { from: HEAD, fromCommits: [] }).verdict).toBe('wait');
+    // 마지막 초록이 근거를 세우고 운영 뒤로 바뀐 것이 없으면 docs-only — 앱을 안 올린다
+    const same = range([copyCommit()], { from: HEAD, fromCommits: [] });
+    expect(same.verdict).toBe('docs-only');
+    expect(same.reason).toContain('근거');
+    expect(range([], { lastGreen: HEAD, from: HEAD, fromCommits: [] }).verdict).toBe('docs-only');
+    expect(range([copyCommit()], { from: FROM, fromCommits: [docsCommit()] }).verdict).toBe('docs-only');
+  });
+
+  it('--from 이 마지막 초록보다 뒤이고 그 사이에 동작 변경이 있으면 wait — from..head 가 문서뿐이어도', () => {
+    // 초록 → (동작) → from → (문서) → head
+    const between = behaviorCommit();
+    const after = docsCommit();
+    expect(range([between, after], { from: FROM, fromCommits: [after] }).verdict).toBe('wait');
+  });
+
+  it('--from 뒤로 앱이 바뀌었으면 wait — 올릴지 · 기다릴지는 --from 없이 부른 답이 정한다', () => {
+    const copy = copyCommit();
+    const answered = range([copy], { from: FROM, fromCommits: [copy] });
+    expect(answered.verdict).toBe('wait');
+    expect(answered.reason).toContain('`--from` 없이');
+    expect(range([copy]).verdict).toBe('copy');
+    // 운영이 마지막 초록보다 앞이고 그 사이에 동작이 있었어도 앱이 바뀐 것이라 wait
+    expect(range([docsCommit()], { from: FROM, fromCommits: [behaviorCommit(), docsCommit()] }).verdict).toBe('wait');
+    // `--from` 의 범위를 못 읽으면(HEAD 의 조상이 아님) wait
+    expect(range([docsCommit()], { from: FROM, fromCommits: null }).verdict).toBe('wait');
+  });
+
+  it('main 이 붉은가 — 범위의 붉은 verify · 열린 ci-main-red · 못 읽음 · 모르는 모양은 붉다', () => {
+    const shas = ['1'.repeat(40), '2'.repeat(40)];
+    expect(mainRedOf({ runs: [{ headSha: shas[0], conclusion: 'success' }, { headSha: 'z'.repeat(40), conclusion: 'failure' }], openIssues: [], shas })).toBeNull();
+    expect(mainRedOf({ runs: [{ headSha: shas[1], conclusion: 'failure' }], openIssues: [], shas })).toContain('2222222');
+    expect(mainRedOf({ runs: [{ headSha: shas[1], conclusion: 'timed_out' }], openIssues: [], shas })).not.toBeNull();
+    // 끊긴 · 도는 실행은 붉음이 아니다 — 근거는 따로 마지막 전체 초록이 선다
+    expect(mainRedOf({ runs: [{ headSha: shas[1], conclusion: 'cancelled' }, { headSha: shas[0], conclusion: null }], openIssues: [], shas })).toBeNull();
+    expect(mainRedOf({ runs: [], openIssues: [{ number: 9 }], shas })).toContain('ci-main-red');
+    expect(mainRedOf({ runs: null, openIssues: [], shas })).not.toBeNull();
+    expect(mainRedOf({ runs: [], openIssues: undefined, shas })).not.toBeNull();
+    expect(mainRedOf({ runs: [{ sha: shas[0] }], openIssues: [], shas })).not.toBeNull();
   });
 
   it('배포 범위 명령은 CI · 개발 도구다 — 공용 위험(시험 도구)으로 안 걸린다', () => {

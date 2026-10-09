@@ -22,7 +22,7 @@
 
 ## 하지 않는 것 · 묻는 것
 
-- 결정 점검표 다섯 중 하나라도 바뀌면 머지하지 않고 보고에 올린다 — 앞의 넷은 ADR 을 같은 PR 에, 문구는 운영자 승인([결정 점검표](../agents/delegation/decisions.md))
+- 결정 점검표 여섯 중 하나라도 바뀌면 머지하지 않고 보고에 올린다 — 문구 말고는 ADR 을 같은 PR 에, 문구는 운영자 승인([결정 점검표](../agents/delegation/decisions.md))
 - 실호출은 안 한다 — 명령과 볼 값을 「사람이 할 걸음」에([권한 등급](../agents/delegation/permissions.md))
 - PRD 절 번호를 코드 주석에 적지 않는다 — changelog 의 날짜나 `G-nn` 을 든다([일하는 법](../agents/delegation/working.md))
 - 운영 개인정보를 읽는 SQL 을 보내지 않는다([권한 등급](../agents/delegation/permissions.md) · ADR 0105)
