@@ -66,7 +66,8 @@ export function RelationChoice({
                 {/*
                   칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
                   숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는 손에는 누를 것이
-                  없는 칸이 된다(`birth-form.tsx` 와 같은 규율).
+                  없는 칸이 된다(`birth-form.tsx` 와 같은 규율). 위아래로 1px 씩 넘친다 — 꼭 44px 이면 칸의 위치가 반 픽셀에
+                  걸릴 때 눌리는 높이가 43.5 로 재였다(2026-10-09 #549, `e2e/target.ts`). 보이는 모양과 줄 높이는 그대로다.
                 */}
                 <input
                   type="radio"
@@ -74,7 +75,7 @@ export function RelationChoice({
                   name={`${idPrefix}-relation`}
                   checked={picked}
                   onChange={() => onChange(choice)}
-                  className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
+                  className="peer absolute inset-x-0 -inset-y-px cursor-pointer appearance-none opacity-0"
                 />
                 <span
                   className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
