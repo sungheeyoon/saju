@@ -675,7 +675,8 @@ set local role authenticated;
 
 /**
  * 인연 궁합의 알림은 **시도를 연 사람의 상대에게만** 선다. 내가 주인인 풀이의 완성 소식은 연 사람에게 서므로
- * (`20261124090000`, ADR 0157) 여기서는 Match 를 가리키는 줄만 센다 — `85_reading_ready_for_owner` 가 그쪽을 잰다.
+ * (`20261124090000`, ADR 0157) 여기서는 Match 를 가리키거나 인연 궁합 시도를 가리키는 줄만 센다 — 연 사람에게 `match_id` 없이 `reading_kind = 'match'` 소식이
+ * 서도 잡힌다. 내가 주인인 셋은 `85_reading_ready_for_owner` 가 잰다.
  *
  * 「누른 사람은 그 자리에서 본다」가 이 규칙의 이유였는데, 이제 공유 궁합에서는 아무도
  * 안 누른다 — 동의가 연다(ADR 0038). 시도는 **청한 사람(김)** 것으로 서므로 준비 완료는
@@ -683,13 +684,13 @@ set local role authenticated;
  */
 select pg_temp.acting((select kim from folks));
 select is(
-  (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready' and n.match_id is not null),
+  (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready' and (n.match_id is not null or n.reading_kind = 'match')),
   0,
   '시도를 연 쪽에는 알림이 서지 않는다');
 
 select pg_temp.acting((select lee from folks));
 select is(
-  (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready' and n.match_id is not null),
+  (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready' and (n.match_id is not null or n.reading_kind = 'match')),
   1,
   '상대에게 준비 완료가 한 번 선다');
 
@@ -698,7 +699,7 @@ select is(
  * 나오고, 알림함이 사람을 못 부르는 문장으로 선다.
  */
 select is(
-  (select counterpart_nickname from public.my_notifications() n where n.kind = 'reading_ready' and n.match_id is not null),
+  (select counterpart_nickname from public.my_notifications() n where n.kind = 'reading_ready' and (n.match_id is not null or n.reading_kind = 'match')),
   '김읽',
   '준비 완료 알림이 상대 별명을 든다');
 
