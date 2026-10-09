@@ -73,13 +73,12 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
       )}
 
       {/*
-        폰은 한 줄에 한 장, 넓어지면 둘 · 셋. 관리 메뉴가 고치는 칸이나 메모 칸을 열면 그 한 장이 제 줄을 혼자
-        쓰되(`data-panel`) **폼의 폭(40rem, `birth-form.module.css`)과 타일 · 수정 판의 안쪽 여백만큼만 넓어진다** — 폼이 타일 폭에
-        끼어 세로로 길어지지 않게, 그리고 줄 끝까지 늘어 폼 오른쪽이 비고 네 기둥 · 단추가 화면 너비로 늘지 않게(2026-10-09).
+        폰은 한 줄에 한 장, 넓어지면 둘 — 화면이 사람 기둥(`COLUMN_PEOPLE`)이라 셋째 칸은 안 든다. 관리 메뉴가 고치는 칸이나 메모 칸을
+        열면 그 한 장이 제 줄을 혼자 쓴다(`data-panel`) — 폼이 타일 폭에 끼어 세로로 길어지지 않게.
       */}
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-3 sm:grid-cols-2">
         {people.map((one) => (
-          <li key={one.personId} hidden={!shown.has(one.personId)} className="min-w-0 has-[[data-panel]]:col-span-full has-[[data-panel]]:w-full has-[[data-panel]]:max-w-[46rem]">
+          <li key={one.personId} hidden={!shown.has(one.personId)} className="min-w-0 has-[[data-panel]]:col-span-full">
             {one.card}
           </li>
         ))}

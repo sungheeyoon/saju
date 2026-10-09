@@ -8,7 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { Icon } from '../../ui/icons';
-import { BADGE, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { BADGE, COLUMN_FORM, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
@@ -52,11 +52,15 @@ export default async function MePage() {
         <AccountNotice state={state} />
       ) : (
         <>
-          <Greeting name={nickname} />
           {selfPersonId === null ? (
-            <Onboarding nickname={account?.nickname ?? ''} />
+            /* 등록 전에는 폼 판 한 장이 본문이다 — 인사와 판을 폼의 기둥에 묶어 가운데 세운다. 홈 전폭으로 펴면 폼 오른쪽이 통째로 빈다 */
+            <div className={`mx-auto flex w-full ${COLUMN_FORM} flex-col gap-3 sm:gap-12`}>
+              <Greeting name={nickname} />
+              <Onboarding nickname={account?.nickname ?? ''} />
+            </div>
           ) : (
             <>
+              <Greeting name={nickname} />
               <Unread />
               <Home selfPersonId={selfPersonId} />
             </>
