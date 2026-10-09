@@ -52,6 +52,10 @@ export function runningStage(running: Pick<RunningReading, 'target' | 'progress'
 /** 누르면 그 풀이 화면으로 — 다 되면 결과가, 아직이면 같은 목차가 선다. 홈에서 열었으니 ← 는 홈이다 */
 export const runningHref = (target: ReadingTarget): string => withFromMe(readingHrefOf(target));
 
+/** 사주풀이를 지금 만드는 중인 저장한 사람들 — 홈의 타일 · `/me/people` 카드가 내 사주 카드와 같은 규칙을 따른다 */
+export const makingPeopleOf = (running: readonly Pick<RunningReading, 'target'>[]): ReadonlySet<string> =>
+  new Set(running.flatMap((one) => (one.target.kind === 'person' ? [one.target.personId] : [])));
+
 /** 내 사주풀이를 지금 만드는 중인가 — 카드의 단추와 빈 표지가 이 값으로 갈린다 */
 export const makingSelf = (running: readonly Pick<RunningReading, 'target'>[]): boolean =>
   running.some((one) => one.target.kind === 'self');

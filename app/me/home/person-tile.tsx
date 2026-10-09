@@ -13,6 +13,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
+import { SELF_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
@@ -31,6 +32,7 @@ export function PersonTile({
   person,
   reading,
   compat,
+  making = false,
   fromMe = false,
 }: {
   person: HomePerson;
@@ -38,6 +40,8 @@ export function PersonTile({
   reading: ReadingEntry | null;
   /** 나와 궁합 — 이미 본 것이면 점수를 달고 그 글로 간다 */
   compat: { href: string; score: number | null };
+  /** 그 사람의 사주풀이를 지금 만드는 중인가 — 글이 없을 때 「풀이 받기」 대신 이 일을 말한다(ADR 0157, 내 사주 카드와 같은 규칙) */
+  making?: boolean;
   /** 홈 탭에 선 타일 — 결과로 가는 링크가 `from=me` 를 든다(`from-me.ts`) */
   fromMe?: boolean;
 }) {
@@ -102,7 +106,7 @@ export function PersonTile({
           href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
           className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} whitespace-nowrap`}
         >
-          {reading === null ? '풀이 받기' : '풀이 보기'}
+          {reading !== null ? '풀이 보기' : making ? SELF_READING_MAKING : '풀이 받기'}
         </Link>
         {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
         <CompatFillLink

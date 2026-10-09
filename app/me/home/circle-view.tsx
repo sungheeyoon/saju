@@ -38,11 +38,12 @@ export function circlePeopleOf(circle: Circle, inputs: ReadonlyMap<string, Store
   });
 }
 
-function tileOfWith(readings: readonly ReadingEntry[], selfPersonId: string) {
+function tileOfWith(readings: readonly ReadingEntry[], selfPersonId: string, making: ReadonlySet<string>) {
   return (person: HomePerson) => {
     const pair = pairWithSelf(readings, selfPersonId, person.personId);
     return {
       reading: readingOf(readings, person.personId),
+      making: making.has(person.personId),
       compat: { href: compatHrefOf(pair, selfPersonId, person.personId), score: pair?.score ?? null },
     };
   };
@@ -57,13 +58,16 @@ export function MyPeople({
   readings,
   circle,
   people,
+  making = new Set(),
 }: {
   selfPersonId: string;
   readings: readonly ReadingEntry[];
   circle: Circle;
   people: readonly HomePerson[];
+  /** 사주풀이를 지금 만드는 중인 사람들(ADR 0157) */
+  making?: ReadonlySet<string>;
 }) {
-  return <SavedPeople people={people} slots={circle.slots} tileOf={tileOfWith(readings, selfPersonId)} fromMe />;
+  return <SavedPeople people={people} slots={circle.slots} tileOf={tileOfWith(readings, selfPersonId, making)} fromMe />;
 }
 
 /**

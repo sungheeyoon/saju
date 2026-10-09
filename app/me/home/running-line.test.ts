@@ -5,6 +5,7 @@ import { selfSectionTitlesOf } from '@/src/lib/reading';
 import { SELF_READING_MAKING } from './making';
 import {
   READING_PREPARING,
+  makingPeopleOf,
   makingSelf,
   runningHref,
   runningName,
@@ -91,6 +92,15 @@ describe('내 사주풀이를 만드는 중이면 「받기」를 권하지 않�
     expect(makingSelf([one({ kind: 'self' })])).toBe(true);
     expect(makingSelf([one({ kind: 'person', personId: 'p' })])).toBe(false);
     expect(makingSelf([])).toBe(false);
+  });
+
+  it('저장한 사람은 사주풀이를 만드는 중인 사람만 든다 — 궁합 · 내 사주는 안 든다', () => {
+    const making = makingPeopleOf([
+      one({ kind: 'person', personId: 'p1' }),
+      one({ kind: 'private', personA: 'p2', personB: 'p3' }),
+      one({ kind: 'self' }),
+    ]);
+    expect([...making]).toEqual(['p1']);
   });
 
   it('카드와 빈 표지가 드는 말은 진행 중의 꼴이다', () => {

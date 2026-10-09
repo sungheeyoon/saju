@@ -15,6 +15,9 @@ import { storedInputsOf } from '../person-input';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { readingHref } from '../reading/line';
+import { runningReadings } from '../home/running';
+import { makingPeopleOf } from '../home/running-line';
+import { SELF_READING_MAKING } from '../home/making';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
@@ -63,7 +66,7 @@ export default async function PeoplePage() {
   if (!user) return redirectToSignIn();
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { state }, { data: edges, error: edgesError }, made] = await Promise.all([
+  const [slotRow, { state }, { data: edges, error: edgesError }, made, runningRead] = await Promise.all([
     // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
@@ -86,11 +89,14 @@ export default async function PeoplePage() {
       차례도 좁힘도 거기서 정해진 그대로 쓰고 여기서 다시 판정하지 않는다.
     */
     myReadings(),
+    /* 만드는 중인 풀이 — 부속 정보다. 못 읽으면 단추는 「받기」로 선다(ADR 0157 · 0078) */
+    runningReadings(),
   ]);
   /* 목록이 이 화면의 본체다 — 못 읽은 것을 빈 목록으로 세우면 내 사람들이 지워진 것으로 읽힌다(ADR 0078) */
   if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
 
   const selfPersonId = selfPersonIdOf(state);
+  const making = makingPeopleOf(runningRead.ok ? runningRead.value : []);
 
   const readings = new Map(
     made
@@ -131,9 +137,10 @@ export default async function PeoplePage() {
         **폰에서는 「궁합 보러 가기」가 제목 옆에 선다**(운영자 2026-10-01, G-21). 설명 아래 제 줄에 서던 때는 머리가 단추
         한 줄(44px)과 틈(16px)만큼 높았고, 한글이 넓은 서체에서는 「N/10명」까지 둘째 줄로 넘어가 열 명을 다 채운 날 첫 카드가
         아래 탭에 가려졌다. 요소의 차례는 그대로다 — 폰에서만 묶음을 풀고(`max-sm:contents`) 설명을 줄 끝으로 보낸다. 제목과
-        단추가 한 줄에 못 서는 좁은 폭에서는 단추가 다음 줄로 내려간다. `sm` 부터는 전과 같다.
+        단추가 한 줄에 못 서는 좁은 폭에서는 단추가 다음 줄로 내려간다. `sm` 부터는 설명이 제목 아래로 돌아가고 단추는 **제목 줄의 위끝에 맞춘다** — 설명 줄 바닥에
+        맞추던 때는 제목에서 떠 보였다(2026-10-09).
       */}
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 sm:flex-nowrap sm:items-end sm:gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 sm:flex-nowrap sm:items-start sm:gap-4">
         <div className="flex flex-col gap-1.5 max-sm:contents">
           <h1 className={TYPE_TITLE}>저장한 사람</h1>
           <p className="text-[15px] leading-6 text-secondary max-sm:order-last max-sm:basis-full">
@@ -156,7 +163,7 @@ export default async function PeoplePage() {
       ) : (
         <>
           <AddPerson slots={slots} />
-          <PeopleList people={people} readings={readings} pairs={pairs} selfPersonId={selfPersonId} />
+          <PeopleList people={people} readings={readings} pairs={pairs} making={making} selfPersonId={selfPersonId} />
         </>
       )}
     </main>
@@ -167,12 +174,15 @@ function PeopleList({
   people,
   readings,
   pairs,
+  making,
   selfPersonId,
 }: {
   people: Person[];
   /** 사람 하나에 지금 글 하나 — 대상별로 묶어 두고 카드마다 한 번 꺼낸다 */
   readings: ReadonlyMap<string, ReadingEntry>;
   pairs: ReadonlyMap<string, ReadingEntry>;
+  /** 사주풀이를 지금 만드는 중인 사람들(ADR 0157) */
+  making: ReadonlySet<string>;
   selfPersonId: string | null;
 }) {
   if (people.length === 0) {
@@ -194,6 +204,7 @@ function PeopleList({
             person={person}
             reading={readings.get(person.personId) ?? null}
             pair={pairs.get(person.personId) ?? null}
+            making={making.has(person.personId)}
             selfPersonId={selfPersonId}
           />
         ),
@@ -262,10 +273,13 @@ function PersonCard({
   person,
   reading,
   pair,
+  making,
   selfPersonId,
 }: {
   person: Person;
   reading: ReadingEntry | null;
+  /** 그 사람의 사주풀이를 지금 만드는 중인가 — 글이 없으면 「사주풀이 받기」 대신 이 일을 말한다(ADR 0157) */
+  making: boolean;
   /** 나 × 이 사람의 궁합풀이 — 있으면 궁합 단추가 점수를 달고 그 글로 간다 */
   pair: ReadingEntry | null;
   selfPersonId: string | null;
@@ -329,7 +343,7 @@ function PersonCard({
               className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} min-w-0`}
             >
               <Icon name="reading" className="size-4 shrink-0" />
-              <span className="truncate">{reading === null ? '사주풀이 받기' : '사주풀이 보기'}</span>
+              <span className="truncate">{reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}</span>
             </Link>
             <Link
               href={pair !== null ? readingHref(pair) : compatHrefFor(selfPersonId, person.personId)}

@@ -89,9 +89,11 @@ export function ProfileForm({
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
       {/*
         사진이 맨 위다 — 프로필을 여는 사람이 먼저 보는 것이 얼굴이고, 고르면 바로 올라간다.
+        **넓은 화면에서는 사진이 왼쪽, 닉네임 · 소개 · 저장이 오른쪽에 나란히 선다** — 사진 여섯 칸이 위에 쌓이면 화면 폭을
+        다 먹어 820px 높이가 되고 저장이 첫 화면 밖으로 밀렸다(2026-10-09).
         칸은 서버가 새로 준 사진을 그대로 따른다(`useOptimistic`) — 새로 세우지 않아 초점을 잃지 않는다
       */}
       <PhotoGrid
