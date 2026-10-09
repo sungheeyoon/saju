@@ -13,6 +13,7 @@ import { withCameFrom } from '../../../came-from';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
+import type { ShelfLists } from './opening';
 import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
 
 /**
@@ -126,7 +127,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       </Shelf>
     );
   };
-  const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" />;
+  const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" wide />;
   const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && (
     <MakingShelf matches={making} hrefOf={(matchId) => withCameFrom(`/me/match/${matchId}`, 'shelf', shelfKind)} />
   );
@@ -145,13 +146,23 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     match: (
       <>
         {makingShelf('match')}
-        {pairShelf('match', <BlankBook href="/me/matching" element="水" label="오늘의 인연" />)}
+        {pairShelf('match', <BlankBook href="/me/matching" element="水" label="오늘의 인연" wide />)}
       </>
     ),
   };
 
   /* 한 권도 없으면 목록 주소에는 두 칸 대신 안내 한 장이 선다 — 글 주소(`/me/readings/self`)는 그래도 두 칸이다 */
   const nothing = books.length === 0 && making.length === 0 ? <Nothing hasSelf={selfPersonId !== null} /> : null;
+
+  /* 칩마다 책장에 선 차례 그대로의 주소 — 넓은 화면에서 목록만 열면 이 가운데 한 권을 편다(`opening.ts`) */
+  const makingHrefs = making.map((match) => `/me/match/${match.matchId}`);
+  const hrefsOf = (entries: readonly { book: { href: string } }[]) => entries.map(({ book }) => book.href);
+  const lists: ShelfLists = {
+    all: [...makingHrefs, ...singles.map((book) => book.href), ...hrefsOf(pairsOf(null))],
+    saju: singles.map((book) => book.href),
+    compat: hrefsOf(pairsOf('compat')),
+    match: [...makingHrefs, ...hrefsOf(pairsOf('match'))],
+  };
 
   const nextBooks: NextBook[] = singles.map((book) => ({
     href: book.href,
@@ -163,7 +174,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
 
   return (
     <main className="app-shell flex flex-1 flex-col py-9 sm:py-14">
-      <ReadingsFrame shelves={shelves} nothing={nothing} singles={nextBooks}>
+      <ReadingsFrame shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks}>
         {children}
       </ReadingsFrame>
     </main>

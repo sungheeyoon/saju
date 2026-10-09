@@ -229,10 +229,13 @@ function Scale({
       **양 끝 이름은 눈금에 붙어 있어야 뜻이 있다.** 「많이 됐어요」가 화면 오른쪽 끝에
       혼자 서 있으면 그것이 5번 칸의 이름인지 이 칸 전체의 말인지 알 수 없다. 사이드바가
       없어지며 이 칸이 화면 폭만큼 넓어져 그 둘이 벌어졌다 — 폭을 눈금에 맞춰 잡는다.
+
+      **이제 그 폭은 바깥이 정한다** — 설문 전체가 본문과 같은 열(`READING_COLUMN`, 36rem)에 서므로 눈금은 칸을
+      채운다. 눈금만 `max-w-md` 로 따로 묶여 있을 때는 칸의 오른쪽이 비었다(화면 갤러리 감사 2026-10-09).
     */
     <fieldset className="rounded-[1.25rem] bg-surface-soft p-4">
       <legend className="float-left mb-4 w-full text-[15px] font-semibold">{question.label}</legend>
-      <div className="grid max-w-md grid-cols-5 gap-2 clear-both">
+      <div className="grid grid-cols-5 gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (
           <Chip
             key={score}
@@ -254,7 +257,7 @@ function Scale({
           </Chip>
         ))}
       </div>
-      <div className="mt-1.5 flex max-w-md justify-between text-[12px] text-secondary">
+      <div className="mt-1.5 flex justify-between text-[12px] text-secondary">
         <span>{question.low}</span>
         <span>{question.high}</span>
       </div>

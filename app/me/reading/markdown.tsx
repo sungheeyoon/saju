@@ -22,6 +22,13 @@ import type { ReactNode } from 'react';
  * `--mid` 이고(`panel.tsx` 가 대상의 일간을 입힌다), 판이 없는 자리(공유본)에서는 테 색이다.
  */
 
+/**
+ * **풀이 한 편의 열** — 본문이 36rem 에서 끊기므로 그 위아래에 서는 것(궁합 머리 · 기다리는 동안의 목차 · 설문)도
+ * 같은 폭 · 같은 시작선에 선다. 한 풀이 안에서 왼쪽 시작선이 셋이던 것을(본문 36rem · 설문 40rem · 진행 띠 전폭) 하나로
+ * 모았다(화면 갤러리 감사 2026-10-09). 맨 위 표지(비유 한 줄)만 일부러 판 폭을 다 쓴다 — 에세이 앱의 표지다.
+ */
+export const READING_COLUMN = 'mx-auto w-full max-w-[36rem]';
+
 /** `**굵게**` 와 `` `코드` `` 만 — 나머지는 글자 그대로 */
 function inline(text: string, key: string): ReactNode[] {
   const parts: ReactNode[] = [];
@@ -146,7 +153,7 @@ export function Markdown({ source }: { source: string }) {
   flush();
 
   return (
-    <div className="mx-auto flex w-full max-w-[36rem] flex-col gap-5 text-[17px] leading-[1.85] text-foreground/90 [&_strong]:text-foreground">
+    <div className={`${READING_COLUMN} flex flex-col gap-5 text-[17px] leading-[1.85] text-foreground/90 [&_strong]:text-foreground`}>
       {blocks}
     </div>
   );
