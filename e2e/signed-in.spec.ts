@@ -2228,11 +2228,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
  * 앞선 단계가 먼저 죽는 동안 가려져 있었다. 파일이 재는 것을 파일 이름과 맞춘다.
  */
 /**
- * 칸 하나를 **토글로** 짚는다 — 이름으로도 자리로도 못 짚는다.
+ * 칸 하나를 **토글로** 짚는다 — 자리로는 못 짚는다.
  *
- * 묶음의 이름은 그 칸이 들고 있는 사람의 이름이다(`legend`). 비어 있을 때만
- * 「첫 번째 사람」이고, 첫 칸은 처음부터 자기 사주가 앉아 있어 그 계정의 별명으로
- * 선다 — 고르거나 적을 때마다 또 바뀐다.
+ * 묶음의 이름은 전에 그 칸이 들고 있는 사람의 이름이라 고르거나 적을 때마다 바뀌었다.
+ * 2026-10-10(화면 점검 B10)부터 늘 보이는 머리 표지 「첫 번째 사람」 · 「두 번째 사람」이다.
  *
  * 몇 번째 묶음인지로 세는 것도 안 된다. 한 칸을 「직접 입력」으로 돌리면 그 안에
  * 입력 묶음이 자라서 뒤 칸의 번호가 밀린다. 두 칸에만 있고 모양이 바뀌어도 그대로
@@ -2330,7 +2329,7 @@ async function typeInto(
 
   await fillBirthDate(card, date);
   await fillBirthTime(card, time);
-  // 이름을 채우면 묶음의 이름이 그 이름으로 바뀐다 — 그래서 마지막이다.
+  // 이름은 마지막이다 — 앞의 칸을 채우는 동안 묶음을 다시 찾지 않게(묶음의 이름은 「첫 번째 사람」 그대로다).
   await card.getByLabel('이름', { exact: true }).fill(name);
 }
 
@@ -2414,7 +2413,10 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(params.get('a.date')).toBe('1990-05-15');
     expect(params.get('b.date')).toBe('1992-08-20');
     expect(params.get('a.hour')).toBe('11:20');
-    await expectBirthDate(page.getByRole('group', { name: '민수' }), '1990-05-15');
+    // 칸 묶음의 이름은 머리 표지 「첫 번째 사람」이다(B10) — 적은 사람이 그 칸에 그대로 앉았는지는 이름 칸의 값으로 본다
+    const first = page.getByRole('group', { name: '첫 번째 사람', exact: true });
+    await expect(first.getByLabel('이름', { exact: true })).toHaveValue('민수');
+    await expectBirthDate(first, '1990-05-15');
 
     expect(consoleErrors).toEqual([]);
   });

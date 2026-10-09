@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { Icon } from '../ui/icons';
 import { reducedMotion } from '../ui/motion';
 
 /**
@@ -22,6 +23,11 @@ import { reducedMotion } from '../ui/motion';
  * **넘겨 볼 것이 남았으면 오른쪽 끝이 흐려진다.** 폰에서는 줄이 「운」 언저리에서 잘리는데 넘길 수 있다는 표시가
  * 없었다(2026-10-09 화면 갤러리 감사). 끝까지 넘기면 흐림이 걷힌다. **넓은 화면에서는 띠가 링크만큼의 폭이다** — 전폭
  * 띠에 링크가 왼쪽에 몰려 오른쪽이 빈 띠로 남았다.
+ *
+ * **흐림 끝에 셰브론이 선다**(2026-10-10 화면 점검 B14). 390px 에서 띠는 356px 인데 칸 일곱이 430px 이라 「운」 · 「보정」이
+ * 넘치고, 흐림만으로는 「운」이 통째로 덮여 「관계」 뒤가 빈 끝으로 보였다. 흐림은 단색 띠 없이 옅어지기만 하고, 그 끝에 오른쪽
+ * 셰브론을 세워 넘길 것이 있다고 말한다. **칸을 좁혀 한 줄에 우겨 넣지 않는다** — 그렇게 하면(#579) 칸이 꼭 44px 이 되어
+ * 이웃 칸과 맞붙고, 손가락이 닿는 넓이가 44px 아래로 내려가 과녁 시험(`e2e/saju.spec.ts`)이 붉었다(#581).
  */
 const RESULT_LINKS = [
   ['chart', '여덟 글자'],
@@ -88,10 +94,12 @@ export function ResultNav() {
       </nav>
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-y-px right-px w-14 rounded-r-full bg-[linear-gradient(to_left,var(--surface)_25%,transparent)] transition-opacity duration-200 motion-reduce:transition-none ${
+        className={`pointer-events-none absolute inset-y-px right-px flex w-12 items-center justify-end rounded-r-full bg-[linear-gradient(to_left,var(--surface)_40%,transparent)] pr-2.5 text-secondary transition-opacity duration-200 motion-reduce:transition-none ${
           more ? 'opacity-100' : 'opacity-0'
         }`}
-      />
+      >
+        <Icon name="chevron" className="size-4" />
+      </span>
     </div>
   );
 }

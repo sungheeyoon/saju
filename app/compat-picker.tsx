@@ -16,7 +16,7 @@ import {
 import type { CompatSide } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
-import { SIDE_LABEL, SIDES } from './compat-view';
+import { SIDE_LABEL, SIDE_PERSON, SIDES } from './compat-view';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { PersonCombobox, type Choosable } from './person-combobox';
@@ -136,6 +136,12 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
   const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
+  /**
+   * **비어 있다는 말은 처음엔 도움말이고, 누르려 했거나 그 칸을 떠난 뒤에야 오류다**(2026-10-10 화면 점검 B19). 막 연
+   * 화면이 ⚠ 를 단 「두 번째 사람을 골라 주세요」로 서면 아직 아무것도 안 한 사람을 나무란다.
+   */
+  const [tried, setTried] = useState(false);
+  const [left, setLeft] = useState<Record<CompatSide, boolean>>({ a: false, b: false });
 
   const chosen = SIDES.every((side) => complete(slots[side]));
   const sameTwice =
@@ -187,15 +193,36 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
   const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
+  /**
+   * **비어 있는 칸으로 데려간다**(B10). 단추는 잠긴 모양이어도 누름을 받는다(`aria-disabled`) — 받지 않으면 왜 안 되는지를
+   * 단추 곁의 한 줄에서 찾아야 하고, 그 칸은 폰에서 한 화면 위에 있다. 칸 안에서 아직 빈 입력에 초점을 둔다.
+   */
+  const bringTo = (side: CompatSide) => {
+    const card = root.current?.querySelector<HTMLElement>(`[data-side="${side}"]`);
+    if (card == null) return;
+    card.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'instant' : 'smooth' });
+    const empty = [...card.querySelectorAll<HTMLInputElement>('input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)')]
+      .find((one) => one.value === '');
+    (empty ?? card.querySelector<HTMLElement>('input:not(:disabled), button:not(:disabled)'))?.focus({ preventScroll: true });
+  };
+
   const press = () => {
-    if (!chosen || sameTwice) return;
+    if (!chosen || sameTwice) {
+      setTried(true);
+      const gap = missing(slots);
+      bringTo(gap?.side ?? 'b');
+      return;
+    }
     setFailure(null);
     startOpening(async () => settle(await open({})));
   };
 
-  const reason = !opening && (missing(slots) !== null || sameTwice)
-    ? sameTwice ? '같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.' : missing(slots)
+  const gap = missing(slots);
+  const reason = !opening && (gap !== null || sameTwice)
+    ? sameTwice ? '같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.' : gap?.text ?? null
     : null;
+  /** 오류 모양은 누르려 했거나 빈 칸을 떠난 뒤 — 같은 사람 둘은 처음부터 고친 값이 아니라 틀린 값이라 오류다 */
+  const reasonIsError = sameTwice || tried || (gap !== null && left[gap.side]);
 
   return (
     <div ref={root} className={CARD_FRAME}>
@@ -211,6 +238,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
               /* 다른 칸에서 고른 사람은 여기서 뺀다 — 같은 사람 둘은 애초에 못 고른다 */
               taken={otherSaved(slots, side)}
               onChange={(next) => setSlot(side, next)}
+              onLeave={() => setLeft((now) => (now[side] ? now : { ...now, [side]: true }))}
             />
           </Fragment>
         ))}
@@ -234,7 +262,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
               <button
                 type="button"
                 onClick={press}
-                disabled={!chosen || sameTwice || opening}
+                disabled={opening}
+                aria-disabled={!chosen || sameTwice || undefined}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
                 className={`${BUTTON_PRIMARY} min-w-40 sm:min-w-44`}
               >
@@ -247,8 +276,13 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
         {/* 왜 눌리지 않는지 단추 곁에서 말한다 — 잠긴 단추만 두면 이유를 찾아야 한다 */}
         {question === null && reason !== null && (
-          <p id="compat-locked-reason" className="mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] leading-5 text-secondary">
-            <Icon name="alert" className="size-4 shrink-0" />
+          <p
+            id="compat-locked-reason"
+            className={`mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] leading-5 ${
+              reasonIsError ? 'font-medium text-danger' : 'text-secondary'
+            }`}
+          >
+            {reasonIsError && <Icon name="alert" className="size-4 shrink-0" />}
             {reason}
           </p>
         )}
@@ -288,20 +322,31 @@ function SlotCard({
   people,
   taken,
   onChange,
+  onLeave,
 }: {
   side: CompatSide;
   slot: Slot;
   people: Choosable[];
   taken: string | null;
   onChange: (next: Slot) => void;
+  /** 초점이 이 칸 밖으로 나갔다 — 비어 있는 말을 오류 모양으로 바꾸는 신호 */
+  onLeave: () => void;
 }) {
-  const name = slot.from === 'typed'
-    ? slot.query.name.trim()
-    : people.find((one) => one.personId === slot.personId)?.label;
-
   return (
-    <fieldset className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
-      <legend className="sr-only">{name || `${SIDE_LABEL[side]} 사람`}</legend>
+    <fieldset
+      data-side={side}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onLeave();
+      }}
+      className="flex min-w-0 flex-col gap-3 p-5 sm:p-6"
+    >
+      {/*
+        **두 칸의 머리 표지**(B10) — 둘 다 직접 입력이면 같은 폼 두 벌이 위아래로 서서 어느 쪽을 적는지 칸만 보고는 몰랐다.
+        결과 판이 쓰는 글자와 같은 상수다.
+      */}
+      <legend className="contents">
+        <span className={`block ${TYPE_META}`}>{SIDE_PERSON[side]}</span>
+      </legend>
 
       {slot.from === 'saved' && (
         <div className="min-w-0">
@@ -390,16 +435,16 @@ function useStoredRelation(
 const complete = (slot: Slot): boolean =>
   slot.from === 'saved' ? slot.personId !== '' : missingAnswer(slot.query) === null;
 
-/** 먼저 비어 있는 칸 하나 — 둘을 한꺼번에 늘어놓지 않는다 */
-const missing = (slots: Record<CompatSide, Slot>): string | null => {
+/** 먼저 비어 있는 칸 하나 — 둘을 한꺼번에 늘어놓지 않는다. 어느 칸인지도 준다(그 칸으로 데려가려고) */
+const missing = (slots: Record<CompatSide, Slot>): { side: CompatSide; text: string } | null => {
   for (const side of SIDES) {
     const slot = slots[side];
     if (slot.from === 'saved') {
-      if (slot.personId === '') return `${SIDE_LABEL[side]} 사람을 골라 주세요.`;
+      if (slot.personId === '') return { side, text: `${SIDE_PERSON[side]}을 골라 주세요.` };
       continue;
     }
     const gap = missingAnswer(slot.query);
-    if (gap !== null) return `${SIDE_LABEL[side]} 사람의 ${gap}`;
+    if (gap !== null) return { side, text: `${SIDE_PERSON[side]}의 ${gap}` };
   }
   return null;
 };

@@ -11,18 +11,26 @@
  *
  * 누르면 조금 줄어든다(`active:scale`) — 손가락 아래에서 「눌렸다」를 말하는 유일한 신호라 빼지 않는다.
  * 비활성은 `disabled:` 로 흐려지고 줄지 않는다. 포커스 테는 `globals.css` 가 전역으로 세운다.
+ *
+ * **주 단추의 비활성은 그림자 없는 낮은 대비 면이다**(`PRIMARY_OFF`, ADR 0160). 먹색 채움을 흐리기만 하면
+ * 그림자가 남아 눌릴 것처럼 떠 보였다 — 판마다 저장 단추가 주 · 보조로 갈려 있던 것과 함께, 「지금은 못 누른다」가 모양으로
+ * 한 벌이 되게 한다. 눌러야 이유를 말할 수 있는 단추(궁합 보기)는 `disabled` 대신 `aria-disabled` 를 달고 같은 모양을 입는다.
  */
 
 const PRESS = 'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55';
 
-export const BUTTON_PRIMARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent shadow-lift hover:bg-accent-strong ${PRESS}`;
+/** 주 단추가 못 눌릴 때 — 먹색 대신 가라앉은 면 · 흐린 글자 · 그림자 없음. `aria-disabled` 도 같은 모양이고 줄지 않는다 */
+const PRIMARY_OFF =
+  'active:scale-[0.97] disabled:pointer-events-none disabled:bg-surface-sunken disabled:text-muted disabled:shadow-none aria-disabled:bg-surface-sunken aria-disabled:text-muted aria-disabled:shadow-none aria-disabled:hover:bg-surface-sunken aria-disabled:active:scale-100';
+
+export const BUTTON_PRIMARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent shadow-lift hover:bg-accent-strong ${PRIMARY_OFF}`;
 
 export const BUTTON_SECONDARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 text-[15px] font-semibold text-foreground hover:border-border-strong ${PRESS}`;
 
 export const BUTTON_TERTIARY = `inline-flex min-h-11 items-center gap-1 rounded-lg px-1 text-sm font-semibold text-foreground underline decoration-[color-mix(in_srgb,var(--foreground)_25%,transparent)] decoration-2 underline-offset-[6px] hover:decoration-foreground active:opacity-70 disabled:opacity-55`;
 
 /** 작은 자리의 주 · 보조 — 줄 끝 · 카드 머리처럼 48px 이 무거운 곳. 누를 자리는 44px 그대로다 */
-export const BUTTON_PRIMARY_SMALL = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-on-accent hover:bg-accent-strong ${PRESS}`;
+export const BUTTON_PRIMARY_SMALL = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-on-accent hover:bg-accent-strong ${PRIMARY_OFF}`;
 export const BUTTON_SECONDARY_SMALL = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-border-strong ${PRESS}`;
 
 /** 되돌릴 수 없는 누름(탈퇴 · 차단 · 삭제) — 주 단추의 모양에 위험 색 */
