@@ -13,7 +13,7 @@ import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, TYPE_DISPLAY, TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
@@ -263,7 +263,7 @@ export function MatchingExperience({
     />
   );
 
-  /** 폰의 ⓘ 시트와 넓은 화면의 옆 열이 함께 드는 것 — 판정의 까닭 · 채워 주는 기운의 문장 · 소개 전문 */
+  /** 폰의 ⓘ 시트와 넓은 화면의 옆 열이 함께 드는 것 — 판정의 까닭 · 채워 주는 기운의 문장 */
   const details = profile && (
     <>
       <div className="flex flex-col gap-1">
@@ -273,9 +273,13 @@ export function MatchingExperience({
       <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border">
         <SupplyBody card={profile} explorationNote={explorationNote} />
       </div>
-      <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />
     </>
   );
+  /*
+    소개 전문 — 폰은 ⓘ 시트가, 넓은 화면은 **카드 열** 아래가 든다. 오른쪽 열(지도 + 까닭 + 기운)이 카드보다 길어 왼쪽 열
+    아래가 통째로 비었다(화면 감사 2026-10-09). 그 사람의 말이라 그 사람 카드 밑이 제자리이기도 하다.
+  */
+  const letter = profile && <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />;
 
   return (
     <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-10">
@@ -381,6 +385,7 @@ export function MatchingExperience({
                 busy: !!exit || working,
               }}
             />
+            <div className={`${elementScope(supplyOf(profile))} hidden lg:block`}>{letter}</div>
           </article>
 
           {/*
@@ -420,6 +425,7 @@ export function MatchingExperience({
         <DetailSheet sheet={sheet} nickname={profile.nickname}>
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
             {details}
+            {letter}
             <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
               <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[28rem]" />
             </div>
@@ -437,11 +443,20 @@ export function MatchingExperience({
       <dialog
         ref={confirming}
         aria-labelledby="matching-confirm"
-        onClick={(event) => { if (event.target === event.currentTarget) confirming.current?.close(); }}
-        className="m-auto w-[min(100%-2rem,28rem)] rounded-[2rem] bg-surface p-0 text-foreground shadow-float backdrop:bg-black/40"
+        /*
+          바깥(어두운 면)을 누르면 닫힌다. 창 자체가 여백을 든 공용 판(`DIALOG`)이라 「누른 곳이 창이냐」로는 못 가른다 —
+          창의 테두리 밖인지를 잰다.
+        */
+        onClick={(event) => {
+          const box = event.currentTarget.getBoundingClientRect();
+          const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+          if (event.target === event.currentTarget && outside) confirming.current?.close();
+        }}
+        /* 풀이권 확인 창과 같은 판 · 같은 단추 줄이다(`DIALOG` · `DIALOG_ACTIONS`, 화면 감사 2026-10-09) */
+        className={DIALOG}
       >
         {profile && (
-          <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4 p-6`}>
+          <div className={elementScope(supplyOf(profile))}>
             <div className="flex items-center gap-3">
               <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-[1.5rem] ring-2 ring-[var(--tile)]">
                 <CandidatePhoto card={profile} />
@@ -450,19 +465,19 @@ export function MatchingExperience({
                 <ElementSymbol element={supplyOf(profile)} className="size-6" />
               </span>
             </div>
-            <h2 id="matching-confirm" className="font-rounded text-[1.5rem] leading-[1.35]">
+            <h2 id="matching-confirm" className={`mt-4 ${TYPE_NAME}`}>
               {profile.nickname} 님에게 상세 궁합을 요청할까요?
             </h2>
-            <div className="flex flex-col gap-2 text-[14px] leading-6 text-secondary">
+            <div className="mt-2 flex flex-col gap-2 text-[15px] leading-6 text-secondary">
               <p>{REQUEST_RESERVES_NOTE}</p>
               <p>{MATCH_PILLARS_DISCLOSURE}</p>
             </div>
-            <div className="mt-1 flex flex-col gap-2 sm:flex-row-reverse">
-              <button type="button" disabled={working} onClick={() => { confirming.current?.close(); send(); }} className={`${BUTTON_PRIMARY} sm:flex-1`}>
+            <div className={DIALOG_ACTIONS}>
+              <button type="button" disabled={working} onClick={() => { confirming.current?.close(); send(); }} className={BUTTON_PRIMARY}>
                 <Icon name="heart" className="size-[18px]" />
                 요청 보내기
               </button>
-              <button type="button" disabled={working} onClick={() => confirming.current?.close()} className={`${BUTTON_SECONDARY} sm:flex-1`}>
+              <button type="button" disabled={working} onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
                 취소
               </button>
             </div>
@@ -519,7 +534,7 @@ function Supply({ element, text }: { element: string; text: string }) {
 }
 
 /**
- * 소개 — 편지지 한 장. 길면 세 줄로 접어 두고 펴는 단추를 준다(소개가 카드를 늘어뜨리지 않게). 비었으면 비었다고 말한다.
+ * 소개 — 편지지 한 장. 길면 세 줄로 접어 두고 펴는 단추를 준다(소개가 카드를 늘어뜨리지 않게). 비었으면 비었다고만 말한다(서명 없이).
  * 접혀 있어도 글은 그대로 문서에 있다 — 보조기기는 끝까지 읽는다.
  */
 function Letter({ nickname, intro }: { nickname: string; intro: string | null }) {
@@ -535,16 +550,19 @@ function Letter({ nickname, intro }: { nickname: string; intro: string | null })
       ) : (
         <p className="text-[14px] font-medium text-secondary">자기소개 없음</p>
       )}
-      <div className="flex items-center justify-between gap-3">
-        {long ? (
-          <button type="button" aria-expanded={open} onClick={() => setOpen((was) => !was)} className={BUTTON_TERTIARY}>
-            {open ? '접기' : '더 보기'}
-          </button>
-        ) : (
-          <span />
-        )}
-        <figcaption className="font-rounded text-[0.9375rem] text-cream-ink">— {nickname}</figcaption>
-      </div>
+      {/* 서명은 소개에 붙는다 — 소개가 없으면 「자기소개 없음」 아래에 이름만 남아 아무 말도 서명하지 않았다(화면 감사 2026-10-09) */}
+      {intro !== null && (
+        <div className="flex items-center justify-between gap-3">
+          {long ? (
+            <button type="button" aria-expanded={open} onClick={() => setOpen((was) => !was)} className={BUTTON_TERTIARY}>
+              {open ? '접기' : '더 보기'}
+            </button>
+          ) : (
+            <span />
+          )}
+          <figcaption className="font-rounded text-[0.9375rem] text-cream-ink">— {nickname}</figcaption>
+        </div>
+      )}
     </figure>
   );
 }

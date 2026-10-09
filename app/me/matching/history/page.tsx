@@ -6,9 +6,9 @@ import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
 import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { answerOfThrown, read, type SkippableRead } from '../../../db-error';
-import { BUTTON_TERTIARY } from '../../../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { PAPER, TYPE_DISPLAY, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
 import { MakingShelf, PairCover } from '../../(shelf)/readings/shelf';
 import { readAccount } from '../../account';
 import { AccountNotice } from '../../account-notice';
@@ -84,7 +84,20 @@ export default async function MatchHistoryPage() {
         <h1 className={TYPE_TITLE}>인연 기록</h1>
       </header>
 
-      {empty && <p className="text-[15px] leading-6 text-secondary">아직 인연 기록이 없어요.</p>}
+      {/*
+        **빈 기록은 채팅 탭의 빈 화면과 같은 판이다**(`../../chat/empty.tsx` — 크림 종이 · 큰 말 · 주 단추 하나). 회색 한 줄만
+        서 있어 화면이 깨진 것처럼 보였다(화면 감사 2026-10-09). 단추 글자는 빈 채팅의 것을 그대로 쓴다 — 기록은 인연 탭의
+        덱에서 요청이 오가야 생긴다.
+      */}
+      {empty && (
+        <section className={`${PAPER} flex flex-col items-center gap-6 py-10 text-center sm:py-14`}>
+          <h2 className={TYPE_DISPLAY}>아직 인연 기록이 없어요.</h2>
+          <Link href="/me/matching" className={BUTTON_PRIMARY}>
+            <Icon name="people" className="size-[18px]" />
+            오늘의 인연 만나기
+          </Link>
+        </section>
+      )}
 
       {(!readings.ok || matchCount > 0) && (
         <section aria-labelledby="history-matches" className="flex flex-col gap-4">
