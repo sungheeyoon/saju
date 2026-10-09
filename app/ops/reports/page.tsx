@@ -6,7 +6,7 @@ import { REPORT_REASONS } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
+import { filterSummary, filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
 import {
   EVIDENCE_LABEL,
   NO_NICKNAME,
@@ -17,7 +17,9 @@ import {
   reviewOutcomeLabel,
   reviewStateLabel,
 } from './labels';
-import { DENIED, operatorReports, type Account, type ReportRow } from './read';
+import { FilterPanel } from './filter-panel';
+import { openByReported } from './same-account';
+import { DENIED, operatorReports, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
 import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
 
@@ -52,6 +54,7 @@ export default async function OperatorReportsPage({
   const listed = await operatorReports(filters);
   if (listed === DENIED) notFound();
   if (listed === SECOND_FACTOR_NEEDED) redirect(secondFactorHref(hrefOf(filters, { page: filters.page })));
+  const openOnPage = listed.ok ? openByReported(listed.value.rows) : new Map<string, number>();
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
@@ -63,7 +66,9 @@ export default async function OperatorReportsPage({
         </p>
       </header>
 
-      <Filters filters={filters} />
+      <FilterPanel initiallyOpen={isFiltered(filters)} summary={filterSummary(filters)}>
+        <Filters filters={filters} />
+      </FilterPanel>
 
       {!listed.ok ? (
         <p role="alert" className={`${CARD} text-sm text-danger`}>
@@ -77,7 +82,7 @@ export default async function OperatorReportsPage({
         <>
           <ul aria-label="신고 목록" className="flex flex-col gap-3">
             {listed.value.rows.map((row) => (
-              <Row key={row.reportId} row={row} />
+              <Row key={row.reportId} row={row} openOnPage={openOnPage.get(row.reported.userId) ?? 0} />
             ))}
           </ul>
           <Pages filters={filters} pages={listed.value.pages} />
@@ -197,17 +202,38 @@ function Choices({
   );
 }
 
-function Row({ row }: { row: ReportRow }) {
+/**
+ * 신고 한 건 — **신고받은 계정이 앞에 무겁게 선다.** 운영자가 목록에서 먼저 가리는 것은 「누가 신고받았나」이고, 신고한 계정은
+ * 한 줄로 내려간다.
+ *
+ * 「이 쪽에서 처리 필요 N건」은 **지금 쪽의 줄만 센다** — 목록 문(`operator_reports`)은 계정마다의 전체 건수를 안 내준다.
+ * 둘 이상일 때만 선다(하나는 이 줄 자신이다).
+ */
+function Row({ row, openOnPage }: { row: ReportRow; openOnPage: number }) {
   return (
     <li className={`${CARD} flex flex-col gap-3`}>
+      <div className="min-w-0">
+        <p className="text-xs text-muted">신고받은 계정</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-xl font-bold tracking-[-0.02em]">{row.reported.nickname ?? NO_NICKNAME}</span>
+          {openOnPage > 1 && (
+            <span className="rounded-full bg-accent-wash px-2.5 py-1 text-xs font-semibold text-foreground">
+              이 쪽에서 처리 필요 {openOnPage}건
+            </span>
+          )}
+        </p>
+        <p className="break-all font-mono text-xs text-muted">{row.reported.userId}</p>
+      </div>
+
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-base font-bold">{reasonLabel(row.reason)}</span>
+        <span className="text-base font-semibold">{reasonLabel(row.reason)}</span>
         <span className="text-xs tabular-nums text-muted">{evidenceTime(row.createdAt)}</span>
       </div>
 
-      <dl className="grid gap-2 text-sm sm:grid-cols-2">
-        <Who title="신고한 계정" who={row.reporter} />
-        <Who title="신고받은 계정" who={row.reported} />
+      <dl className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs text-secondary">
+        <dt className="text-muted">신고한 계정</dt>
+        <dd className="font-semibold">{row.reporter.nickname ?? NO_NICKNAME}</dd>
+        <dd className="break-all font-mono text-muted">{row.reporter.userId}</dd>
       </dl>
 
       <p className="flex flex-wrap items-center gap-2 text-xs">
@@ -234,16 +260,6 @@ function Row({ row }: { row: ReportRow }) {
         신고 내용 보기
       </Link>
     </li>
-  );
-}
-
-function Who({ title, who }: { title: string; who: Account }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted">{title}</dt>
-      <dd className="font-semibold">{who.nickname ?? NO_NICKNAME}</dd>
-      <dd className="break-all font-mono text-xs text-muted">{who.userId}</dd>
-    </div>
   );
 }
 
