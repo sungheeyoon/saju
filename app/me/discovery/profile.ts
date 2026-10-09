@@ -8,8 +8,8 @@ import type { PreferGender } from '@/src/lib/discovery';
 
 export const PREFER_GENDER_KO: Record<PreferGender, string> = {
   any: '상관없음',
-  female: '여성',
-  male: '남성',
+  female: '여자',
+  male: '남자',
 };
 
 /**

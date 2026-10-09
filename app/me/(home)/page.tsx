@@ -86,7 +86,7 @@ function Greeting({ name }: { name: string }) {
   return (
     <header className="sr-only flex flex-col gap-1 sm:not-sr-only">
       <p className={TYPE_META}>{today}</p>
-      <h1 className={TYPE_DISPLAY}>{name === '' ? '반가워요' : `${name}님, 오늘도 반가워요`}</h1>
+      <h1 className={TYPE_DISPLAY}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
     </header>
   );
 }
