@@ -228,6 +228,8 @@ npm run db:remote -- --purpose "로그인 전 사주 문단 날짜별 수" \
   `signup_started` 다. `signup_completed` 는 **가입을 마치고 그 세션을 들고 돌아온 것**이다 — 귀속 결과가 `claimed` · `discarded` ·
   `expired` · `not_ready` 어느 것이든 센다(`session_claimed` 는 그중 붙은 것만). `reading_succeeded` 는 회수 경로가 옛
   `count_taste_step` 으로 센다. **#443 을 배포한 날 전의 줄은 누름 수였다** — 그 앞뒤를 견주지 않는다
+  **`more_clicked` 는 「더보기」를 걷은 화면(ADR 0143 의 2026-10-09 덧)을 배포한 날부터 0 이다** — 화면이 더는 부르지 않는다. 그날부터
+  가입 시작은 문단 생성 성공(`preview_shown`) 바로 다음 단계로 읽는다(G-85)
 
 뷰는 `service_role` 에도 닫혀 있다 — `db:remote`(`postgres`)로만 본다. 원본 행(`taste_session` · `taste_artifact`)은 미가입 방문자의
 글과 지문을 들므로 `docs/ops/runbook/access.md` 「개인정보는 화면으로만」의 경계대로 일상 질의에 열지 않는다.

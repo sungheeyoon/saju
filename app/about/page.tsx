@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
+import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/consent';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
 import { SERVICE_FEATURES } from '../service-features';
@@ -37,9 +38,11 @@ export default function AboutPage() {
         <Logo className="size-11" />
         <p className={TYPE_META}>{SERVICE_TAGLINE}</p>
         <h1 className={TYPE_TITLE}>{SERVICE_NAME_TOPIC} 이런 곳이에요</h1>
+        {/* 운영자가 고른 두 문장(2026-10-09) — 넓은 화면은 문장마다 줄을 나누고, 폰은 폭대로 흐른다 */}
         <p className="text-[15px] leading-7 text-cream-ink">
-          나를 가운데 두고, 둘레의 사람을 점으로 놓아 봐요. 생년월일시로 사주를 세우고, 그 사주를 글로 풀어 나와 사람
-          사이를 읽어 드려요.
+          내 사주를 읽고, 궁금한 사람과의 궁합을 살펴보세요.{' '}
+          <br className="max-sm:hidden" />
+          새로운 인연에게 궁합을 요청하고, 서로 동의하면 대화를 시작할 수 있어요.
         </p>
       </header>
 
@@ -79,7 +82,7 @@ export default function AboutPage() {
           ))}
         </ol>
         <p className="text-sm leading-6 text-secondary">
-          지금은 비공개 베타라 가입에 테스트 코드가 필요해요. 코드는 운영자가 테스터에게 직접 알려 드려요.
+          {BETA_SIGNUP_CODE_NOTE}
         </p>
       </section>
 

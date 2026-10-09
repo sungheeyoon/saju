@@ -147,7 +147,7 @@ async function openRequestHistory(person: Person): Promise<void> {
 }
 
 test.describe('동의로 열리는 흐름', () => {
-  test('내 사주의 소식 버튼으로 들어오면 도착한 소식을 모두 읽은 것으로 남긴다', async ({
+  test('머리글의 종으로 들어오면 도착한 소식을 모두 읽은 것으로 남긴다', async ({
     openAs,
   }) => {
     const tag = freshTag();
@@ -162,16 +162,18 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await respondThroughApi(receiver, false);
 
+    /* 홈의 「새 소식」 띠는 종과 겹쳐 걷었다(운영자 2026-10-09) — 소식으로 가는 길은 머리글의 종 하나다 */
     await asker.page.goto('/me');
-    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toBeVisible();
-    await asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.').click();
+    const bell = asker.page.getByRole('banner').getByRole('link', { name: /^소식/ });
+    await expect(bell).toHaveAccessibleName(/^소식\s*1\s*건 안 읽음$/);
+    await bell.click();
 
     await expect(asker.page).toHaveURL(/\/me\/requests$/);
     // 처음 내려온 알림의 읽지 않음 표시는 자동 읽음 처리 뒤의 refresh 에서 사라진다.
     await expect(asker.page.getByLabel('읽지 않음')).toHaveCount(0);
 
     await asker.page.goto('/me');
-    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toHaveCount(0);
+    await expect(bell).toHaveAccessibleName('소식');
   });
 
   /**
@@ -191,8 +193,6 @@ test.describe('동의로 열리는 흐름', () => {
     const tab = receiver.page.getByRole('link', { name: /^인연\s*1\s*건 답할 요청$/ }).filter({ visible: true });
     await expect(tab).toBeVisible();
     await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAccessibleName('소식');
-    /* 홈 탭의 소식 띠도 종과 같은 수를 센다 */
-    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toHaveCount(0);
 
     await tab.click();
     await expect(receiver.page).toHaveURL(/\/me\/matching$/);

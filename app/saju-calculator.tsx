@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
@@ -34,7 +34,7 @@ import { CARD, PAPER_BOTTOM } from './ui/surfaces';
  * 여기서는 그 스물넷이 결국 번들에 실린다. `#` 뒤는 페이지 요청으로는 서버에 오지 않으므로(ADR 0007)
  * 명식 계산도 조립도 브라우저에서 한다 — 그것이 이 화면이 치르는 값이다.
  *
- * **로그인하지 않은 사람의 입력만은 서버로 간다**(ADR 0143) — 결과의 첫머리인 로그인 전 사주 문단을 서버가 쓰므로, 그
+ * **로그인하지 않은 사람의 입력만은 서버로 간다**(ADR 0143) — 결과의 잠긴 목차 첫 절에 서는 로그인 전 사주 문단을 서버가 쓰므로, 그
  * 문단(`taste.tsx`)이 서버 액션으로 입력을 보낸다. 서버는 그것으로 명식을 다시 계산할 뿐 저장하지 않는다. 회원의 입력은
  * 안 간다 — 세션을 알기 전에는 그 문단을 안 세우고(`useSessionKnown`), 서버도 로그인한 요청이면 닫는다.
  *
@@ -112,9 +112,21 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
     query !== null && (Object.keys(form) as (keyof Query)[]).some((k) => form[k] !== query[k]);
 
 
+  /**
+   * **방금 제출했나** — 로그인 전 결과가 선 뒤 그 머리로 데려갈지 정한다(`taste.tsx`). 한 번 물으면 지워진다 — 링크 ·
+   * 뒤로가기 · 궁합 입구를 다녀와 다시 선 결과는 제출이 아니라 움직이지 않는다.
+   */
+  const arriving = useRef(false);
+  const takeArrival = useCallback(() => {
+    const was = arriving.current;
+    arriving.current = false;
+    return was;
+  }, []);
+
   const submit = (next: Query) => {
     const params = toSearchParams(next).toString();
     shown.current = params;
+    arriving.current = true;
     // 제출은 "지금 다시 봐 달라"는 뜻이기도 하다.
     setViewedAt(Date.now());
     writeParams(params, query === null ? 'push' : 'replace');
@@ -178,8 +190,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
         {/*
           **사주와 사주풀이를 가르던 한 줄은 걷었다.** 「로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는
-          로그인 후 받을 수 있어요.」가 폼 아래 서 있었다. 이제 로그인하지 않은 사람에게는 결과의 첫머리(로그인 전 사주 문단)가 잠긴
-          목차와 로그인 단추로 그 일을 한다(`taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
+          로그인 후 받을 수 있어요.」가 폼 아래 서 있었다. 이제 로그인하지 않은 사람에게는 결과의 잠긴 목차(첫 절에 로그인 전 사주 문단)와
+          로그인 단추가 그 일을 한다(`taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
         */}
         {dirty && (
           <p className="text-sm text-secondary">
@@ -212,7 +224,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
             `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
             저장하면 화면에 서 있는 사주와 다른 사람이 목록에 남는다.
           */}
-          <CalculatorResult model={model!} query={query} signedIn={signedIn} outline={outline} />
+          <CalculatorResult model={model!} query={query} signedIn={signedIn} outline={outline} arriving={takeArrival} />
         </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
@@ -226,7 +238,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 /**
  * 계산이 선 뒤의 결과 — **로그인하지 않은 사람에게는 로그인 전 결과가 먼저 선다**(흐름 시안 g, ADR 0131).
  *
- * 내 사주 카드 · 짧은 로그인 전 사주 문단 · 잠긴 목차가 서고, 만세력은 지우지 않고 「사주 자세히 보기」에 접힌다. 회원은 전과 같다:
+ * 내 사주 카드 · 첫 절에 로그인 전 사주 문단을 품은 잠긴 목차가 서고, 만세력은 지우지 않고 「사주 자세히 보기」에 접힌다. 회원은 전과 같다:
  * 표가 펴져 서고 사주 아래에 저장 입구가 선다(돌아온 사람의 「이 사주가 내 사주 맞나요?」도 그 자리다).
  */
 function CalculatorResult({
@@ -234,11 +246,13 @@ function CalculatorResult({
   query,
   signedIn,
   outline,
+  arriving,
 }: {
   model: SajuViewModel;
   query: Query | null;
   signedIn: boolean;
   outline: readonly string[];
+  arriving: () => boolean;
 }) {
   const sessionKnown = useSessionKnown();
   if (signedIn || query === null) {
@@ -255,6 +269,7 @@ function CalculatorResult({
       saju={model.saju}
       outline={outline}
       detail={<SajuView {...model} />}
+      arriving={arriving}
     />
   );
 }

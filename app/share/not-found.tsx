@@ -1,8 +1,7 @@
 import { SERVICE_NAME_TOPIC } from '@/src/lib/brand';
 
 import { BUTTON_PRIMARY } from '../ui/buttons';
-import { Logo } from '../ui/logo';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { NoticeScreen } from '../ui/notice-screen';
 import { HomeLink } from '../home-link';
 
 /**
@@ -18,34 +17,30 @@ import { HomeLink } from '../home-link';
  * 어느 것이 실재하는지 알려 주게 된다.
  *
  * 대신 **여기서 할 수 있는 일**을 남긴다. 링크를 받고 들어온 사람이니, 막다른 자리에
- * 세워 두지 않고 서비스로 가는 길을 준다.
+ * 세워 두지 않고 서비스로 가는 길을 준다. 모양은 다른 막힌 화면과 같은 안내 화면의 틀이다(`app/ui/notice-screen.tsx`) —
+ * 앞서는 카드 없이 가운데 정렬로 혼자 섰다(2026-10-09 화면 점검 A5).
  */
 export default function SharedReadingNotFound() {
   return (
-    <main className="app-shell flex flex-1 flex-col items-center justify-center gap-5 py-16 text-center sm:py-24">
-      <span className="grid size-16 place-items-center rounded-full bg-cream">
-        <Logo className="size-10" />
-      </span>
-      <div className="flex max-w-sm flex-col gap-2">
-        <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
-        {/*
-          두 문장은 줄을 나눈다(운영자, 2026-10-03) — 한 문단이면 폰에서 「보낸 분에게 / 링크를…」로 갈렸다. 무엇이
-          일어났는지와 무엇을 하면 되는지가 제 줄에서 시작한다.
-        */}
-        <p className="text-sm leading-6 text-secondary">
+    <NoticeScreen
+      title="열 수 없는 링크예요"
+      /*
+        두 문장은 줄을 나눈다(운영자, 2026-10-03) — 한 문단이면 폰에서 「보낸 분에게 / 링크를…」로 갈렸다. 무엇이
+        일어났는지와 무엇을 하면 되는지가 제 줄에서 시작한다.
+      */
+      description={
+        <p>
           주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요.
           <br />
           보낸 분에게 링크를 다시 받아 주세요.
         </p>
-      </div>
-      {/*
+      }
+      /*
         **막힌 링크도 들어오는 문이다**(그로스 시안, 2026-10-03). 「둘러보기」는 어디로 가서 무엇을 하는지 말하지 않았다.
         여기 온 사람은 사주가 궁금해서 링크를 누른 사람이다 — 로그인 없이 되는 첫 화면의 주 단추와 같은 말로 잇는다.
-      */}
-      <HomeLink className={BUTTON_PRIMARY}>
-        무료로 내 사주 보기
-      </HomeLink>
-      <p className="text-[13px] leading-5 text-secondary">{SERVICE_NAME_TOPIC} 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>
-    </main>
+      */
+      actions={<HomeLink className={BUTTON_PRIMARY}>무료로 내 사주 보기</HomeLink>}
+      note={<p>{SERVICE_NAME_TOPIC} 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>}
+    />
   );
 }

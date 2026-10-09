@@ -11,7 +11,7 @@ import { read, unread, type SkippableRead } from '../../db-error';
  * 두 딱지를 켜지 않는다.
  *
  * 채팅의 `readUnreadChat` 과 같은 모양으로 클라이언트를 **받기만** 한다 — 머리글은 `/` 에도 서고 그 화면은
- * 정적으로 미리 그려지므로 서버에서 읽지 않는다(`site-header.tsx`). 서버 쪽 `unreadCount`(`inbox.ts`)도 이 문을 지난다.
+ * 정적으로 미리 그려지므로 서버에서 읽지 않는다(`site-header.tsx`).
  */
 
 /**
