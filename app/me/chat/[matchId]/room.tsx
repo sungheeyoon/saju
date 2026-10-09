@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { REPORT_DONE } from '@/src/lib/account';
-import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat';
-import { ROOM_FIRST_HELLO, ROOM_SAFETY_NOTE } from '@/src/lib/chat/copy';
+import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL, ROOM_FIRST_HELLO, ROOM_SAFETY_NOTE } from '@/src/lib/chat';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
