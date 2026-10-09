@@ -81,6 +81,17 @@ describe('만드는 버튼이 서는 자리와 닫히는 자리', () => {
     expect(panelChrome(view({ reading: reading() })).hideMake).toBe(false);
   });
 
+  /**
+   * 만드는 동안 볼 것은 진행 카드 하나다 — 닫힌 「받는 중…」 버튼과 「아직 받은 풀이가 없어요」 칸이 그 위에
+   * 남아 있었다(화면 갤러리 감사 2026-10-09). 글이 있든 없든, 누르는 글이든 동의가 만드는 글이든 같다.
+   */
+  it('만드는 동안에는 어느 화면에도 버튼이 없다', () => {
+    expect(panelChrome(view({ loading: true })).hideMake).toBe(true);
+    expect(panelChrome(view({ loading: true, reading: reading() })).hideMake).toBe(true);
+    expect(panelChrome(view({ loading: true, reading: reading() })).makeInHeader).toBe(false);
+    expect(panelChrome(view({ loading: true, noun: '궁합풀이', kind: 'private' })).hideMake).toBe(true);
+  });
+
   it('글을 읽으러 온 화면에 이미 글이 있으면 버튼은 머리로 올라간다', () => {
     expect(panelChrome(view({ reading: reading() })).makeInHeader).toBe(true);
     /* 아직 글이 없으면 권하는 말과 함께 칸 안에 선다 */
@@ -92,10 +103,9 @@ describe('만드는 버튼이 서는 자리와 닫히는 자리', () => {
   });
 
   /** 「보기」가 아니라 「받기」다 — 누르면 풀이권 한 번이 나간다(`docs/product/prd/screens.md` 「버튼은 동사로 갈린다」) */
-  it('버튼 글자는 대상의 낱말을 따르고 세 자리를 가른다', () => {
+  it('버튼 글자는 대상의 낱말을 따르고 두 자리를 가른다', () => {
     expect(panelChrome(view()).makeLabel).toBe('사주풀이 받기');
     expect(panelChrome(view({ reading: reading() })).makeLabel).toBe('사주풀이 다시 받기');
-    expect(panelChrome(view({ loading: true })).makeLabel).toBe('사주풀이 받는 중…');
     expect(panelChrome(view({ noun: '궁합풀이', kind: 'private' })).makeLabel).toBe('궁합풀이 받기');
   });
 });
