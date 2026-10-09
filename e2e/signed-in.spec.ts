@@ -3805,7 +3805,8 @@ test.describe('풀이를 기다리는 화면', () => {
     });
 
     await page.goto(`/me/readings/compat?a=${me}&b=${mother}`);
-    await expect(page.getByRole('button', { name: '궁합풀이 받는 중…' })).toBeVisible();
+    /* 만드는 동안에는 버튼이 없고 진행 카드의 목차가 선다(화면 갤러리 감사 2026-10-09) */
+    await expect(page.getByRole('list', { name: '풀이 목차' })).toBeVisible();
 
     /*
       라이브 채널이 처음 서면 `/me/readings/*` 를 한 번 다시 그린다(`app/live/resync.ts` — 서기 전의 변경을 놓치지 않게).

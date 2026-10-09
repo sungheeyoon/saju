@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+
 import { reducedMotion } from '../ui/motion';
 
 /**
@@ -16,6 +18,10 @@ import { reducedMotion } from '../ui/motion';
  *
  * **칸은 적어도 44px 폭이다**(`min-w-11`). 「운」은 글자 하나라 여백을 더해도 39.9px 이었다 — 손가락
  * 과녁에 못 미친다. 글자는 칸 가운데에 선다.
+ *
+ * **넘겨 볼 것이 남았으면 오른쪽 끝이 흐려진다.** 폰에서는 줄이 「운」 언저리에서 잘리는데 넘길 수 있다는 표시가
+ * 없었다(2026-10-09 화면 갤러리 감사). 끝까지 넘기면 흐림이 걷힌다. **넓은 화면에서는 띠가 링크만큼의 폭이다** — 전폭
+ * 띠에 링크가 왼쪽에 몰려 오른쪽이 빈 띠로 남았다.
  */
 const RESULT_LINKS = [
   ['chart', '여덟 글자'],
@@ -41,24 +47,51 @@ function go(event: React.MouseEvent<HTMLAnchorElement>, target: string) {
 }
 
 export function ResultNav() {
+  const scroller = useRef<HTMLElement>(null);
+  const [more, setMore] = useState(false);
+
+  useEffect(() => {
+    const nav = scroller.current;
+    if (nav === null) return;
+    /* 1px 는 반올림 몫이다 — 끝까지 넘겨도 소수점 폭 때문에 0 이 안 되는 브라우저가 있다 */
+    const measure = () => setMore(nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1);
+    measure();
+    nav.addEventListener('scroll', measure, { passive: true });
+    const resized = new ResizeObserver(measure);
+    resized.observe(nav);
+    return () => {
+      nav.removeEventListener('scroll', measure);
+      resized.disconnect();
+    };
+  }, []);
+
   return (
-    <nav
-      aria-label="결과 바로가기"
-      className="sticky top-20 z-20 -my-2 overflow-x-auto rounded-full border border-border bg-surface/95 p-1 shadow-card backdrop-blur"
-    >
-      <ul className="flex min-w-max items-center gap-0.5">
-        {RESULT_LINKS.map(([target, label]) => (
-          <li key={target}>
-            <a
-              href={`#${target}`}
-              onClick={(event) => go(event, target)}
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-sm font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
-            >
-              {label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div className="sticky top-20 z-20 -my-2 max-w-full sm:w-fit">
+      <nav
+        ref={scroller}
+        aria-label="결과 바로가기"
+        className="overflow-x-auto rounded-full border border-border bg-surface/95 p-1 shadow-card backdrop-blur"
+      >
+        <ul className="flex min-w-max items-center gap-0.5">
+          {RESULT_LINKS.map(([target, label]) => (
+            <li key={target}>
+              <a
+                href={`#${target}`}
+                onClick={(event) => go(event, target)}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-sm font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
+              >
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-px right-px w-14 rounded-r-full bg-[linear-gradient(to_left,var(--surface)_25%,transparent)] transition-opacity duration-200 motion-reduce:transition-none ${
+          more ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+    </div>
   );
 }

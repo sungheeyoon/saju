@@ -10,7 +10,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { PillarPair } from '../../compat-view';
-import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../ui/surfaces';
 import { BlockButton } from '../requests/manage';
@@ -70,6 +70,12 @@ export async function MatchScreen({
   /* 보관함 옆 칸에서 ← 가 보관함으로 가면 넓은 화면에서는 안 선다 — 책장이 이미 옆에 있다(사주풀이와 같다) */
   const besideShelf = frame === 'shelf' && place.from === 'shelf';
   const Title = frame === 'page' ? 'h1' : 'h2';
+  /*
+    **방으로 가는 길은 머리에 선다**(화면 감사 2026-10-09). 맺어진 뒤 가장 먼저 할 일인데, 글 끝(설문 뒤 약 3000px)에만
+    있었다. 방에서 왔으면 ← 가 이미 그 방이라(`backOf` 의 `chat`) 한 머리에 같은 이름 · 같은 곳이 둘 서지 않게 뺀다.
+  */
+  const room = outcome.kind === 'ok' ? `/me/chat/${outcome.result.matchId}` : null;
+  const toRoom = room !== null && back.href !== room ? room : null;
 
   return (
     /*
@@ -85,7 +91,16 @@ export async function MatchScreen({
         </Link>
         <div className="flex flex-col gap-1.5">
           <p className="text-[13px] font-semibold text-secondary">인연</p>
-          <Title className={TYPE_TITLE}>인연 궁합</Title>
+          <div className="flex items-center justify-between gap-3">
+            <Title className={TYPE_TITLE}>인연 궁합</Title>
+            {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
+            {toRoom !== null && (
+              <Link href={toRoom} className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
+                <Icon name="chat" className="size-[18px]" />
+                {CHAT_TAB_LABEL}
+              </Link>
+            )}
+          </div>
           <p className="text-[15px] leading-6 text-secondary">
             두 분 모두 같은 글과 같은 점수를 봐요.
           </p>
@@ -158,15 +173,10 @@ function Result({ result }: { result: SharedResult }) {
       />
 
       {/*
-        **다 읽은 사람이 하는 일 둘** — 방으로 가기와 끊기. 무게가 다르므로 모양도 다르다: 대화는 보조
-        단추, 차단은 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`).
+        **다 읽은 사람이 끊는 자리** — 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`). 방으로 가는 단추는 머리로
+        올라갔다(2026-10-09) — 여기 함께 두면 한 화면에 같은 이름의 단추가 둘이다.
       */}
       <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
-        <Link href={`/me/chat/${result.matchId}`} className={`${BUTTON_SECONDARY} self-start`}>
-          <Icon name="chat" className="size-[18px]" />
-          {CHAT_TAB_LABEL}
-        </Link>
         <BlockButton userId={result.partnerUserId} />
       </div>
     </>
