@@ -39,7 +39,7 @@ type DeckActions = { undo: () => void; pass: () => void; request: () => void; ca
 
 /**
  * 사진 판 — 지금 사람과 그 뒤에서 기다리는 다음 사람. `exit` 은 누른 쪽(`left` 넘김 · `right` 요청), `leaving` 은 빠지는 중.
- * `onInfo` 가 있으면 ⓘ 가 선다(폰만 — 넓은 화면은 옆 열이 같은 것을 든다). 「⋯」(신고 · 차단)는 어느 폭에서나 선다 —
+ * `onInfo` 가 있으면 ⓘ 가 선다(폰만 — 넓은 화면은 옆 열이 같은 것을 든다). 「⋯」(신고 · 차단)는 어느 폭에서나 오른쪽 끝에 선다 —
  * 후보로 본 사람도 신고할 수 있다(PRD 「차단과 신고」, ADR 0158). 차단하면 `onBlocked` 가 그 사람을 덱에서 뺀다.
  */
 export function TodayCard({
@@ -122,12 +122,12 @@ export function TodayCard({
           </span>
         )}
 
-        {/* ⓘ 의 왼쪽 — 넓은 화면은 ⓘ 가 없어 그 자리(오른쪽 끝)에 선다 */}
+        {/* 오른쪽 끝 — ⓘ 는 그 왼쪽이다(운영자 2026-10-09). 넓은 화면은 ⓘ 가 없어 이것만 선다 */}
         <ReportBlock
           userId={profile.candidateUserId}
           nickname={profile.nickname}
           look="photo"
-          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-16 z-10 lg:right-3`}
+          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-3 z-10`}
           onBlocked={onBlocked}
         />
 
@@ -135,7 +135,7 @@ export function TodayCard({
           type="button"
           aria-label="자세히 보기"
           onClick={onInfo}
-          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-3 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden`}
+          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-16 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden`}
         >
           <span aria-hidden="true" className="font-serif text-[1.2rem] font-bold italic">i</span>
         </button>

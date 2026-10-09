@@ -163,8 +163,6 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const measure = useRef<(kind: MergeKind, incoming: readonly ShownMessage[]) => void>(() => {});
   const thread = useThread(room.matchId, room.messages, room.fromBeginning, (kind, incoming) => measure.current(kind, incoming));
   const { log, fresh, beforeMerge, toBottom, onScroll } = useScrollKeeper(thread.messages);
-  /* 깃발을 꽂을 상대 말이 화면에 있나 — 없으면 신고 판이 고르는 길을 말하지 않는다 */
-  const canPick = thread.messages.some(flaggable);
   useEffect(() => {
     measure.current = beforeMerge;
   }, [beforeMerge]);
@@ -297,7 +295,6 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           <ReportPanel
             partnerUserId={room.partnerUserId}
             messageId={slot.messageId}
-            canPick={canPick}
             onBlock={closed ? undefined : () => setSlot({ kind: 'block' })}
             onCancel={() => setSlot({ kind: 'compose' })}
             onDone={() => {

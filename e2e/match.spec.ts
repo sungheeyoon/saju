@@ -433,7 +433,7 @@ test.describe('동의로 열리는 흐름', () => {
       **차단과 무엇이 다른지 먼저 읽힌다.** 나란한 두 버튼이 같은 무게로 읽히면
       운영자가 봐야 할 일이 조용한 차단으로 끝나거나 그 반대가 된다.
     */
-    await expect(receiver.page.getByText('신고는 운영자에게 기록을 남기는 것입니다', { exact: false })).toBeVisible();
+    await expect(receiver.page.getByText('보이지 않게 하려면 차단을 함께 눌러 주세요', { exact: false })).toBeVisible();
 
     await receiver.page.getByLabel('신고 사유').selectOption({ label: '괴롭힘이나 위협' });
     await receiver.page.getByLabel('덧붙일 말 (선택)').fill('겪은 일을 적습니다.');

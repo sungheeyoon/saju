@@ -116,7 +116,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(a.page.getByLabel('신고 사유')).toBeVisible();
     await expect(a.page.getByRole('button', { name: '신고하기' })).toBeVisible();
     await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
-    await expect(a.page.getByText('말풍선 곁의 깃발로 골라 주세요', { exact: false })).toHaveCount(0);
+    await expect(a.page.getByText('신고할 메시지를 골라 주세요')).toBeVisible();
 
     // 상대의 목록에 안 읽은 수가 서고, 들어가면 읽은 것이 된다
     await b.page.goto('/me/chat');

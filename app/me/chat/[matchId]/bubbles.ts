@@ -35,7 +35,7 @@ export type Bubble = {
 
 /**
  * 깃발을 꽂을 수 있는 말 — 상대의 말만이다. 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다(ADR 0094).
- * 신고 판은 이 말이 하나라도 화면에 있을 때만 고르는 길을 말한다 — 없어도 사람 신고로 갈 수 있다(ADR 0158).
+ * 깃발이 하나도 안 서도 신고 판은 사람 신고로 보낼 수 있다(ADR 0158).
  */
 export function flaggable(message: { readonly mine: boolean; readonly fromLeftPartner: boolean }): boolean {
   return !message.mine && !message.fromLeftPartner;
