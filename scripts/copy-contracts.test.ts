@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RATE_LIMITED_TEXT } from '../src/lib/chat';
 import { CONSENT_FLOW_STEPS } from '../src/lib/consent';
-import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS } from '../src/lib/consent/notice';
+import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS, REQUEST_OPENS_CHAT_NOTE } from '../src/lib/consent/notice';
 import { READING_USES_TICKET_NOTE, REQUEST_RESERVES_NOTE } from '../src/lib/reading';
 
 describe('계약 문구', () => {
@@ -33,6 +33,10 @@ describe('계약 문구', () => {
     expect(MATCH_PILLARS_DISCLOSURE).toBe(
       '수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.',
     );
+  });
+
+  it('요청 창은 수락이 채팅방을 연다고 말한다', () => {
+    expect(REQUEST_OPENS_CHAT_NOTE).toBe('상대가 수락하면 채팅방이 열려요.');
   });
 
   it('요청을 보내는 것만으로는 상대에게 열리는 것이 없다', () => {
