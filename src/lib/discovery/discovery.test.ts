@@ -175,8 +175,8 @@ describe('목록이 함께 드는 말', () => {
   });
 
   /** 첫인상에서 상세 궁합으로 이어지는 버튼 이름을 그대로 쓴다. */
-  it('상세 궁합 요청하기로 다음 단계를 안내한다', () => {
-    expect(DISCOVERY_TEASER).toContain('상세 궁합 요청하기를 누르면');
+  it('「궁합 요청」으로 다음 단계를 안내한다', () => {
+    expect(DISCOVERY_TEASER).toContain('「궁합 요청」을 누르면');
     expect(DISCOVERY_TEASER).toContain('두 사람의 자세한 궁합');
   });
 

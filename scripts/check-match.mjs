@@ -204,7 +204,7 @@ try {
   {
     const html = await body('/me/matching', aCookie);
     check('후보 목록에 다른 참여자가 선다', html.includes(NAME.b) && html.includes(NAME.c));
-    check('요청 버튼이 후보 카드에 선다', html.includes('상세 궁합 요청하기'));
+    check('요청 버튼이 후보 카드에 선다', html.includes('궁합 요청'));
   }
 
   // ── 2. 요청은 후보로 본 데서만 난다 ─────────────────────────────────────────

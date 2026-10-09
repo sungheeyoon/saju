@@ -269,7 +269,7 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(card.getByText('1990-05-15')).toHaveCount(0);
 
-    await asker.page.getByRole('button', { name: '상세 궁합 요청하기', exact: true }).click();
+    await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirmRequest = asker.page.getByRole('dialog');
     await expect(confirmRequest).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
@@ -520,7 +520,7 @@ test.describe('동의로 열리는 흐름', () => {
       **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
       있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
     */
-    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).first().click();
+    await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).first().click();
 
     const dialog = asker.page.getByRole('dialog');
     const scope = dialog.getByText('풀이권 1회가 임시로 차감됩니다', { exact: false });
@@ -554,7 +554,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     await page.goto('/me/matching/history');
     await expect(page.getByRole('heading', { level: 1, name: '인연 기록' })).toBeVisible();
-    await expect(page.getByText('아직 인연 기록이 없어요.')).toBeVisible();
+    await expect(page.getByText('아직 인연 기록이 없어요', { exact: true })).toBeVisible();
     await expect(
       page.getByRole('link', { name: /^인연/ }).and(page.locator('[aria-current="page"]')).filter({ visible: true }),
     ).toHaveCount(1);
@@ -655,7 +655,7 @@ test.describe('동의로 열리는 흐름', () => {
     };
 
     await asker.page.goto('/me/matching');
-    await reach(asker, '상세 궁합 요청하기');
+    await reach(asker, '궁합 요청');
     await asker.page.keyboard.press('Enter');
 
     const confirmRequest = asker.page.getByRole('dialog');
@@ -775,7 +775,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     ).toBeVisible();
 
     // ── 하트만으로는 안 나간다 ──────────────────────────────────────────────
-    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).click();
+    await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirming = asker.page.getByRole('dialog');
     await expect(confirming).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');

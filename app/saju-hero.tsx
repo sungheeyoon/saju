@@ -35,7 +35,7 @@ export function SajuHero({ calculator }: { calculator: ReactNode }) {
         <TabHeroGlow />
         <TabHeroBody
           eyebrow="사주"
-          title="궁금한 사람의 사주를 바로 봅니다."
+          title="궁금한 사람의 사주를 바로 봐요"
           lede={
             <p>
               생년월일시를 입력하면 여덟 글자를 확인할 수 있어요.<br />

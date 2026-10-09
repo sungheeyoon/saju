@@ -248,7 +248,7 @@ const isolate = (emails) => {
       /(일 수 있어요|에 가까워요|편이에요|있어요)\.?</.test(body) &&
         /궁합|어울리|엇갈리|다른 부분/.test(body));
     check('상세 궁합은 서로 선택한 뒤에 열린다고 말한다',
-      body.includes('상세 궁합 요청하기') && body.includes('풀이권 1회가 임시로 차감됩니다'));
+      body.includes('궁합 요청') && body.includes('풀이권 1회가 임시로 차감됩니다'));
     check('참고 점수라는 말이 목록 머리에 선다',
       body.includes('오행 구성을 바탕으로 계산한 참고 점수'));
 

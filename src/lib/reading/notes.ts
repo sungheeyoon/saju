@@ -220,7 +220,7 @@ export const readingCreditsNote = ({
   requested?: number;
 }): string | null => {
   if (reserved > 0) {
-    return '현재 만들고 있는 풀이에 풀이권 1회가 사용 중입니다. 생성에 실패하면 풀이권이 복구됩니다.';
+    return '만드는 중인 풀이에 풀이권 1회가 예약되어 있어요. 풀이를 만들지 못하면 돌려드려요.';
   }
   if (requested > 0) {
     return `보낸 인연 요청 ${requested}건에 풀이권 ${requested}회가 사용 중입니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 복구됩니다.`;

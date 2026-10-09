@@ -255,7 +255,7 @@ export function DeckButtons({ actions }: { actions: DeckActions }) {
       </button>
       <button
         type="button"
-        aria-label="상세 궁합 요청하기"
+        aria-label="궁합 요청"
         disabled={actions.busy}
         onClick={actions.request}
         className={`${BUTTON_PRIMARY} min-h-14! flex-[1.3] whitespace-nowrap px-3!`}

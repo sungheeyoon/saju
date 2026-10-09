@@ -64,7 +64,7 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
           <span className="text-sm font-semibold sm:flex-1">성별</span>
         </legend>
         {/*
-          **칸 셋이 같은 폭이다.** 글자 길이대로 두면 「상관없음」이 「남성」의 두 배가
+          **칸 셋이 같은 폭이다.** 글자 길이대로 두면 「상관없음」이 「남자」의 두 배가
           되어, 고를 것이 셋인데 하나가 더 중요한 것처럼 보인다. 격자로 나누면 가장 긴
           글자가 폭을 정하고 나머지가 그것을 따른다.
 
