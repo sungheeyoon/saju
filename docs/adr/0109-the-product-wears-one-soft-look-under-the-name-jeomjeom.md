@@ -90,3 +90,8 @@ sans-serif`)을 `--font-sans` · `--font-rounded` 의 대체 · `body` · `.glyp
 `CARD_FRAME`(카드의 테만, 속을 띠로 나누는 판) · `ROW_LINE`(카드 사이의 선 한 줄) · `SEGMENTS` · `SEGMENT` · `SEGMENT_ON`
 (입력 방법을 고르는 칸 — 화면을 바꾸는 알약 탭과 갈라 모서리가 조금 각지고, 고른 칸은 덧붙이지 않는 한 벌). 판 제목은 이름 단
 (`TYPE_NAME`)으로 둥근 서체가 돌아왔다. 같은 판 맨 아래 붙어 테가 두 줄로 겹치던 같은 사람 확인 · 실패 알림은 사이 선택 띠 안으로 옮겼다.
+
+## 추기 — 화면의 기둥 폭 (2026-10-09)
+
+`.app-shell` 안에서 본문을 가운데로 묶는 폭은 `app/ui/surfaces.ts` 의 `COLUMN_*` 가 든다 — 폼 한 장은 `COLUMN_FORM`, 저장한 사람
+목록 · 상세는 `COLUMN_PEOPLE`. 다른 화면의 폭을 합치는 일은 G-83 에 남는다.

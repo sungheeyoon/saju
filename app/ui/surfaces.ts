@@ -6,6 +6,17 @@
  */
 
 /**
+ * **화면의 기둥** — 뿌리 틀(`.app-shell`, 72rem)이 넓은 화면에서 본문을 가운데 한 기둥으로 묶는 폭. 같은 기둥을 쓰는 화면끼리는
+ * 제목이 같은 자리에 선다. `app-shell` 과 함께 `main` 에 붙이거나, 그 안의 묶음에 `mx-auto w-full` 과 함께 붙인다.
+ *
+ * - `COLUMN_FORM` — 폼 판 한 장이 본문인 화면(홈의 등록 전). 폼의 폭(40rem, `birth-form.module.css`)에 `PAPER` 의 여백(양쪽 2rem)
+ * - `COLUMN_PEOPLE` — 저장한 사람 목록과 사람 상세. 폼의 폭에 타일 · 수정 판의 안쪽 여백을 더해, 목록에서 연 수정 판이 제 줄을
+ *   혼자 쓰면 폼이 남는 데 없이 든다. 카드는 두 장씩 놓인다(`app/me/people/finder.tsx`)
+ */
+export const COLUMN_FORM = 'max-w-[44rem]';
+export const COLUMN_PEOPLE = 'max-w-[46rem]';
+
+/**
  * 카드 한 장 — 흰 면 · 가는 테 · 카드 그림자. 앱에서 가장 많이 부르는 판이다(스무 자리 넘게).
  *
  * 모서리는 **1.75rem 이다.** 내 명식과 저장한 사람 카드가 그 반지름으로 서면서 같은 화면 안에서 카드마다 모서리가

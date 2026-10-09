@@ -41,10 +41,9 @@ export function Onboarding({ nickname }: { nickname: string }) {
     /*
       **폰에서는 종이의 옆 여백을 12px 로 줄이고 글 · 단추만 제 자리(24px)에 둔다** — 폼의 흰 판이 첫 화면과 같은 폭으로 선다.
       종이 여백 24px 에 판 안쪽 16px 이 겹치면 320px 폭에서 숫자 칸의 자리표시(「1~12」)가 칸을 넘는다.
-      **넓은 화면에서는 종이가 폼의 폭(40rem, `birth-form.module.css`)과 제 여백(양쪽 2rem)에서 멈춘다** — 홈 전폭으로
-      펴지면 폼 오른쪽이 통째로 빈다(2026-10-09).
+      넓은 화면에서 종이의 폭은 놓이는 기둥이 정한다(`COLUMN_FORM`, `(home)/page.tsx`).
     */
-    <section className={`${PAPER} flex w-full flex-col gap-6 max-sm:px-3 sm:max-w-[44rem]`}>
+    <section className={`${PAPER} flex w-full flex-col gap-6 max-sm:px-3`}>
       <span aria-hidden="true" className="flex gap-2 max-sm:px-3">
         {ELEMENTS.map((element) => (
           <ElementSymbol key={element} element={element} className="size-10 rounded-full bg-[var(--tile)] p-2 sm:size-12" />

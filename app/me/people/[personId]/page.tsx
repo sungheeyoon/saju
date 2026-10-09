@@ -16,7 +16,7 @@ import { ReadingTabs } from '../../reading-tabs';
 import { elementScope } from '../../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
+import { COLUMN_PEOPLE, TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
 import { DayMasterChip } from '../chart-bits';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { compatHrefFor } from '../compat-href';
@@ -45,7 +45,7 @@ export default async function PersonSajuPage({
   const { state } = await readAccount(supabase);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
+      <main className={`app-shell flex ${COLUMN_PEOPLE} flex-1 flex-col gap-6 py-9 sm:py-12`}>
         <AccountNotice state={state} />
       </main>
     );
@@ -63,7 +63,7 @@ export default async function PersonSajuPage({
    */
   if (view.kind === 'unreadable-input') {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
+      <main className={`app-shell flex ${COLUMN_PEOPLE} flex-1 flex-col gap-6 py-9 sm:py-12`}>
         <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
           <p className="text-[15px]">{view.message}</p>
           <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
@@ -87,7 +87,8 @@ export default async function PersonSajuPage({
   const element = STEM_INFO[person.saju.pillars.dayMaster].element;
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
+    /* 저장한 사람 목록(`../page.tsx`)과 같은 기둥에 선다(`COLUMN_PEOPLE`) — 목록에서 들어와도 제목 자리가 안 옮긴다 */
+    <main className={`app-shell flex ${COLUMN_PEOPLE} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       {/*
         **머리는 그 사람의 일간 색을 입는다** — 목록의 타일을 눌러 들어온 사람이 같은 색의 판을 다시 만난다.
         색 혼자 말하지 않게 일간 딱지(상징 · 글자 · 오행 이름)가 함께 선다.
