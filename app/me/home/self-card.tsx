@@ -15,6 +15,7 @@ import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
+import { SELF_READING_MAKING } from './making';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -37,6 +38,7 @@ export function SelfCard({
   query,
   saju,
   reading,
+  making = false,
   actions,
   compact = false,
 }: {
@@ -51,6 +53,11 @@ export function SelfCard({
   saju: Saju;
   /** 내 사주풀이 — 없으면 `null` */
   reading: ReadingEntry | null;
+  /**
+   * 내 사주풀이를 지금 만드는 중인가(ADR 0157) — 아직 글이 없을 때 단추가 「받기」 대신 이 일을 말한다. 이미 시작한 일을 새로
+   * 시작하라고 권하지 않는다. 글이 있으면(다시 받는 중) 단추는 「보기」 그대로다 — 진행은 홈 맨 위의 줄이 말한다.
+   */
+  making?: boolean;
   /** 저장 전 카드의 단추 줄 — 저장된 카드에서는 안 쓴다 */
   actions?: ReactNode;
   /**
@@ -103,7 +110,7 @@ export function SelfCard({
         </div>
       )}
 
-      <BirthLine query={query} />
+      <BirthLine query={query} saved={personId !== null} />
 
       <ElementCounts saju={saju} compact={compact} />
 
@@ -120,7 +127,7 @@ export function SelfCard({
         >
           <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY} whitespace-nowrap px-3 sm:min-w-52 sm:px-5`}>
             <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
-            {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
+            {reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}
             {reading !== null && !reading.fromCurrentChart && (
               <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
             )}
@@ -166,14 +173,14 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
 }
 
 /**
- * 저장된 출생 정보 — **이 사주가 무엇으로 계산됐나.** 폰에서는 상자를 벗고 한 줄(생년월일 · 출생지)로 선다
+ * 출생 정보 — **이 사주가 무엇으로 계산됐나.** 저장된 카드는 「저장된」, 저장 전 카드는 「입력한」 출생 정보다. 폰에서는 상자를 벗고 한 줄(생년월일 · 출생지)로 선다
  * (2026-09-25) — 카드 한 장이 첫 화면에 들어야 해서다. 아예 빼면 고친 입력이 홈 어디에도 안 보인다. 성별과 자시
  * 규칙은 넓은 화면에만 서고, 폰에서는 「사주 자세히 보기」에 있다. 두 폭이 **같은 글 한 벌**을 입는다.
  *
  * 음력으로 넣었으면 적은 그대로와 바뀐 양력을 함께 보여준다. 양력만 보이면 사용자가 자기 입력을 못
  * 알아보고, 원본만 보이면 우리가 무엇으로 계산했는지 모른다(ADR 0002).
  */
-function BirthLine({ query }: { query: Query }) {
+function BirthLine({ query, saved }: { query: Query; saved: boolean }) {
   const rows = [
     [
       '생년월일',
@@ -188,7 +195,10 @@ function BirthLine({ query }: { query: Query }) {
 
   return (
     <section className="relative -mt-2 sm:mt-0 sm:rounded-[1.25rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
-      <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">저장된 출생 정보</h3>
+      {/*
+        저장 전 카드(로그인 전 결과 · 사주 이어 보기, `personId === null`)에는 저장된 것이 없다 — 방금 입력한 값이다(ADR 0157).
+      */}
+      <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">{saved ? '저장된 출생 정보' : '입력한 출생 정보'}</h3>
       <dl className="flex flex-wrap gap-x-1.5 text-[13px] leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-[14px] sm:leading-6">
         {rows.map(([term, value], at) => (
           <div key={term} className={at === 0 || at === 2 ? 'contents' : 'hidden sm:contents'}>

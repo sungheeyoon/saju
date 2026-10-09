@@ -15,6 +15,9 @@ import { storedInputsOf } from '../person-input';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { readingHref } from '../reading/line';
+import { runningReadings } from '../home/running';
+import { makingPeopleOf } from '../home/running-line';
+import { SELF_READING_MAKING } from '../home/making';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
@@ -63,7 +66,7 @@ export default async function PeoplePage() {
   if (!user) return redirectToSignIn();
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { state }, { data: edges, error: edgesError }, made] = await Promise.all([
+  const [slotRow, { state }, { data: edges, error: edgesError }, made, runningRead] = await Promise.all([
     // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
@@ -86,11 +89,14 @@ export default async function PeoplePage() {
       차례도 좁힘도 거기서 정해진 그대로 쓰고 여기서 다시 판정하지 않는다.
     */
     myReadings(),
+    /* 만드는 중인 풀이 — 부속 정보다. 못 읽으면 단추는 「받기」로 선다(ADR 0157 · 0078) */
+    runningReadings(),
   ]);
   /* 목록이 이 화면의 본체다 — 못 읽은 것을 빈 목록으로 세우면 내 사람들이 지워진 것으로 읽힌다(ADR 0078) */
   if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
 
   const selfPersonId = selfPersonIdOf(state);
+  const making = makingPeopleOf(runningRead.ok ? runningRead.value : []);
 
   const readings = new Map(
     made
@@ -157,7 +163,7 @@ export default async function PeoplePage() {
       ) : (
         <>
           <AddPerson slots={slots} />
-          <PeopleList people={people} readings={readings} pairs={pairs} selfPersonId={selfPersonId} />
+          <PeopleList people={people} readings={readings} pairs={pairs} making={making} selfPersonId={selfPersonId} />
         </>
       )}
     </main>
@@ -168,12 +174,15 @@ function PeopleList({
   people,
   readings,
   pairs,
+  making,
   selfPersonId,
 }: {
   people: Person[];
   /** 사람 하나에 지금 글 하나 — 대상별로 묶어 두고 카드마다 한 번 꺼낸다 */
   readings: ReadonlyMap<string, ReadingEntry>;
   pairs: ReadonlyMap<string, ReadingEntry>;
+  /** 사주풀이를 지금 만드는 중인 사람들(ADR 0157) */
+  making: ReadonlySet<string>;
   selfPersonId: string | null;
 }) {
   if (people.length === 0) {
@@ -195,6 +204,7 @@ function PeopleList({
             person={person}
             reading={readings.get(person.personId) ?? null}
             pair={pairs.get(person.personId) ?? null}
+            making={making.has(person.personId)}
             selfPersonId={selfPersonId}
           />
         ),
@@ -263,10 +273,13 @@ function PersonCard({
   person,
   reading,
   pair,
+  making,
   selfPersonId,
 }: {
   person: Person;
   reading: ReadingEntry | null;
+  /** 그 사람의 사주풀이를 지금 만드는 중인가 — 글이 없으면 「사주풀이 받기」 대신 이 일을 말한다(ADR 0157) */
+  making: boolean;
   /** 나 × 이 사람의 궁합풀이 — 있으면 궁합 단추가 점수를 달고 그 글로 간다 */
   pair: ReadingEntry | null;
   selfPersonId: string | null;
@@ -330,7 +343,7 @@ function PersonCard({
               className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} min-w-0`}
             >
               <Icon name="reading" className="size-4 shrink-0" />
-              <span className="truncate">{reading === null ? '사주풀이 받기' : '사주풀이 보기'}</span>
+              <span className="truncate">{reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}</span>
             </Link>
             <Link
               href={pair !== null ? readingHref(pair) : compatHrefFor(selfPersonId, person.personId)}

@@ -166,6 +166,8 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/actions.ts::savePersonForReading':
       '`addManagedPerson` 에 그대로 넘긴다 — 무르는 것도 그쪽이다',
     'app/me/compat/actions.ts::pairRelationFor': '읽기만 한다 — 적어 둔 사이를 화면에 세우려고',
+    'app/me/home/actions.ts::runningLinesNow':
+      '읽기만 한다 — 홈의 「만드는 중」 줄을 몇 초마다 다시 묻는다. 줄이 사라진 것을 본 섬이 홈을 다시 그린다(ADR 0157)',
     'app/me/reading/actions.ts::generateReading':
       '이 누름이 여는 것은 **시도**뿐이다. 글은 응답 뒤에 나고, 끝난 것을 확인한 자리가 무른다(ADR 0016)',
     'app/me/reading/share.ts::shareMyReading':
@@ -277,6 +279,8 @@ describe('브라우저가 화면을 다시 읽는 자리', () => {
   const REDRAWS: Readonly<Record<string, string>> = {
     'app/auth/sign-out.ts': '로그아웃은 액션이 아니다 — 브라우저의 Supabase 가 쿠키를 지운 뒤 서버 화면을 다시 읽는다',
     'app/live/live-updates.tsx': '라이브 층 — 남이나 다른 탭이 바꾼 것을 채널이 알린다. 누름이 아니라 서버가 무를 액션이 없다(ADR 0155)',
+    'app/me/home/running-band-live.tsx':
+      '줄이 사라진 것을 본 물음만 — `runningLinesNow` 는 읽기라 안 무르고, 끝난 풀이의 카드 단추 · 받은 사주풀이 · 소식 띠를 다시 읽어야 한다(ADR 0157)',
     'app/me/chat/composer.tsx':
       '방이 닫힌 갈래(`closed`)만 — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
     'app/me/profile/photo-grid.tsx':

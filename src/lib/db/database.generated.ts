@@ -3062,6 +3062,8 @@ export type Database = {
           notification_id: string
           read_at: string
           reading_kind: string
+          reading_label_a: string
+          reading_label_b: string
           reading_person_a: string
           reading_person_b: string
           request_id: string
@@ -3163,6 +3165,21 @@ export type Database = {
           person_a: string
           person_b: string
           score: number
+        }[]
+      }
+      my_running_readings: {
+        Args: never
+        Returns: {
+          body_written: boolean
+          created_at: string
+          job_status: string
+          kind: string
+          label_a: string
+          label_b: string
+          match_id: string
+          person_a: string
+          person_b: string
+          sections_begun: number
         }[]
       }
       my_service_survey: {

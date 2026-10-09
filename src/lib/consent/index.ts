@@ -105,10 +105,11 @@ export const NOTIFICATION_KINDS = [
    */
   'request_expired',
   /**
-   * 공유 결과가 새 글로 바뀌었다 — **상대에게만 선다.**
+   * 풀이가 다 됐다 — **인연 궁합은 상대에게, 내가 주인인 풀이(내 사주 · 저장한 사람 · 궁합풀이)는 연 사람에게 선다**(ADR 0157).
    *
-   * 누른 사람은 결과를 그 자리에서 보므로 알릴 것이 없다. 상대는 자기가 보던 글이
-   * 바뀐 것을 알아야 한다.
+   * 인연 궁합의 상대는 자기가 보던 글이 바뀐 것을 알아야 한다. 연 사람에게는 처음에 안 세웠다 — 「누른 사람은 결과를 그 자리에서
+   * 본다」였다. 몇 분짜리 일 앞에서 다른 화면으로 가도 되게 만든 뒤로(ADR 0016) 그 전제가 참이 아니다. 인연 궁합을 연 쪽에는 아직
+   * 안 선다(G-81).
    */
   'reading_ready',
   /**
@@ -133,8 +134,13 @@ type NotificationEvent = {
   readonly kind: NotificationKind;
   /** 상대의 별명. 상대가 없는 사건이거나 프로필을 못 읽으면 `null` */
   readonly nickname: string | null;
-  /** `reading_failed` 가 무엇을 만들다 실패했나. 다른 사건에는 없다 */
+  /** 풀이 소식(`reading_ready` · `reading_failed`)이 무엇을 만들었나. 다른 사건 · 인연 궁합 상대의 완성 소식에는 없다 */
   readonly readingKind: ReadingKind | null;
+  /**
+   * 그 풀이의 두 사람을 **내가 부르는 이름** — 완성 소식이 누구의 것인지 말한다(ADR 0157). 내 사주 · 못 읽음이면 `null`.
+   * 실패 소식은 아직 이 이름을 안 쓴다(대장의 확정 문구 그대로다).
+   */
+  readonly readingLabels?: readonly [string | null, string | null];
   /**
    * 이 줄을 누르면 다시 시도할 자리로 가는가(`app/me/requests/inbox.ts` 의 `destinationFor` 가 주소를 냈나).
    * 「이 알림을 눌러」는 눌리는 줄에만 참이다. 없으면 안 눌리는 줄로 본다
@@ -152,7 +158,13 @@ type NotificationEvent = {
  * 별명을 못 읽는 경우가 있다(상대가 프로필을 지운 뒤). 그때도 사건은 말할 수 있으므로
  * 사람을 부르지 않는 문장으로 낸다 — 「알 수 없는 사람」이라고 지어 부르지 않는다.
  */
-export function notificationText({ kind, nickname, readingKind, tappable = false }: NotificationEvent): string {
+export function notificationText({
+  kind,
+  nickname,
+  readingKind,
+  readingLabels = [null, null],
+  tappable = false,
+}: NotificationEvent): string {
   const who = nickname?.trim() ?? '';
 
   switch (kind) {
@@ -176,10 +188,13 @@ export function notificationText({ kind, nickname, readingKind, tappable = false
       return who === ''
         ? '답이 없어 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.'
         : `${who} 님에게 보낸 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.`;
-    case 'reading_ready':
-      return who === ''
-        ? '인연 궁합이 완성됐어요'
-        : `${who} 님과의 인연 궁합이 완성됐어요`;
+    case 'reading_ready': {
+      /* 인연 궁합 — 상대가 받는 소식은 시도를 안 가리켜 `readingKind` 가 없다 */
+      if (readingKind === null || readingKind === 'match') {
+        return who === '' ? '인연 궁합이 완성됐어요' : `${who} 님과의 인연 궁합이 완성됐어요`;
+      }
+      return `${readyReadingName(readingKind, readingLabels)}가 완성됐어요`;
+    }
     /**
      * **무엇을 만들다 실패했고, 어디서 다시 누르는가**를 말한다(운영자 2026-09-29, ADR 0135).
      *
@@ -201,6 +216,23 @@ export function notificationText({ kind, nickname, readingKind, tappable = false
       return `${FAILED_READING_NAME[readingKind ?? 'unknown']}를 만들지 못했어요. ${retry}`;
     }
   }
+}
+
+/**
+ * 완성 소식이 부르는 이름 — 모두 「풀이」(모음)로 끝나 조사는 「가」다.
+ *
+ * 이름을 못 읽으면(엣지를 지웠다) 사람을 부르지 않고 실패 소식과 같은 이름까지만 말한다 — 「이름 없음」으로 지어 부르지 않는다.
+ * 확정 문구다(대장 15, ADR 0157).
+ */
+function readyReadingName(
+  readingKind: Exclude<ReadingKind, 'match'>,
+  [labelA, labelB]: readonly [string | null, string | null],
+): string {
+  const a = labelA?.trim() ?? '';
+  const b = labelB?.trim() ?? '';
+  if (readingKind === 'person' && a !== '') return `${a} ${FAILED_READING_NAME.person}`;
+  if (readingKind === 'private' && a !== '' && b !== '') return `${a} × ${b} ${FAILED_READING_NAME.private}`;
+  return FAILED_READING_NAME[readingKind];
 }
 
 /**

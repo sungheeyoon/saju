@@ -178,6 +178,49 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
 });
 
 /**
+ * **다 된 풀이는 연 사람에게도 선다**(ADR 0157) — 인연 궁합의 상대에게만 서던 소식이다. 몇 분짜리 일 앞에서 다른 화면으로 간
+ * 사람에게 「무엇이 다 됐는가」가 문장에 실려야 한다.
+ */
+describe('완성 소식은 무엇이 다 됐는지 말한다', () => {
+  const ready = (
+    readingKind: ReadingKind | null,
+    readingLabels: readonly [string | null, string | null] = [null, null],
+    nickname: string | null = null,
+  ) => notificationText({ kind: 'reading_ready', nickname, readingKind, readingLabels });
+
+  it('갈래마다 제 이름을 부른다 — 조사는 「가」다', () => {
+    expect(ready('self')).toBe('내 사주풀이가 완성됐어요');
+    expect(ready('person', ['엄마', null])).toBe('엄마 사주풀이가 완성됐어요');
+    expect(ready('private', ['엄마', '아빠'])).toBe('엄마 × 아빠 궁합풀이가 완성됐어요');
+  });
+
+  /** 엣지를 지웠으면 이름이 안 온다 — 「이름 없음」으로 지어 부르지 않고 실패 소식과 같은 이름까지만 말한다 */
+  it('이름을 못 읽으면 사람을 부르지 않는다', () => {
+    expect(ready('person')).toBe('사주풀이가 완성됐어요');
+    expect(ready('private', ['엄마', null])).toBe('궁합풀이가 완성됐어요');
+    expect(ready('person', ['  ', null])).toBe('사주풀이가 완성됐어요');
+  });
+
+  it('내 사주는 이름이 딸려 와도 부르지 않는다', () => {
+    expect(ready('self', ['민수', null], '지영')).toBe('내 사주풀이가 완성됐어요');
+  });
+
+  /** 인연 궁합 상대의 소식은 시도를 안 가리킨다(`readingKind` 없음) — 확정 문구 그대로다 */
+  it('인연 궁합의 소식은 그대로다', () => {
+    expect(ready(null, [null, null], '지영')).toBe('지영 님과의 인연 궁합이 완성됐어요');
+    expect(ready(null)).toBe('인연 궁합이 완성됐어요');
+    expect(ready('match', [null, null], '지영')).toBe('지영 님과의 인연 궁합이 완성됐어요');
+  });
+
+  /** 흐름 검사(`scripts/check-reading.mjs`)는 「인연 궁합이 완성됐어요」로 연 쪽에 안 섰는지 잰다 — 셋이 그 글자를 들면 안 된다 */
+  it('내가 주인인 셋의 문장은 인연 궁합의 문장과 겹치지 않는다', () => {
+    for (const kind of ['self', 'person', 'private'] as const) {
+      expect(ready(kind, ['엄마', '아빠'])).not.toContain('인연 궁합이 완성됐어요');
+    }
+  });
+});
+
+/**
  * **보내는 쪽과 받는 쪽이 같은 한 벌을 읽는다.**
  *
  * 두 화면에 따로 적으면 동의가 무엇에 대한 것인지 갈린다. 그래서 목록은 하나이고,

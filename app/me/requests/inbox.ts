@@ -71,11 +71,11 @@ type InboxNotification = {
   readonly kind: NotificationKind;
   readonly text: string;
   /**
-   * 가서 볼 자리 — **요청의 소식과 실패 알림에 있다.**
+   * 가서 볼 자리 — **요청의 소식과 풀이의 소식(완성 · 실패)에 있다.**
    *
-   * 요청은 인연 탭에 산다(ADR 0130) — 소식은 그리로 간다. 실패는 어느 대상인지 아는 것과
-   * **그 자리로 가는 것**이 다른 일이고, 비공개 궁합은 두 사람을 다시 골라야 닿는다.
-   * 못 찾으면 `null` — 아무 데도 안 가는 링크를 세우지 않는다. 공유 결과가 바뀐 소식은 아직 글자로만 선다.
+   * 요청은 인연 탭에 산다(ADR 0130) — 소식은 그리로 간다. 풀이는 어느 대상인지 아는 것과
+   * **그 자리로 가는 것**이 다른 일이고, 비공개 궁합은 두 사람을 다시 골라야 닿는다. 완성이면 그 글을 보고,
+   * 실패면 같은 화면에서 다시 시도한다(ADR 0157). 못 찾으면 `null` — 아무 데도 안 가는 링크를 세우지 않는다.
    */
   readonly href: string | null;
   readonly createdAt: string;
@@ -136,9 +136,13 @@ function destinationFor(
   row: NotificationRow,
 ): string | null {
   if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
-  if (kind !== 'reading_failed') return null;
+  if (kind !== 'reading_failed' && kind !== 'reading_ready') return null;
 
-  const result = resultOf(readingKind, row);
+  /*
+    인연 궁합 상대의 완성 소식은 시도를 안 가리켜 `readingKind` 가 없다 — Match 가 곧 대상이다. 그 줄은 전에 글자로만 섰다.
+  */
+  const partnerReady = kind === 'reading_ready' && readingKind === null;
+  const result = resultOf(partnerReady ? 'match' : readingKind, row);
   /* 소식에서 연 결과의 ← 는 소식으로, 불은 종에 선다(ADR 0134) */
   return result === null ? null : withCameFrom(result, 'news');
 }
@@ -230,6 +234,8 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
         kind: kind as NotificationKind,
         nickname: row.counterpart_nickname,
         readingKind,
+        /* 앱이 DB 보다 먼저 나가면 두 칸이 안 온다 — 그때는 이름 없는 문장이다 */
+        readingLabels: [row.reading_label_a ?? null, row.reading_label_b ?? null],
         tappable: href !== null,
       }),
       href,
