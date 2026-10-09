@@ -17,7 +17,8 @@ import {
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { CONFIRM_FIRST_FOCUS, openConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
@@ -259,7 +260,7 @@ export function ReadingPanel({
    * 알 수 없는 값이고, 이름을 여기서 또 읽어 오면 화면이 이미 들고 있는 것을 한 번 더
    * 묻는 일이 된다.
    */
-  heading: string;
+  heading: string | null;
   allowMockFallback: boolean;
   /**
    * **다음 풀이를 위해 먼저 정할 것.**
@@ -418,8 +419,9 @@ export function ReadingPanel({
    */
   const confirming = useRef<HTMLDialogElement>(null);
 
+  /* 글이 있으면 첫 초점은 「취소」다 — 아래 창의 취소 단추가 표를 단다(`openConfirmDialog`, B5) */
   const press = () => {
-    confirming.current?.showModal();
+    openConfirmDialog(confirming.current);
   };
 
   const confirmGenerate = () => {
@@ -460,7 +462,7 @@ export function ReadingPanel({
       makeDisabled: chrome.makeDisabled,
       hideMake: chrome.hideMake,
     });
-    if (opens && confirming.current?.open === false) confirming.current.showModal();
+    if (opens) openConfirmDialog(confirming.current);
   }, [target.kind, carry, phase, chrome.makeDisabled, chrome.hideMake]);
 
   /**
@@ -485,9 +487,9 @@ export function ReadingPanel({
   );
 
   /**
-   * **수정 전 정보로 만든 글이면 다시 받기가 주 단추가 된다.** 평소 글을 다 읽은 사람이 먼저 하는 일은
-   * 보내기지만, 지금 명식과 다른 글을 들고 있는 사람에게는 새로 받는 것이 먼저다(시안 3차 warm).
-   * 한 영역에 주 단추는 하나다.
+   * **수정 전 정보로 만든 글이면 다시 받기가 주 단추가 된다.** 지금 명식과 다른 글을 들고 있는 사람에게는 새로 받는 것이
+   * 먼저다(시안 3차 warm). 평소에는 머리에 주 단추가 없다 — 보내기는 늘 보조다(2026-10-10 화면 점검 B12: 읽으러 온 사람에게
+   * 글보다 먼저 공유를 권했다). 한 영역에 주 단추는 하나 이하다.
    */
   const stale = reading !== null && target.kind !== 'match' && !reading.fromCurrentChart;
 
@@ -566,6 +568,8 @@ export function ReadingPanel({
 
   return (
     <>
+      {/* 부르는 화면이 제목을 이미 세웠고(`heading === null`) 누를 것도 없으면 머리는 통째로 안 선다 — 빈 칸이 틈만 남긴다 */}
+      {(heading !== null || chrome.canShare || chrome.makeInHeader) && (
       <header className="flex flex-col gap-3">
         {/*
           **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.** 좁은 화면에서는 위에서 아래로 쌓이고, 그때
@@ -573,7 +577,7 @@ export function ReadingPanel({
           폰에서는 반쪽에 「사주풀이 다시 받기」가 두 줄로 꺾이므로 위아래로 쌓는다.
         */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <h2 className={TYPE_NAME}>{heading}</h2>
+          {heading !== null && <h2 className={TYPE_NAME}>{heading}</h2>}
 
           {/*
             **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그 둘이고, 같은 일에
@@ -587,9 +591,7 @@ export function ReadingPanel({
                   : 'flex sm:shrink-0'
               }
             >
-              {chrome.canShare && (
-                <ShareReadingButton target={target} emphasis={stale ? 'secondary' : 'primary'} />
-              )}
+              {chrome.canShare && <ShareReadingButton target={target} />}
               {chrome.makeInHeader && makeButton('pill', stale || !chrome.canShare ? 'primary' : 'secondary')}
             </div>
           )}
@@ -601,6 +603,7 @@ export function ReadingPanel({
           <p className="text-[13px] leading-5 text-secondary">{creditsNote}</p>
         )}
       </header>
+      )}
 
       {/* 맨 위 — 가입 전에 읽던 문단. 검사 전의 새 글은 여기 안 선다: 저장된 그 원문뿐이다 */}
       {showsCarry && <CarryCard preview={carry.preview} />}
@@ -679,10 +682,16 @@ export function ReadingPanel({
           **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이 위에 온다.
         */}
         <div className={DIALOG_ACTIONS}>
-          <button type="button" onClick={confirmGenerate} className={BUTTON_PRIMARY}>
+          {/* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5) */}
+          <button type="button" onClick={confirmGenerate} className={reading === null ? BUTTON_PRIMARY : BUTTON_DANGER}>
             {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
           </button>
-          <button type="button" onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
+          <button
+            type="button"
+            onClick={() => confirming.current?.close()}
+            className={BUTTON_SECONDARY}
+            {...(reading === null ? {} : CONFIRM_FIRST_FOCUS)}
+          >
             취소
           </button>
         </div>
@@ -740,8 +749,15 @@ function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
             <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
           </div>
         </div>
+        {/*
+          **얼마나 걸리고 떠나도 되는지가 머리 바로 아래다**(2026-10-10 화면 점검 B11). 목차 열 줄 아래에 두었더니 폰에서는
+          내려가야 보였다 — 기다리는 사람에게 가장 쓸모 있는 말이다.
+        */}
+        <p className="mt-3 text-[13px] leading-5 text-cream-ink">
+          {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
+        </p>
         <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
-          <div className={`${flow.flow} h-full w-full rounded-full`} />
+          <div className={`${flow.flow} h-full rounded-full`} />
         </div>
         {/*
           **줄마다 서버가 적은 상태 하나.** 목록이라 화면 낭독기가 몇 줄 중 몇째인지 읽는다. 기다리는 줄의 말줄임표는
@@ -758,9 +774,6 @@ function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
             </li>
           ))}
         </ol>
-        <p className="mt-5 text-[13px] leading-5 text-cream-ink">
-          {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
-        </p>
       </div>
     </div>
   );

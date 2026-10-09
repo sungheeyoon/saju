@@ -92,9 +92,17 @@ const NOTIFICATION_WARNS: readonly NotificationKind[] = ['request_invalidated', 
  * 점으로 선다. 갈 자리가 있는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다.
  */
 function Notifications({ inbox }: { inbox: Inbox }) {
+  /*
+    **「새 소식」 소제목은 새 소식과 지난 소식이 섞일 때만이다**(2026-10-10 화면 점검 B21) — 모두 새것이거나 하나도 없으면 「소식」
+    바로 아래 같은 크기의 제목이 한 번 더 서서 머리가 둘이었다. 모두 지난 것이면 「새 소식」은 틀린 이름이다. 둘이 섞였을 때만
+    무엇이 새것인지 가를 이름이 든다.
+  */
+  const mixed =
+    inbox.notifications.some((notification) => !notification.unread) &&
+    inbox.notifications.some((notification) => notification.unread);
   return (
     <section className="flex flex-col gap-3">
-      <h2 className={TYPE_SECTION}>새 소식</h2>
+      {mixed && <h2 className={TYPE_SECTION}>새 소식</h2>}
 
       {inbox.notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong px-5 py-7 text-center">

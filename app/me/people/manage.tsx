@@ -23,6 +23,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { CONFIRM_FIRST_FOCUS, openConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
@@ -317,7 +318,8 @@ export function RemoveConfirm({
   const [removing, startRemoving] = useTransition();
 
   useEffect(() => {
-    if (confirming.current !== null && !confirming.current.open) confirming.current.showModal();
+    /* 첫 초점은 「취소」다 — 되돌릴 수 없는 누름이 Enter 한 번에 나지 않게(B5) */
+    openConfirmDialog(confirming.current);
   }, []);
 
   const remove = () => {
@@ -354,6 +356,7 @@ export function RemoveConfirm({
           onClick={() => confirming.current?.close()}
           disabled={removing}
           className={BUTTON_SECONDARY}
+          {...CONFIRM_FIRST_FOCUS}
         >
           취소
         </button>

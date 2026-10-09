@@ -86,14 +86,18 @@ export default async function SingleReadingPage({
         <ReadingBack className={`${BUTTON_TERTIARY} self-start`} />
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 flex-col gap-1.5">
-            <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-secondary">
-              사주풀이
+            {/*
+              **글의 이름은 머리 위 한 줄이다**(2026-10-10 화면 점검 B12) — 「사주풀이 · 딱지」 → 「{이름}」 → 풀이 칸의 「{이름}의
+              사주풀이」가 같은 것을 세 줄로 말했다. 셋째 줄을 첫 줄에 합쳐, 풀이 칸은 제목 없이 단추만 세운다(`heading={null}`).
+            */}
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-[13px] font-semibold text-secondary">{readingTitle}</h2>
               {dayMaster !== null && (
                 <span className="rounded-full bg-surface py-0.5 pl-1 pr-2 ring-1 ring-border">
                   <SubjectTag subject={dayMaster} />
                 </span>
               )}
-            </p>
+            </div>
             {/* 넓은 화면에서는 옆 칸의 「풀이 보관함」이 이 화면의 h1 이다 — 글의 이름은 그 아래 단이다 */}
             <h2 id="reading-subject" className={TYPE_TITLE}>
               {name}
@@ -106,7 +110,7 @@ export default async function SingleReadingPage({
       <ReadingSection
         target={target}
         reading={reading}
-        heading={readingTitle}
+        heading={null}
         bare
         tones={[dayMaster?.element ?? null]}
         carry={carry}

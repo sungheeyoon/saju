@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
@@ -60,17 +60,16 @@ const asText = (url: string) => new Blob([url], { type: 'text/plain' });
  */
 const IDLE = '공유 링크 복사';
 
+/**
+ * **늘 보조 단추다**(2026-10-10 화면 점검 B12). 한동안 평소엔 이것이 주 단추였는데, 풀이를 읽으러 온 사람에게 글보다 먼저
+ * 「공유」를 권하는 순서였다 — 폰에서는 화면 폭을 다 쓰고 글보다 먼저 눈에 들었다. 곁의 「다시 받기」는 수정 전 글일 때만
+ * 주로 올라온다(`panel.tsx`).
+ */
 export function ShareReadingButton({
   target,
-  emphasis,
 }: {
   /** 무엇을 보내는가 — 글은 서버가 이 대상으로 다시 읽는다 */
   target: ReadingTarget;
-  /**
-   * 주 단추인가 보조인가 — 곁의 「다시 받기」와 짝을 이룬다. 평소엔 보내기가 주이고, 수정 전 정보로 만든
-   * 글이면 다시 받기가 주로 올라온다(`panel.tsx`). 한 영역에 주 단추는 하나다.
-   */
-  emphasis: 'primary' | 'secondary';
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [link, setLink] = useState<string | null>(null);
@@ -167,7 +166,7 @@ export function ShareReadingButton({
         type="button"
         onClick={start}
         disabled={phase === 'working'}
-        className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} w-full px-3 sm:px-5`}
+        className={`${BUTTON_SECONDARY} w-full px-3 sm:px-5`}
       >
         <Icon name="link" className="size-[18px]" />
         {/*
