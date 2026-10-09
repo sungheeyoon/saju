@@ -120,8 +120,8 @@ describe('풀이권 문구', () => {
   it('만들고 있는 동안에는 왜 하나 줄었는지와 돌아온다는 것을 함께 말한다', () => {
     const note = readingCreditsNote({ reserved: 1 });
 
-    expect(note).toContain('만들고 있는');
-    expect(note).toContain('복구됩니다');
+    expect(note).toContain('만드는 중인');
+    expect(note).toContain('돌려드려요');
   });
 
   /**
@@ -141,6 +141,6 @@ describe('풀이권 문구', () => {
    * 흐려진다.
    */
   it('둘 다 잡고 있으면 만들고 있는 쪽을 먼저 말한다', () => {
-    expect(readingCreditsNote({ reserved: 1, requested: 3 })).toContain('만들고 있는');
+    expect(readingCreditsNote({ reserved: 1, requested: 3 })).toContain('만드는 중인');
   });
 });
