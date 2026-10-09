@@ -177,7 +177,7 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
 
   await page.goto('/compat');
   await expect(page).toHaveURL(/\/auth\?next=%2Fcompat/);
-  await expect(page.getByRole('heading', { name: '궁합은 로그인 후 이용할 수 있습니다' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '궁합풀이는 로그인하면 볼 수 있어요' })).toBeVisible();
 });
 
 /**

@@ -13,7 +13,8 @@ import { TYPE_TITLE } from '../../../ui/surfaces';
 import { backOf, isOpenResult, placeOf, resultKindOf, withCameFrom, type CameFrom } from '../../../came-from';
 import { SHELF_KIND_LABEL, SHELF_KINDS, SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './kind';
 import {
-  LAST_OPENED_KEY,
+  LEGACY_LAST_OPENED_KEY,
+  lastOpenedKeyOf,
   lastOpenedOf,
   openBookOf,
   openingHref,
@@ -84,12 +85,15 @@ function usePlace() {
 }
 
 export function ReadingsFrame({
+  account,
   shelves,
   lists,
   nothing,
   singles,
   children,
 }: {
+  /** 로그인한 사용자의 id — 마지막으로 연 글의 기억을 계정마다 가른다(`lastOpenedKeyOf`) */
+  account: string;
   /** 필터 칸마다의 책장 — 서버가 넷을 다 그려 두고, 여기서는 주소가 고른 하나만 세운다 */
   shelves: Record<ShelfKind, ReactNode>;
   /** 필터 칸마다 책장에 선 차례의 주소 — 넓은 화면에서 펼 한 권을 고른다(`openingHref`) */
@@ -115,12 +119,14 @@ export function ReadingsFrame({
     const book = openBookOf(lists, pathname, search);
     if (book === null) return;
     try {
-      const last = lastOpenedOf(window.localStorage.getItem(LAST_OPENED_KEY));
-      window.localStorage.setItem(LAST_OPENED_KEY, JSON.stringify(withOpened(last, lists, book)));
+      const key = lastOpenedKeyOf(account);
+      const last = lastOpenedOf(window.localStorage.getItem(key));
+      window.localStorage.setItem(key, JSON.stringify(withOpened(last, lists, book)));
+      window.localStorage.removeItem(LEGACY_LAST_OPENED_KEY);
     } catch {
       /* 저장을 못 하는 브라우저(사생활 창 등)는 기억 없이 칩의 기본을 편다 */
     }
-  }, [reading, lists, pathname, search]);
+  }, [account, reading, lists, pathname, search]);
 
   /*
     **넓은 화면에서 목록만 열면 한 권을 편다** — 그 칩에서 마지막으로 연 글, 없으면 그 칩의 기본(`openingHref`).
@@ -132,13 +138,13 @@ export function ReadingsFrame({
     if (!window.matchMedia(TWO_COLUMNS).matches) return;
     let last: LastOpened = {};
     try {
-      last = lastOpenedOf(window.localStorage.getItem(LAST_OPENED_KEY));
+      last = lastOpenedOf(window.localStorage.getItem(lastOpenedKeyOf(account)));
     } catch {
       /* 못 읽으면 기억이 없는 것과 같다 */
     }
     const book = openingHref(kind, lists, last);
     if (book !== null) router.replace(withCameFrom(book, 'shelf', kind), { scroll: false });
-  }, [reading, hasOpening, kind, lists, router]);
+  }, [account, reading, hasOpening, kind, lists, router]);
 
   if (!reading && nothing !== null) {
     /* 안내 한 장은 가운데 한 기둥에 선다 — 넓은 화면에서 전폭 카드에 글과 타일이 왼쪽으로 몰리지 않게 */

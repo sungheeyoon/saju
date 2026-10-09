@@ -10,7 +10,8 @@ import { SHELF_KINDS, type ShelfKind } from './kind';
  *    궁합풀이 · 인연 궁합 칩은 책장의 첫 권(DB 가 준 최근 순).
  * 3. 그 칩에 한 권도 없을 때만 아무것도 펴지 않는다 — 오른쪽은 빈 자리 안내다.
  *
- * 기억은 이 브라우저의 `localStorage` 에만 둔다 — 서버에 열람 기록을 남기지 않는다. 못 읽으면 기억이 없는 것과 같다.
+ * 기억은 이 브라우저의 `localStorage` 에 계정마다 따로 둔다(`lastOpenedKeyOf`) — 서버에 열람 기록을 남기지 않는다. 못 읽으면
+ * 기억이 없는 것과 같다.
  *
  * `book.ts` 가 아니라 따로 두는 것은 `frame.tsx`(클라이언트)가 부르기 때문이다 — 엔진 표를 브라우저로 끌고 가지 않는다.
  */
@@ -63,5 +64,13 @@ export function lastOpenedOf(raw: string | null): LastOpened {
   }
 }
 
-/** 이 브라우저에 두는 자리의 이름 */
-export const LAST_OPENED_KEY = 'shelf:last-opened';
+/**
+ * 이 브라우저에 두는 자리의 이름 — **계정마다 따로다**(#551 후속). 한 키를 같이 쓰면 같은 브라우저에서 계정을 바꿨을 때
+ * `/me/readings/self` 처럼 누구에게나 있는 주소가 다른 계정의 첫 펼침에 섞였다. 이름에 든 것은 로그인한 사용자의 uuid 뿐이다.
+ */
+export function lastOpenedKeyOf(userId: string): string {
+  return `shelf:last-opened:${userId}`;
+}
+
+/** 계정을 가르기 전의 한 키 — 읽지 않고 지운다 */
+export const LEGACY_LAST_OPENED_KEY = 'shelf:last-opened';

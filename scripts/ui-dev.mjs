@@ -32,6 +32,11 @@ const child = spawn('npx', ['next', 'dev', '--hostname', 'localhost', '--port', 
      * 화면이다.
      */
     OPENAI_API_KEY: '',
+    /**
+     * **운영이라고 믿지 않게.** `.env.development.local` 은 Vercel 이 내려 준 운영 값이라 `VERCEL_ENV="production"`
+     * 을 든다 — 그대로 두면 로컬에서만 여는 자리(해석 내부 보기, `inspectOpen`)가 404 로 찍힌다.
+     */
+    VERCEL_ENV: 'development',
   },
 });
 
