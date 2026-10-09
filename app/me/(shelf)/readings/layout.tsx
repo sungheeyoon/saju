@@ -174,7 +174,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
 
   return (
     <main className="app-shell flex flex-1 flex-col py-9 sm:py-14">
-      <ReadingsFrame shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks}>
+      <ReadingsFrame account={user.id} shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks}>
         {children}
       </ReadingsFrame>
     </main>
