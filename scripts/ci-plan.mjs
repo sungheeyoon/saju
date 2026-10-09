@@ -183,8 +183,9 @@
  *   섞이면 그 파일은 지금 규칙 그대로다
  * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
  * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
- *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 정규식은 확실히 풀 수 있는 모양만
- *   글자로 풀고, 그 밖은 글자 조각이 바뀐 글자 안에 있으면 켠다(`regexShape`). spec 이 아닌 `e2e/**` 면 전부다. **이 검색은 검사를
+ *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 정규식은 파서로 모아 글자가 있으면
+ *   바뀐 글자와 관련될 때 · 판단이 안 설 때, 글자가 없으면 문자열 정리 자리가 아닐 때 켠다(`regexUsesIn` · `regexTurnsOn`). spec 이
+ *   아닌 `e2e/**` 면 전부다 — 2026-10-09 저장소에서는 도우미의 글자 없는 정규식 때문에 문구 한 줄도 전부다. **이 검색은 검사를
  *   더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 안 걸리고, 그 구멍은 머지 뒤 main 의 전체와 `ci-main-red` 가 잡는다
  * - 공개 출시 · main 푸시 · 일정 · 손으로 켠 실행은 문구만이어도 지금 규칙 그대로다
  *
@@ -696,8 +697,8 @@ function copySlotsOf(ts, file, tree) {
 
 /**
  * 이 파일에서 글자가 화면 글자가 아닌 요소의 이름 — `NOT_SCREEN_TEXT` 에 `next/script` 를 기본 import 로 받은 로컬 이름
- * (`import NS from 'next/script'` 의 `NS`)을 더한다. `next/script` 를 이름 붙여 · 네임스페이스로 받으면 어느 태그가 그것인지
- * 판별이 안 서 `null` 이다 — 그 파일은 문구로 세지 않는다(2026-10-09 독립 검토)
+ * (`import NS from 'next/script'` 의 `NS`)을 더한다. `next/script` 를 이름 붙여 · 네임스페이스로 받거나 `require` · 동적 `import()`
+ * 로 부르면 어느 태그가 그것인지 판별이 안 서 `null` 이다 — 그 파일은 문구로 세지 않는다(2026-10-09 독립 검토)
  *
  * @param {typeof import('typescript')} ts
  * @param {import('typescript').SourceFile} tree
@@ -712,7 +713,23 @@ function excludedTagsOf(ts, tree) {
     if (clause.namedBindings !== undefined) return null;
     if (clause.name !== undefined) tags.add(clause.name.text);
   }
-  return tags;
+  let called = false;
+  const visit = (node) => {
+    if (called) return;
+    if (ts.isCallExpression(node) && moduleCalled(ts, node) === 'next/script') called = true;
+    else ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  return called ? null : tags;
+}
+
+/** `require('…')` · `import('…')` 가 부르는 모듈 이름 — 그런 부름이 아니거나 이름이 글자 그대로가 아니면 `null` */
+function moduleCalled(ts, call) {
+  const callee = call.expression;
+  const loads = callee.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(callee) && callee.text === 'require');
+  if (!loads) return null;
+  const [first] = call.arguments;
+  return first !== undefined && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) ? first.text : null;
 }
 
 /** 문구 상수를 값으로 받아도 되는 JSX 속성 — 화면 · 보조 기술에 글자로만 서는 것. `href` · `id` · `key` · `data-*` 같은 값은 안 된다 */
@@ -727,8 +744,8 @@ export const COPY_ATTRIBUTES = ['aria-label', 'title', 'alt', 'placeholder'];
  *   (와 `next/script` 를 다른 이름으로 받은 것) 안은 몇 겹 아래든, 프래그먼트를 넘어서도
  * - **별칭도 같은 상수다** — `import { NOTE as X }` 의 `X`. `module`(그 문구 파일의 확장자 뺀 저장소 경로)을 주면 그 모듈의
  *   네임스페이스 import(`import * as C`)의 `C.NOTE` 도 같은 판정이고, `C` 를 그 밖으로 쓰면 오용이다
- * - **다시 내보내면 오용이다** — `export { NOTE }` · `export { NOTE as PATH } from '…/copy'` · `export * from '…/copy'`. 내보낸
- *   이름이 어디서 쓰이는지 이 잠금이 따라가지 못한다
+ * - **다시 내보내거나 동적으로 들이면 오용이다** — `export { NOTE }` · `export { NOTE as PATH } from '…/copy'` · `export * from '…/copy'` ·
+ *   `await import('…/copy')` · `require('…/copy')`. 그 이름이 어디서 쓰이는지 이 잠금이 따라가지 못한다
  * - import 의 이름 자리는 쓰임이 아니다. 파싱 실패 · `next/script` 를 판별 못 함은 그 파일 전체를 하나로 든다
  *
  * @param {typeof import('typescript')} ts
@@ -800,6 +817,10 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
     return ts.isPropertyAccessExpression(parent) && parent.name === node;
   };
   const visit = (node) => {
+    if (ts.isCallExpression(node)) {
+      const called = moduleCalled(ts, node);
+      if (called !== null && isModule(called)) found.push(`import():${at(node)}`);
+    }
     if (ts.isIdentifier(node) && !naming(node)) {
       if (spaces.has(node.text)) {
         const access = node.parent;
@@ -948,12 +969,91 @@ function fragmentsOf(body) {
 /** 시험 소스의 따옴표 · 백틱 리터럴 속 글자 */
 const quotedIn = (source) => [...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2]);
 
+/** 첫 인자가 문자열을 다듬는 데만 쓰이는 부름 — 그 자리의 글자 없는 정규식만으로는 차선을 더하지 않는다 */
+const CLEANUP_CALLS = ['replace', 'replaceAll', 'split'];
+
 /**
- * 시험 소스의 정규식 리터럴 — 식이 설 자리(여는 괄호 · 쉼표 · `=` · `:` · `!` · `&` · `|` · `?` · `{` · `}` · `;` · `return` 뒤나 줄
- * 머리)의 `/…/깃발` 만 든다. 아무 데서나 `/…/` 를 읽으면 주석 · 산문의 두 빗금 사이가 정규식으로 읽혀 아무 문구에나 걸렸다(2026-10-09 잼)
+ * 화면 요소를 찾거나 재는 부름 — 그 인자(객체 속성 값 · 배열 원소 포함)의 정규식은 화면 글자에 견준다. 판정에는 「켠다」로
+ * 그 밖과 같지만, 왜 켰는지를 이름으로 남긴다
  */
-const REGEX_LITERAL = /(?:^|[(,=:[!&|?{};]|\breturn)\s*\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/([dgimsuy]*)/gm;
-const regexesIn = (source) => [...source.matchAll(REGEX_LITERAL)].map((one) => ({ shape: regexShape(one[1]), ignoreCase: one[2].includes('i') }));
+const SCREEN_CALLS = [
+  'getByText',
+  'getByRole',
+  'getByLabel',
+  'getByPlaceholder',
+  'getByTitle',
+  'getByAltText',
+  'filter',
+  'locator',
+  'toHaveText',
+  'toContainText',
+  'toHaveAccessibleName',
+  'toHaveAccessibleDescription',
+  'toHaveTitle',
+  'toHaveValue',
+  'toHaveAttribute',
+];
+
+/**
+ * 정규식이 선 자리 — `cleanup`(`.replace` · `.replaceAll` · `.split` 의 첫 인자) · `screen`(`SCREEN_CALLS` 의 인자, 괄호 · 배열 ·
+ * 객체 속성 값을 거슬러) · `other`(`.test` · `.match` · 변수에 담음 · 그 밖)
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').Node} node
+ * @returns {'cleanup' | 'screen' | 'other'}
+ */
+function regexPlaceOf(ts, node) {
+  let child = node;
+  let up = node.parent;
+  while (
+    up !== undefined &&
+    (ts.isParenthesizedExpression(up) || ts.isArrayLiteralExpression(up) || ts.isObjectLiteralExpression(up) || (ts.isPropertyAssignment(up) && up.initializer === child))
+  ) {
+    child = up;
+    up = up.parent;
+  }
+  if (up === undefined || !(ts.isCallExpression(up) || ts.isNewExpression(up)) || !(up.arguments ?? []).includes(child)) return 'other';
+  const callee = up.expression;
+  const name = ts.isPropertyAccessExpression(callee) ? callee.name.text : ts.isIdentifier(callee) ? callee.text : null;
+  if (child === node && ts.isCallExpression(up) && ts.isPropertyAccessExpression(callee) && CLEANUP_CALLS.includes(name) && up.arguments[0] === node) return 'cleanup';
+  return name !== null && SCREEN_CALLS.includes(name) ? 'screen' : 'other';
+}
+
+/**
+ * 시험 파일의 정규식 — **파서로** 모은다(운영자 2026-10-09). 「식이 설 자리」를 글자로 짐작하던 것은 주석 속 `/…/` 를 읽고
+ * `=>` 뒤를 놓쳤다. 정규식 리터럴과 `new RegExp('…', '깃발')` · `RegExp('…')` 이고, 본문이 글자 그대로가 아니면 `body` 가 `null`
+ * (글자를 모른다), 깃발이 글자 그대로가 아니면 `i` 로 본다(넓히는 쪽). 가르지 않는 확장자(`.txt` · `.json`)는 정규식이 없다.
+ * 파싱이 실패하면 `null` — 그 파일은 판별 불가라 차선을 켠다
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {string} file
+ * @param {string} source
+ * @returns {{ body: string | null, flags: string, place: 'cleanup' | 'screen' | 'other' }[] | null}
+ */
+export function regexUsesIn(ts, file, source) {
+  const kind = SCRIPT_KINDS[posix.extname(file)];
+  if (!kind) return [];
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind[kind]);
+  if (tree.parseDiagnostics?.length !== 0) return null;
+  const uses = [];
+  const literal = (arg) => arg !== undefined && (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg));
+  const visit = (node) => {
+    if (node.kind === ts.SyntaxKind.RegularExpressionLiteral) {
+      const end = node.text.lastIndexOf('/');
+      uses.push({ body: node.text.slice(1, end), flags: node.text.slice(end + 1), place: regexPlaceOf(ts, node) });
+    } else if ((ts.isNewExpression(node) || ts.isCallExpression(node)) && ts.isIdentifier(node.expression) && node.expression.text === 'RegExp') {
+      const [pattern, flags] = node.arguments ?? [];
+      uses.push({
+        body: literal(pattern) ? pattern.text : null,
+        flags: flags === undefined ? '' : literal(flags) ? flags.text : 'i',
+        place: regexPlaceOf(ts, node),
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  return uses;
+}
 
 /**
  * 조각으로 찾는 따옴표 리터럴의 가장 짧은 길이(공백 빼고) — 두 자(「하나」 · 「요청」)로 두니 낱말 하나가 아무 spec 에나 걸려 문구 한
@@ -972,43 +1072,55 @@ const regexPieceLongEnough = (piece) => {
 };
 
 /**
- * 정규식 하나가 바뀐 글자와 **관련될 수 있는가**. 확실히 푼 갈래는 그 글자가, 분석하지 않은 정규식은 글자 조각 하나라도 앞뒤 글자
- * 안에 있으면 그렇다 — 둘 다 `regexPieceLongEnough` 를 넘는 것만. 다만 `\d` · `\s` 류에 붙은 한글 조각(`/\d+개/` · `/1\s*명/` ·
- * `/^\d+초$/`)은 한 자라도 견준다 — 숫자 · 공백과 이어 글자를 찾는 모양이라 판단이 안 서는 쪽으로 넓힌다. `i` 깃발이면 대소문자를
- * 접어 견준다. 글자 조각이 없는 정규식(`/\s+/` · `/<[^>]+>/`)은 특정 글자를 찾지 않는 모양이라 관련 없다고 본다 — 그것까지 켜면 문구
- * 한 줄이 늘 전부를 불렀다(같은 날 잼: 시험 31 개 중 7 개가 그런 정규식을 든다)
+ * 정규식 하나가 바뀐 글자 때문에 그 시험의 차선을 켜는가(운영자 2026-10-09).
+ *
+ * - **글자가 있는 정규식** — 확실히 푼 갈래는 그 글자가, 분석하지 않은 정규식은 글자 조각 하나라도 앞뒤 글자 안에 있으면 켠다
+ *   (`regexPieceLongEnough` 를 넘는 것만, `\d` · `\s` 류에 붙은 한글은 한 자도, `i` 깃발이면 대소문자를 접어). 관련 판정이 안
+ *   서면 — 글자 있는 조각 가운데 견줄 만큼 길지 않은 것이 있으면 — 켠다
+ * - **글자가 없는 정규식 · 글자를 모르는 `RegExp(변수)`** — 쓰임 자리로 가른다. 문자열 정리(`.replace` · `.replaceAll` · `.split` 의
+ *   첫 인자)면 그것만으로 켜지 않고, 화면 요소를 찾거나 재는 자리 · 그 밖 · 판별 불가(`.test` · `.match` · 변수에 담음)면 켠다
+ *
+ * @param {{ body: string | null, flags: string, place: 'cleanup' | 'screen' | 'other' }} use
+ * @param {readonly string[]} texts
  */
-const regexRelated = ({ shape, ignoreCase }, texts) => {
-  const fold = (text) => (ignoreCase ? text.toLowerCase() : text);
+export function regexTurnsOn(use, texts) {
+  if (use.body === null) return use.place !== 'cleanup';
+  const shape = regexShape(use.body);
+  const pieces = 'literals' in shape ? shape.literals : shape.fragments;
+  const lettered = pieces.filter((piece) => /\p{L}/u.test(piece));
+  if (lettered.length === 0) return use.place !== 'cleanup';
+  const fold = (text) => (use.flags.includes('i') ? text.toLowerCase() : text);
   const folded = texts.map(fold);
   const inside = (piece) => folded.some((text) => text.includes(fold(piece)));
-  if ('literals' in shape) return shape.literals.some((piece) => regexPieceLongEnough(piece) && inside(piece));
-  return (
-    shape.fragments.some((piece) => regexPieceLongEnough(piece) && inside(piece)) ||
-    shape.nearClass.some((piece) => /[가-힣]/.test(piece) && inside(piece))
-  );
-};
+  const near = 'nearClass' in shape ? shape.nearClass.filter((piece) => /[가-힣]/.test(piece)) : [];
+  if (lettered.some((piece) => regexPieceLongEnough(piece) && inside(piece)) || near.some(inside)) return true;
+  return lettered.some((piece) => !regexPieceLongEnough(piece) && !near.includes(piece));
+}
 
 /**
  * 바뀐 글자를 말하는 시험 — 소스에 그 글자가 통째로 있거나, 따옴표 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 그 글자의
- * 조각이거나, 정규식 리터럴이 그 글자와 관련될 수 있다(`regexRelated`). 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」 하는
- * 글자(`toHaveCount(0)`)와 겹칠 수 있다.
+ * 조각이거나, 정규식 하나라도 차선을 켜거나(`regexTurnsOn`), 파싱이 실패했다. 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」
+ * 하는 글자(`toHaveCount(0)`)와 겹칠 수 있다. 파서가 없으면 정규식을 못 가르므로 전부를 든다.
  * **검사를 더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 여기 안 걸린다. 그 구멍은 머지 뒤 main 의 전체가 잡는다
  *
  * @param {readonly string[]} olds 바뀐 자리의 앞뒤 글자(`copyOnlyChanged`)
  * @param {readonly (readonly [string, string])[]} tests `[시험 파일, 소스]`
+ * @param {typeof import('typescript') | null} ts
  * @returns {string[]}
  */
-export function testsMentioning(olds, tests) {
+export function testsMentioning(olds, tests, ts) {
   return tests
-    .filter(([, source]) => {
+    .filter(([file, source]) => {
+      if (ts === null) return true;
       const flat = squeezed(source);
       if (olds.some((old) => flat.includes(old))) return true;
       const named = quotedIn(source).some((literal) => {
         const piece = squeezed(literal);
         return piece.replace(/ /g, '').length >= MENTION_PIECE && olds.some((old) => old.includes(piece));
       });
-      return named || regexesIn(source).some((regex) => regexRelated(regex, olds));
+      if (named) return true;
+      const uses = regexUsesIn(ts, file, source);
+      return uses === null || uses.some((use) => regexTurnsOn(use, olds));
     })
     .map(([test]) => test);
 }
@@ -1036,12 +1148,13 @@ function mentionSources() {
  * spec 이 아닌 `e2e/**`(여러 spec 이 부르는 도우미 · 픽스처)나 차선을 못 찾는 spec 은 `null`(전부)
  *
  * @param {Map<string, string[]>} copyOnly
- * @param {readonly (readonly [string, string])[]} [tests]
+ * @param {readonly (readonly [string, string])[]} tests
+ * @param {typeof import('typescript') | null} ts 정규식을 가를 파서 — 없으면 시험 전부를 든다
  * @returns {{ lanes: string[] | null, tests: string[] }}
  */
-export function copyLanesOf(copyOnly, tests = mentionSources()) {
+export function copyLanesOf(copyOnly, tests, ts) {
   const olds = [...copyOnly.values()].flat();
-  const hit = testsMentioning(olds, tests);
+  const hit = testsMentioning(olds, tests, ts);
   const lanes = [];
   for (const test of hit) {
     const of = isSpec(test) || isFlowCheck(test) ? lanesOfTest(test) : null;
@@ -1070,14 +1183,16 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
  * `baseSourceOf` 는 그 파일의 base 쪽 내용, `ts` 는 `typescript` 모듈이다(주석만 바뀐 코드 파일을 가른다) — 둘 중 하나가
  * 빠지거나 `null` 이면 지금 규칙 그대로다.
  *
+ * `mentions` 는 바뀐 글자를 찾을 시험들(`[파일, 소스]`)이다 — 빠지면 저장소의 `e2e/**` 와 흐름 검사를 읽는다(시험이 넣어 가른다).
+ *
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
- * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null }} input
+ * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null, mentions?: readonly (readonly [string, string])[] | null }} input
  * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
  */
-export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null }) {
+export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null, mentions = null }) {
   const decided =
-    event === 'push' ? decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) : decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts });
+    event === 'push' ? decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) : decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, mentions });
   const { lanes, authedLanes } = picked(decided.tier === 'full' ? EVERYTHING : decided.pick ?? {});
   return {
     tier: decided.tier,
@@ -1098,7 +1213,7 @@ function audits({ files, labels, event, tier }) {
 
 const full = (cause, reason) => ({ tier: 'full', cause, reason });
 
-function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
+function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, mentions }) {
   if (!PLANNED_EVENTS.has(event)) return full('계획 밖 이벤트', `\`${event}\` 은 계획을 안 본다`);
   if (labels.includes(FULL_LABEL)) return full('라벨', `\`${FULL_LABEL}\` 라벨`);
 
@@ -1115,15 +1230,15 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
   // 문구만 바뀐 파일은 공용 위험 · 주소 대응에서 빠지고 core 에 바뀐 글자를 찾는 시험의 차선을 더한다(위 「문구만 바뀐 파일」)
   const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
   const judged = rest.filter((file) => !copyOnly.has(file));
-  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), copyOnly, stage), commentOnly);
+  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), copyOnly, stage, ts, mentions), commentOnly);
 }
 
 /** 나머지 파일의 계획에 문구만 바뀐 파일을 얹는다 — core 는 늘 서고, 옛 글자를 말하는 시험의 차선이 더 선다 */
-function withCopy(decided, copyOnly, stage) {
+function withCopy(decided, copyOnly, stage, ts, mentions) {
   if (copyOnly.size === 0) return decided;
   const named = [...copyOnly.keys()].map((one) => `\`${one}\``).join(' · ');
   if (decided.tier === 'full') return { ...decided, reason: `${decided.reason} — 문구만 바뀐 파일: ${named}` };
-  const { lanes, tests } = copyLanesOf(copyOnly);
+  const { lanes, tests } = copyLanesOf(copyOnly, mentions ?? mentionSources(), ts);
   const cited = tests.map((one) => `\`${one}\``).join(' · ');
   if (lanes === null) return full('문구의 옛 글자', `${stage} — 문구만 바뀐 ${named} 의 옛 글자를 ${cited} 가 말하는데 그 차선을 못 가른다`);
   const before = decided.pick ?? {};
