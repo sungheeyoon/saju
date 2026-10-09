@@ -113,12 +113,16 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
       */}
       <div
         className={`grid flex-1 place-items-center px-[8%] transition-[padding] duration-500 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none sm:px-[10%] ${
-          chosen === null ? 'py-[9%]' : 'pb-[3%] pt-[2%]'
+          chosen === null ? 'py-[9%] sm:py-6' : 'pb-[3%] pt-[2%] sm:pb-3 sm:pt-2'
         }`}
       >
+        {/*
+          **넓은 화면에서는 지도가 판을 채운다**(2026-10-09 화면 감사). 위아래 틈이 판 폭의 %라 58rem 판에서는 틈만 80px 씩이고
+          지도는 24rem 으로 가운데에 작았다 — 판은 680px 높이인데 지도는 384px, 범례는 멀리 떨어졌다. 폰은 그대로다.
+        */}
         <div
           className={`@container relative aspect-square w-full transition-[max-width] duration-500 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none ${
-            chosen === null ? 'max-w-[24rem]' : 'max-w-[20rem]'
+            chosen === null ? 'max-w-[24rem] sm:max-w-[30rem]' : 'max-w-[20rem] sm:max-w-[25rem]'
           }`}
         >
           <Zones people={model.people} chosen={chosen?.day?.element ?? null} picked={chosen !== null} />
@@ -419,7 +423,12 @@ function Seat({
 }) {
   const near = state === 'near';
   const at = pointAt(angle, RADIUS);
-  const above = Math.sin((angle * Math.PI) / 180) < -0.3;
+  const sin = Math.sin((angle * Math.PI) / 180);
+  /*
+    **가만있는 이름은 안쪽(나 쪽)에 단다.** 오행 기호가 그 방향의 궤도 바깥에 서므로, 바깥에 단 이름은 제 오행 자리에 앉은
+    사람마다 기호와 겹쳤다(폰에서 흙 · 쇠 아래쪽, 2026-10-09 화면 감사). 누른 이름표는 바깥 그대로 — 안쪽이면 나에게 긋는 빛을 가린다.
+  */
+  const above = near ? sin < -0.3 : sin > 0.3;
   const score = person.compat.seen ? person.compat.score : null;
   const size = near ? SIZE.current : SIZE.person;
   const unread = person.day === null;
@@ -499,7 +508,7 @@ function Seat({
       ) : (
         <span
           aria-hidden="true"
-          className={`${ORBIT_LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-[12px] font-semibold text-secondary ${
+          className={`${ORBIT_LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-[12px] font-semibold text-secondary sm:max-w-[6rem] sm:text-[13px] ${
             above ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}
         >

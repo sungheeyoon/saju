@@ -21,7 +21,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
 import { generateReading, readingRunState, skipTasteCarry } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
@@ -29,7 +29,7 @@ import type { CurrentReading, ReadingCredits, RunProgress } from './current';
 import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
-import { Markdown } from './markdown';
+import { Markdown, READING_COLUMN } from './markdown';
 import { coverFace, readingMinutes } from './essay';
 import { readingOutline, type OutlineRow } from './outline';
 import { watchRun, type PageVisibility } from './watch-run';
@@ -106,10 +106,13 @@ export function panelChrome({
   /**
    * **누를 것이 있는가.**
    *
-   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도, 지금 만들고 있는 것도
-   * 누를 일이 아니다. 남는 자리는 **아무것도 없는 자리** 하나이고, 그때만 버튼이 선다.
+   * **만드는 동안에는 아무 화면에도 버튼이 없다.** 닫힌 「받는 중…」 버튼과 「아직 받은 풀이가 없어요」 칸이 진행
+   * 카드 위에 남아 있었다(화면 갤러리 감사 2026-10-09) — 기다리는 사람이 볼 것은 진행 카드 하나다.
+   *
+   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도 누를 일이 아니다. 남는 자리는 **아무것도 없는
+   * 자리** 하나이고, 그때만 버튼이 선다.
    */
-  const hideMake = automatic && (reading !== null || loading);
+  const hideMake = loading || (automatic && reading !== null);
 
   return {
     makeDisabled: loading || spent,
@@ -124,11 +127,7 @@ export function panelChrome({
      */
     makeInHeader: reading !== null && !hideMake,
 
-    makeLabel: loading
-      ? `${noun} 받는 중…`
-      : reading === null
-        ? `${noun} 받기`
-        : `${noun} 다시 받기`,
+    makeLabel: reading === null ? `${noun} 받기` : `${noun} 다시 받기`,
 
     /**
      * **공유는 다 된 내 사주풀이에만 붙는다.**
@@ -619,11 +618,11 @@ export function ReadingPanel({
           <LoadingState rows={readingOutline(outline, progress)} />
         </>
       ) : reading === null ? (
-        <>
-          {betweenSummaryAndBody}
-          {/* 이어 볼 문단이 위에 서 있으면 빈 자리의 소개는 안 세운다 — 무엇이 올지는 그 문단이 말한다 */}
-          {!showsCarry && <EmptyState />}
-        </>
+        /*
+          **빈 자리는 한 겹이다** — 위의 버튼 칸이 「아직 받은 풀이가 없어요」를 이미 말한다. 그 아래 점선 상자가 같은 말을
+          또 했고, 궁합 화면에서는 한 사람 풀이의 소개(「핵심 성향, 강점…」)까지 들고 섰다(화면 갤러리 감사 2026-10-09).
+        */
+        betweenSummaryAndBody
       ) : (
         <Result
           reading={reading}
@@ -642,13 +641,13 @@ export function ReadingPanel({
       */}
       {/* `reading` 을 한 번 더 보는 것은 타입 검사기 때문이다 — 판단은 위에서 끝났다 */}
       {chrome.asksFeedback && reading !== null && reading.sourceRunId !== null && (
-        <div className="mx-auto w-full max-w-[40rem]">
+        <div className={READING_COLUMN}>
           <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
         </div>
       )}
 
       {/*
-        **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이 없는 화면(동의가
+        **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이 없는 화면(만드는 동안 · 동의가
         만드는 글의 성공 경로)에서는 열릴 길이 없다. 닫힌 채 실려 오면 버튼 글자가 화면에 두 벌 남고,
         검사가 그 글자를 세어 「만드는 버튼이 있나」를 늘 참으로 만든다.
       */}
@@ -714,22 +713,6 @@ function CarryCard({ preview }: { preview: string }) {
   );
 }
 
-function EmptyState() {
-  return (
-    <div className={`${EMPTY_SLOT} grid min-h-56 place-items-center text-center`}>
-      <div className="max-w-sm">
-        <span aria-hidden="true" className="mx-auto flex justify-center gap-1.5">
-          {ELEMENTS.map((element) => (
-            <ElementSymbol key={element} element={element} className="size-6" />
-          ))}
-        </span>
-        <h3 className={`mt-4 ${TYPE_NAME}`}>아직 받아 둔 풀이가 없어요</h3>
-        <p className="mt-2 text-[15px] leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나눠 읽기 쉽게 정리해 드려요.</p>
-      </div>
-    </div>
-  );
-}
-
 /**
  * **멈춘 화면이 아니라는 것을 무엇이 말하는가** — 서버가 적은 진행이다(ADR 0127).
  *
@@ -743,36 +726,42 @@ function EmptyState() {
 function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
   return (
     <div role="status" aria-live="polite" className="rounded-[1.75rem] bg-cream p-5 sm:p-7">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-cream-ink" aria-hidden="true">
-          <Icon name="spark" className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
-          <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
-        </div>
-      </div>
-      <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
-        <div className={`${flow.flow} h-full w-full rounded-full`} />
-      </div>
       {/*
-        **줄마다 서버가 적은 상태 하나.** 목록이라 화면 낭독기가 몇 줄 중 몇째인지 읽는다. 기다리는 줄의 말줄임표는
-        읽어 주지 않는다 — 「점점점」이 아홉 번 낭독되면 목차를 들을 수 없다.
+        **띠 · 목차 · 안내가 한 열이다.** 띠만 카드 폭을 다 쓰고 목차는 36rem 에서 멈춰, 넓은 화면에서 띠가 목차보다
+        길게 뻗었다(화면 갤러리 감사 2026-10-09). 열의 폭은 본문과 같다 — 기다린 자리에 글이 그 폭으로 선다.
       */}
-      <ol aria-label="풀이 목차" className="mt-5 flex max-w-[36rem] flex-col gap-2">
-        {rows.map((row, at) => (
-          <li
-            key={`${at}-${row.label}`}
-            className="flex items-center justify-between gap-3 rounded-[1.25rem] bg-surface px-4 py-3 text-[14px]"
-          >
-            <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
-            <OutlineMark state={row.state} />
-          </li>
-        ))}
-      </ol>
-      <p className="mt-5 text-[13px] leading-5 text-cream-ink">
-        {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
-      </p>
+      <div className={READING_COLUMN}>
+        <div className="flex items-center gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-cream-ink" aria-hidden="true">
+            <Icon name="spark" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
+            <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
+          </div>
+        </div>
+        <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
+          <div className={`${flow.flow} h-full w-full rounded-full`} />
+        </div>
+        {/*
+          **줄마다 서버가 적은 상태 하나.** 목록이라 화면 낭독기가 몇 줄 중 몇째인지 읽는다. 기다리는 줄의 말줄임표는
+          읽어 주지 않는다 — 「점점점」이 아홉 번 낭독되면 목차를 들을 수 없다.
+        */}
+        <ol aria-label="풀이 목차" className="mt-5 flex flex-col gap-2">
+          {rows.map((row, at) => (
+            <li
+              key={`${at}-${row.label}`}
+              className="flex items-center justify-between gap-3 rounded-[1.25rem] bg-surface px-4 py-3 text-[14px]"
+            >
+              <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
+              <OutlineMark state={row.state} />
+            </li>
+          ))}
+        </ol>
+        <p className="mt-5 text-[13px] leading-5 text-cream-ink">
+          {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
+        </p>
+      </div>
     </div>
   );
 }
@@ -908,7 +897,7 @@ function Result({
       {betweenSummaryAndBody}
       <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
         {target.kind === 'match' && (
-          <header className="mx-auto w-full max-w-[36rem]">
+          <header className={READING_COLUMN}>
             <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
             <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
           </header>

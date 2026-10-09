@@ -27,7 +27,7 @@ import { NoteEditor, RemoveConfirm } from './manage';
  * 사주풀이가 쓰고, 손대는 자리는 읽는 것 위에 얹히지 않는 구석으로 물러난다.
  *
  * 타일은 통째로 상세로 가는 링크라(이름 링크의 `after:` 덮개) 여기 서는 것은 전부 그 덮개보다 **위**에
- * 뜬다(`z-*`). 고치는 칸 · 메모 칸은 `data-panel` 을 달아 목록이 그 타일을 줄 전체로 넓히게 한다(`finder.tsx`).
+ * 뜬다(`z-*`). 고치는 칸 · 메모 칸은 `data-panel` 을 달아 목록이 그 타일에 제 줄을 주고 폼 폭까지 넓히게 한다(`finder.tsx`).
  */
 type Panel = 'edit-input' | 'note' | 'remove';
 
