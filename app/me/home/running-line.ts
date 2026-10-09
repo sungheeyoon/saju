@@ -13,7 +13,7 @@ import type { RunningReading } from './running';
  * 다르게 말한다. 퍼센트는 없다 — 끝을 모르는 일에 비율을 세우면 그건 꾸며 낸 진행이다.
  */
 
-/** 첫 머리가 서기 전 — 서버가 아직 아무 절도 적지 않았다. 시안이다 */
+/** 첫 머리가 서기 전 — 서버가 아직 아무 절도 적지 않았다. 확정(대장 15) */
 export const READING_PREPARING = '준비 중…';
 
 const called = (label: string | null): string => label ?? '이름 없음';
