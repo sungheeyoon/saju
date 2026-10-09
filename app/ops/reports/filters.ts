@@ -1,4 +1,5 @@
 import { REPORT_REASONS, warningRefOf, type ReportReason } from '@/src/lib/account';
+import { EVIDENCE_LABEL, REVIEW_LABEL, WARNING_LABEL, reasonLabel } from './labels';
 
 /**
  * 신고 목록의 **거르는 칸 셋과 쪽** — 주소가 곧 상태다.
@@ -109,3 +110,16 @@ export const isFiltered = (filters: ReportFilters): boolean =>
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isReportId = (value: string): boolean => UUID.test(value);
+
+/**
+ * 접힌 거르기 판(폰)의 머리에 서는 **지금 거른 것** — 판을 안 열어도 무엇을 보고 있는지 안다. 걸러지지 않았으면 「전체」.
+ * 글자는 판 안의 칸과 같은 것을 쓴다.
+ */
+export function filterSummary(filters: ReportFilters): string {
+  const said: string[] = [];
+  if (filters.ref !== null) said.push(`${WARNING_LABEL.ref} ${filters.ref}`);
+  if (filters.review !== 'all') said.push(REVIEW_LABEL[filters.review]);
+  if (filters.reason !== null) said.push(reasonLabel(filters.reason));
+  if (filters.evidence !== 'all') said.push(EVIDENCE_LABEL[filters.evidence]);
+  return said.length === 0 ? '전체' : said.join(' · ');
+}

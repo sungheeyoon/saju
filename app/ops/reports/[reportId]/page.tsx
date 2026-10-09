@@ -25,6 +25,7 @@ import {
   type WarningRecord,
 } from '../read';
 import { CARD } from '../../../ui/surfaces';
+import { CopyValue } from '../../copy-value';
 import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../../second-factor';
 
 export const metadata = {
@@ -39,7 +40,8 @@ export const metadata = {
  * 않고, 대화방으로 가는 링크도 없다 — 문이 방과 메시지의 id 를 아예 안 내준다. 두 계정의 지금 상태는
  * 상단에만 서고 스냅샷 안에 섞지 않는다: 근거는 그때의 것이고 상태는 지금의 것이다.
  *
- * 읽기 전용이다. 스냅샷을 고치거나 지우는 길, 검토 완료를 적는 누름은 없다. 검토 기록(결과 · 근거 · 당시 제재
+ * 읽기 전용이다. 스냅샷을 고치거나 지우는 길, 검토 완료를 적는 누름은 없다. 누름은 신고 id 를 복사하는 하나뿐이다 — 검토 문에
+ * 넘길 값이고, 절차는 머리의 한 줄이 가리킨다(`docs/ops/runbook/moderation.md` 「신고와 차단」). 검토 기록(결과 · 근거 · 당시 제재
  * 대상)은 운영자가 CLI 로 부르는 검토 문이 적고 여기서는 읽기만 한다(ADR 0105 · 0107). 이 화면을 여는 것 자체가 접속기록에 남는다.
  */
 export default async function OperatorReportPage({
@@ -65,6 +67,16 @@ export default async function OperatorReportPage({
           신고 목록
         </Link>
         <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em]">신고 내용</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="min-w-0 text-xs text-muted">
+            신고 id <span className="break-all font-mono text-secondary">{reportId}</span>
+          </p>
+          <CopyValue value={reportId} label="신고 id 복사" />
+        </div>
+        <p className="mt-2 text-sm text-secondary">
+          검토 기록과 처분은 이 화면이 아니라 검토 문(<code className="font-mono text-xs">review_report</code>)으로
+          적습니다 — 절차는 <code className="font-mono text-xs">docs/ops/runbook/moderation.md</code> 「신고와 차단」.
+        </p>
       </header>
 
       {!found.ok || found.value === null ? (

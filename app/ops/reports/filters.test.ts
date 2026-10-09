@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NO_FILTERS, argsOf, filtersOf, hrefOf, isFiltered, isReportId } from './filters';
+import { NO_FILTERS, argsOf, filterSummary, filtersOf, hrefOf, isFiltered, isReportId } from './filters';
 import {
   accountStatusLabel,
   evidenceTime,
@@ -9,6 +9,7 @@ import {
   reviewStateLabel,
   sideOf,
 } from './labels';
+import { openByReported } from './same-account';
 import { chosenOnce } from './snapshot';
 
 describe('신고 목록의 주소', () => {
@@ -142,5 +143,31 @@ describe('스냅샷의 고른 표시', () => {
   it('하나뿐이면 그대로다', () => {
     const as = [message(1, false), message(2, true)];
     expect(chosenOnce(as)).toEqual(as);
+  });
+});
+
+describe('접힌 거르기 판의 머리', () => {
+  it('걸러지지 않았으면 「전체」다', () => {
+    expect(filterSummary(NO_FILTERS)).toBe('전체');
+  });
+
+  it('거른 것을 판 안의 글자 그대로 잇는다', () => {
+    expect(
+      filterSummary(filtersOf({ review: 'open', reason: 'harassment', evidence: 'chat', ref: 'w-7k3f' })),
+    ).toBe(`안내번호 W-7K3F · 처리 필요 · ${reasonLabel('harassment')} · 대화 근거 있음`);
+  });
+});
+
+describe('같은 계정의 처리 필요 건수 — 지금 쪽 안에서', () => {
+  const row = (userId: string, isOpen: boolean) => ({ isOpen, reported: { userId } });
+
+  it('신고받은 계정마다 처리 필요만 센다', () => {
+    const counts = openByReported([row('a', true), row('b', true), row('a', true), row('a', false)]);
+    expect(counts.get('a')).toBe(2);
+    expect(counts.get('b')).toBe(1);
+  });
+
+  it('처리 완료뿐인 계정은 세지 않는다', () => {
+    expect(openByReported([row('c', false)]).has('c')).toBe(false);
   });
 });
