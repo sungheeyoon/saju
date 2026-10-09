@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bubbleDaysOf } from './bubbles';
+import { bubbleDaysOf, flaggable } from './bubbles';
 import type { ChatMessage } from './messages';
 
 const message = (seq: number, createdAt: string, mine: boolean, fromLeftPartner = false): ChatMessage => ({
@@ -50,5 +50,13 @@ describe('bubbleDaysOf', () => {
       message(2, '2026-09-22T11:00:10Z', false, false),
     ]);
     expect(day.bubbles.map((b) => b.first)).toEqual([true, true]);
+  });
+});
+
+describe('flaggable', () => {
+  it('상대의 말에만 깃발이 선다 — 내 말 · 떠난 사람의 말은 아니다', () => {
+    expect(flaggable({ mine: false, fromLeftPartner: false })).toBe(true);
+    expect(flaggable({ mine: true, fromLeftPartner: false })).toBe(false);
+    expect(flaggable({ mine: false, fromLeftPartner: true })).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
+import { ReportBlock } from '../requests/report-block';
 import { CardPhotos, pagesPhotos } from './card-photos';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
@@ -38,7 +39,8 @@ type DeckActions = { undo: () => void; pass: () => void; request: () => void; ca
 
 /**
  * 사진 판 — 지금 사람과 그 뒤에서 기다리는 다음 사람. `exit` 은 누른 쪽(`left` 넘김 · `right` 요청), `leaving` 은 빠지는 중.
- * `onInfo` 가 있으면 ⓘ 가 선다(폰만 — 넓은 화면은 옆 열이 같은 것을 든다).
+ * `onInfo` 가 있으면 ⓘ 가 선다(폰만 — 넓은 화면은 옆 열이 같은 것을 든다). 「⋯」(신고 · 차단)는 어느 폭에서나 오른쪽 끝에 선다 —
+ * 후보로 본 사람도 신고할 수 있다(PRD 「차단과 신고」, ADR 0158). 차단하면 `onBlocked` 가 그 사람을 덱에서 뺀다.
  */
 export function TodayCard({
   profile,
@@ -47,6 +49,7 @@ export function TodayCard({
   leaving,
   feedback,
   onInfo,
+  onBlocked,
 }: {
   profile: DeckCard;
   next: DeckCard | undefined;
@@ -54,6 +57,7 @@ export function TodayCard({
   leaving: boolean;
   feedback: ReactNode;
   onInfo: () => void;
+  onBlocked: () => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   /** 방금 떠난 카드와 방향 — 되돌려 오면 그쪽에서 들어온다 */
@@ -118,11 +122,20 @@ export function TodayCard({
           </span>
         )}
 
+        {/* 오른쪽 끝 — ⓘ 는 그 왼쪽이다(운영자 2026-10-09). 넓은 화면은 ⓘ 가 없어 이것만 선다 */}
+        <ReportBlock
+          userId={profile.candidateUserId}
+          nickname={profile.nickname}
+          look="photo"
+          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-3 z-10`}
+          onBlocked={onBlocked}
+        />
+
         <button
           type="button"
           aria-label="자세히 보기"
           onClick={onInfo}
-          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-3 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden`}
+          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-16 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden`}
         >
           <span aria-hidden="true" className="font-serif text-[1.2rem] font-bold italic">i</span>
         </button>
@@ -262,6 +275,7 @@ export function DetailSheet({
   sheet,
   nickname,
   label,
+  menu,
   children,
 }: {
   sheet: RefObject<HTMLDialogElement | null>;
@@ -269,6 +283,8 @@ export function DetailSheet({
   nickname: string;
   /** 보조기기가 읽는 시트 이름 — 없으면 「○○ 님 자세히」. 받은 요청 시트(`requests-band.tsx`)가 제 이름을 준다 */
   label?: string;
+  /** 머리의 「닫기」 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
+  menu?: ReactNode;
   children: ReactNode;
 }) {
   const press = useRef<number | null>(null);
@@ -310,10 +326,13 @@ export function DetailSheet({
         >
           <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong" />
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-rounded text-[1.5rem]">{nickname}</h2>
-            <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={close} className="min-h-11 rounded-full px-3 text-[14px] font-semibold text-secondary">
-              닫기
-            </button>
+            <h2 className="min-w-0 truncate font-rounded text-[1.5rem]">{nickname}</h2>
+            <span className="flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
+              {menu}
+              <button type="button" onClick={close} className="min-h-11 rounded-full px-3 text-[14px] font-semibold text-secondary">
+                닫기
+              </button>
+            </span>
           </div>
         </div>
         {children}

@@ -1,52 +1,37 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { REPORT_NOTE } from '@/src/lib/account';
 
-import {
-  REPORT_DETAIL_MAX,
-  REPORT_NOTE,
-  REPORT_REASONS,
-  type ReportReason,
-} from '@/src/lib/account';
-
-import { BUTTON_PRIMARY_SMALL, ICON_BUTTON } from '../../../ui/buttons';
+import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
+import { reportUser } from '../../requests/actions';
+import { ReportForm } from '../../requests/report-block';
 import { reportChatMessage } from '../actions';
 
-const FIELD =
-  'rounded-xl bg-surface px-3 text-[15px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]';
-
 /**
- * 메시지 하나를 고른 신고 — 입력 자리에 선다. 소식 화면의 `ReportButton` 과 같은 폼이고, 다른 것은 **무엇을
- * 고르는가**뿐이다. 사람이 아니라 메시지를 고르고, DB 가 그 메시지와 앞뒤 문맥을 그때 그대로 베껴 신고 곁에
- * 남긴다(PRD 「앱 내 채팅」 · ADR 0091). 사유 넷과 덧붙이는 말의 길이는 신고와 같다.
+ * 대화방의 신고 — 입력 자리에 선다. **메시지 고르기는 선택이다**(운영자 결정 2026-10-09, ADR 0158).
  *
- * 두 걸음이다 — 고르기 전에는 고르라는 말만(말풍선 곁에 깃발이 선다), 고르면 사유 칸이 선다.
+ * 예전에는 고르기 전에 「신고할 메시지를 골라 주세요」만 섰다. 상대 말이 없거나 · 보이는 200건 밖이거나 · 떠난 사람이면
+ * 고를 것이 없어 막다른 길이었다(화면 감사 2026-10-09 C1). 이제 제목은 그대로 고르기를 권하되 사유 칸이 곧장 서고(안 골라도
+ * 「신고하기」가 된다), 안내는 차단 한 줄뿐이다 — 폰에서 판이 낮아야 위 대화가 보인다. 상대 말풍선 곁의 깃발로 하나를
+ * 고르면 그 메시지와 앞뒤 문맥을 DB 가 그때 그대로 베껴 신고 곁에 남긴다(`report_chat_message`, ADR 0091). 안 고르면
+ * 그 사람을 신고한다(`report_user` — 소식 화면 · 인연 궁합과 같은 문). 둘 다 운영자 신고 화면의 같은 목록에 선다.
  */
 export function ReportPanel({
+  partnerUserId,
   messageId,
   onCancel,
   onDone,
+  onBlock,
 }: {
+  partnerUserId: string;
+  /** 깃발로 고른 상대 메시지 — 안 골랐으면 `null` */
   messageId: string | null;
   onCancel: () => void;
   onDone: () => void;
+  /** 열린 방에만 — 「차단으로 넘어가기」 */
+  onBlock?: () => void;
 }) {
-  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0].value);
-  const [detail, setDetail] = useState('');
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  const send = () => {
-    if (messageId === null) return;
-    setFailure(null);
-    startWorking(async () => {
-      const result = await reportChatMessage(messageId, reason, detail);
-      if (result.ok) onDone();
-      else setFailure(result.message);
-    });
-  };
-
   return (
     <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-[1.5rem] bg-surface-soft p-4 ring-1 ring-border">
       <div className="flex items-start justify-between gap-3">
@@ -54,52 +39,19 @@ export function ReportPanel({
           <Icon name="flag" className="size-[18px] text-danger" />
           {messageId === null ? '신고할 메시지를 골라 주세요' : '메시지 신고'}
         </p>
-        {/*
-          닫으면 이 판이 내려가며 적은 사유와 덧붙인 말이 사라진다 — 그래서 사유 칸이 선 뒤에는 「작성 그만두기」다.
-          메시지를 고르기 전에는 잃을 것이 없어 「취소」다(docs/context/copy.md §8 버튼 규칙, 2026-09-28).
-        */}
-        <button
-          type="button"
-          aria-label={messageId === null ? '취소' : '작성 그만두기'}
-          onClick={onCancel} disabled={working} className={ICON_BUTTON}>
+        {/* 닫으면 이 판이 내려가며 적은 사유와 덧붙인 말이 사라진다 — 「작성 그만두기」다(docs/context/copy.md §8) */}
+        <button type="button" aria-label="작성 그만두기" onClick={onCancel} className={ICON_BUTTON}>
           <Icon name="close" className="size-[18px]" />
         </button>
       </div>
       <p className="text-[13px] leading-5 text-secondary">{REPORT_NOTE}</p>
-      {messageId !== null && (
-        <>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-semibold text-secondary">신고 사유</span>
-            <select
-              value={reason}
-              onChange={(event) => setReason(event.target.value as ReportReason)}
-              className={`${FIELD} min-h-11`}
-            >
-              {REPORT_REASONS.map((one) => (
-                <option key={one.value} value={one.value}>
-                  {one.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-semibold text-secondary">덧붙일 말 (선택)</span>
-            <textarea
-              value={detail}
-              onChange={(event) => setDetail(event.target.value.slice(0, REPORT_DETAIL_MAX))}
-              maxLength={REPORT_DETAIL_MAX}
-              rows={2}
-              className={`${FIELD} py-2.5`}
-            />
-          </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={send} disabled={working} className={BUTTON_PRIMARY_SMALL}>
-              {working ? '보내는 중…' : '신고하기'}
-            </button>
-            {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
-          </div>
-        </>
-      )}
+      <ReportForm
+        send={(reason, detail) =>
+          messageId === null ? reportUser(partnerUserId, reason, detail) : reportChatMessage(messageId, reason, detail)
+        }
+        onDone={onDone}
+        onBlock={onBlock}
+      />
     </div>
   );
 }

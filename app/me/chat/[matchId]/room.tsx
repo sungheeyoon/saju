@@ -1,31 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { REPORT_DONE } from '@/src/lib/account';
 import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat';
-import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { withCameFrom } from '../../../came-from';
 import { elementScope } from '../../../ui/element-tone';
-import {
-  BUTTON_DANGER,
-  BUTTON_SECONDARY,
-  BUTTON_SECONDARY_SMALL,
-} from '../../../ui/buttons';
-import { useDetailsMenu } from '../../../ui/details-menu';
+import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
-import { blockUser } from '../../requests/actions';
+import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
 import { settlePending, withPending, type Pending } from './pending';
 import type { RoomTones } from '../tones';
-import { bubbleDaysOf, type Bubble, type ShownMessage } from './bubbles';
+import { bubbleDaysOf, flaggable, type Bubble, type ShownMessage } from './bubbles';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
 import { newestSeq, readAlready } from './thread';
@@ -63,7 +58,7 @@ type RoomView = {
 const TONED_PILL =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] px-4 text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
 
-/** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다 */
+/** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다(「⋯」도 같은 모양이다, `ReportBlockMenu`) */
 const GHOST_ICON =
   'grid size-11 shrink-0 place-items-center rounded-full text-foreground hover:bg-surface-soft active:scale-95';
 
@@ -150,9 +145,9 @@ function useScrollKeeper(messages: readonly ShownMessage[]) {
  * 이미 연 두 일간에서만 온다(`tones.ts`). 그 값이 없는 방(닫힌 방 · 떠난 상대 · 옛 Match)은 내 말이 먹색,
  * 상대 말이 회색 한 벌이다 — 지어낸 색은 그 사람에 대해 거짓을 말한다.
  *
- * 신고 · 차단은 머리의 「⋯」 안에 있다 — 말풍선마다 「신고」가 서 있으면 대화가 신고 목록처럼 읽힌다.
- * 신고는 고르는 걸음이 있어(PRD 「앱 내 채팅」) 누르면 상대 말풍선 곁에 깃발이 서고, 하나를 고르면 입력 자리에
- * 사유 칸이 선다. 차단은 입력 자리에 알림 글과 확인 단추가 선다.
+ * 신고 · 차단은 머리의 「⋯」 안에 있다 — 말풍선마다 「신고」가 서 있으면 대화가 신고 목록처럼 읽힌다. 인연 궁합 ·
+ * 오늘의 인연 카드와 같은 「⋯」다(`ReportBlockMenu`, ADR 0158). 신고를 누르면 입력 자리에 사유 칸이 곧장 서고, 상대
+ * 말풍선 곁에 깃발이 선다 — 하나를 고르면 메시지 신고, 안 고르면 사람 신고다. 차단은 입력 자리에 알림 글과 확인 단추가 선다.
  */
 export function ChatRoomView({ room }: { room: RoomView }) {
   const [slot, setSlot] = useState<Slot>({ kind: 'compose' });
@@ -217,8 +212,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           </span>
         )}
         {hasPartner && (
-          <RoomMenu
-            closed={closed}
+          <ReportBlockMenu
+            canBlock={!closed}
             onReport={() => {
               setReported(false);
               setSlot({ kind: 'report', messageId: null });
@@ -264,10 +259,10 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                     bubble={bubble}
                     room={room}
                     sending={pendingIds.has(bubble.id)}
-                    /* 신고는 상대의 말에만 선다 — 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다 */
-                    pickable={picking && !bubble.mine && !bubble.fromLeftPartner}
+                    /* 신고는 상대의 말에만 선다(`flaggable`). 고른 깃발을 다시 누르면 고르기가 풀린다 — 고르기는 선택이다 */
+                    pickable={picking && flaggable(bubble)}
                     chosen={picked === bubble.id}
-                    onPick={() => setSlot({ kind: 'report', messageId: bubble.id })}
+                    onPick={() => setSlot({ kind: 'report', messageId: picked === bubble.id ? null : bubble.id })}
                   />
                 ))}
               </ol>
@@ -290,15 +285,17 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
         {reported && slot.kind === 'compose' && (
           <p role="status" className="rounded-[1rem] bg-surface-soft px-4 py-2.5 text-[13px] text-secondary">
-            신고를 접수했습니다. 운영자가 확인합니다.
+            {REPORT_DONE}
           </p>
         )}
         {/* 차단이 끝나 다시 읽으면 방이 닫혀 있다 — 그때는 확인 칸 대신 닫힌 까닭이 선다 */}
         {slot.kind === 'block' && !closed && room.partnerUserId !== null ? (
-          <BlockAsk userId={room.partnerUserId} onCancel={() => setSlot({ kind: 'compose' })} />
-        ) : slot.kind === 'report' ? (
+          <BlockConfirm userId={room.partnerUserId} onCancel={() => setSlot({ kind: 'compose' })} />
+        ) : slot.kind === 'report' && room.partnerUserId !== null ? (
           <ReportPanel
+            partnerUserId={room.partnerUserId}
             messageId={slot.messageId}
+            onBlock={closed ? undefined : () => setSlot({ kind: 'block' })}
             onCancel={() => setSlot({ kind: 'compose' })}
             onDone={() => {
               setReported(true);
@@ -344,52 +341,6 @@ function Activity({ band }: { band: ActivityBand }) {
       <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${dot}`} />
       {activityText(band)}
     </p>
-  );
-}
-
-/**
- * 「⋯」 — 신고 · 차단. 닫힌 방은 차단할 것이 없고(이미 끊겼다) 신고만 남는다.
- *
- * 여는 방식은 계정 메뉴 · 사람 관리 메뉴와 같다 — `<details>` 하나에 바깥 누름과 Esc 로 닫는 자리를 단다
- * (`useDetailsMenu`). Esc 로 닫으면 초점이 「⋯」로 돌아온다. 고르면 먼저 닫고 그 칸을 세운다.
- */
-function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: () => void; onBlock: () => void }) {
-  const { menu, close } = useDetailsMenu();
-
-  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
-
-  return (
-    <details ref={menu} className="relative shrink-0">
-      <summary aria-label="신고 · 차단" className={`${GHOST_ICON} list-none [&::-webkit-details-marker]:hidden`}>
-        <Icon name="more" />
-      </summary>
-      <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
-        <button
-          type="button"
-          className={`${item} text-foreground`}
-          onClick={() => {
-            close();
-            onReport();
-          }}
-        >
-          <Icon name="flag" className="size-[18px]" />
-          신고
-        </button>
-        {!closed && (
-          <button
-            type="button"
-            className={`${item} text-danger`}
-            onClick={() => {
-              close();
-              onBlock();
-            }}
-          >
-            <Icon name="block" className="size-[18px]" />
-            차단
-          </button>
-        )}
-      </div>
-    </details>
   );
 }
 
@@ -531,39 +482,5 @@ function BubbleRow({
         )}
       </div>
     </li>
-  );
-}
-
-/** 차단 — 두 걸음: 알림 글과 확인 단추. 되돌릴 수 없어서 위험 색의 주 단추다 */
-function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }) {
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  const block = () => {
-    setFailure(null);
-    startWorking(async () => {
-      // 방이 닫혔다 — 액션의 응답이 이 방을 다시 그려 입력 자리에 닫힌 까닭이 선다(`requests-changed` 의 `THIS_SCREEN`)
-      const result = await blockUser(userId);
-      if (!result.ok) setFailure(result.message);
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-[1.5rem] bg-danger-wash p-4 ring-1 ring-danger/30">
-      <p className="flex items-center gap-2 text-[15px] font-bold text-danger">
-        <Icon name="block" className="size-[18px]" />
-        차단
-      </p>
-      <p className="text-[14px] leading-6 text-foreground">{BLOCK_NOTE}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={block} disabled={working} className={BUTTON_DANGER}>
-          {working ? '차단하는 중…' : '차단하기'}
-        </button>
-        <button type="button" onClick={onCancel} disabled={working} className={BUTTON_SECONDARY}>
-          취소
-        </button>
-        {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
-      </div>
-    </div>
   );
 }

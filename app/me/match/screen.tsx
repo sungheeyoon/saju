@@ -13,7 +13,7 @@ import { PillarPair } from '../../compat-view';
 import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../ui/surfaces';
-import { BlockButton } from '../requests/manage';
+import { ReportBlock } from '../requests/report-block';
 import { ReadingSection } from '../reading/section';
 import { backOf, placeOf } from '../../came-from';
 import { matchResultForViewer, type SharedResult } from './result';
@@ -93,13 +93,22 @@ export async function MatchScreen({
           <p className="text-[13px] font-semibold text-secondary">인연</p>
           <div className="flex items-center justify-between gap-3">
             <Title className={TYPE_TITLE}>인연 궁합</Title>
-            {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
-            {toRoom !== null && (
-              <Link href={toRoom} className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
-                <Icon name="chat" className="size-[18px]" />
-                {CHAT_TAB_LABEL}
-              </Link>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
+              {toRoom !== null && (
+                <Link href={toRoom} className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
+                  <Icon name="chat" className="size-[18px]" />
+                  {CHAT_TAB_LABEL}
+                </Link>
+              )}
+              {/*
+                **끊는 자리는 머리의 「⋯」다**(운영자 결정 2026-10-09, ADR 0158). 차단이 풀이와 긴 설문 아래 글 끝에 혼자
+                있었다 — 대화방과 같은 「⋯」에 신고와 함께 둔다. 닫힌 결과에는 상대가 안 실려 와 서지 않는다.
+              */}
+              {outcome.kind === 'ok' && (
+                <ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />
+              )}
+            </div>
           </div>
           <p className="text-[15px] leading-6 text-secondary">
             두 분 모두 같은 글과 같은 점수를 봐요.
@@ -171,14 +180,6 @@ function Result({ result }: { result: SharedResult }) {
         */
         tones={[STEM_INFO[result.charts.a.dayMaster].element, STEM_INFO[result.charts.b.dayMaster].element]}
       />
-
-      {/*
-        **다 읽은 사람이 끊는 자리** — 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`). 방으로 가는 단추는 머리로
-        올라갔다(2026-10-09) — 여기 함께 두면 한 화면에 같은 이름의 단추가 둘이다.
-      */}
-      <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <BlockButton userId={result.partnerUserId} />
-      </div>
     </>
   );
 }

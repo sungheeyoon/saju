@@ -33,6 +33,14 @@ export type Bubble = {
   readonly last: boolean;
 };
 
+/**
+ * 깃발을 꽂을 수 있는 말 — 상대의 말만이다. 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다(ADR 0094).
+ * 깃발이 하나도 안 서도 신고 판은 사람 신고로 보낼 수 있다(ADR 0158).
+ */
+export function flaggable(message: { readonly mine: boolean; readonly fromLeftPartner: boolean }): boolean {
+  return !message.mine && !message.fromLeftPartner;
+}
+
 export type BubbleDay = {
   readonly key: string;
   /** 「2026년 9월 22일」 — 목록의 날짜 표기(`messageTimeLabel`)와 같은 모양이다 */
