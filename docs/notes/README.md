@@ -107,7 +107,7 @@ smoke 값은 PR · 배포 기록 · `docs/product/gaps.md` 가 원본이고 노�
 
 | 무엇 | 어디 | 메모 |
 | --- | --- | --- |
-| 화면 갤러리(65화면 · 팝업 · 로딩 × 두 폭) | <https://claude.ai/artifact/38WMpTFWyA1gZbcjpQUorw> | 찍는 법은 `ui-walk-and-gallery.md`. 2026-10-09 감사 전. 고친 뒤 지금 화면은 <https://claude.ai/artifact/JuMBN7odh4bydXzcsSF7Wo> |
+| 화면 갤러리(87화면 · 팝업 · 로딩 · 운영자 × 두 폭 + UI/UX 검토 54건) | <https://claude.ai/artifact/2RhauAssYRDj7dLoJ96ki6> | 2026-10-09 2차. 「남은 것」 필터가 다음 점검의 출발점(그림은 고치기 전). 찍는 법은 `ui-walk-and-gallery.md`, 사정은 `2026-10-09-ui-review-round.md` |
 | 점점 화면 문구 대장 — 보기용 | <https://claude.ai/code/artifact/263b0f15-c2f5-48a1-a327-d747a58ed639> | **원본은 2026-09-29 에 `docs/product/copy-ledger.md` 로 옮겼다** — 아티팩트는 보기용이고 옛 판(2026-09-03)의 「과거 기록」만 거기 있다. 규칙의 원본은 `CONTEXT.md` §8. 남은 「결정 필요」는 `docs/product/gaps.md` G-05 · G-36 |
 | overlaps A/B 블라인드 | <https://claude.ai/code/artifact/49ead318-80b6-4431-a977-b6bdc94abc74> | 결론은 `async-generation-and-overlaps-ab.md` |
 | 서울 이전 대장 | <https://claude.ai/code/artifact/a3927607-808c-4405-981e-b3a15f0fb51c> | 남은 규칙은 runbook |
