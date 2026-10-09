@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { currentSchedule } from '../beta-schedule';
-import { Logo } from '../ui/logo';
-import { PAPER, TYPE_TITLE } from '../ui/surfaces';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
+import { NoticeScreen } from '../ui/notice-screen';
 import { betaIsOver, betaOverNote } from '@/src/lib/consent';
 
 export const metadata = {
@@ -28,9 +28,6 @@ export const metadata = {
  * 계정 관리로 가는 길을 낸다. 종료일과 파기 사이는 자료가 아직 남아 있는 기간이고,
  * 그때야말로 철회와 삭제 요청이 필요하다.
  */
-const INLINE_LINK =
-  'font-semibold text-foreground underline decoration-2 underline-offset-4 hover:decoration-foreground';
-
 export default async function ClosedPage() {
   const supabase = await supabaseOnServer();
   const schedule = await currentSchedule(supabase);
@@ -42,29 +39,32 @@ export default async function ClosedPage() {
   */
   if (notice === null || !betaIsOver(notice.dates, new Date())) redirect('/me');
 
+  /*
+    인사하는 자리지만 다른 막힌 화면과 같은 안내 화면의 틀이다(2026-10-09 화면 점검 A5) — 앞서는 넓은 크림 판에 단추가
+    없고 길이 글 안의 밑줄 링크뿐이었다. 글자는 그대로이고 그 두 길(계정 관리 · 처리방침)이 단추가 됐다. 종료와 파기의
+    고지라 합니다체를 둔다(ADR 0135 — 이용 제한 · 삭제 · 보존의 고지).
+  */
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
-      {/* 인사하는 자리라 크림 판 한 장이다. 링크는 글 안에 두되 밑줄 굵기로 누를 것임을 말한다 */}
-      <section className={`flex flex-col gap-4 ${PAPER}`}>
-        <Logo className="size-11" />
-        <h1 className={TYPE_TITLE}>비공개 테스트가 끝났습니다</h1>
-        <p className="text-[15px] leading-7 text-cream-ink">{betaOverNote(notice.dates)}</p>
-        <p className="text-[15px] leading-7 text-cream-ink">
-          함께해 주셔서 고맙습니다. 남은 문의는{' '}
-          <Link href="/privacy" className={INLINE_LINK}>
-            처리방침
-          </Link>
-          에 적힌 연락처로 알려 주세요.
-        </p>
-        {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
-        <p className="text-[15px] leading-7 text-cream-ink">
-          선택 동의 철회와 탈퇴 신청은{' '}
-          <Link href="/me/settings" className={INLINE_LINK}>
+    <NoticeScreen
+      title="비공개 테스트가 끝났습니다"
+      description={
+        <>
+          <p>{betaOverNote(notice.dates)}</p>
+          <p>함께해 주셔서 고맙습니다. 남은 문의는 처리방침에 적힌 연락처로 알려 주세요.</p>
+          {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
+          <p>선택 동의 철회와 탈퇴 신청은 계정 관리에서 계속하실 수 있습니다.</p>
+        </>
+      }
+      actions={
+        <>
+          <Link href="/me/settings" className={BUTTON_PRIMARY}>
             계정 관리
           </Link>
-          에서 계속하실 수 있습니다.
-        </p>
-      </section>
-    </main>
+          <Link href="/privacy" className={BUTTON_SECONDARY}>
+            처리방침
+          </Link>
+        </>
+      }
+    />
   );
 }

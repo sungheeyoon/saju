@@ -451,7 +451,7 @@ for (const kind of ['readings', 'people', 'compat']) {
   const missing = await get(`/share/${kind}/0123456789abcdef0123456789abcdef`);
   const missingHtml = await missing.text();
   check(`${kind} — 없는 토큰은 404 로 안내한다`,
-    missing.status === 404 && missingHtml.includes('열 수 없는 링크입니다'), `HTTP ${missing.status}`);
+    missing.status === 404 && missingHtml.includes('열 수 없는 링크예요'), `HTTP ${missing.status}`);
 }
 
 // ── 다시 만들어도 보낸 글은 그대로 ─────────────────────────────────────────
