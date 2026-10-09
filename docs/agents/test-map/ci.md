@@ -21,7 +21,7 @@
 | 계획 밖 이벤트(일정 · 손으로 켠 실행) · `full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름 | 전부 — `core` · `anon` · `authed` 여덟 · `flow` |
 | main 푸시 — 푸시 전 SHA(`github.event.before`)부터의 변경 전체가 정책 · 주석만 바뀐 코드 파일뿐이고 푸시 전 SHA 의 verify 가 초록으로 끝났다(ADR 0154, 판정은 `ci-plan.mjs` 「문서만 바뀐 main 푸시」). 그 밖 · 0 SHA · 강제 갱신 · 앞 실행이 끊김 · 붉음 · 못 읽음은 전부 | `policy` 만(`audit` 도 건너뛴다). `ci-main-red` 는 이 초록으로 이슈를 닫지 않고 「마지막 초록」으로도 안 센다 |
 | 주석만 바뀐 코드 파일 — base(merge-base)와 구문 나무가 같고 뜻이 있는 주석이 그대로(ADR 0153, 판정은 `ci-plan.mjs` 「주석만 바뀐 코드 파일」, PR 에서만) | 정책으로 센다 — 아래 줄은 나머지 파일로 잰다 |
-| 문구만 바뀐 파일 — 화면 문구 자리(JSX 글자 · `COPY_FILES` 의 상수 값)의 글자만 base 와 다르고 나무는 같다(ADR 0159, 판정은 `ci-plan.mjs` 「문구만 바뀐 파일」, 운영 베타의 PR 에서만). 속성 · 조건 · 핸들러 · 구조 · 템플릿 · 목록 밖 문자열이 섞이거나 판별이 불확실하면 지금 규칙 | 아래 줄에서 빼고 `core` + **옛 글자를 말하는 시험**(`e2e/**` · `scripts/check-*.mjs`)의 차선 — spec 이 아닌 `e2e/**` 면 전부. 공용 위험 자리라도 그렇다. 검색은 검사를 더하는 근거일 뿐이고, 동적으로 조합한 selector 는 머지 뒤 main 의 전체가 잡는다 |
+| 문구만 바뀐 파일 — 화면 문구 자리(JSX 글자 · `COPY_FILES` 의 상수 값)의 글자만 base 와 다르고 나무는 같다(ADR 0159, 판정은 `ci-plan.mjs` 「문구만 바뀐 파일」, 운영 베타의 PR 에서만). 속성 · 조건 · 핸들러 · 구조 · 템플릿 · 목록 밖 문자열이 섞이거나 판별이 불확실하면 지금 규칙 | 아래 줄에서 빼고 `core` + **바뀐 자리의 옛 글자나 새 글자를 말하는 시험**(`e2e/**` · `scripts/check-*.mjs`)의 차선 — spec 이 아닌 `e2e/**` 면 전부. 공용 위험 자리라도 그렇다. 검색은 검사를 더하는 근거일 뿐이고, 동적으로 조합한 selector 는 머지 뒤 main 의 전체가 잡는다 |
 | **공용 위험**이 하나라도(`ci-plan.mjs` 의 `SHARED_RISK`) — 관문(`proxy.ts` · `src/lib/consent/**`) · 인증(`app/auth/**`) · `app/**/layout.tsx` · `app/**/route.ts` · 서버 액션(`actions.ts` · `SERVER_ACTIONS_ELSEWHERE`) · spec 이 아닌 `e2e/**` · 시험 도구(`HARNESS` · CI · 개발 도구가 아닌 `scripts/*.mjs`) · Next 공용 경계(`app/` 뿌리의 `global-error.tsx` · `global-not-found.tsx`, `app/**/forbidden.tsx` · `app/**/unauthorized.tsx` · 뿌리의 `instrumentation.ts` · `instrumentation-client.ts` · `middleware.ts`). `*.test.ts` 는 빼고 | 전부 — 까닭에 갈래 이름이 실린다 |
 | 정책만(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy` — 31초(#153) |
 | `e2e/*.spec.ts` | `core` + 그 spec 을 부르는 차선(`package.json` 의 `test:e2e:<차선>`). 로그인 무늬(`AUTHED` · `NOTICE`)인데 부르는 차선이 없으면 전부, 그 밖 spec 은 `anon` |
@@ -41,8 +41,9 @@
 **문구 변경의 머지와 배포**(운영자 2026-10-09, ADR 0159) — 사용자가 확인한 문구 변경은 필요한 PR 검사가 통과하면 재승인 없이
 squash-merge 하고 배포한다. 동작 변경이 없다고 판별된 경우 main 전체 CI 완료는 배포의 대기 조건으로 두지 않는다. 문서만 변경한
 경우 앱을 배포하지 않는다. 「문구」는 위 표의 「문구만 바뀐 파일」 줄이고, 「판별」은 `node scripts/deploy-range.mjs` 다 — 마지막으로
-전부를 잰 main 의 초록부터 올릴 SHA 까지를 같은 판정으로 가르고 범위의 PR 마다 `gate` 를 읽는다(`docs/ops/runbook/deploy.md`
-「묶음 배포」의 0). 기다리지 않고 올려도 main 의 전체는 뒤에서 돌고, 붉으면 `ci-main-red` 로 대응한다.
+전부를 잰 main 의 초록(GitHub 에서 읽는다 — `--from` 이 대신하지 못한다)부터 올릴 SHA 까지를 **커밋마다** 같은 판정으로 가르고 범위의
+PR 마다 `gate` 의 최신 실행을 읽는다(`docs/ops/runbook/deploy.md` 「묶음 배포」의 0). 기다리지 않으면 배포 전 검증이 준다 — main 의
+전체는 배포 뒤에 끝나고, 붉으면 `ci-main-red` 로 대응한다.
 
 **라벨만 달면 다시 안 돈다** — `pull_request` 트리거에 `labeled` 가 없어서, `full-ci` 를 단 뒤 커밋을 하나 더 밀어야 전부가
 선다. 라벨은 더할 수만 있다.

@@ -17,7 +17,7 @@
 | 코드 · 문서 수정, 작업 가지 커밋 · 푸시, PR 생성 · 갱신 | 허용 |
 | gate 통과 뒤 `--auto` 머지 — 결정이 아닌 PR | 허용 |
 | main 직접 푸시 | 금지 — 보호 규칙이 막는다(ADR 0121) |
-| `docs/agents/delegation/decisions.md` 「결정 점검표」에 걸리는 PR — 새 문구 · 정책 · 접근 · 실패 때 여닫음 · 보존 · 비용 · 화면 흐름 · 메뉴 구조 | PR 까지 만들고 머지하지 않는다. 아침 보고의 「결정 대기」로 |
+| `docs/agents/delegation/decisions.md` 「결정 점검표」에 걸리는 PR — 새 문구 · 정책 · 접근 · 실패 때 여닫음 · 보존 · 비용 · 검증 · 배포의 문턱 · 화면 흐름 · 메뉴 구조 | PR 까지 만들고 머지하지 않는다. 아침 보고의 「결정 대기」로 |
 | 운영 `db push` | 운영 베타에서는 묻지 않고 밟고 **본 값을 적는다** — `migration list` 의 remote 칸과 PostgREST 캐시(`docs/agents/delegation/permissions.md` 「권한 등급」 표, ADR 0093). 마이그레이션이 든 PR 은 push 와 확인이 끝난 뒤에 `--auto` 다 |
 | 실호출 | 에이전트는 안 한다 — 운영자가 직접 돌린다(운영자 답 2026-09). 에이전트는 명령과 확인할 값을 PR 에 적어 건넨다 |
 | 운영 배포 | 「배포」 답을 받은 뒤다(`docs/agents/delegation/coordinator.md` 「머지는 배포가 아니다」) |

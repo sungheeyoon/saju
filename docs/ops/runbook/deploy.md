@@ -5,7 +5,7 @@
 ## 배포
 
 **`main` 에 머지해도 배포되지 않는다**(ADR 0110). `vercel.json` 의 `git.deploymentEnabled: false` 가 가지 · `main` 의 푸시로
-생기는 배포를 전부 끈다 — Preview 도 Production 도 없다. 운영(주소는 `docs/ops/runbook/domain.md` 맨 위)에는 **기능 묶음이 끝났을 때
+생기는 배포를 전부 끈다. 운영(주소는 `docs/ops/runbook/domain.md` 맨 위)에는 **기능 묶음이 끝났을 때
 `main` 의 정확한 SHA 를 손으로 한 번** 올린다(아래 「묶음 배포」). 화면 확인은 로컬 e2e 와 스크린샷으로 하고, 밖에서 열어 볼
 주소가 꼭 필요할 때만 Preview 를 손으로 하나 만든다(`vercel deploy`, `--prod` 없이).
 
@@ -35,8 +35,8 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 
 0. **올리기 전에.** 올리라고 한 변경은 그 PR 이 main 에 들면 올린다(ADR 0152). 묶음이면 머지를 기다리는 PR 이 없는지(`gh pr list`),
    `node scripts/deploy-range.mjs` 가 `wait` 면 `main` CI 가 초록인지(ADR 0159), 지난
-   배포 뒤 `supabase/migrations/**` 가 바뀌었으면 **DB 를 먼저** 올리고 확인했는지(아래 규약 넷의 2 · 4) 본다. 올릴
-   `main` 의 SHA 를 적는다. 한도 창의 남은 자리를 본다 — 모자라면 기다린다. `--from <운영 SHA>` 로 `docs-only` 면 안 올린다
+   배포 뒤 `supabase/migrations/**` 가 바뀌었으면 **DB 를 먼저** 올리고 확인했는지(아래 규약 넷의 2 · 4) 본다. 1 은
+   출력의 `head` 를 그대로 올린다. 한도 창의 남은 자리를 본다. `--from <운영 SHA>` 가 `docs-only` 면 안 올린다(운영 SHA 는 근거가 아니다)
 1. **최신 main 을 Production 으로 올린다.** 깨끗한 `main` 체크아웃(또는 그 SHA 의 워크트리)에서 `vercel deploy --prod`, 아니면
    Vercel → Deployments → 「Create Deployment」에 `main` 을 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
    밀어 깨우지 않는다 — Git 배포는 꺼져 있어 아무 일도 안 일어난다

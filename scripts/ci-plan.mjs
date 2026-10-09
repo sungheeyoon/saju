@@ -174,21 +174,22 @@
  * 가른다: 문구 자리의 잎을 글자 없이 `종류:<문구>` 로 적은 나무와 뜻이 있는 주석이 base 와 같고, 그 자리의 글자가 하나 이상 다르다
  * (`copyOnlyChanged`). 판정은 `app/**` · `src/**` 의 시험 아닌 코드 파일에서만 한다. 주석만 바뀐 파일은 먼저 정책으로 빠진다.
  *
- * - **인정하는 자리는 둘뿐이다** — JSX 글자(요소 사이의 글자, `option` · `textarea` · `style` · `script` 안은 빼고), 그리고 `COPY_FILES`
- *   의 파일이 모양(`export const 이름 = '글자'` 만, `copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. 「상수의 문자열」이라는
+ * - **인정하는 자리는 둘뿐이다** — JSX 글자(요소 사이의 글자, `option` · `textarea` · `style` · `script` 안은 몇 겹 아래든
+ *   빼고), 그리고 `COPY_FILES` 의 파일이 모양(`export const 이름 = '글자'` 만, `copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. 「상수의 문자열」이라는
  *   까닭만으로는 안 센다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다. 목록의 파일이 모양을 지키는지와 그 이름을 화면
  *   (`.tsx`)과 시험만 부르는지는 시험이 잰다
  * - **인정하지 않는 것** — JSX 속성 값 전부(`className` · `href` · `src` · `aria-*` · `role` · `data-*` …) · 조건식 · 이벤트 핸들러 ·
  *   식별자 · 구조(요소 · JSX 주석 `{/* *\/}` 을 새로 세움) · 템플릿 리터럴(식도 글자 조각도) · 목록 밖 문자열. 문구와 이것이 한 파일에
  *   섞이면 그 파일은 지금 규칙 그대로다
  * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
- * - **옛 글자를 찾는 시험의 차선을 더한다** — 바뀌기 전 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면(통째로, 또는 시험의
- *   리터럴 글자 넉 자 이상이 옛 글자의 조각이면) 그 spec 의 차선 · `flow` 를 켠다. spec 이 아닌 `e2e/**` 면 전부다. **이 검색은 검사를
+ * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
+ *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 정규식은 확실히 풀 수 있는 모양만
+ *   글자로 풀고, 그 밖은 글자 조각이 바뀐 글자 안에 있으면 켠다(`regexShape`). spec 이 아닌 `e2e/**` 면 전부다. **이 검색은 검사를
  *   더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 안 걸리고, 그 구멍은 머지 뒤 main 의 전체와 `ci-main-red` 가 잡는다
  * - 공개 출시 · main 푸시 · 일정 · 손으로 켠 실행은 문구만이어도 지금 규칙 그대로다
  *
- * 같은 판정을 묶음 배포가 쓴다 — 마지막으로 전부를 잰 main 의 초록부터 올릴 SHA 까지가 정책 · 주석만 · 문구만뿐이고 PR 마다 `gate` 가
- * 초록이면 배포가 main 의 전체 CI 를 기다리지 않는다(`deployRangeOf`, `scripts/deploy-range.mjs`).
+ * 같은 판정을 묶음 배포가 쓴다 — 마지막으로 전부를 잰 main 의 초록부터 올릴 SHA 까지의 **커밋마다** 정책 · 주석만 · 문구만뿐이고
+ * PR 마다 `gate` 가 초록이면 배포가 main 의 전체 CI 를 기다리지 않는다(`deployRangeOf`, `scripts/deploy-range.mjs`).
  *
  * ## 문서만 바뀐 main 푸시는 `policy` 만 (ADR 0154)
  *
@@ -628,8 +629,12 @@ export function onlyCommentsChanged(ts, file, before, after) {
  */
 export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/matching/copy.ts'];
 
-/** 글자가 화면 글자가 아닌 요소 — 그 글자가 값(`option` 은 `value` 가 없으면 글자를 보낸다 · `textarea`)이거나 코드(`style` · `script`)다 */
-const NOT_SCREEN_TEXT = new Set(['option', 'textarea', 'style', 'script']);
+/**
+ * 글자가 화면 글자가 아닌 요소 — 그 글자가 값(`option` 은 `value` 가 없으면 글자를 보낸다 · `textarea`)이거나 코드(`style` · `script` ·
+ * `next/script` 의 `Script`)다. 그 안은 몇 겹 아래든(요소 · 프래그먼트 · 식) 자리가 아니다. 이름을 모르는 대문자 컴포넌트
+ * (`Button` · `Link` …)의 글자는 화면 글자로 센다 — 대개 그 자식을 그대로 그리고, 값 · 코드로 받는 것은 여기 이름으로 든다
+ */
+const NOT_SCREEN_TEXT = new Set(['option', 'textarea', 'style', 'script', 'Script']);
 
 /**
  * 문구 상수 파일의 모양 — 문 하나하나가 `export const 이름 = '글자'`(따옴표 · 식 없는 백틱, 타입 표기 없음) 하나다. 하나라도
@@ -660,7 +665,7 @@ export function copyConstantsShape(ts, tree) {
 }
 
 /**
- * 화면 문구 자리 — 인정하는 것은 둘뿐이다. ① JSX 글자(요소 사이의 글자, `NOT_SCREEN_TEXT` 안은 빼고) ② `COPY_FILES` 의
+ * 화면 문구 자리 — 인정하는 것은 둘뿐이다. ① JSX 글자(요소 사이의 글자, `NOT_SCREEN_TEXT` 안은 몇 겹 아래든 빼고) ② `COPY_FILES` 의
  * 파일이 모양(`copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. JSX 속성 값(`className` · `href` · `aria-*` …) · 식 ·
  * 템플릿의 식 · 그 밖의 문자열은 자리가 아니다 — 그대로 나무의 글자로 견준다
  *
@@ -674,13 +679,54 @@ function copySlotsOf(ts, file, tree) {
   if (COPY_FILES.includes(file) && copyConstantsShape(ts, tree)) {
     for (const statement of tree.statements) slots.add(statement.declarationList.declarations[0].initializer);
   }
-  const visit = (node, element) => {
-    if (node.kind === ts.SyntaxKind.JsxText && !NOT_SCREEN_TEXT.has(element)) slots.add(node);
-    const inner = ts.isJsxElement(node) ? node.openingElement.tagName.getText(tree) : ts.isJsxFragment(node) ? '' : element;
-    ts.forEachChild(node, (child) => visit(child, inner));
+  // 빼는 것은 조상 전체로 내려간다 — `<option><span>글자</span></option>` 의 글자도 `option` 의 값이다. 바로 위 요소만 보면 그 글자가
+  // 문구로 통과했다(2026-10-09 외부 검토)
+  const visit = (node, excluded) => {
+    if (node.kind === ts.SyntaxKind.JsxText && !excluded) slots.add(node);
+    const inside = excluded || (ts.isJsxElement(node) && NOT_SCREEN_TEXT.has(node.openingElement.tagName.getText(tree)));
+    ts.forEachChild(node, (child) => visit(child, inside));
   };
-  visit(tree, '');
+  visit(tree, false);
   return slots;
+}
+
+/** 문구 상수를 값으로 받아도 되는 JSX 속성 — 화면 · 보조 기술에 글자로만 서는 것. `href` · `id` · `key` · `data-*` 같은 값은 안 된다 */
+export const COPY_ATTRIBUTES = ['aria-label', 'title', 'alt', 'placeholder'];
+
+/**
+ * 문구 상수가 문구 자리 밖에서 쓰인 곳 — `names` 의 식별자가 JSX 자식 식 `{NAME}` 이나 `COPY_ATTRIBUTES` 의 값 `attr={NAME}` 이
+ * 아닌 자리(다른 속성 · 함수 인자 · 비교 · 키 · 변수 값 …)에 서면 `이름:줄` 로 든다. import · export 의 이름 자리는 쓰임이 아니다.
+ * 모양 잠금만으로는 `src/lib/*\/copy.ts` 에 경로를 두고 `<a href={PATH}>` 로 써도 그 값 변경이 문구로 셌다(2026-10-09 외부 검토).
+ * 파싱이 실패하면 그 파일 전체를 하나로 든다
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {string} file
+ * @param {string} source
+ * @param {readonly string[]} names
+ * @returns {string[]}
+ */
+export function copyConstantMisuses(ts, file, source, names) {
+  const kind = SCRIPT_KINDS[posix.extname(file)];
+  if (!kind) return [`${file}: 가르지 않는 확장자`];
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind[kind]);
+  if (tree.parseDiagnostics?.length !== 0) return [`${file}: 파싱 실패`];
+  const found = [];
+  const allowed = (node) => {
+    const parent = node.parent;
+    if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)) return true;
+    if (!ts.isJsxExpression(parent) || parent.expression !== node) return false;
+    const holder = parent.parent;
+    if (ts.isJsxElement(holder) || ts.isJsxFragment(holder)) return true;
+    return ts.isJsxAttribute(holder) && COPY_ATTRIBUTES.includes(holder.name.getText(tree));
+  };
+  const visit = (node) => {
+    if (ts.isIdentifier(node) && names.includes(node.text) && !allowed(node)) {
+      found.push(`${node.text}:${tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1}`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  return found;
 }
 
 /** 문구로 가를 수 있는 파일 — 앱 소스(`app/**` · `src/**`)의 시험 아닌 코드 파일. 시험 · 도구 · 설정은 가르지 않는다 */
@@ -689,8 +735,21 @@ const copyJudged = (file) => /^(?:app|src)\//.test(file) && !isTestFile(file) &&
 /** 글자를 견줄 모양 — 공백을 하나로 접고 양 끝을 걷는다. JSX 글자는 줄바꿈 · 들여쓰기를 끼고 화면에는 한 칸으로 선다 */
 const squeezed = (text) => text.replace(/\s+/g, ' ').trim();
 
+/** JSX 글자의 엔티티 — 화면에는 푼 글자로 서므로 풀어서 견준다(`&nbsp;` 는 공백이라 `squeezed` 가 한 칸으로 접는다) */
+const ENTITIES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", hellip: '…', middot: '·', mdash: '—', ndash: '–' };
+const decoded = (text) =>
+  text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name) => {
+    if (name[0] === '#') {
+      const code = name[1] === 'x' || name[1] === 'X' ? Number.parseInt(name.slice(2), 16) : Number(name.slice(1));
+      return Number.isFinite(code) && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+    }
+    return ENTITIES[name] ?? whole;
+  });
+
 /**
- * 옛 소스와 지금 소스가 **화면 문구 자리의 글자만** 다른가 — 그렇다면 바뀌기 전 글자들, 아니면 `null`.
+ * 옛 소스와 지금 소스가 **화면 문구 자리의 글자만** 다른가 — 그렇다면 바뀐 자리의 **앞뒤 글자**(옛 글자 다음에 새 글자, 엔티티를
+ * 풀고 공백을 접은 것), 아니면 `null`. 새 글자도 드는 것은 그것을 찾는 시험(`getByRole({ name })` · 「없어야」 하는 글자)도 차선을
+ * 켜야 해서다(2026-10-09 외부 검토).
  * 문구 자리를 가린 나무 · 뜻이 있는 주석이 같고 글자가 하나 이상 달라야 한다. 판별이 불확실하면 `null` 이다 —
  * 파서 없음 · 한쪽이 없음(추가 · 삭제 · 이름 바꿈) · 파싱 실패 · 가르지 않는 자리 · 글자째 같음 · 주석만 바뀜
  *
@@ -707,12 +766,12 @@ export function copyOnlyChanged(ts, file, before, after) {
   if (old === null || now === null) return null;
   const same = (a, b) => a.length === b.length && a.every((one, at) => one === b[at]);
   if (!same(old.tokens, now.tokens) || !same(old.meaningful, now.meaningful)) return null;
-  const gone = old.slots.filter((text, at) => text !== now.slots[at]);
-  if (gone.length === 0) return null;
-  return [...new Set(gone.map(squeezed).filter((text) => text !== ''))];
+  const texts = old.slots.flatMap((text, at) => (text === now.slots[at] ? [] : [text, now.slots[at]]));
+  if (texts.length === 0) return null;
+  return [...new Set(texts.map((text) => squeezed(decoded(text))).filter((text) => text !== ''))];
 }
 
-/** 바뀐 파일 중 문구만 바뀐 것과 그 옛 글자 — 파서가 없으면 없다 */
+/** 바뀐 파일 중 문구만 바뀐 것과 그 앞뒤 글자 — 파서가 없으면 없다 */
 const copyOnlyOf = (changed, { sourceOf, baseSourceOf, ts }) => {
   const found = new Map();
   if (ts === null) return found;
@@ -723,11 +782,90 @@ const copyOnlyOf = (changed, { sourceOf, baseSourceOf, ts }) => {
   return found;
 };
 
-/** 시험 소스의 따옴표 · 백틱 · 정규식 리터럴 속 글자 — 옛 글자의 한 조각을 찾는 시험(`getByText('수락하면')` · `/채팅방이/`)도 잡으려고 */
+/** 정규식에서 글자 그대로가 아닌 기호 — 이스케이프(`\.`)로만 글자가 된다 */
+const REGEX_SYNTAX = '\\^$|.*+?()[]{}';
+
+/**
+ * 정규식 본문이 무엇을 찾는가 — **확실히 풀 수 있는 모양**이면 `{ literals }`: 글자 그대로이거나 기호를 이스케이프한 것(`\.`)뿐이고,
+ * 갈래는 맨 위의 `|` 뿐이며, 맨 앞 `^` · 맨 뒤 `$` 만 걷는다(찾는 글자를 바꾸지 않는다). 그 밖(`.*` · 문자 갈래 `[…]` · 수량자 ·
+ * 무리 `( )` · `\s` 같은 글자 갈래)은 **기호를 지워 견주지 않는다** — `{ fragments }` 로 기호 사이의 글자 조각만 돌려주고, 판단은
+ * `testsMentioning` 이 넓히는 쪽으로 한다(운영자 2026-10-09)
+ *
+ * @param {string} body
+ * @returns {{ literals: string[] } | { fragments: string[] }}
+ */
+export function regexShape(body) {
+  const inner = body.replace(/^\^/, '').replace(/(?<!\\)\$$/, '');
+  const literals = [''];
+  for (let at = 0; at < inner.length; at += 1) {
+    const one = inner[at];
+    if (one === '\\') {
+      const next = inner[at + 1] ?? '';
+      if (!REGEX_SYNTAX.includes(next) && next !== '/' && next !== '-') return { fragments: fragmentsOf(inner) };
+      literals[literals.length - 1] += next;
+      at += 1;
+    } else if (one === '|') literals.push('');
+    else if (REGEX_SYNTAX.includes(one)) return { fragments: fragmentsOf(inner) };
+    else literals[literals.length - 1] += one;
+  }
+  return { literals };
+}
+
+/** 분석하지 않는 정규식의 글자 조각 — 기호 · 글자 갈래(`\s` …) · 문자 갈래 `[…]` · 반복 `{…}` 에서 자른다. 이스케이프한 기호는 글자다 */
+function fragmentsOf(body) {
+  const pieces = [''];
+  const cut = () => pieces.push('');
+  for (let at = 0; at < body.length; at += 1) {
+    const one = body[at];
+    if (one === '\\') {
+      const next = body[at + 1] ?? '';
+      at += 1;
+      if (REGEX_SYNTAX.includes(next) || next === '/' || next === '-') pieces[pieces.length - 1] += next;
+      else cut();
+    } else if (one === '[') {
+      while (at < body.length && body[at] !== ']') at += body[at] === '\\' ? 2 : 1;
+      cut();
+    } else if (one === '{') {
+      while (at < body.length && body[at] !== '}') at += 1;
+      cut();
+    } else if (one === '(' && body[at + 1] === '?') {
+      at += (/^\(\?(?:[:=!]|<[=!]|<[^>]*>)?/.exec(body.slice(at))?.[0].length ?? 1) - 1;
+      cut();
+    } else if (REGEX_SYNTAX.includes(one)) cut();
+    else pieces[pieces.length - 1] += one;
+  }
+  return pieces.map(squeezed).filter((piece) => piece !== '');
+}
+
+/** 시험 소스의 따옴표 · 백틱 리터럴 속 글자와, 정규식 리터럴 가운데 확실히 푼 갈래 — 앞뒤 글자의 조각을 찾는 시험(`getByText('수락하면')` · `/채팅방이 열려요\./`)도 잡으려고 */
+const REGEX_LITERAL = /\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/[dgimsuy]*/g;
 const literalsIn = (source) => [
   ...[...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2]),
-  ...[...source.matchAll(/\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/[dgimsuy]*/g)].map((one) => one[1]),
+  ...[...source.matchAll(REGEX_LITERAL)].flatMap((one) => {
+    const shape = regexShape(one[1]);
+    return 'literals' in shape ? shape.literals : [];
+  }),
 ];
+
+/** 시험 소스의 분석하지 않는 정규식마다 그 글자 조각 */
+const fragmentsIn = (source) =>
+  [...source.matchAll(REGEX_LITERAL)].flatMap((one) => {
+    const shape = regexShape(one[1]);
+    return 'fragments' in shape ? [shape.fragments] : [];
+  });
+
+/**
+ * 분석하지 않는 정규식이 바뀐 글자와 **관련될 수 있는가** — 글자 조각 하나라도 앞뒤 글자 안에 있으면 그렇다고 본다. 넓히는 쪽이라
+ * 리터럴의 `MENTION_PIECE` 보다 짧게 견준다 — 한글이 든 조각은 두 자부터(`/(채팅|대화)방이/` 의 「방이」), 한글이 없는 조각은
+ * `MENTION_PIECE` 자부터. 한 자는 안 본다 — 정규식으로 잘못 읽힌 주석 조각(`/** … 글 … /`)의 한 자가 아무 문구에나 걸렸다(2026-10-09
+ * 잼). 글자 조각이 없는 정규식(`/\s+/` · `/<[^>]+>/`)은 특정 글자를 찾지 않는 모양이라 관련 없다고 본다 — 그것까지 켜면 문구 한
+ * 줄이 늘 전부를 불렀다(같은 날 잼: 시험 31 개 중 7 개가 그런 정규식을 든다)
+ */
+const fragmentRelated = (fragments, texts) =>
+  fragments.some((piece) => {
+    const letters = piece.replace(/ /g, '').length;
+    return (/[가-힣]/.test(piece) ? letters >= 2 : letters >= MENTION_PIECE) && texts.some((text) => text.includes(piece));
+  });
 
 /**
  * 조각으로 찾는 리터럴의 가장 짧은 길이(공백 빼고) — 두 자(「하나」 · 「요청」)로 두니 낱말 하나가 아무 spec 에나 걸려 문구 한 줄이
@@ -736,10 +874,11 @@ const literalsIn = (source) => [
 const MENTION_PIECE = 4;
 
 /**
- * 옛 글자를 말하는 시험 — 소스에 옛 글자가 통째로 있거나, 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 옛 글자의 조각이다.
+ * 바뀐 글자를 말하는 시험 — 소스에 그 글자가 통째로 있거나, 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 그 글자의 조각이다.
+ * 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」 하는 글자(`toHaveCount(0)`)와 겹칠 수 있다.
  * **검사를 더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 여기 안 걸린다. 그 구멍은 머지 뒤 main 의 전체가 잡는다
  *
- * @param {readonly string[]} olds 바뀌기 전 글자
+ * @param {readonly string[]} olds 바뀐 자리의 앞뒤 글자(`copyOnlyChanged`)
  * @param {readonly (readonly [string, string])[]} tests `[시험 파일, 소스]`
  * @returns {string[]}
  */
@@ -748,10 +887,11 @@ export function testsMentioning(olds, tests) {
     .filter(([, source]) => {
       const flat = squeezed(source);
       if (olds.some((old) => flat.includes(old))) return true;
-      return literalsIn(source).some((literal) => {
+      const named = literalsIn(source).some((literal) => {
         const piece = squeezed(literal);
         return piece.replace(/ /g, '').length >= MENTION_PIECE && olds.some((old) => old.includes(piece));
       });
+      return named || fragmentsIn(source).some((fragments) => fragmentRelated(fragments, olds));
     })
     .map(([test]) => test);
 }
@@ -855,7 +995,7 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
   const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
   const rest = changed.filter((file) => !commentOnly.includes(file));
   if (LAUNCHED[stage]) return notingComments(decideLaunched(rest), commentOnly);
-  // 문구만 바뀐 파일은 공용 위험 · 주소 대응에서 빠지고 core 에 옛 글자를 찾는 시험의 차선을 더한다(위 「문구만 바뀐 파일」)
+  // 문구만 바뀐 파일은 공용 위험 · 주소 대응에서 빠지고 core 에 바뀐 글자를 찾는 시험의 차선을 더한다(위 「문구만 바뀐 파일」)
   const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
   const judged = rest.filter((file) => !copyOnly.has(file));
   return notingComments(withCopy(decideBeta(judged, stage, sourceOf), copyOnly, stage), commentOnly);
@@ -930,40 +1070,124 @@ function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
 // ---------------------------------------------------------------------------
 
 /**
- * 묶음 배포가 main 의 전체 CI 를 기다려야 하는가 — 위 판정(정책 · 주석만 · 문구만)을 범위 전체에 그대로 쓴다. 배포는 묶음이라
- * (ADR 0110) 「이 PR 이 문구만」이 아니라 **범위 전체**를 본다. 답은 넷이다.
+ * 커밋 하나가 바꾼 것 — 그 부모(머지 커밋이면 첫 부모)와 견준 파일을 위 판정(정책 · 주석만 · 문구만)으로 가른다. 파일 목록을 못
+ * 읽었으면(`null` — 부모 없음 · 읽기 실패) 그 커밋을 동작으로 센다. 빈 목록(바꾼 파일이 없는 커밋)은 문서로 센다
  *
- * - `green` — 마지막으로 전부를 잰 초록이 HEAD 다. 기다릴 것이 없다
- * - `docs-only` — 범위가 정책 · 주석만 바뀐 코드 파일뿐이다. 앱은 그 초록과 같다 — 기다리지 않는다
- * - `copy` — 범위가 정책 · 주석만 · 문구만 바뀐 파일뿐이고 범위의 커밋마다 그 PR 의 `gate` 가 초록이었다. main 의 전체 CI 완료를
+ * @typedef {{ sha: string, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null }} RangeCommit
+ * @param {RangeCommit} commit
+ * @param {typeof import('typescript')} ts
+ * @returns {{ copy: string[], behavior: string[] }}
+ */
+function commitChangeOf(commit, ts) {
+  if (commit.files === null) return { copy: [], behavior: ['(바뀐 파일을 못 읽었다)'] };
+  const changed = commit.files.map((one) => one.trim()).filter((one) => one !== '');
+  const commentOnly = commentOnlyOf(changed, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });
+  const rest = changed.filter((file) => !isPolicy(file) && !commentOnly.includes(file));
+  const copyOnly = copyOnlyOf(rest, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });
+  return { copy: [...copyOnly.keys()], behavior: rest.filter((file) => !copyOnly.has(file)) };
+}
+
+/**
+ * 커밋들이 모두 문구 · 문서인가 — 동작을 바꾼 것은 `behavior` 에 `커밋:파일` 로 든다. 범위의 **끝과 끝만** 견주면 동작 변경 →
+ * 되돌림 → 문구 변경이 문구로 보인다. 운영자가 승인한 조건은 「범위 안 모든 커밋이 문구 · 문서」라 커밋마다 가른다(2026-10-09 외부 검토)
+ *
+ * @param {readonly RangeCommit[]} commits
+ * @param {typeof import('typescript')} ts
+ */
+function commitsChangeOf(commits, ts) {
+  const copy = new Set();
+  const behavior = [];
+  for (const commit of commits) {
+    const one = commitChangeOf(commit, ts);
+    for (const file of one.copy) copy.add(file);
+    for (const file of one.behavior) behavior.push(`${commit.sha.slice(0, 7)}:${file}`);
+  }
+  return { copy: [...copy], behavior };
+}
+
+/**
+ * 묶음 배포가 main 의 전체 CI 를 기다려야 하는가 — 위 판정(정책 · 주석만 · 문구만)을 범위의 **커밋마다** 그대로 쓴다. 배포는
+ * 묶음이라(ADR 0110) 「이 PR 이 문구만」이 아니라 범위 전체를 본다.
+ *
+ * **두 SHA 를 따로 다룬다.** 기다리지 않아도 된다는 **근거**는 언제나 `lastGreen` — GitHub 에서 읽은, 마지막으로 전부를 잰 main 의
+ * 초록(`main-red.mjs` 의 `lastFullGreen`)이다. `from`(손으로 준 시작, 보통 지금 운영의 SHA)은 「앱이 운영과 달라졌나」를 견주는
+ * 시작일 뿐 근거가 되지 못한다 — 손으로 준 SHA 가 근거를 대신하자 `--from X --head X` 가 아무 검증 없이 `green` 이었다
+ * (2026-10-09 외부 검토). 그래서 `from` 을 주어도 `lastGreen..head` 가 먼저 아래 조건을 채워야 하고, `from` 을 준 답은
+ * `docs-only`(앱을 안 올린다) 아니면 `wait` 다 — 앱을 올릴지 · 기다릴지는 `from` 없이 부른 답이 정한다.
+ *
+ * - `green` — `lastGreen` 이 HEAD 다. 기다릴 것이 없다
+ * - `docs-only` — 견준 범위(`from` 이 있으면 `from..head`, 없으면 `lastGreen..head`)의 커밋이 모두 정책 · 주석뿐이다(빈 범위 포함).
+ *   앱은 그 시작과 같다 — 기다리지 않고, `from` 이 운영 SHA 면 앱을 올리지 않는다
+ * - `copy` — `lastGreen..head` 의 커밋이 모두 정책 · 주석만 · 문구만이고 그 PR 마다 `gate` 가 초록이었다. main 의 전체 CI 완료를
  *   기다리지 않는다
- * - `wait` — 그 밖 전부. 동작이 바뀐 파일이 하나라도 · 마지막 초록을 못 찾음 · diff 를 못 읽음 · 파서 없음 · PR 검사를 못
- *   읽었거나 하나라도 초록이 아님
+ * - `wait` — 그 밖 전부. `lastGreen` 을 못 찾음 · 커밋 목록이나 바뀐 파일을 못 읽음 · 파서 없음 · 동작이 바뀐 커밋이 하나라도 ·
+ *   PR 검사를 못 읽었거나 하나라도 초록이 아님 · main 이 붉다(`mainRed`) · `from` 의 범위를 못 읽음 · `from` 뒤로 앱이 바뀜
  *
- * `unpassed` 는 범위의 커밋 중 PR 의 `gate` 가 초록으로 끝나지 않은 것(PR 없음 포함)이다 — 못 읽었으면 `null`.
- *
- * @param {{ lastGreen: string | null, head: string, files: readonly string[] | null, ts: typeof import('typescript') | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null, unpassed: readonly string[] | null }} input
+ * @param {{
+ *   lastGreen: string | null,
+ *   head: string,
+ *   commits: readonly RangeCommit[] | null,
+ *   from?: string | null,
+ *   fromCommits?: readonly RangeCommit[] | null,
+ *   ts: typeof import('typescript') | null,
+ *   unpassed: readonly string[] | null,
+ *   mainRed: string | null,
+ * }} input `commits` 는 `lastGreen..head` 의 커밋, `fromCommits` 는 `from..head` 의 커밋(못 읽었으면 `null`). `unpassed` 는
+ *   `commits` 중 PR 의 `gate` 가 초록으로 끝나지 않은 것(PR 없음 포함) — 못 읽었으면 `null`. `mainRed` 는 main 이 붉은 까닭
+ *   (`mainRedOf`) — 붉지 않으면 `null`
  * @returns {{ verdict: 'green' | 'docs-only' | 'copy' | 'wait', reason: string, copy: string[], behavior: string[] }}
  */
-export function deployRangeOf({ lastGreen, head, files, ts, sourceOf, baseSourceOf, unpassed }) {
+export function deployRangeOf({ lastGreen, head, commits, from = null, fromCommits = null, ts, unpassed, mainRed }) {
   const wait = (reason, behavior = []) => ({ verdict: 'wait', reason, copy: [], behavior });
-  if (lastGreen === null) return wait('마지막으로 전부를 잰 main 의 초록을 못 찾았다');
-  if (lastGreen === head) return { verdict: 'green', reason: `HEAD \`${head.slice(0, 7)}\` 가 마지막 초록이다`, copy: [], behavior: [] };
-  const changed = (files ?? []).map((one) => one.trim()).filter((one) => one !== '');
-  if (changed.length === 0) return wait('범위의 바뀐 파일을 못 읽었다');
-  if (ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
-  const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
-  const rest = changed.filter((file) => !isPolicy(file) && !commentOnly.includes(file));
-  const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
-  const behavior = rest.filter((file) => !copyOnly.has(file));
-  const range = `\`${lastGreen.slice(0, 7)}..${head.slice(0, 7)}\``;
-  if (behavior.length > 0) return wait(`${range} 에 동작이 바뀐 파일이 있다 — main 의 전체 CI 를 기다린다`, behavior);
-  if (unpassed === null) return wait(`${range} 의 PR 검사(\`gate\`)를 못 읽었다`);
-  if (unpassed.length > 0) {
-    return wait(`${range} 에 PR 검사(\`gate\`)가 초록이 아닌 커밋이 있다: ${unpassed.map((one) => `\`${one.slice(0, 7)}\``).join(' · ')}`);
+  if (lastGreen === null) return wait('마지막으로 전부를 잰 main 의 초록을 못 찾았다(못 읽음 · HEAD 의 조상이 아님) — `--from` 은 그 자리를 대신하지 못한다');
+  if (mainRed !== null) return wait(mainRed);
+  const short = (sha) => sha.slice(0, 7);
+  const range = `\`${short(lastGreen)}..${short(head)}\``;
+
+  let granted;
+  if (lastGreen === head) granted = { verdict: 'green', reason: `HEAD \`${short(head)}\` 가 마지막 초록이다`, copy: [], behavior: [] };
+  else {
+    if (commits === null || commits.length === 0) return wait(`${range} 의 커밋을 못 읽었다`);
+    if (ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
+    const { copy, behavior } = commitsChangeOf(commits, ts);
+    if (behavior.length > 0) return wait(`${range} 에 동작이 바뀐 커밋이 있다 — main 의 전체 CI 를 기다린다`, behavior);
+    if (unpassed === null) return wait(`${range} 의 PR 검사(\`gate\`)를 못 읽었다`);
+    if (unpassed.length > 0) return wait(`${range} 에 PR 검사(\`gate\`)가 초록이 아닌 커밋이 있다: ${unpassed.map((one) => `\`${short(one)}\``).join(' · ')}`);
+    granted =
+      copy.length === 0
+        ? { verdict: 'docs-only', reason: `${range} 는 정책 · 주석뿐이다 — 앱은 마지막 초록과 같다`, copy: [], behavior: [] }
+        : { verdict: 'copy', reason: `${range} 는 문구 · 문서뿐이다 — main 의 전체 CI 완료를 기다리지 않는다`, copy, behavior: [] };
   }
-  if (copyOnly.size === 0) return { verdict: 'docs-only', reason: `${range} 는 정책 · 주석뿐이다 — 앱은 마지막 초록과 같다`, copy: [], behavior: [] };
-  return { verdict: 'copy', reason: `${range} 는 문구 · 문서뿐이다 — main 의 전체 CI 완료를 기다리지 않는다`, copy: [...copyOnly.keys()], behavior: [] };
+  if (from === null) return granted;
+
+  // 근거(`lastGreen..head`)가 섰다. `from..head` 는 앱이 운영과 달라졌는가만 답한다 — 달라졌으면 `from` 없이 다시 부른다
+  const compared = `\`${short(from)}..${short(head)}\``;
+  if (fromCommits === null) return wait(`\`--from\` 의 범위 ${compared} 를 못 읽었다(HEAD 의 조상이 아님 · 읽기 실패)`);
+  if (fromCommits.length > 0 && ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
+  const since = fromCommits.length === 0 ? { copy: [], behavior: [] } : commitsChangeOf(fromCommits, ts);
+  if (since.copy.length > 0 || since.behavior.length > 0) {
+    return wait(`${compared} 에서 앱이 바뀌었다 — 올릴지 · 기다릴지는 \`--from\` 없이 부른 답이 정한다`, since.behavior);
+  }
+  return { verdict: 'docs-only', reason: `${compared} 는 정책 · 주석뿐이다 — 앱은 \`${short(from)}\` 과 같다(근거: ${granted.reason})`, copy: [], behavior: [] };
+}
+
+/**
+ * main 이 붉은가 — 범위(`lastGreen..head` 와 그 끝 둘)의 SHA 에 붉게 끝난 verify 실행이 있거나 `ci-main-red` 이슈가 열려 있으면
+ * 그 까닭, 아니면 `null`. 응답을 못 읽었거나 모양을 모르면 붉은 것으로 센다(불확실하면 기다린다, 조율자 2026-10-09)
+ *
+ * @param {{ runs: unknown, openIssues: unknown, shas: readonly string[] }} input `runs` 는 `gh run list --json headSha,conclusion`
+ *   의 배열, `openIssues` 는 `gh issue list --label ci-main-red --state open --json number` 의 배열
+ * @returns {string | null}
+ */
+export function mainRedOf({ runs, openIssues, shas }) {
+  if (!Array.isArray(openIssues) || !Array.isArray(runs)) return 'main 의 실행 · `ci-main-red` 이슈를 못 읽었다';
+  if (openIssues.length > 0) return '`ci-main-red` 이슈가 열려 있다 — main 이 붉다';
+  const inRange = new Set(shas);
+  for (const run of runs) {
+    if (run === null || typeof run !== 'object' || typeof run.headSha !== 'string' || !('conclusion' in run)) return 'main 의 실행 응답 모양을 모른다';
+    if (inRange.has(run.headSha) && FAILED.has(run.conclusion ?? '')) return `범위의 \`${run.headSha.slice(0, 7)}\` 에서 main 의 verify 가 붉게 끝났다(${run.conclusion})`;
+  }
+  return null;
 }
 
 /** 공개 출시 — 위 「세 단계뿐이다」 그대로. 엔진 단계는 `core` + `anon` 이다 */
