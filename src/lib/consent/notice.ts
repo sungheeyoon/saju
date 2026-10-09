@@ -112,6 +112,9 @@ export const noticeAckHolds = (version: string | null): boolean => {
 export const MATCH_PILLARS_DISCLOSURE =
   '수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.';
 
+/** 인연 요청 확인 창의 셋째 줄 — 수락이 무엇을 여는지(운영자 2026-10-09, G-86). 낱말은 대화방, 화면은 채팅방이다(용어집). */
+export const REQUEST_OPENS_CHAT_NOTE = '상대가 수락하면 채팅방이 열려요.';
+
 /**
  * 지금 일정 — **표에서 온다**(`current_beta_schedule`).
  *

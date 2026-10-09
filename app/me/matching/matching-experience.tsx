@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import { SAJU_PATH } from '@/src/lib/consent';
-import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
+import { MATCH_PILLARS_DISCLOSURE, REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
@@ -489,6 +489,7 @@ export function MatchingExperience({
             <div className="mt-2 flex flex-col gap-2 text-[15px] leading-6 text-secondary">
               <p>{REQUEST_RESERVES_NOTE}</p>
               <p>{MATCH_PILLARS_DISCLOSURE}</p>
+              <p>{REQUEST_OPENS_CHAT_NOTE}</p>
             </div>
             <div className={DIALOG_ACTIONS}>
               <button type="button" disabled={working} onClick={() => { confirming.current?.close(); send(); }} className={BUTTON_PRIMARY}>
