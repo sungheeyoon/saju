@@ -222,5 +222,11 @@ export const REPORT_NOTE =
 
 export const REPORT_DETAIL_MAX = 1000;
 
+/**
+ * 신고를 보낸 뒤 — **무엇이 일어나는지**를 말한다. 「신고했습니다」로 끝내면 상대에게 무슨 일이 났는지 모른 채 기다리게
+ * 된다. 소식 화면 · 대화방 · 인연 궁합 · 오늘의 인연이 같은 문장을 쓴다(ADR 0158).
+ */
+export const REPORT_DONE = '신고를 접수했습니다. 운영자가 확인합니다.';
+
 /** 경고를 받은 사람에게 하는 말과 안내번호의 모양 — 따로 둔 파일이다(ADR 0108) */
 export * from './warning';

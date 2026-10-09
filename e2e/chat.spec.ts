@@ -109,12 +109,14 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.getByPlaceholder('메시지를 입력해 주세요').fill(hello);
     await a.page.getByRole('button', { name: '보내기' }).click();
     await expect(talkOf(a).getByText(hello)).toBeVisible();
-    // 보낸 뒤 입력 칸은 비고, 신고를 골라도 내 메시지에는 고를 깃발이 없다
+    // 보낸 뒤 입력 칸은 비고, 신고를 골라도 내 메시지에는 고를 깃발이 없다 — 상대 말이 0건이어도 사유 칸은 곧장 선다(ADR 0158)
     await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveValue('');
     await openRoomMenu(a);
     await a.page.getByRole('button', { name: '신고', exact: true }).click();
-    await expect(a.page.getByText('신고할 메시지를 골라 주세요')).toBeVisible();
+    await expect(a.page.getByLabel('신고 사유')).toBeVisible();
+    await expect(a.page.getByRole('button', { name: '신고하기' })).toBeVisible();
     await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
+    await expect(a.page.getByText('말풍선 곁의 깃발로 골라 주세요', { exact: false })).toHaveCount(0);
 
     // 상대의 목록에 안 읽은 수가 서고, 들어가면 읽은 것이 된다
     await b.page.goto('/me/chat');
@@ -285,11 +287,11 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(report).toBeHidden();
     await expect(opener).toBeFocused();
 
-    // 신고를 고르면 메뉴가 닫히고 메시지를 고르는 칸이 한 번 선다
+    // 신고를 고르면 메뉴가 닫히고 사유 칸이 한 번 선다
     await opener.click();
     await report.click();
     await expect(report).toBeHidden();
-    await expect(a.page.getByText('신고할 메시지를 골라 주세요')).toHaveCount(1);
+    await expect(a.page.getByLabel('신고 사유')).toHaveCount(1);
 
     // 열린 방의 차단을 고르면 메뉴가 닫히고 확인 칸이 한 번 선다
     await opener.click();

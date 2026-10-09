@@ -327,7 +327,8 @@ test.describe('동의로 열리는 흐름', () => {
         await expect(main.getByRole('link', { name: new RegExp(`${partner} 님과의 궁합풀이`) })).toHaveAttribute('aria-current', 'page');
       }
       await expect(main.getByRole('link', { name: '채팅', exact: true })).toHaveAttribute('href', /^\/me\/chat\/[0-9a-f-]+$/);
-      await expect(main.getByRole('button', { name: '차단', exact: true })).toBeVisible();
+      /* 신고 · 차단은 머리의 「⋯」 안이다(ADR 0158) — 여는 자리는 `<summary>` 라 이름으로 찾는다 */
+      await expect(main.getByLabel('신고 · 차단', { exact: true })).toBeVisible();
 
       /* 옆 책장에도 「인연 궁합」 절 제목이 서므로 글 칸(`article`) 안에서 찾는다 */
       await expect(main.getByRole('article').getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
@@ -641,14 +642,15 @@ test.describe('동의로 열리는 흐름', () => {
      * 함께 서면 `.first()` 는 매번 다른 카드를 가리키고, 그러면 이 시험은 배치가
      * 아니라 **그날의 목록 순서**를 재게 된다.
      */
-    const reach = async (person: Person, name: string, within?: Locator) => {
-      const target = (within ?? person.page).getByRole('button', { name });
+    /* 이름이면 그 이름의 단추, 아니면 받은 자리 그대로 — 「⋯」는 `<summary>` 라 단추 역할이 아니다 */
+    const reach = async (person: Person, name: string | Locator, within?: Locator) => {
+      const target = typeof name === 'string' ? (within ?? person.page).getByRole('button', { name, exact: true }) : name;
       await expect(target).toBeVisible();
       for (let step = 0; step < 80; step += 1) {
         if (await target.evaluate((node) => node === document.activeElement)) return;
         await person.page.keyboard.press('Tab');
       }
-      throw new Error(`탭으로 「${name}」에 못 닿았습니다`);
+      throw new Error(`탭으로 「${typeof name === 'string' ? name : name.toString()}」에 못 닿았습니다`);
     };
 
     await asker.page.goto('/me/matching');
@@ -689,12 +691,15 @@ test.describe('동의로 열리는 흐름', () => {
      * 차단은 **한 번 더 묻는다.** 그래서 키보드로 닿아야 하는 문이 둘이다 — 여는
      * 것과 확인하는 것. 확인 칸이 탭 순서 밖에 있으면 마우스로만 차단할 수 있게 된다.
      *
-     * **수락한 뒤의 차단은 결과 화면에 있다.** 인연 탭의 요청 카드는 답이 난 순간 「끝난 요청」
-     * 으로 접히고, 그 줄에는 조작이 없다 — 성립한 쌍을 끊는 자리는 풀이가 사는 곳이다.
+     * **수락한 뒤의 차단은 결과 화면 머리의 「⋯」에 있다**(ADR 0158). 인연 탭의 요청 카드는 답이 난 순간 「끝난 요청」
+     * 으로 접히고, 그 줄에는 조작이 없다 — 성립한 쌍을 끊는 자리는 풀이가 사는 곳이다. 문이 셋이다 — 「⋯」 · 차단 · 차단하기.
      */
     await receiver.page.goto('/me/readings');
     await receiver.page.getByRole('link', { name: new RegExp(`가${tag} 님과의 궁합풀이`) }).click();
-    await expectTargets({ '결과 화면의 차단': receiver.page.getByRole('button', { name: '차단', exact: true }) });
+    const menu = receiver.page.getByRole('main').getByLabel('신고 · 차단', { exact: true });
+    await expectTargets({ '결과 화면의 「⋯」': menu });
+    await reach(receiver, menu);
+    await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단하기');

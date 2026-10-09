@@ -8,6 +8,7 @@ import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from 
 
 import {
   REPORT_DETAIL_MAX,
+  REPORT_DONE,
   REPORT_NOTE,
   REPORT_REASONS,
   type ReportReason,
@@ -229,7 +230,7 @@ export function ReportButton({ userId }: { userId: string }) {
   if (done) {
     return (
       <span role="status" className="text-[13px] text-secondary">
-        신고를 접수했습니다. 운영자가 확인합니다.
+        {REPORT_DONE}
       </span>
     );
   }

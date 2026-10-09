@@ -23,6 +23,7 @@ import type { MeMark } from './me-mark';
 import { reducedMotion } from '../../ui/motion';
 import { ApproachMap, Legend, QuietOrbit, type MapStatus } from './orbit-map';
 import { PassedConnections } from './passed-connections';
+import { ReportBlock } from '../requests/report-block';
 import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
 
 
@@ -227,6 +228,18 @@ export function MatchingExperience({
     if (hidden) void restoreCard(hidden);
   }
 
+  /**
+   * 카드의 「⋯」로 차단했다 — 그 사람을 덱에서 뺀다(`leave` 는 `seen` 에도 적어 뒤에 오는 서버 목록이 다시 세우지 않는다).
+   * 서버도 차단한 사람을 후보에서 거르고 응답이 이 화면을 다시 그리지만, 그때까지 그 얼굴이 서 있으면 안 된다.
+   */
+  function blocked(card: DeckCard) {
+    sheet.current?.close();
+    dispatch({ type: 'leave', id: card.candidateUserId });
+    const said = `${card.nickname} 님을 차단했어요.`;
+    setAnnouncement(said);
+    setFlash(said);
+  }
+
   /*
     **지도는 덱과 같은 상태를 읽는다.** 오늘 받은 사람에 되돌려 온 사람을 더한 것이 궤도 위의 사람이고,
     떠나는 중인 카드는 이미 떠난 쪽으로 움직인다.
@@ -375,6 +388,7 @@ export function MatchingExperience({
               leaving={leaving}
               feedback={cardFeedback}
               onInfo={() => openSheet(sheet.current)}
+              onBlocked={() => blocked(profile)}
             />
             <DeckButtons
               actions={{
@@ -422,7 +436,11 @@ export function MatchingExperience({
 
       {/* 폰의 ⓘ — 사진 위에 못 둔 것 전부와 궤도 · 참고 점수 고지 */}
       {profile && (
-        <DetailSheet sheet={sheet} nickname={profile.nickname}>
+        <DetailSheet
+          sheet={sheet}
+          nickname={profile.nickname}
+          menu={<ReportBlock key={profile.candidateUserId} userId={profile.candidateUserId} nickname={profile.nickname} onBlocked={() => blocked(profile)} />}
+        >
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
             {details}
             {letter}
