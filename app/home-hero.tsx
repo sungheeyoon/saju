@@ -77,7 +77,7 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
 type Entry = 'self' | 'pair';
 
 /**
- * 첫 화면의 속 — 크림 종이의 위 토막이고, 아래 토막은 폼이다(ADR 0131 · 0132). 제목 한 줄, 설명 한 줄, 그리고 **두 입구** —
+ * 첫 화면의 속 — 크림 종이의 위 토막이고, 아래 토막은 폼이다(ADR 0131 · 0132). 제목 한 줄과 **두 입구** —
  * 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이고, 둘 다 로그인 없이 로그인 전 결과까지 간다.
  */
 function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry) => void }) {
@@ -92,13 +92,11 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
 
   return (
     <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
-      <div className="px-1">
-        <h1 className="font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
-          나는 어떤 사람일까?
-        </h1>
-        <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주가 보여 주는 나를 바로 볼 수 있어요.</p>
-      </div>
-      <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
+      {/* 제목 아래 설명 줄은 걷었다(운영자 2026-10-09) — 제목만 서고, 탭과의 틈은 위 여백(pt-5 · sm:pt-9)과 맞춘다 */}
+      <h1 className="px-1 font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
+        나는 어떤 사람일까?
+      </h1>
+      <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 sm:mt-6 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
         {ENTRIES.map(({ id, Mark, title }) => (
           <button
             key={id}
