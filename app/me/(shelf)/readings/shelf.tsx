@@ -167,29 +167,39 @@ export function PairCover({
   );
 }
 
-/** 빈 자리 한 권 — 같은 크기의 점선 표지라 「한 권 더」로 읽힌다 */
+/**
+ * 빈 자리 한 권 — 같은 크기의 점선 표지라 「한 권 더」로 읽힌다.
+ *
+ * `wide` 는 **그 구역에 한 권도 없을 때의 한 줄**이다(2026-10-09) — 궁합풀이 구역이 비면 반폭의 키 큰 점선 상자 하나가
+ * 덩그러니 서서 어색했다. 꽂힌 책이 없으니 「한 권 더」가 아니라 「여기서 시작」이다 — 줄 폭으로 낮게 눕힌다.
+ */
 export function BlankBook({
   href,
   element,
   label,
   row = false,
+  wide = false,
   from,
 }: {
   href: string;
   element: Element;
   label: string;
   row?: boolean;
+  wide?: boolean;
   /** 결과로 가는 빈 표지(「내 사주풀이」)만 싣는다 — 만드는 자리로 가는 표지에는 `CoverLink` 가 안 붙인다 */
   from?: CameFrom;
 }) {
+  const shape = wide
+    ? 'flex-row justify-start gap-4 px-5 py-4 text-left'
+    : `${row ? 'min-h-[9rem] px-2 py-4 sm:min-h-[14rem] sm:p-4' : 'min-h-[14rem] p-4'} flex-col justify-center gap-3 text-center`;
   return (
-    <li>
+    <li className={wide ? 'col-span-full' : undefined}>
       <CoverLink
         href={href}
         from={from}
-        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9rem] px-2 py-4 sm:min-h-[14rem] sm:p-4' : 'min-h-[14rem] p-4'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] text-center hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${shape} items-center rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] hover:bg-surface active:scale-[0.98]`}
       >
-        <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
         </span>
         {/* 홈의 한 줄 셋(`row`)은 폰에서 표지 폭이 110px 남짓이라 「사주풀이 받기」가 두 줄로 접혔다 — 그 자리만 14px 한 줄이다 */}
@@ -288,13 +298,13 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
   ];
   return (
     <section className={`${PAPER} flex flex-col gap-6`}>
-      <div className="flex max-w-[34rem] flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <h2 className={TYPE_SECTION}>아직 만든 풀이가 없습니다</h2>
         <p className="text-[15px] leading-7 text-secondary">
           내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
         </p>
       </div>
-      <ul className="grid grid-cols-3 gap-2.5 sm:max-w-[34rem] sm:gap-3">
+      <ul className="grid grid-cols-3 gap-2.5 sm:gap-3">
         {slots.map((slot) => (
           <li key={slot.href}>
             <Link
@@ -355,8 +365,8 @@ function StaleChip() {
 }
 
 /**
- * 넓은 화면에서 목록 주소만 열었고 펼칠 한 사람 풀이가 없을 때의 오른쪽 칸 — 비워 두면 고장으로 읽힌다.
- * 한 사람 풀이가 있으면 이 칸은 잠깐만 선다(`frame.tsx` 가 내 사주풀이나 가장 최근 글로 옮긴다).
+ * 넓은 화면에서 목록 주소만 열었고 켠 칩에 펼칠 글이 한 편도 없을 때의 오른쪽 칸 — 비워 두면 고장으로 읽힌다.
+ * 한 편이라도 있으면 이 칸은 서지 않는다(`frame.tsx` 가 그 칩에서 마지막으로 연 글이나 기본 글로 옮긴다, `opening.ts`).
  */
 export function EmptyReader() {
   return (
