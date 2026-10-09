@@ -17,6 +17,9 @@ import { myCircle } from '../home/circle';
 import { MyPeople, circlePeopleOf } from '../home/circle-view';
 import { selfReadingOf } from '../home/map/model';
 import { ReceivedReadings } from '../home/received-readings';
+import { runningReadings } from '../home/running';
+import { RunningReadings } from '../home/running-band';
+import { makingPeopleOf, makingSelf } from '../home/running-line';
 import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
@@ -26,7 +29,7 @@ import { unreadCount } from '../requests/inbox';
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
  *
- * 인사 → 줄인 내 사주 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례로 내려온다(ADR 0129 「2026-09-29 u2」).
+ * 인사 → (만드는 중인 풀이) → 줄인 내 사주 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례로 내려온다(ADR 0129 「2026-09-29 u2」 · ADR 0157).
  * 관계 지도는 궁합 탭(`/compat`)에 선다. 인연 · 궁합은 머리글의 탭이, 풀이 보관함은 받은 사주풀이의 머리가 든다.
  *
  * 저장된 입력으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는 함수는 같다(`chartOf`)
@@ -93,7 +96,7 @@ function Greeting({ name }: { name: string }) {
  * 여기로 왔다 — 프로덕션 홈(`a45e34e`)의 타일 그대로다. 폰 첫 화면(390×664)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지
  * 든다(`e2e/signed-in.spec.ts` 가 잰다). 이 화면에서 연 결과는 주소에 `from=me` 를 든다(`home/from-me.ts`).
  *
- * **읽는 것은 두 물결이다**(2026-09-30). 내 엣지(이름) · 자리 수 · 내 입력 · 만든 풀이 목록 · 참여 설정이 한 번에 겹쳐 돌고,
+ * **읽는 것은 두 물결이다**(2026-09-30). 내 엣지(이름) · 자리 수 · 내 입력 · 만든 풀이 목록 · 참여 설정 · 만드는 중인 풀이가 한 번에 겹쳐 돌고,
  * 저장한 사람들의 입력과 참여를 여는 문이 그 뒤에 함께 돈다. 저장한 사람 타일(`MyPeople`)과 참여를 여는 문은 스스로 읽지 않고
  * 여기서 읽은 것을 받는다 — 저마다 읽던 동안 같은 엣지 · 입력을 세 번 읽었고, 참여를 여는 문의 차례 넷이 화면을 붙들었다.
  *
@@ -103,12 +106,15 @@ function Greeting({ name }: { name: string }) {
 async function Home({ selfPersonId }: { selfPersonId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [circle, self, readings, profile] = await Promise.all([
+  const [circle, self, readings, profile, runningRead] = await Promise.all([
     myCircle(supabase, selfPersonId),
     storedInputOf(supabase, selfPersonId),
     myReadings(),
     myDiscoveryProfile(),
+    runningReadings(),
   ]);
+  /* 못 읽었으면 만드는 중인 것이 없는 것처럼 선다 — 부속 정보다(ADR 0078). 단추는 「받기」로 돌아간다 */
+  const running = runningRead.ok ? runningRead.value : [];
 
   /**
    * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와 다른 사주가 이
@@ -126,6 +132,9 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
 
   return (
     <>
+      {/* 만드는 중인 풀이 — 있을 때만, 내 사주 카드보다 앞에 선다(ADR 0157). 시작한 일이 어디쯤인지가 먼저다 */}
+      <RunningReadings running={running} />
+
       {/*
         **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
         내가 받은 사주풀이가 선다.
@@ -146,16 +155,23 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
               query={stood.query}
               saju={stood.saju}
               reading={selfReadingOf(readings)}
+              making={makingSelf(running)}
               compact
             />
           )}
           <OtherSaju />
         </div>
 
-        <ReceivedReadings readings={readings} />
+        <ReceivedReadings readings={readings} makingSelf={makingSelf(running)} />
       </div>
 
-      <MyPeople selfPersonId={selfPersonId} readings={readings} circle={circle} people={circlePeopleOf(circle, inputs)} />
+      <MyPeople
+        selfPersonId={selfPersonId}
+        readings={readings}
+        circle={circle}
+        people={circlePeopleOf(circle, inputs)}
+        making={makingPeopleOf(running)}
+      />
     </>
   );
 }

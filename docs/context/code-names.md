@@ -99,6 +99,7 @@
 | 테스트 코드 | `signup_code` · `valid_on` · `max_uses` | 표 · 칸 |
 | 가입 완료 | `signed_up_at` · `complete_signup` | `app_user` 칸 · 함수 |
 | 앱 내 알림 | `notification` · `NotificationKind` · `my_notifications` | 표 · `src/lib/consent` · 함수 |
+| 만드는 중인 풀이 | `my_running_readings` · `RunningReading` · `runningReadings` | 함수 · `app/me/home/running.ts` |
 | 계정 채널 | `tell_changed` · `LiveUpdates` · `openUserChannel` · `mark_chat_read` | 함수 · `app/live` · 함수 |
 | 새 메시지 알림 | `push_subscription` · `push_delivery` · `save_push_subscription` · `claim_push_deliveries` · `settle_push_delivery` · `pushPayloadFor` · `PushRow` | 표 · 함수 · `src/lib/push` · `app/me/settings` |
 | 서비스 설문 | `service_survey` · `SurveyAnswers` · `save_service_survey` · `submitted_at` | 표 · `src/lib/survey` · 함수 · 칸 |
