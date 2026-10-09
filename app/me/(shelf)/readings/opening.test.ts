@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { lastOpenedOf, openBookOf, openingHref, withOpened, type ShelfLists } from './opening';
+import {
+  LEGACY_LAST_OPENED_KEY,
+  lastOpenedKeyOf,
+  lastOpenedOf,
+  openBookOf,
+  openingHref,
+  withOpened,
+  type ShelfLists,
+} from './opening';
+
+describe('기억을 두는 자리', () => {
+  it('계정마다 다르다 — 같은 브라우저에서 계정을 바꿔도 남의 기억을 읽지 않는다', () => {
+    const a = lastOpenedKeyOf('11111111-1111-4111-8111-111111111111');
+    const b = lastOpenedKeyOf('22222222-2222-4222-8222-222222222222');
+    expect(a).not.toBe(b);
+    expect(a).toContain('11111111-1111-4111-8111-111111111111');
+  });
+
+  it('계정을 가르기 전의 한 키와 겹치지 않는다', () => {
+    expect(lastOpenedKeyOf('11111111-1111-4111-8111-111111111111')).not.toBe(LEGACY_LAST_OPENED_KEY);
+  });
+});
 
 const SELF = '/me/readings/self';
 const P1 = '/me/readings/p1';
