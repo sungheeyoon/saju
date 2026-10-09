@@ -22,6 +22,11 @@ import { reducedMotion } from '../ui/motion';
  * **넘겨 볼 것이 남았으면 오른쪽 끝이 흐려진다.** 폰에서는 줄이 「운」 언저리에서 잘리는데 넘길 수 있다는 표시가
  * 없었다(2026-10-09 화면 갤러리 감사). 끝까지 넘기면 흐림이 걷힌다. **넓은 화면에서는 띠가 링크만큼의 폭이다** — 전폭
  * 띠에 링크가 왼쪽에 몰려 오른쪽이 빈 띠로 남았다.
+ *
+ * **폰에서는 칸 사이를 좁혀 한 줄에 다 선다**(2026-10-10 화면 점검 B14). 390px 에서 띠는 356px 인데 칸 일곱이 430px 이라
+ * 「운」 · 「보정」이 넘쳤고, 흐림이 「운」을 통째로 덮어 「관계」 뒤가 빈 끝으로 보였다 — 넘길 것이 있다는 표시가 그것을
+ * 가렸다. 칸의 옆 여백을 14px → 8px, 칸 사이를 2px → 0 으로 줄이면 356px 띠에 꼭 맞게 들어온다(누를 자리는 44px 그대로). 더 좁은 폰에서는 여전히
+ * 넘치므로 흐림은 남기되, 단색 띠 없이 옅어지기만 해서 잘린 칸의 글자가 비쳐 보인다.
  */
 const RESULT_LINKS = [
   ['chart', '여덟 글자'],
@@ -72,13 +77,13 @@ export function ResultNav() {
         aria-label="결과 바로가기"
         className="overflow-x-auto rounded-full border border-border bg-surface/95 p-1 shadow-card backdrop-blur"
       >
-        <ul className="flex min-w-max items-center gap-0.5">
+        <ul className="flex min-w-max items-center sm:gap-0.5">
           {RESULT_LINKS.map(([target, label]) => (
             <li key={target}>
               <a
                 href={`#${target}`}
                 onClick={(event) => go(event, target)}
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-sm font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm sm:px-3.5 font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
               >
                 {label}
               </a>
@@ -88,7 +93,7 @@ export function ResultNav() {
       </nav>
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-y-px right-px w-14 rounded-r-full bg-[linear-gradient(to_left,var(--surface)_25%,transparent)] transition-opacity duration-200 motion-reduce:transition-none ${
+        className={`pointer-events-none absolute inset-y-px right-px w-10 rounded-r-full bg-[linear-gradient(to_left,var(--surface),transparent)] transition-opacity duration-200 motion-reduce:transition-none ${
           more ? 'opacity-100' : 'opacity-0'
         }`}
       />

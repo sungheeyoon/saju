@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
 
 import { setOptionalConsent } from './actions';
-import { ROW_STATUS, SETTINGS_DANGER, SETTINGS_PRIMARY, SettingsRow } from './settings/card';
+import { ROW_STATUS, SETTINGS_QUIET, SettingsRow } from './settings/card';
 
 /**
  * 선택 동의를 켜고 끄는 자리 — **끄는 것이 곧 지움이라는 것을 그 자리에서 말한다.**
@@ -21,6 +21,12 @@ import { ROW_STATUS, SETTINGS_DANGER, SETTINGS_PRIMARY, SettingsRow } from './se
  * 낱말을 쓰면, 안내를 읽고 찾아온 사람이 그 자리를 못 알아본다(ADR 0026).
  *
  * **끄는 일 자체는 그대로 있다.** 없애면 처리방침이 약속한 것이 화면에 없게 된다.
+ *
+ * ## 켜기와 끄기는 같은 무게다
+ *
+ * 「켜기」는 먹색 주 단추, 「끄기」는 위험 빨강이었다 — 켜는 쪽으로 미는 비대칭이고, 빨강은 다시 켜면 되는 일을
+ * 탈퇴처럼 보이게 했다(2026-10-10 화면 점검 B6). 둘 다 되돌릴 수 있는 누름이라 같은 보조 단추(`SETTINGS_QUIET`)다.
+ * 끄면 지워진다는 것은 색이 아니라 줄 아래 글(`note`)이 말한다. 위험 색은 되돌릴 수 없는 일(탈퇴 · 차단)에만 쓴다.
  *
  * ## 줄의 모양은 이 파일이 안 정한다
  *
@@ -65,7 +71,7 @@ export function ConsentControls({
               type="button"
               onClick={() => flip(one.key, !on)}
               disabled={saving}
-              className={on ? SETTINGS_DANGER : SETTINGS_PRIMARY}
+              className={SETTINGS_QUIET}
             >
               {on ? '끄기' : '켜기'}
             </button>
