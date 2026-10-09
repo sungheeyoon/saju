@@ -570,6 +570,7 @@ export function syntaxOf(ts, file, source, { copy = false } = {}) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, ts.ScriptKind[kind]);
   if (tree.parseDiagnostics?.length !== 0) return null;
   const masked = copy ? copySlotsOf(ts, file, tree) : new Set();
+  if (masked === null) return null;
   const tokens = [];
   const meaningful = [];
   const slots = [];
@@ -672,9 +673,11 @@ export function copyConstantsShape(ts, tree) {
  * @param {typeof import('typescript')} ts
  * @param {string} file
  * @param {import('typescript').SourceFile} tree
- * @returns {Set<import('typescript').Node>}
+ * @returns {Set<import('typescript').Node> | null} 판별이 안 서면(`excludedTagsOf`) `null`
  */
 function copySlotsOf(ts, file, tree) {
+  const excluded = excludedTagsOf(ts, tree);
+  if (excluded === null) return null;
   const slots = new Set();
   if (COPY_FILES.includes(file) && copyConstantsShape(ts, tree)) {
     for (const statement of tree.statements) slots.add(statement.declarationList.declarations[0].initializer);
@@ -683,45 +686,126 @@ function copySlotsOf(ts, file, tree) {
   // 문구로 통과했다(2026-10-09 외부 검토)
   const visit = (node, excluded) => {
     if (node.kind === ts.SyntaxKind.JsxText && !excluded) slots.add(node);
-    const inside = excluded || (ts.isJsxElement(node) && NOT_SCREEN_TEXT.has(node.openingElement.tagName.getText(tree)));
+    const inside = excluded || (ts.isJsxElement(node) && tags.has(node.openingElement.tagName.getText(tree)));
     ts.forEachChild(node, (child) => visit(child, inside));
   };
+  const tags = excluded;
   visit(tree, false);
   return slots;
+}
+
+/**
+ * 이 파일에서 글자가 화면 글자가 아닌 요소의 이름 — `NOT_SCREEN_TEXT` 에 `next/script` 를 기본 import 로 받은 로컬 이름
+ * (`import NS from 'next/script'` 의 `NS`)을 더한다. `next/script` 를 이름 붙여 · 네임스페이스로 받으면 어느 태그가 그것인지
+ * 판별이 안 서 `null` 이다 — 그 파일은 문구로 세지 않는다(2026-10-09 독립 검토)
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').SourceFile} tree
+ * @returns {Set<string> | null}
+ */
+function excludedTagsOf(ts, tree) {
+  const tags = new Set(NOT_SCREEN_TEXT);
+  for (const statement of tree.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== 'next/script') continue;
+    const clause = statement.importClause;
+    if (clause === undefined) continue;
+    if (clause.namedBindings !== undefined) return null;
+    if (clause.name !== undefined) tags.add(clause.name.text);
+  }
+  return tags;
 }
 
 /** 문구 상수를 값으로 받아도 되는 JSX 속성 — 화면 · 보조 기술에 글자로만 서는 것. `href` · `id` · `key` · `data-*` 같은 값은 안 된다 */
 export const COPY_ATTRIBUTES = ['aria-label', 'title', 'alt', 'placeholder'];
 
 /**
- * 문구 상수가 문구 자리 밖에서 쓰인 곳 — `names` 의 식별자가 JSX 자식 식 `{NAME}` 이나 `COPY_ATTRIBUTES` 의 값 `attr={NAME}` 이
- * 아닌 자리(다른 속성 · 함수 인자 · 비교 · 키 · 변수 값 …)에 서면 `이름:줄` 로 든다. import · export 의 이름 자리는 쓰임이 아니다.
- * 모양 잠금만으로는 `src/lib/*\/copy.ts` 에 경로를 두고 `<a href={PATH}>` 로 써도 그 값 변경이 문구로 셌다(2026-10-09 외부 검토).
- * 파싱이 실패하면 그 파일 전체를 하나로 든다
+ * 문구 상수가 문구 자리 밖에서 쓰인 곳 — `names` 의 상수가 JSX 자식 식 `{NAME}` 이나 `COPY_ATTRIBUTES` 의 값 `attr={NAME}` 이
+ * 아닌 자리(다른 속성 · 함수 인자 · 비교 · 키 · 변수 값 …)에 서면 `이름:줄` 로 든다. 모양 잠금만으로는 `src/lib/*\/copy.ts` 에
+ * 경로를 두고 `<a href={PATH}>` 로 써도 그 값 변경이 문구로 셌다(2026-10-09 외부 검토). 같은 날 독립 검토가 더 든 것도 잰다.
+ *
+ * - **자식 식이라도 값 · 코드 요소 안이면 오용이다** — `<option>{NOTE}</option>` · `<textarea>` · `<style>` · `<script>` · `Script`
+ *   (와 `next/script` 를 다른 이름으로 받은 것) 안은 몇 겹 아래든, 프래그먼트를 넘어서도
+ * - **별칭도 같은 상수다** — `import { NOTE as X }` 의 `X`. `module`(그 문구 파일의 확장자 뺀 저장소 경로)을 주면 그 모듈의
+ *   네임스페이스 import(`import * as C`)의 `C.NOTE` 도 같은 판정이고, `C` 를 그 밖으로 쓰면 오용이다
+ * - **다시 내보내면 오용이다** — `export { NOTE }` · `export { NOTE as PATH } from '…/copy'` · `export * from '…/copy'`. 내보낸
+ *   이름이 어디서 쓰이는지 이 잠금이 따라가지 못한다
+ * - import 의 이름 자리는 쓰임이 아니다. 파싱 실패 · `next/script` 를 판별 못 함은 그 파일 전체를 하나로 든다
  *
  * @param {typeof import('typescript')} ts
  * @param {string} file
  * @param {string} source
  * @param {readonly string[]} names
+ * @param {string | null} [module]
  * @returns {string[]}
  */
-export function copyConstantMisuses(ts, file, source, names) {
+export function copyConstantMisuses(ts, file, source, names, module = null) {
   const kind = SCRIPT_KINDS[posix.extname(file)];
   if (!kind) return [`${file}: 가르지 않는 확장자`];
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind[kind]);
   if (tree.parseDiagnostics?.length !== 0) return [`${file}: 파싱 실패`];
+  const tags = excludedTagsOf(ts, tree);
+  if (tags === null) return [`${file}: next/script 를 판별 못 함`];
+  const isModule = (specifier) => {
+    if (module === null) return false;
+    const bare = specifier.replace(/\.(?:ts|tsx|js|mjs)$/, '');
+    const path = bare.startsWith('@/') ? bare.slice(2) : bare.startsWith('.') ? posix.join(posix.dirname(file), bare) : bare;
+    return path === module;
+  };
+
+  const locals = new Set(names);
+  const spaces = new Set();
   const found = [];
-  const allowed = (node) => {
-    const parent = node.parent;
-    if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)) return true;
-    if (!ts.isJsxExpression(parent) || parent.expression !== node) return false;
+  const at = (node) => tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
+  for (const statement of tree.statements) {
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      const bindings = statement.importClause.namedBindings;
+      if (bindings && ts.isNamedImports(bindings)) {
+        for (const one of bindings.elements) if (names.includes((one.propertyName ?? one.name).text)) locals.add(one.name.text);
+      }
+      if (bindings && ts.isNamespaceImport(bindings) && ts.isStringLiteral(statement.moduleSpecifier) && isModule(statement.moduleSpecifier.text)) {
+        spaces.add(bindings.name.text);
+      }
+    }
+    if (ts.isExportDeclaration(statement)) {
+      const from = statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier) ? statement.moduleSpecifier.text : null;
+      const clause = statement.exportClause;
+      if (clause === undefined) {
+        if (from !== null && isModule(from)) found.push(`*:${at(statement)}`);
+      } else if (ts.isNamedExports(clause)) {
+        for (const one of clause.elements) {
+          const name = (one.propertyName ?? one.name).text;
+          if (names.includes(name) || (from === null && locals.has(name))) found.push(`${name}:${at(one)}`);
+        }
+      } else if (from !== null && isModule(from)) found.push(`*:${at(statement)}`);
+    }
+  }
+
+  /** JSX 자식 식이고 그 조상(프래그먼트 넘어)에 값 · 코드 요소가 없거나, 글자 속성의 값인가 */
+  const inSlot = (expression) => {
+    const parent = expression.parent;
+    if (!ts.isJsxExpression(parent) || parent.expression !== expression) return false;
     const holder = parent.parent;
-    if (ts.isJsxElement(holder) || ts.isJsxFragment(holder)) return true;
-    return ts.isJsxAttribute(holder) && COPY_ATTRIBUTES.includes(holder.name.getText(tree));
+    if (ts.isJsxAttribute(holder)) return COPY_ATTRIBUTES.includes(holder.name.getText(tree));
+    if (!ts.isJsxElement(holder) && !ts.isJsxFragment(holder)) return false;
+    for (let up = holder; up !== undefined; up = up.parent) {
+      if (ts.isJsxElement(up) && tags.has(up.openingElement.tagName.getText(tree))) return false;
+    }
+    return true;
+  };
+  const naming = (node) => {
+    const parent = node.parent;
+    if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)) return true;
+    // 다시 내보내기는 위에서 들었다 · 속성 접근의 이름 자리(`C.NOTE` 의 `NOTE`)는 쓰임이 아니다 — `C` 쪽에서 가른다
+    if (ts.isExportSpecifier(parent)) return true;
+    return ts.isPropertyAccessExpression(parent) && parent.name === node;
   };
   const visit = (node) => {
-    if (ts.isIdentifier(node) && names.includes(node.text) && !allowed(node)) {
-      found.push(`${node.text}:${tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1}`);
+    if (ts.isIdentifier(node) && !naming(node)) {
+      if (spaces.has(node.text)) {
+        const access = node.parent;
+        const named = ts.isPropertyAccessExpression(access) && access.expression === node && names.includes(access.name.text);
+        if (!named || !inSlot(access)) found.push(`${named ? access.name.text : node.text}:${at(node)}`);
+      } else if (locals.has(node.text) && !inSlot(node)) found.push(`${node.text}:${at(node)}`);
     }
     ts.forEachChild(node, visit);
   };
@@ -735,7 +819,10 @@ const copyJudged = (file) => /^(?:app|src)\//.test(file) && !isTestFile(file) &&
 /** 글자를 견줄 모양 — 공백을 하나로 접고 양 끝을 걷는다. JSX 글자는 줄바꿈 · 들여쓰기를 끼고 화면에는 한 칸으로 선다 */
 const squeezed = (text) => text.replace(/\s+/g, ' ').trim();
 
-/** JSX 글자의 엔티티 — 화면에는 푼 글자로 서므로 풀어서 견준다(`&nbsp;` 는 공백이라 `squeezed` 가 한 칸으로 접는다) */
+/**
+ * JSX 글자의 엔티티 — 화면에는 푼 글자로 서므로 풀어서 견준다(`&nbsp;` 는 공백이라 `squeezed` 가 한 칸으로 접는다). 이 표에 없는
+ * 이름이 바뀐 글자에 있으면 그 파일은 판별하지 않는다(`copyOnlyChanged` 가 `null`) — 반쯤 푼 글자로 시험을 찾지 않게
+ */
 const ENTITIES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", hellip: '…', middot: '·', mdash: '—', ndash: '–' };
 const decoded = (text) =>
   text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name) => {
@@ -768,6 +855,8 @@ export function copyOnlyChanged(ts, file, before, after) {
   if (!same(old.tokens, now.tokens) || !same(old.meaningful, now.meaningful)) return null;
   const texts = old.slots.flatMap((text, at) => (text === now.slots[at] ? [] : [text, now.slots[at]]));
   if (texts.length === 0) return null;
+  const unknownEntity = (text) => [...text.matchAll(/&([a-z][a-z0-9]*);/gi)].some((one) => !(one[1] in ENTITIES));
+  if (texts.some(unknownEntity)) return null;
   return [...new Set(texts.map((text) => squeezed(decoded(text))).filter((text) => text !== ''))];
 }
 
@@ -788,11 +877,11 @@ const REGEX_SYNTAX = '\\^$|.*+?()[]{}';
 /**
  * 정규식 본문이 무엇을 찾는가 — **확실히 풀 수 있는 모양**이면 `{ literals }`: 글자 그대로이거나 기호를 이스케이프한 것(`\.`)뿐이고,
  * 갈래는 맨 위의 `|` 뿐이며, 맨 앞 `^` · 맨 뒤 `$` 만 걷는다(찾는 글자를 바꾸지 않는다). 그 밖(`.*` · 문자 갈래 `[…]` · 수량자 ·
- * 무리 `( )` · `\s` 같은 글자 갈래)은 **기호를 지워 견주지 않는다** — `{ fragments }` 로 기호 사이의 글자 조각만 돌려주고, 판단은
- * `testsMentioning` 이 넓히는 쪽으로 한다(운영자 2026-10-09)
+ * 무리 `( )` · `\s` 같은 글자 갈래)은 **기호를 지워 견주지 않는다** — `{ fragments, nearClass }` 로 기호 사이의 글자 조각과, 그 가운데
+ * `\d` · `\s` · `\w` 류에 붙은 조각(`/\d+개/` 의 「개」)을 돌려주고, 판단은 `testsMentioning` 이 넓히는 쪽으로 한다(운영자 2026-10-09)
  *
  * @param {string} body
- * @returns {{ literals: string[] } | { fragments: string[] }}
+ * @returns {{ literals: string[] } | { fragments: string[], nearClass: string[] }}
  */
 export function regexShape(body) {
   const inner = body.replace(/^\^/, '').replace(/(?<!\\)\$$/, '');
@@ -801,81 +890,109 @@ export function regexShape(body) {
     const one = inner[at];
     if (one === '\\') {
       const next = inner[at + 1] ?? '';
-      if (!REGEX_SYNTAX.includes(next) && next !== '/' && next !== '-') return { fragments: fragmentsOf(inner) };
+      if (!REGEX_SYNTAX.includes(next) && next !== '/' && next !== '-') return fragmentsOf(inner);
       literals[literals.length - 1] += next;
       at += 1;
     } else if (one === '|') literals.push('');
-    else if (REGEX_SYNTAX.includes(one)) return { fragments: fragmentsOf(inner) };
+    else if (REGEX_SYNTAX.includes(one)) return fragmentsOf(inner);
     else literals[literals.length - 1] += one;
   }
-  return { literals };
+  return { literals: literals.filter((one) => one !== '') };
 }
 
-/** 분석하지 않는 정규식의 글자 조각 — 기호 · 글자 갈래(`\s` …) · 문자 갈래 `[…]` · 반복 `{…}` 에서 자른다. 이스케이프한 기호는 글자다 */
+/**
+ * 분석하지 않는 정규식의 글자 조각 — 기호 · 글자 갈래(`\s` …) · 문자 갈래 `[…]` · 반복 `{…}` 에서 자른다. 이스케이프한 기호는 글자다.
+ * `\d` · `\s` · `\w` 류 바로 앞뒤(사이의 수량자는 넘어)에 붙은 조각은 `nearClass` 에도 든다
+ */
 function fragmentsOf(body) {
-  const pieces = [''];
-  const cut = () => pieces.push('');
+  const pieces = [{ text: '', near: false }];
+  let classBefore = false;
+  const current = () => pieces[pieces.length - 1];
+  const cut = (keepClass = false) => {
+    pieces.push({ text: '', near: false });
+    if (!keepClass) classBefore = false;
+  };
+  const add = (letter) => {
+    if (current().text === '' && classBefore) current().near = true;
+    classBefore = false;
+    current().text += letter;
+  };
   for (let at = 0; at < body.length; at += 1) {
     const one = body[at];
     if (one === '\\') {
       const next = body[at + 1] ?? '';
       at += 1;
-      if (REGEX_SYNTAX.includes(next) || next === '/' || next === '-') pieces[pieces.length - 1] += next;
-      else cut();
+      if (REGEX_SYNTAX.includes(next) || next === '/' || next === '-') add(next);
+      else if (/[dDsSwW]/.test(next)) {
+        if (current().text !== '') current().near = true;
+        cut();
+        classBefore = true;
+      } else cut();
     } else if (one === '[') {
       while (at < body.length && body[at] !== ']') at += body[at] === '\\' ? 2 : 1;
       cut();
     } else if (one === '{') {
       while (at < body.length && body[at] !== '}') at += 1;
-      cut();
+      cut(true);
     } else if (one === '(' && body[at + 1] === '?') {
       at += (/^\(\?(?:[:=!]|<[=!]|<[^>]*>)?/.exec(body.slice(at))?.[0].length ?? 1) - 1;
       cut();
-    } else if (REGEX_SYNTAX.includes(one)) cut();
-    else pieces[pieces.length - 1] += one;
+    } else if ('*+?'.includes(one)) cut(true);
+    else if (REGEX_SYNTAX.includes(one)) cut();
+    else add(one);
   }
-  return pieces.map(squeezed).filter((piece) => piece !== '');
+  const kept = pieces.map((piece) => ({ text: squeezed(piece.text), near: piece.near })).filter((piece) => piece.text !== '');
+  return { fragments: kept.map((piece) => piece.text), nearClass: kept.filter((piece) => piece.near).map((piece) => piece.text) };
 }
 
-/** 시험 소스의 따옴표 · 백틱 리터럴 속 글자와, 정규식 리터럴 가운데 확실히 푼 갈래 — 앞뒤 글자의 조각을 찾는 시험(`getByText('수락하면')` · `/채팅방이 열려요\./`)도 잡으려고 */
-const REGEX_LITERAL = /\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/[dgimsuy]*/g;
-const literalsIn = (source) => [
-  ...[...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2]),
-  ...[...source.matchAll(REGEX_LITERAL)].flatMap((one) => {
-    const shape = regexShape(one[1]);
-    return 'literals' in shape ? shape.literals : [];
-  }),
-];
-
-/** 시험 소스의 분석하지 않는 정규식마다 그 글자 조각 */
-const fragmentsIn = (source) =>
-  [...source.matchAll(REGEX_LITERAL)].flatMap((one) => {
-    const shape = regexShape(one[1]);
-    return 'fragments' in shape ? [shape.fragments] : [];
-  });
+/** 시험 소스의 따옴표 · 백틱 리터럴 속 글자 */
+const quotedIn = (source) => [...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2]);
 
 /**
- * 분석하지 않는 정규식이 바뀐 글자와 **관련될 수 있는가** — 글자 조각 하나라도 앞뒤 글자 안에 있으면 그렇다고 본다. 넓히는 쪽이라
- * 리터럴의 `MENTION_PIECE` 보다 짧게 견준다 — 한글이 든 조각은 두 자부터(`/(채팅|대화)방이/` 의 「방이」), 한글이 없는 조각은
- * `MENTION_PIECE` 자부터. 한 자는 안 본다 — 정규식으로 잘못 읽힌 주석 조각(`/** … 글 … /`)의 한 자가 아무 문구에나 걸렸다(2026-10-09
- * 잼). 글자 조각이 없는 정규식(`/\s+/` · `/<[^>]+>/`)은 특정 글자를 찾지 않는 모양이라 관련 없다고 본다 — 그것까지 켜면 문구 한
- * 줄이 늘 전부를 불렀다(같은 날 잼: 시험 31 개 중 7 개가 그런 정규식을 든다)
+ * 시험 소스의 정규식 리터럴 — 식이 설 자리(여는 괄호 · 쉼표 · `=` · `:` · `!` · `&` · `|` · `?` · `{` · `}` · `;` · `return` 뒤나 줄
+ * 머리)의 `/…/깃발` 만 든다. 아무 데서나 `/…/` 를 읽으면 주석 · 산문의 두 빗금 사이가 정규식으로 읽혀 아무 문구에나 걸렸다(2026-10-09 잼)
  */
-const fragmentRelated = (fragments, texts) =>
-  fragments.some((piece) => {
-    const letters = piece.replace(/ /g, '').length;
-    return (/[가-힣]/.test(piece) ? letters >= 2 : letters >= MENTION_PIECE) && texts.some((text) => text.includes(piece));
-  });
+const REGEX_LITERAL = /(?:^|[(,=:[!&|?{};]|\breturn)\s*\/((?:\\.|[^/\\\n*])(?:\\.|[^/\\\n])*)\/([dgimsuy]*)/gm;
+const regexesIn = (source) => [...source.matchAll(REGEX_LITERAL)].map((one) => ({ shape: regexShape(one[1]), ignoreCase: one[2].includes('i') }));
 
 /**
- * 조각으로 찾는 리터럴의 가장 짧은 길이(공백 빼고) — 두 자(「하나」 · 「요청」)로 두니 낱말 하나가 아무 spec 에나 걸려 문구 한 줄이
- * 로그인 차선 여섯을 불렀다(2026-10-09 잼). 넉 자면 「채팅방이」 · 「인연 탭에」 같은 실제 selector 조각은 잡고 낱말 하나는 안 잡는다
+ * 조각으로 찾는 따옴표 리터럴의 가장 짧은 길이(공백 빼고) — 두 자(「하나」 · 「요청」)로 두니 낱말 하나가 아무 spec 에나 걸려 문구 한
+ * 줄이 로그인 차선 여섯을 불렀다(2026-10-09 잼). 넉 자면 「채팅방이」 · 「인연 탭에」 같은 실제 selector 조각은 잡고 낱말 하나는 안 잡는다
  */
 const MENTION_PIECE = 4;
 
 /**
- * 바뀐 글자를 말하는 시험 — 소스에 그 글자가 통째로 있거나, 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 그 글자의 조각이다.
- * 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」 하는 글자(`toHaveCount(0)`)와 겹칠 수 있다.
+ * 정규식의 글자(확실히 푼 갈래든 분석하지 않은 조각이든)를 견줄 만큼 긴가 — 넓히는 쪽이라 따옴표 리터럴보다 짧게 본다. 한글이 든
+ * 것은 두 자부터, 없는 것은 `MENTION_PIECE` 자부터. Playwright 의 정규식 `name` · `getByText` 는 부분 일치라 `/채팅/` 도 「채팅방이
+ * 열려요」를 찾는다(2026-10-09 독립 검토)
+ */
+const regexPieceLongEnough = (piece) => {
+  const letters = piece.replace(/ /g, '').length;
+  return /[가-힣]/.test(piece) ? letters >= 2 : letters >= MENTION_PIECE;
+};
+
+/**
+ * 정규식 하나가 바뀐 글자와 **관련될 수 있는가**. 확실히 푼 갈래는 그 글자가, 분석하지 않은 정규식은 글자 조각 하나라도 앞뒤 글자
+ * 안에 있으면 그렇다 — 둘 다 `regexPieceLongEnough` 를 넘는 것만. 다만 `\d` · `\s` 류에 붙은 한글 조각(`/\d+개/` · `/1\s*명/` ·
+ * `/^\d+초$/`)은 한 자라도 견준다 — 숫자 · 공백과 이어 글자를 찾는 모양이라 판단이 안 서는 쪽으로 넓힌다. `i` 깃발이면 대소문자를
+ * 접어 견준다. 글자 조각이 없는 정규식(`/\s+/` · `/<[^>]+>/`)은 특정 글자를 찾지 않는 모양이라 관련 없다고 본다 — 그것까지 켜면 문구
+ * 한 줄이 늘 전부를 불렀다(같은 날 잼: 시험 31 개 중 7 개가 그런 정규식을 든다)
+ */
+const regexRelated = ({ shape, ignoreCase }, texts) => {
+  const fold = (text) => (ignoreCase ? text.toLowerCase() : text);
+  const folded = texts.map(fold);
+  const inside = (piece) => folded.some((text) => text.includes(fold(piece)));
+  if ('literals' in shape) return shape.literals.some((piece) => regexPieceLongEnough(piece) && inside(piece));
+  return (
+    shape.fragments.some((piece) => regexPieceLongEnough(piece) && inside(piece)) ||
+    shape.nearClass.some((piece) => /[가-힣]/.test(piece) && inside(piece))
+  );
+};
+
+/**
+ * 바뀐 글자를 말하는 시험 — 소스에 그 글자가 통째로 있거나, 따옴표 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 그 글자의
+ * 조각이거나, 정규식 리터럴이 그 글자와 관련될 수 있다(`regexRelated`). 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」 하는
+ * 글자(`toHaveCount(0)`)와 겹칠 수 있다.
  * **검사를 더하는 근거일 뿐이다** — 시험이 글자를 동적으로 조합해 찾으면 여기 안 걸린다. 그 구멍은 머지 뒤 main 의 전체가 잡는다
  *
  * @param {readonly string[]} olds 바뀐 자리의 앞뒤 글자(`copyOnlyChanged`)
@@ -887,11 +1004,11 @@ export function testsMentioning(olds, tests) {
     .filter(([, source]) => {
       const flat = squeezed(source);
       if (olds.some((old) => flat.includes(old))) return true;
-      const named = literalsIn(source).some((literal) => {
+      const named = quotedIn(source).some((literal) => {
         const piece = squeezed(literal);
         return piece.replace(/ /g, '').length >= MENTION_PIECE && olds.some((old) => old.includes(piece));
       });
-      return named || fragmentsIn(source).some((fragments) => fragmentRelated(fragments, olds));
+      return named || regexesIn(source).some((regex) => regexRelated(regex, olds));
     })
     .map(([test]) => test);
 }
@@ -1070,15 +1187,17 @@ function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
 // ---------------------------------------------------------------------------
 
 /**
- * 커밋 하나가 바꾼 것 — 그 부모(머지 커밋이면 첫 부모)와 견준 파일을 위 판정(정책 · 주석만 · 문구만)으로 가른다. 파일 목록을 못
- * 읽었으면(`null` — 부모 없음 · 읽기 실패) 그 커밋을 동작으로 센다. 빈 목록(바꾼 파일이 없는 커밋)은 문서로 센다
+ * 커밋 하나가 바꾼 것 — 그 부모와 견준 파일을 위 판정(정책 · 주석만 · 문구만)으로 가른다. 파일 목록을 못 읽었으면(`null` — 부모
+ * 없음 · 읽기 실패) 그 커밋을 동작으로 센다. **머지 커밋(부모 둘 이상)도 동작으로 센다** — 첫 부모와의 차이는 다른 가지의 커밋들을
+ * 하나로 뭉쳐, 그 가지 안의 동작 → 되돌림을 못 본다(2026-10-09 독립 검토). 빈 목록(바꾼 파일이 없는 커밋)은 문서로 센다
  *
- * @typedef {{ sha: string, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null }} RangeCommit
+ * @typedef {{ sha: string, merge?: boolean, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null }} RangeCommit
  * @param {RangeCommit} commit
  * @param {typeof import('typescript')} ts
  * @returns {{ copy: string[], behavior: string[] }}
  */
 function commitChangeOf(commit, ts) {
+  if (commit.merge === true) return { copy: [], behavior: ['(머지 커밋)'] };
   if (commit.files === null) return { copy: [], behavior: ['(바뀐 파일을 못 읽었다)'] };
   const changed = commit.files.map((one) => one.trim()).filter((one) => one !== '');
   const commentOnly = commentOnlyOf(changed, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });

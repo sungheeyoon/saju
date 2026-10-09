@@ -36,16 +36,16 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 0. **올리기 전에.** 올리라고 한 변경은 그 PR 이 main 에 들면 올린다(ADR 0152). 묶음이면 머지를 기다리는 PR 이 없는지(`gh pr list`),
    `node scripts/deploy-range.mjs` 가 `wait` 면 `main` CI 가 초록인지(ADR 0159), 지난
    배포 뒤 `supabase/migrations/**` 가 바뀌었으면 **DB 를 먼저** 올리고 확인했는지(아래 규약 넷의 2 · 4) 본다. 1 은
-   출력의 `head` 를 그대로 올린다. 한도 창의 남은 자리를 본다. `--from <운영 SHA>` 가 `docs-only` 면 안 올린다(운영 SHA 는 근거가 아니다)
-1. **최신 main 을 Production 으로 올린다.** 깨끗한 `main` 체크아웃(또는 그 SHA 의 워크트리)에서 `vercel deploy --prod`, 아니면
-   Vercel → Deployments → 「Create Deployment」에 `main` 을 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
+   출력의 `head` 를 그대로 올린다. 한도 창의 남은 자리를 본다 — 모자라면 기다린다. `--from <운영 SHA>` 가 `docs-only` 면 안 올린다(운영 SHA 는 근거가 아니다)
+1. **0 의 `head` 를 Production 으로 올린다.** 그 SHA 의 워크트리(아래)에서 `vercel deploy --prod`, 아니면
+   Vercel → Deployments → 「Create Deployment」에 그 SHA 를 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
    밀어 깨우지 않는다 — Git 배포는 꺼져 있어 아무 일도 안 일어난다
    **CLI 는 폴더를 통째로 올린다** — 쓰던 체크아웃에는 `.next` · `.next-check` 같은 빌드 캐시가 수백 MB 쌓여 `File size limit
    exceeded (100 MB)` 로 멈춘다(`.vercelignore` 가 없다, 2026-09-25). `git worktree add --detach <임시 폴더> <SHA>` 로 그 SHA 만
    꺼내고 `.vercel` 만 복사해 거기서 `vercel deploy --prod --yes` 를 부른다(12MB). 출력이 잘려 실패처럼 보여도 `vercel ls` 를 먼저
    본다 — 이미 올라갔을 수 있고, 다시 부르면 한도를 하나 더 쓴다
-2. **배포 커밋 = main HEAD 인지 본다** — `git ls-remote origin main` 의 SHA 와 대시보드의 Source 커밋(또는
-   `vercel inspect <배포 URL>`)이 같아야 한다. 다르면 옛 코드가 Production 이다 — 1 로 돌아간다
+2. **배포 커밋 = 0 의 `head` 인지 본다** — 대시보드의 Source 커밋(또는 `vercel inspect <배포 URL>`)이 그 SHA 여야
+   한다. 다르면 판정하지 않은 코드가 Production 이다 — 1 로 돌아간다
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
    운영 주소가 선다
 4. **smoke — 다섯 화면.** 홈(`/`) · 로그인(`/auth`) · 궁합(두 사람을 고르는 칸이 서는 화면) · 사람 목록(`/me/people`) ·

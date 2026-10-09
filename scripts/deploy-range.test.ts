@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { latestGatePassed, mergedHeadsOf } from './deploy-range.mjs';
+import { gateRunsPath, latestGatePassed, mergedHeadsOf } from './deploy-range.mjs';
 
 /** `GET /repos/{repo}/commits/{sha}/check-runs?check_name=gate` 의 응답 — 실행마다 `[id, 시작, status, conclusion]` */
 const checks = (...runs: [number, string, string, string | null][]) => ({
@@ -53,6 +53,15 @@ describe('PR 의 gate — 가장 최근 실행 하나만 본다', () => {
     expect(latestGatePassed({ check_runs: [{ id: 1, name: 'gate', started_at: null, status: 'completed', conclusion: 'success' }] })).toBe(false);
     expect(latestGatePassed({ check_runs: [{ name: 'gate', started_at: T1, status: 'completed', conclusion: 'success' }] })).toBe(false);
     expect(latestGatePassed({ check_runs: [null] })).toBe(false);
+  });
+});
+
+describe('gate 실행을 읽는 경로', () => {
+  it('filter=all 로 전부 받는다 — 기본 latest 는 completed_at 으로 골라 진행 중인 재실행을 숨길 수 있다', () => {
+    const path = new URL(`https://api.github.com/${gateRunsPath('o/r', 'h1')}`);
+    expect(path.pathname).toBe('/repos/o/r/commits/h1/check-runs');
+    expect(path.searchParams.get('check_name')).toBe('gate');
+    expect(path.searchParams.get('filter')).toBe('all');
   });
 });
 

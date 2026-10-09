@@ -4,7 +4,7 @@
  * `docs/ops/runbook/deploy.md` 「묶음 배포」의 0 이 부른다. **두 SHA 를 따로 다룬다.**
  *
  * - **근거** — 마지막으로 전부를 잰 main 의 초록(`main-red.mjs` 의 `lastFullGreen` — `policy` 만 돈 초록은 안 센다). 언제나
- *   GitHub 에서 읽는다. 그 초록부터 올릴 SHA 까지의 **커밋마다** 그 부모(머지 커밋이면 첫 부모)와 견주어 `ci-plan.mjs` 의
+ *   GitHub 에서 읽는다. 그 초록부터 올릴 SHA 까지의 **커밋마다** 그 부모와 견주어(머지 커밋은 동작으로 센다) `ci-plan.mjs` 의
  *   `deployRangeOf` 가 정책 · 주석만 · 문구만 · 동작으로 가르고, 커밋마다 그 PR 의 `gate` 최신 실행이 초록인지(`latestGatePassed`),
  *   범위에 붉게 끝난 main 실행 · 열린 `ci-main-red` 이슈가 없는지(`mainRedOf`) 읽어 넘긴다.
  * - **견주기** — `--from <SHA>`(보통 지금 운영의 SHA)는 「앱이 운영과 달라졌나」만 답한다. 근거를 대신하지 못한다 — 손으로 준
@@ -79,12 +79,19 @@ export function latestGatePassed(response) {
   return latest.run.status === 'completed' && latest.run.conclusion === 'success';
 }
 
+/**
+ * PR head 의 `gate` 실행을 읽는 API 경로 — `filter=all` 로 실행을 전부 받는다. 기본 `latest` 는 `completed_at` 으로 하나를 골라
+ * 진행 중인 재실행을 숨길 수 있다(GitHub 「List check runs for a Git reference」, 2026-10-09 독립 검토). 최신 고르기는
+ * `latestGatePassed` 하나만 한다
+ */
+export const gateRunsPath = (repo, head) => `repos/${repo}/commits/${head}/check-runs?check_name=gate&filter=all&per_page=100`;
+
 /** 커밋 하나를 들인 PR 의 `gate` 가 초록이었는가 — 머지된 PR 이 없거나(직접 푸시) 못 읽으면 거짓이다 */
 function gatePassed(repo, sha) {
   try {
     const heads = mergedHeadsOf(JSON.parse(run('gh', 'api', `repos/${repo}/commits/${sha}/pulls`)));
     if (heads === null || heads.length === 0) return false;
-    return heads.some((head) => latestGatePassed(JSON.parse(run('gh', 'api', `repos/${repo}/commits/${head}/check-runs?check_name=gate&per_page=100`))));
+    return heads.some((head) => latestGatePassed(JSON.parse(run('gh', 'api', gateRunsPath(repo, head)))));
   } catch {
     return false;
   }
@@ -98,7 +105,8 @@ function commitsBetween(start, head) {
       .split('\n')
       .filter(Boolean)
       .map((sha) => {
-        const parent = run('git', 'rev-list', '--parents', '-n', '1', sha).split(' ')[1] ?? null;
+        const parents = run('git', 'rev-list', '--parents', '-n', '1', sha).split(' ').slice(1);
+        const parent = parents[0] ?? null;
         let files = null;
         if (parent !== null) {
           try {
@@ -109,6 +117,7 @@ function commitsBetween(start, head) {
         }
         return {
           sha,
+          merge: parents.length > 1,
           files,
           // 다듬지 않는다 — base 쪽(`baseSourceFromGit`)과 글자째 같은 모양으로 견준다
           sourceOf: (file) => {
