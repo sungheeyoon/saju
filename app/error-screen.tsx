@@ -1,7 +1,7 @@
 'use client';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
-import { TYPE_TITLE } from './ui/surfaces';
+import { NoticeScreen } from './ui/notice-screen';
 import { HomeLink } from './home-link';
 
 /**
@@ -18,22 +18,22 @@ import { HomeLink } from './home-link';
  *
  * `retry` 는 경계 안을 **다시 받아서** 다시 그린다. 같은 문서의 `reset` 은 다시 받지 않고 그리기만 해서,
  * 서버에서 난 오류는 그대로 다시 선다 — 그래서 `retry` 다.
+ *
+ * 모양은 404 와 같은 안내 화면의 틀이다(`app/ui/notice-screen.tsx`, 2026-10-09 화면 점검 A5).
  */
 export function ErrorScreen({ retry }: { retry: () => void }) {
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-4 py-10 sm:py-14">
-      <h1 className={TYPE_TITLE}>화면을 불러오지 못했어요</h1>
-      <p role="alert" className="text-[15px] leading-6 text-secondary">
-        잠시 후 다시 시도해 주세요.
-      </p>
-      <p className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => retry()} className={BUTTON_PRIMARY}>
-          다시 시도하기
-        </button>
-        <HomeLink className={BUTTON_SECONDARY}>
-          홈으로
-        </HomeLink>
-      </p>
-    </main>
+    <NoticeScreen
+      title="화면을 불러오지 못했어요"
+      description={<p role="alert">잠시 후 다시 시도해 주세요.</p>}
+      actions={
+        <>
+          <button type="button" onClick={() => retry()} className={BUTTON_PRIMARY}>
+            다시 시도하기
+          </button>
+          <HomeLink className={BUTTON_SECONDARY}>홈으로</HomeLink>
+        </>
+      }
+    />
   );
 }

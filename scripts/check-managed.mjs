@@ -280,7 +280,7 @@ try {
       String(forbidden.status));
     check('둘의 상태가 같다', missing.status === forbidden.status);
     check('둘 다 찾을 수 없다고만 말한다',
-      missingBody.includes('찾을 수 없습니다') && forbiddenBody.includes('찾을 수 없습니다'));
+      missingBody.includes('찾을 수 없어요') && forbiddenBody.includes('찾을 수 없어요'));
     check('어느 쪽인지 말하지 않는다',
       !/볼 수 없|권한|없는 사람/.test(missingBody + forbiddenBody));
 

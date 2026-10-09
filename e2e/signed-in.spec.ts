@@ -1894,7 +1894,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       고르는 칸이 이미 그 말을 하고 있었다. 여기는 메뉴에서 눌러 들어온 제 화면이라 그
       말을 대신해 줄 것이 없다.
     */
-    await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없어요' })).toBeVisible();
     /*
       「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
       표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
