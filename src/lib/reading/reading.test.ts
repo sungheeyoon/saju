@@ -10,7 +10,9 @@ import {
   READING_POLICY,
   READING_PROMPTS,
   ReadingEvidenceError,
+  blockingFindingsOf,
   checkReading,
+  withoutLeakedPaths,
   isScored,
   readingEvidenceOf,
   readingPromptOf,
@@ -18,6 +20,8 @@ import {
 } from '@/src/lib/reading';
 import {
   PLAIN_FORBIDDEN_TERMS,
+  READING_BLOCKING_CODES,
+  findingForRecord,
   plainTermsIn,
   secretForms,
   type BirthSecret,
@@ -232,6 +236,92 @@ const ok = (kind: ReadingKind) => ({
 const codesOf = (result: ReturnType<typeof checkReading>): string[] =>
   result.ok ? [] : result.failures.map((failure) => failure.code);
 
+/**
+ * **막는 것은 셋뿐이다**(ADR 0163) — 출생 원문 누출 · 동의 범위 밖 판정 · 그릴 수 없는 꼴. 나머지는 걸려도 내보낸다. 갈래마다 한
+ * 글을 짓고, 그 글이 어느 코드에 걸리는지와 그 코드가 막는지를 함께 잰다.
+ */
+describe('검사의 두 갈래 — 막는 것과 내보내고 적는 것', () => {
+  const withBody = (kind: ReadingKind, markdown: string, patch: Partial<ReturnType<typeof ok>['output']> = {}) => ({
+    ...ok(kind),
+    output: { ...ok(kind).output, markdown, ...patch },
+  });
+  const blockingOf = (input: Parameters<typeof checkReading>[0]) => {
+    const result = checkReading(input);
+    return blockingFindingsOf(result.ok ? [] : result.failures).map((finding) => finding.code);
+  };
+
+  it('막는 코드는 넷 — 원문 누출 · 범위 밖 판정 · 빈 본문(저장할 수 없음) · 읽을 수 없는 점수', () => {
+    expect([...READING_BLOCKING_CODES].sort()).toEqual(
+      ['birth-input-leaked', 'body-unstorable', 'out-of-scope-judgment', 'score-unreadable'].sort(),
+    );
+  });
+
+  it.each<[string, Parameters<typeof checkReading>[0], string]>([
+    ['출생 원문', withBody('self', `${OK_MARKDOWN}\n1990-05-12 에 태어났습니다.`), 'birth-input-leaked'],
+    ['범위 밖 판정', withBody('match', `${OK_MARKDOWN}\n첫 번째 분에게 용신 이 있습니다.`), 'out-of-scope-judgment'],
+    ['빈 본문', withBody('self', '  '), 'body-unstorable'],
+    ['저장 상한을 넘는 본문', withBody('self', `## 한 줄로\n${'가'.repeat(60_001)}`), 'body-unstorable'],
+    ['점수가 없는 궁합', withBody('private', OK_MARKDOWN, { score: null }), 'score-unreadable'],
+  ])('%s — 여전히 막는다', (_why, input, code) => {
+    expect(blockingOf(input)).toContain(code);
+  });
+
+  it.each<[string, Parameters<typeof checkReading>[0], string]>([
+    ['짧은 본문', withBody('self', '## 한 줄로\n짧은 글입니다.'), 'length-out-of-contract'],
+    ['긴 본문', withBody('self', `## 한 줄로\n${'긴 글입니다. '.repeat(2_000)}`), 'length-out-of-contract'],
+    ['긴 비유', withBody('self', OK_MARKDOWN, { metaphor: '가'.repeat(121) }), 'metaphor-out-of-contract'],
+    ['빈 비유', withBody('self', OK_MARKDOWN, { metaphor: ' ' }), 'metaphor-out-of-contract'],
+    ['자기 풀이의 점수', withBody('self', OK_MARKDOWN, { score: 70 }), 'score-out-of-contract'],
+    ['기준점에서 멀리 간 점수', { ...withBody('match', OK_MARKDOWN, { score: 99 }), baseline: 40 }, 'score-out-of-contract'],
+    ['한글 아닌 글자', withBody('self', `${OK_MARKDOWN}\n甲木 기운입니다.`), 'non-korean-self-body'],
+    [
+      '지어낸 간지',
+      withBody('match', `${OK_MARKDOWN}\n${[...'甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥'].find((c) => !ok('match').evidenceText.includes(c))} 이 서 있다.`),
+      'invented-characters',
+    ],
+    ['경로 샘', withBody('private', `${OK_MARKDOWN}\ncharts 두 벌을 견주면`), 'evidence-path-leaked'],
+  ])('%s — 걸려도 내보낸다', (_why, input, code) => {
+    const result = checkReading(input);
+    expect(codesOf(result)).toContain(code);
+    expect(blockingOf(input)).toEqual([]);
+  });
+
+  it('설명은 DB 가 받는 꼴이다 — 비면 코드를, 200자를 넘으면 자른다', () => {
+    expect(findingForRecord({ code: 'length-out-of-contract', detail: ' ' })).toEqual({ code: 'length-out-of-contract', detail: 'length-out-of-contract' });
+    expect(findingForRecord({ code: 'evidence-path-leaked', detail: 'a'.repeat(500) }).detail).toHaveLength(200);
+  });
+
+  it('출생 원문이 샌 글의 설명에는 그 값이 없다', () => {
+    const result = checkReading(withBody('self', `${OK_MARKDOWN}\n1990-05-12 에 태어났습니다.`));
+    expect(JSON.stringify(result)).not.toContain('1990-05-12');
+  });
+});
+
+describe('샌 경로를 걷을 수 있는 자리만 걷는다', () => {
+  const evidenceText = ok('self').evidenceText;
+
+  it('경로만 든 괄호는 괄호째 걷고, 걷은 경로를 낸다', () => {
+    const markdown = `${OK_MARKDOWN}\n버틸 힘은 약한 쪽입니다 (\`analysis.strength\` · charts).\n\n### 근거 (검사용)\n- analysis.strength`;
+    const result = withoutLeakedPaths(markdown, evidenceText);
+    expect(result.stripped).toEqual(['analysis.strength', 'charts']);
+    expect(result.markdown).toContain('버틸 힘은 약한 쪽입니다.');
+    /* 근거 절은 그대로다 */
+    expect(result.markdown).toContain('### 근거 (검사용)\n- analysis.strength');
+    expect(codesOf(checkReading({ ...ok('self'), output: { ...ok('self').output, markdown: result.markdown } }))).toEqual([]);
+  });
+
+  it('문장 안에 낱말처럼 선 경로와 우리 경로가 아닌 것이 섞인 괄호는 안 걷는다 — 품질로 적는다', () => {
+    const markdown = `${OK_MARKDOWN}\n버틸 힘은 \`analysis.strength\` 를 보면 약합니다 (analysis.strength · Mina).`;
+    const result = withoutLeakedPaths(markdown, evidenceText);
+    expect(result).toEqual({ markdown, stripped: [] });
+    expect(codesOf(checkReading({ ...ok('self'), output: { ...ok('self').output, markdown } }))).toContain('evidence-path-leaked');
+  });
+
+  it('샌 것이 없으면 받은 글 그대로다', () => {
+    expect(withoutLeakedPaths(OK_MARKDOWN, evidenceText)).toEqual({ markdown: OK_MARKDOWN, stripped: [] });
+  });
+});
+
 describe('나온 글을 저장하기 전에 검사한다', () => {
   it.each(READING_KINDS)('%s — 멀쩡한 글은 지나간다', (kind) => {
     expect(checkReading(ok(kind))).toEqual({ ok: true });
@@ -320,7 +410,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
    *
    * 어휘를 상수로 적지 않고 **모델에 넘긴 JSON 에서 뜬다** — 자료가 늘면 검사도 같이 는다.
    */
-  describe('자료 경로가 본문에 새면 막는다', () => {
+  describe('자료 경로가 본문에 새면 걸린다', () => {
     const withBody = (kind: ReadingKind, body: string) => ({
       ...ok(kind),
       output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
@@ -378,7 +468,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     });
   });
 
-  it('자료에 없는 간지는 hard fail 이다', () => {
+  it('자료에 없는 간지는 걸린다 — 막지 않고 적는다(ADR 0163)', () => {
     const base = ok('match');
     const absent = [...'甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥'].find(
       (character) => !base.evidenceText.includes(character),
@@ -716,17 +806,23 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(codesOf(withScore)).toContain('score-out-of-contract');
 
     const without = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: OK_MARKDOWN } });
-    expect(codesOf(without)).toContain('score-out-of-contract');
+    expect(codesOf(without)).toContain('score-unreadable');
   });
 
-  it.each([-1, 101, 72.5])('점수 %s 는 범위 밖이다', (score) => {
+  it.each([-1, 101, 72.5])('점수 %s 는 읽을 수 없는 점수다 — 막는다', (score) => {
     const result = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score, markdown: OK_MARKDOWN } });
-    expect(codesOf(result)).toContain('score-out-of-contract');
+    expect(codesOf(result)).toContain('score-unreadable');
+    expect(blockingFindingsOf(result.ok ? [] : result.failures).map((f) => f.code)).toEqual(['score-unreadable']);
   });
 
-  it('빈 글은 지나가지 못한다', () => {
+  it('빈 글은 지나가지 못한다 — 근거 절만 있고 본문이 빈 글도', () => {
     const result = checkReading({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: '   ' } });
-    expect(codesOf(result)).toContain('length-out-of-contract');
+    expect(codesOf(result)).toContain('body-unstorable');
+    const groundingOnly = checkReading({
+      ...ok('self'),
+      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: `### 근거 (검사용)\n\n${'근거 줄. '.repeat(100)}` },
+    });
+    expect(codesOf(groundingOnly)).toContain('body-unstorable');
   });
 
   it('길이 계약은 정책에서 읽는다', () => {

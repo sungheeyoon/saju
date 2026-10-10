@@ -420,6 +420,30 @@ export type Database = {
           },
         ]
       }
+      check_finding_daily_count: {
+        Row: {
+          blocked: number
+          code: string
+          day: string
+          kind: string
+          shipped: number
+        }
+        Insert: {
+          blocked?: number
+          code: string
+          day: string
+          kind: string
+          shipped?: number
+        }
+        Update: {
+          blocked?: number
+          code?: string
+          day?: string
+          kind?: string
+          shipped?: number
+        }
+        Relationships: []
+      }
       discovery_candidate: {
         Row: {
           generated_at: string
@@ -1659,6 +1683,7 @@ export type Database = {
       }
       reading_run: {
         Row: {
+          check_findings: Json | null
           created_at: string
           failure_code: string | null
           failure_detail: string | null
@@ -1676,6 +1701,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          check_findings?: Json | null
           created_at?: string
           failure_code?: string | null
           failure_detail?: string | null
@@ -1693,6 +1719,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          check_findings?: Json | null
           created_at?: string
           failure_code?: string | null
           failure_detail?: string | null
@@ -2048,6 +2075,8 @@ export type Database = {
           attempts: number
           cache_read_tokens: number | null
           cache_write_tokens: number | null
+          check_findings: Json | null
+          checked_attempt: number | null
           continuation_question: string | null
           created_at: string
           distinctive_pattern: string | null
@@ -2073,6 +2102,8 @@ export type Database = {
           attempts?: number
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
+          check_findings?: Json | null
+          checked_attempt?: number | null
           continuation_question?: string | null
           created_at?: string
           distinctive_pattern?: string | null
@@ -2098,6 +2129,8 @@ export type Database = {
           attempts?: number
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
+          check_findings?: Json | null
+          checked_attempt?: number | null
           continuation_question?: string | null
           created_at?: string
           distinctive_pattern?: string | null
@@ -2399,6 +2432,19 @@ export type Database = {
       }
     }
     Views: {
+      reading_check_daily: {
+        Row: {
+          blocked: number | null
+          checked: number | null
+          code: string | null
+          day: string | null
+          kind: string | null
+          share: number | null
+          shipped: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
       reading_spend_daily: {
         Row: {
           attempts: number | null
@@ -2558,6 +2604,7 @@ export type Database = {
       chat_retention: { Args: never; Returns: string }
       chat_room_readable: { Args: { p_room_id: string }; Returns: boolean }
       chat_snapshot_context: { Args: never; Returns: number }
+      check_findings_valid: { Args: { p_findings: Json }; Returns: boolean }
       claim_push_deliveries: {
         Args: { p_limit?: number }
         Returns: {
@@ -3246,12 +3293,20 @@ export type Database = {
         Args: { p_action: string; p_report_id?: string }
         Returns: undefined
       }
+      note_reading_checks: {
+        Args: { p_findings: Json; p_run_id: string }
+        Returns: boolean
+      }
       note_reading_progress: {
         Args: {
           p_body_written: boolean
           p_run_id: string
           p_sections_begun: number
         }
+        Returns: boolean
+      }
+      note_taste_checks: {
+        Args: { p_artifact_id: string; p_attempt: number; p_findings: Json }
         Returns: boolean
       }
       notify_ops: {
@@ -3885,6 +3940,10 @@ export type Database = {
           person_b: string
           run_id: string
         }[]
+      }
+      tally_check_findings: {
+        Args: { p_findings: Json; p_kind: string; p_shipped: boolean }
+        Returns: undefined
       }
       taste_attempt_limit: { Args: never; Returns: number }
       taste_browser_new_per_hour: { Args: never; Returns: number }

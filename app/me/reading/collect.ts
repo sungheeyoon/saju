@@ -1,5 +1,15 @@
-import { baselineIn, checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
-import { checkContinuation, continuedMarkdownOf } from '@/src/lib/reading/continuation';
+import {
+  baselineIn,
+  blockingFindingsOf,
+  checkReading,
+  findingForRecord,
+  isScored,
+  withoutLeakedPaths,
+  type BirthSecret,
+  type CheckFinding,
+  type ReadingKind,
+} from '@/src/lib/reading';
+import { checkContinuation, continuedMarkdownOf, firstSectionItemNumbersOf } from '@/src/lib/reading/continuation';
 
 import { keyedClient } from '../../keyed-client';
 import { countTasteStep } from '../../keyed-taste';
@@ -100,7 +110,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   if (job === undefined) return { done: 'skipped', why: '집을 일감이 없습니다' };
 
   /**
-   * **실패는 한 자리에서 닫는다.** 갈래가 넷인데(회수 실패·모델 실패·검사 실패·저장
+   * **실패는 한 자리에서 닫는다.** 갈래가 넷인데(회수 실패·모델 실패·검사가 막음·저장
    * 실패) 자리를 나누면 하나는 알림을 안 넣는다.
    */
   const close = async (
@@ -137,23 +147,49 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   /**
    * **얼린 것으로 검사한다.** 그 사이 배포가 났어도 보낸 것을 기준으로 재고, 사용자가
    * 입력을 고쳤어도 붙들어 둔 판본으로 유출을 잰다.
+   *
+   * **막는 것만 막는다**(ADR 0163) — 출생 원문 누출 · 동의 범위 밖 판정 · 그릴 수 없는 꼴(`blockingFindingsOf`). 나머지
+   * 검사는 걸려도 저장하고, 걸린 것은 성공이든 실패든 시도마다 적는다(`noteChecks`). **저장하는 글이 검사한 글이다** — 이어쓰기
+   * 답을 끼우고 샌 경로를 걷은 뒤의 글로 잰다.
    */
+  const findings: CheckFinding[] = [];
+  const noteChecks = async (): Promise<void> => {
+    /* 부속이다 — 못 적어도 저장 · 실패는 그대로다. 원문만 기록에 남긴다(ADR 0078) */
+    const { error: notNoted } = await keyed.rpc('note_reading_checks', {
+      p_run_id: job.run_id,
+      p_findings: findings.map(findingForRecord),
+    });
+    if (notNoted) console.error('collect: note_reading_checks', notNoted.code, notNoted.message);
+  };
+
   /**
-   * **이어쓰기면 답을 먼저 잰다**(ADR 0143 의 2) — 맛보기를 되풀이하거나 · 미루거나 · 첫 절에 1번을 또 쓰면 실패다. 지나면
-   * 첫 절 1번 본문으로 답을 **한 번만** 끼운다(`continuedMarkdownOf`). 아래 기본 검사와 저장은 그 끼운 글로 한다 — 저장하는
-   * 글이 검사한 글이다. 이어쓰기가 없는 풀이는 지금과 한 글자도 같다.
+   * **이어쓰기면 답을 먼저 잰다**(ADR 0143 의 2). 지나면 첫 절 1번 본문으로 답을 **한 번만** 끼운다(`continuedMarkdownOf`).
+   * 계약을 어겨도 버리지 않는다(ADR 0163) — 답이 있고 첫 절이 2 · 3 으로 비어 있으면 그대로 끼우고, 아니면(답이 없다 · 모델이
+   * 1번까지 썼다) 이어쓰기 없이 본 풀이를 세운다. 어느 쪽이든 걸린 까닭을 적는다. 이어쓰기가 없는 풀이는 지금과 한 글자도 같다.
    */
   const continuation = continuationOf(job.generation);
   let markdown = retrieved.output.markdown;
   if (continuation !== null) {
     const answer = retrieved.output.continuationAnswer;
     const continued = checkContinuation({ answer, preview: continuation.preview, markdown });
-    if (!continued.ok || answer === undefined) {
-      return close('continuation-out-of-contract', continued.ok ? 'continuationAnswer 가 없다' : continued.reasons.join(' · '), retrieved.usage);
+    const fits = (answer ?? '').trim() !== '' && firstSectionItemNumbersOf(markdown).join(',') === '2,3';
+    if (fits && answer !== undefined) markdown = continuedMarkdownOf(answer, markdown);
+    if (!continued.ok) {
+      findings.push({
+        code: 'continuation-out-of-contract',
+        detail: `${fits ? '답을 끼움' : '답 없이 세움'} — ${continued.reasons.join(' · ')}`,
+      });
     }
-    markdown = continuedMarkdownOf(answer, markdown);
   }
-  const output = { score: retrieved.output.score, metaphor: retrieved.output.metaphor, markdown };
+
+  const unleaked = withoutLeakedPaths(markdown, job.evidence);
+  markdown = unleaked.markdown;
+  if (unleaked.stripped.length > 0) {
+    findings.push({ code: 'evidence-path-stripped', detail: `괄호째 걷음: ${unleaked.stripped.join('·')}` });
+  }
+
+  const metaphor = retrieved.output.metaphor;
+  const output = { score: retrieved.output.score, metaphor, markdown };
 
   const secrets = [job.birth_a, ...(job.birth_b === null ? [] : [job.birth_b])].map(secretOf);
   const verdict = checkReading({
@@ -164,10 +200,14 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     // 얼린 프롬프트에서 되읽는다 — 그때 실제로 시킨 수다(ADR 0060)
     baseline: baselineIn(job.prompt) ?? undefined,
   });
+  if (!verdict.ok) findings.push(...verdict.failures);
 
-  if (!verdict.ok) {
+  const blocking = blockingFindingsOf(findings);
+  if (blocking.length > 0) {
     // 모델은 다 돌았다 — 검사가 문 것이라 토큰은 이미 나갔다.
-    return close(verdict.failures[0].code, verdict.failures.map((f) => f.detail).join(' · '), retrieved.usage);
+    const closed = await close(blocking[0].code, findings.map((f) => f.detail).join(' · '), retrieved.usage);
+    await noteChecks();
+    return closed;
   }
 
   /**
@@ -179,7 +219,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_run_id: job.run_id,
     p_output: output.markdown,
     p_score: isScored(job.kind) ? output.score : null,
-    p_metaphor: output.metaphor,
+    /* 빈 비유는 비유가 없는 것이다 — 화면은 비유 없는 풀이를 그린다(`metaphor-out-of-contract` 로 적었다) */
+    p_metaphor: metaphor.trim() === '' ? null : metaphor,
     p_evidence: job.evidence,
     p_prompt: job.prompt,
     p_prompt_version: job.prompt_version,
@@ -190,6 +231,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   }));
 
   if (saveError) return close('save-rejected', saveError.message, retrieved.usage);
+  await noteChecks();
 
   /* 퍼널의 끝 — 이어 쓴 풀이가 섰다. 날짜와 단계만 센다(ADR 0143 의 8). 못 세도 저장은 그대로다 */
   if (continuation !== null) await countTasteStep('reading_succeeded');

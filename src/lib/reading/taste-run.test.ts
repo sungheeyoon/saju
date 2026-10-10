@@ -10,7 +10,11 @@ import {
   normalizeClaim,
   tasteClaimPathsOf,
   tasteRunShapeOf,
+  TASTE_BLOCKING_CODES,
   checkTasteRun,
+  tasteBlockingOf,
+  tasteClaimsForStore,
+  type TasteCheckCode,
   tasteEvidenceOf,
   tasteFingerprintOf,
   tasteFingerprintSourceOf,
@@ -211,6 +215,55 @@ describe('맛보기 규칙 검사', () => {
     ['한자가 있다', { previewMarkdown: preview.replace('쇠의 기운', '庚 쇠의 기운') }],
   ])('%s — 걸린다', (reason, patch) => {
     expect(reasonsOf({ ...GOOD, ...patch }).join(' / ')).toContain(reason);
+  });
+
+  /**
+   * **막는 것은 DB 가 받지 못하는 꼴뿐이다**(ADR 0163) — 나머지는 걸려도 글을 적는다. 코드마다 갈래를 하나씩 잰다.
+   */
+  const findingsOf = (patch: Partial<TasteRunOutput>) => {
+    const verdict = checkTasteRun({ ...GOOD, ...patch }, evidence);
+    return verdict.ok ? [] : verdict.findings;
+  };
+  it.each<[TasteCheckCode, boolean, Partial<TasteRunOutput>]>([
+    ['preview-empty', true, { previewMarkdown: '  ' }],
+    ['field-empty', true, { answerDirection: ' ' }],
+    ['field-empty', true, { topic: '' as never }],
+    ['field-too-long', true, { continuationQuestion: `${'왜'.repeat(501)}요?` }],
+    ['claims-out-of-contract', false, { supportingClaims: [] }],
+    ['claims-out-of-contract', false, { supportingClaims: ['구조가 그렇다'] }],
+    ['claims-out-of-contract', false, { supportingClaims: Array.from({ length: 7 }, () => 'analysis.structure') }],
+    ['unknown-topic', false, { topic: '책임감' as never }],
+    ['claims-not-in-evidence', false, { supportingClaims: ['analysis.relations'] }],
+    ['length-out-of-contract', false, { previewMarkdown: '짧은 글이에요.\n\n정말 짧을까요?' }],
+    ['paragraphs-out-of-contract', false, { previewMarkdown: preview.replace(/\n\n/g, ' ') }],
+    ['unfinished-sentence', false, { previewMarkdown: `${preview.slice(0, -1)}…` }],
+    ['no-closing-question', false, { previewMarkdown: preview.replace(/있을까요\?$/, '있어요.') }],
+    ['foreshadowing', false, { previewMarkdown: `${preview.slice(0, -1)} 이게 다음 이야기일까요?` }],
+    ['not-polite', false, { previewMarkdown: preview.replace('타고났어요.', '타고났다.') }],
+    ['ai-word', false, { previewMarkdown: preview.replace('쇠의 기운을', 'AI 가 보니 쇠의 기운을') }],
+    ['markup', false, { previewMarkdown: preview.replace('쇠의 기운', '**쇠의 기운**') }],
+    ['plain-term', false, { previewMarkdown: preview.replace('다만 그 단단함을', '다만 신약이라 그 단단함을') }],
+    ['hanja', false, { previewMarkdown: preview.replace('쇠의 기운', '庚 쇠의 기운') }],
+  ])('%s — 막는가 %s', (code, blocks, patch) => {
+    const findings = findingsOf(patch);
+    expect(findings.map((finding) => finding.code)).toContain(code);
+    expect(TASTE_BLOCKING_CODES.has(code)).toBe(blocks);
+    expect(tasteBlockingOf(findings).length > 0).toBe(blocks);
+  });
+
+  it('근거 경로는 DB 가 받는 꼴 · 개수만 남긴다 — `chart.` 는 떼고, 꼴이 아닌 것과 여섯 뒤는 버린다', () => {
+    expect(tasteClaimsForStore([' chart.analysis.strength ', '구조가 그렇다', ''])).toEqual({ kept: ['analysis.strength'], dropped: 1 });
+    expect(tasteClaimsForStore(Array.from({ length: 8 }, (_, at) => `pillars.p${at}`))).toEqual({
+      kept: Array.from({ length: 6 }, (_, at) => `pillars.p${at}`),
+      dropped: 2,
+    });
+    expect(tasteClaimsForStore(['그냥 말'])).toEqual({ kept: [], dropped: 1 });
+  });
+
+  it('설명에는 모델이 쓴 글을 싣지 않는다 — 모르는 topic · 꼴이 아닌 경로는 길이와 개수만', () => {
+    const findings = findingsOf({ topic: '아주 사적인 고백' as never, supportingClaims: ['그 사람의 비밀 이야기'] });
+    expect(JSON.stringify(findings)).not.toContain('사적인 고백');
+    expect(JSON.stringify(findings)).not.toContain('비밀 이야기');
   });
 
   it('`chart.` 만 떼고 그 밖은 고치지 않는다', () => {
