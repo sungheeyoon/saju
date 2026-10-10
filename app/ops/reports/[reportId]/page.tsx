@@ -28,6 +28,7 @@ import {
 import { CARD } from '../../../ui/surfaces';
 import { CopyValue } from '../../copy-value';
 import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../../second-factor';
+import { FailureLine } from '../../../ui/failure-line';
 
 export const metadata = {
   title: '신고 내용',
@@ -81,9 +82,9 @@ export default async function OperatorReportPage({
       </header>
 
       {!found.ok || found.value === null ? (
-        <p role="alert" className={`${CARD} text-sm text-danger`}>
-          신고를 읽지 못했습니다. 잠시 뒤에 새로고침해 주세요.
-        </p>
+        <FailureLine retry className={CARD}>
+          신고를 읽지 못했습니다.
+        </FailureLine>
       ) : (
         <>
           <section aria-label="신고" className={`${CARD} flex flex-col gap-4`}>

@@ -10,6 +10,7 @@ import { ELEMENTS } from '@/src/lib/saju';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { saveSelfPerson } from './actions';
 import { actionAnswer } from '../ui/action-answer';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 자기 사주를 한 번 등록하는 화면.
@@ -67,7 +68,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
       </div>
 
-      {failure !== null && <p role="alert" className="text-sm text-danger max-sm:px-3">저장하지 못했어요. {failure}</p>}
+      {failure !== null && <FailureLine className="max-sm:px-3">저장하지 못했어요. {failure}</FailureLine>}
     </section>
   );
 }

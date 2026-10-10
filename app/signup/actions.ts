@@ -8,6 +8,8 @@ import { userFacingDbMessage } from '../db-error';
 import { safeReturnPath } from '@/src/lib/consent';
 import { rpcArgs } from '@/src/lib/db';
 
+import { refusedField, type SignupField } from './refusal';
+
 /** 틀린 코드의 문장 — 없는 코드 · 지난 코드 · 가입이 멈춘 때가 같은 말이다(DB 의 거절과 같은 글자) */
 const WRONG_CODE_NOTE = '사용할 수 없는 코드예요. 코드를 다시 확인해 주세요.';
 
@@ -36,7 +38,7 @@ export async function completeSignup(answer: {
   scheduleId: number;
   improvement: boolean;
   contact: boolean;
-}): Promise<{ ok: false; message: string }> {
+}): Promise<{ ok: false; message: string; field: SignupField | null }> {
   const supabase = await supabaseOnServer();
 
   const { data: signedUp, error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>({
@@ -52,12 +54,16 @@ export async function completeSignup(answer: {
     p_contact: answer.contact,
   }));
 
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
+  if (error) {
+    const message = userFacingDbMessage(error, 'complete_signup');
+    /* 어느 칸의 거절인지 함께 낸다 — 화면이 그 칸 곁에 세운다(`refusal.ts`) */
+    return { ok: false, message, field: refusedField(error.code, message) };
+  }
   /*
     **틀린 코드는 거절이 아니라 `false` 로 온다** — DB 가 틀린 시도를 적고 세어야 해서 던지지 않는다
     (`20261101090000`, ADR 0124). 문장은 던지던 때와 같다: 없는 코드와 지난 코드를 가르지 않는다.
   */
-  if (signedUp === false) return { ok: false, message: WRONG_CODE_NOTE };
+  if (signedUp === false) return { ok: false, message: WRONG_CODE_NOTE, field: 'code' };
 
   refresh('signed-up');
 

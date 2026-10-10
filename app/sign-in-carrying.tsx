@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 
 import { withReturnPath } from '@/src/lib/consent';
+import { FailureLine } from './ui/failure-line';
 
 /**
  * **입력을 들고 로그인으로 가는 누름** — 출생 정보는 주소에 안 싣고 탭의 `sessionStorage` 에 둔다(ADR 0007 · 0128).
@@ -57,7 +58,7 @@ export function SignInCarrying({
       >
         {children}
       </Link>
-      {failure !== null && <p role="alert" className="text-sm text-danger">{failure}</p>}
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
     </>
   );
 }

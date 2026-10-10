@@ -11,6 +11,7 @@ import {
 
 import { readPushRowState, turnOffPush, turnOnPush } from '../push/browser';
 import { SETTINGS_PRIMARY, SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 계정 관리의 「새 메시지 알림」 — **이 기기에서** 켜고 끈다(ADR 0156). 기본은 꺼짐이다.
@@ -105,9 +106,7 @@ export function PushRow() {
         )}
       </SettingsRow>
       {failure !== null && (
-        <p role="alert" className="border-t border-border pt-4 text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
       )}
     </SettingsCard>
   );

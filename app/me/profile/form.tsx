@@ -21,6 +21,7 @@ import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
+import { FailureLine } from '../../ui/failure-line';
 
 /** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
 const FIELD =
@@ -219,9 +220,7 @@ export function ProfileForm({
         </div>
 
         {failure !== null && (
-          <p role="alert" className="text-sm text-danger">
-            {failure}
-          </p>
+          <FailureLine>{failure}</FailureLine>
         )}
       </form>
     </div>

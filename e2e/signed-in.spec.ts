@@ -3066,14 +3066,14 @@ test.describe('가입 관문', () => {
 
     /*
       대표를 지우면 둘째가 대표가 된다 — 칸에서는 곧바로 빠지고, 서버에서는 되돌릴 시간이 지난 뒤에 지운다(2026-10-11).
-      되돌리기는 아무 요청 없이 그 장을 제자리에 다시 세운다.
+      실행 취소는 아무 요청 없이 그 장을 제자리에 다시 세운다.
     */
     await lead.getByRole('button', { name: '사진 지우기' }).click();
     const only = page.getByRole('button', { name: '사진 1 / 1, 길게 눌러 옮기기' });
     await expect(only).toBeVisible();
     await expect.poll(() => versionAt(only)).toBe(b);
     await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
-    await page.getByRole('button', { name: '되돌리기' }).click();
+    await page.getByRole('button', { name: '실행 취소' }).click();
     await expect(first).toBeVisible();
     await expect.poll(() => versionAt(first)).toBe(a);
     await expect.poll(() => versionAt(second)).toBe(b);

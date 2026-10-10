@@ -17,7 +17,9 @@
  * 한 벌이 되게 한다. 눌러야 이유를 말할 수 있는 단추(궁합 보기)는 `disabled` 대신 `aria-disabled` 를 달고 같은 모양을 입는다.
  */
 
-const PRESS = 'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55';
+/** 누를 때 조금 준다 · 못 누를 때 흐려진다. 누름을 받아 까닭을 말하는 단추(`aria-disabled`, ADR 0160)도 같은 흐림이고 줄지 않는다 */
+const PRESS =
+  'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55 aria-disabled:opacity-55 aria-disabled:active:scale-100';
 
 /** 주 단추가 못 눌릴 때 — 먹색 대신 가라앉은 면 · 흐린 글자 · 그림자 없음. `aria-disabled` 도 같은 모양이고 줄지 않는다 */
 const PRIMARY_OFF =

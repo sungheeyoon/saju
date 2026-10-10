@@ -287,7 +287,7 @@ export function DetailSheet({
   nickname: string;
   /** 보조기기가 읽는 시트 이름 — 없으면 「○○ 님 자세히」. 받은 요청 시트(`requests-band.tsx`)가 제 이름을 준다 */
   label?: string;
-  /** 머리의 「닫기」 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
+  /** 머리의 닫기(X) 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
   menu?: ReactNode;
   children: ReactNode;
 }) {
@@ -340,8 +340,14 @@ export function DetailSheet({
             <h2 className="min-w-0 truncate font-rounded text-[1.5rem]">{nickname}</h2>
             <span className="flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
               {menu}
-              <button type="button" onClick={close} className="min-h-11 rounded-full px-3 text-[14px] font-semibold text-secondary">
-                닫기
+              {/* 보는 판을 닫는 것은 오른쪽 위 X 한 벌이다 — 관계 지도 카드 · 신고 창과 같은 모양, 이름은 「닫기」(ADR 0166) */}
+              <button
+                type="button"
+                onClick={close}
+                aria-label="닫기"
+                className="grid size-11 shrink-0 place-items-center rounded-full text-secondary hover:bg-surface-soft hover:text-foreground"
+              >
+                <Icon name="close" className="size-5" />
               </button>
             </span>
           </div>

@@ -197,7 +197,17 @@ test.describe('동의로 열리는 흐름', () => {
     await tab.click();
     await expect(receiver.page).toHaveURL(/\/me\/matching$/);
     await openReceivedRequests(receiver);
-    await receivedRequests(receiver).getByRole('button', { name: '거절' }).click();
+    await receivedRequests(receiver).getByRole('button', { name: '거절', exact: true }).click();
+    /* 거절은 한 번 더 묻는다 — 되돌아오지 않는다는 말은 그 창에 선다. 첫 초점은 「취소」(ADR 0166) */
+    const rejecting = receiver.page.getByRole('dialog', { name: `가${tag} 님의 요청을 거절할까요?` });
+    await expect(rejecting.getByText('다시 나타나지 않고', { exact: false })).toBeVisible();
+    await expect(rejecting.getByRole('button', { name: '취소' })).toBeFocused();
+    /* Esc 는 그 창만 닫는다 — 뒤의 받은 요청 시트는 그대로 선다 */
+    await receiver.page.keyboard.press('Escape');
+    await expect(rejecting).toBeHidden();
+    await expect(receivedRequests(receiver)).toBeVisible();
+    await receivedRequests(receiver).getByRole('button', { name: '거절', exact: true }).click();
+    await rejecting.getByRole('button', { name: '거절하기' }).click();
     await expect(receiver.page.getByRole('link', { name: /답할 요청/ })).toHaveCount(0);
   });
 
@@ -664,6 +674,9 @@ test.describe('동의로 열리는 흐름', () => {
 
     const confirmRequest = asker.page.getByRole('dialog');
     await expect(confirmRequest).toBeVisible();
+    /* 첫 초점은 「취소」다 — Enter 한 번에 풀이권이 예약되지 않는다(ADR 0166). 보내는 단추는 한 칸 앞이다 */
+    await expect(confirmRequest.getByRole('button', { name: '취소' })).toBeFocused();
+    await asker.page.keyboard.press('Shift+Tab');
     await expect(confirmRequest.getByRole('button', { name: '요청 보내기' })).toBeFocused();
     await asker.page.keyboard.press('Enter');
     await sentRequest(asker);
@@ -707,6 +720,8 @@ test.describe('동의로 열리는 흐름', () => {
     await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
+    /* 묻는 창의 첫 초점은 「취소」다 — 차단하기는 탭으로 닿는다(ADR 0166) */
+    await expect(receiver.page.getByRole('dialog', { name: `가${tag} 님을 차단할까요?` }).getByRole('button', { name: '취소' })).toBeFocused();
     await reach(receiver, '차단하기');
   });
 
@@ -724,7 +739,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     // 차단은 한 번 더 묻는다 — 되돌리지 않기 때문이다(용어집).
     await receivedRequests(receiver).getByRole('button', { name: '차단', exact: true }).click();
-    await receivedRequests(receiver).getByRole('button', { name: '차단하기' }).click();
+    await receiver.page.getByRole('dialog', { name: `가${tag} 님을 차단할까요?` }).getByRole('button', { name: '차단하기' }).click();
     await expect(receivedRequests(receiver)).toHaveCount(0);
     await openRequestHistory(receiver);
 

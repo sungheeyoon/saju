@@ -123,7 +123,7 @@ function unreceivedCalls(): string[] {
 }
 
 /**
- * **아직 안 받는 자리 — 줄어들기만 한다.** 다른 작업이 맡은 파일이라 이번에 안 고쳤다(`docs/product/gaps.md` G-95).
+ * **아직 안 받는 자리 — 줄어들기만 한다.** 다른 작업이 맡은 파일이라 이번에 안 고쳤다(ADR 0164).
  * 하나를 감싸면 그 줄을 지운다 — 남은 줄이 있으면 시험이 붉어져 지우라고 말한다.
  */
 const NOT_YET: readonly string[] = [];

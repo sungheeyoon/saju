@@ -8,6 +8,7 @@ import { BUTTON_PRIMARY } from '../../ui/buttons';
 
 import { acknowledgeWarning } from './actions';
 import { actionAnswer } from '../../ui/action-answer';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 「확인했습니다」 — 누르면 확인한 시각이 적히고 레이아웃이 다시 그려져 안내가 내려간다(다음 경고가 있으면 그것이 선다).
@@ -36,9 +37,7 @@ export function AcknowledgeWarning({ warningRef }: { warningRef: string }) {
         {WARNING_ACKNOWLEDGE_LABEL}
       </button>
       {failure !== null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          {failure}
-        </p>
+        <FailureLine>{failure}</FailureLine>
       )}
     </div>
   );
