@@ -9,6 +9,10 @@
  *   궤도는 회색 얼룩이 되고 작은 점은 한 픽셀이 된다
  * - `app/apple-icon.png` — 180. iOS 가 모서리를 스스로 깎으므로 종이 판을 모서리까지 채운다(둥근 모서리 밖이 검게 선다)
  * - `app/icon.svg` 는 그대로 원본이다 — 다크 화면 짝을 든다
+ * - `public/badge.png` — 96. 안드로이드 알림의 단색 배지(`public/sw.js` 의 `badge`, G-74 · ADR 0156). 안드로이드는 알파만 읽고
+ *   색을 스스로 칠하므로 **투명 바탕에 흰 실루엣**이다. 24dp 칸(xxxhdpi 에서 96px)이라 16 판처럼 점선 궤도를 빼고, 선은 굵히고,
+ *   테두리는 모양에 합쳐 점마다 반지름을 그만큼 키운다. 무리 전체를 칸 가운데로 옮긴다(원본은 위로 치우쳤다). **좌표는 아래에 손으로
+ *   옮겨 적었다 — icon.svg 를 바꾸면 이것도 고친다**(ADR 0149 추기)
  *
  * 색은 `app/icon.svg` 의 밝은 짝이다(그 파일의 `@media` 덩어리를 걷고 굽는다). 그림을 고치면 icon.svg 를 고치고 이것을 다시 돌린다.
  *
@@ -35,6 +39,20 @@ const tiny = light
   .replace('cx="32" cy="32" r="9.5" stroke-width="2.8"', 'cx="24" cy="25" r="13" stroke-width="4.5"')
   .replace(/<circle class="water line"[^>]*\/>/, '')
   .replace('cx="51.5" cy="43.2" r="5.8" stroke-width="2.4"', 'cx="45" cy="42" r="9.5" stroke-width="4.5"');
+
+/**
+ * 알림 배지 — 흰 실루엣. 좌표는 `app/icon.svg` 그대로이고 반지름은 원본 반지름 + 테두리 절반이다.
+ * 무리의 상자(x 8.6~58.5 · y 4.2~50.4)를 가운데로: (−1.5, +4.7)
+ */
+const badge = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="#fff" transform="translate(-1.5 4.7)">
+    <path d="M32 32 L51.5 43.2" stroke="#fff" stroke-width="3.6" stroke-linecap="round" />
+    <circle cx="32" cy="32" r="10.9" />
+    <circle cx="32" cy="9.5" r="5.3" />
+    <circle cx="51.5" cy="43.2" r="7" />
+    <circle cx="13.5" cy="45.5" r="4.9" />
+  </g>
+</svg>`;
 
 /** 모서리까지 채운 판 — iOS 가 깎는다 */
 const square = light.replace('rx="16"', 'rx="0"');
@@ -71,6 +89,9 @@ const images = [
 ];
 writeFileSync(join(OUT, 'favicon.ico'), ico(images));
 writeFileSync(join(OUT, 'apple-icon.png'), await png(square, 180));
+const BADGE_OUT = outAt > 0 ? OUT : join(ROOT, 'public');
+mkdirSync(BADGE_OUT, { recursive: true });
+writeFileSync(join(BADGE_OUT, 'badge.png'), await png(badge, 96));
 /* 미리 보기 자리에는 ICO 속 판도 따로 내놓는다 — ICO 는 그림 보기 도구가 한 판만 연다 */
 if (outAt > 0) for (const { size, data } of images) writeFileSync(join(OUT, `favicon-${size}.png`), data);
-console.log(`favicon.ico (16 · 32 · 48) · apple-icon.png (180) → ${OUT}`);
+console.log(`favicon.ico (16 · 32 · 48) · apple-icon.png (180) → ${OUT} · badge.png (96) → ${BADGE_OUT}`);

@@ -93,7 +93,23 @@ describe('push — 알림을 세운다', () => {
       data: { url: `/me/chat/${MATCH}` },
       silent: false,
       renotify: true,
+      badge: '/badge.png',
     });
+  });
+
+  it('배지는 public 에 있는 투명 바탕의 흰 실루엣이다 — 안드로이드는 알파만 읽는다(G-74)', async () => {
+    const { default: sharp } = await import('sharp');
+    const { data, info } = await sharp(join(__dirname, '..', 'public', 'badge.png')).raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height, info.channels]).toEqual([96, 96, 4]);
+    let seen = 0;
+    for (let at = 0; at < data.length; at += 4) {
+      if (data[at + 3] === 0) continue;
+      seen += 1;
+      expect([data[at], data[at + 1], data[at + 2]]).toEqual([255, 255, 255]);
+    }
+    /* 모서리는 비었다 — 바탕이 칠해져 있으면 네모 하나로 선다 */
+    expect(data[3]).toBe(0);
+    expect(seen).toBeGreaterThan(0);
   });
 
   it('페이로드에 다른 칸이 끼어 와도 알림에 옮기지 않는다', async () => {
