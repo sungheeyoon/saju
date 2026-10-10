@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { CARD } from '../../ui/surfaces';
+import { CopyText } from '../../me/reading/copy-text';
 import { confirmTotpCode, startTotpEnrollment } from './actions';
 import { SECOND_FACTOR_COPY as COPY } from './copy';
 
@@ -70,7 +71,11 @@ export function SecondFactorForm({ enrolled, next }: { enrolled: boolean; next: 
           />
           <dl className="flex flex-col gap-1">
             <dt className="text-xs font-semibold text-muted">{COPY.secretLabel}</dt>
-            <dd className="break-all font-mono text-sm">{enrollment.secret}</dd>
+            {/* 손으로 옮길 때 자리를 놓치지 않게 네 자씩 띄우고, 복사는 띄움 없는 원래 값이다(화면 점검 C18) */}
+            <dd className="flex flex-wrap items-center gap-3">
+              <span className="font-mono text-sm tracking-wide">{enrollment.secret.match(/.{1,4}/g)?.join(' ')}</span>
+              <CopyText text={enrollment.secret} label={COPY.secretCopy} />
+            </dd>
           </dl>
         </div>
       )}

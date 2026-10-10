@@ -13,6 +13,7 @@ export const SECOND_FACTOR_COPY = {
   scanNote: '인증 앱으로 QR 코드를 찍거나, 아래 설정 키를 직접 입력해 주세요.',
   qrAlt: '인증 앱에 등록할 QR 코드',
   secretLabel: '설정 키',
+  secretCopy: '설정 키 복사',
   challengeNote: '인증 앱에 보이는 6자리 코드를 입력해 주세요.',
   codeLabel: '6자리 코드',
   confirm: '확인하기',
