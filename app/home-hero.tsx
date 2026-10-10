@@ -8,7 +8,7 @@ import { PairTaste } from './pair-taste';
 import { memberLandingOf } from './saju-landing';
 import { SignedInProvider } from './signed-in';
 import { SunMark, TaijiMark } from './ui/entry-marks';
-import { COLUMN, PAPER_TOP } from './ui/surfaces';
+import { PAPER_TOP } from './ui/surfaces';
 
 /**
  * `/` 의 얼굴 — **로그인 전 첫 화면 하나다**(ADR 0144). 로그인한 사람은 세션을 안 순간 홈(`/me`)으로, 입력을 든 주소면
@@ -45,9 +45,9 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
   };
 
   return (
-    // 넓은 화면에서도 폼은 가운데 기둥(`COLUMN`) 한 축이다 — 칸이 이름표와 값을 양 끝으로 가르지 않는 한 손 너비(PRD §3.1). 위에 소개를 따로
+    // 넓은 화면에서도 폼은 42rem 한 축이다 — 칸이 이름표와 값을 양 끝으로 가르지 않는 한 손 너비(PRD §3.1). 위에 소개를 따로
     // 세우지 않는다 — 폼이 첫 화면에 한 번에 보이는 쪽을 골랐다(운영자 2026-10-08)
-    <div className={`mx-auto w-full ${COLUMN}`}>
+    <div className="mx-auto w-full max-w-[42rem]">
       <header className={`relative ${PAPER_TOP}`}>
         <VisitorFace entry={entry} onEntry={open} />
       </header>
