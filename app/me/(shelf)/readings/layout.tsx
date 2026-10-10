@@ -72,7 +72,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   const { state } = await readAccount(supabase);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
+      <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );
@@ -205,7 +205,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   }));
 
   return (
-    <main className="app-shell flex flex-1 flex-col py-9 sm:py-14">
+    <main className="app-shell flex flex-1 flex-col py-8 sm:py-12">
       <ReadingsFrame account={user.id} shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks}>
         {children}
       </ReadingsFrame>

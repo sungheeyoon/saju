@@ -40,7 +40,7 @@ export default async function ChatRoomsPage() {
   const { state } = await readAccount(supabase, ['status', 'self_person_id']);
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col py-6 sm:py-10 lg:py-8">
+    <main className="app-shell flex w-full flex-1 flex-col py-6 sm:py-12 lg:py-8">
       {isBlocked(state) ? (
         <div className="flex flex-col gap-6">
           <h1 className={TYPE_TITLE}>{CHAT_TAB_LABEL}</h1>

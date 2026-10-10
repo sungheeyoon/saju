@@ -296,7 +296,7 @@ export function MatchingExperience({
   const letter = profile && <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />;
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-10">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-12">
       {/*
         **폰에서는 제목과 보기 전환이 한 줄에 선다**(2026-09-25). 두 칸짜리 토글이 폰에서 한 줄을 통째로 썼다 — 폰에는
         「지금 아닌 쪽」으로 가는 알약 하나와, 그 위에 덱 순번 점이 선다. 지나친 인연은 가끔 여는 보관함이라 오늘의 인연과

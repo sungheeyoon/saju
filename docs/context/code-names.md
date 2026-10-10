@@ -65,7 +65,7 @@
 | 용어 판 · 이름을 안 부르는 판 | `Terminology` · `plain` · `PLAIN_FORBIDDEN_TERMS` | `src/lib/reading` |
 | 현재 결과 점수 | `score` | `reading` 칸 |
 | 기준점 | `baselineIn` · `baselineBlock` · `previewScoreOf` | `src/lib/reading` · `src/lib/discovery` |
-| 체감 적합성 | `reading_feedback` · `FEEDBACK_QUESTIONS` · `leave_reading_feedback` | 표 · `src/lib/reading` · 함수 |
+| 체감 적합성 | `reading_feedback` · `feedbackQuestions` · `leave_reading_feedback` | 표 · `src/lib/reading` · 함수 |
 | 자리 대칭 | `COMPAT_SIDES` | 엔진 `compat/` |
 | 매칭 참여 | `opted_in_at` · `opted_out_at` · `set_discovery_participation` · `ensure_discovery_participation` | `discovery_profile` 칸 · 함수 |
 | DiscoveryProfile | `discovery_profile` · `prefer_gender` · `DiscoveryProfile` · `myDiscoveryProfile` | 표 · 칸 · `src/lib/discovery` · 읽는 문 |

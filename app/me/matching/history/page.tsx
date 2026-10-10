@@ -45,7 +45,7 @@ export default async function MatchHistoryPage() {
   const { state } = await readAccount(supabase, ['status']);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
+      <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );
@@ -75,7 +75,7 @@ export default async function MatchHistoryPage() {
   const empty = readings.ok && requests.ok && matchCount === 0 && pastCount === 0 && past?.blocked === 0;
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-10">
+    <main className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
       <header className="flex flex-col gap-2">
         <Link href="/me/matching" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
           <Icon name="back" className="size-4" />
@@ -94,7 +94,7 @@ export default async function MatchHistoryPage() {
           <h2 className={TYPE_DISPLAY}>아직 인연 기록이 없어요</h2>
           <Link href="/me/matching" className={BUTTON_PRIMARY}>
             <Icon name="people" className="size-[18px]" />
-            오늘의 인연 만나기
+            오늘의 인연 보기
           </Link>
         </section>
       )}
