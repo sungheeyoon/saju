@@ -47,3 +47,11 @@ changelog 가 원본이고, 여기는 그 밖의 것만 든다.
 화면 점검 아티팩트에 열린 여섯(B9 · B18 · B23 · C13 · C14 · C18)과 일부 일곱(A11 · B7 · B10 · B16 · B21 · C5 · C17)의 남은 몫이
 적혀 있다. C5 는 실기기(iOS Safari · Android Chrome)에서 자판을 연 모습을 아직 못 봤다. C17 의 고른 메시지 발췌는 새 DB 함수가
 든다.
+
+배포는 `fcfe9409`(#578)까지 운영에 올랐다 — `dpl_HCrYQxmcfpx9UE83FM5KfxwSUjMW`, `vercel api` 의 `gitCommitSha` 로 SHA 를 맞췄다.
+첫 `vercel deploy --prod` 는 배포를 만들지 못하고 끝났는데 출력을 남기지 않아 **원인 미확인**이다. 다시 돌린 것이 올랐다.
+smoke 는 로그인 없는 다섯(`/` · `/auth` · `/compat` 200, `/me/people` · `/ops/reports` 307)뿐이고 로그인한 화면은 못 봤다.
+
+이 라운드 밖에서 열린 채로 이어받는 것: G-82 실풀이 검증(운영자 계정) · G-85 「더보기」 퍼널 줄 · #583 문구 판정 후속 둘.
+읽기 천장의 여유가 바닥이다 — ui 15 · ops 38 · reviewer 42 · coordinator 395 바이트(`npm run read-budget`). 다음 문서 PR 전에
+세부를 「닿을 때 여는」 문서로 옮긴다.
