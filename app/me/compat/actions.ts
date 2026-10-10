@@ -93,7 +93,8 @@ export type PairSide =
  */
 type PairOpened =
   | { ok: true; personA: string; personB: string }
-  | { ok: false; kind: 'failed'; message: string }
+  /** `side` — 한 사람의 입력이 거절됐으면 그 칸. 화면이 그 칸으로 데려간다. 둘 다의 일(DB 실패 등)이면 없다 */
+  | { ok: false; kind: 'failed'; message: string; side?: 'a' | 'b' }
   | { ok: false; kind: 'same-chart'; side: 'a' | 'b'; same: SameChart };
 
 /**
@@ -116,14 +117,17 @@ export async function openPairScreen(
   relation: Relation | null | undefined,
   answered: PairAnswers = {},
 ): Promise<PairOpened> {
-  for (const side of [a, b]) {
+  for (const [key, side] of [
+    ['a', a],
+    ['b', b],
+  ] as const) {
     if (side.from !== 'typed') continue;
 
     const missing = missingAnswer(side.query);
-    if (missing !== null) return { ok: false, kind: 'failed', message: missing };
+    if (missing !== null) return { ok: false, kind: 'failed', message: missing, side: key };
 
     const unsupported = unsupportedForSaving(side.query);
-    if (unsupported !== null) return { ok: false, kind: 'failed', message: unsupported };
+    if (unsupported !== null) return { ok: false, kind: 'failed', message: unsupported, side: key };
   }
 
   /**
