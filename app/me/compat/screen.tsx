@@ -402,11 +402,6 @@ async function Result({ outcome }: { outcome: Outcome }) {
           />
         </>
       }
-      notice={
-        <p className="text-[13px] leading-5 text-secondary">
-          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>
-        </p>
-      }
     />
   );
 }
