@@ -1,6 +1,7 @@
 'use client';
 
 import { useSignOut } from '../auth/sign-out';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 가입 화면에서 나가는 길 — 코드를 못 받은 사람이나 다른 구글 계정으로 들어와야 하는 사람의 자리.
@@ -22,9 +23,7 @@ export function SignOutLink() {
         {leaving ? '로그아웃하는 중…' : '다른 계정으로 로그인하기'}
       </button>
       {failure && (
-        <p role="alert" className="px-1 text-[13px] text-danger">
-          {failure}
-        </p>
+        <FailureLine className="px-1">{failure}</FailureLine>
       )}
     </div>
   );

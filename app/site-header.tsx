@@ -26,6 +26,7 @@ import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
 import { BADGE } from './ui/surfaces';
+import { FailureLine } from './ui/failure-line';
 
 /**
  * 로그인한 사람의 탭 — **홈 · 궁합 · 인연 · 채팅 넷**(2026-09-29 운영자 결정, 시안 g · ADR 0126).
@@ -517,9 +518,7 @@ function SettingsMenu({
           {leaving ? '로그아웃하는 중…' : '로그아웃'}
         </button>
         {failure && (
-          <p role="alert" className="px-3 py-2 text-[13px] text-danger">
-            {failure}
-          </p>
+          <FailureLine className="px-3 py-2">{failure}</FailureLine>
         )}
       </div>
     </details>

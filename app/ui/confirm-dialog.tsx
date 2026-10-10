@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react
 
 import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from './buttons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_NAME } from './surfaces';
+import { FailureLine } from './failure-line';
 
 /**
  * **확인 창을 연다 — 되돌릴 수 없는 창이면 첫 초점은 「취소」다**(2026-10-10 화면 점검 B5).
@@ -118,9 +119,7 @@ export function ConfirmDialog({
       </h2>
       {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-[15px] leading-6 text-secondary">{children}</div>}
       {failure !== null && failure !== undefined && (
-        <p role="alert" className="mt-3 text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine className="mt-3">{failure}</FailureLine>
       )}
       <div className={DIALOG_ACTIONS}>
         <button

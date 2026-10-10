@@ -22,6 +22,7 @@ import {
 } from './actions';
 import { BlockDialog, ReportForm } from './report-block';
 import { actionAnswer } from '../../ui/action-answer';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 취소) — 셋째 단추의 기하에 보조 글자색.
@@ -97,9 +98,7 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
       </div>
 
       {failure !== null && !asking && (
-        <p role="alert" className="text-sm text-danger">
-          답하지 못했어요. {failure}
-        </p>
+        <FailureLine>답하지 못했어요. {failure}</FailureLine>
       )}
 
       <ConfirmDialog
@@ -136,12 +135,12 @@ export function CancelButton({ requestId }: { requestId: string }) {
   };
 
   return (
-    <span className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={cancel} disabled={working} className={QUIET_LINK}>
         {working ? '거두는 중…' : '요청 거두기'}
       </button>
-      {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
-    </span>
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
+    </div>
   );
 }
 
@@ -235,7 +234,7 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
   }, [unread]);
 
   if (failure === null) return null;
-  return <p role="alert" className="text-[13px] text-danger">소식을 읽은 것으로 표시하지 못했어요. 새로고침한 뒤 다시 확인해 주세요.</p>;
+  return <FailureLine retry>소식을 읽은 것으로 표시하지 못했어요.</FailureLine>;
 }
 
 /**

@@ -39,6 +39,7 @@ import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 import { TYPE_SECTION } from '../../ui/surfaces';
 import { actionAnswer } from '../../ui/action-answer';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 서비스 설문 폼 — **쓰는 동안 저절로 남고, 제출은 손으로 한다.**
@@ -308,9 +309,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
           <DraftMark state={draft} />
         </div>
         {failure !== null && (
-          <p role="alert" className="text-sm text-danger">
-            {failure}
-          </p>
+          <FailureLine>{failure}</FailureLine>
         )}
       </section>
     </div>

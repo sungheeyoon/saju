@@ -16,6 +16,7 @@ import { BUTTON_PRIMARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { Icon } from '../ui/icons';
 import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 저장된 출생 정보를 고치는 자리.
@@ -170,9 +171,7 @@ export function EditInputForm({
       </div>
 
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          저장하지 못했어요. {failure}
-        </p>
+        <FailureLine>저장하지 못했어요. {failure}</FailureLine>
       )}
 
       <EditInputConfirm open={confirming} onConfirm={save} onCancel={() => setConfirming(false)} />

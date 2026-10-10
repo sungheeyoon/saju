@@ -7,6 +7,7 @@ import { CARD } from '../../ui/surfaces';
 import { opsReturnPath, secondFactorOf } from '../second-factor';
 import { SECOND_FACTOR_COPY as COPY } from './copy';
 import { SecondFactorForm } from './form';
+import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
   title: COPY.title,
@@ -44,9 +45,9 @@ export default async function SecondFactorPage({
       </header>
 
       {factor === 'unread' ? (
-        <p role="alert" className={`${CARD} text-sm text-danger`}>
+        <FailureLine retry className={CARD}>
           {COPY.unread}
-        </p>
+        </FailureLine>
       ) : (
         <SecondFactorForm enrolled={factor === 'challenge'} next={next} />
       )}

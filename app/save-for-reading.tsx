@@ -28,6 +28,7 @@ import { selfPersonState, type SelfPersonState } from './self-person-state';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { CARD } from './ui/surfaces';
 import { actionAnswer } from './ui/action-answer';
+import { FailureLine } from './ui/failure-line';
 
 /**
  * 직접 입력한 사람을 **저장해서 풀이까지 가는 길.**
@@ -251,9 +252,7 @@ function SaveCard({
       )}
 
       {failure !== null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했어요. {failure}
-        </p>
+        <FailureLine>저장하지 못했어요. {failure}</FailureLine>
       )}
     </section>
   );
@@ -546,15 +545,11 @@ function SelfConfirm({
       />
 
       {stuck && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          이어오지 못했어요.
-        </p>
+        <FailureLine>이어오지 못했어요.</FailureLine>
       )}
 
       {failure !== null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했어요. {failure}
-        </p>
+        <FailureLine>저장하지 못했어요. {failure}</FailureLine>
       )}
     </section>
   );

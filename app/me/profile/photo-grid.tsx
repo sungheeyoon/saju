@@ -24,6 +24,7 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { addPhoto, movePhoto, removePhoto } from './actions';
 import type { MyPhoto } from './photos';
+import { FailureLine } from '../../ui/failure-line';
 
 /** 길게 누름 — 이만큼 손가락이 머물면 사진이 들린다 */
 const LIFT_AFTER_MS = 350;
@@ -641,9 +642,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
       <p className="text-[13px] leading-5 text-cream-ink">{PHOTO_NOTE}</p>
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine>{failure}</FailureLine>
       )}
     </section>
   );

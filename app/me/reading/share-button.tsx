@@ -6,6 +6,7 @@ import { BUTTON_SECONDARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 내 사주풀이를 **링크로 보낸다** — 누르면 주소가 클립보드에 들어간다.
@@ -190,9 +191,7 @@ export function ShareReadingButton({
         말이고, 읽으라고 자리를 만드는 것이다. 잘 된 일은 버튼이 혼자 말한다.
       */}
       {phase === 'failed' && notice !== null && (
-        <p role="alert" className="text-[13px] leading-5 text-danger">
-          {notice}
-        </p>
+        <FailureLine>{notice}</FailureLine>
       )}
       {/* 복사가 거절됐을 때만 주소를 세운다 — 됐을 때 세우면 붙여 넣을 곳이 둘이 된다 */}
       {phase === 'failed' && link !== null && (

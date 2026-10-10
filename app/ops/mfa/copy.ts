@@ -24,5 +24,5 @@ export const SECOND_FACTOR_COPY = {
   noFactor: '등록한 인증 앱이 없습니다. 새로고침한 뒤 다시 등록해 주세요.',
   enrollFailed: '등록을 시작하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.',
   verifyFailed: '코드를 확인하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.',
-  unread: '인증 상태를 읽지 못했습니다. 잠시 뒤에 새로고침해 주세요.',
+  unread: '인증 상태를 읽지 못했습니다.',
 } as const;

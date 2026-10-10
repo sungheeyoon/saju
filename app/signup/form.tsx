@@ -25,6 +25,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { completeSignup } from './actions';
 import type { SignupField } from './refusal';
 import { actionAnswer } from '../ui/action-answer';
+import { FAILURE_TEXT, FailureLine } from '../ui/failure-line';
 
 /** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
@@ -213,7 +214,7 @@ export function SignupForm({
             className={`${FIELD} w-full tracking-[0.08em] sm:max-w-64`}
           />
           {refusedHere('code') && (
-            <p id="signup-code-refused" role="alert" className="text-sm font-medium text-danger">
+            <p id="signup-code-refused" role="alert" className={`${FAILURE_TEXT} font-medium`}>
               {failure?.message}
             </p>
           )}
@@ -271,12 +272,12 @@ export function SignupForm({
             {answer === null ? '' : answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
           </p>
           {checkTried && missing !== null && (
-            <p id="signup-nickname-check" role="alert" className="text-sm font-medium text-danger">
+            <p id="signup-nickname-check" role="alert" className={`${FAILURE_TEXT} font-medium`}>
               {missing}
             </p>
           )}
           {refusedHere('nickname') && (
-            <p id="signup-nickname-refused" role="alert" className="text-sm font-medium text-danger">
+            <p id="signup-nickname-refused" role="alert" className={`${FAILURE_TEXT} font-medium`}>
               {failure?.message}
             </p>
           )}
@@ -362,9 +363,7 @@ export function SignupForm({
 
       {/* 칸을 모르는 거절(안내가 바뀜 · 테스트가 끝남 등)만 여기 — 칸의 거절은 그 칸 아래에 선다 */}
       {failure !== null && failure.field === null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          {failure.message}
-        </p>
+        <FailureLine>{failure.message}</FailureLine>
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
@@ -378,7 +377,7 @@ export function SignupForm({
         </button>
         {/* 눌렀는데 못 간 이유를 단추 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
         {shownGap !== null && (
-          <p id="signup-gap" role="alert" className="text-sm font-medium text-danger">
+          <p id="signup-gap" role="alert" className={`${FAILURE_TEXT} font-medium`}>
             {shownGap.message}
           </p>
         )}

@@ -7,6 +7,7 @@ import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
 import { setOptionalConsent } from './actions';
 import { ROW_STATUS, SETTINGS_QUIET, SettingsRow } from './settings/card';
 import { actionAnswer } from '../ui/action-answer';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 선택 동의를 켜고 끄는 자리 — **끄는 것이 곧 지움이라는 것을 그 자리에서 말한다.**
@@ -81,9 +82,7 @@ export function ConsentControls({
       })}
 
       {failure !== null && (
-        <p role="alert" className="border-t border-border pt-4 text-sm leading-6 text-danger">
-          {failure}
-        </p>
+        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
       )}
     </>
   );

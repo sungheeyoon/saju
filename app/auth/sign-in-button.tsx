@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabaseInBrowser } from './browser-client';
 import { userFacingDbMessage } from '../db-error';
 import { BUTTON_PRIMARY } from '../ui/buttons';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 구글 로그인 — 여기서 브라우저가 통째로 이동한다.
@@ -46,7 +47,7 @@ export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
         {going ? '구글로 이동하는 중…' : '구글로 로그인'}
       </button>
       {failure !== null && (
-        <p role="alert" className="text-[13px] font-medium text-danger">로그인을 시작하지 못했어요. {failure}</p>
+        <FailureLine>로그인을 시작하지 못했어요. {failure}</FailureLine>
       )}
     </div>
   );
