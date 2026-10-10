@@ -1,17 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { RESUME_READING_PATH } from '@/src/lib/consent';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
-import { TASTE_WAIT, type TasteAnswer } from '@/src/lib/reading/taste-visit';
+import { TASTE_CLOSED_NOTE, TASTE_FAILED_NOTE, TASTE_RETRY_LABEL, TASTE_WRITING_SUBJECT } from '@/src/lib/reading/copy';
+import { READING_OUTLINE_STATE } from '@/src/lib/reading/notes';
+import { TASTE_WAIT, tasteFirstSectionOf, type TasteAnswer, type TasteFirstSection } from '@/src/lib/reading/taste-visit';
 import type { Saju } from '@/src/lib/saju';
 
 import { noteTasteStep, readTaste, requestTaste } from './actions';
 import { SelfCard } from './me/home/self-card';
 import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import motion from './taste.module.css';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from './ui/buttons';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
 import { CARD, TYPE_META, TYPE_NAME } from './ui/surfaces';
@@ -32,7 +35,8 @@ import { CARD, TYPE_META, TYPE_NAME } from './ui/surfaces';
  *
  * **이 사람의 사주로 서버가 쓴다**(ADR 0143). 화면은 입력(주소 `#` 뒤의 모양)을 서버 액션에 보내고(`requestTaste`), 서버가
  * 명식을 다시 계산해 근거와 지문을 짓고 · 예약하고 · 모델을 부르고 · 검사한 글을 돌려준다. 같은 입력을 다시 넣으면 같은 글이다
- * (모델을 다시 안 부른다). **실패하면 첫 절도 다른 절처럼 잠긴 채 선다** — 다른 글로 바꿔치기하지 않는다.
+ * (모델을 다시 안 부른다). **실패하면 첫 절도 다른 절처럼 잠긴 채 서고, 다음 시도가 열려 있으면 「다시 시도하기」가 선다** — 다른
+ * 글로 바꿔치기하지 않는다.
  *
  * ## 목차는 본 풀이의 절 이름이다
  *
@@ -98,14 +102,15 @@ export function Taste({
   );
 }
 
-/** 받은 입력과 그 답 — 입력이 바뀌면(다시 제출) 받은 답이 지금 입력의 것이 아니므로 기다림으로 돌아간다 */
-type Passage = { draft: string; answer: TasteAnswer };
+
+/** 받은 입력 · 몇 번째 물음과 그 답 — 입력이 바뀌거나(다시 제출) 「다시 시도하기」를 누르면 받은 답이 지금 물음의 것이 아니므로 기다림으로 돌아간다 */
+type Passage = { draft: string; attempt: number; answer: TasteAnswer };
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * 서버에 묻고, 「기다린다」면 잠깐씩 다시 묻는다 — **상한이 있다**(`TASTE_WAIT`). 상한을 넘기면 시간 초과로 선다.
- * 액션이 던지면(배포가 바뀌어 액션을 못 찾음 · 네트워크) 실패로 선다.
+ * 액션이 던지면(배포가 바뀌어 액션을 못 찾음 · 네트워크) 실패로 서고 「다시 시도하기」를 연다.
  */
 async function askTaste(draft: string, alive: () => boolean): Promise<TasteAnswer> {
   let answer: TasteAnswer;
@@ -128,24 +133,29 @@ async function askTaste(draft: string, alive: () => boolean): Promise<TasteAnswe
 }
 
 /**
- * 지금 입력의 로그인 전 사주 문단 — 답이 아직 없으면 `null`(기다리는 중).
+ * 지금 입력의 로그인 전 사주 문단 — 답이 아직 없으면 `null`(기다리는 중) — 과, 같은 입력으로 다시 묻는 손잡이.
  *
- * 「다시 읽기」는 걷었다(2026-10-09) — 못 선 글은 첫 절이 조용히 잠긴 채 서고, 입력을 바꾸거나 새로고침하면 다시 묻는다(같은 입력을 다시 보내면 안 묻는다).
+ * **「다시 시도하기」는 같은 입력을 다시 보낸다**(운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」) — 서버가 같은 글의 다음
+ * 시도를 연다(세 번까지, `reserve_taste`). 2026-10-09 에 걷었던 「다시 읽기」를 이 이름으로 되살렸다.
  */
-function useTasteAnswer(draft: string): TasteAnswer | null {
+function useTasteAnswer(draft: string): { answer: TasteAnswer | null; retry: () => void } {
   const [passage, setPassage] = useState<Passage | null>(null);
+  /** 「다시 시도하기」를 누를 때마다 하나씩 — 같은 입력으로 다시 묻게 한다 */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
     void askTaste(draft, () => alive).then((answer) => {
-      if (alive) setPassage({ draft, answer });
+      if (alive) setPassage({ draft, attempt, answer });
     });
     return () => {
       alive = false;
     };
-  }, [draft]);
+  }, [draft, attempt]);
 
-  return passage !== null && passage.draft === draft ? passage.answer : null;
+  const retry = useCallback(() => setAttempt((at) => at + 1), []);
+  const answer = passage !== null && passage.draft === draft && passage.attempt === attempt ? passage.answer : null;
+  return { answer, retry };
 }
 
 /**
@@ -172,51 +182,51 @@ const BLURRED_LINES = (
   </div>
 );
 
+/** 기다리는 막대 넷의 폭 — 글이 설 높이를 미리 쥔다 */
+const WRITING_WIDTHS = ['w-full', 'w-11/12', 'w-full', 'w-2/3'] as const;
+/** 빛이 줄마다 늦는 만큼 · 문단이 하나씩 떠오르는 간격(초) */
+const WAVE_STEP_S = 0.22;
+const RISE_STEP_S = 0.35;
+
 /**
  * 잠긴 목차 — 본 사주풀이의 절 이름과, 첫 절 자리의 로그인 전 사주 문단, 그것을 이어 받으러 가는 단추 하나.
  *
- * 첫 절은 글이 섰으면 그 글이, **기다리는 동안은 글이 설 높이를 미리 쥔 막대 넷이**(화면이 덜 흔들린다), 못 섰으면(실패 ·
- * 시간 초과 · 한도) 둘째 절처럼 자물쇠와 흐린 막대가 선다. 셋째 절부터는 이름과 자물쇠뿐이다.
+ * 첫 절은 **써지는 글**이다(운영자 결정 2026-10-10 「b로 적용하자」, ADR 0143 「2026-10-10 덧」 — 모양 넷은
+ * `tasteFirstSectionOf`).
+ *
+ * - **기다리는 동안** — 글이 설 높이를 쥔 막대 넷 위에 「첫 문단 작성 중…」. 빛이 줄마다 늦게 흘러 위에서 아래로 써 내려가는
+ *   듯하고, 마지막 줄 끝에 커서가 깜박인다(`taste.module.css`, 줄인 움직임이면 멈춘다)
+ * - **글이 서면** — 문단이 하나씩 떠오른다(줄인 움직임이면 바로)
+ * - **실패 · 시간 초과(다음 시도가 열림)** — 둘째 절처럼 자물쇠와 흐린 막대, 아래에 실패 줄과 「다시 시도하기」
+ * - **한도 · 세 번 실패 · 서버가 닫음** — 같은 자물쇠와 막대, 줄 하나. 단추는 없다 — 눌러도 같다
+ *
+ * 셋째 절부터는 이름과 자물쇠뿐이다.
  */
 function LockedOutline({ outline, draft }: { outline: readonly string[]; draft: string }) {
-  const answer = useTasteAnswer(draft);
-  const waiting = answer === null || answer.state === 'waiting';
+  const { answer, retry } = useTasteAnswer(draft);
+  const first = tasteFirstSectionOf(answer);
   const ready = answer !== null && answer.state === 'ready' ? answer : null;
   /** 글이 선 세션 — 가입 왕복이 들고 가 전체 풀이가 그 글을 잇는다. 글이 안 섰으면 `null` 이다 */
   const sessionId = ready?.sessionId ?? null;
 
   return (
-    <section aria-labelledby="outline-heading" aria-busy={waiting} className={CARD}>
+    <section aria-labelledby="outline-heading" aria-busy={first === 'writing'} className={CARD}>
       <h2 id="outline-heading" className={TYPE_META}>
         전체 사주풀이 목차
       </h2>
       <ol className="mt-3 flex flex-col gap-3">
         {outline.map((title, index) => {
-          /** 글이 선 첫 절만 열린다 */
-          const open = index === 0 ? ready : null;
+          /** 첫 절은 기다리는 동안 · 글이 섰을 때 자물쇠가 없다 */
+          const locked = index > 0 || first === 'retry' || first === 'closed';
           return (
             <li key={title}>
               <p className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
                 <span className="tabular-nums text-secondary">{index + 1}.</span>
                 <span className="min-w-0 flex-1">{title}</span>
-                {open === null && <Icon name="lock" className="size-4 shrink-0 text-muted" />}
+                {locked && <Icon name="lock" className="size-4 shrink-0 text-muted" />}
               </p>
-              {open !== null ? (
-                <div className="mt-2 flex flex-col gap-3">
-                  {paragraphsOf(open.preview).map((paragraph, at) => (
-                    <p key={at} className="text-[15px] leading-7 text-foreground">
-                      {paragraph}
-                    </p>
-                  ))}
-                  <p className="text-[13px] leading-5 text-secondary">가입하면 이 물음의 답부터 전체 사주풀이가 이어져요.</p>
-                </div>
-              ) : index === 0 && waiting ? (
-                <div aria-hidden className="mt-2 flex flex-col gap-2">
-                  <span className="h-3.5 w-full rounded-full bg-surface-sunken" />
-                  <span className="h-3.5 w-11/12 rounded-full bg-surface-sunken" />
-                  <span className="h-3.5 w-full rounded-full bg-surface-sunken" />
-                  <span className="h-3.5 w-2/3 rounded-full bg-surface-sunken" />
-                </div>
+              {index === 0 ? (
+                <FirstSection first={first} preview={ready?.preview ?? ''} onRetry={retry} />
               ) : (
                 index < 2 && BLURRED_LINES
               )}
@@ -240,5 +250,57 @@ function LockedOutline({ outline, draft }: { outline: readonly string[]; draft: 
         </p>
       </div>
     </section>
+  );
+}
+
+/** 목차 첫 절의 몸 — 모양 넷(`tasteFirstSectionOf`) */
+function FirstSection({ first, preview, onRetry }: { first: TasteFirstSection; preview: string; onRetry: () => void }) {
+  if (first === 'ready') {
+    const paragraphs = paragraphsOf(preview);
+    return (
+      <div className="mt-2 flex flex-col gap-3">
+        {paragraphs.map((paragraph, at) => (
+          <p key={at} className={`${motion.rise} text-[15px] leading-7 text-foreground`} style={{ animationDelay: `${at * RISE_STEP_S}s` }}>
+            {paragraph}
+          </p>
+        ))}
+        <p className={`${motion.rise} text-[13px] leading-5 text-secondary`} style={{ animationDelay: `${paragraphs.length * RISE_STEP_S}s` }}>
+          가입하면 이 물음의 답부터 전체 사주풀이가 이어져요.
+        </p>
+      </div>
+    );
+  }
+
+  if (first === 'writing') {
+    return (
+      <div className="mt-2">
+        <p role="status" className="flex items-center gap-1.5 text-[13px] font-medium leading-5 text-cream-ink">
+          <Icon name="spark" className="size-3.5 animate-pulse motion-reduce:animate-none" />
+          {TASTE_WRITING_SUBJECT} {READING_OUTLINE_STATE.writing}
+        </p>
+        <div aria-hidden className="mt-2.5 flex flex-col gap-2">
+          {WRITING_WIDTHS.map((width, at) => (
+            <span key={at} className={`flex items-center ${width}`}>
+              <span className={`${motion.wave} block h-3.5 flex-1 rounded-full`} style={{ animationDelay: `${at * WAVE_STEP_S}s` }} />
+              {at === WRITING_WIDTHS.length - 1 && <span className={`${motion.caret} ml-1 block h-4 w-[2px] rounded-full bg-fire`} />}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {BLURRED_LINES}
+      <p role="status" className="mt-3 flex flex-wrap items-center gap-x-2 text-[13px] leading-5 text-secondary">
+        <span>{first === 'retry' ? TASTE_FAILED_NOTE : TASTE_CLOSED_NOTE}</span>
+        {first === 'retry' && (
+          <button type="button" onClick={onRetry} className={`${BUTTON_TERTIARY} text-[13px]`}>
+            {TASTE_RETRY_LABEL}
+          </button>
+        )}
+      </p>
+    </div>
   );
 }

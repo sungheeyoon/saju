@@ -134,7 +134,7 @@ try {
   const first = browser();
   const before = modelCalls();
   const failed = await act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' });
-  check('처음 부른 입력은 모델을 한 번 부르고, 모델이 없으니 「실패 · 다시 읽기」다', failed.state === 'failed' && failed.retry === true, JSON.stringify(failed));
+  check('처음 부른 입력은 모델을 한 번 부르고, 모델이 없으니 「실패 · 다시 시도하기」다', failed.state === 'failed' && failed.retry === true, JSON.stringify(failed));
   check('부르기 전에 하루 예산을 하나 쓴다', modelCalls() === before + 1, `${before} → ${modelCalls()}`);
   check('쿠키를 심는다 — 32바이트 무작위', /^[A-Za-z0-9_-]{43}$/.test(first.get('saju_taste') ?? ''));
 
@@ -142,7 +142,7 @@ try {
   check('실패는 시도 1 · 실패 코드로 적힌다', sql(`select status || ':' || attempts || ':' || failure_code from public.taste_artifact where id = '${artifact}'`) === 'failed:1:model-call-failed');
 
   const retried = await act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' });
-  check('다시 읽기는 같은 artifact 의 다음 시도다 — 새 행을 안 만든다', retried.state === 'failed'
+  check('다시 시도하기는 같은 artifact 의 다음 시도다 — 새 행을 안 만든다', retried.state === 'failed'
     && sql(`select attempts from public.taste_artifact where id = '${artifact}'`) === '2'
     && sql(`select count(*) from public.taste_artifact`) === '1');
 

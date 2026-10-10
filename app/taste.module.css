@@ -1,0 +1,55 @@
+/*
+  로그인 전 결과 · 잠긴 목차 첫 절의 움직임 — **써지는 글**(운영자 결정 2026-10-10 「b로 적용하자」, ADR 0143 「2026-10-10 덧」).
+
+  - 기다리는 동안 막대 넷에 빛이 줄마다 늦게(`animation-delay`, 화면이 0.22초씩 준다) 흘러 위에서 아래로 써 내려가는 듯하고,
+    마지막 줄 끝에 커서가 깜박인다. 서버는 중간 단계를 주지 않는다 — 차오르는 막대가 아니라 끝을 모르는 흐름이다.
+  - 글이 서면 문단이 하나씩 떠오른다(화면이 0.35초씩 늦춘다).
+  - 움직임을 줄인 사람에게는 멈춘 막대 · 멈춘 커서 · 바로 선 문단이다 — 곁의 「첫 문단 작성 중…」이 같은 말을 한다.
+
+  색은 앱 토큰(`globals.css`)만 쓴다 — 새 hex 없음.
+*/
+.wave {
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 0%,
+    var(--surface-sunken) 35%,
+    color-mix(in srgb, var(--fire-mid) 45%, var(--surface-sunken)) 50%,
+    var(--surface-sunken) 65%,
+    var(--surface-sunken) 100%
+  );
+  background-size: 300% 100%;
+  animation: wave 2.2s ease-in-out infinite;
+}
+
+@keyframes wave {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+
+.caret {
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+.rise {
+  animation: rise 0.5s ease-out both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave {
+    animation: none;
+    background: var(--surface-sunken);
+  }
+  .caret,
+  .rise {
+    animation: none;
+  }
+}

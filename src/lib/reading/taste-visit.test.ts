@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   RESERVE_OUTCOMES,
+  TASTE_CLOSED,
   answerOfReserve,
   answerOfView,
   ipSubjectOf,
   isReserveOutcome,
   seoulDateOf,
+  tasteFirstSectionOf,
 } from './taste-visit';
 
 describe('예약 갈래 → 화면 상태 (ADR 0143)', () => {
@@ -16,7 +18,7 @@ describe('예약 갈래 → 화면 상태 (ADR 0143)', () => {
     }
   });
 
-  it('세 번 실패한 입력은 다시 읽기를 안 연다 — 가입 경로만 남는다', () => {
+  it('세 번 실패한 입력은 다시 시도를 안 연다 — 가입 경로만 남는다', () => {
     expect(answerOfReserve('retries_exhausted')).toEqual({ state: 'failed', retry: false });
   });
 
@@ -44,14 +46,14 @@ describe('세션 읽기 → 화면 상태', () => {
     });
   });
 
-  it('도는 중이면 기다린다 · 실패면 DB 가 센 다시 읽기 여부를 따른다 · 시간 초과를 가른다', () => {
+  it('도는 중이면 기다린다 · 실패면 DB 가 센 다시 시도 여부를 따른다 · 시간 초과를 가른다', () => {
     expect(answerOfView({ state: 'running', retryable: false, preview: null }, id)).toEqual({ state: 'waiting', sessionId: id });
     expect(answerOfView({ state: 'failed', retryable: true, preview: null }, id)).toEqual({ state: 'failed', retry: true });
     expect(answerOfView({ state: 'failed', retryable: false, preview: null }, id)).toEqual({ state: 'failed', retry: false });
     expect(answerOfView({ state: 'failed', retryable: true, preview: null }, id, 'timeout')).toEqual({ state: 'timeout', retry: true });
   });
 
-  it('못 읽은 세션 · 이미 귀속된 세션 · 빈 글은 다시 읽기를 연다 — 남의 글을 세우지 않는다', () => {
+  it('못 읽은 세션 · 이미 귀속된 세션 · 빈 글은 다시 시도를 연다 — 남의 글을 세우지 않는다', () => {
     expect(answerOfView(null, id)).toEqual({ state: 'failed', retry: true });
     expect(answerOfView({ state: 'claimed', retryable: false, preview: null }, id)).toEqual({ state: 'failed', retry: true });
     expect(answerOfView({ state: 'succeeded', retryable: false, preview: '  ' }, id)).toEqual({ state: 'failed', retry: true });
@@ -99,5 +101,25 @@ describe('IP 의 이름', () => {
     expect(ipSubjectOf('unknown')).toBeNull();
     expect(ipSubjectOf('999.1.1.1')).toBeNull();
     expect(ipSubjectOf('1:2:3')).toBeNull();
+  });
+});
+
+describe('잠긴 목차 첫 절의 모양 (운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」)', () => {
+  it('답이 없거나 누가 쓰고 있으면 「작성 중」 · 글이 섰으면 글이다', () => {
+    expect(tasteFirstSectionOf(null)).toBe('writing');
+    expect(tasteFirstSectionOf({ state: 'waiting', sessionId: 's' })).toBe('writing');
+    expect(tasteFirstSectionOf({ state: 'ready', sessionId: 's', preview: '글' })).toBe('ready');
+  });
+
+  it('실패 · 시간 초과는 다음 시도가 열려 있을 때만 「다시 시도하기」가 선다', () => {
+    expect(tasteFirstSectionOf({ state: 'failed', retry: true })).toBe('retry');
+    expect(tasteFirstSectionOf({ state: 'timeout', retry: true })).toBe('retry');
+    expect(tasteFirstSectionOf({ state: 'failed', retry: false })).toBe('closed');
+    expect(tasteFirstSectionOf({ state: 'timeout', retry: false })).toBe('closed');
+  });
+
+  it('한도 · 서버가 닫은 자리는 단추 없이 닫힌다 — 눌러도 같다', () => {
+    expect(tasteFirstSectionOf({ state: 'limited' })).toBe('closed');
+    expect(tasteFirstSectionOf(TASTE_CLOSED)).toBe('closed');
   });
 });
