@@ -11,10 +11,11 @@ import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_TERTIARY } from '../../ui/buttons';
+import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, TYPE_DISPLAY, TYPE_META, TYPE_NAME } from '../../ui/surfaces';
+import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
@@ -104,7 +105,8 @@ export function MatchingExperience({
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const confirming = useRef<HTMLDialogElement>(null);
+  /** 요청 확인 창이 열렸나 */
+  const [asking, setAsking] = useState(false);
   const sheet = useRef<HTMLDialogElement>(null);
   const profile = deck.remaining[0];
 
@@ -393,7 +395,7 @@ export function MatchingExperience({
               actions={{
                 undo,
                 pass,
-                request: () => confirming.current?.showModal(),
+                request: () => setAsking(true),
                 canUndo: !!hidden && !working && exit !== 'right',
                 busy: !!exit || working,
               }}
@@ -457,23 +459,13 @@ export function MatchingExperience({
         실제로 나가는 약속인지 알 수 없다 — 둘 다 정책이 지어 온 문장이다. 「채팅은 아직 없다」는
         제한문은 채팅이 선 뒤(ADR 0091) 걷었다 — 대화방은 수락하는 순간 열린다(#147).
       */}
-      <dialog
-        ref={confirming}
-        aria-labelledby="matching-confirm"
-        /*
-          바깥(어두운 면)을 누르면 닫힌다. 창 자체가 여백을 든 공용 판(`DIALOG`)이라 「누른 곳이 창이냐」로는 못 가른다 —
-          창의 테두리 밖인지를 잰다.
-        */
-        onClick={(event) => {
-          const box = event.currentTarget.getBoundingClientRect();
-          const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
-          if (event.target === event.currentTarget && outside) confirming.current?.close();
-        }}
-        /* 풀이권 확인 창과 같은 판 · 같은 단추 줄이다(`DIALOG` · `DIALOG_ACTIONS`, 화면 감사 2026-10-09) */
-        className={DIALOG}
-      >
-        {profile && (
-          <div className={elementScope(supplyOf(profile))}>
+      {profile && (
+        <ConfirmDialog
+          open={asking}
+          onClose={() => setAsking(false)}
+          /* 풀이권 확인 창과 같은 판 · 같은 단추 줄이다(확인 창 한 벌 — 첫 초점은 「취소」, ADR 0166) */
+          className={elementScope(supplyOf(profile))}
+          lead={
             <div className="flex items-center gap-3">
               <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-[1.5rem] ring-2 ring-[var(--tile)]">
                 <CandidatePhoto card={profile} />
@@ -482,26 +474,25 @@ export function MatchingExperience({
                 <ElementSymbol element={supplyOf(profile)} className="size-6" />
               </span>
             </div>
-            <h2 id="matching-confirm" className={`mt-4 ${TYPE_NAME}`}>
-              {profile.nickname} 님에게 상세 궁합을 요청할까요?
-            </h2>
-            <div className="mt-2 flex flex-col gap-2 text-[15px] leading-6 text-secondary">
-              <p>{REQUEST_RESERVES_NOTE}</p>
-              <p>{MATCH_PILLARS_DISCLOSURE}</p>
-              <p>{REQUEST_OPENS_CHAT_NOTE}</p>
-            </div>
-            <div className={DIALOG_ACTIONS}>
-              <button type="button" disabled={working} onClick={() => { confirming.current?.close(); send(); }} className={BUTTON_PRIMARY}>
-                <Icon name="heart" className="size-[18px]" />
-                요청 보내기
-              </button>
-              <button type="button" disabled={working} onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
-                취소
-              </button>
-            </div>
-          </div>
-        )}
-      </dialog>
+          }
+          title={`${profile.nickname} 님에게 상세 궁합을 요청할까요?`}
+          confirmLabel={
+            <>
+              <Icon name="heart" className="size-[18px]" />
+              요청 보내기
+            </>
+          }
+          onConfirm={() => {
+            setAsking(false);
+            send();
+          }}
+          busy={working}
+        >
+          <p>{REQUEST_RESERVES_NOTE}</p>
+          <p>{MATCH_PILLARS_DISCLOSURE}</p>
+          <p>{REQUEST_OPENS_CHAT_NOTE}</p>
+        </ConfirmDialog>
+      )}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 
@@ -12,9 +12,10 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { actionAnswer } from '../ui/action-answer';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { ConfirmDialog } from '../ui/confirm-dialog';
 import { Icon } from '../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
+import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
 /**
  * 저장된 출생 정보를 고치는 자리.
@@ -174,9 +175,7 @@ export function EditInputForm({
         </p>
       )}
 
-      {confirming && (
-        <EditInputConfirm personId={personId} onConfirm={save} onCancel={() => setConfirming(false)} />
-      )}
+      <EditInputConfirm open={confirming} onConfirm={save} onCancel={() => setConfirming(false)} />
     </section>
   );
 }
@@ -185,46 +184,29 @@ export function EditInputForm({
  * 내 출생 정보를 바꾸기 직전의 확인 — **경고는 되돌릴 수 없는 누름 직전에 선다**(ADR 0028).
  *
  * 바꾸면 답을 기다리던 인연 요청이 취소된다. 그 사실을 바꾼 뒤에 소식으로만 알면 사고처럼
- * 읽힌다. 문구는 `INPUT_EDIT_CHANGE_CONFIRM` 한 자리에서 읽는다.
+ * 읽힌다. 문구는 `INPUT_EDIT_CHANGE_CONFIRM` 한 자리에서 읽는다. 창은 확인 창 한 벌이다 — 첫 초점은 「취소」(ADR 0166).
  */
 function EditInputConfirm({
-  personId,
+  open,
   onConfirm,
   onCancel,
 }: {
-  personId: string;
+  open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const confirming = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    if (confirming.current !== null && !confirming.current.open) confirming.current.showModal();
-  }, []);
-
   return (
-    <dialog
-      ref={confirming}
-      aria-labelledby={`edit-input-confirm-${personId}`}
+    <ConfirmDialog
+      open={open}
       onClose={onCancel}
-      className={DIALOG}
+      title={INPUT_EDIT_CHANGE_CONFIRM.title}
+      confirmLabel={INPUT_EDIT_CHANGE_CONFIRM.confirm}
+      cancelLabel={INPUT_EDIT_CHANGE_CONFIRM.cancel}
+      onConfirm={onConfirm}
     >
-      <h3 id={`edit-input-confirm-${personId}`} className={TYPE_NAME}>
-        {INPUT_EDIT_CHANGE_CONFIRM.title}
-      </h3>
-      <div className="mt-2 flex flex-col gap-1.5 text-[15px] leading-6 text-secondary">
-        {INPUT_EDIT_CHANGE_CONFIRM.body.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </div>
-      <div className={DIALOG_ACTIONS}>
-        <button type="button" onClick={onConfirm} className={BUTTON_PRIMARY}>
-          {INPUT_EDIT_CHANGE_CONFIRM.confirm}
-        </button>
-        <button type="button" onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
-          {INPUT_EDIT_CHANGE_CONFIRM.cancel}
-        </button>
-      </div>
-    </dialog>
+      {INPUT_EDIT_CHANGE_CONFIRM.body.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </ConfirmDialog>
   );
 }

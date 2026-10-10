@@ -119,8 +119,8 @@ type Upload = { key: number; url: string; done: boolean };
  *
  * ## 지우기는 되돌릴 수 있다
  *
- * × 를 누르면 그 장이 곧바로 칸에서 빠지고 상태 줄에 「사진을 지웠어요 · 되돌리기」가 `UNDO_MS` 동안 선다. **서버에서는
- * 그 시간이 지나야 지운다**(화면의 늦은 지우기). 되돌리기는 아무 요청도 안 보낸다 — 지웠다가 다시 올리는 것이 아니라서
+ * × 를 누르면 그 장이 곧바로 칸에서 빠지고 상태 줄에 「사진을 지웠어요 · 실행 취소」가 `UNDO_MS` 동안 선다. **서버에서는
+ * 그 시간이 지나야 지운다**(화면의 늦은 지우기). 실행 취소는 아무 요청도 안 보낸다 — 지웠다가 다시 올리는 것이 아니라서
  * 하루 올리기 한도(ADR 0125)를 깎지 않는다. 다른 누름(올리기 · 옮기기 · 다른 장 지우기)이 오면 기다리던 지우기를 먼저
  * 보낸다 — 되돌릴 수 있는 장은 하나다. 화면을 떠나면(다른 화면으로 가거나 탭을 닫으면) 그때 보낸다. 탭을 닫는 순간의
  * 요청은 브라우저가 끊을 수 있다 — 그러면 그 장은 남는다(지워지지 않은 쪽으로 틀린다).
@@ -157,7 +157,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
   /** 화면에서 뺀 장(판본) — 되돌릴 수 있는 동안과, 지우기를 보낸 뒤 서버 목록이 새로 올 때까지 */
   const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
-  /** 되돌릴 수 있는 장 — 상태 줄에 「되돌리기」가 선다 */
+  /** 되돌릴 수 있는 장 — 상태 줄에 「실행 취소」가 선다 */
   const [undoable, setUndoable] = useState<number | null>(null);
   const pendingRemoval = useRef<{ version: number; timer: number } | null>(null);
   /** 서버가 지웠다고 답한 판본 — 서버 목록이 새로 오기 전에도 그 장을 빼고 자리를 센다 */
@@ -216,7 +216,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     focusAfter.current = null;
   }, [order]);
 
-  /* 지운 칸의 × 가 사라지면 초점이 갈 데가 없다 — 「되돌리기」로 옮긴다 */
+  /* 지운 칸의 × 가 사라지면 초점이 갈 데가 없다 — 「실행 취소」로 옮긴다 */
   useEffect(() => {
     if (undoable !== null) undoRef.current?.focus();
   }, [undoable]);
@@ -231,7 +231,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
   /*
     화면을 떠나면 기다리던 지우기를 그때 보낸다 — 다른 화면으로 가면(언마운트) 곧바로, 탭을 닫으면 `pagehide` 에서.
-    답은 안 기다린다 — 받을 화면이 없다.
+    답은 안 기다린다 — 받을 화면이 없다. 탭이 가려질 때는 아래(`visibilitychange`)가 먼저 보낸다.
   */
   useEffect(() => {
     const sendNow = () => {
@@ -305,6 +305,23 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     unhide(pending.version);
     failed(result.message);
   };
+
+  /*
+    **탭이 가려지면(`visibilitychange` 의 hidden) 먼저 보낸다**(ADR 0165). 폰은 앱을 바꾸거나 화면을 끄면 그대로 탭을 버리기도 해서
+    `pagehide` 가 안 오거나 그때 보낸 요청이 끊긴다. 가려진 탭은 아직 살아 있어 요청이 끝까지 간다 — 그때는 화면이 남아 있으니
+    띠를 걷고 실패하면 그 장을 되살리는 보통 길(`sendRemoval`)로 보낸다. 다른 탭을 잠깐 봐도 실행 취소는 그때 끝난다.
+  */
+  const sendLatest = useRef(async () => {});
+  useEffect(() => {
+    sendLatest.current = sendRemoval;
+  });
+  useEffect(() => {
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') void sendLatest.current();
+    };
+    document.addEventListener('visibilitychange', hidden);
+    return () => document.removeEventListener('visibilitychange', hidden);
+  }, []);
 
   const undo = () => {
     const pending = pendingRemoval.current;
@@ -616,7 +633,8 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
         </DoneNote>
         {undoable !== null && (
           <button ref={undoRef} type="button" onClick={undo} className={BUTTON_TERTIARY}>
-            되돌리기
+            {/* 매칭의 실행 취소 띠와 같은 글자다(대장 36) */}
+            실행 취소
           </button>
         )}
       </div>

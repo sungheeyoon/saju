@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
 
 import { actionAnswer } from '../ui/action-answer';
 import { BUTTON_DANGER } from '../ui/buttons';
+import { CONFIRM_ROW } from '../ui/surfaces';
 import { requestAccountDeletion } from './requests/actions';
 import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
 
@@ -26,6 +27,12 @@ export function RequestDeletion() {
   const [asking, setAsking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
+  const cancel = useRef<HTMLButtonElement>(null);
+
+  /* 펴면 초점은 「취소」에 — 누른 「탈퇴」는 사라졌고, Enter 한 번에 되돌릴 수 없는 신청이 나가지 않게(ADR 0166) */
+  useEffect(() => {
+    if (asking) cancel.current?.focus();
+  }, [asking]);
 
   const leave = () => {
     setFailure(null);
@@ -71,20 +78,21 @@ export function RequestDeletion() {
       */}
       {/*
         되돌릴 수 없는 마지막 누름만 **채운 위험 색**이다(`BUTTON_DANGER`). 여는 단추는 흰 알약에
-        붉은 글자였으니, 한 번 더 물은 뒤에야 무게가 오른다. 폰에서는 취소가 아래로 내려가
-        엄지가 먼저 닿는 자리를 위험한 누름에 내주지 않는다 — 두 단추가 같은 폭으로 쌓인다.
+        붉은 글자였으니, 한 번 더 물은 뒤에야 무게가 오른다. 단추 차례는 확인 창과 같다(`CONFIRM_ROW`) — 넓으면 실행이 오른쪽,
+        폰에서는 실행이 위이고 취소가 아래로 내려가 두 단추가 같은 폭으로 쌓인다.
       */}
-      <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className={`${CONFIRM_ROW} w-full sm:w-auto sm:items-center`}>
+        <button type="button" onClick={leave} disabled={working} className={BUTTON_DANGER}>
+          {working ? '보내는 중…' : '탈퇴 신청하기'}
+        </button>
         <button
+          ref={cancel}
           type="button"
           onClick={() => setAsking(false)}
           disabled={working}
           className={SETTINGS_QUIET}
         >
           취소
-        </button>
-        <button type="button" onClick={leave} disabled={working} className={BUTTON_DANGER}>
-          {working ? '보내는 중…' : '탈퇴 신청하기'}
         </button>
       </div>
       {failure !== null && (

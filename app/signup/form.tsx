@@ -23,15 +23,19 @@ import {
 import { checkNickname } from '../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { completeSignup } from './actions';
+import type { SignupField } from './refusal';
 import { actionAnswer } from '../ui/action-answer';
 
 /** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
   'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[16px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft aria-invalid:border-danger';
 
-/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
+/**
+ * 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다). 초점 테는 전역 초점 테두리와
+ * 같은 섞음(accent 55%, `globals.css`)이다 — `accent-soft` 는 크림 바탕에서 거의 안 보였다
+ */
 const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 const LABEL = 'text-[15px] font-semibold';
 
@@ -83,7 +87,8 @@ export function SignupForm({
     improvement: false,
     contact: false,
   });
-  const [failure, setFailure] = useState<string | null>(null);
+  /** 서버의 거절 — 어느 칸의 것인지 알면 그 칸 곁에, 모르면 단추 곁에 선다(`refusal.ts`) */
+  const [failure, setFailure] = useState<{ message: string; field: SignupField | null } | null>(null);
   const [working, startWorking] = useTransition();
 
   /** 마지막으로 확인한 이름과 그 답 — 칸이 바뀌면 답이 이 이름을 안 가리키므로 지운다 */
@@ -111,15 +116,34 @@ export function SignupForm({
           ? { field: 'ack', message: ACK_MISSING }
           : null;
   const shownGap = tried ? gap : null;
+  /** 「중복 확인」을 눌렀는데 닉네임이 규칙에 안 맞았나 — 그 말이 닉네임 칸 아래에 선다 */
+  const [checkTried, setCheckTried] = useState(false);
+  const refusedHere = (field: SignupField) => failure !== null && failure.field === field;
   const invalid = (field: 'code' | 'nickname' | 'ack') =>
-    shownGap?.field === field ? { 'aria-invalid': true, 'aria-describedby': 'signup-gap' } : {};
+    shownGap?.field === field
+      ? { 'aria-invalid': true, 'aria-describedby': 'signup-gap' }
+      : field !== 'ack' && refusedHere(field)
+        ? { 'aria-invalid': true, 'aria-describedby': `signup-${field}-refused` }
+        : field === 'nickname' && checkTried && missing !== null
+          ? { 'aria-invalid': true, 'aria-describedby': 'signup-nickname-check' }
+          : {};
 
+  /**
+   * **「중복 확인」도 잠그지 않는다** — 닉네임이 규칙에 안 맞으면 누른 그때 그 칸 아래에 말하고 칸으로 초점을 옮긴다
+   * (`docs/context/copy.md` §8 「거절은 누른 뒤에 말한다」, ADR 0160). 잠가 두면 왜 안 눌리는지를 묻게 된다.
+   */
   const check = () => {
+    if (missing !== null) {
+      setCheckTried(true);
+      nicknameField.current?.focus();
+      return;
+    }
+    setCheckTried(false);
     setFailure(null);
     startChecking(async () => {
       const result = await actionAnswer(checkNickname(nickname));
       if (result.ok) setChecked({ key: nicknameKey(nickname), available: result.available });
-      else setFailure(result.message);
+      else setFailure({ message: result.message, field: 'nickname' });
     });
   };
 
@@ -149,12 +173,22 @@ export function SignupForm({
         }),
       );
 
-      setFailure(failed.message);
+      const field = 'field' in failed ? failed.field : null;
+      setFailure({ message: failed.message, field });
+      if (field !== null) ({ code: codeField, nickname: nicknameField })[field].current?.focus();
     });
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    /* 폼이다 — 칸에서 Enter · 자판의 「이동」이 곧 가입이다. 「중복 확인」은 제출이 아니다(`type="button"`) */
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!working) send();
+      }}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       {needsCode && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="signup-code" className={LABEL}>
@@ -170,10 +204,19 @@ export function SignupForm({
             autoComplete="off"
             value={code}
             /* 대문자 하나로만 산다 — DB 검사식과 같은 규칙이라 여기서 미리 맞춘다 */
-            onChange={(event) => setCode(event.target.value.toUpperCase().slice(0, 24))}
+            onChange={(event) => {
+              setCode(event.target.value.toUpperCase().slice(0, 24));
+              /* 칸을 고치면 그 칸의 거절은 걷힌다 — 고친 값에 대한 말이 아니다 */
+              if (failure?.field === 'code') setFailure(null);
+            }}
             placeholder="예: SAJU1001"
             className={`${FIELD} w-full tracking-[0.08em] sm:max-w-64`}
           />
+          {refusedHere('code') && (
+            <p id="signup-code-refused" role="alert" className="text-sm font-medium text-danger">
+              {failure?.message}
+            </p>
+          )}
           <p className="text-[13px] leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
         </div>
       )}
@@ -194,15 +237,23 @@ export function SignupForm({
               {...invalid('nickname')}
               type="text"
               value={nickname}
-              onChange={(event) => setNickname(event.target.value.slice(0, NICKNAME_MAX))}
+              onChange={(event) => {
+                setNickname(event.target.value.slice(0, NICKNAME_MAX));
+                if (failure?.field === 'nickname') setFailure(null);
+              }}
               maxLength={NICKNAME_MAX}
+              /* 닉네임은 낱말이 아니다 — 자판이 고치거나 첫 글자를 키우거나 밑줄을 긋지 않게 */
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
               className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
             />
             <button
               type="button"
               onClick={check}
-              disabled={checking || missing !== null}
+              disabled={checking}
+              aria-disabled={missing !== null || undefined}
               className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
@@ -213,9 +264,20 @@ export function SignupForm({
             **확인 결과는 그 이름에 붙는다.** 칸을 고치면 사라진다 — 「쓸 수 있습니다」가
             이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다.
           */}
-          {answer !== null && (
-            <p role="status" className={`text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
-              {answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
+          <p
+            role="status"
+            className={`text-sm empty:hidden ${answer === null || answer.available ? 'text-secondary' : 'text-danger'}`}
+          >
+            {answer === null ? '' : answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
+          </p>
+          {checkTried && missing !== null && (
+            <p id="signup-nickname-check" role="alert" className="text-sm font-medium text-danger">
+              {missing}
+            </p>
+          )}
+          {refusedHere('nickname') && (
+            <p id="signup-nickname-refused" role="alert" className="text-sm font-medium text-danger">
+              {failure?.message}
             </p>
           )}
 
@@ -298,16 +360,16 @@ export function SignupForm({
         ))}
       </fieldset>
 
-      {failure !== null && (
+      {/* 칸을 모르는 거절(안내가 바뀜 · 테스트가 끝남 등)만 여기 — 칸의 거절은 그 칸 아래에 선다 */}
+      {failure !== null && failure.field === null && (
         <p role="alert" className="text-sm leading-6 text-danger">
-          {failure}
+          {failure.message}
         </p>
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
         <button
-          type="button"
-          onClick={send}
+          type="submit"
           disabled={working}
           aria-describedby={shownGap !== null ? 'signup-gap' : undefined}
           className={BUTTON_PRIMARY}
@@ -321,6 +383,6 @@ export function SignupForm({
           </p>
         )}
       </div>
-    </div>
+    </form>
   );
 }

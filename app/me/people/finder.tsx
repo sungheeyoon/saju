@@ -161,7 +161,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
               key={one.personId}
               hidden={!shown.has(one.personId)}
               data-panel-open={opened.includes(one.personId) || undefined}
-              className="min-w-0 rounded-[1.5rem] data-[panel-open]:outline-[3px] data-[panel-open]:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)] data-[panel-open]:outline-solid"
+              className="min-w-0 rounded-[1.5rem] data-[panel-open]:outline-[3px] data-[panel-open]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] data-[panel-open]:outline-solid"
             >
               {one.card}
             </li>,

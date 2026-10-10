@@ -111,7 +111,14 @@ export function ReadingFeedback({
   };
 
   return (
-    <section className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card">
+    /* 폼이다 — 고르는 칸에서 Enter 가 곧 「의견 보내기」다(셋을 다 골랐을 때). 적는 칸의 Enter 는 줄바꿈이다 */
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!saving) send();
+      }}
+      className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card"
+    >
       <header className="px-5 pt-6 sm:px-7">
         <p className={TYPE_NAME}>이 풀이는 어떠셨어요?</p>
         <p className="mt-1 text-[13px] leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
@@ -217,8 +224,7 @@ export function ReadingFeedback({
             </p>
           )}
           <button
-            type="button"
-            onClick={send}
+            type="submit"
             disabled={!ready || saving}
             aria-describedby={ready ? undefined : `feedback-locked-${runId}`}
             className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
@@ -227,7 +233,7 @@ export function ReadingFeedback({
           </button>
         </div>
       </div>
-    </section>
+    </form>
   );
 }
 

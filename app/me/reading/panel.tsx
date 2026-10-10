@@ -17,12 +17,12 @@ import {
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
-import { CONFIRM_FIRST_FOCUS, openConfirmDialog } from '../../ui/confirm-dialog';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
+import { TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
 import { generateReading, markReadingReadyRead, readingRunState, skipTasteCarry } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
@@ -457,15 +457,15 @@ export function ReadingPanel({
    * 상태를 안 든다. `<dialog>` 가 열림·닫힘을 스스로 들고, Esc 와 초점 가둠도 브라우저가
    * 한다 — 그 셋을 손으로 다시 만들면 세 자리가 더 생긴다.
    */
-  const confirming = useRef<HTMLDialogElement>(null);
+  const [asking, setAsking] = useState(false);
 
-  /* 글이 있으면 첫 초점은 「취소」다 — 아래 창의 취소 단추가 표를 단다(`openConfirmDialog`, B5) */
+  /* 글이 있으면 첫 초점은 「취소」다 — 아래 창이 정한다(`ConfirmDialog` 의 `firstFocus`, B5) */
   const press = () => {
-    openConfirmDialog(confirming.current);
+    setAsking(true);
   };
 
   const confirmGenerate = () => {
-    confirming.current?.close();
+    setAsking(false);
     void generate();
   };
 
@@ -502,7 +502,8 @@ export function ReadingPanel({
       makeDisabled: chrome.makeDisabled,
       hideMake: chrome.hideMake,
     });
-    if (opens) openConfirmDialog(confirming.current);
+    /* 탭의 표(밖의 저장소)를 읽은 답을 다음 차례에 싣는다 — 그리는 도중에 창을 여는 값을 바꾸지 않는다 */
+    if (opens) queueMicrotask(() => setAsking(true));
   }, [target.kind, carry, phase, chrome.makeDisabled, chrome.hideMake]);
 
   /**
@@ -695,47 +696,29 @@ export function ReadingPanel({
         검사가 그 글자를 세어 「만드는 버튼이 있나」를 늘 참으로 만든다.
       */}
       {chrome.hideMake ? null : (
-      <dialog
-        ref={confirming}
-        aria-labelledby="reading-confirm-title"
-        /*
-          **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를 `margin: auto` 로
-          가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의 여백을 0 으로 되돌린다.
-        */
+      <ConfirmDialog
+        open={asking}
+        onClose={() => setAsking(false)}
         /*
           「아까 보던 내용」이 서 있으면 좁은 화면에서는 창을 아래에 붙인다 — 가운데 창은 맨 위의 그 문단을 덮는다. 그 문단을
           보며 그 답을 받을지 정하는 자리다(ADR 0143 「덧」).
         */
-        className={showsCarry ? `${DIALOG} max-sm:mb-6` : DIALOG}
+        className={showsCarry ? 'max-sm:mb-6' : undefined}
+        lead={
+          <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
+            <Icon name="ticket" className="size-5" />
+          </span>
+        }
+        title="풀이권 1회를 사용하시겠어요?"
+        /* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5). 잃을 글이 없으면 첫 초점도 받기 쪽이다 */
+        confirmLabel={reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
+        onConfirm={confirmGenerate}
+        danger={reading !== null}
+        firstFocus={reading === null ? 'confirm' : 'cancel'}
       >
-        <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
-          <Icon name="ticket" className="size-5" />
-        </span>
-        <h3 id="reading-confirm-title" className={`mt-4 ${TYPE_NAME}`}>
-          풀이권 1회를 사용하시겠어요?
-        </h3>
-        <p className="mt-2 text-[15px] leading-6 text-secondary">{READING_USES_TICKET_NOTE}</p>
-        {reading !== null && (
-          <p className="mt-2 text-[15px] font-medium leading-6 text-danger">{READING_REPLACES_NOTE}</p>
-        )}
-        {/*
-          **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이 위에 온다.
-        */}
-        <div className={DIALOG_ACTIONS}>
-          {/* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5) */}
-          <button type="button" onClick={confirmGenerate} className={reading === null ? BUTTON_PRIMARY : BUTTON_DANGER}>
-            {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
-          </button>
-          <button
-            type="button"
-            onClick={() => confirming.current?.close()}
-            className={BUTTON_SECONDARY}
-            {...(reading === null ? {} : CONFIRM_FIRST_FOCUS)}
-          >
-            취소
-          </button>
-        </div>
-      </dialog>
+        <p>{READING_USES_TICKET_NOTE}</p>
+        {reading !== null && <p className="font-medium text-danger">{READING_REPLACES_NOTE}</p>}
+      </ConfirmDialog>
       )}
     </>
   );
