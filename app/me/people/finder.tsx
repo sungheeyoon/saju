@@ -1,6 +1,17 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { findStatus, findsInList, pickable } from '@/src/lib/people/pick';
 
@@ -33,6 +44,68 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
   const wanted = finds ? typed : '';
   const shown = new Set(pickable(people, wanted, null).map((one) => one.personId));
   const status = findStatus(wanted, shown.size);
+
+  const list = useRef<HTMLUListElement>(null);
+  const [columns, setColumns] = useState(1);
+  const [opened, setOpened] = useState<readonly string[]>([]);
+  /* 그려진 판 줄들 — 줄이 붙고 떨어질 때만 바뀐다(사람마다 늘 같은 ref 함수라 다시 그려도 안 불린다) */
+  const [targets, setTargets] = useState<ReadonlyMap<string, HTMLElement>>(() => new Map());
+  const [refs] = useState(() => new Map<string, (node: HTMLElement | null) => void>());
+  const slotRef = (personId: string) => {
+    let ref = refs.get(personId);
+    if (ref === undefined) {
+      ref = (node) =>
+        setTargets((now) => {
+          const next = new Map(now);
+          if (node === null) next.delete(personId);
+          else next.set(personId, node);
+          return next;
+        });
+      refs.set(personId, ref);
+    }
+    return ref;
+  };
+
+  /* 그려진 격자가 몇 칸인가 — 폭이 바뀌면 다시 센다 */
+  useLayoutEffect(() => {
+    const grid = list.current;
+    if (grid === null) return;
+    const count = () => setColumns(Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length));
+    count();
+    const watch = new ResizeObserver(count);
+    watch.observe(grid);
+    return () => watch.disconnect();
+  }, []);
+
+  /* 늘 같은 함수다 — 카드 쪽 효과가 이것에 걸려 있어 바뀌면 닫는 정리가 돈다 */
+  const toggle = useCallback(
+    (personId: string, open: boolean) =>
+      setOpened((now) =>
+        open === now.includes(personId) ? now : open ? [...now, personId] : now.filter((one) => one !== personId),
+      ),
+    [],
+  );
+  const slots = useMemo<Slots>(
+    () => ({
+      opened,
+      targets,
+      toggle,
+    }),
+    [opened, targets, toggle],
+  );
+
+  /*
+    판이 선 줄을 어느 카드 뒤에 둘까 — 보이는 카드들 가운데 그 사람이 선 줄의 마지막 카드 뒤. 좁혀서 숨은 사람의 판은
+    제 카드 바로 뒤에 숨긴 채 둔다(쓰던 글이 안 날아가게).
+  */
+  const after = new Map<string, Findable[]>();
+  const visible = people.filter((one) => shown.has(one.personId));
+  for (const owner of people.filter((one) => opened.includes(one.personId))) {
+    const at = visible.indexOf(owner);
+    const anchor =
+      at === -1 ? owner : visible[Math.min(visible.length - 1, Math.floor(at / columns) * columns + columns - 1)];
+    after.set(anchor.personId, [...(after.get(anchor.personId) ?? []), owner]);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -73,16 +146,70 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
       )}
 
       {/*
-        폰은 한 줄에 한 장, 넓어지면 둘 — 화면이 가운데 기둥(`COLUMN`)이라 셋째 칸은 안 든다. 관리 메뉴가 고치는 칸이나 메모 칸을
-        열면 그 한 장이 제 줄을 혼자 쓴다(`data-panel`) — 폼이 타일 폭에 끼어 세로로 길어지지 않게.
+        폰은 한 줄에 한 장, 넓어지면 둘 — 화면이 가운데 기둥(`COLUMN`)이라 셋째 칸은 안 든다.
+
+        **관리 메뉴가 연 판(고치는 칸 · 메모 칸)은 카드 밖, 그 카드가 선 줄 아래의 제 줄에 선다**(G-87). 판이 카드 안에 서서
+        카드에 줄 전부(`col-span-full`)를 주던 때는 오른쪽 칸 카드가 다음 줄로 내려가고 왼쪽 옆이 비었다(3열도 같았다).
+        `grid-flow-dense` 는 뒤 카드를 그 빈칸에 끌어와 차례를 바꿔 안 썼다. 그래서 판은 줄 끝 카드 **뒤**의 `<li>` 로
+        들어가고(`usePanelSlot`), 카드들은 판을 열어도 제 차례 · 제 자리에 그대로 선다. 줄 끝은 그려진 격자의 칸 수로
+        센다 — 중단점을 여기 다시 적지 않으려고.
       */}
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {people.map((one) => (
-          <li key={one.personId} hidden={!shown.has(one.personId)} className="min-w-0 has-[[data-panel]]:col-span-full">
-            {one.card}
-          </li>
-        ))}
-      </ul>
+      <PanelSlots.Provider value={slots}>
+        <ul ref={list} className="grid gap-3 sm:grid-cols-2">
+          {people.flatMap((one) => [
+            <li
+              key={one.personId}
+              hidden={!shown.has(one.personId)}
+              data-panel-open={opened.includes(one.personId) || undefined}
+              className="min-w-0 rounded-[1.5rem] data-[panel-open]:outline-[3px] data-[panel-open]:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)] data-[panel-open]:outline-solid"
+            >
+              {one.card}
+            </li>,
+            ...(after.get(one.personId) ?? []).map((owner) => (
+              <li
+                key={`panel:${owner.personId}`}
+                ref={slotRef(owner.personId)}
+                hidden={!shown.has(owner.personId)}
+                role="group"
+                aria-label={owner.label}
+                className="col-span-full min-w-0"
+              />
+            )),
+          ])}
+        </ul>
+      </PanelSlots.Provider>
     </div>
   );
+}
+
+type Slots = {
+  /** 판이 열린 사람들 — 연 차례대로 */
+  opened: readonly string[];
+  /** 그려진 판 줄 — 사람마다 */
+  targets: ReadonlyMap<string, HTMLElement>;
+  toggle: (personId: string, open: boolean) => void;
+};
+
+const PanelSlots = createContext<Slots | null>(null);
+
+/**
+ * 카드의 관리 메뉴가 연 판을 **목록이 마련한 제 줄**에 세우는 자리(G-87).
+ *
+ * `open` 이 참이면 목록에 그 사람의 줄을 달라고 하고, 그 줄의 요소를 돌려준다 — 판은 거기로 `createPortal` 한다.
+ * 목록 밖(이 목록을 안 쓰는 화면)이면 `inline` 이 참이고 판은 예전처럼 카드 안에 선다. 줄이 아직 안 그려졌으면
+ * `null` 이다 — 줄이 붙는 즉시(칠하기 전) 다시 그린다.
+ */
+export function usePanelSlot(personId: string, open: boolean): { inline: boolean; target: HTMLElement | null } {
+  const slots = useContext(PanelSlots);
+  const toggle = slots?.toggle;
+
+  /* 칠하기 전에 줄을 받는다 — 판이 한 장면 비었다가 서지 않게 */
+  useLayoutEffect(() => {
+    toggle?.(personId, open);
+  }, [toggle, personId, open]);
+
+  /* 카드가 사라지면(목록에서 빼기) 그 줄도 거둔다 */
+  useEffect(() => () => toggle?.(personId, false), [toggle, personId]);
+
+  return { inline: slots === null, target: open ? (slots?.targets.get(personId) ?? null) : null };
 }
