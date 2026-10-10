@@ -61,13 +61,20 @@ describe('어디쯤인지는 풀이 화면의 목차와 같은 줄로 말한다'
     expect(runningStage(one({ kind: 'private', personA: 'a', personB: 'b' }, third))).toBe('세 번째 이야기 작성 중…');
   });
 
-  it('본문을 다 썼거나 결과를 가져가는 중이면 마지막 검토다', () => {
+  it('본문을 다 썼으면 마지막 검토다', () => {
     expect(runningStage(one({ kind: 'self' }, { jobStatus: 'submitted', sectionsBegun: 4, bodyWritten: true }))).toBe(
       '마지막 검토 중…',
     );
+  });
+
+  /** 복구기가 집었다 놓는 표시라 끝의 근거가 아니다(ADR 0127 「2026-10-10 덧」) — 풀이 화면의 목차와 같은 줄이다 */
+  it('가져가는 중(`retrieving`)이라는 표시만으로는 마지막 검토로 가지 않는다', () => {
     expect(
       runningStage(one({ kind: 'match', matchId: 'm' }, { jobStatus: 'retrieving', sectionsBegun: 0, bodyWritten: false })),
-    ).toBe('마지막 검토 중…');
+    ).toBe(READING_PREPARING);
+    expect(runningStage(one({ kind: 'self' }, { jobStatus: 'retrieving', sectionsBegun: 4, bodyWritten: false }))).not.toBe(
+      '마지막 검토 중…',
+    );
   });
 
   it('어느 단계도 비율로 말하지 않는다', () => {
