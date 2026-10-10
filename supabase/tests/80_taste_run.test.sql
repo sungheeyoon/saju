@@ -106,7 +106,7 @@ select is(
    where n.nspname in ('public', 'retention') and p.proname like '%taste%'
      and p.proname not in ('reserve_taste', 'finish_taste', 'taste_session_view', 'claim_taste_session',
                            'link_taste_reading_run', 'taste_continuation_of_run', 'count_taste_step', 'taste_passage',
-                           'count_taste_step_once')
+                           'count_taste_step_once', 'note_taste_checks')
      and has_function_privilege('service_role', p.oid, 'EXECUTE')),
   null,
   '상한 · 손잡이 · 정리 함수는 열쇠도 못 부른다');

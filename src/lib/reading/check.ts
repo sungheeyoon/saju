@@ -18,7 +18,7 @@ import {
 } from '../saju/constants';
 
 import { matchInputOfEvidenceText } from '../saju/evidence/shared';
-import { readingBody } from './display';
+import { GROUNDING_HEADING, readingBody } from './display';
 import {
   READING_POLICY,
   isScored,
@@ -31,9 +31,10 @@ import { SAJU_TERMS } from './vocabulary';
 /**
  * 나온 글을 **저장하기 전에** 검사한다.
  *
- * `prd-archive` 의 hard fail 넷이 여기 있다. 검사가 하는 일은 「좋은 글인가」가 아니라 **「이
- * 글을 사용자에게 보여도 되는가」**다 — 품질은 사람이 재고(품질 게이트), 여기서 막는
- * 것은 밖으로 나가면 안 되는 것들이다.
+ * 검사는 둘로 갈린다(ADR 0163). **막는 것**은 밖으로 나가면 사고인 셋이다 — 출생 원문이 샜다 · 동의 범위 밖의 판정을 만들었다 ·
+ * 화면이 그릴 수 없는 꼴이다(본문이 비었거나 저장할 수 없다 · 점수가 드는 풀이에 읽을 수 있는 점수가 없다). **나머지는 품질**이다 —
+ * 걸려도 글을 저장하고 화면에 세우며, 걸린 검사를 시도마다 적는다(`note_reading_checks`). 어느 코드가 어느 쪽인지는
+ * `READING_BLOCKING_CODES` 하나가 든다.
  *
  * ## 검사가 기계로 될 수 있는 까닭
  *
@@ -77,36 +78,64 @@ import { SAJU_TERMS } from './vocabulary';
 const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
 
 /**
- * 실패 코드 — DB 의 `reading.failure_code` 에 이 이름이 적힌다.
- *
- * 2026-09-23 까지 코드마다 한국어 문장을 붙인 표(`READING_FAILURES`)였다. 그 문장은 어디서도
- * 안 읽혔고 표는 이름을 내주는 데만 쓰였다 — 값이 타입으로만 쓰인다고 린트가 경고하는
- * 모양이라 이름의 유니언으로 줄였다(G-46). 옛 마이그레이션 머리말이 그 표의 이름으로 이
- * 목록을 가리킨다(`20260826090000_reading.sql`).
+ * 검사 코드 — 막은 시도는 첫 막음 코드가 `reading_run.failure_code` 에, 걸린 검사 전부는 `reading_run.check_findings` 에 적힌다
+ * (ADR 0163). 옛 마이그레이션 머리말이 옛 표의 이름(`READING_FAILURES`)으로 이 목록을 가리킨다(`20260826090000_reading.sql`).
  */
-type ReadingFailureCode =
-  /** 자료에 없는 간지를 썼다 — 조심성이 아니라 참·거짓의 문제다 */
-  | 'invented-characters'
-  /** 출생 원문·출생지가 글에 나왔다. 모델에 넣지도 않은 값이다 */
+export type ReadingCheckCode =
+  /** 출생 원문·출생지가 글에 나왔다. 모델에 넣지도 않은 값이다 — 막는다 */
   | 'birth-input-leaked'
-  /** Match 동의 범위 밖의 원국 판정을 만들었다(ADR 0012) */
+  /** Match 동의 범위 밖의 원국 판정을 만들었다(ADR 0012) — 막는다 */
   | 'out-of-scope-judgment'
-  /** 점수의 모양이나 범위가 계약과 다르다 */
+  /** 사용자에게 보일 본문이 비었거나 저장할 수 있는 길이(`READING_BODY_STORE_MAX`)를 넘었다 — 막는다 */
+  | 'body-unstorable'
+  /** 점수가 드는 풀이에 점수가 없거나 0~100 정수가 아니다 — 막는다 */
+  | 'score-unreadable'
+  /** 자료에 없는 간지를 썼다 */
+  | 'invented-characters'
+  /** 점수가 기준점에서 계약보다 멀리 움직였다 · 자기 풀이에 점수가 붙었다(그 점수는 저장하지 않는다) */
   | 'score-out-of-contract'
-  /** 본문이 계약한 길이 밖이다 — 빈 글도 실패다 */
+  /** 본문이 계약한 길이 밖이다 */
   | 'length-out-of-contract'
   /** 개인 풀이 화면에 생한자나 외국 문자가 섞였다 */
   | 'non-korean-self-body'
-  /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 나왔다 */
+  /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 남았다 */
   | 'evidence-path-leaked'
-  /** 한 문장 비유가 비었거나 화면이 감당하는 길이를 넘었다 */
-  | 'metaphor-out-of-contract';
+  /** 본문에 샌 경로를 내보내기 전에 걷었다(`withoutLeakedPaths`) */
+  | 'evidence-path-stripped'
+  /** 한 문장 비유가 비었거나(비유 없이 저장한다) 화면이 한 줄로 감당하는 길이를 넘었다 */
+  | 'metaphor-out-of-contract'
+  /** 이어쓰기 답이 계약(ADR 0143 의 2)을 어겼다 — 회수(`app/me/reading/collect.ts`)가 잰다 */
+  | 'continuation-out-of-contract';
 
-type ReadingFailure = {
-  code: ReadingFailureCode;
-  /** 무엇이 걸렸는가 — 운영 로그에 남는다. 원문은 여기 적지 않는다 */
-  detail: string;
+/**
+ * **막는 코드** — 이 밖의 코드는 걸려도 글을 내보낸다(ADR 0163 의 갈래 표). 한 곳에만 둔다 — 회수가 이것으로 저장과 실패를 가른다.
+ */
+export const READING_BLOCKING_CODES: ReadonlySet<ReadingCheckCode> = new Set<ReadingCheckCode>([
+  'birth-input-leaked',
+  'out-of-scope-judgment',
+  'body-unstorable',
+  'score-unreadable',
+]);
+
+/**
+ * 걸린 검사 하나 — 운영자가 읽는 기록이다(`check_findings`).
+ *
+ * `detail` 은 **무엇이 걸렸는가의 짧은 설명**이다 — 길이 · 개수 · 우리가 넘긴 식별자 · 우리 표의 낱말까지만. 글 원문과 이용자
+ * 자료(출생 원문 · 이름)는 적지 않는다. DB 가 200자를 넘는 설명을 안 받는다(`check_findings_valid`).
+ */
+export type CheckFinding<Code extends string = ReadingCheckCode> = { code: Code; detail: string };
+
+/** DB 가 받는 설명의 상한 — `check_findings_valid` 와 같은 수 */
+export const CHECK_DETAIL_MAX = 200;
+
+/** 설명을 DB 가 받는 꼴로 — 비면 코드를, 길면 자른다 */
+export const findingForRecord = <Code extends string>({ code, detail }: CheckFinding<Code>): CheckFinding<Code> => {
+  const said = detail.trim() === '' ? code : detail.trim();
+  return { code, detail: said.length > CHECK_DETAIL_MAX ? `${said.slice(0, CHECK_DETAIL_MAX - 1)}…` : said };
 };
+
+/** 저장 문이 받는 본문의 상한 — `reading.output` 의 검사식(1~60000자)과 같은 수 */
+export const READING_BODY_STORE_MAX = 60_000;
 
 /**
  * 검사가 알아야 하는 **비밀** — 우리는 알고 모델은 모르는 값.
@@ -425,6 +454,42 @@ const evidencePathsLeakedIn = (markdown: string, evidenceText: string): readonly
   return [...new Set([...dotted, ...bare])].sort();
 };
 
+/** 경로 하나 — 백틱으로 감쌌어도 같은 경로다 */
+const PATH_TOKEN = '`?[A-Za-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*`?';
+/** 경로와 구분자만 든 괄호 — 앞의 빈칸 하나까지 */
+const PATHS_IN_PARENS = new RegExp(` ?\\((\\s*${PATH_TOKEN}(?:\\s*[·,/、]\\s*${PATH_TOKEN})*\\s*)\\)`, 'g');
+
+/**
+ * 본문에 샌 경로를 **걷을 수 있는 자리만** 걷는다 — 내보내기 전에(ADR 0163).
+ *
+ * 걷는 꼴은 하나다 — 경로와 구분자(`·` `,` `/` `、`)만 든 괄호(「(analysis.strength · charts)」). 괄호째 지워도 문장이 그대로
+ * 선다. 문장 안에 낱말처럼 선 경로(「analysis.strength 를 보면」 · 백틱으로 감싼 명사)는 지우면 문장이 깨지므로 그대로 두고
+ * `evidence-path-leaked` 로 적는다. 괄호 안에 우리가 넘긴 경로가 아닌 것이 하나라도 있으면 그 괄호는 안 건드린다 — 사람이 지은
+ * 라틴 이름일 수 있다. 근거 절(본문 뒤)은 경로를 대라고 시킨 자리라 안 건드린다.
+ *
+ * @returns 걷은 글과 걷은 경로(가나다순). 걷을 것이 없으면 받은 글 그대로다
+ */
+export function withoutLeakedPaths(
+  markdown: string,
+  evidenceText: string,
+): { markdown: string; stripped: readonly string[] } {
+  const leaked = new Set(evidencePathsLeakedIn(markdown, evidenceText));
+  if (leaked.size === 0) return { markdown, stripped: [] };
+
+  const grounding = GROUNDING_HEADING.exec(markdown);
+  const cut = grounding === null ? markdown.length : grounding.index;
+  const stripped = new Set<string>();
+
+  const body = markdown.slice(0, cut).replace(PATHS_IN_PARENS, (whole: string, inner: string) => {
+    const names = inner.split(/[·,/、]/).map((name) => name.trim().replace(/^`|`$/g, ''));
+    if (!names.every((name) => leaked.has(name))) return whole;
+    for (const name of names) stripped.add(name);
+    return '';
+  });
+
+  return { markdown: `${body}${markdown.slice(cut)}`, stripped: [...stripped].sort() };
+}
+
 const pad = (value: string): string => value.padStart(2, '0');
 const bare = (value: string): string => String(Number(value));
 
@@ -486,10 +551,14 @@ export function secretForms(secret: BirthSecret): string[] {
 
 type ReadingCheck =
   | { ok: true }
-  | { ok: false; failures: readonly ReadingFailure[] };
+  | { ok: false; failures: readonly CheckFinding[] };
+
+/** 걸린 것 가운데 막는 것 — 하나라도 있으면 저장하지 않는다(ADR 0163) */
+export const blockingFindingsOf = <Finding extends { code: string }>(findings: readonly Finding[]): Finding[] =>
+  findings.filter((finding) => (READING_BLOCKING_CODES as ReadonlySet<string>).has(finding.code));
 
 /**
- * 나온 글이 나가도 되는가.
+ * 나온 글에서 걸리는 검사 전부 — 막는 것과 품질을 함께 낸다. 무엇을 막는지는 `blockingFindingsOf` 가 가른다.
  *
  * @param evidenceText 실제로 모델에 보낸 자료 그대로. 「자료에 있었나」를 이것에 묻는다.
  * @param secrets 이 결과에 걸린 사람들의 출생 원문. 모델은 못 본 값이다.
@@ -508,7 +577,7 @@ export function checkReading({
   secrets: readonly BirthSecret[];
   baseline?: number;
 }): ReadingCheck {
-  const failures: ReadingFailure[] = [];
+  const failures: CheckFinding[] = [];
   const { markdown, score, metaphor } = output;
 
   /**
@@ -516,7 +585,8 @@ export function checkReading({
    *
    * 두 가지만 본다.
    *
-   * 1. **있는가.** 구조화 출력이 채워 주긴 하지만 빈 문자열은 막지 않는다.
+   * 1. **있는가.** 구조화 출력이 채워 주긴 하지만 빈 문자열은 막지 않는다. 비면 품질로 적고 비유 없이 저장한다 — 화면은
+   *    비유가 없는 풀이를 그대로 그린다(회수가 빈 비유를 `null` 로 보낸다).
    * 2. **한 문장인가.** 화면이 점수 아래 한 줄로 세우는 자리라, 문단이 오면 그 배치가
    *    깨진다. 문장 부호로 세지 않고 **길이로 센다** — 「~격.」처럼 마침표가 없는 말도
    *    한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이라 세는 자가 못 된다.
@@ -530,8 +600,16 @@ export function checkReading({
     failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
   }
 
+  /**
+   * **본문** — 사용자에게 보일 몫(`readingBody`)이 비었거나 저장 문이 못 받는 길이면 내보낼 것이 없다(막음). 계약한 길이 밖은
+   * 품질이다 — 짧거나 긴 글도 화면은 그린다.
+   */
   const { min, max } = READING_POLICY.markdownLength;
-  if (markdown.trim().length < min || markdown.length > max) {
+  if (readingBody(markdown) === '') {
+    failures.push({ code: 'body-unstorable', detail: '본문이 비었습니다' });
+  } else if (markdown.length > READING_BODY_STORE_MAX) {
+    failures.push({ code: 'body-unstorable', detail: `${markdown.length}자 — 저장 상한 ${READING_BODY_STORE_MAX}자를 넘습니다` });
+  } else if (markdown.trim().length < min || markdown.length > max) {
     failures.push({
       code: 'length-out-of-contract',
       detail: `${markdown.length}자 (${min}~${max})`,
@@ -563,7 +641,7 @@ export function checkReading({
       score < READING_POLICY.scoreRange.min ||
       score > READING_POLICY.scoreRange.max
     ) {
-      failures.push({ code: 'score-out-of-contract', detail: `score=${String(score)}` });
+      failures.push({ code: 'score-unreadable', detail: `score=${String(score)}` });
     } else if (baseline !== undefined) {
       /**
        * **조정 상한** — 기준점에서 이만큼까지만 움직인다(ADR 0060).

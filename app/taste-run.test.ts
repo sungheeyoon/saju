@@ -40,7 +40,14 @@ const ARTIFACT = '22222222-2222-4222-8222-222222222222';
 const BROWSER_HMAC = 'b'.repeat(64);
 const IP_HMAC = 'c'.repeat(64);
 
-type Seen = { reserve: unknown[]; finish: TasteFinish[]; prompts: string[]; options: unknown[]; views: unknown[] };
+type Seen = {
+  reserve: unknown[];
+  finish: TasteFinish[];
+  notes: Parameters<TasteHands['noteChecks']>[0][];
+  prompts: string[];
+  options: unknown[];
+  views: unknown[];
+};
 
 function hands(
   reserved: Reserved | null,
@@ -61,7 +68,7 @@ function hands(
     visitor?: { browserHmac: string; ipHmac: string } | null;
   } = {},
 ): { hands: TasteHands; seen: Seen } {
-  const seen: Seen = { reserve: [], finish: [], prompts: [], options: [], views: [] };
+  const seen: Seen = { reserve: [], finish: [], notes: [], prompts: [], options: [], views: [] };
   let now = 1_000;
   return {
     seen,
@@ -80,6 +87,9 @@ function hands(
         seen.finish.push(finish);
         if (throwing === 'finish-first' && seen.finish.length === 1) throw new Error('적는 문이 던졌다');
         return finished;
+      },
+      noteChecks: async (note) => {
+        seen.notes.push(note);
       },
       call: async (prompt, options) => {
         seen.prompts.push(prompt);
@@ -162,14 +172,51 @@ describe('갈래', () => {
     });
   });
 
-  it('검사에 걸리면 실패 코드로 적고 글을 안 낸다 — 다시 읽기는 DB 가 센 시도 수가 정한다', async () => {
-    const broken = { ...HAND_SAMPLE.taste, previewMarkdown: '짧다.' };
+  it('품질 검사에만 걸린 글은 성공으로 적고 글을 낸다 — 걸린 검사는 코드와 짧은 설명으로 적는다(ADR 0163)', async () => {
+    const short = { ...HAND_SAMPLE.taste, previewMarkdown: '짧은 글이에요.\n\n여기서 멈출까요?' };
+    const { hands: one, seen } = hands(callModel(2), {
+      called: { ok: true, output: short, usage: null, reasoningTokens: null, modelId: 'm' },
+    });
+    expect(await serveTaste(DRAFT, one)).toEqual({ state: 'ready', sessionId: SESSION, preview: short.previewMarkdown });
+    expect(seen.finish[0]).toMatchObject({ failureCode: null, output: { previewMarkdown: short.previewMarkdown } });
+    expect(seen.notes).toEqual([
+      { artifactId: ARTIFACT, attempt: 2, findings: [{ code: 'length-out-of-contract', detail: `너무 짧다(${short.previewMarkdown.length}자)` }] },
+    ]);
+    /* 설명에 글 원문이 없다 */
+    expect(JSON.stringify(seen.notes)).not.toContain('여기서 멈출까요');
+  });
+
+  it('검사를 다 지난 글도 「걸린 것 없음」으로 적는다 — 분모가 된다', async () => {
+    const { hands: one, seen } = hands(callModel());
+    await serveTaste(DRAFT, one);
+    expect(seen.notes).toEqual([{ artifactId: ARTIFACT, attempt: 1, findings: [] }]);
+  });
+
+  it.each<[string, Partial<typeof HAND_SAMPLE.taste>]>([
+    ['글이 비었다', { previewMarkdown: '  ' }],
+    ['이어쓰기가 읽는 칸이 비었다', { continuationQuestion: '' }],
+    ['DB 가 받는 길이를 넘었다', { previewMarkdown: `${'가'.repeat(2_001)}요?` }],
+    ['근거 경로가 DB 의 꼴이 아니다', { supportingClaims: ['구조가 그렇다'] }],
+  ])('DB 가 받지 못하는 꼴(%s)은 여전히 막는다 — 실패 코드로 적고 글을 안 낸다', async (_why, patch) => {
     const { hands: one, seen } = hands(callModel(), {
-      called: { ok: true, output: broken, usage: null, reasoningTokens: null, modelId: 'm' },
+      called: { ok: true, output: { ...HAND_SAMPLE.taste, ...patch }, usage: null, reasoningTokens: null, modelId: 'm' },
       view: { ok: true, value: { state: 'failed', retryable: true, preview: null } },
     });
     expect(await serveTaste(DRAFT, one)).toEqual({ state: 'failed', retry: true });
     expect(seen.finish[0]).toMatchObject({ failureCode: TASTE_CHECK_FAILED, output: null });
+    expect(seen.notes).toHaveLength(1);
+    expect(seen.notes[0].findings.length).toBeGreaterThan(0);
+    for (const finding of seen.notes[0].findings) expect(finding.detail.length).toBeLessThanOrEqual(200);
+  });
+
+  it('모델이 실패한 시도와 늦게 와 무시된 결과는 검사를 적지 않는다', async () => {
+    const failed = hands(callModel(), { called: { ok: false, code: 'model-call-failed', detail: 'boom' } });
+    await serveTaste(DRAFT, failed.hands);
+    expect(failed.seen.notes).toEqual([]);
+
+    const late = hands(callModel(), { finished: 'ignored' });
+    await serveTaste(DRAFT, late.hands);
+    expect(late.seen.notes).toEqual([]);
   });
 
   it('모델 시간 초과는 「시간 초과」로 · 다른 실패는 「실패」로 — 세 번째면 다시 읽기를 안 연다', async () => {

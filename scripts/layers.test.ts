@@ -463,9 +463,16 @@ describe('브라우저로 가는 그래프', () => {
 describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   const KEYED_CLIENT = 'app/keyed-client';
   const POOL_MODULE = 'app/me/keyed-chart-writes.ts';
-  /** 로그인 전 사주 문단의 문 여덟 — 로그인 전 쪽 다섯과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
+  /** 로그인 전 사주 문단의 문 아홉 — 로그인 전 쪽 여섯(검사 기록 하나 포함, ADR 0163)과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
   const TASTE_MODULES: Readonly<Record<string, ReadonlySet<string>>> = {
-    'app/keyed-taste.ts': new Set(['reserve_taste', 'finish_taste', 'taste_session_view', 'count_taste_step', 'count_taste_step_once']),
+    'app/keyed-taste.ts': new Set([
+      'reserve_taste',
+      'finish_taste',
+      'note_taste_checks',
+      'taste_session_view',
+      'count_taste_step',
+      'count_taste_step_once',
+    ]),
     'app/me/keyed-taste-claims.ts': new Set(['claim_taste_session', 'link_taste_reading_run', 'taste_continuation_of_run']),
   };
   const POOL_DOORS = new Set([
@@ -482,7 +489,7 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
     /** 웹 푸시의 배달 문 — 배달 줄을 잠그고 닫는 문 둘만 부른다(ADR 0156) */
     'app/api/push/dispatch/route.ts',
     POOL_MODULE,
-    /** 로그인 전 사주 문단의 문 일곱 — 지문 · HMAC 은 서버가 짓고, 회원 id 는 세션에서(ADR 0143) */
+    /** 로그인 전 사주 문단의 문 아홉 — 지문 · HMAC 은 서버가 짓고, 회원 id 는 세션에서(ADR 0143) */
     ...Object.keys(TASTE_MODULES),
     'app/me/reading/collect.ts',
     'app/me/reading/pipeline.ts',

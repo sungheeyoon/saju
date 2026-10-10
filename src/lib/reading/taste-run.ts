@@ -2,7 +2,7 @@ import { CHART_ENGINE_VERSION } from '../saju/version';
 import type { RedactedChartEvidence, RedactedEvidence } from '../saju/evidence/redacted';
 import { without } from '../saju/evidence/without';
 
-import { plainTermsIn } from './check';
+import { plainTermsIn, type CheckFinding } from './check';
 
 /**
  * **개인별 맛보기(tasteRun)** — 근거 줄이기 · 지문 · 프롬프트 · 출력 모양 · 규칙 검사.
@@ -37,7 +37,10 @@ export const TASTE_RUN_VERSIONS = { prompt: 'taste-run-v1', modelConfig: 'luna-n
  */
 export const TASTE_RUN_CALL = { reasoningEffort: 'none', maxOutputTokens: 1_500, timeoutMs: 20_000 } as const;
 
-/** 검사(`checkTasteRun`)에 걸린 맛보기를 DB 에 적는 실패 코드 — 다음 요청이 재시도한다(상한은 DB 가 센다) */
+/**
+ * 검사(`checkTasteRun`)의 **막는 코드**에 걸린 맛보기를 DB 에 적는 실패 코드 — 다음 요청이 재시도한다(상한은 DB 가 센다). 품질
+ * 코드만 걸린 글은 실패가 아니다 — 그대로 적고 화면에 세운다(ADR 0163). 걸린 코드 전부는 `note_taste_checks` 가 든다.
+ */
 export const TASTE_CHECK_FAILED = 'taste-check-failed';
 
 // ---------------------------------------------------------------------------
@@ -316,8 +319,62 @@ ${JSON.stringify(evidence)}
 // 규칙 검사
 // ---------------------------------------------------------------------------
 
-/** 글이 지켜야 할 모양 — 짧은 규칙만. 글의 질 · 「내 얘기인가」는 사람의 짝 검토가 본다 */
-export type TasteRunVerdict = { ok: true } | { ok: false; reasons: readonly string[] };
+/**
+ * 맛보기 검사 코드 — 막는 넷은 **DB 가 받지 못하는 꼴**이다(`finish_taste` 의 성공 검사 · `taste_artifact` 의 검사식과 같은 수).
+ * 나머지는 품질이라 걸려도 글을 적고 화면에 세운다(ADR 0163).
+ */
+export type TasteCheckCode =
+  /** `previewMarkdown` 이 비었다 — 막는다 */
+  | 'preview-empty'
+  /** 이어쓰기가 읽는 칸(`topic` · `distinctivePattern` · `continuationQuestion` · `answerDirection`)이 비었다 — 막는다 */
+  | 'field-empty'
+  /** 칸이 DB 가 받는 길이를 넘었다(`TASTE_STORE_LIMITS`) — 막는다 */
+  | 'field-too-long'
+  /** 근거 경로가 1~6개가 아니거나 경로 꼴이 아니다 — 막는다 */
+  | 'claims-unstorable'
+  | 'unknown-topic'
+  | 'claims-not-in-evidence'
+  | 'length-out-of-contract'
+  | 'paragraphs-out-of-contract'
+  | 'unfinished-sentence'
+  | 'no-closing-question'
+  | 'foreshadowing'
+  | 'not-polite'
+  | 'ai-word'
+  | 'markup'
+  | 'hanja'
+  | 'plain-term';
+
+/** 막는 코드 — 이 밖은 걸려도 글을 적는다(ADR 0163 의 갈래 표) */
+export const TASTE_BLOCKING_CODES: ReadonlySet<TasteCheckCode> = new Set<TasteCheckCode>([
+  'preview-empty',
+  'field-empty',
+  'field-too-long',
+  'claims-unstorable',
+]);
+
+/** DB 가 받는 칸의 길이 — `taste_artifact` · `taste_session` 의 검사식과 `finish_taste` 의 성공 검사가 같은 수를 든다 */
+export const TASTE_STORE_LIMITS = {
+  previewMarkdown: 2_000,
+  topic: 100,
+  distinctivePattern: 1_000,
+  continuationQuestion: 500,
+  answerDirection: 1_000,
+} as const;
+
+export type TasteCheckFinding = CheckFinding<TasteCheckCode>;
+
+/**
+ * 글이 지켜야 할 모양 — 짧은 규칙만. 글의 질 · 「내 얘기인가」는 사람의 짝 검토가 본다. `reasons` 는 사람이 읽는 설명(실호출
+ * 보고 · 시험), `findings` 는 그 설명에 코드를 단 것이다 — 걸린 것이 없으면 `ok` 다.
+ */
+export type TasteRunVerdict =
+  | { ok: true }
+  | { ok: false; reasons: readonly string[]; findings: readonly TasteCheckFinding[] };
+
+/** 걸린 것 가운데 막는 것 — 하나라도 있으면 성공으로 적지 않는다 */
+export const tasteBlockingOf = (findings: readonly TasteCheckFinding[]): TasteCheckFinding[] =>
+  findings.filter((finding) => TASTE_BLOCKING_CODES.has(finding.code));
 
 const HANJA = /[一-鿿]/;
 /** 화면에 「AI」를 새로 세우지 않는다(운영자 2026-09-29) — 글 안에서도 */
@@ -345,13 +402,16 @@ export const sentencesOf = (text: string): string[] =>
 export const endsPolitely = (sentence: string): boolean => /요[.!?][」』"')\]]*$/.test(sentence.trim());
 
 /** 분류명 · 한자 — 맛보기와 이어쓰기 답이 함께 쓰는 줄 */
-export const plainTextSlips = (text: string): string[] => {
-  const reasons: string[] = [];
-  if (HANJA.test(text)) reasons.push('한자가 있다');
+const plainTextFindings = (text: string): TasteCheckFinding[] => {
+  const findings: TasteCheckFinding[] = [];
+  if (HANJA.test(text)) findings.push({ code: 'hanja', detail: '한자가 있다' });
   const terms = plainTermsIn(text);
-  if (terms.length > 0) reasons.push(`분류명이 있다: ${terms.join(' · ')}`);
-  return reasons;
+  if (terms.length > 0) findings.push({ code: 'plain-term', detail: `분류명이 있다: ${terms.join(' · ')}` });
+  return findings;
 };
+
+/** 분류명 · 한자를 사람이 읽는 설명으로 — 이어쓰기 답의 검사가 쓴다 */
+export const plainTextSlips = (text: string): string[] => plainTextFindings(text).map((finding) => finding.detail);
 
 /** 경로가 맛보기 근거의 `chart` 아래에 실제로 있는가 — 빠진 자리(`now` · `daeun`)를 가리키면 없다 */
 const pathExists = (chart: TasteChart, path: string): boolean => {
@@ -372,49 +432,56 @@ export const normalizeClaim = (claim: string): string => claim.trim().replace(/^
 const SEGMENT = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)*$/;
 
 /**
- * 맛보기 출력의 짧은 규칙 검사 — 걸린 까닭을 전부 모아 낸다.
+ * 맛보기 출력의 짧은 규칙 검사 — 걸린 것을 전부 모아 낸다. 막는 것과 품질을 함께 내고, 무엇을 막는지는 `tasteBlockingOf` 가
+ * 가른다. 설명에는 모델이 쓴 글을 싣지 않는다 — 길이 · 개수 · 우리 표의 낱말 · 경로 꼴의 값까지만.
  *
  * `evidence` 를 주면 `supportingClaims` 의 경로가 그 근거에 실제로 있는지까지 본다.
  */
 export function checkTasteRun(output: TasteRunOutput, evidence?: TasteEvidence): TasteRunVerdict {
-  const reasons: string[] = [];
+  const findings: TasteCheckFinding[] = [];
+  const found = (code: TasteCheckCode, detail: string) => findings.push({ code, detail });
   const preview = output.previewMarkdown.trim();
 
-  if (preview === '') reasons.push('previewMarkdown 이 비었다');
-  if (!(TASTE_TOPICS as readonly string[]).includes(output.topic)) reasons.push(`모르는 topic: ${output.topic}`);
-  if (output.distinctivePattern.trim() === '') reasons.push('distinctivePattern 이 비었다');
-  if (output.continuationQuestion.trim() === '') reasons.push('continuationQuestion 이 비었다');
-  if (output.answerDirection.trim() === '') reasons.push('answerDirection 이 비었다');
+  if (preview === '') found('preview-empty', 'previewMarkdown 이 비었다');
+  if (output.topic.trim() === '') found('field-empty', 'topic 이 비었다');
+  else if (!(TASTE_TOPICS as readonly string[]).includes(output.topic)) found('unknown-topic', `모르는 topic(${output.topic.length}자)`);
+  if (output.distinctivePattern.trim() === '') found('field-empty', 'distinctivePattern 이 비었다');
+  if (output.continuationQuestion.trim() === '') found('field-empty', 'continuationQuestion 이 비었다');
+  if (output.answerDirection.trim() === '') found('field-empty', 'answerDirection 이 비었다');
+  for (const [field, limit] of Object.entries(TASTE_STORE_LIMITS) as [keyof typeof TASTE_STORE_LIMITS, number][]) {
+    const length = output[field].trim().length;
+    if (length > limit) found('field-too-long', `${field} 이 ${length}자다(${limit} 이하)`);
+  }
   const claims = output.supportingClaims.map(normalizeClaim).filter((claim) => claim !== '');
   if (claims.length < TASTE_RUN_RULES.supportingClaims.min || claims.length > TASTE_RUN_RULES.supportingClaims.max) {
-    reasons.push(`supportingClaims 가 ${claims.length}개다`);
+    found('claims-unstorable', `supportingClaims 가 ${claims.length}개다`);
   }
   const malformed = claims.filter((claim) => !SEGMENT.test(claim));
-  if (malformed.length > 0) reasons.push(`경로 꼴이 아닌 supportingClaims: ${malformed.join(' · ')}`);
+  if (malformed.length > 0) found('claims-unstorable', `경로 꼴이 아닌 supportingClaims ${malformed.length}개`);
   if (evidence !== undefined) {
     const allowed = new Set(tasteClaimPathsOf(evidence));
     const missing = claims.filter((claim) => SEGMENT.test(claim) && (!allowed.has(claim) || !pathExists(evidence.chart, claim)));
-    if (missing.length > 0) reasons.push(`근거에 없는 경로: ${missing.join(' · ')}`);
+    if (missing.length > 0) found('claims-not-in-evidence', `근거에 없는 경로: ${missing.join(' · ')}`);
   }
 
-  if (preview === '') return { ok: false, reasons };
-
-  const length = preview.length;
-  if (length < TASTE_RUN_RULES.previewLength.min) reasons.push(`너무 짧다(${length}자)`);
-  if (length > TASTE_RUN_RULES.previewLength.max) reasons.push(`너무 길다(${length}자)`);
-  const paragraphs = preview.split(/\n\s*\n/).filter((paragraph) => paragraph.trim() !== '');
-  if (paragraphs.length < TASTE_RUN_RULES.paragraphs.min || paragraphs.length > TASTE_RUN_RULES.paragraphs.max) {
-    reasons.push(`문단이 ${paragraphs.length}개다`);
+  if (preview !== '') {
+    const length = preview.length;
+    if (length < TASTE_RUN_RULES.previewLength.min) found('length-out-of-contract', `너무 짧다(${length}자)`);
+    if (length > TASTE_RUN_RULES.previewLength.max) found('length-out-of-contract', `너무 길다(${length}자)`);
+    const paragraphs = preview.split(/\n\s*\n/).filter((paragraph) => paragraph.trim() !== '');
+    if (paragraphs.length < TASTE_RUN_RULES.paragraphs.min || paragraphs.length > TASTE_RUN_RULES.paragraphs.max) {
+      found('paragraphs-out-of-contract', `문단이 ${paragraphs.length}개다`);
+    }
+    if (TRAILING_OFF.test(preview) || !/[.!?][」』"')\]]*$/.test(preview)) found('unfinished-sentence', '완결된 문장으로 끝나지 않는다');
+    const last = sentencesOf(preview).at(-1) ?? '';
+    if (!/요\?[」』"')\]]*$/.test(last)) found('no-closing-question', '장면 안의 물음(「~요?」)으로 멈추지 않는다');
+    const foreshadow = FORESHADOWING.exec(paragraphs.at(-1) ?? '');
+    if (foreshadow !== null) found('foreshadowing', `다음을 예고한다: 「${foreshadow[0]}」`);
+    if (sentencesOf(preview).some((sentence) => !endsPolitely(sentence))) found('not-polite', '해요체로 끝나지 않는 문장이 있다');
+    if (AI_WORD.test(preview)) found('ai-word', '「AI」를 말한다');
+    if (MARKUP.test(preview)) found('markup', '제목 · 목록 · 굵은 글씨가 있다');
+    findings.push(...plainTextFindings(preview));
   }
-  if (TRAILING_OFF.test(preview) || !/[.!?][」』"')\]]*$/.test(preview)) reasons.push('완결된 문장으로 끝나지 않는다');
-  const last = sentencesOf(preview).at(-1) ?? '';
-  if (!/요\?[」』"')\]]*$/.test(last)) reasons.push('장면 안의 물음(「~요?」)으로 멈추지 않는다');
-  const foreshadow = FORESHADOWING.exec(paragraphs.at(-1) ?? '');
-  if (foreshadow !== null) reasons.push(`다음을 예고한다: 「${foreshadow[0]}」`);
-  if (sentencesOf(preview).some((sentence) => !endsPolitely(sentence))) reasons.push('해요체로 끝나지 않는 문장이 있다');
-  if (AI_WORD.test(preview)) reasons.push('「AI」를 말한다');
-  if (MARKUP.test(preview)) reasons.push('제목 · 목록 · 굵은 글씨가 있다');
-  reasons.push(...plainTextSlips(preview));
 
-  return reasons.length === 0 ? { ok: true } : { ok: false, reasons };
+  return findings.length === 0 ? { ok: true } : { ok: false, reasons: findings.map((finding) => finding.detail), findings };
 }
