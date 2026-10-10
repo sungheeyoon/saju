@@ -3357,6 +3357,7 @@ export type Database = {
           p_warning_ref?: string
         }
         Returns: {
+          chosen_excerpt: string
           created_at: string
           is_open: boolean
           pages: number
@@ -3647,6 +3648,7 @@ export type Database = {
         Returns: string
       }
       report_daily_limit: { Args: never; Returns: number }
+      report_excerpt: { Args: { p_body: string }; Returns: string }
       report_is_open: {
         Args: { p_outcome: string; p_reviewed_at: string }
         Returns: boolean

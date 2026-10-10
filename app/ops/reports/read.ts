@@ -68,6 +68,11 @@ export type ReportRow = {
   readonly snapshotMessages: number | null;
   /** 안내번호 — 경고로 적힌 적이 있으면 있다(이의 제기를 인정한 뒤에도 남는다, ADR 0108) */
   readonly warningRef: string | null;
+  /**
+   * 신고한 사람이 고른 메시지의 첫 줄 — 신고 당시의 사본에서 DB 가 60자까지 잘라 낸다(화면 점검 C17). 대화 근거가 없거나
+   * 고른 메시지가 없으면 `null`. 이 칸이 생기기 전의 DB 는 칸 자체가 없다 — 그때도 `null` 이다
+   */
+  readonly chosenExcerpt: string | null;
 };
 
 type ReportPage = {
@@ -76,7 +81,8 @@ type ReportPage = {
   readonly pages: number;
 };
 
-const rowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
+/** 목록 문의 한 줄을 화면의 값으로 옮긴다 — 비는 칸은 여기서 한 번 `null` 로 받는다(위 머리말) */
+export const reportRowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   reportId: row.report_id,
   createdAt: row.created_at,
   reason: row.reason,
@@ -87,6 +93,7 @@ const rowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   reviewOutcome: row.review_outcome ?? null,
   snapshotMessages: row.snapshot_messages ?? null,
   warningRef: row.warning_ref ?? null,
+  chosenExcerpt: row.chosen_excerpt ?? null,
 });
 
 /**
@@ -109,7 +116,7 @@ export async function operatorReports(
   if (answer.error) return unread(answer.error, 'operator_reports');
 
   const rows = answer.data ?? [];
-  return read({ rows: rows.map(rowOf), pages: rows[0]?.pages ?? 0 });
+  return read({ rows: rows.map(reportRowOf), pages: rows[0]?.pages ?? 0 });
 }
 
 export type AccountNow = Account & { readonly status: string | null };
