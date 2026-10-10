@@ -1263,7 +1263,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' }).click();
     await expect(page).toHaveURL(/\/saju$/);
 
-    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봐요' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
     await expect(page.locator('a[href="/me"][aria-current="page"]:visible')).toHaveCount(1);
     await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
 
@@ -2642,7 +2642,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await expect(page.locator('main')).not.toContainText('match-v0');
 
     const shown = await page.locator('main').innerText();
-    expect(shown.indexOf('두 사주를 맞대어 본 표')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
+    expect(shown.indexOf('두 사주를 맞대어 본 표')).toBeLessThan(shown.indexOf('궁합 베타'));
 
     /*
       **접힌 것이지 잘린 것이 아니다**(ADR 0035). 눌러서 안에 든 것을 본다 — 자료는
@@ -2658,7 +2658,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     // 그 자리는 이제 궁합풀이를 만드는 버튼이 쓴다 — 지표 **아래**다.
     const order = await page.locator('main').innerText();
-    expect(order.indexOf('먼저 보이는 신호')).toBeLessThan(order.indexOf('두 사람의 궁합풀이'));
+    expect(order.indexOf('궁합 베타')).toBeLessThan(order.indexOf('두 사람의 궁합풀이'));
     await expect(page.getByRole('button', { name: '궁합풀이 받기' })).toBeVisible();
   });
 
