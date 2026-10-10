@@ -289,11 +289,65 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(talkOf(b).getByText(said, { exact: true })).toHaveCount(1);
   });
 
-  /** 화면 자판에는 Shift 가 없다 — 손가락 기기에서 Enter 는 줄바꿈이고 보내기는 단추로만 한다(카카오톡과 같다) */
+  /**
+   * **느린 전송** — 앞의 말이 시한(15초)을 넘기면 그 말만 실패로 서고 「삭제」가 없다(서버에 남았을 수 있다). 뒤에 선 말은 아직
+   * 떠나지 않았으므로 실패로 서지 않는다. 늦은 말이 끝나면 뒤의 말이 떠나 둘 다 한 번씩 남는다(`send-line.ts`, ADR 0155 덧).
+   */
+  test('느린 전송은 그 말만 실패로 서고 삭제가 없으며, 뒤에 선 말은 실패로 서지 않는다', async ({ openAs }) => {
+    test.slow();
+    const { a, tag, room } = await pair(openAs);
+    const slow = `느린 말 ${tag}`;
+    const next = `뒤의 말 ${tag}`;
+    const count = (body: string) => sql(`select count(*) from public.chat_message where body = '${body}'`);
+
+    await a.page.goto(room);
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let attempts = 0;
+    await a.page.route(
+      (url) => url.pathname === room,
+      async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST' || request.headers()['next-action'] === undefined) {
+          await route.fallback();
+          return;
+        }
+        // 보내기 부름만 센다 — 액션의 인자에 본문이 실린다
+        const body = request.postData() ?? '';
+        if (body.includes(slow) || body.includes(next)) attempts += 1;
+        if (body.includes(slow)) await held; // 느린 말만 붙든다 — 시한을 넘긴다
+        await route.fallback();
+      },
+    );
+
+    const field = a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
+    await field.fill(slow);
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+    await field.fill(next);
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+
+    const slowRow = talkOf(a).getByRole('listitem').filter({ hasText: slow });
+    const nextRow = talkOf(a).getByRole('listitem').filter({ hasText: next });
+    await expect(slowRow.getByLabel(SEND_FAILED_LABEL, { exact: true })).toBeVisible({ timeout: 25_000 });
+    await expect(nextRow.getByLabel(SEND_FAILED_LABEL, { exact: true })).toHaveCount(0);
+    await slowRow.getByLabel(SEND_FAILED_LABEL, { exact: true }).click();
+    await expect(a.page.getByRole('button', { name: SEND_RETRY_LABEL })).toBeVisible();
+    await expect(a.page.getByRole('button', { name: SEND_DROP_LABEL })).toHaveCount(0);
+    expect(attempts).toBe(1);
+
+    release();
+    await expect.poll(() => count(slow)).toBe('1');
+    await expect.poll(() => count(next)).toBe('1');
+    await expect(failedMenuOf(a)).toHaveCount(0);
+  });
+
+  /** 화면 자판에는 Shift 가 없다 — 손가락으로만 쓰는 기기에서 Enter 는 줄바꿈이고 보내기는 단추로만 한다(카카오톡과 같다, `composer.tsx`) */
   test('손가락 기기에서 Enter 는 줄을 바꾸고, 키보드 기기에서는 보낸다', async ({ openAs }) => {
     const { a, tag, room } = await pair(openAs);
     await a.page.goto(room);
-    const touch = await a.page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+    const touch = await a.page.evaluate(() => window.matchMedia('(pointer: coarse) and (hover: none)').matches);
     const field = a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
 
     await field.fill(`첫 줄 ${tag}`);

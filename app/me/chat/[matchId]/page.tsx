@@ -1,3 +1,4 @@
+import type { Viewport } from 'next';
 import { notFound } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
@@ -19,6 +20,15 @@ import styles from './room.module.css';
 export const metadata = {
   title: CHAT_TAB_LABEL,
   description: '매칭된 상대와 메시지를 주고받습니다.',
+};
+
+/**
+ * 화면 자판이 올라오면 레이아웃이 그만큼 줄어든다 — 폰의 방(`100dvh`)이 머리와 입력칸을 제자리에 둔다. 이 방에만 건다 —
+ * 모든 화면에 걸면 Android 에서 하단 독이 자판 위로 따라 오른다. 나머지 칸(폭 · 배율 · `viewportFit`)은 `app/layout.tsx` 의 것을
+ * 잇는다(Next 는 viewport 를 칸마다 겹쳐 쓴다). iOS Safari 는 이 값을 모른다 — 방이 `visualViewport` 로 맞춘다(`use-room-height.ts`, G-89).
+ */
+export const viewport: Viewport = {
+  interactiveWidget: 'resizes-content',
 };
 
 /**

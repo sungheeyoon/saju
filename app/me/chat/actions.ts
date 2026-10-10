@@ -28,10 +28,14 @@ export async function sendChatMessage(matchId: string, body: string, clientId: s
     바뀌어 사람에게 뜻이 없다. 화면이 같은 검사를 하므로 여기 오는 일은 드물다.
   */
   const shape = checkBody(body);
-  if (shape === 'too_long') return { ok: false, message: TOO_LONG_TEXT };
+  if (shape === 'too_long') return { ok: false, message: TOO_LONG_TEXT, refused: true };
   if (shape === 'blank') {
     // DB 가 던지는 것과 같은 토막 — 우리 문장이 아니므로 일반 문장으로 바뀐다.
-    return { ok: false, message: userFacingDbMessage({ message: 'chat: the body is blank', code: '22023' }, 'send_chat_message') };
+    return {
+      ok: false,
+      message: userFacingDbMessage({ message: 'chat: the body is blank', code: '22023' }, 'send_chat_message'),
+      refused: true,
+    };
   }
 
   const supabase = await supabaseOnServer();
@@ -39,11 +43,21 @@ export async function sendChatMessage(matchId: string, body: string, clientId: s
     'send_chat_message',
     rpcArgs<'send_chat_message'>({ p_match_id: matchId, p_body: body, p_client_id: clientId }),
   );
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'send_chat_message') };
+  /*
+    코드가 있는 오류는 DB 가 답한 거절이다 — 함수가 던졌으니 아무것도 안 남았다. 코드가 없으면 망 · 관문의 실패라 DB 에 닿아
+    남았을 수 있다(`refused: false` — 화면이 「삭제」를 세우지 않는다, `pending.ts`).
+  */
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'send_chat_message'), refused: Boolean(error.code) };
 
   const outcome = sendOutcomeOf(data);
   // 모르는 값은 성공으로 세우지 않는다 — 보냈다고 말했는데 목록에 없는 편이 더 나쁘다.
-  if (outcome === null) return { ok: false, message: userFacingDbMessage({ message: `chat: unknown outcome ${String(data)}` }, 'send_chat_message') };
+  if (outcome === null) {
+    return {
+      ok: false,
+      message: userFacingDbMessage({ message: `chat: unknown outcome ${String(data)}` }, 'send_chat_message'),
+      refused: false,
+    };
+  }
 
   /*
     화면을 무르지 않는다 — 방은 보낸 뒤 제 메시지를 읽는 문으로 다시 읽어 합치고(쓰던 입력 · 스크롤이 그대로다), 목록과
