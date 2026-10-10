@@ -206,7 +206,7 @@ async function callReserved(
       called.ok && !blocked
         ? {
             previewMarkdown: called.output.previewMarkdown.trim(),
-            topic: called.output.topic,
+            topic: called.output.topic.trim(),
             distinctivePattern: called.output.distinctivePattern.trim(),
             continuationQuestion: called.output.continuationQuestion.trim(),
             answerDirection: called.output.answerDirection.trim(),

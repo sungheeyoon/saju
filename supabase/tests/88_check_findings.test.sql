@@ -11,7 +11,7 @@
 --
 -- 날짜별 수는 전역 줄이라 오늘 줄을 트랜잭션 안에서 지우고 잰다(롤백이 되돌린다).
 begin;
-select plan(31);
+select plan(32);
 
 create or replace function public.reading_credit_limit()
 returns integer language sql immutable as $limit$ select 100 $limit$;
@@ -65,6 +65,12 @@ set local role service_role;
 select throws_ok($$select * from public.check_finding_daily_count$$, '42501', null, '열쇠도 날짜별 수를 직접 못 읽는다');
 select throws_ok($$select * from public.reading_check_daily$$, '42501', null, '열쇠도 운영자 뷰를 못 읽는다 — 앱은 안 읽는다');
 reset role;
+
+select ok(
+  not has_table_privilege('service_role', 'public.reading_run', 'update')
+  and not has_table_privilege('service_role', 'public.taste_artifact', 'update')
+  and not has_table_privilege('authenticated', 'public.reading_run', 'update'),
+  '기록 칸을 직접 쓸 표 권한은 아무에게도 없다 — 모양 검사 함수의 실행 권한을 안 열어도 걸리는 역할이 없다(마이그레이션 머리말의 함정)');
 
 select is(
   (select array_agg(a.attname::text order by a.attnum)

@@ -31,6 +31,13 @@
 -- 적힌다). 검사가 막은 시도는 앞으로도 첫 막음 코드와 설명을 거기 적고, 걸린 검사 전부는 `check_findings` 가 든다 — 같은 시도의
 -- 두 갈래(실패의 까닭 · 검사 목록)라 하나로 접지 않는다.
 --
+-- ## 함정 — 모양 검사 함수는 아무에게도 안 연다
+--
+-- `check_findings_valid` 는 두 칸의 검사식이 부른다. 실행 권한을 아무에게도 안 주므로, 문을 거치지 않고 그 칸을 직접 쓰는 역할은
+-- `permission denied for function check_findings_valid` 를 받는다. 지금은 그런 역할이 없다 — `anon` · `authenticated` ·
+-- `service_role` 은 두 표의 `update` 권한부터 없어 `permission denied for table` 이 먼저 나고(2026-10-10 로컬에서 잼), 쓰는 길은
+-- 문 둘(`security definer`, 주인이 부른다)뿐이다. 표 권한을 누구에게 열게 되면 이 함수의 실행 권한도 함께 연다.
+--
 -- 재는 자리는 `supabase/tests/88_check_findings.test.sql`.
 
 -- ---------------------------------------------------------------------------
