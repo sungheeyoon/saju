@@ -8,6 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { filterSummary, filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
 import {
+  CHOSEN_MESSAGE_LABEL,
   EVIDENCE_LABEL,
   NO_NICKNAME,
   REVIEW_LABEL,
@@ -206,6 +207,9 @@ function Choices({
  * 신고 한 건 — **신고받은 계정이 앞에 무겁게 선다.** 운영자가 목록에서 먼저 가리는 것은 「누가 신고받았나」이고, 신고한 계정은
  * 한 줄로 내려간다.
  *
+ * 신고한 메시지는 **첫 줄 한 줄 발췌**다(화면 점검 C17) — DB 가 신고 당시의 사본에서 60자까지 잘라 주고, 폰처럼 좁으면
+ * 한 줄 말줄임으로 둔다. 전문과 앞뒤 문맥은 상세가 든다.
+ *
  * 「이 쪽에서 처리 필요 N건」은 **지금 쪽의 줄만 센다** — 목록 문(`operator_reports`)은 계정마다의 전체 건수를 안 내준다.
  * 둘 이상일 때만 선다(하나는 이 줄 자신이다).
  */
@@ -229,6 +233,15 @@ function Row({ row, openOnPage }: { row: ReportRow; openOnPage: number }) {
         <span className="text-base font-semibold">{reasonLabel(row.reason)}</span>
         <span className="text-xs tabular-nums text-muted">{evidenceTime(row.createdAt)}</span>
       </div>
+
+      {row.chosenExcerpt !== null && (
+        <dl className="flex min-w-0 items-baseline gap-x-2 text-sm">
+          <dt className="shrink-0 text-xs text-muted">{CHOSEN_MESSAGE_LABEL}</dt>
+          <dd className="min-w-0 truncate text-secondary" title={row.chosenExcerpt}>
+            {row.chosenExcerpt}
+          </dd>
+        </dl>
+      )}
 
       <dl className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs text-secondary">
         <dt className="text-muted">신고한 계정</dt>

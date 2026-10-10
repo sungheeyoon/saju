@@ -30,7 +30,7 @@ import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '
 import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
-import { COLUMN_PEOPLE, EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
+import { COLUMN, EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 
 /*
   **이 화면의 이름은 「저장한 사람」 하나다.**
@@ -132,8 +132,8 @@ export default async function PeoplePage() {
   const people = blocked ? [] : await peopleWithCharts(managed);
 
   return (
-    /* 사람 상세(`[personId]/page.tsx`)와 같은 기둥에 가운데 선다(`COLUMN_PEOPLE`) */
-    <main className={`app-shell flex w-full ${COLUMN_PEOPLE} flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12`}>
+    /* 사람 상세(`[personId]/page.tsx`)와 같은 기둥에 가운데 선다(`COLUMN`) */
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12`}>
       {/*
         **폰에서는 「궁합 보러 가기」가 제목 옆에 선다**(운영자 2026-10-01, G-21). 설명 아래 제 줄에 서던 때는 머리가 단추
         한 줄(44px)과 틈(16px)만큼 높았고, 한글이 넓은 서체에서는 「N/10명」까지 둘째 줄로 넘어가 열 명을 다 채운 날 첫 카드가

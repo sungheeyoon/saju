@@ -5,6 +5,7 @@ import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
 import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import {
+  CHOSEN_MESSAGE_LABEL,
   NO_NICKNAME,
   NO_REVIEW_RECORD,
   SIDE_LABEL,
@@ -244,7 +245,7 @@ function Evidence({ snapshot }: { snapshot: Snapshot | null }) {
                   <span className="tabular-nums">{evidenceTime(message.sentAt)}</span>
                   {message.chosen && (
                     <span className="rounded-full bg-accent px-2 py-0.5 font-semibold text-on-accent">
-                      신고한 메시지
+                      {CHOSEN_MESSAGE_LABEL}
                     </span>
                   )}
                 </p>

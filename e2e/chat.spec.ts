@@ -157,10 +157,10 @@ test.describe('매칭된 한 쌍의 채팅', () => {
   });
 
   /**
-   * **방에서 연 인연 궁합의 ← 는 그 방이다**(ADR 0134). 불은 채팅 탭에 남는다 — 대화를 하다 궁합을 본 사람은 채팅에
-   * 있는 것이다. 주소를 직접 열면(`from` 없음) 인연 탭 첫 화면으로 간다.
+   * **방에서 연 인연 궁합의 ← 는 그 방이다**(ADR 0134). 불은 인연 탭이다 — 인연 궁합은 어디서 와도 인연을 켠다(ADR 0134
+   * 덧붙임). 주소를 직접 열면(`from` 없음) 인연 탭 첫 화면으로 간다.
    */
-  test('채팅방에서 연 인연 궁합은 채팅 탭 불이고 ← 「채팅」이 그 방으로 돌아간다', async ({ openAs }) => {
+  test('채팅방에서 연 인연 궁합은 인연 탭 불이고 ← 「채팅」이 그 방으로 돌아간다', async ({ openAs }) => {
     const { a, tag, matchId, room } = await pair(openAs);
     const lit = a.page
       .locator('nav[aria-label="내 메뉴"], nav[aria-label="모바일 내 메뉴"]')
@@ -173,7 +173,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     /* 제목이 상대를 부른다(화면 점검 C12) */
     await expect(a.page.getByRole('heading', { name: `나${tag} 님과의 인연 궁합`, exact: true })).toBeVisible();
     await expect(lit).toHaveCount(1);
-    await expect(lit).toContainText(/^채팅/);
+    await expect(lit).toContainText(/^인연/);
 
     /* ← 가 머리에 먼저 선다 — 글 끝의 방으로 가는 단추도 같은 이름 · 같은 곳이다 */
     const toRoom = a.page.getByRole('main').getByRole('link', { name: '채팅', exact: true });
@@ -468,6 +468,9 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(row.getByText('대화 근거 있음 · 메시지 5건')).toBeVisible();
     await expect(row.getByText(`나${tag}`)).toBeVisible();
     await expect(row.getByText(`가${tag}`)).toBeVisible();
+    // 고른 메시지는 목록에서 한 줄 발췌로 먼저 보인다(화면 점검 C17) — 앞뒤 문맥은 상세에만
+    await expect(row.locator('dt:text-is("신고한 메시지") + dd')).toHaveText(`셋 ${tag}`);
+    await expect(row.getByText(`둘 ${tag}`)).toHaveCount(0);
 
     await row.getByRole('link', { name: '신고 내용 보기' }).click();
     await expect(ops.page).toHaveURL(new RegExp(`/ops/reports/${reportId}$`));

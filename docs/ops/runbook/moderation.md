@@ -41,7 +41,8 @@ order by a.deletion_requested_at desc nulls last;
 운영 근거로 쓰지 않는다 — 「보기 싫다」와 「규칙을 어겼다」는 다른 일이다.
 
 **읽는 것은 화면이 있다 — `/ops/reports`**(ADR 0103). 운영자로 로그인해 주소를 직접 친다(메뉴에 없다).
-목록은 최신부터 30건씩이고 처리 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
+목록은 최신부터 30건씩이고 처리 상태 · 사유 · 대화 근거로 거른다. 대화 신고의 줄에는 고른 메시지의 첫 줄(60자까지, 사본에서)이
+선다. 「신고 내용 보기」가 신고 한 건과 신고
 당시의 스냅샷을 연다. **여는 것마다 접속기록에 남는다**(ADR 0105). 화면은 읽기만 한다 — **검토 기록과 처분은 아래
 검토 문이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(`docs/ops/runbook/access.md`
 「개인정보는 화면으로만」). 언제 보는가는 `docs/ops/runbook/security.md` 「운영 주기」.
@@ -208,11 +209,11 @@ SQL 은 전부 `npm run db:remote -- --purpose "G-24 검증 <걸음 번호>" "<s
 | ① | 테스트 계정 A · B 준비 | `auth.admin.createUser({ email: 'g24-a-<날짜>@example.com', password, email_confirm: true })` 로 둘을 만들고(비밀 키 `SUPABASE_SECRET_KEY`), `docs/ops/runbook/signup.md` 「초대」의 SQL 로 **전용 코드**(`max_uses = 2`, 오늘 하루)를 넣어 `complete_signup` 을 지난다. 둘을 `docs/ops/runbook/ai.md` 「운영 검증 계정」 표에 넣는다 — 수락하면 궁합풀이가 자동으로 만들어져 토큰이 나간다. 로그인은 구글이 아니라 비밀번호 세션이다(`scripts/check-chat.mjs` 의 `person` · `cookieFor` 와 같은 모양) | ⓐ 아래 질의가 둘 다 `active` · 가입 완료 ⓑ `verification_account` 에 둘 |
 | ② | 둘 사이의 테스트 대화 | 둘 다 자기 사주를 저장하고 닉네임을 세운 뒤(인연 찾기에 든다) A 가 `request_match(B)`, B 가 `respond_to_match_request(요청, true)`. 방이 열리면 서로 세 줄 넘게 보낸다(`send_chat_message`) — 신고할 줄 하나는 「G-24 검증용 신고 대상 메시지」처럼 누가 봐도 시험인 글 | 1 번 질의의 `closed_reason` 이 비고 메시지 수가 보낸 수와 같다 |
 | ③ | 신고 1건 | B 가 ② 의 「신고 대상」 메시지를 골라 신고한다 — 화면(방의 신고)이나 `report_chat_message(메시지 id, 'other', 'G-24 검증')`. 돌아온 신고 id 를 적는다 | 2 번 질의에 신고 한 줄 · 스냅샷 한 줄 |
-| ④ | 목록에서 보인다 | 운영자 계정으로 `/ops/reports` 를 연다(메뉴에 없다 — 주소를 친다) | 맨 위 근처에 그 신고가 서고, 신고한 사용자 · 신고받은 사용자가 두 테스트 닉네임이다. 이메일 · 출생정보가 화면 어디에도 없다 |
+| ④ | 목록에서 보인다 | 운영자 계정으로 `/ops/reports` 를 연다(메뉴에 없다 — 주소를 친다) | 맨 위 근처에 그 신고가 서고, 신고한 사용자 · 신고받은 사용자가 두 테스트 닉네임이다. 「신고한 메시지」가 ③ 에서 고른 글의 첫 줄이다. 이메일 · 출생정보가 화면 어디에도 없다 |
 | ⑤ | 거르기 셋 | `?review=open`(처리 필요) · `?reason=other` · `?evidence=chat` 을 하나씩 연다(화면의 거르기 링크와 같다). 그리고 `?review=done`(처리 완료) · `?evidence=none` | 앞의 셋에서는 그 신고가 보이고, 뒤의 둘에서는 안 보인다 |
 | ⑥ | 상세 — 신고 내용과 스냅샷 | 「신고 내용 보기」로 `/ops/reports/<신고 id>` 를 연다 | 사유 · 설명 · 접수 시각이 ③ 과 같고, 대화 근거 절이 선다 |
 | ⑦ | 고른 메시지와 앞뒤의 차례 | 화면의 스냅샷을 위에서 아래로 읽고 3 번 질의(**break-glass — 사람이**)와 견준다 | 「신고한 메시지」로 강조된 줄이 **하나**이고 ③ 에서 고른 글이다. 앞뒤 줄이 보낸 차례(`seq`)대로 서고 앞 · 뒤 각각 최대 다섯이다. 보낸 쪽이 「신고한 사용자」 · 「신고받은 사용자」로 맞게 붙는다 |
-| ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id(목록은 비어 있다)로 선다. 줄 id 를 적는다 |
+| ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id 로 선다(목록 줄은 `target_report_id` 가 비고, 발췌가 보였으면 `target_report_ids` 에 그 신고 id 가 든다). 줄 id 를 적는다 |
 | ⑨ | 검토를 적는다 | 「신고와 차단」의 검토 문 — `select public.review_report('<신고 id>', '<운영자 UUID>', 'no_action', 'G-24 운영 검증 — 테스트 신고')`. 처리 필요에 남는 것을 보려면 먼저 `needs_more` 로 한 번 부르고 목록의 `?review=open` 에 그대로 서는지 본 뒤 `no_action` 으로 다시 부른다. 이용 정지 결정을 시험하려면 `suspension` 과 대상 A 의 UUID 까지(같은 트랜잭션에서 A 가 정지되고 방이 닫힌다 — 「이용 정지와 해제」로 푼다) | 돌려준 값 `report`. 정지를 시험했으면 1 번 질의에서 A 가 `suspended` |
 | ⑩ | 화면과 DB 가 같다 | 상세를 새로 고치고 5 번 질의와 견준다 | 처리 상태 · 검토 결과(`no_action` → 「조치 없음」, `suspension` → 「이용 정지 결정」) · 검토한 운영자(닉네임) · 판단 근거 · 당시 제재 대상(없으면 항목 없음)이 DB 값과 한 글자도 다르지 않다. 목록의 `?review=done` 에 그 신고가 옮겨 서고 배지가 `처리 완료 · 조치 없음` 이다 |
 | ⑪ | 비운영자는 못 읽는다 | A(또는 B)의 세션으로 `/ops/reports` 와 `/ops/reports/<신고 id>` 를 연다 | 둘 다 404 이고 자료가 한 줄도 안 선다. 6 번 질의에 그 계정의 `denied` 줄이 `reports.list` · `reports.detail` 로 선다 |
@@ -244,7 +245,7 @@ from public.chat_report_snapshot s cross join lateral jsonb_array_elements(s.mes
 where s.report_id = '<신고 id>' order by 차례;
 
 -- 4. 운영자의 열람이 셋 다 남았나 (⑧)
-select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, filter_summary, outcome
+select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, target_report_ids, filter_summary, outcome
 from audit.operator_access
 where channel = 'app' and actor_user_id = '<운영자 UUID>' and at > now() - interval '2 hours'
 order by id;

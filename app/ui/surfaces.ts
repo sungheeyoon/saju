@@ -9,13 +9,14 @@
  * **화면의 기둥** — 뿌리 틀(`.app-shell`, 72rem)이 넓은 화면에서 본문을 가운데 한 기둥으로 묶는 폭. 같은 기둥을 쓰는 화면끼리는
  * 제목이 같은 자리에 선다. `app-shell` 과 함께 `main` 에 붙이거나, 그 안의 묶음에 `mx-auto w-full` 과 함께 붙인다.
  *
- * - `COLUMN_FORM` — 폼 판 한 장이 본문인 화면(홈의 등록 전). 폼의 폭(40rem, `birth-form.module.css`)에 `PAPER` 의 여백(양쪽 2rem)
- * - `COLUMN_PEOPLE` — 저장한 사람 목록과 사람 상세. 폼의 폭에 타일 · 수정 판의 안쪽 여백을 더해, 목록에서 연 수정 판이 제 줄을
- *   혼자 쓰면 폼이 남는 데 없이 든다. 카드는 두 장씩 놓인다(`app/me/people/finder.tsx`)
+ * - `COLUMN` — 가운데 기둥 하나(ADR 0161). 홈의 등록 전 · 가입 · 저장한 사람 목록과 상세 · 계정 관리 · 프로필 · 설문 · 소식.
+ *   42 · 44 · 46rem 로 갈렸던 것을 합쳤다. 예외로 로그인 전 첫 화면 · `/saju` 는 확정한 42rem 이다(`home-hero.tsx`). 출생 정보 폼의 상한(43rem, `birth-form.module.css`)이 이 기둥에
+ *   선 카드의 안쪽이라, 종이 · 카드 · 목록에서 연 수정 판 어디서나 폼이 남는 데 없이 든다
  * - `COLUMN_READING` — 받은 공유본(`app/share/view.tsx`). 풀이 본문의 열(36rem, `READING_COLUMN`)에 판의 안쪽 여백(양쪽 2rem)
+ *
+ * 목록 화면(홈 · 보관함 · 인연 · 채팅)은 뿌리 틀의 전폭, 궁합 · 인연 궁합은 58rem 이다.
  */
-export const COLUMN_FORM = 'max-w-[44rem]';
-export const COLUMN_PEOPLE = 'max-w-[46rem]';
+export const COLUMN = 'max-w-[46rem]';
 export const COLUMN_READING = 'max-w-[40rem]';
 
 /**

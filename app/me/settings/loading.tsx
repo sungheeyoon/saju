@@ -1,4 +1,5 @@
 import { Bone, SkeletonMain } from '../../ui/skeleton';
+import { COLUMN } from '../../ui/surfaces';
 
 /**
  * 계정 관리의 뼈대 — 제목 · 한 줄 설명, 무리 여섯(작은 제목 · 흰 판의 줄)(`page.tsx` · `card.tsx`). 무리는 실제 화면의
@@ -12,7 +13,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
 /**
  * 줄마다 글 상자의 높이(폰 · 넓은 화면)와 손잡이 폭 — 2026-10-10 에 실제 화면을 390 · 1280 에서 잰 값이다. 같은 높이의 줄로 두면
  * 넓은 화면에서 어떤 상대 판이 86 대 162px, 선택 동의 판이 240 대 336px 로 어긋났다(2026-10-09 화면 갤러리 감사). 어떤 상대는
- * 줄이 둘(성별 세 칸 · 그 아래 저장 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
+ * 줄이 둘(성별 세 칸 · 그 아래 설명 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
  */
 const GROUPS = [
   { link: true, description: false, rows: [] },
@@ -21,7 +22,8 @@ const GROUPS = [
     description: false,
     rows: [
       { text: 'h-5', handle: 'w-64' },
-      { text: 'h-5', handle: 'w-16' },
+      /* 성별은 고르면 곧 저장해 이 줄에 단추가 없다 — 설명 한 줄뿐이다 */
+      { text: 'h-5', handle: null },
     ],
   },
   { link: false, description: false, rows: [{ text: 'h-17 sm:h-12', handle: 'w-32' }] },
@@ -40,7 +42,7 @@ const GROUPS = [
 
 export default function SettingsLoading() {
   return (
-    <SkeletonMain name="settings" className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
+    <SkeletonMain name="settings" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
       <div className="flex flex-col gap-1">
         <Bone className="h-[2.275rem] w-36 rounded-full sm:h-[2.6rem]" />
         <Bone className="h-5 w-64 max-w-full rounded-full" />
@@ -80,7 +82,9 @@ export default function SettingsLoading() {
                     </span>
                   ))}
                 </div>
-                <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
+                {row.handle !== null && (
+                  <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
+                )}
               </div>
             ))}
           </div>

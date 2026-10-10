@@ -10,7 +10,7 @@ import { Bone, SkeletonMain } from '../../../ui/skeleton';
  */
 export default function MatchHistoryLoading() {
   return (
-    <SkeletonMain name="match-history" className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-10">
+    <SkeletonMain name="match-history" className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
       <div className="flex flex-col gap-2">
         <Bone className="h-11 w-16 rounded-full" />
         <Bone className="h-[2.275rem] w-36 rounded-full sm:h-[2.6rem]" />

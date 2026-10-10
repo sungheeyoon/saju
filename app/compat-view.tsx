@@ -61,7 +61,10 @@ export function CompatView({
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
   compat: Compatibility;
-  /** 결과 맨 위에 서는 한 줄 — 무엇을 기준으로 본 결과인가 */
+  /**
+   * 무엇을 기준으로 본 결과인가 — **두 명식(「궁합의 출발점」) 아래에 선다.** 「고치면 다시 계산해요」가 말하는 것은
+   * 출생 정보이고, 그 정보가 낸 여덟 글자가 바로 위에 서므로 그 자리에 붙인다.
+   */
   notice: ReactNode;
   /**
    * 사실 **아래에 서는 판정** — 「궁합 베타」 카드와 궁합풀이. 카드의 수가 곧 풀이 점수의
@@ -72,13 +75,13 @@ export function CompatView({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      {notice}
       <PillarPair
         charts={{
           a: { ...sharedPillarChartOf(charts.a.pillars), gender: charts.a.meta.gender },
           b: { ...sharedPillarChartOf(charts.b.pillars), gender: charts.b.meta.gender },
         }}
         names={names}
+        note={notice}
       />
       <FoldedAnalysis compat={compat} names={names} />
       {verdict}
@@ -148,9 +151,12 @@ function FoldedAnalysis({
 export function PillarPair({
   charts,
   names,
+  note,
 }: {
   charts: Record<CompatSide, SharedPillarChart>;
   names: Record<CompatSide, string>;
+  /** 두 명식 아래 한 줄 — 무엇으로 계산했나. 인연 궁합(동의 당시의 입력)은 안 싣는다 */
+  note?: ReactNode;
 }) {
   return (
     <section className="rounded-[2rem] bg-cream p-4 sm:p-6">
@@ -164,6 +170,7 @@ export function PillarPair({
           <PairSide key={side} side={side} name={names[side]} chart={charts[side]} />
         ))}
       </div>
+      {note !== undefined && <div className="px-1 pt-4 sm:px-2">{note}</div>}
     </section>
   );
 }
