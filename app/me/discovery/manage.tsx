@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
+import { actionAnswer } from '../../ui/action-answer';
+import { DoneNote, useDoneNote } from '../../ui/done-note';
 
 import {
   SETTINGS_PRIMARY,
@@ -17,9 +19,6 @@ import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
 import { PREFER_GENDER_ORDER } from './profile';
-
-/** 「저장했어요」가 서 있는 동안 — 읽고 지나갈 만큼 */
-const SAVED_SHOWN_MS = 2500;
 
 /**
  * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**
@@ -39,8 +38,8 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
   const [preferGender, setPreferGender] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  /** 마지막으로 고른 값까지 저장된 뒤 잠깐 — 「저장했어요」가 서는 동안 */
-  const [saved, setSaved] = useState(false);
+  /** 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」 — 서 있는 시간은 `app/ui/done-note.tsx` 가 든다 */
+  const done = useDoneNote();
   /** 차례는 `save-latest.ts` 가 든다 — 한 번만 짓는다(상태 세터는 렌더마다 같다) */
   const [save] = useState(() =>
     saveLatest(
@@ -48,7 +47,7 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
       savePreferGender,
       {
         busy: setSaving,
-        saved: () => setSaved(true),
+        saved: () => done.say('저장했어요'),
         failed: (back, message) => {
           setPreferGender(back);
           setFailure(message);
@@ -58,20 +57,14 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
       FEEDBACK_UNEXPECTED_NOTE,
     ),
   );
-  useEffect(() => {
-    if (!saved) return;
-    const fading = setTimeout(() => setSaved(false), SAVED_SHOWN_MS);
-    return () => clearTimeout(fading);
-  }, [saved]);
-
   const choose = (value: PreferGender) => {
     setFailure(null);
-    setSaved(false);
+    done.clear();
     setPreferGender(value);
     save(value);
   };
 
-  const progress = saving ? '저장하는 중…' : saved ? '저장했어요' : '';
+  const progress = saving ? '저장하는 중…' : done.note;
 
   return (
     <SettingsCard title="어떤 상대를 만나볼까요?">
@@ -118,19 +111,15 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
             </label>
           ))}
         </div>
-        {/* 늘 서 있어야 바뀐 글자를 읽어 준다 — 보이는 글자는 아래 줄이 든다 */}
-        <span role="status" className="sr-only">
-          {progress}
-        </span>
       </fieldset>
 
       {/*
         마지막 줄이 이 카드의 꼬리다 — 왼쪽은 고른 값이 어떻게 쓰이는지(양쪽 조건이 다 맞아야 소개된다), 오른쪽은 저장이
-        가는 동안의 「저장하는 중…」과, 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」. 화면 읽기에는 칸 안의
-        `role="status"` 가 같은 말을 알린다.
+        가는 동안의 「저장하는 중…」과, 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」. 그 상자(`DoneNote`)는 늘 서
+        있고 글자만 바뀌어 화면 읽기도 바뀐 말을 읽는다.
       */}
       <SettingsRow note="서로 고른 성별이 맞는 사람끼리 소개돼요.">
-        {progress !== '' ? <span className="text-xs text-muted">{progress}</span> : undefined}
+        <DoneNote className="text-xs text-muted">{progress}</DoneNote>
       </SettingsRow>
 
       {failure !== null && (
@@ -158,7 +147,7 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
   const toggle = (on: boolean) => {
     setFailure(null);
     startWorking(async () => {
-      const result = await setDiscoveryParticipation(on);
+      const result = await actionAnswer(setDiscoveryParticipation(on));
       if (!result.ok) setFailure(result.message);
     });
   };
