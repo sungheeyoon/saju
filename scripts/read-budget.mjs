@@ -79,7 +79,7 @@ export const READ_BUDGET = {
     ],
   },
   reviewer: {
-    bytes: 95000,
+    bytes: 85000,
     routes: [],
     choices: [
       {
@@ -98,7 +98,7 @@ export const READ_BUDGET = {
     ],
   },
   ui: {
-    bytes: 110000,
+    bytes: 100000,
     routes: [],
     choices: [
       {
