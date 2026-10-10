@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState, useTransition } from 'react';
 
+import { calculateChart } from '@/src/lib/input/chart';
 import type { Relation } from '@/src/lib/people';
 import {
   DEFAULT_QUERY,
@@ -180,7 +181,14 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
       return { done: true };
     }
 
-    if (opened.kind === 'failed') return { failed: opened.message };
+    if (opened.kind === 'failed') {
+      /*
+        **한 사람의 입력이 거절됐으면 그 칸으로 데려간다**(B10). 빈 칸은 누르기 전에 화면이 잡지만, 없는 음력 날 · 모르는
+        출생지처럼 서버만 아는 거절은 단추 아래 알림 한 줄로만 섰다 — 폰에서 그 칸은 한 화면 위다.
+      */
+      if (opened.side !== undefined) bringTo(opened.side);
+      return { failed: opened.message };
+    }
 
     return {
       ask: {
@@ -195,15 +203,20 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
   /**
    * **비어 있는 칸으로 데려간다**(B10). 단추는 잠긴 모양이어도 누름을 받는다(`aria-disabled`) — 받지 않으면 왜 안 되는지를
-   * 단추 곁의 한 줄에서 찾아야 하고, 그 칸은 폰에서 한 화면 위에 있다. 칸 안에서 아직 빈 입력에 초점을 둔다.
+   * 단추 곁의 한 줄에서 찾아야 하고, 그 칸은 폰에서 한 화면 위에 있다. 초점은 붉어진 입력 → 아직 빈 입력 → 다 찼는데
+   * 엔진이 거절했으면(없는 윤달 등) 생년월일의 첫 숫자 칸이다 — 화면에서 고를 수 있는 값 가운데 계산이 거절하는 것은 날짜뿐이다.
    */
   const bringTo = (side: CompatSide) => {
     const card = root.current?.querySelector<HTMLElement>(`[data-side="${side}"]`);
     if (card == null) return;
     card.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'instant' : 'smooth' });
-    const empty = [...card.querySelectorAll<HTMLInputElement>('input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)')]
-      .find((one) => one.value === '');
-    (empty ?? card.querySelector<HTMLElement>('input:not(:disabled), button:not(:disabled)'))?.focus({ preventScroll: true });
+    const fields = [...card.querySelectorAll<HTMLInputElement>('input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)')];
+    const target =
+      fields.find((one) => one.getAttribute('aria-invalid') === 'true') ??
+      fields.find((one) => one.value === '') ??
+      fields.find((one) => one.inputMode === 'numeric') ??
+      card.querySelector<HTMLElement>('input:not(:disabled), button:not(:disabled)');
+    target?.focus({ preventScroll: true });
   };
 
   const press = () => {
@@ -432,8 +445,12 @@ function useStoredRelation(
   }, [pairKey, answered, setRelation]);
 }
 
+/**
+ * 그 칸이 다 찼고 **계산도 되는가** — 없는 윤달처럼 다 적었어도 엔진이 거절하는 입력이 있다. 그 까닭은 칸 아래(`BirthFields`)가
+ * 이미 말하는데, 여기서 안 보면 단추가 서버까지 갔다가 판 맨 아래에 같은 말을 한 번 더 세웠다(B10).
+ */
 const complete = (slot: Slot): boolean =>
-  slot.from === 'saved' ? slot.personId !== '' : missingAnswer(slot.query) === null;
+  slot.from === 'saved' ? slot.personId !== '' : calculateChart(slot.query).ok && missingAnswer(slot.query) === null;
 
 /** 먼저 비어 있는 칸 하나 — 둘을 한꺼번에 늘어놓지 않는다. 어느 칸인지도 준다(그 칸으로 데려가려고) */
 const missing = (slots: Record<CompatSide, Slot>): { side: CompatSide; text: string } | null => {
@@ -445,6 +462,9 @@ const missing = (slots: Record<CompatSide, Slot>): { side: CompatSide; text: str
     }
     const gap = missingAnswer(slot.query);
     if (gap !== null) return { side, text: `${SIDE_PERSON[side]}의 ${gap}` };
+    /* 계산이 거절한 까닭은 엔진의 문장 그대로다 — 「첫 번째 사람의」를 앞에 붙이면 문장이 깨진다. 칸이 어느 사람인지는 데려간 칸이 말한다 */
+    const refused = calculateChart(slot.query);
+    if (!refused.ok) return { side, text: refused.message };
   }
   return null;
 };

@@ -60,8 +60,14 @@ const LIGHT_OF: Record<CameFrom, Light> = {
   news: '/me/requests',
 };
 
-/** 결과 화면이 켜는 불 — 온 곳이 있으면 그 자리, 없으면 결과 종류의 탭 */
+/**
+ * 결과 화면이 켜는 불 — 온 곳이 있으면 그 자리, 없으면 결과 종류의 탭.
+ *
+ * **인연 궁합은 온 곳과 상관없이 늘 「인연」이다**(화면 점검 C14, ADR 0109 추기 2026-10-10). 같은 글이 보관함에서 열면
+ * 홈, 방에서 열면 채팅을 켜서 한 글이 두 이름으로 읽혔다. ← 는 그대로 온 곳으로 간다(`backOf`).
+ */
 export function lightOf(kind: ResultKind, from: CameFrom | null): Light {
+  if (kind === 'match') return DEFAULT_TAB.match;
   return from === null ? DEFAULT_TAB[kind] : LIGHT_OF[from];
 }
 

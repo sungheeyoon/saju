@@ -47,7 +47,7 @@ describe('온 곳 (ADR 0134)', () => {
     expect(lightOf('saju', null)).toBe('/me');
     expect(lightOf('compat', null)).toBe('/compat');
     expect(lightOf('match', null)).toBe('/me/matching');
-    for (const kind of KINDS) {
+    for (const kind of KINDS.filter((one) => one !== 'match')) {
       expect(lightOf(kind, 'me')).toBe('/me');
       expect(lightOf(kind, 'shelf')).toBe('/me');
       expect(lightOf(kind, 'compat')).toBe('/compat');
@@ -55,6 +55,13 @@ describe('온 곳 (ADR 0134)', () => {
       expect(lightOf(kind, 'history')).toBe('/me/matching');
       expect(lightOf(kind, 'chat')).toBe('/me/chat');
       expect(lightOf(kind, 'news')).toBe('/me/requests');
+    }
+  });
+
+  /** 같은 인연 궁합 글이 들어온 길마다 다른 탭을 켜면 한 글이 두 이름으로 읽힌다(화면 점검 C14) */
+  it('인연 궁합은 어디서 와도 인연을 켠다', () => {
+    for (const from of [null, ...CAME_FROM]) {
+      expect(lightOf('match', from), String(from)).toBe('/me/matching');
     }
   });
 });
@@ -157,14 +164,14 @@ describe('보관함에서 연 궁합은 틀 안에 선다 (ADR 0134, 2026-09-29)
     expect(resultKindOf('/me/readings/match/')).toBeNull();
   });
 
-  it('틀 안 주소는 온 곳이 없어도 보관함이다 — 불은 나, ← 는 보관함', () => {
+  it('틀 안 주소는 온 곳이 없어도 보관함이다 — ← 는 보관함, 불은 직접 궁합이 나 · 인연 궁합이 인연', () => {
     for (const [kind, pathname] of [
       ['compat', '/me/readings/compat'],
       ['match', `/me/readings/match/${MATCH_ID}`],
     ] as const) {
       const place = placeOf({}, pathname);
       expect(place.from).toBe('shelf');
-      expect(lightOf(kind, place.from)).toBe('/me');
+      expect(lightOf(kind, place.from)).toBe(kind === 'match' ? '/me/matching' : '/me');
       expect(backOf(kind, place).href).toBe('/me/readings');
       /* 실은 온 곳이 있으면 그것이 이긴다 */
       expect(placeOf({ from: 'compat' }, pathname).from).toBe('compat');
