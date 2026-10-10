@@ -23,6 +23,31 @@ test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', as
   await expect(page.getByRole('button', { name: '구글로 로그인' })).toBeVisible();
 });
 
+/**
+ * **로그인으로 옮겨지기 전의 머리글이 회원 문을 안 부른다**(G-78). 회원 화면 주소에서는 세션을 알기 전에도 회원
+ * 머리글의 자리가 서는데, 그 자리가 배지 · 종의 수를 비회원으로 물어 401 · `42501` 이 콘솔에 섰다(2026-10-08 · 09 운영 smoke).
+ */
+test('로그인하지 않은 채 회원 화면을 열어도 머리글이 회원 문을 안 부른다', async ({ page }) => {
+  const doors: string[] = [];
+  const consoleErrors: string[] = [];
+  page.on('request', (request) => {
+    const door = /\/rest\/v1\/rpc\/(unread_chat_count|my_notifications|my_match_requests)\b/.exec(request.url());
+    if (door) doors.push(`${page.url()} → ${door[1]}`);
+  });
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
+  for (const path of ['/me', '/me/chat', '/compat']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/auth(\?|$)/);
+    await expect(page.getByRole('button', { name: '구글로 로그인' })).toBeVisible();
+  }
+
+  expect(doors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
+});
+
 /** 운영자 신고 화면도 같다 — 로그인하지 않으면 운영자인지 물을 것도 없이 로그인으로 간다(G-24) */
 test('로그인하지 않으면 운영자 신고 화면에 들어가지 못한다', async ({ page }) => {
   for (const path of ['/ops/reports', '/ops/reports/3f0b8f5e-2c1d-4b7a-9e2f-0a1b2c3d4e5f']) {
