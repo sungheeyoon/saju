@@ -46,7 +46,7 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () =
     ['/me/compat', 'compat'],
     ['/me/match/example', 'match'],
   ] as const;
-  /** 온 곳을 읽는 결과 — 인연 궁합은 빼고 아래에서 따로 잰다(화면 점검 C14) */
+  /** 온 곳을 읽는 결과 — 인연 궁합은 빼고 아래에서 따로 잰다*/
   const BY_PLACE = RESULTS.filter(([, kind]) => kind !== 'match');
   const LIGHTS: Record<string, string[]> = {
     me: ['/me'],
@@ -65,7 +65,7 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () =
     expect(isNavigationActive(pathname, '/me/requests', 'me')).toBe(false);
   });
 
-  /** 같은 글이 보관함에서 열면 홈, 방에서 열면 채팅을 켜면 한 글이 두 이름으로 읽힌다(화면 점검 C14, ADR 0109) */
+  /** 같은 글이 보관함에서 열면 홈, 방에서 열면 채팅을 켜면 한 글이 두 이름으로 읽힌다(ADR 0134 덧붙임) */
   it('인연 궁합은 틀 안팎 어디서 와도 인연을 켠다 — 종도 안 켠다', () => {
     for (const pathname of ['/me/match/example', '/me/readings/match/example']) {
       for (const from of [null, ...Object.keys(LIGHTS)]) {

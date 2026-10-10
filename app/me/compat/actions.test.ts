@@ -195,7 +195,7 @@ describe('두 사람으로 궁합 화면을 여는 자리', () => {
     );
 
     expect(saveCall()).toBeUndefined();
-    /* 어느 사람의 칸인지 함께 낸다 — 화면이 그 칸으로 데려간다(B10) */
+    /* 어느 사람의 칸인지 함께 낸다 — 화면이 그 칸으로 데려간다 */
     expect(result).toMatchObject({ ok: false, kind: 'failed', side: 'b' });
   });
 

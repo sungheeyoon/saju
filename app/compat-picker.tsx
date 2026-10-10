@@ -183,8 +183,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
     if (opened.kind === 'failed') {
       /*
-        **한 사람의 입력이 거절됐으면 그 칸으로 데려간다**(B10). 빈 칸은 누르기 전에 화면이 잡지만, 없는 음력 날 · 모르는
-        출생지처럼 서버만 아는 거절은 단추 아래 알림 한 줄로만 섰다 — 폰에서 그 칸은 한 화면 위다.
+        **한 사람의 입력이 거절됐으면 그 칸으로 데려간다.** 화면이 누르기 전에 거의 다 잡지만 서버만 아는 거절(주소로 들어온
+        모르는 출생지 등)이 남는다 — 알림은 단추 아래 서고, 폰에서 그 칸은 한 화면 위다.
       */
       if (opened.side !== undefined) bringTo(opened.side);
       return { failed: opened.message };
@@ -447,7 +447,7 @@ function useStoredRelation(
 
 /**
  * 그 칸이 다 찼고 **계산도 되는가** — 없는 윤달처럼 다 적었어도 엔진이 거절하는 입력이 있다. 그 까닭은 칸 아래(`BirthFields`)가
- * 이미 말하는데, 여기서 안 보면 단추가 서버까지 갔다가 판 맨 아래에 같은 말을 한 번 더 세웠다(B10).
+ * 말하고, 여기서 막아야 단추가 서버까지 가서 판 맨 아래에 같은 말을 한 번 더 세우지 않는다.
  */
 const complete = (slot: Slot): boolean =>
   slot.from === 'saved' ? slot.personId !== '' : calculateChart(slot.query).ok && missingAnswer(slot.query) === null;

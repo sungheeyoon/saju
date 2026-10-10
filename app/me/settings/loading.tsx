@@ -21,7 +21,7 @@ const GROUPS = [
     description: false,
     rows: [
       { text: 'h-5', handle: 'w-64' },
-      /* 성별은 고르면 곧 저장해 이 줄에 단추가 없다(화면 점검 B16) — 설명 한 줄뿐이다 */
+      /* 성별은 고르면 곧 저장해 이 줄에 단추가 없다 — 설명 한 줄뿐이다 */
       { text: 'h-5', handle: null },
     ],
   },

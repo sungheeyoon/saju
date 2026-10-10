@@ -58,7 +58,7 @@ describe('온 곳 (ADR 0134)', () => {
     }
   });
 
-  /** 같은 인연 궁합 글이 들어온 길마다 다른 탭을 켜면 한 글이 두 이름으로 읽힌다(화면 점검 C14) */
+  /** 같은 인연 궁합 글이 들어온 길마다 다른 탭을 켜면 한 글이 두 이름으로 읽힌다(ADR 0134 덧붙임) */
   it('인연 궁합은 어디서 와도 인연을 켠다', () => {
     for (const from of [null, ...CAME_FROM]) {
       expect(lightOf('match', from), String(from)).toBe('/me/matching');

@@ -93,7 +93,7 @@ export type PairSide =
  */
 type PairOpened =
   | { ok: true; personA: string; personB: string }
-  /** `side` — 한 사람의 입력이 거절됐으면 그 칸. 화면이 그 칸으로 데려간다(B10). 둘 다의 일(DB 실패 등)이면 없다 */
+  /** `side` — 한 사람의 입력이 거절됐으면 그 칸. 화면이 그 칸으로 데려간다. 둘 다의 일(DB 실패 등)이면 없다 */
   | { ok: false; kind: 'failed'; message: string; side?: 'a' | 'b' }
   | { ok: false; kind: 'same-chart'; side: 'a' | 'b'; same: SameChart };
 

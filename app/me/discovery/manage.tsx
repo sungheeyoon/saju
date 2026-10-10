@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 
 import {
@@ -13,8 +13,12 @@ import {
 import { savePreferGender, setDiscoveryParticipation } from './actions';
 import { saveLatest } from './save-latest';
 import type { PreferGender } from '@/src/lib/discovery';
+import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
 import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
+
+/** 「저장했어요」가 서 있는 동안 — 읽고 지나갈 만큼 */
+const SAVED_SHOWN_MS = 2500;
 
 /**
  * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**
@@ -27,30 +31,46 @@ import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
  * 변호하는 문단**이다. 나이를 못 쓰는 이유는 ADR 0005 가 든다 — 실제로 그 칸이 생기는
  * 날 설명도 칸과 함께 선다.
  *
- * **고르면 곧 저장한다**(화면 점검 B16, 2026-10-10). 「저장」 단추를 따로 눌러야 했는데 바로 아래 인연 찾기 칸은
- * 누르자마자 반영돼, 한 화면에 저장 방식이 둘이었다. 저장하는 동안 또 고르면 마지막 값이 이기고, 실패하면 서버가 든
- * 마지막 값으로 되돌리고 까닭을 보인다 — 차례는 `save-latest.ts`.
+ * **고르면 곧 저장한다** — 바로 아래 인연 찾기 칸과 같은 방식이라 한 화면에 저장 방식이 하나다. 저장하는 동안 또 고르면
+ * 마지막 값이 이기고, 실패하면 서버가 든 마지막 값으로 되돌리고 까닭을 보인다 — 차례는 `save-latest.ts`.
  */
 export function PreferenceForm({ current }: { current: PreferGender }) {
   const [preferGender, setPreferGender] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /** 마지막으로 고른 값까지 저장된 뒤 잠깐 — 「저장했어요」가 서는 동안 */
+  const [saved, setSaved] = useState(false);
   /** 차례는 `save-latest.ts` 가 든다 — 한 번만 짓는다(상태 세터는 렌더마다 같다) */
   const [save] = useState(() =>
-    saveLatest(current, savePreferGender, {
-      busy: setSaving,
-      failed: (back, message) => {
-        setPreferGender(back);
-        setFailure(message);
+    saveLatest(
+      current,
+      savePreferGender,
+      {
+        busy: setSaving,
+        saved: () => setSaved(true),
+        failed: (back, message) => {
+          setPreferGender(back);
+          setFailure(message);
+        },
       },
-    }),
+      /* 문이 값 대신 던지면(연결이 끊기면) 까닭을 모른다 — 할 수 있는 일만 말한다 */
+      FEEDBACK_UNEXPECTED_NOTE,
+    ),
   );
+  useEffect(() => {
+    if (!saved) return;
+    const fading = setTimeout(() => setSaved(false), SAVED_SHOWN_MS);
+    return () => clearTimeout(fading);
+  }, [saved]);
 
   const choose = (value: PreferGender) => {
     setFailure(null);
+    setSaved(false);
     setPreferGender(value);
     save(value);
   };
+
+  const progress = saving ? '저장하는 중…' : saved ? '저장했어요' : '';
 
   return (
     <SettingsCard title="어떤 상대를 만나볼까요?">
@@ -97,19 +117,19 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
             </label>
           ))}
         </div>
-        {/* 늘 서 있어야 바뀐 글자를 읽어 준다 — 보이는 「저장하는 중…」은 아래 줄이 든다 */}
+        {/* 늘 서 있어야 바뀐 글자를 읽어 준다 — 보이는 글자는 아래 줄이 든다 */}
         <span role="status" className="sr-only">
-          {saving ? '저장하는 중…' : ''}
+          {progress}
         </span>
       </fieldset>
 
       {/*
         마지막 줄이 이 카드의 꼬리다 — 왼쪽은 고른 값이 어떻게 쓰이는지(양쪽 조건이 다 맞아야 소개된다), 오른쪽은 저장이
-        가는 동안만 서는 「저장하는 중…」. 끝나면 고른 칸이 곧 저장된 값이라 따로 성공 말을 세우지 않는다 — 바로 아래
-        인연 찾기 칸도 바뀐 상태만 보인다. 화면 읽기에는 칸 안의 `role="status"` 가 같은 말을 알린다.
+        가는 동안의 「저장하는 중…」과, 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」. 화면 읽기에는 칸 안의
+        `role="status"` 가 같은 말을 알린다.
       */}
       <SettingsRow note="서로 고른 성별이 맞는 사람끼리 소개돼요.">
-        {saving ? <span className="text-xs text-muted">저장하는 중…</span> : undefined}
+        {progress !== '' ? <span className="text-xs text-muted">{progress}</span> : undefined}
       </SettingsRow>
 
       {failure !== null && (
