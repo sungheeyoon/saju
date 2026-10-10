@@ -25,9 +25,9 @@
 | --- | --- | --- | --- |
 | 첫 화면 · 사주 보기 | `/` · `/saju` — 로그인 전 결과 · 이어 보기 확인 · 사주 결과 표 | `docs/product/copy-ledger/first.md` | 02 · 05 · 06 · 07 · 08 · 09 · 10 · 11 · 13 · 19 · 22 · 25 |
 | 로그인 · 가입 · 안내 화면 | `/auth` · `/auth/denied` · `/signup` · `/closed` · `/privacy` · `/about` · `/help` · `/share/**` · 바닥글 · 오류 · 404 | `docs/product/copy-ledger/public.md` | 02 · 07 · 11 · 12 · 17 · 20 · 21 |
-| 홈 · 저장한 사람 · 풀이 | `/me` · `/me/people` · `/me/readings` · `/me/readings/[subject]` — 풀이 판 · 풀이 의견 | `docs/product/copy-ledger/home.md` | 02 · 03 · 05 · 06 · 15 · 16 · 19 · 20 · 21 · 25 · 26 |
-| 궁합 | `/compat` · `/me/compat` | `docs/product/copy-ledger/compat.md` | 06 · 14 · 21 |
-| 인연 · 채팅 · 소식 | `/me/matching` · `/me/matching/history` · `/me/match/[id]` · `/me/chat` · `/me/requests` | `docs/product/copy-ledger/matching.md` | 02 · 03 · 06 · 07 · 19 · 21 · 23 · 24 · 25 · 28 |
+| 홈 · 저장한 사람 · 풀이 | `/me` · `/me/people` · `/me/readings` · `/me/readings/[subject]` — 풀이 판 · 풀이 의견 | `docs/product/copy-ledger/home.md` | 02 · 03 · 05 · 06 · 15 · 16 · 19 · 20 · 21 · 25 · 26 · 30 |
+| 궁합 | `/compat` · `/me/compat` | `docs/product/copy-ledger/compat.md` | 06 · 14 · 21 · 30 |
+| 인연 · 채팅 · 소식 | `/me/matching` · `/me/matching/history` · `/me/match/[id]` · `/me/chat` · `/me/requests` | `docs/product/copy-ledger/matching.md` | 02 · 03 · 06 · 07 · 19 · 21 · 23 · 24 · 25 · 28 · 30 |
 | 설정 · 프로필 · 설문 | `/me/profile` · `/me/settings` · `/me/survey` | `docs/product/copy-ledger/settings.md` | 03 · 06 · 16 · 25 · 27 · 29 |
 | 운영 화면 · 작업대 | `/ops/**` · `/me/reading/inspect` | `docs/product/copy-ledger/ops.md` | — |
 | 여러 무리에 걸친 줄 · 머리말 | 규칙 · 탭 · 서비스 이름 · 확인창 닫기 · 출생 정보 폼 · 하는 일 넷 … | 이 파일 | 01 · 02 · 03 · 04 · 05 · 06 · 11 · 12 · 18 · 21 · 25 |
@@ -74,7 +74,7 @@ DB 가 내는 닉네임 중복 거절 「이미 쓰고 있는 닉네임입니다
 | --- | --- | --- | --- |
 | 로그인한 사람의 탭 넷 | 홈 · 매칭 · 풀이 · 채팅 → 나 · 궁합 · 인연 · 채팅(#315) | **홈 · 궁합 · 인연 · 채팅** — 첫 탭은 「나」에서 「홈」으로 돌아왔다(운영자 2026-09-29). 결과 화면의 ← 글자도 「홈」 | #315 · #342 (2026-09-30) |
 | 홈 · 오늘의 인연 빈 화면의 링크 묶음 이름(`aria-label`) | 더 해 보기 | 바로가기 | #315 |
-| 홈 바로가기 첫 줄 · 빈 채팅 단추 `app/me/chat/empty.tsx` | 매칭에서 오늘의 인연 만나기 | 오늘의 인연 만나기 | #315 |
+| 홈 바로가기 첫 줄 · 빈 채팅 단추 `app/me/chat/empty.tsx` | 매칭에서 오늘의 인연 만나기 | 오늘의 인연 만나기 (빈 채팅 단추는 2026-10-10 「오늘의 인연 보기」 — 아래 30) | #315 |
 | 한 사람 계산(`/saju`)으로 가는 링크 — 홈의 내 사주 카드 바로 아래 한 줄 `app/me/(home)/page.tsx`(2026-10-08 저장한 사람 구역 끝 `app/me/home/circle-view.tsx` 에서 옮겼다) · 인연 탭이 기다리는 동안 `app/me/matching/matching-experience.tsx` | (코드에 오래 있었고 대장에 없었다) | 다른 사람 사주 보기 — 운영자가 「기존 문구」로 그대로 쓰라고 했다(2026-10-05, ADR 0144) | #477 |
 | 인연 궁합 화면 제목 · 대화방 단추 · 요청 상태 · 소식 · 설문 항목 | 함께 보는 궁합 | 인연 궁합 | #331 |
 | 궁합 탭 · 인연 탭에서 보관함으로 가는 링크 | — | 모두 보기 | #330 · #332 (지금 화면에는 없다 — #334 · #336 이 그 줄을 걷었다) |

@@ -1,4 +1,5 @@
 import { Bone, SkeletonMain } from '../../ui/skeleton';
+import { COLUMN } from '../../ui/surfaces';
 
 /**
  * 계정 관리의 뼈대 — 제목 · 한 줄 설명, 무리 여섯(작은 제목 · 흰 판의 줄)(`page.tsx` · `card.tsx`). 무리는 실제 화면의
@@ -41,7 +42,7 @@ const GROUPS = [
 
 export default function SettingsLoading() {
   return (
-    <SkeletonMain name="settings" className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
+    <SkeletonMain name="settings" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
       <div className="flex flex-col gap-1">
         <Bone className="h-[2.275rem] w-36 rounded-full sm:h-[2.6rem]" />
         <Bone className="h-5 w-64 max-w-full rounded-full" />

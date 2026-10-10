@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react';
 
 import {
   FEEDBACK_COMMENT,
-  FEEDBACK_QUESTIONS,
   FEEDBACK_SCALE,
   FEEDBACK_SCOPE_NOTE,
   FEEDBACK_THANKS,
@@ -12,6 +11,8 @@ import {
   FELT_LENGTH_LABEL,
   ISSUE_TAGS,
   ISSUE_TAG_LABEL,
+  feedbackQuestions,
+  type FeedbackQuestion,
   type FeedbackScore,
   type FeltLength,
   type IssueTag,
@@ -58,6 +59,8 @@ export function ReadingFeedback({
   const [comment, setComment] = useState(given?.comment ?? '');
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  /* 첫 질문의 대상(나를 · 이 사람을 · 두 사람을)은 풀이의 kind 가 고른다 — 열과 보낼 수 있는 조건은 그대로다 */
+  const questions = feedbackQuestions(target.kind);
 
   if (answer !== null && !open) {
     return (
@@ -117,13 +120,13 @@ export function ReadingFeedback({
         <div className="flex flex-col gap-4">
           <Scale
             name={`useful-${runId}`}
-            question={FEEDBACK_QUESTIONS.usefulness}
+            question={questions.usefulness}
             value={usefulness}
             onChange={setUsefulness}
           />
           <Scale
             name={`fit-${runId}`}
-            question={FEEDBACK_QUESTIONS.perceivedFit}
+            question={questions.perceivedFit}
             value={fit}
             onChange={setFit}
           />
@@ -235,7 +238,7 @@ function Scale({
   onChange,
 }: {
   name: string;
-  question: { label: string; low: string; high: string };
+  question: FeedbackQuestion;
   value: FeedbackScore | null;
   onChange: (next: FeedbackScore) => void;
 }) {

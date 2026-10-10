@@ -1,9 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 
 import {
-  FEEDBACK_QUESTIONS,
   FELT_LENGTH_LABEL,
   ISSUE_TAG_LABEL,
+  feedbackQuestions,
+  usefulnessLabel,
   type FeltLength,
 } from '@/src/lib/reading';
 import { PRICE_LABEL, SURVEY_QUESTION_TITLE, choiceLabel, type PriceOption } from '@/src/lib/survey';
@@ -233,8 +234,9 @@ function Versions({ rows }: { rows: readonly VersionRow[] }) {
       </div>
 
       <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
-        「도움」은 {FEEDBACK_QUESTIONS.usefulness.label} 「체감 적합성」은{' '}
-        {FEEDBACK_QUESTIONS.perceivedFit.label} 둘 다 5점이 높은 쪽입니다.{' '}
+        「도움」은 {usefulnessLabel('self')} — 대상은 종류마다 다릅니다(저장한 사람은 「이 사람을」, 궁합풀이 · 인연
+        궁합은 「두 사람을」). 같은 열이므로 종류로 나눠 읽습니다. 「체감 적합성」은{' '}
+        {feedbackQuestions('self').perceivedFit.label} 둘 다 5점이 높은 쪽입니다.{' '}
         <strong className="font-semibold text-secondary">
           체감 적합성만 보고 판단하지 않습니다
         </strong>{' '}

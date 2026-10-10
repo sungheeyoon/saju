@@ -4,7 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ProfileForm } from './form';
@@ -37,7 +37,7 @@ export default async function ProfilePage() {
 
   if (isBlocked(state) || account === null) {
     return (
-      <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-7 py-8 sm:py-12">
+      <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-7 py-8 sm:py-12`}>
         <AccountNotice state={state} />
       </main>
     );
@@ -49,7 +49,7 @@ export default async function ProfilePage() {
   /* 넓은 화면에서는 사진과 글 칸이 나란히 서므로(`form.tsx`) 판이 그 둘만큼 넓어진다 */
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12 lg:max-w-4xl">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12 lg:max-w-4xl`}>
       <header className="flex flex-col gap-1">
         <h1 className={TYPE_TITLE}>프로필</h1>
         <p className={TYPE_META}>앱에서 쓸 닉네임과 프로필을 정해요.</p>

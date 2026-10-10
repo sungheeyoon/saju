@@ -10,7 +10,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  */
 export default function ReadingsLoading() {
   return (
-    <SkeletonMain name="readings" className="app-shell flex flex-1 flex-col py-9 sm:py-14">
+    <SkeletonMain name="readings" className="app-shell flex flex-1 flex-col py-8 sm:py-12">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-12">
         <div className="flex min-w-0 flex-col gap-10">
           {/* 머리 — 제목과 풀이 종류 칩 넷(`ShelfHead`). 폰에서는 머리글 아래 붙는 띠라 위아래 여백이 있다 */}

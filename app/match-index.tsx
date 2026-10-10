@@ -114,8 +114,6 @@ export function MatchIndexCard({
           ))}
         </ul>
       </div>
-
-      <p className="text-[13px] leading-5 text-secondary">{preview.caveat}</p>
     </section>
   );
 }
