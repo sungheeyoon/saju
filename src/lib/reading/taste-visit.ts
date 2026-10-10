@@ -18,7 +18,7 @@
  *
  * - `ready` — 글이 섰다
  * - `waiting` — 같은 입력을 지금 누가 쓰고 있다. 화면이 조금 뒤 `readTaste` 로 다시 본다
- * - `failed` — 이번 시도가 실패했다. `retry` 면 「다시 읽기」가 다음 시도를 연다. 아니면 가입 경로만 남는다
+ * - `failed` — 이번 시도가 실패했다. `retry` 면 「다시 시도하기」가 다음 시도를 연다. 아니면 가입 경로만 남는다
  *   (같은 입력이 세 번 실패했거나 · 서버가 이 자리를 닫았다)
  * - `timeout` — 시간 상한에 걸렸다. `retry` 의 뜻은 위와 같다
  * - `limited` — 한도(요청 · 브라우저 · IP · 전체 하루 중 하나)
@@ -32,6 +32,23 @@ export type TasteAnswer =
 
 /** 서버가 이 자리를 닫았다 — 비밀이 없거나 · 입력을 못 읽거나 · 문이 터졌다. 다시 눌러도 같다 */
 export const TASTE_CLOSED: TasteAnswer = { state: 'failed', retry: false };
+
+/**
+ * 잠긴 목차 첫 절의 모양 넷 — 화면(`app/taste.tsx`)이 답 하나로 고른다(운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」).
+ *
+ * - `writing` — 답이 아직 없거나 같은 입력을 누가 쓰고 있다. 막대 넷 위에 「첫 문단 작성 중…」
+ * - `ready` — 글이 섰다
+ * - `retry` — 실패 · 시간 초과이고 다음 시도가 열려 있다. 자물쇠 + 흐린 막대 + 실패 줄 + 「다시 시도하기」
+ * - `closed` — 한도 · 같은 입력이 세 번 실패 · 서버가 닫음. 자물쇠 + 흐린 막대 + 줄 하나, 단추 없음 — 눌러도 같다
+ */
+export type TasteFirstSection = 'writing' | 'ready' | 'retry' | 'closed';
+
+export function tasteFirstSectionOf(answer: TasteAnswer | null): TasteFirstSection {
+  if (answer === null || answer.state === 'waiting') return 'writing';
+  if (answer.state === 'ready') return 'ready';
+  if (answer.state === 'limited') return 'closed';
+  return answer.retry ? 'retry' : 'closed';
+}
 
 /** `reserve_taste` 의 갈래 — DB 함수의 머리말과 같은 여덟 */
 export const RESERVE_OUTCOMES = [
@@ -80,7 +97,7 @@ export type TasteSessionView = {
 /**
  * 세션을 읽은 답.
  *
- * `claimed`(이미 회원에게 귀속된 세션)는 로그인 전 화면에 글을 다시 안 낸다 — 다시 읽으면 새 세션이 선다. 그래서 다시 읽기를
+ * `claimed`(이미 회원에게 귀속된 세션)는 로그인 전 화면에 글을 다시 안 낸다 — 다시 읽으면 새 세션이 선다. 그래서 다시 시도를
  * 연다. 0행(없는 세션 · 24시간이 지남 · 결과가 지워짐)도 같다 — 다시 부르면 예약이 새 세션을 세운다.
  */
 export function answerOfView(view: TasteSessionView | null, sessionId: string, failedWith: 'failed' | 'timeout' = 'failed'): TasteAnswer {

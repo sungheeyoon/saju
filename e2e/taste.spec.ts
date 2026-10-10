@@ -1,5 +1,7 @@
 import { expect, test } from './anon';
 
+import { TASTE_CLOSED_NOTE, TASTE_FAILED_NOTE, TASTE_RETRY_LABEL } from '@/src/lib/reading/copy';
+
 import { fillBirth } from './birth-form';
 
 /**
@@ -50,17 +52,22 @@ test('무료로 내 사주 보기 → 결과 머리로 내려가고 · 잠긴 �
 
   /*
     로그인 전 사주 문단은 따로 칸이 없다 — 잠긴 목차의 첫 절 자리에 선다(운영자 결정 2026-10-09, ADR 0143 「2026-10-09 덧」).
-    모델이 없는 시험 서버에서는 실패로 선다 — 첫 절도 다른 절처럼 잠긴 채 조용히 서고, 다른 글 · 다른 단추로 바꿔치기하지 않는다
+    모델이 없는 시험 서버에서는 실패로 선다 — 첫 절도 다른 절처럼 잠기고 다른 글로 바꿔치기하지 않는다. 아래에 실패 줄이 서고,
+    다음 시도가 열려 있으면(모델 실패) 「다시 시도하기」가, 서버가 닫았으면(CI 의 익명 차선은 DB 가 없다) 줄 하나만 선다
+    (운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」)
   */
   await expect(page.getByRole('region', { name: '사주가 보여 주는 나' })).toHaveCount(0);
   const outline = page.getByRole('region', { name: '전체 사주풀이 목차' });
   await expect(outline).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
-  await expect(page.getByRole('button', { name: '다시 읽기' })).toHaveCount(0);
+  const trouble = outline.getByRole('status');
+  await expect(trouble).toHaveText(new RegExp(`^(${TASTE_FAILED_NOTE}\\s*${TASTE_RETRY_LABEL}|${TASTE_CLOSED_NOTE})$`));
+  const retryable = (await trouble.textContent())?.startsWith(TASTE_FAILED_NOTE) ?? false;
+  await expect(outline.getByRole('button', { name: TASTE_RETRY_LABEL, exact: true })).toHaveCount(retryable ? 1 : 0);
   await expect(page.getByRole('link', { name: /무료 회원가입/ })).toHaveCount(0);
 
   /* 잠긴 목차는 본 사주풀이의 절 이름이다 — 첫 줄은 프롬프트의 첫 절. 가입 단추는 카드 끝의 하나다 */
   await expect(outline.getByRole('listitem').first()).toContainText('먼저 볼 핵심 세 가지');
-  await expect(outline.getByRole('listitem').first().locator('p')).toHaveCount(1);
+  await expect(outline.getByRole('listitem').first().locator('p')).toHaveCount(2);
   expect(await outline.getByRole('listitem').count()).toBeGreaterThanOrEqual(5);
   await expect(outline.getByRole('link')).toHaveCount(1);
 
