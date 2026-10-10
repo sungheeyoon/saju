@@ -21,6 +21,8 @@
 const SERVICE_NAME = '만날지도';
 const MESSAGE_LINE = '새 메시지가 왔어요';
 const ICON = '/apple-icon.png';
+/** 안드로이드 상태 표시줄의 단색 배지 — 투명 바탕에 흰 로고 실루엣(96px, `scripts/brand-icons.mjs` 가 굽는다). 없으면 기본 종이 선다 */
+const BADGE = '/badge.png';
 
 /** 모르는 모양의 페이로드가 오면 대화 목록으로 — 알림은 그래도 세운다(위 「푸시마다」) */
 const FALLBACK = { url: '/me/chat', tag: 'chat' };
@@ -67,6 +69,7 @@ self.addEventListener('push', (event) => {
         renotify: !quiet,
         silent: quiet,
         icon: ICON,
+        badge: BADGE,
         data: { url: payload.url },
       });
     })(),
