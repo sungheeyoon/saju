@@ -221,15 +221,16 @@ npm run db:remote -- --purpose "로그인 전 사주 문단 날짜별 수" \
 - **결과** — `calls_succeeded` · `calls_failed` · `calls_timed_out` · `calls_late`(시간을 넘긴 뒤 온 결과 — 토큰은 나갔다) ·
   `avg_response_ms` · `max_response_ms`
 - **토큰** — `input_tokens` · `cache_read_tokens` · `cache_write_tokens` · `output_tokens` · `reasoning_tokens`
-- **퍼널 여섯 단계** — `preview_shown` → `more_clicked` → `signup_started` → `signup_completed` · `session_claimed` →
+- **퍼널 다섯 단계** — `preview_shown` → `signup_started` → `signup_completed` · `session_claimed` →
   `reading_started` → `reading_succeeded`. 가입 완료와 귀속은 칸이 따로다(앞은 앱이, 뒤는 DB 가 센다).
-  앱이 세는 셋(`more_clicked` · `signup_started` · `signup_completed`)은 **세션 하나에 단계마다 한 번**이다 —
+  앱이 세는 둘(`signup_started` · `signup_completed`)은 **세션 하나에 단계마다 한 번**이다 —
   `count_taste_step_once` 가 세션 id 와 브라우저 HMAC 이 함께 맞을 때만 센다(`20261119090000`). 「로그인하고 전체 풀이 받기」도
   `signup_started` 다. `signup_completed` 는 **가입을 마치고 그 세션을 들고 돌아온 것**이다 — 귀속 결과가 `claimed` · `discarded` ·
   `expired` · `not_ready` 어느 것이든 센다(`session_claimed` 는 그중 붙은 것만). `reading_succeeded` 는 회수 경로가 옛
-  `count_taste_step` 으로 센다. **#443 을 배포한 날 전의 줄은 누름 수였다** — 그 앞뒤를 견주지 않는다
-  **`more_clicked` 는 「더보기」를 걷은 화면(ADR 0143 의 2026-10-09 덧)을 배포한 날부터 0 이다** — 화면이 더는 부르지 않는다. 그날부터
-  가입 시작은 문단 생성 성공(`preview_shown`) 바로 다음 단계로 읽는다(G-85)
+  `count_taste_step` 으로 센다. **#443 을 배포한 날 전의 줄은 누름 수였다** — 그 앞뒤를 견주지 않는다.
+  **「더보기」(`more_clicked`)는 걷었다**(G-85, `20261128090000`) — 「더보기」를 걷은 화면(ADR 0143 의 2026-10-09 덧)을 배포한 날부터
+  화면이 안 불렀고, 2026-10-10 에 단계 · 칸 · 셈 문의 그 값을 함께 걷었다. 운영에서 그 단계로 센 줄은 한 번도 없다. 가입 시작은 문단
+  생성 성공(`preview_shown`) 바로 다음 단계다
 
 뷰는 `service_role` 에도 닫혀 있다 — `db:remote`(`postgres`)로만 본다. 원본 행(`taste_session` · `taste_artifact`)은 미가입 방문자의
 글과 지문을 들므로 `docs/ops/runbook/access.md` 「개인정보는 화면으로만」의 경계대로 일상 질의에 열지 않는다.

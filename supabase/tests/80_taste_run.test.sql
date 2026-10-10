@@ -20,7 +20,7 @@
 --
 -- 두 세션 경합(동시 예약 스물)은 pgTAP 이 못 만든다 — `scripts/check-db-races.mjs` 의 8 이 잰다.
 begin;
-select plan(101);
+select plan(103);
 
 /** 이 파일의 이름표로 짓는 16진 64자 — 지문 · 브라우저 HMAC · IP HMAC 모두 */
 create function pg_temp.h(tag text)
@@ -550,8 +550,11 @@ select is(
   (select count(*)::int from public.taste_session where claimed_by = (select kim from who)),
   0, '탈퇴 처분은 그 회원에게 귀속된 세션을 지운다');
 
-select lives_ok($$select public.count_taste_step('more_clicked')$$, '앱은 「더보기」를 센다');
-select is(pg_temp.today('funnel:more_clicked'), 1::bigint, '퍼널은 날짜와 단계의 수만 든다');
+select lives_ok($$select public.count_taste_step('reading_succeeded')$$, '회수는 풀이 성공을 센다');
+select is(pg_temp.today('funnel:reading_succeeded'), 1::bigint, '퍼널은 날짜와 단계의 수만 든다');
+select throws_ok($$select public.count_taste_step('more_clicked')$$, '22023', null,
+  '「더보기」는 걷은 단계다 — 앱도 못 센다(G-85)');
+select hasnt_column('public', 'taste_daily', 'more_clicked', '날짜별 한 줄에 「더보기」 칸이 없다 — 퍼널은 다섯 단계다(G-85)');
 select throws_ok($$select public.count_taste_step('session_claimed')$$, '22023', null,
   'DB 가 세는 단계는 앱이 못 센다 — 두 번 안 센다');
 
