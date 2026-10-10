@@ -302,6 +302,15 @@ button, a, summary {
   }
 }
 /*
+  **폰의 대화방은 화면 전체다**(운영자 결정 2026-10-10 「머리줄도 걷기」, ADR 0109 추기). 방(`data-chat-room`,
+  `app/me/chat/[matchId]/room.tsx`)이 서 있는 동안만 앱 머리글(로고 · 풀이권 · 종 · 톱니)을 걷는다 — 방 머리(← · 이름 · ⋯)가
+  화면 맨 위에 붙고 나가는 길은 ← 다. 주소가 아니라 방을 본다 — 같은 주소의 막힌 계정 안내 · 404 는 머리글이 그대로 서서 길이
+  남는다. 하단 독은 이미 안 선다(`dockStandsOn`). 방의 틀과 노치 · 홈 막대의 여백은 `room.module.css`.
+*/
+@media (max-width: 767.98px) {
+  body:has([data-chat-room]) > header { display: none; }
+}
+/*
   **오늘의 인연 — 폰은 한 화면에 카드 한 장**(`app/me/matching/today-card.tsx`, 2026-09-25). 카드(`data-deck-fit`)가 서 있는
   동안만, 두 열이 서기 전의 폭에서만 문서를 뷰포트 높이에 묶어 페이지가 위아래로 안 움직인다. 카드는 제목 줄과 독 사이의
   남는 높이를 다 쓴다. 독을 비키던 `body` 의 아래 여백(위 규칙은 id 를 `:has` 에 들어 우선순위가 높다 — 그래서 `!important`)을
