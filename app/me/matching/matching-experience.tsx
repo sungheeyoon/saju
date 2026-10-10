@@ -5,7 +5,7 @@ import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode 
 
 import { SAJU_PATH } from '@/src/lib/consent';
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
-import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
+import { DISCOVERY_EMPTY, DISCOVERY_TEASER } from '@/src/lib/discovery/copy';
 import { REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/matching/copy';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
@@ -60,7 +60,6 @@ export function MatchingExperience({
   tail,
   cards,
   me,
-  teaser,
   notice,
   explorationNote,
   passed: passedFromServer = EMPTY_CARDS,
@@ -74,7 +73,6 @@ export function MatchingExperience({
   me: MeMark;
   /** 서버가 든 보관함 — 새로 고쳐도 남는다 */
   passed?: readonly DeckCard[];
-  teaser: string;
   notice: string | null;
   explorationNote: string | null;
 }) {
@@ -334,7 +332,7 @@ export function MatchingExperience({
       */}
       {view === 'today' && profile !== undefined && (
         <div className="-mt-4 hidden max-w-3xl flex-col gap-1 lg:flex">
-          <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
+          <p className="text-[12px] leading-5 text-secondary">{DISCOVERY_TEASER}</p>
           {notice !== null && <p className={TYPE_META}>{notice}</p>}
         </div>
       )}
@@ -448,7 +446,7 @@ export function MatchingExperience({
             <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
               <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[28rem]" />
             </div>
-            <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
+            <p className="text-[12px] leading-5 text-secondary">{DISCOVERY_TEASER}</p>
             {notice !== null && <p className={TYPE_META}>{notice}</p>}
           </div>
         </DetailSheet>

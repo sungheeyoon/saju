@@ -174,16 +174,20 @@
  * 가른다: 문구 자리의 잎을 글자 없이 `종류:<문구>` 로 적은 나무와 뜻이 있는 주석이 base 와 같고, 그 자리의 글자가 하나 이상 다르다
  * (`copyOnlyChanged`). 판정은 `app/**` · `src/**` 의 시험 아닌 코드 파일에서만 한다. 주석만 바뀐 파일은 먼저 정책으로 빠진다.
  *
- * - **인정하는 자리는 둘뿐이다** — JSX 글자(요소 사이의 글자, `option` · `textarea` · `style` · `script` 안은 몇 겹 아래든
- *   빼고), 그리고 `COPY_FILES` 의 파일이 모양(`export const 이름 = '글자'` 만, `copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. 「상수의 문자열」이라는
- *   까닭만으로는 안 센다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다. 목록의 파일이 모양을 지키는지와 그 이름을 화면
- *   (`.tsx`)과 시험만 부르는지는 시험이 잰다
- * - **인정하지 않는 것** — JSX 속성 값 전부(`className` · `href` · `src` · `aria-*` · `role` · `data-*` …) · 조건식 · 이벤트 핸들러 ·
- *   식별자 · 구조(요소 · JSX 주석 `{/* *\/}` 을 새로 세움) · 템플릿 리터럴(식도 글자 조각도) · 목록 밖 문자열. 문구와 이것이 한 파일에
- *   섞이면 그 파일은 지금 규칙 그대로다
+ * - **인정하는 자리는 넷이다** — ① JSX 글자(요소 사이의 글자) ② JSX 자식 식이 화면에 그대로 세우는 글자 — 문자열 · 템플릿의
+ *   글자 조각, 괄호 · 조건식의 두 갈래 · `&&` `||` `??` 의 오른쪽으로만 내려간다(`renderedTextsOf`) ③ HTML 요소(소문자 태그)의
+ *   `aria-label` 글자(`ACCESSIBLE_NAME_ATTRIBUTES`, 따옴표 값이나 ②처럼 서는 식) ④ `COPY_FILES` 의 파일이 모양(`export const 이름 =
+ *   '글자'` 와 글자만 든 표, `copyConstantsOf`)을 지킬 때 그 글자 값. ① ~ ③ 은 `option` · `textarea` · `style` · `script` 안이면 몇 겹
+ *   아래든 뺀다. ② ③ 은 G-90(#575 가 템플릿 조각 · 단추의 `aria-label` 때문에 `wait` 였다). 「상수의 문자열」이라는 까닭만으로는 안
+ *   센다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다. 목록의 파일이 모양을 지키는지와 그 이름을 화면(`.tsx`)의 글자
+ *   자리와 시험만 부르는지는 시험이 잰다
+ * - **인정하지 않는 것** — 그 밖의 JSX 속성 값(`className` · `href` · `src` · `title` · `alt` · 컴포넌트의 `aria-label` · `role` ·
+ *   `data-*` …) · 조건식 · `&&` `||` 의 왼쪽 · 이벤트 핸들러 · 식별자 · 구조(요소 · JSX 주석 `{/* *\/}` 을 새로 세움) · 템플릿의 식 ·
+ *   함수 인자 · 데이터(배열 · 객체) 속 문자열 · 목록 밖 문자열 · 표의 키. 문구와 이것이 한 파일에 섞이면 그 파일은 지금 규칙 그대로다
  * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
  * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
- *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 정규식은 파서로 모아 글자가 있으면
+ *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 바뀐 문구 파일을 들이는 시험도
+ *   켠다(`testsImportingCopy`) — 상수를 이름으로 읽는 시험은 글자 검색에 안 걸린다. 정규식은 파서로 모아 글자가 있으면
  *   바뀐 글자와 관련될 때 · 판단이 안 설 때, 글자가 없으면 문자열 정리 자리가 아닐 때 켠다(`regexUsesIn` · `regexTurnsOn`). spec 이
  *   아닌 `e2e/**` 면 전부다. **문구 판정은 좁히기만 한다** — `core` + 그렇게 켠 차선이 그 파일의 지금 규칙 차선의 부분집합일 때만
  *   그것으로 세고, 아니면 지금 규칙 그대로다. 여러 파일이면 파일마다 정한 계획의 합이다(`narrowedCopyOf`, 운영자 2026-10-09). **이 검색은 검사를
@@ -627,10 +631,11 @@ export function onlyCommentsChanged(ts, file, before, after) {
 
 /**
  * 문구 상수만 모은 파일 — **용도가 확인된 문구 상수**는 이 목록의 파일에 선 것뿐이다. 파일마다 `export const 이름 = '글자';`
- * 만 서야 하고(`copyConstantsShape`), 그 이름은 화면(`.tsx`)만 부른다 — 둘 다 `scripts/ci-plan.test.ts` 가 잰다. 문자열 상수라는
- * 까닭만으로는 문구로 세지 않는다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다
+ * 와 글자만 든 표 `export const 이름 = { 키: '글자' }` 만 서야 하고(`copyConstantsOf`), 그 이름은 화면(`.tsx`)의 글자 자리와
+ * 시험(`*.test.ts` · `e2e/**`)만 부른다 — 둘 다 `scripts/ci-plan.test.ts` 가 잰다. 문자열 상수라는 까닭만으로는 문구로 세지
+ * 않는다 — 경로 · 설정값 · 키 · 정규식 · 환경 변수 이름이 들 수 있다. 자주 바꾸는 화면 문구는 쓰는 자리를 잰 뒤 여기로 모은다(G-90)
  */
-export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/matching/copy.ts'];
+export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/chat/copy.ts', 'src/lib/discovery/copy.ts', 'src/lib/matching/copy.ts'];
 
 /**
  * 글자가 화면 글자가 아닌 요소 — 그 글자가 값(`option` 은 `value` 가 없으면 글자를 보낸다 · `textarea`)이거나 코드(`style` · `script` ·
@@ -639,37 +644,113 @@ export const COPY_FILES = ['src/lib/account/copy.ts', 'src/lib/matching/copy.ts'
  */
 const NOT_SCREEN_TEXT = new Set(['option', 'textarea', 'style', 'script', 'Script']);
 
+/** 문구 상수의 값이 될 수 있는 것 — 따옴표 문자열이나 식 없는 백틱 */
+const isPlainText = (ts, node) => ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+
 /**
- * 문구 상수 파일의 모양 — 문 하나하나가 `export const 이름 = '글자'`(따옴표 · 식 없는 백틱, 타입 표기 없음) 하나다. 하나라도
- * 다르면(import · 함수 · 식 · 둘 이상의 선언) `false` 라 그 파일의 문자열은 문구 자리가 아니다
+ * 표 문구 상수의 값 — `{ 키: '글자', … }`(뒤에 `as const` 는 된다). 키는 이름이나 따옴표 문자열, 값은 글자뿐이다. 펼침 · 계산한 키 ·
+ * 메서드 · 줄임 표기(`{ a }`)는 안 된다. 모양이 아니면 `null`, 맞으면 값 노드들
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').Expression} node
+ * @returns {import('typescript').Expression[] | null}
+ */
+function tableValuesOf(ts, node) {
+  let body = node;
+  if (ts.isAsExpression(body)) {
+    const type = body.type;
+    if (!ts.isTypeReferenceNode(type) || !ts.isIdentifier(type.typeName) || type.typeName.text !== 'const' || type.typeArguments) return null;
+    body = body.expression;
+  }
+  if (!ts.isObjectLiteralExpression(body) || body.properties.length === 0) return null;
+  const values = [];
+  for (const property of body.properties) {
+    if (!ts.isPropertyAssignment(property)) return null;
+    if (!ts.isIdentifier(property.name) && !ts.isStringLiteral(property.name)) return null;
+    if (!isPlainText(ts, property.initializer)) return null;
+    values.push(property.initializer);
+  }
+  return values;
+}
+
+/**
+ * 문구 상수 파일의 상수들 — 문 하나하나가 `export const 이름 = '글자'`(따옴표 · 식 없는 백틱, 타입 표기 없음) 아니면
+ * `export const 이름 = { 키: '글자', … }`(표, `as const` 는 된다 — `tableValuesOf`) 하나다. 하나라도 다르면(import · 함수 · 식 ·
+ * 둘 이상의 선언 · 타입 표기) `null` 이라 그 파일의 문자열은 문구 자리가 아니다. 맞으면 이름마다 `text` · `table` 과 그 글자 노드들
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').SourceFile} tree
+ * @returns {Map<string, { kind: 'text' | 'table', values: import('typescript').Expression[] }> | null}
+ */
+export function copyConstantsOf(ts, tree) {
+  if (tree.statements.length === 0) return null;
+  const constants = new Map();
+  for (const statement of tree.statements) {
+    if (!ts.isVariableStatement(statement)) return null;
+    const modifiers = statement.modifiers ?? [];
+    if (modifiers.length !== 1 || modifiers[0].kind !== ts.SyntaxKind.ExportKeyword) return null;
+    const list = statement.declarationList;
+    if ((list.flags & ts.NodeFlags.BlockScoped) !== ts.NodeFlags.Const || list.declarations.length !== 1) return null;
+    const [one] = list.declarations;
+    if (!ts.isIdentifier(one.name) || one.type !== undefined || one.exclamationToken !== undefined || one.initializer === undefined) return null;
+    if (isPlainText(ts, one.initializer)) constants.set(one.name.text, { kind: 'text', values: [one.initializer] });
+    else {
+      const values = tableValuesOf(ts, one.initializer);
+      if (values === null) return null;
+      constants.set(one.name.text, { kind: 'table', values });
+    }
+  }
+  return constants;
+}
+
+/**
+ * 문구 상수 파일의 모양을 지키는가 — `copyConstantsOf` 가 읽히면 참이다
  *
  * @param {typeof import('typescript')} ts
  * @param {import('typescript').SourceFile} tree
  */
-export function copyConstantsShape(ts, tree) {
-  return (
-    tree.statements.length > 0 &&
-    tree.statements.every((statement) => {
-      if (!ts.isVariableStatement(statement)) return false;
-      const modifiers = statement.modifiers ?? [];
-      if (modifiers.length !== 1 || modifiers[0].kind !== ts.SyntaxKind.ExportKeyword) return false;
-      const list = statement.declarationList;
-      if ((list.flags & ts.NodeFlags.BlockScoped) !== ts.NodeFlags.Const || list.declarations.length !== 1) return false;
-      const [one] = list.declarations;
-      return (
-        ts.isIdentifier(one.name) &&
-        one.type === undefined &&
-        one.exclamationToken === undefined &&
-        one.initializer !== undefined &&
-        (ts.isStringLiteral(one.initializer) || ts.isNoSubstitutionTemplateLiteral(one.initializer))
-      );
-    })
-  );
+export const copyConstantsShape = (ts, tree) => copyConstantsOf(ts, tree) !== null;
+
+/**
+ * 화면용 접근성 이름 — 이 속성의 글자는 화면 읽기 프로그램이 읽는 이름일 뿐이다. **HTML 요소(소문자 태그)에 붙을 때만** 센다.
+ * 컴포넌트(`Button` …)의 속성은 그 컴포넌트가 무엇에 쓰는지 모른다(G-90)
+ */
+export const ACCESSIBLE_NAME_ATTRIBUTES = ['aria-label'];
+
+/** HTML 요소의 태그 — 소문자로 시작하는 이름 하나(`a` · `button` …). 점 · 이름 공간이 든 태그 · 대문자 컴포넌트는 아니다 */
+const isIntrinsicTag = (ts, tag) => ts.isIdentifier(tag) && /^[a-z][a-z0-9]*$/.test(tag.text);
+
+/**
+ * 화면에 그대로 서는 식 안의 글자 — 식이 JSX 자식 `{…}` 이나 화면용 접근성 이름의 값일 때, 그 결과로 서는 글자 노드를 모은다.
+ * 따옴표 문자열 · 식 없는 백틱 · 템플릿의 글자 조각(`${…}` 사이)이다. 결과로 그대로 서는 갈래만 내려간다 — 괄호, 조건식의
+ * 두 갈래(`c ? '가' : '나'`), `&&` · `||` · `??` 의 오른쪽. 왼쪽은 참 거짓을 가르는 값이라(빈 글자는 거짓이다) 안 센다. 함수 인자 ·
+ * 비교 · 속성 접근 · 배열 · 객체 안은 자리가 아니다. 템플릿의 식 부분은 그대로 나무의 글자로 견준다(G-90)
+ *
+ * @param {typeof import('typescript')} ts
+ * @param {import('typescript').Expression} node
+ * @param {Set<import('typescript').Node>} slots
+ */
+function renderedTextsOf(ts, node, slots) {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) slots.add(node);
+  else if (ts.isTemplateExpression(node)) {
+    slots.add(node.head);
+    for (const span of node.templateSpans) slots.add(span.literal);
+  } else if (ts.isParenthesizedExpression(node)) renderedTextsOf(ts, node.expression, slots);
+  else if (ts.isConditionalExpression(node)) {
+    renderedTextsOf(ts, node.whenTrue, slots);
+    renderedTextsOf(ts, node.whenFalse, slots);
+  } else if (ts.isBinaryExpression(node)) {
+    const operator = node.operatorToken.kind;
+    const passes = [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken];
+    if (passes.includes(operator)) renderedTextsOf(ts, node.right, slots);
+  }
 }
 
 /**
- * 화면 문구 자리 — 인정하는 것은 둘뿐이다. ① JSX 글자(요소 사이의 글자, `NOT_SCREEN_TEXT` 안은 몇 겹 아래든 빼고) ② `COPY_FILES` 의
- * 파일이 모양(`copyConstantsShape`)을 지킬 때 그 상수의 문자열 값. JSX 속성 값(`className` · `href` · `aria-*` …) · 식 ·
+ * 화면 문구 자리 — 인정하는 것은 넷이다. ① JSX 글자(요소 사이의 글자) ② JSX 자식 식이 화면에 그대로 세우는 글자(문자열 · 템플릿의
+ * 글자 조각, `renderedTextsOf`) ③ HTML 요소의 화면용 접근성 이름(`ACCESSIBLE_NAME_ATTRIBUTES`)의 글자 — 따옴표 값이거나 ②처럼
+ * 서는 식 ④ `COPY_FILES` 의 파일이 모양(`copyConstantsOf`)을 지킬 때 그 상수의 글자 값(표면 키는 빼고 값만). ① ~ ③ 은
+ * `NOT_SCREEN_TEXT` 안이면 몇 겹 아래든 뺀다. 그 밖의 JSX 속성 값(`className` · `href` · `title` · `alt` …) · 식 ·
  * 템플릿의 식 · 그 밖의 문자열은 자리가 아니다 — 그대로 나무의 글자로 견준다
  *
  * @param {typeof import('typescript')} ts
@@ -678,20 +759,30 @@ export function copyConstantsShape(ts, tree) {
  * @returns {Set<import('typescript').Node> | null} 판별이 안 서면(`excludedTagsOf`) `null`
  */
 function copySlotsOf(ts, file, tree) {
-  const excluded = excludedTagsOf(ts, tree);
-  if (excluded === null) return null;
+  const tags = excludedTagsOf(ts, tree);
+  if (tags === null) return null;
   const slots = new Set();
-  if (COPY_FILES.includes(file) && copyConstantsShape(ts, tree)) {
-    for (const statement of tree.statements) slots.add(statement.declarationList.declarations[0].initializer);
-  }
+  const constants = COPY_FILES.includes(file) ? copyConstantsOf(ts, tree) : null;
+  for (const { values } of constants?.values() ?? []) for (const value of values) slots.add(value);
   // 빼는 것은 조상 전체로 내려간다 — `<option><span>글자</span></option>` 의 글자도 `option` 의 값이다. 바로 위 요소만 보면 그 글자가
   // 문구로 통과했다(2026-10-09 외부 검토)
   const visit = (node, excluded) => {
     if (node.kind === ts.SyntaxKind.JsxText && !excluded) slots.add(node);
     const inside = excluded || (ts.isJsxElement(node) && tags.has(node.openingElement.tagName.getText(tree)));
+    if (!inside && (ts.isJsxElement(node) || ts.isJsxFragment(node))) {
+      for (const child of node.children) if (ts.isJsxExpression(child) && child.expression) renderedTextsOf(ts, child.expression, slots);
+    }
+    if (!inside && (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && isIntrinsicTag(ts, node.tagName)) {
+      for (const attribute of node.attributes.properties) {
+        if (!ts.isJsxAttribute(attribute) || !ACCESSIBLE_NAME_ATTRIBUTES.includes(attribute.name.getText(tree))) continue;
+        const value = attribute.initializer;
+        if (value === undefined) continue;
+        if (ts.isStringLiteral(value)) slots.add(value);
+        else if (ts.isJsxExpression(value) && value.expression) renderedTextsOf(ts, value.expression, slots);
+      }
+    }
     ts.forEachChild(node, (child) => visit(child, inside));
   };
-  const tags = excluded;
   visit(tree, false);
   return slots;
 }
@@ -748,15 +839,19 @@ export const COPY_ATTRIBUTES = ['aria-label', 'title', 'alt', 'placeholder'];
  * - **다시 내보내거나 동적으로 들이면 오용이다** — `export { NOTE }` · `export { NOTE as PATH } from '…/copy'` · `export * from '…/copy'` ·
  *   `await import('…/copy')` · `require('…/copy')`. 그 이름이 어디서 쓰이는지 이 잠금이 따라가지 못한다
  * - import 의 이름 자리는 쓰임이 아니다. 파싱 실패 · `next/script` 를 판별 못 함은 그 파일 전체를 하나로 든다
+ * - **표 상수(`tables`)는 한 칸을 꺼낸 것만 쓰임이다** — `{EMPTY.title}` · `{LABEL[value]}` 의 꺼낸 값이 위 자리에 서야 한다.
+ *   표를 통째로 넘기거나(`Object.keys(LABEL)` · `{LABEL}`) 꺼낸 값을 다시 계산하면 오용이다. 글자 상수를 꺼내 쓰는 것(`NOTE.length`)도 오용이다
+ * - **자리까지 그대로 가는 식은 된다** — 괄호, 조건식의 두 갈래, `&&` · `||` · `??` 의 오른쪽(`renderedTextsOf` 와 같은 갈래, G-90)
  *
  * @param {typeof import('typescript')} ts
  * @param {string} file
  * @param {string} source
  * @param {readonly string[]} names
  * @param {string | null} [module]
+ * @param {readonly string[]} [tables] `names` 가운데 표 상수(`copyConstantsOf` 의 `table`)
  * @returns {string[]}
  */
-export function copyConstantMisuses(ts, file, source, names, module = null) {
+export function copyConstantMisuses(ts, file, source, names, module = null, tables = []) {
   const kind = SCRIPT_KINDS[posix.extname(file)];
   if (!kind) return [`${file}: 가르지 않는 확장자`];
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind[kind]);
@@ -770,7 +865,8 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
     return path === module;
   };
 
-  const locals = new Set(names);
+  /** 이 파일에서 그 상수를 부르는 이름 → 문구 파일의 이름 */
+  const locals = new Map(names.map((name) => [name, name]));
   const spaces = new Set();
   const found = [];
   const at = (node) => tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
@@ -778,7 +874,10 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
     if (ts.isImportDeclaration(statement) && statement.importClause) {
       const bindings = statement.importClause.namedBindings;
       if (bindings && ts.isNamedImports(bindings)) {
-        for (const one of bindings.elements) if (names.includes((one.propertyName ?? one.name).text)) locals.add(one.name.text);
+        for (const one of bindings.elements) {
+          const original = (one.propertyName ?? one.name).text;
+          if (names.includes(original)) locals.set(one.name.text, original);
+        }
       }
       if (bindings && ts.isNamespaceImport(bindings) && ts.isStringLiteral(statement.moduleSpecifier) && isModule(statement.moduleSpecifier.text)) {
         spaces.add(bindings.name.text);
@@ -798,9 +897,15 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
     }
   }
 
-  /** JSX 자식 식이고 그 조상(프래그먼트 넘어)에 값 · 코드 요소가 없거나, 글자 속성의 값인가 */
+  /** JSX 자식 식이고 그 조상(프래그먼트 넘어)에 값 · 코드 요소가 없거나, 글자 속성의 값인가 — 그대로 가는 식(괄호 · 갈래)은 건넌다 */
   const inSlot = (expression) => {
     const parent = expression.parent;
+    if (ts.isParenthesizedExpression(parent)) return inSlot(parent);
+    if (ts.isConditionalExpression(parent) && parent.condition !== expression) return inSlot(parent);
+    if (ts.isBinaryExpression(parent) && parent.right === expression) {
+      const passes = [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken];
+      return passes.includes(parent.operatorToken.kind) && inSlot(parent);
+    }
     if (!ts.isJsxExpression(parent) || parent.expression !== expression) return false;
     const holder = parent.parent;
     if (ts.isJsxAttribute(holder)) return COPY_ATTRIBUTES.includes(holder.name.getText(tree));
@@ -817,6 +922,13 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
     if (ts.isExportSpecifier(parent)) return true;
     return ts.isPropertyAccessExpression(parent) && parent.name === node;
   };
+  /** 그 상수를 부른 식이 자리에 서는가 — 표 상수면 한 칸을 꺼낸 식(`T.key` · `T[key]`)이 서야 한다 */
+  const used = (reference, name) => {
+    if (!tables.includes(name)) return inSlot(reference);
+    const take = reference.parent;
+    const taken = (ts.isPropertyAccessExpression(take) || ts.isElementAccessExpression(take)) && take.expression === reference;
+    return taken && inSlot(take);
+  };
   const visit = (node) => {
     if (ts.isCallExpression(node)) {
       const called = moduleCalled(ts, node);
@@ -826,8 +938,8 @@ export function copyConstantMisuses(ts, file, source, names, module = null) {
       if (spaces.has(node.text)) {
         const access = node.parent;
         const named = ts.isPropertyAccessExpression(access) && access.expression === node && names.includes(access.name.text);
-        if (!named || !inSlot(access)) found.push(`${named ? access.name.text : node.text}:${at(node)}`);
-      } else if (locals.has(node.text) && !inSlot(node)) found.push(`${node.text}:${at(node)}`);
+        if (!named || !used(access, access.name.text)) found.push(`${named ? access.name.text : node.text}:${at(node)}`);
+      } else if (locals.has(node.text) && !used(node, locals.get(node.text))) found.push(`${node.text}:${at(node)}`);
     }
     ts.forEachChild(node, visit);
   };
@@ -1145,8 +1257,23 @@ function mentionSources() {
 }
 
 /**
- * 문구만 바뀐 파일들이 더 켜는 차선 — 옛 글자를 말하는 시험의 차선. spec 은 그 차선(`lanesOfTest`), 흐름 검사는 `flow`,
- * spec 이 아닌 `e2e/**`(여러 spec 이 부르는 도우미 · 픽스처)나 차선을 못 찾는 spec 은 `null`(전부)
+ * 문구 파일(`COPY_FILES`)을 들이는 시험 — 그 상수를 이름으로 읽어 찾는 시험은 글자가 소스에 없어 `testsMentioning` 에 안 걸린다.
+ * 값이 바뀌어도 시험은 따라오지만, 새 글자가 화면의 다른 글자와 겹치는지는 그 시험이 돌아야 안다(G-90)
+ *
+ * @param {readonly string[]} files 문구만 바뀐 파일
+ * @param {readonly (readonly [string, string])[]} tests
+ * @returns {string[]}
+ */
+export function testsImportingCopy(files, tests) {
+  const modules = files.filter((file) => COPY_FILES.includes(file)).map((file) => escapeRegExp(file.replace(/^src\//, '').replace(/\.ts$/, '')));
+  if (modules.length === 0) return [];
+  const importing = new RegExp(`(?:\\bfrom|\\bimport\\s*\\(|\\brequire\\s*\\()\\s*['"][^'"\\n]*(?:${modules.join('|')})(?:\\.ts)?['"]`);
+  return tests.filter(([, source]) => importing.test(source)).map(([test]) => test);
+}
+
+/**
+ * 문구만 바뀐 파일들이 더 켜는 차선 — 옛 글자를 말하는 시험과 바뀐 문구 파일을 들이는 시험(`testsImportingCopy`)의 차선. spec 은
+ * 그 차선(`lanesOfTest`), 흐름 검사는 `flow`, spec 이 아닌 `e2e/**`(여러 spec 이 부르는 도우미 · 픽스처)나 차선을 못 찾는 spec 은 `null`(전부)
  *
  * @param {Map<string, string[]>} copyOnly
  * @param {readonly (readonly [string, string])[]} tests
@@ -1155,7 +1282,7 @@ function mentionSources() {
  */
 export function copyLanesOf(copyOnly, tests, ts) {
   const olds = [...copyOnly.values()].flat();
-  const hit = testsMentioning(olds, tests, ts);
+  const hit = [...new Set([...testsMentioning(olds, tests, ts), ...testsImportingCopy([...copyOnly.keys()], tests)])];
   const lanes = [];
   for (const test of hit) {
     const of = isSpec(test) || isFlowCheck(test) ? lanesOfTest(test) : null;

@@ -13,9 +13,10 @@ import {
 import { savePreferGender, setDiscoveryParticipation } from './actions';
 import { saveLatest } from './save-latest';
 import type { PreferGender } from '@/src/lib/discovery';
+import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
-import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
+import { PREFER_GENDER_ORDER } from './profile';
 
 /** 「저장했어요」가 서 있는 동안 — 읽고 지나갈 만큼 */
 const SAVED_SHOWN_MS = 2500;

@@ -3,14 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 
-import {
-  CHAT_INPUT_PLACEHOLDER,
-  CHAT_POLICY,
-  CHAT_SEND_LABEL,
-  RATE_LIMITED_TEXT,
-  TOO_LONG_TEXT,
-  checkBody,
-} from '@/src/lib/chat';
+import { CHAT_POLICY, RATE_LIMITED_TEXT, TOO_LONG_TEXT, checkBody } from '@/src/lib/chat';
+import { CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '@/src/lib/chat/copy';
 
 import { sendChatMessage } from './actions';
 import { Icon } from '../../ui/icons';

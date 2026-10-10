@@ -3,7 +3,6 @@ import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { ElementSummary } from '@/src/lib/discovery/element-axes';
 import {
   DISCOVERY_POLICY,
-  DISCOVERY_TEASER,
   boardNotes,
   candidateCardText,
   type CandidateHighlight,
@@ -70,7 +69,6 @@ type CandidateCard = {
 
 type CandidateBoard = {
   readonly policyVersion: string;
-  readonly teaser: string;
   readonly explorationNote: string | null;
   readonly notice: string | null;
   readonly cards: CandidateCard[];
@@ -121,7 +119,6 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
 
   return {
     policyVersion: DISCOVERY_POLICY.version,
-    teaser: DISCOVERY_TEASER,
     ...notes,
     cards,
   };

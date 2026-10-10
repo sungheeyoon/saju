@@ -4,14 +4,6 @@
  * 이름과 소개는 여기 없다. 그 둘은 계정의 것이고 프로필 화면이 든다(PRD 「이름과 얼굴」 · 「앱 안에서 나는 닉네임이다」).
  */
 
-import type { PreferGender } from '@/src/lib/discovery';
-
-export const PREFER_GENDER_KO: Record<PreferGender, string> = {
-  any: '상관없음',
-  female: '여자',
-  male: '남자',
-};
-
 /**
  * 화면에 서는 차례 — **넓은 쪽이 먼저다.**
  *

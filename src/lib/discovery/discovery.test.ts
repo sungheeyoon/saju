@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   DISCOVERY_DISCLOSURE,
   DISCOVERY_POLICY,
-  DISCOVERY_TEASER,
   DISCOVERY_V1,
   SCORE_POLICIES,
   boardNotes,
@@ -17,6 +16,7 @@ import {
   scoreSideOf,
   type BalanceBand,
 } from './index';
+import { DISCOVERY_TEASER } from './copy';
 import { combinedCountBalanceOf, mutualDeficitComplementOf } from './element-axes';
 
 import { computeSaju, type Element } from '../saju';

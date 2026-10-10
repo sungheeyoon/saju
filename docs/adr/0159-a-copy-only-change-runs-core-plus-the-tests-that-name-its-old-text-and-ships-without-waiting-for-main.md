@@ -148,3 +148,45 @@ PR 쪽에서 실제로 바뀐 것은 정한 것 1(문구 상수가 관문 밖으
     컴포넌트(지금 규칙으로 `core`)의 문구는 #572 전처럼 `core` 다. 여러 파일이 섞인 PR 은 파일마다 정한 계획의 합이라, 동작이 바뀐
     파일(공용 위험 · `supabase/**` · 다른 `page`)의 차선은 문구 파일 때문에 빠지지 않는다. 정규식의 쓰임 자리 규칙(덧 8)은 좁힐 때의
     근거로만 쓰인다. 배포의 대기 예외(위 3)는 바뀌지 않는다.
+
+## 덧 — 문구 상수를 쓰는 자리를 재고 모으고, 템플릿의 글자 조각과 화면용 접근성 이름도 문구로 센다 (2026-10-10, G-90 · #583)
+
+화면 점검 2차의 문구 PR(#575)이 `deploy-range` 에서 `wait` 였다. `cecdafc0` 를 위 2 로 다시 재면 판정 밖이던 자리는 여섯이다.
+① 홈 인사의 템플릿 조각(`` `${name}님, …` ``) ② 오늘의 인연 단추의 `aria-label` ③ `src/lib/chat` · `src/lib/discovery` 의 문구
+상수 ④ `app/me/discovery/profile.ts` 의 성별 표 ⑤ 보관함 바로가기 배열의 `label` ⑥ `TabHeroBody` 의 `title` 속성. 운영자가
+2026-10-10 「다 진행」했다. 글자는 한 자도 바꾸지 않았다.
+
+1. **판정 범위 — 자리 둘을 더한다.** 위 2 의 「인정하는 자리는 둘뿐」은 넷이 된다.
+   - **JSX 자식 식이 그대로 세우는 글자.** `{…}` 의 식이 화면에 그대로 세우는 문자열 · 식 없는 백틱 · 템플릿의 글자 조각이다.
+     내려가는 갈래는 괄호, 조건식의 두 갈래, `&&` · `||` · `??` 의 오른쪽뿐이다(`renderedTextsOf`). 조건, 논리식의 왼쪽(빈 글자는
+     거짓이라 결과가 바뀐다), 함수 인자, 비교, 속성 접근, 배열 · 객체 속은 자리가 아니다. 템플릿의 식 부분은 그대로 나무의 글자로
+     견준다. 그래서 식이 바뀌면 문구가 아니다.
+   - **HTML 요소의 화면용 접근성 이름.** 소문자 태그의 `aria-label` 이다(`ACCESSIBLE_NAME_ATTRIBUTES`). 따옴표 값이거나 위처럼
+     서는 식이다. 컴포넌트(`Button` · `motion.button`)의 `aria-label` 은 그 컴포넌트가 무엇에 쓰는지 몰라서 빼고, `title` · `alt` ·
+     `placeholder` · `aria-labelledby` 도 뺀다. 이번에 승인한 범위가 `aria-label` 이었다. 값 · 코드 요소 안(`option` …)은 둘 다 뺀다.
+2. **문구 파일에 글자만 든 표를 둔다.** `export const 이름 = { 키: '글자', … }`(뒤에 `as const` 는 된다)다(`copyConstantsOf`).
+   펼침 · 계산한 키 · 줄임 · 메서드 · 다른 `as` 가 하나라도 서면 그 파일은 모양이 아니다. 값만 문구이고 키가 바뀌면 문구가 아니다.
+   쓰임 잠금(`copyConstantMisuses`)은 표에서 한 칸을 꺼낸 식(`T.key` · `T[key]`)이 글자 자리에 설 때만 쓰임으로 센다. 표를 통째로
+   넘기거나(`{T}` · `Object.keys(T)`) 꺼낸 값을 다시 계산하면 오용이다. 글자 상수를 꺼내 쓰는 것(`NOTE.length`)도 오용이다.
+   자리까지 그대로 가는 식(괄호 · 조건식의 갈래 · 논리식의 오른쪽)은 쓰임이다.
+3. **쓰는 자리를 잰 것만 옮겼다.** 내보낸 글자 · 표 상수마다 부르는 파일을 모았다. 화면(`.tsx`)의 글자 자리와 시험만 부르고
+   정의한 파일 안에서도 안 쓰는 것만 옮겼다.
+   - `src/lib/chat/copy.ts` — `CHAT_EMPTY_TITLE` · `CHAT_EMPTY_DETAIL` · `CHAT_INPUT_PLACEHOLDER` · `CHAT_SEND_LABEL` ·
+     `ROOM_FIRST_HELLO` · `ROOM_SAFETY_NOTE` · `ROOM_NO_MESSAGES_YET` · `NEW_MESSAGES_LABEL` · `OLDER_MESSAGES_LABEL` · `OLDER_LOADING_LABEL`
+   - `src/lib/discovery/copy.ts` — `DISCOVERY_TEASER` · `DISCOVERY_EMPTY`(표) · `PREFER_GENDER_KO`(표, `Record<PreferGender, string>`
+     표기는 모양 밖이라 뺐다. 빠진 키는 꺼내 쓰는 화면의 타입 검사가 잡는다)
+   - `DISCOVERY_TEASER` 는 서버가 후보 목록에 실어(`candidatesForViewer` 의 `teaser`) 화면으로 넘겼다. 늘 같은 상수라 그 칸을 걷고
+     화면이 직접 읽는다.
+   - **남긴 것.** `readingCreditsNote` 는 수로 갈래를 고르고 수를 글자에 끼우는 함수다. 문구 상수가 아니고, 갈래를 화면에 옮기면
+     동작이 화면으로 간다. `CHAT_TAB_LABEL`(돌아갈 곳 · 메타데이터 제목) · `RATE_LIMITED_TEXT` · `TOO_LONG_TEXT`(액션이 돌려주는 말,
+     흐름 검사도 읽는다)와 `src/lib/reading/notes.ts` 의 상수도 남겼다. notes.ts 의 상수 다섯은 쓰임 잠금을 지나지만 자주 바꾼
+     목록에 없어 남겼다. 그 가운데 둘은 `copy-contracts` 가 계약으로 잡는 글자다. 옮기는 날은 다음 문구 라운드가 정한다.
+4. **e2e 는 문구 상수를 이름으로 읽는다.** 쓰임 잠금이 시험으로 세는 자리에 `e2e/**` 를 더했다. 글자가 바뀌어도 그 spec 을
+   고칠 일이 없다. e2e 를 고친 PR 은 여전히 문구만이 아니다(운영자). 다만 이름으로 읽는 시험은 글자 검색에 안 걸린다. 그래서 바뀐
+   문구 파일을 들이는 시험의 차선도 켠다(`testsImportingCopy`, 위 10 의 좁히기는 그대로).
+5. **`cecdafc0` 를 다시 재면** ① · ② 는 이제 문구다. ③ · ④ 는 상수가 문구 파일로 옮아 다음부터 문구다. ⑤ 는 데이터 속 문자열이고
+   ⑥ 은 컴포넌트의 속성이라 그대로 판정 밖이다. 같은 PR 이 e2e 둘을 고쳤으므로 그 PR 은 오늘 규칙으로도 `wait` 다. 빠른 배포를
+   위해 옮기기만 하는 PR 을 따로 끼워 넣지 않는다(운영자). 이 일도 한 PR 이다.
+
+남는 구멍은 위 「남는 구멍」 그대로다. 템플릿 조각은 짧아(`님,` …) 시험 검색의 넉 자 문턱에 못 미칠 수 있다. 그때는 앞뒤 글자
+통째 검색만 걸리고, 동적으로 조합한 selector 와 같은 갈래로 머지 뒤 main 의 전체가 잡는다.

@@ -11,14 +11,8 @@ import {
   type Person,
 } from './session';
 
-import {
-  CHAT_EMPTY_TITLE,
-  CHAT_POLICY,
-  LEFT_ROOM_TEXT,
-  LEFT_USER_LABEL,
-  RATE_LIMITED_TEXT,
-  closedRoomText,
-} from '@/src/lib/chat';
+import { CHAT_POLICY, LEFT_ROOM_TEXT, LEFT_USER_LABEL, RATE_LIMITED_TEXT, closedRoomText } from '@/src/lib/chat';
+import { CHAT_EMPTY_TITLE } from '@/src/lib/chat/copy';
 import { activityText } from '@/src/lib/presence';
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
 

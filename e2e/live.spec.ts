@@ -3,7 +3,8 @@ import type { Page } from '@playwright/test';
 
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
-import { CHAT_EMPTY_TITLE, NEW_MESSAGES_LABEL, OLDER_MESSAGES_LABEL, closedRoomText } from '@/src/lib/chat';
+import { closedRoomText } from '@/src/lib/chat';
+import { CHAT_EMPTY_TITLE, NEW_MESSAGES_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
 /**

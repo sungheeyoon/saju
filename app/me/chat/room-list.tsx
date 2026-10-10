@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, ROOM_NO_MESSAGES_YET, roomNoticeOf } from '@/src/lib/chat';
+import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, roomNoticeOf } from '@/src/lib/chat';
+import { ROOM_NO_MESSAGES_YET } from '@/src/lib/chat/copy';
 import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
