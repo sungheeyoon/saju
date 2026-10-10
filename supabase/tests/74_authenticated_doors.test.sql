@@ -38,7 +38,6 @@ select set_eq(
            ('is_element_summary(summary jsonb)'),
            ('is_need_summary(summary jsonb)'),
            ('leave_reading_feedback(p_run_id uuid, p_usefulness smallint, p_perceived_fit smallint, p_felt_length text, p_issue_tags text[], p_comment text)'),
-           ('mark_chat_read(p_match_id uuid)'), -- 옛 서명 — 넓히는 동안 두 벌이다(G-77). 좁히는 날 이 줄을 뺀다
            ('mark_chat_read(p_match_id uuid, p_up_to_seq bigint)'),
            ('mark_notifications_read()'),
            ('mark_reading_ready_read(p_reading_id uuid)'),
