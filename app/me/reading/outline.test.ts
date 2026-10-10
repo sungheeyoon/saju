@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { selfSectionTitlesOf } from '@/src/lib/reading';
 
-import { readingOutline } from './outline';
+import { progressSoFar, readingOutline } from './outline';
 import type { RunProgress } from './current';
 
 /** 서버가 넘기는 절 이름 — 자기 풀이 · 다른 사람 풀이 */
@@ -47,8 +47,8 @@ describe('기다리는 화면의 목차', () => {
     expect(rows[9]).toBe('waiting');
   });
 
-  it('본문을 다 썼거나 가져가는 중이면 절은 다 완료 · 마지막 검토가 검토 중이다', () => {
-    for (const progress of [at('submitted', 9, true), at('retrieving', 4), at('submitted', 2, true)]) {
+  it('본문을 다 썼으면 절은 다 완료 · 마지막 검토가 검토 중이다', () => {
+    for (const progress of [at('submitted', 9, true), at('retrieving', 9, true), at('submitted', 2, true)]) {
       const rows = states(readingOutline(SOLO, progress));
       expect(rows.slice(0, 9)).toEqual(Array(9).fill('done'));
       expect(rows[9]).toBe('reviewing');
@@ -63,8 +63,50 @@ describe('기다리는 화면의 목차', () => {
     const rows = readingOutline(null, at('submitted', 3));
     expect(rows.map((row) => row.label)).toEqual(['첫 번째 이야기', '두 번째 이야기', '세 번째 이야기', '마지막 검토']);
     expect(states(rows)).toEqual(['done', 'done', 'writing', 'waiting']);
-    expect(states(readingOutline(null, at('retrieving', 5)))).toEqual([
+    expect(states(readingOutline(null, at('retrieving', 5, true)))).toEqual([
       'done', 'done', 'done', 'done', 'done', 'reviewing',
     ]);
+  });
+});
+
+/**
+ * **한 번 앞선 줄은 뒤로 가지 않는다**(2026-10-10 운영 smoke — 「마지막 검토까지 완료됐다가 다시 위로 올라간다」).
+ *
+ * 복구기(`reading-recovery`, 1분마다)는 도는 작업을 집어 `retrieving` 으로 표시하고, 아직 쓰는 중이면 `submitted` 로 놓는다
+ * (`release_reading_job`). 그 사이에 물으면 `retrieving` 이 온다 — 그것을 「본문을 다 썼다」로 읽으면 목차가 끝까지 갔다가
+ * 놓는 순간 쓰던 절로 되돌아간다.
+ */
+describe('목차가 지나온 값', () => {
+  /** 화면이 3초마다 받은 값을 차례로 접는다 — `panel.tsx` 가 하는 그대로 */
+  const fold = (seen: readonly (RunProgress | null)[]) => {
+    let progress: RunProgress | null = null;
+    return seen.map((value) => {
+      progress = progressSoFar(progress, value);
+      return states(readingOutline(SOLO, progress));
+    });
+  };
+
+  it('복구기가 집었다 놓은 작업의 `retrieving` 은 본문을 다 쓴 것이 아니다', () => {
+    expect(states(readingOutline(SOLO, at('retrieving', 4)))).toEqual(states(readingOutline(SOLO, at('submitted', 4))));
+  });
+
+  it('쓰는 중 · 복구기가 집음 · 놓음 · 끝 — 어느 물음에서도 줄이 뒤로 가지 않는다', () => {
+    const seen = fold([at('submitted', 4), at('retrieving', 4), at('submitted', 4), at('submitted', 9, true), null]);
+    const rank = { waiting: 0, writing: 1, reviewing: 1, done: 2 } as const;
+    for (let step = 1; step < seen.length; step += 1) {
+      seen[step].forEach((state, row) => expect(rank[state]).toBeGreaterThanOrEqual(rank[seen[step - 1][row]]));
+    }
+  });
+
+  it('끝난 시도 · 못 본 시도로 진행이 비어 와도 목차를 비우지 않는다', () => {
+    const [, last] = fold([at('submitted', 9, true), null]);
+    expect(last.slice(0, 9)).toEqual(Array(9).fill('done'));
+    expect(last[9]).toBe('reviewing');
+  });
+
+  it('늦게 온 작은 값이 앞선 절을 되돌리지 못한다', () => {
+    const [, later] = fold([at('submitted', 5), at('submitted', 3)]);
+    expect(later[3]).toBe('done');
+    expect(later[4]).toBe('writing');
   });
 });

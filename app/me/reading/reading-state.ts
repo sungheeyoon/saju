@@ -37,7 +37,18 @@ export type ReadingFlow = {
   readonly failure: string | null;
   /** 개발용 예시 글 — 진짜 글은 서버가 들고 이 칸은 안 든다 */
   readonly mock: CurrentReading | null;
+  /**
+   * 성공을 본 물음의 수 — **끝났는데 새 글이 아직 화면에 안 선 사이**에만 값이 있다(그 밖에는 `null`).
+   *
+   * 끝난 것을 본 물음의 응답이 화면을 다시 싣지만(`readingRunState` 의 `refreshPaths`), Next 는 액션의 답을 새 화면을 세우기
+   * 전에 돌려준다. 그 답으로 곧바로 기다림을 내리면 **기다리기 전의 글**(다시 받기라면 지난 풀이)이 먼저 섰다가 바뀐다.
+   * 그래서 새 글이 설 때까지(`arrived`) 기다리는 모습에 머문다. 끝내 안 오면 `ARRIVAL_ASKS` 번째 물음에서 내린다.
+   */
+  readonly arriving: number | null;
 };
+
+/** 끝난 뒤 새 글을 기다리는 물음의 수 — 시간이 아니라 물음으로 센다(한 물음 `RUN_ASK_EVERY_MS`) */
+export const ARRIVAL_ASKS = 3;
 
 /**
  * **연결을 못 쓸 때 대신 보이는 글에 붙는 말.**
@@ -60,8 +71,10 @@ export type ReadingEvent =
   | { type: 'threw' }
   /** 연결을 못 써서 예시 글을 세운다 */
   | { type: 'mock'; reading: CurrentReading }
-  /** 지켜보던 시도가 끝났다 */
-  | { type: 'settled'; status: 'succeeded' | 'failed' };
+  /** 지켜보던 시도가 끝났다 — `arrived` 는 **그 물음을 본 때 이미 새 글이 서 있었나**다 */
+  | { type: 'settled'; status: 'succeeded' | 'failed'; arrived: boolean }
+  /** 기다리기 전과 다른 글이 화면에 섰다 */
+  | { type: 'arrived' };
 
 /**
  * 화면이 열릴 때의 자리 — **도는 시도는 내 누름이 아니어도 기다린다.**
@@ -80,6 +93,7 @@ export function initialFlow({
     phase: running ? 'loading' : 'idle',
     failure: failed ? READING_FAILED_NOTE : null,
     mock: null,
+    arriving: null,
   };
 }
 
@@ -87,7 +101,7 @@ export function readingFlow(state: ReadingFlow, event: ReadingEvent): ReadingFlo
   switch (event.type) {
     /* 누르면 앞의 것은 다 지운다 — 지난번 실패도, 세워 두었던 예시 글도 */
     case 'press':
-      return { phase: 'loading', failure: null, mock: null };
+      return { phase: 'loading', failure: null, mock: null, arriving: null };
 
     /**
      * **열지 못한 것도 기다릴 일이다.** 한 대상에 도는 시도는 하나라, 이미 도는 것이
@@ -106,7 +120,7 @@ export function readingFlow(state: ReadingFlow, event: ReadingEvent): ReadingFlo
       return { ...state, phase: 'error', failure: READING_UNEXPECTED_NOTE };
 
     case 'mock':
-      return { phase: 'idle', failure: READING_MOCK_NOTE, mock: event.reading };
+      return { phase: 'idle', failure: READING_MOCK_NOTE, mock: event.reading, arriving: null };
 
     /**
      * **끝나면 앞서 세운 말도 함께 걷는다.**
@@ -115,12 +129,22 @@ export function readingFlow(state: ReadingFlow, event: ReadingEvent): ReadingFlo
      * 도는 시도를 기다리다 그것이 성공하면, 새 글 옆에 **「이미 만들고 있는 시도가
      * 있어요」가 그대로 남았다** — 끝난 일을 가리키는 문장이다.
      */
-    case 'settled':
+    case 'settled': {
+      const asks = (state.arriving ?? 0) + 1;
+      if (event.status === 'succeeded' && !event.arrived && asks < ARRIVAL_ASKS) {
+        return { ...state, phase: 'loading', failure: null, arriving: asks };
+      }
       return {
         ...state,
         phase: 'idle',
         failure: event.status === 'failed' ? READING_FAILED_NOTE : null,
+        arriving: null,
       };
+    }
+
+    /* 도는 중에 다시 그려진 화면은 도착이 아니다 — 성공을 본 뒤에만 기다림을 내린다 */
+    case 'arrived':
+      return state.arriving === null ? state : { ...state, phase: 'idle', arriving: null };
   }
 }
 
@@ -221,7 +245,11 @@ export function afterPress(outcome: PressOutcome, preview: CurrentReading | null
  * 만들지 않았거나 못 보는 대상」을 한 값으로 낸다). 어느 쪽도 기다림을 끝낼 근거가
  * 못 된다.
  */
-export function afterAsking(answer: RunAnswer): FlowDecision {
+export function afterAsking(
+  answer: RunAnswer,
+  /** 기다리기 전과 다른 글이 이미 화면에 서 있나 — 아니면 끝났어도 새 글을 기다린다(`ReadingFlow.arriving`) */
+  arrived: boolean,
+): FlowDecision {
   if (answer.kind !== 'settled') return nothing(null);
 
   /*
@@ -232,7 +260,7 @@ export function afterAsking(answer: RunAnswer): FlowDecision {
     싣는다(`readingRunState` 의 `refreshPaths`, ADR 0016 덧). 칸이 한 번 더 읽으면 같은 화면을 두 번 그린다.
   */
   return {
-    event: { type: 'settled', status: answer.status },
+    event: { type: 'settled', status: answer.status, arrived },
     announcesCredits: true,
   };
 }
