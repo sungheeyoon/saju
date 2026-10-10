@@ -16,16 +16,12 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from '../../same-chart-ask';
-import {
-  BUTTON_DANGER,
-  BUTTON_PRIMARY,
-  BUTTON_SECONDARY,
-  BUTTON_TERTIARY,
-} from '../../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { actionAnswer } from '../../ui/action-answer';
-import { CONFIRM_FIRST_FOCUS, openConfirmDialog } from '../../ui/confirm-dialog';
+import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
+import { useLeaveGuard } from '../../ui/leave-guard';
+import { EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -74,9 +70,13 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   /** 같은 명식이 이미 있으면 여기 선다 — 서 있는 동안 등록 버튼은 자리를 비운다 */
   const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [saving, startSaving] = useTransition();
-  const form = useRef<HTMLElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  /** 「등록」을 눌러 봤나 — 빠진 칸의 말이 도움말에서 경고로 바뀌는 때(ADR 0160 의 3) */
+  const [tried, setTried] = useState(false);
 
   const missing = missingAnswer(query);
+  /* 적어 둔 메모가 있으면 탭을 닫기 전에 묻는다 — 출생 정보 칸은 다시 고르면 되지만 메모는 다시 적어야 한다 */
+  useLeaveGuard(open && note.trim() !== '');
 
   /* 펼치면 그 칸으로 데려간다 — 폰에서는 폼 머리가 화면 아래에 걸려 열린 줄 모른다 */
   useEffect(() => {
@@ -116,7 +116,22 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
   const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
+  /**
+   * **단추를 잠그지 않는다** — 빠진 칸이 있으면 누른 그때 말하고 그 칸으로 데려간다(`docs/context/copy.md` §8 「거절은 누른 뒤에
+   * 말한다」, ADR 0160). 초점은 이름이 비었으면 이름 칸, 아니면 아직 빈 입력 칸이다 — 궁합 고르는 판(`compat-picker.tsx`)과 같은 몸짓.
+   */
   const save = () => {
+    if (missing !== null) {
+      setTried(true);
+      const fields = [
+        ...(form.current?.querySelectorAll<HTMLInputElement>(
+          'input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)',
+        ) ?? []),
+      ];
+      (fields.find((one) => one.getAttribute('aria-invalid') === 'true') ?? fields.find((one) => one.value === ''))?.focus();
+      return;
+    }
+    setTried(false);
     setFailure(null);
     startSaving(async () => settle(await attempt(false)));
   };
@@ -152,9 +167,15 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   }
 
   return (
-    <section
+    <form
       ref={form}
       id="add"
+      /* 폼이다 — 칸에서 Enter · 자판의 「이동」이 곧 「등록」이다. 같은 사람을 묻는 동안(`question`)은 그 답을 먼저 받는다 */
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (question === null && !saving) save();
+      }}
+      noValidate
       className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-7"
     >
       <header className="flex flex-col gap-1.5">
@@ -189,15 +210,29 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button
+              type="submit"
+              disabled={saving}
+              aria-disabled={missing !== null || undefined}
+              aria-describedby={missing !== null ? 'add-person-missing' : undefined}
+              className={BUTTON_PRIMARY}
+            >
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
               취소
             </button>
           </div>
-          {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <p className={TYPE_META}>{missing}</p>}
+          {/* 빠진 칸을 단추 곁에서 말한다 — 누르기 전에는 도움말, 누른 뒤에는 경고 색(ADR 0160 의 3) */}
+          {missing !== null && (
+            <p
+              id="add-person-missing"
+              role={tried ? 'alert' : undefined}
+              className={tried ? 'text-sm font-medium text-danger' : TYPE_META}
+            >
+              {missing}
+            </p>
+          )}
         </div>
       )}
 
@@ -206,7 +241,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
           저장하지 못했어요. {failure}
         </p>
       )}
-    </section>
+    </form>
   );
 }
 
@@ -271,6 +306,8 @@ export function NoteEditor({
   const [saving, startSaving] = useTransition();
 
   const changed = value.trim() !== note.trim();
+  /* 고친 메모가 있으면 탭을 닫기 전에 묻는다 — 저장하거나 그만두면 판이 내려가며 걷힌다 */
+  useLeaveGuard(changed);
 
   const save = () => {
     setFailure(null);
@@ -282,11 +319,18 @@ export function NoteEditor({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card">
+    /* 폼이다 — 칸 밖의 Enter(자판의 「이동」)가 곧 「메모 저장」이다. 메모 칸 안의 Enter 는 줄바꿈이다 */
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (changed && !saving) save();
+      }}
+      className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card"
+    >
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">
         {/* 저장은 판마다 같은 주 단추다 — 출생 정보 · 프로필과 한 벌(2026-10-10 화면 점검 B17) */}
-        <button type="button" onClick={save} disabled={!changed || saving} className={BUTTON_PRIMARY}>
+        <button type="submit" disabled={!changed || saving} className={BUTTON_PRIMARY}>
           {saving ? '저장하는 중…' : '메모 저장'}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
@@ -298,7 +342,7 @@ export function NoteEditor({
           </span>
         )}
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -317,14 +361,8 @@ export function RemoveConfirm({
   label: string;
   onCancel: () => void;
 }) {
-  const confirming = useRef<HTMLDialogElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [removing, startRemoving] = useTransition();
-
-  useEffect(() => {
-    /* 첫 초점은 「취소」다 — 되돌릴 수 없는 누름이 Enter 한 번에 나지 않게(B5) */
-    openConfirmDialog(confirming.current);
-  }, []);
 
   const remove = () => {
     setFailure(null);
@@ -334,37 +372,19 @@ export function RemoveConfirm({
     });
   };
 
+  /* 메뉴에서 고르면 서고 서자마자 열린다 — 첫 초점은 「취소」(확인 창 한 벌, ADR 0166) */
   return (
-    <dialog
-      ref={confirming}
-      aria-labelledby={`remove-person-${personId}`}
-      onCancel={(event) => {
-        if (removing) event.preventDefault();
-      }}
+    <ConfirmDialog
+      open
       onClose={onCancel}
-      className={DIALOG}
+      title={`${label} 님을 목록에서 뺄까요?`}
+      confirmLabel={removing ? '빼는 중…' : '목록에서 빼기'}
+      onConfirm={remove}
+      danger
+      busy={removing}
+      failure={failure === null ? null : `빼지 못했어요. ${failure}`}
     >
-      <h3 id={`remove-person-${personId}`} className="font-rounded text-[1.3rem] leading-7">
-        {label} 님을 목록에서 뺄까요?
-      </h3>
-      <p className="mt-2 text-[15px] leading-6 text-secondary">
-        저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
-      </p>
-      {failure !== null && <p role="alert" className="mt-3 text-sm text-danger">빼지 못했어요. {failure}</p>}
-      <div className={DIALOG_ACTIONS}>
-        <button type="button" onClick={remove} disabled={removing} className={BUTTON_DANGER}>
-          {removing ? '빼는 중…' : '목록에서 빼기'}
-        </button>
-        <button
-          type="button"
-          onClick={() => confirming.current?.close()}
-          disabled={removing}
-          className={BUTTON_SECONDARY}
-          {...CONFIRM_FIRST_FOCUS}
-        >
-          취소
-        </button>
-      </div>
-    </dialog>
+      <p>저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.</p>
+    </ConfirmDialog>
   );
 }

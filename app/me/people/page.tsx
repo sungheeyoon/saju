@@ -312,7 +312,7 @@ function PersonCard({
         <h2 className={`${TYPE_NAME} truncate`}>
           <Link
             href={`/me/people/${person.personId}`}
-            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
+            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           >
             {person.local_label}
             {/* 사람 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누르면 카드 테가 선다(`LinkPending`) */}

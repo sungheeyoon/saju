@@ -98,14 +98,20 @@ export const BADGE =
 */
 
 /**
- * 확인 창 — 되돌리기 어려운 누름 앞의 `<dialog>`. `m-auto` 는 장식이 아니다 — Tailwind 의 preflight 이
+ * 확인 창 — 되돌리기 어려운 누름 앞의 `<dialog>`. 창 한 벌은 `app/ui/confirm-dialog.tsx` 의 `ConfirmDialog` 가 이 판을 입는다. `m-auto` 는 장식이 아니다 — Tailwind 의 preflight 이
  * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
  */
 export const DIALOG =
   'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
 
-/** 확인 창의 단추 줄 — 누르는 쪽이 오른쪽이고, 좁은 화면에서는 위아래로 서며 그때도 확인이 위다 */
-export const DIALOG_ACTIONS = 'mt-6 flex flex-col gap-2 sm:flex-row-reverse';
+/**
+ * 묻는 자리의 단추 줄 — 누르는 쪽(실행)을 먼저 적고 「취소」를 뒤에 적는다. 넓으면 실행이 오른쪽, 좁은 화면에서는 위아래로 서며
+ * 그때도 실행이 위다. 창이 아니라 판 안에서 한 번 더 묻는 자리(대화방의 차단 · 탈퇴)도 같은 차례다(ADR 0166)
+ */
+export const CONFIRM_ROW = 'flex flex-col gap-2 sm:flex-row-reverse';
+
+/** 확인 창의 단추 줄 — `CONFIRM_ROW` 에 제목 · 본문과 띄우는 여백 */
+export const DIALOG_ACTIONS = `mt-6 ${CONFIRM_ROW}`;
 
 /** 「수정 전」 딱지 — 출생 정보를 고치기 전에 만든 풀이. 11px 딱지 단이다 */
 export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning';

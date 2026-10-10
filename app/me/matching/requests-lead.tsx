@@ -61,13 +61,13 @@ export function ReceivedRequests({ loaded }: { loaded: RequestsRead }) {
               아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
             */}
             <MatchConsentQuestion />
-            <RespondButtons requestId={request.requestId} />
+            <RespondButtons requestId={request.requestId} nickname={request.nickname} />
             {/*
               신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
               성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
             */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2">
-              <BlockButton userId={request.counterpartUserId} />
+              <BlockButton userId={request.counterpartUserId} nickname={request.nickname} />
               <ReportButton userId={request.counterpartUserId} />
             </div>
           </li>
@@ -99,7 +99,7 @@ export function PastRequestList({ past, guide }: { past: PastRequests; guide: bo
                 <p className="text-sm leading-6 text-secondary">{REQUEST_STATUS_TEXT.pending.sent}</p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-1">
                   <CancelButton requestId={request.requestId} />
-                  <BlockButton userId={request.counterpartUserId} />
+                  <BlockButton userId={request.counterpartUserId} nickname={request.nickname} />
                 </div>
               </li>
             ))}
