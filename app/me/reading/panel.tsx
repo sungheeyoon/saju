@@ -32,7 +32,7 @@ import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown, READING_COLUMN } from './markdown';
 import { coverFace, readingMinutes } from './essay';
-import { readingOutline, type OutlineRow } from './outline';
+import { progressSoFar, readingOutline, type OutlineRow } from './outline';
 import { watchRun, type PageVisibility } from './watch-run';
 import { markAndAnnounce, newsKeyOf, readNewsWhenSeen } from './news-read';
 import { announceNotificationsUnreadMoved } from '../requests/unread-signal';
@@ -315,10 +315,22 @@ export function ReadingPanel({
     initialFlow,
   );
   /**
-   * 서버가 적은 진행 — **물을 때마다 그 답으로 갈아 끼운다.** 흐름(`readingFlow`)에 안 넣는 것은 이 값이 무엇이
-   * 서는지(글 · 빈 칸 · 기다림)를 안 바꾸고 기다리는 칸 안의 줄만 바꾸기 때문이다.
+   * 서버가 적은 진행 — **물을 때마다 지나온 값에 접는다**(`progressSoFar`, 한 번 앞선 줄은 뒤로 가지 않는다). 흐름
+   * (`readingFlow`)에 안 넣는 것은 이 값이 무엇이 서는지(글 · 빈 칸 · 기다림)를 안 바꾸고 기다리는 칸 안의 줄만 바꾸기 때문이다.
    */
   const [progress, setProgress] = useState(initialProgress);
+
+  /**
+   * **기다리기 전에 서 있던 글** — 끝난 뒤 이것과 다른 글이 서야 기다림을 내린다(`ReadingFlow.arriving`). 열 때 도는 시도가
+   * 있었으면 그때의 글, 누르면 누를 때의 글이다. 지금 선 글은 물음의 답이 오는 자리에서 읽으므로 참조로 든다.
+   */
+  const shownKey = newsKeyOf(initialReading);
+  const keyBeforeWait = useRef(shownKey);
+  const keyNow = useRef(shownKey);
+  useEffect(() => {
+    keyNow.current = shownKey;
+    if (shownKey !== keyBeforeWait.current) dispatch({ type: 'arrived' });
+  }, [shownKey]);
 
   const { phase, failure } = flow;
   /* 예시 글이 서 있는 것과 `mock !== null` 은 같은 말이다 — 따로 들면 한쪽만 지운다 */
@@ -371,9 +383,9 @@ export function ReadingPanel({
       if (!alive) return;
 
       /* 못 물었으면 앞서 본 진행을 그대로 둔다 — 한 번 끊긴 것으로 목차를 비우지 않는다 */
-      if (seen !== undefined) setProgress(seen);
+      if (seen !== undefined) setProgress((before) => progressSoFar(before, seen));
 
-      apply(afterAsking(answer), dispatch);
+      apply(afterAsking(answer, keyNow.current !== keyBeforeWait.current), dispatch);
     };
 
     const stop = watchRun({ ask, visibility: documentVisibility });
@@ -389,6 +401,7 @@ export function ReadingPanel({
     setPressed(true);
     /* 새 시도다 — 지난 시도의 진행을 들고 가지 않는다 */
     setProgress(null);
+    keyBeforeWait.current = keyNow.current;
 
     /*
       **예시 글은 누르는 자리에서 짓는다.** 지을 수 있는가는 이 화면이 알고
