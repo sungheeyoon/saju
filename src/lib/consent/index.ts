@@ -105,11 +105,11 @@ export const NOTIFICATION_KINDS = [
    */
   'request_expired',
   /**
-   * 풀이가 다 됐다 — **인연 궁합은 상대에게, 내가 주인인 풀이(내 사주 · 저장한 사람 · 궁합풀이)는 연 사람에게 선다**(ADR 0157).
+   * 풀이가 다 됐다 — **연 사람에게 선다. 인연 궁합은 두 사람 다에게 선다**(ADR 0157).
    *
-   * 인연 궁합의 상대는 자기가 보던 글이 바뀐 것을 알아야 한다. 연 사람에게는 처음에 안 세웠다 — 「누른 사람은 결과를 그 자리에서
-   * 본다」였다. 몇 분짜리 일 앞에서 다른 화면으로 가도 되게 만든 뒤로(ADR 0016) 그 전제가 참이 아니다. 인연 궁합을 연 쪽에는 아직
-   * 안 선다(G-81).
+   * 몇 분짜리 일 앞에서 다른 화면으로 가도 되게 만들었으므로(ADR 0016) 「누른 사람은 결과를 그 자리에서 본다」는 참이 아니다.
+   * 인연 궁합의 상대는 자기가 보던 글이 바뀐 것을 알아야 한다. 결과 화면이 그 글을 보이면 그 풀이의 완성 소식은 읽음이 된다
+   * (`mark_reading_ready_read`).
    */
   'reading_ready',
   /**
@@ -134,7 +134,7 @@ type NotificationEvent = {
   readonly kind: NotificationKind;
   /** 상대의 별명. 상대가 없는 사건이거나 프로필을 못 읽으면 `null` */
   readonly nickname: string | null;
-  /** 풀이 소식(`reading_ready` · `reading_failed`)이 무엇을 만들었나. 다른 사건 · 인연 궁합 상대의 완성 소식에는 없다 */
+  /** 풀이 소식(`reading_ready` · `reading_failed`)이 무엇을 만들었나. 다른 사건 · 인연 궁합의 완성 소식에는 없다 */
   readonly readingKind: ReadingKind | null;
   /**
    * 그 풀이의 두 사람을 **내가 부르는 이름** — 완성 소식이 누구의 것인지 말한다(ADR 0157). 내 사주 · 못 읽음이면 `null`.
@@ -189,7 +189,7 @@ export function notificationText({
         ? '답이 없어 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.'
         : `${who} 님에게 보낸 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.`;
     case 'reading_ready': {
-      /* 인연 궁합 — 상대가 받는 소식은 시도를 안 가리켜 `readingKind` 가 없다 */
+      /* 인연 궁합 — 완성 소식은 시도 대신 Match 를 가리켜 `readingKind` 가 없다. 두 사람 다 같은 문장으로 상대를 부른다 */
       if (readingKind === null || readingKind === 'match') {
         return who === '' ? '인연 궁합이 완성됐어요' : `${who} 님과의 인연 궁합이 완성됐어요`;
       }

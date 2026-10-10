@@ -7,7 +7,7 @@
 --   3. **남에게는 안 선다**
 --   4. **소식이 서면 안 읽은 소식이다** — 머리글의 종이 센다(`bellCount` 는 `request_received` 만 뺀다)
 --
--- 인연 궁합은 그대로 상대에게만 선다 — `13_reading` 이 잰다. 저장하는 문의 `else` 갈래를 지우면 1 이 붉다.
+-- 인연 궁합은 두 사람 다에게 선다 — `13_reading` 이 잰다. 결과 화면이 읽음으로 바꾸는 것은 `86_reading_ready_read_on_open`. 저장하는 문의 `else` 갈래를 지우면 1 이 붉다.
 begin;
 select plan(7);
 

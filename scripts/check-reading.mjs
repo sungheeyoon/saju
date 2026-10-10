@@ -597,13 +597,18 @@ try {
       번째 분」이 잡힌다. 그리는 함수 쪽은 `display.test.ts` 가 값으로 붙든다.
     */
 
-    /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
-    /* 닉네임이 있든 없든 「…인연 궁합이 완성됐어요」로 끝난다(`notificationText`) */
+    /**
+     * 준비 완료는 **두 사람 다에게** 뜬다 — 시도를 연 쪽(청한 사람)에게도(ADR 0157 「2026-10-10 덧」). 문장은 읽는 사람의
+     * 상대를 부른다. 닉네임이 있든 없든 「…인연 궁합이 완성됐어요」로 끝난다(`notificationText`).
+     *
+     * 위에서 양쪽이 결과 화면을 열었지만 서버가 그린 HTML 을 받았을 뿐이다 — 읽음으로 바꾸는 것은 브라우저에서 화면이 선 뒤의 일이라
+     * (`news-read.ts`) 여기서는 두 소식이 안 읽은 채 선다.
+     */
     const told = (text) => text.includes('인연 궁합이 완성됐어요');
     const inbox = plain(await body('/me/requests', cookie.b));
-    check('상대의 알림함에 준비 완료가 뜬다', told(inbox));
+    check('상대의 알림함에 준비 완료가 뜬다', told(inbox) && inbox.includes(`${NAME.a} 님과의 인연 궁합이 완성됐어요`));
     const mineInbox = plain(await body('/me/requests', cookie.a));
-    check('누른 사람에게는 뜨지 않는다', !told(mineInbox));
+    check('연 사람의 알림함에도 준비 완료가 뜬다', mineInbox.includes(`${NAME.b} 님과의 인연 궁합이 완성됐어요`));
   }
 
   // ── 4-1. 만든 글은 한 목록에 선다 ────────────────────────────────────────

@@ -13,7 +13,7 @@
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
 -- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(49);
+select plan(50);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -189,6 +189,8 @@ from (values
 
   -- 막히지 않되 아무것도 안 쓴다
   ('mark_notifications_read', $$select public.mark_notifications_read()$$, 'OK', '보이는 알림(`visible_notifications`)이 활성 계정만 낸다 — 0 을 고친다'),
+  ('mark_reading_ready_read', format($$select public.mark_reading_ready_read(%L)$$, gen_random_uuid()), 'OK',
+                            '보이는 알림(`visible_notifications`)이 활성 계정만 낸다 — 0 을 고친다'),
   ('touch_activity',        $$select public.touch_activity()$$, 'OK', '활성 계정이 아니면 쓰지 않고 거짓을 낸다'),
 
   -- 의도적으로 열려 있다 — 운영자 결정(2026-09-30): 남에게 해가 없고 후속 피해를 줄인다
