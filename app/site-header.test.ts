@@ -46,6 +46,8 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () =
     ['/me/compat', 'compat'],
     ['/me/match/example', 'match'],
   ] as const;
+  /** 온 곳을 읽는 결과 — 인연 궁합은 빼고 아래에서 따로 잰다*/
+  const BY_PLACE = RESULTS.filter(([, kind]) => kind !== 'match');
   const LIGHTS: Record<string, string[]> = {
     me: ['/me'],
     shelf: ['/me'],
@@ -55,12 +57,22 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () =
     chat: ['/me/chat'],
     news: [],
   };
-  it.each(RESULTS)('%s 는 온 곳의 탭을 켠다', (pathname) => {
+  it.each(BY_PLACE)('%s 는 온 곳의 탭을 켠다', (pathname) => {
     for (const [from, tabs] of Object.entries(LIGHTS)) {
       expect(activeTabs(pathname, from), `${pathname} from=${from}`).toEqual(tabs);
     }
     expect(isNavigationActive(pathname, '/me/requests', 'news')).toBe(true);
     expect(isNavigationActive(pathname, '/me/requests', 'me')).toBe(false);
+  });
+
+  /** 같은 글이 보관함에서 열면 홈, 방에서 열면 채팅을 켜면 한 글이 두 이름으로 읽힌다(ADR 0134 덧붙임) */
+  it('인연 궁합은 틀 안팎 어디서 와도 인연을 켠다 — 종도 안 켠다', () => {
+    for (const pathname of ['/me/match/example', '/me/readings/match/example']) {
+      for (const from of [null, ...Object.keys(LIGHTS)]) {
+        expect(activeTabs(pathname, from), `${pathname} from=${from}`).toEqual(['/me/matching']);
+        expect(isNavigationActive(pathname, '/me/requests', from)).toBe(false);
+      }
+    }
   });
 
   it('온 곳이 없거나 모르는 값이면 결과 종류의 탭이다 — 사주는 홈, 궁합은 궁합, 인연은 인연', () => {
