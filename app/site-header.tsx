@@ -139,9 +139,15 @@ export function SiteHeader() {
   const live = memberNavigation && !ended;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
   const creditsLabel = useReadingCredits(session === 'in' && !ended && !operator);
-  const unreadChat = useUnreadCount(live, pathname, readUnreadChat, CHAT_UNREAD_MOVED);
-  const unreadNews = useUnreadCount(live, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
-  const toAnswer = useUnreadCount(live, pathname, readRequestsToAnswer, REQUESTS_TO_ANSWER_MOVED);
+  /**
+   * **수는 세션을 확인한 뒤에만 묻는다**(G-78). 회원 화면 주소에서는 세션을 알기 전에도 회원 머리글이 자리를 잡는데(`live`),
+   * 그 자리가 묻기까지 하면 로그인하지 않은 사람이 로그인으로 옮겨지기 전에 세 문을 비회원으로 불러 401 · `42501` 이 콘솔에
+   * 섰다. 모양은 `live` 가 그대로 정한다 — 딱지만 세션이 선 뒤에 온다.
+   */
+  const counting = live && session === 'in';
+  const unreadChat = useUnreadCount(counting, pathname, readUnreadChat, CHAT_UNREAD_MOVED);
+  const unreadNews = useUnreadCount(counting, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
+  const toAnswer = useUnreadCount(counting, pathname, readRequestsToAnswer, REQUESTS_TO_ANSWER_MOVED);
   /** 탭마다 선 딱지 — 채팅은 안 읽은 메시지, 인연은 답할 요청(ADR 0130) */
   const tabBadges: Partial<Record<(typeof MEMBER_TABS)[number]['href'], number>> = {
     '/me/chat': unreadChat,
