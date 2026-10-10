@@ -42,10 +42,11 @@ const tiny = light
 
 /**
  * 알림 배지 — 흰 실루엣. 좌표는 `app/icon.svg` 그대로이고 반지름은 원본 반지름 + 테두리 절반이다.
- * 무리의 상자(x 8.6~58.5 · y 4.2~50.4)를 가운데로: (−1.5, +4.7)
+ * 무리의 상자(x 8.6~58.5 · y 4.2~50.4)를 가운데로 (−1.5, +4.7) 옮기고, 칸 가운데를 축으로 1.12 배 키운다 — 96 칸의 너비 88% ·
+ * 높이 81% 를 차고 가장자리에 6~9px 를 남긴다(운영자 2026-10-10 「칸에 더 크게, 약 80%」). 1 배는 79% · 73% 였다
  */
 const badge = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <g fill="#fff" transform="translate(-1.5 4.7)">
+  <g fill="#fff" transform="translate(32 32) scale(1.12) translate(-32 -32) translate(-1.5 4.7)">
     <path d="M32 32 L51.5 43.2" stroke="#fff" stroke-width="3.6" stroke-linecap="round" />
     <circle cx="32" cy="32" r="10.9" />
     <circle cx="32" cy="9.5" r="5.3" />
