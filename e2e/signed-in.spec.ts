@@ -3716,9 +3716,13 @@ test.describe('풀이를 기다리는 화면', () => {
     const runId = started.data?.[0]?.run_id as string;
 
     const asks: number[] = [];
+    /* 글이 서면 칸이 그 풀이의 완성 소식을 읽음으로 바꾸는 액션 하나를 부른다(ADR 0157 「2026-10-10 덧」) — 인자가 글 id 하나라 대상(`kind`)을 안 싣는다 */
+    const newsReads: number[] = [];
     const rereads: number[] = [];
     page.on('request', (request) => {
-      if (request.method() === 'POST' && request.headers()['next-action']) asks.push(Date.now());
+      if (request.method() === 'POST' && request.headers()['next-action']) {
+        (request.postData()?.includes('"kind"') ? asks : newsReads).push(Date.now());
+      }
       if (request.method() === 'GET' && (request.url().includes('_rsc=') || request.headers()['rsc'] === '1')) {
         rereads.push(Date.now());
       }
@@ -3758,19 +3762,23 @@ test.describe('풀이를 기다리는 화면', () => {
     await expect(page.getByText('고요히 차오르는 물').first()).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(3_000);
     const settleAsks = since(asks, settled);
+    const settleNewsReads = since(newsReads, settled);
     const settleRereads = since(rereads, settled);
 
     testInfo.annotations.push({
       type: '잰 값',
-      description: `보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · _rsc ${settleRereads}`,
+      description: `보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · 소식 읽음 ${settleNewsReads} · _rsc ${settleRereads}`,
     });
-    writeSync(1, `잰 값 — 보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · _rsc ${settleRereads}\n`);
+    writeSync(1, `잰 값 — 보임 7초 ${visibleAsks} · 숨김 10초 ${hiddenAsks} · 복귀 1초 ${backAsks} · 완료 뒤 POST ${settleAsks} · 소식 읽음 ${settleNewsReads} · _rsc ${settleRereads}\n`);
 
     expect(visibleAsks).toBeGreaterThanOrEqual(1);
     expect(visibleAsks).toBeLessThanOrEqual(2);
     expect(hiddenAsks).toBe(0);
     expect(backAsks).toBe(1);
     expect(settleAsks).toBe(1);
+    /* 기다리는 동안은 글이 없어 안 부르고, 선 글에 한 번 — 다시 그림 · 3초 기다림에도 더 안 부른다 */
+    expect(since(newsReads, shown)).toBe(1);
+    expect(settleNewsReads).toBe(1);
     expect(settleRereads).toBe(0);
   });
 
