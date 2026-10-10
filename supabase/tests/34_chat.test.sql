@@ -281,8 +281,8 @@ select set_eq(
     join pg_namespace n on n.oid = p.pronamespace
     cross join lateral unnest(p.proargnames, p.proargmodes) as a(name, mode)
     where n.nspname = 'public' and p.proname = 'my_chat_messages' and a.mode = 't'$$,
-  $$values ('message_id'), ('seq'), ('sender_user_id'), ('mine'), ('body'), ('created_at')$$,
-  '메시지가 내주는 칸은 이 여섯뿐이다');
+  $$values ('message_id'), ('seq'), ('sender_user_id'), ('mine'), ('body'), ('created_at'), ('client_id')$$,
+  '메시지가 내주는 칸은 이 일곱뿐이다 — 보낸 사람이 지은 id 는 내 말에만 실린다(`89_chat_send_once`)');
 
 select results_eq(
   $$select rate_limit, rate_window_seconds, max_length, snapshot_context, retention_days

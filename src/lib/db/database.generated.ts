@@ -209,6 +209,7 @@ export type Database = {
       chat_message: {
         Row: {
           body: string
+          client_id: string | null
           created_at: string
           id: string
           room_id: string
@@ -217,6 +218,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          client_id?: string | null
           created_at?: string
           id?: string
           room_id: string
@@ -225,6 +227,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          client_id?: string | null
           created_at?: string
           id?: string
           room_id?: string
@@ -3000,6 +3003,7 @@ export type Database = {
         Args: { p_before_seq?: number; p_limit?: number; p_match_id: string }
         Returns: {
           body: string
+          client_id: string
           created_at: string
           message_id: string
           mine: boolean
@@ -3797,10 +3801,12 @@ export type Database = {
         }
         Returns: string
       }
-      send_chat_message: {
-        Args: { p_body: string; p_match_id: string }
-        Returns: string
-      }
+      send_chat_message:
+        | { Args: { p_body: string; p_match_id: string }; Returns: string }
+        | {
+            Args: { p_body: string; p_client_id: string; p_match_id: string }
+            Returns: string
+          }
       service_survey_context: {
         Args: never
         Returns: {

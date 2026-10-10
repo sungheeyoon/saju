@@ -33,3 +33,10 @@ export const ROOM_NO_MESSAGES_YET = '아직 나눈 대화가 없어요';
 export const NEW_MESSAGES_LABEL = '새 메시지 보기';
 export const OLDER_MESSAGES_LABEL = '이전 메시지 더 보기';
 export const OLDER_LOADING_LABEL = '불러오는 중…';
+
+/**
+ * 못 보낸 말 곁의 경고 단추(읽는 이름)와 그 판의 두 줄 — 카카오톡의 방식(운영자 2026-10-11, ADR 0155 덧). 짧게 — 설명을 붙이지 않는다.
+ */
+export const SEND_FAILED_LABEL = '전송하지 못했어요';
+export const SEND_RETRY_LABEL = '다시 보내기';
+export const SEND_DROP_LABEL = '삭제';

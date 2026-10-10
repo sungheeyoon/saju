@@ -72,6 +72,11 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  /*
+    화면 자판이 올라오면 레이아웃이 그만큼 줄어든다 — 폰의 대화방(`100dvh`)이 머리와 입력칸을 제자리에 둔다. iOS Safari 는 이
+    값을 모른다 — 방이 `visualViewport` 로 맞춘다(`app/me/chat/[matchId]/use-room-height.ts`, G-89).
+  */
+  interactiveWidget: 'resizes-content',
 };
 
 /**

@@ -1,10 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { REPORT_DONE } from '@/src/lib/account';
-import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL, ROOM_FIRST_HELLO, ROOM_SAFETY_NOTE } from '@/src/lib/chat/copy';
+import {
+  NEW_MESSAGES_LABEL,
+  OLDER_LOADING_LABEL,
+  OLDER_MESSAGES_LABEL,
+  ROOM_FIRST_HELLO,
+  ROOM_SAFETY_NOTE,
+  SEND_DROP_LABEL,
+  SEND_FAILED_LABEL,
+  SEND_RETRY_LABEL,
+} from '@/src/lib/chat/copy';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
@@ -13,18 +23,21 @@ import { elementScope } from '../../../ui/element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
+import { useDetailsMenu } from '../../../ui/details-menu';
 import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
-import { settlePending, withPending, type Pending } from './pending';
+import { withPending, type PendingState } from './pending';
 import type { RoomTones } from '../tones';
 import { bubbleDaysOf, flaggable, type Bubble, type ShownMessage } from './bubbles';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
-import { newestSeq, readAlready } from './thread';
+import { readAlready } from './thread';
 import { THEIR_SEQ, useReadMarker } from './use-read-marker';
+import { useOutbox } from './use-outbox';
+import { useRoomHeight } from './use-room-height';
 import { useThread, type MergeKind } from './use-thread';
 
 /**
@@ -150,6 +163,9 @@ function useScrollKeeper(messages: readonly ShownMessage[]) {
  * 말풍선 곁에 깃발이 선다 — 하나를 고르면 메시지 신고, 안 고르면 사람 신고다. 차단은 입력 자리에 알림 글과 확인 단추가 선다.
  */
 export function ChatRoomView({ room }: { room: RoomView }) {
+  const router = useRouter();
+  const frame = useRef<HTMLElement>(null);
+  useRoomHeight(frame);
   const [slot, setSlot] = useState<Slot>({ kind: 'compose' });
   const [reported, setReported] = useState(false);
   const closed = room.notice !== null;
@@ -167,15 +183,16 @@ export function ChatRoomView({ room }: { room: RoomView }) {
     measure.current = beforeMerge;
   }, [beforeMerge]);
   /*
-    **보내는 중인 내 말** — 누르는 순간 흐린 말풍선으로 서고, 읽혀 온 진짜 말이 그 자리를 잇는다(`pending.ts`). 읽음 · 스크롤 자리는
-    진짜 말만 본다 — 보내는 중인 말은 그리는 목록에만 붙는다.
+    **보내는 중인 내 말** — 누르는 순간 확정된 말과 같은 모양으로 서고, 읽혀 온 진짜 말이 그 자리를 잇는다. 못 보냈으면 제자리에
+    실패로 남는다(`pending.ts`, ADR 0155 덧). 읽음 · 스크롤 자리는 진짜 말만 본다 — 보내는 중인 말은 그리는 목록에만 붙는다.
+    서버가 받았으면 읽는 문으로 읽어 합치고, 방이 닫혔으면 다시 그려 닫힌 까닭을 세운다.
   */
-  const [held, setPending] = useState<readonly Pending[]>([]);
-  const pendingSerial = useRef(0);
-  /* 걷힌 것은 그릴 때 뺀다 — 들고 있는 목록은 다음에 맡길 때 함께 비운다 */
-  const pending = useMemo(() => settlePending(held, thread.messages), [held, thread.messages]);
+  const { catchUp } = thread;
+  const refresh = useCallback(() => router.refresh(), [router]);
+  const outbox = useOutbox(room.matchId, thread.messages, catchUp, refresh);
+  const pending = outbox.pending;
   const shown = useMemo(() => withPending(thread.messages, pending), [thread.messages, pending]);
-  const pendingIds = useMemo(() => new Set(pending.map((one) => one.id)), [pending]);
+  const pendingStates = useMemo(() => new Map(pending.map((one) => [one.id, one.state])), [pending]);
   const days = useMemo(() => bubbleDaysOf(shown), [shown]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
@@ -183,6 +200,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
 
   return (
     <section
+      ref={frame}
       aria-label={room.heading}
       data-chat-room
       className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-[1.75rem] md:ring-1 md:ring-border lg:rounded-[2rem]`}
@@ -259,7 +277,10 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                     key={bubble.id}
                     bubble={bubble}
                     room={room}
-                    sending={pendingIds.has(bubble.id)}
+                    sending={pendingStates.get(bubble.id) ?? null}
+                    /* 닫힌 방에는 다시 보낼 곳이 없다 — 지우기만 선다 */
+                    onRetry={closed ? null : () => outbox.retry(bubble.id)}
+                    onDrop={() => outbox.drop(bubble.id)}
                     /* 신고는 상대의 말에만 선다(`flaggable`). 고른 깃발을 다시 누르면 고르기가 풀린다 — 고르기는 선택이다 */
                     pickable={picking && flaggable(bubble)}
                     chosen={picked === bubble.id}
@@ -311,21 +332,11 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           </p>
         ) : (
           <Composer
-            matchId={room.matchId}
-            onPending={(body) => {
-              // 보낸 사람은 제 말을 곧장 본다 — 맨 아래로 내려가고, 흐린 말풍선이 선다.
-              const id = `pending-${++pendingSerial.current}`;
-              setPending((now) => [
-                ...settlePending(now, thread.messages),
-                { id, body, after: newestSeq(thread.messages), sentAt: new Date().toISOString() },
-              ]);
+            said={outbox.said}
+            onSend={(body) => {
+              // 보낸 사람은 제 말을 곧장 본다 — 맨 아래로 내려가고 말풍선이 선다.
+              outbox.send(body);
               toBottom();
-              return id;
-            }}
-            onSettled={(id, sent) => {
-              // 서버가 받았으면 그 말을 읽는 문으로 읽어 합친다 — 합쳐지면 흐린 말풍선이 걷힌다. 못 보냈으면 곧장 걷는다.
-              if (sent) thread.catchUp();
-              else setPending((now) => now.filter((one) => one.id !== id));
             }}
           />
         )}
@@ -418,15 +429,23 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
 function BubbleRow({
   bubble,
   room,
-  sending = false,
+  sending = null,
+  onRetry = null,
+  onDrop,
   pickable,
   chosen,
   onPick,
 }: {
   bubble: Bubble;
   room: RoomView;
-  /** 보내는 중 — 서버가 받은 말이 아직 안 읽혀 왔다. 흐리게 서고 시각이 안 선다 */
-  sending?: boolean;
+  /**
+   * 아직 안 읽혀 온 내 말의 상태 — 읽혀 온 말은 `null`. 모양은 확정된 말과 같다(흐리지 않다). 보내는 중이면 시각 자리가 비고,
+   * 서버가 받았으면 보낸 시각이 서고, 못 보냈으면 그 자리에 실패 단추가 선다(ADR 0155 덧)
+   */
+  sending?: PendingState | null;
+  /** 실패한 말을 같은 id 로 다시 보낸다 — 닫힌 방은 `null` */
+  onRetry?: (() => void) | null;
+  onDrop?: () => void;
   pickable: boolean;
   chosen: boolean;
   onPick: () => void;
@@ -449,8 +468,8 @@ function BubbleRow({
   return (
     <li
       {...{ [MESSAGE_ID]: bubble.id, ...(mine ? {} : { [THEIR_SEQ]: bubble.seq }) }}
-      aria-busy={sending || undefined}
-      className={`flex min-w-0 gap-2 transition-opacity ${sending ? 'opacity-55' : ''} ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}
+      aria-busy={sending === 'sending' || undefined}
+      className={`flex min-w-0 gap-2 ${mine ? 'justify-end' : 'justify-start'} ${bubble.first ? 'mt-2 first:mt-0' : ''}`}
     >
       {!mine &&
         (bubble.first ? (
@@ -486,9 +505,11 @@ function BubbleRow({
           >
             <Icon name="flag" className="size-[18px]" />
           </button>
+        ) : sending === 'failed' ? (
+          <SendFailedMenu onRetry={onRetry} onDrop={onDrop ?? (() => {})} />
         ) : (
           bubble.last &&
-          !sending && (
+          sending !== 'sending' && (
             <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-[12px] tabular-nums text-secondary">
               {bubble.time}
             </time>
@@ -496,5 +517,53 @@ function BubbleRow({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * 못 보낸 말 곁의 단추 — 빨간 경고 하나(44px)이고, 누르면 「다시 보내기」 · 「삭제」가 선다(카카오톡의 방식, ADR 0155 덧).
+ * 다시 보내기는 같은 id 로 보내므로 서버가 실은 받았던 말이어도 두 번 남지 않는다. 삭제는 이 화면에서만 걷는다 — 서버에
+ * 간 적 없는 말이다. 닫힌 방은 삭제만 선다.
+ *
+ * 말풍선은 대화 칸의 아래쪽에 서므로 판은 단추 위로 연다.
+ */
+function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onDrop: () => void }) {
+  const { menu, close } = useDetailsMenu();
+  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
+  return (
+    <details ref={menu} className="relative shrink-0 self-end">
+      <summary
+        aria-label={SEND_FAILED_LABEL}
+        className="grid size-11 cursor-pointer list-none place-items-center rounded-full text-danger hover:bg-surface-soft active:scale-95 [&::-webkit-details-marker]:hidden"
+      >
+        <Icon name="alert" className="size-[22px]" />
+      </summary>
+      <div className="absolute bottom-12 right-0 z-20 flex w-40 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+        {onRetry !== null && (
+          <button
+            type="button"
+            className={`${item} text-foreground`}
+            onClick={() => {
+              close();
+              onRetry();
+            }}
+          >
+            <Icon name="send" className="size-[18px]" />
+            {SEND_RETRY_LABEL}
+          </button>
+        )}
+        <button
+          type="button"
+          className={`${item} text-danger`}
+          onClick={() => {
+            close();
+            onDrop();
+          }}
+        >
+          <Icon name="close" className="size-[18px]" />
+          {SEND_DROP_LABEL}
+        </button>
+      </div>
+    </details>
   );
 }

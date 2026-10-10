@@ -8,6 +8,7 @@ const message = (seq: number, createdAt: string, mine: boolean, fromLeftPartner 
   seq,
   mine,
   fromLeftPartner,
+  clientId: null,
   body: `본문 ${seq}`,
   createdAt,
 });
