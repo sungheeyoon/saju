@@ -23,10 +23,10 @@
 
 | 무리 | 화면 | 파일 | 절 |
 | --- | --- | --- | --- |
-| 첫 화면 · 사주 보기 | `/` · `/saju` — 로그인 전 결과 · 이어 보기 확인 · 사주 결과 표 | `docs/product/copy-ledger/first.md` | 02 · 05 · 06 · 07 · 08 · 09 · 10 · 11 · 13 · 19 · 22 · 25 |
+| 첫 화면 · 사주 보기 | `/` · `/saju` — 로그인 전 결과 · 이어 보기 확인 · 사주 결과 표 | `docs/product/copy-ledger/first.md` | 02 · 05 · 06 · 07 · 08 · 09 · 10 · 11 · 13 · 19 · 22 · 25 · 32 |
 | 로그인 · 가입 · 안내 화면 | `/auth` · `/auth/denied` · `/signup` · `/closed` · `/privacy` · `/about` · `/help` · `/share/**` · 바닥글 · 오류 · 404 | `docs/product/copy-ledger/public.md` | 02 · 07 · 11 · 12 · 17 · 20 · 21 |
-| 홈 · 저장한 사람 · 풀이 | `/me` · `/me/people` · `/me/readings` · `/me/readings/[subject]` — 풀이 판 · 풀이 의견 | `docs/product/copy-ledger/home.md` | 02 · 03 · 05 · 06 · 15 · 16 · 19 · 20 · 21 · 25 · 26 · 30 |
-| 궁합 | `/compat` · `/me/compat` | `docs/product/copy-ledger/compat.md` | 06 · 14 · 21 · 30 |
+| 홈 · 저장한 사람 · 풀이 | `/me` · `/me/people` · `/me/readings` · `/me/readings/[subject]` — 풀이 판 · 풀이 의견 | `docs/product/copy-ledger/home.md` | 02 · 03 · 05 · 06 · 15 · 16 · 19 · 20 · 21 · 25 · 26 · 30 · 32 |
+| 궁합 | `/compat` · `/me/compat` | `docs/product/copy-ledger/compat.md` | 06 · 14 · 21 · 30 · 32 |
 | 인연 · 채팅 · 소식 | `/me/matching` · `/me/matching/history` · `/me/match/[id]` · `/me/chat` · `/me/requests` | `docs/product/copy-ledger/matching.md` | 02 · 03 · 06 · 07 · 19 · 21 · 23 · 24 · 25 · 28 · 30 |
 | 설정 · 프로필 · 설문 | `/me/profile` · `/me/settings` · `/me/survey` | `docs/product/copy-ledger/settings.md` | 03 · 06 · 16 · 25 · 27 · 29 · 31 |
 | 운영 화면 · 작업대 | `/ops/**` · `/me/reading/inspect` | `docs/product/copy-ledger/ops.md` | — |
