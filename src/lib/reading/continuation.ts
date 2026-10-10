@@ -145,13 +145,19 @@ const FIRST_SECTION_ITEMS = [2, 3] as const;
 /**
  * 화면에 설 첫 절 — 모델이 쓴 2번 앞에 `1. {continuationAnswer}` 를 **한 번** 넣는다. 2번이 없으면(검사에 걸릴 모양) 손대지
  * 않고 그대로 낸다 — 자리를 지어내 끼우지 않는다.
+ *
+ * **1번은 모델이 쓴 2 · 3 의 모양을 따른다.** 1번과 2번 사이는 모델이 2번과 3번 사이에 둔 그대로(빈 줄이면 빈 줄)이고, 답은
+ * 「한 문단」을 시킨 칸이라 그 안의 줄바꿈은 한 칸으로 접는다 — 한 항목이 한 문단이다. 머리를 굵게 지어 붙이지는 않는다:
+ * 답에는 머리가 없고, 지어내면 모델이 안 쓴 글이 된다.
  */
 export function continuedMarkdownOf(answer: string, markdown: string): string {
   const head = markdownHeadOf(markdown);
   const second = /^2\.\s/m.exec(head);
   if (second === null) return markdown;
   const at = second.index;
-  return `${markdown.slice(0, at)}1. ${answer.trim()}\n${markdown.slice(at)}`;
+  const between = /\n[ \t]*\n[ \t]*3\.\s/.test(head.slice(at)) ? '\n\n' : '\n';
+  const item = answer.trim().replace(/\s*\n\s*/g, ' ');
+  return `${markdown.slice(0, at)}1. ${item}${between}${markdown.slice(at)}`;
 }
 
 /**

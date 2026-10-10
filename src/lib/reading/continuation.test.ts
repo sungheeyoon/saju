@@ -130,6 +130,20 @@ describe('첫 절의 1번은 이어쓰기 답이다 — 한 번만 선다', () =
     expect(reasonsOf({ markdown: '## 먼저 볼 핵심 세 가지\n\n본문만 있어요.' }).join(' / ')).toContain('(없음)');
   });
 
+  /**
+   * **1번이 모델이 쓴 2 · 3 과 같은 모양으로 선다**(2026-10-10 운영 smoke). 한 줄바꿈으로만 끼우면 화면이 1 · 2 를 한 문단으로
+   * 붙였다 — 항목 사이는 모델이 2 · 3 사이에 둔 그대로, 답 안의 줄바꿈은 한 문단으로 접는다.
+   */
+  it('1번과 2번 사이는 모델이 2 · 3 사이에 둔 그대로다', () => {
+    expect(continuedMarkdownOf(ANSWER, MARKDOWN.replace('요.\n3. ', '요.\n\n3. '))).toContain(`1. ${ANSWER}\n\n2. `);
+    expect(continuedMarkdownOf(ANSWER, MARKDOWN)).toContain(`1. ${ANSWER}\n2. `);
+  });
+
+  it('답이 여러 줄로 와도 1번은 한 문단이다', () => {
+    const shown = continuedMarkdownOf('첫 문장이에요.\n\n둘째 문장이에요.', MARKDOWN);
+    expect(shown).toContain('1. 첫 문장이에요. 둘째 문장이에요.\n2. ');
+  });
+
   it('2번이 없으면 지어내 끼우지 않는다', () => {
     const plain = '## 먼저 볼 핵심 세 가지\n\n본문만 있어요.';
     expect(continuedMarkdownOf(ANSWER, plain)).toBe(plain);

@@ -9,7 +9,9 @@ import type { RunProgress } from './current';
  * (`my_last_reading_run`). 셋이 안 오면(옛 DB · 끝난 시도) 아무 줄도 앞서 가지 않는다.
  *
  * - **절 k 를 시작했으면** 앞의 k−1 절이 완료이고 k 번째가 작성 중이다 — 다음 머리가 서야 앞 절이 끝난 것이다.
- * - **본문을 다 썼거나 결과를 가져가는 중이면**(`retrieving`) 절은 다 완료이고 마지막 검토가 검토 중이다.
+ * - **본문을 다 썼으면** 절은 다 완료이고 마지막 검토가 검토 중이다. 작업의 `retrieving` 은 그 근거가 아니다 — 복구기가
+ *   1분마다 도는 작업을 집어 그 표시를 달고, 아직 쓰는 중이면 `submitted` 로 놓는다(`release_reading_job`). 그 표시로
+ *   끝을 읽으면 목차가 끝까지 갔다가 쓰던 절로 되돌아간다(ADR 0127 「2026-10-10 덧」).
  * - **검토가 끝나면** 시도가 닫히고 화면이 결과로 다시 읽힌다 — 그래서 이 목차에 「검토 완료」 줄은 안 선다.
  *
  * 자기 풀이 · 다른 사람 풀이는 프롬프트가 시킨 절 이름이 줄이 된다 — 서버가 `selfSectionTitlesOf` 로 지어 넘긴다
@@ -27,7 +29,7 @@ export function readingOutline(
   progress: RunProgress | null,
 ): readonly OutlineRow[] {
   const begun = Math.max(progress?.sectionsBegun ?? 0, 0);
-  const bodyDone = progress !== null && (progress.bodyWritten || progress.jobStatus === 'retrieving');
+  const bodyDone = progress?.bodyWritten === true;
 
   const labels =
     titles !== null
@@ -46,4 +48,21 @@ export function readingOutline(
   });
 
   return [...sections, { label: READING_REVIEW_LABEL, state: bodyDone ? 'reviewing' : 'waiting' }];
+}
+
+/**
+ * **물을 때마다 받은 진행을 지나온 값에 접는다** — 한 번 앞선 줄은 뒤로 가지 않는다(ADR 0127 「2026-10-10 덧」).
+ *
+ * 서버가 적는 두 값은 한 시도 안에서 올라가기만 하지만(`note_reading_progress`), 화면이 받는 답은 그렇지 않다. 시도가 닫히면
+ * 얼린 작업이 지워져 진행이 `null` 로 오고(결과가 화면에 서기 전 사이), 가리킬 시도가 없다는 답도 `null` 이다. 그 답으로
+ * 갈아 끼우면 다 된 목차가 「대기」로 비었다. 새 시도는 부르는 칸이 `null` 에서 다시 시작한다.
+ */
+export function progressSoFar(before: RunProgress | null, seen: RunProgress | null): RunProgress | null {
+  if (seen === null) return before;
+  if (before === null) return seen;
+  return {
+    jobStatus: seen.jobStatus,
+    sectionsBegun: Math.max(before.sectionsBegun, seen.sectionsBegun),
+    bodyWritten: before.bodyWritten || seen.bodyWritten,
+  };
 }

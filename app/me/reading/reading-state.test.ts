@@ -13,6 +13,7 @@ import {
   afterAsking,
   afterPress,
   answerOf,
+  ARRIVAL_ASKS,
   asksOnArrival,
   offersPlainReading,
   initialFlow,
@@ -69,6 +70,7 @@ describe('누름과 기다림이 지나는 자리', () => {
       phase: 'loading',
       failure: null,
       mock: null,
+      arriving: null,
     });
   });
 
@@ -104,7 +106,7 @@ describe('누름과 기다림이 지나는 자리', () => {
       started: false,
     });
 
-    const done = readingFlow(joined, { type: 'settled', status: 'succeeded' });
+    const done = readingFlow(joined, { type: 'settled', status: 'succeeded', arrived: true });
     expect(done.phase).toBe('idle');
     expect(done.failure).toBeNull();
   });
@@ -113,6 +115,7 @@ describe('누름과 기다림이 지나는 자리', () => {
     const settled = readingFlow(readingFlow(idle(), { type: 'press' }), {
       type: 'settled',
       status: 'failed',
+      arrived: false,
     });
 
     expect(settled.failure).toBe(READING_FAILED_NOTE);
@@ -128,10 +131,10 @@ describe('누름과 기다림이 지나는 자리', () => {
     const pressed = readingFlow(idle(), { type: 'press' });
 
     const refused = readingFlow(pressed, { type: 'refused', message: '풀이권을 다 쓰셨어요.' });
-    expect(refused).toEqual({ phase: 'error', failure: '풀이권을 다 쓰셨어요.', mock: null });
+    expect(refused).toEqual({ phase: 'error', failure: '풀이권을 다 쓰셨어요.', mock: null, arriving: null });
 
     const threw = readingFlow(pressed, { type: 'threw' });
-    expect(threw).toEqual({ phase: 'error', failure: READING_UNEXPECTED_NOTE, mock: null });
+    expect(threw).toEqual({ phase: 'error', failure: READING_UNEXPECTED_NOTE, mock: null, arriving: null });
   });
 
   /**
@@ -147,6 +150,47 @@ describe('누름과 기다림이 지나는 자리', () => {
     expect(shown.phase).toBe('idle');
     expect(shown.mock).toBe(preview);
     expect(shown.failure).toBe(READING_MOCK_NOTE);
+  });
+});
+
+/**
+ * **끝난 뒤 결과가 서기 전의 사이**(2026-10-10 운영 smoke). 끝난 것을 본 물음의 응답이 화면을 다시 싣지만, Next 는 그 액션의
+ * 답을 새 화면보다 먼저 돌려준다 — 그 자리에서 기다림을 내리면 **기다리기 전의 글**(다시 받기라면 지난 풀이)이 먼저 선다.
+ */
+describe('끝난 뒤 새 글이 설 때까지', () => {
+  const pressed = () => readingFlow(idle(), { type: 'press' });
+  const succeeded = (flow: ReadingFlow, arrived = false) =>
+    readingFlow(flow, { type: 'settled', status: 'succeeded', arrived });
+
+  it('성공을 봤어도 새 글이 아직 안 섰으면 기다리는 모습 그대로다', () => {
+    const waiting = succeeded(pressed());
+    expect(waiting.phase).toBe('loading');
+    expect(waiting.failure).toBeNull();
+  });
+
+  it('새 글이 서면 그때 기다림을 내린다', () => {
+    expect(readingFlow(succeeded(pressed()), { type: 'arrived' }).phase).toBe('idle');
+  });
+
+  it('성공을 본 그 자리에 새 글이 이미 서 있으면 곧바로 내린다', () => {
+    expect(succeeded(pressed(), true).phase).toBe('idle');
+  });
+
+  it('도는 중에 선 글은 도착이 아니다 — 성공을 보기 전에는 기다림을 안 내린다', () => {
+    expect(readingFlow(pressed(), { type: 'arrived' }).phase).toBe('loading');
+  });
+
+  it(`새 글이 끝내 안 오면 성공을 ${ARRIVAL_ASKS}번 본 뒤 기다림을 내린다 — 묻는 횟수로 센다`, () => {
+    let flow = pressed();
+    for (let ask = 1; ask < ARRIVAL_ASKS; ask += 1) {
+      flow = succeeded(flow);
+      expect(flow.phase).toBe('loading');
+    }
+    expect(succeeded(flow).phase).toBe('idle');
+  });
+
+  it('실패는 기다릴 글이 없다 — 곧바로 내린다', () => {
+    expect(readingFlow(pressed(), { type: 'settled', status: 'failed', arrived: false }).phase).toBe('idle');
   });
 });
 
@@ -219,14 +263,14 @@ describe('지켜보다 본 것', () => {
    * 왕복이 80번이다 — 그중 한 번이 끊긴 것을 「끝났다」로 읽으면 다 된 글을 못 세운다.
    */
   it('못 물은 것으로는 아무것도 안 한다', () => {
-    expect(afterAsking({ kind: 'unreachable' })).toEqual({
+    expect(afterAsking({ kind: 'unreachable' }, false)).toEqual({
       event: null,
       announcesCredits: false,
     });
   });
 
   it('아직 도는 중이면 그대로 기다린다', () => {
-    expect(afterAsking({ kind: 'running' }).event).toBeNull();
+    expect(afterAsking({ kind: 'running' }, false).event).toBeNull();
   });
 
   /**
@@ -235,7 +279,7 @@ describe('지켜보다 본 것', () => {
    * 끝내면 **도는 중인 시도를 두고 「없다」고 말하는** 화면이 된다.
    */
   it('가리킬 시도가 없다는 답으로도 끝내지 않는다', () => {
-    expect(afterAsking({ kind: 'none' }).event).toBeNull();
+    expect(afterAsking({ kind: 'none' }, false).event).toBeNull();
   });
 
   /**
@@ -243,13 +287,13 @@ describe('지켜보다 본 것', () => {
    * `refreshPaths`) — 칸이 한 번 더 읽으면 같은 화면을 두 번 받는다(ADR 0016 덧, e2e 가 `_rsc` 0 을 잰다).
    */
   it('끝난 것을 보면 그 사실을 세우고 풀이권을 다시 묻게 한다', () => {
-    expect(afterAsking({ kind: 'settled', status: 'succeeded' })).toEqual({
-      event: { type: 'settled', status: 'succeeded' },
+    expect(afterAsking({ kind: 'settled', status: 'succeeded' }, true)).toEqual({
+      event: { type: 'settled', status: 'succeeded', arrived: true },
       announcesCredits: true,
     });
     /* 실패도 잡고 있던 자리가 풀리는 일이라 똑같이 한다 */
-    expect(afterAsking({ kind: 'settled', status: 'failed' })).toEqual({
-      event: { type: 'settled', status: 'failed' },
+    expect(afterAsking({ kind: 'settled', status: 'failed' }, false)).toEqual({
+      event: { type: 'settled', status: 'failed', arrived: false },
       announcesCredits: true,
     });
   });

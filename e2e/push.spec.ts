@@ -86,7 +86,7 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
 
     await page.goto('/me/settings');
     const section = row(page);
-    await expect(section.getByText('새 메시지 알림')).toBeVisible();
+    await expect(section.getByText('새 메시지 알림', { exact: true })).toBeVisible();
     await expect(section.getByRole('button', { name: '알림 켜기' })).toBeVisible();
     expect(subscriptionsOf(signedIn.email)).toBe(0);
 
