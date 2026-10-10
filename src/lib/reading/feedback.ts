@@ -24,10 +24,8 @@ export const FEEDBACK_SCALE = [1, 2, 3, 4, 5] as const;
 export type FeedbackScore = (typeof FEEDBACK_SCALE)[number];
 
 /**
- * 첫 질문이 이해를 돕는 **대상** — kind 가 고른다(2026-10-10 화면 점검 B9, 운영자 승인).
- *
- * 한 문장으로 네 kind 에 물을 때는 어머니 풀이 아래에서도 「나를」 이해하는 데 도움이 됐는지를 물었다. 대상만
- * 갈아 끼우고 열(`usefulness`) · 눈금 · 보낼 수 있는 조건은 그대로다.
+ * 첫 질문이 이해를 돕는 **대상** — kind 가 고른다. 저장한 사람의 풀이 아래에서 「나를」 이해하는 데 도움이 됐는지를
+ * 물으면 답이 무엇을 매겼는지 흐려진다. 대상만 갈아 끼우고 열(`usefulness`) · 눈금 · 보낼 수 있는 조건은 같다.
  *
  * **그래서 같은 열에 쌓이는 답의 뜻이 kind 마다 갈린다** — `self` 는 나를, `person` 은 그 사람을, `private` ·
  * `match` 는 두 사람을 이해하는 데 도움이 됐는지다. 견줄 때는 kind 로 나눠 읽는다(`/ops/survey` 가 kind 로 줄을 가른다).

@@ -596,7 +596,11 @@ test.describe('동의로 열리는 흐름', () => {
 
     const measure = async () => {
       await page.goto('/me/matching');
-      const card = page.locator('[data-deck-fit]');
+      /*
+        뼈대(`loading.tsx`, `main[data-skeleton]`)도 카드 자리에 `data-deck-fit` 을 단다 — 본문이 숨은 채 흘러와 뼈대와 바꿔
+        끼워지기 전까지는 둘이 함께 문서에 있다. 잴 것은 본문의 카드다.
+      */
+      const card = page.locator('main:not([data-skeleton]) [data-deck-fit]');
       const row = page.getByRole('link', { name: /^인연 기록 \d/ });
       const dock = page.locator('#mobile-member-navigation');
       await expect(card).toBeVisible();

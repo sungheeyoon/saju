@@ -51,7 +51,6 @@ export type MatchPreview = {
   index: number;
   dimensions: MatchDimension[];
   highlights: string[];
-  caveat: string;
 };
 
 /**
@@ -231,17 +230,8 @@ export function buildMatchPreview(
     dimensions,
     highlights: highlights.slice(0, 3),
     /*
-      뒷문장(「억부·종격·격국처럼 검증 중인 판정은 포함하지 않았습니다」)을 뺐다.
-      카드 머리의 딱지가 같은 말을 이미 하고 있다. 각주가 답하는 물음은 다르다 —
-      **이 숫자가 무엇인가**이고, 그건 딱지가 답하지 않는다.
+      **카드 안에 각주를 따로 두지 않는다.** 이 숫자가 무엇인지는 카드 바로 밖의 한 줄(`ScoringNote`)이 말한다 — 카드 안에
+      같은 면책이 하나 더 서면 한 화면이 같은 말을 두 번, 다른 말투로 한다.
     */
-    /*
-      **`match-v0` 은 각주에도 안 적는다.** 용어집이 이미 「내부 버전은 사용자에게
-      보이지 않는다」로 정해 두었는데(docs/context/evidence.md 의 「옛 실험 지표」), 카드 딱지에서
-      빼면서 이 줄은 그대로 두었다. 사용자에게 그 문자열은 답이 아니라 물음이 된다.
-
-      각주가 답하는 것은 **이 숫자가 무엇인가**이고, 그건 판본 이름 없이 말할 수 있다.
-    */
-    caveat: '이 수치는 궁합의 정답이 아니라 서로 견주어 보라고 만든 실험값입니다.',
   };
 }
