@@ -363,9 +363,14 @@ export function ApproachMap({
             }`}
             style={seat}
           >
+            {/*
+              지도 전체가 `aria-hidden` 이고 이 단추는 탭으로 닿지 않는다(`tabIndex={-1}`) — 같은 사람은 지도 밖의 카드가
+              읽는 길로 든다. 사진은 `alt=""` 라 이름은 단추가 든다: 그림자만 남은 단추가 되지 않게.
+            */}
             <button
               type="button"
               tabIndex={-1}
+              aria-label={card.nickname}
               onClick={toggle(card)}
               className={`${motion.face} relative block cursor-pointer overflow-hidden rounded-full bg-[var(--tile)] ${
                 now ? (arc ? 'size-12' : 'size-[4.25rem]') : `${small ? 'size-9' : 'size-12'} ${leaned ? '' : 'opacity-85 saturate-[.55]'}`

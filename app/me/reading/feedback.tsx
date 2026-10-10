@@ -192,7 +192,7 @@ export function ReadingFeedback({
             onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
             maxLength={FEEDBACK_COMMENT.limit}
             rows={3}
-            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[16px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
+            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[16px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           />
           <p className="text-right text-[12px] tabular-nums text-secondary">
             {comment.length} / {FEEDBACK_COMMENT.limit}자
@@ -309,7 +309,7 @@ function Chip({
   return (
     <label
       htmlFor={id}
-      className={`relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border px-3.5 py-2 text-center text-[14px] active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
+      className={`relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border px-3.5 py-2 text-center text-[14px] active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
         picked
           ? 'border-accent bg-accent font-semibold text-on-accent'
           : 'border-border bg-surface text-foreground hover:border-border-strong'

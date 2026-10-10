@@ -132,7 +132,7 @@ function Name({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]`}
+      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]`}
     >
       {label}
     </Link>

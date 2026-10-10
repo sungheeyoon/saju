@@ -31,6 +31,7 @@ import {
   subjectParticle,
 } from './shared';
 import { CARD } from '../ui/surfaces';
+import { CurrentScroll } from './current-scroll';
 
 const ageRangeLabel = (from: number, to: number) =>
   from === to ? `만 ${from}세` : `만 ${from}→${to}세`;
@@ -238,7 +239,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
         해의 경계는 입춘입니다. 양력 1월에 일어난 일은 아직 전 해의 세운입니다.
       </p>
 
-      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
+      <CurrentScroll>
         <table className="w-full min-w-[52rem] table-fixed border-collapse text-center">
           <caption className="sr-only">해마다의 간지와 원국·대운과의 관계</caption>
           <thead>
@@ -274,7 +275,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
               {entries.map((entry) => {
                 const current = entry.chartId === currentChartId;
                 return (
-                  <td key={entry.year} className="snap-start px-1 align-top">
+                  <td key={entry.year} data-current={current || undefined} className="snap-start px-1 align-top">
                     <FortuneCell entry={entry} current={current} />
 
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
@@ -301,7 +302,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
             </tr>
           </tbody>
         </table>
-      </div>
+      </CurrentScroll>
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
@@ -341,7 +342,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
         전까지는 아직 인월(寅月)입니다.
       </p>
 
-      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
+      <CurrentScroll>
         <table className="w-full min-w-[60rem] table-fixed border-collapse text-center">
           <caption className="sr-only">한 해 열두 달의 간지와 원국·세운과의 관계</caption>
           <thead>
@@ -367,7 +368,11 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
           <tbody>
             <tr>
               {entries.map((entry) => (
-                <td key={entry.chartId} className="snap-start px-1 align-top">
+                <td
+                  key={entry.chartId}
+                  data-current={entry.chartId === currentChartId || undefined}
+                  className="snap-start px-1 align-top"
+                >
                   <FortuneCell
                     entry={entry}
                     current={entry.chartId === currentChartId}
@@ -393,7 +398,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
             </tr>
           </tbody>
         </table>
-      </div>
+      </CurrentScroll>
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
@@ -435,7 +440,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
         {round1(daeun.daysToBoundary)}일이라 3으로 나눠 {round1(daeun.startAgeExact)}년입니다.
       </p>
 
-      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
+      <CurrentScroll>
         <table className="w-full min-w-[52rem] table-fixed border-collapse text-center">
           <caption className="sr-only">10년 단위 대운의 간지와 원국과의 관계</caption>
           <thead>
@@ -460,7 +465,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
               {daeun.entries.map((entry) => {
                 const current = entry.chartId === currentChartId;
                 return (
-                  <td key={entry.chartId} className="snap-start px-1 align-top">
+                  <td key={entry.chartId} data-current={current || undefined} className="snap-start px-1 align-top">
                     <FortuneCell entry={entry} current={current} />
 
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
@@ -479,7 +484,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
             </tr>
           </tbody>
         </table>
-      </div>
+      </CurrentScroll>
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
