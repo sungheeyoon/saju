@@ -40,7 +40,7 @@ describe('묶음 한 파일의 모양', () => {
   it('첫 줄이 머리다 — 행 수 · 첫/마지막 번호 · 이어지는 자리', () => {
     expect(JSON.parse(headLine)).toMatchObject({
       kind: 'saju-operator-access',
-      version: 2,
+      version: 3,
       rows: 3,
       first_id: 7,
       last_id: 12,
@@ -74,7 +74,16 @@ describe('묶음 한 파일의 모양', () => {
       'result_of',
       'result',
       'error_class',
+      'target_report_ids',
     ]);
+  });
+
+  it('목록 줄은 발췌가 보인 신고 id 들을 싣고, 그 칸을 안 내는 옛 DB 의 줄은 null 로 적는다', () => {
+    const ids = ['00000000-0000-4000-8000-0000000000aa', '00000000-0000-4000-8000-0000000000bb'];
+    const listed = { ...line(20), action: 'reports.list', target_report_id: null, target_report_ids: ids };
+    const [, first, second] = bundleOf([listed, line(21)], 19, new Date()).body.split('\n');
+    expect(JSON.parse(first).target_report_ids).toEqual(ids);
+    expect(JSON.parse(second).target_report_ids).toBeNull();
   });
 
   it('키는 첫 줄의 서울 날짜와 열두 자리 번호 범위다 — UTC 15:30 은 서울의 다음 날', () => {

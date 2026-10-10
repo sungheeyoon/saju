@@ -468,6 +468,9 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(row.getByText('대화 근거 있음 · 메시지 5건')).toBeVisible();
     await expect(row.getByText(`나${tag}`)).toBeVisible();
     await expect(row.getByText(`가${tag}`)).toBeVisible();
+    // 고른 메시지는 목록에서 한 줄 발췌로 먼저 보인다(화면 점검 C17) — 앞뒤 문맥은 상세에만
+    await expect(row.locator('dt:text-is("신고한 메시지") + dd')).toHaveText(`셋 ${tag}`);
+    await expect(row.getByText(`둘 ${tag}`)).toHaveCount(0);
 
     await row.getByRole('link', { name: '신고 내용 보기' }).click();
     await expect(ops.page).toHaveURL(new RegExp(`/ops/reports/${reportId}$`));

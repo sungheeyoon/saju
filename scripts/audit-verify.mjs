@@ -48,7 +48,7 @@ export function verifyObject(record, body, afterId) {
   const rows = body.slice(cut + 1);
   const problems = [];
 
-  if (head.kind !== 'saju-operator-access' || ![1, 2].includes(head.version)) problems.push('머리의 종류가 아니다');
+  if (head.kind !== 'saju-operator-access' || ![1, 2, 3].includes(head.version)) problems.push('머리의 종류가 아니다');
   for (const [name, want] of [['rows', record.rows], ['first_id', record.first_id], ['last_id', record.last_id],
     ['sha256', record.sha256], ['after_id', afterId]]) {
     if (head[name] !== want) problems.push(`머리의 ${name} 값이 기록과 다르다`);
