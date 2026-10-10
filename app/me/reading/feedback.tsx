@@ -25,6 +25,7 @@ import { TYPE_NAME } from '../../ui/surfaces';
 
 import { submitReadingFeedback } from './actions';
 import type { ReadingTarget } from './target';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 읽고 나서 답하는 자리 — **글 바로 아래**다.
@@ -208,9 +209,7 @@ export function ReadingFeedback({
         </div>
 
         {failure !== null && (
-          <p role="alert" className="text-sm leading-6 text-danger">
-            답을 남기지 못했어요. {failure}
-          </p>
+          <FailureLine>답을 남기지 못했어요. {failure}</FailureLine>
         )}
 
         <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-7 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-7">

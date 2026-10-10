@@ -23,6 +23,7 @@ import { openByReported } from './same-account';
 import { DENIED, operatorReports, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
 import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
+import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
   title: '신고',
@@ -72,9 +73,9 @@ export default async function OperatorReportsPage({
       </FilterPanel>
 
       {!listed.ok ? (
-        <p role="alert" className={`${CARD} text-sm text-danger`}>
-          신고를 읽지 못했습니다. 잠시 뒤에 새로고침해 주세요.
-        </p>
+        <FailureLine retry className={CARD}>
+          신고를 읽지 못했습니다.
+        </FailureLine>
       ) : listed.value.rows.length === 0 ? (
         <p className={`${CARD} text-sm text-secondary`}>
           {isFiltered(filters) ? '조건에 맞는 신고가 없습니다.' : '접수된 신고가 없습니다.'}

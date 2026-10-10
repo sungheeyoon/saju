@@ -22,6 +22,7 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { useLeaveGuard } from '../../ui/leave-guard';
 import { EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -237,9 +238,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       )}
 
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          저장하지 못했어요. {failure}
-        </p>
+        <FailureLine>저장하지 못했어요. {failure}</FailureLine>
       )}
     </form>
   );
@@ -337,9 +336,7 @@ export function NoteEditor({
           작성 그만두기
         </button>
         {failure !== null && (
-          <span role="alert" className="text-[13px] text-danger">
-            {failure}
-          </span>
+          <FailureLine>{failure}</FailureLine>
         )}
       </div>
     </form>

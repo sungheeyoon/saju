@@ -9,6 +9,7 @@ import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
+import { FAILURE_TEXT } from './ui/failure-line';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -185,7 +186,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
           {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
           {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
+            <p id="natal-missing" role="alert" className={`${FAILURE_TEXT} font-medium`}>
               {missing}
             </p>
           )}

@@ -26,6 +26,7 @@ import {
 } from './read';
 import { CARD } from '../../ui/surfaces';
 import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
+import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
   title: '설문 요약',
@@ -76,9 +77,9 @@ export default async function OperatorSurveyPage() {
       </header>
 
       {survey === null ? (
-        <p role="alert" className={`${CARD} text-sm text-danger`}>
-          설문을 읽지 못했습니다. 잠시 뒤에 새로고침해 주세요.
-        </p>
+        <FailureLine retry className={CARD}>
+          설문을 읽지 못했습니다.
+        </FailureLine>
       ) : (
         <>
           <Head

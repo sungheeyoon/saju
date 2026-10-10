@@ -21,6 +21,7 @@ import { CONFIRM_ROW, DIALOG } from '../../ui/surfaces';
 import { blockUser, reportUser } from './actions';
 import { announceRequestsToAnswerMoved } from './unread-signal';
 import { actionAnswer } from '../../ui/action-answer';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * **신고 · 차단 한 벌 — 대화방 머리 · 인연 궁합 머리 · 오늘의 인연 카드가 같은 「⋯」를 연다**(ADR 0158).
@@ -197,7 +198,7 @@ export function ReportForm({
           </button>
         )}
       </div>
-      {failure !== null && <p role="alert" className="text-[13px] text-danger">{failure}</p>}
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
     </form>
   );
 }
@@ -247,7 +248,7 @@ export function BlockConfirm({
         차단
       </p>
       <p className="text-[14px] leading-6 text-foreground">{BLOCK_NOTE}</p>
-      {failure !== null && <p role="alert" className="text-[13px] text-danger">{failure}</p>}
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
       <div className={CONFIRM_ROW}>
         <button type="button" onClick={block} disabled={working} className={BUTTON_DANGER}>
           {working ? '차단하는 중…' : '차단하기'}

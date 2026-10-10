@@ -2,6 +2,7 @@
 
 import { useSignOut } from '../../auth/sign-out';
 import { SETTINGS_QUIET, SettingsRow } from './card';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 계정 관리의 로그아웃 — 톱니 판과 같은 `useSignOut` 한 벌이다.
@@ -17,9 +18,7 @@ export function SignOutRow({ email }: { email: string | undefined }) {
         {leaving ? '로그아웃하는 중…' : '로그아웃'}
       </button>
       {failure !== null && (
-        <p role="alert" className="w-full text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine className="w-full">{failure}</FailureLine>
       )}
     </SettingsRow>
   );

@@ -19,6 +19,7 @@ import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
 import { PREFER_GENDER_ORDER } from './profile';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**
@@ -123,9 +124,9 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
       </SettingsRow>
 
       {failure !== null && (
-        <p id="prefer-gender-failure" role="alert" className="border-t border-border pt-4 text-sm text-danger">
+        <FailureLine id="prefer-gender-failure" className="border-t border-border pt-4">
           저장하지 못했어요. {failure}
-        </p>
+        </FailureLine>
       )}
     </SettingsCard>
   );
@@ -174,9 +175,7 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
           </button>
         </SettingsRow>
         {failure !== null && (
-          <p role="alert" className="border-t border-border pt-4 text-sm text-danger">
-            {failure}
-          </p>
+          <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
         )}
       </SettingsCard>
     );
@@ -202,9 +201,7 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
         </button>
       </SettingsRow>
       {failure !== null && (
-        <p role="alert" className="border-t border-border pt-4 text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
       )}
     </SettingsCard>
   );

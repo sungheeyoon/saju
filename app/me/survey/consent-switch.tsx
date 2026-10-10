@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { setOptionalConsent } from '../actions';
 import { actionAnswer } from '../../ui/action-answer';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 여기서 켤 수 있게 하는 버튼 하나 — **문은 계정 관리와 같은 문이다.**
@@ -40,9 +41,7 @@ export function ConsentSwitch() {
         지웁니다.
       </p>
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine>{failure}</FailureLine>
       )}
     </div>
   );

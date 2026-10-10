@@ -33,6 +33,7 @@ import { BUTTON_PRIMARY, SEGMENT, SEGMENT_ON, SEGMENTS } from './ui/buttons';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
 import { CARD_FRAME, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { FailureLine } from './ui/failure-line';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -318,9 +319,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         )}
 
         {failure !== null && (
-          <p role="alert" className="mt-4 rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
-            {failure}
-          </p>
+          <FailureLine className="mt-4">{failure}</FailureLine>
         )}
       </div>
     </div>

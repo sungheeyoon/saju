@@ -27,6 +27,7 @@ import { ApproachMap, Legend, QuietOrbit, type MapStatus } from './orbit-map';
 import { PassedConnections } from './passed-connections';
 import { ReportBlock } from '../requests/report-block';
 import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
+import { FailureLine } from '../../ui/failure-line';
 
 
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
@@ -627,7 +628,7 @@ function Feedback({
           </button>
         </p>
       )}
-      {failure !== null && <p role="alert" className="rounded-[1.25rem] bg-surface px-4 py-3 text-[14px] font-medium text-danger ring-1 ring-border">{failure}</p>}
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
       {/* 한 줄이 둘을 한다 — 보조기기에는 늘 읽히고, 눈에는 잠깐(`flash`)만 선다 */}
       <p
         role="status"

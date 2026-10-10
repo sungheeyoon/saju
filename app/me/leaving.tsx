@@ -9,6 +9,7 @@ import { BUTTON_DANGER } from '../ui/buttons';
 import { CONFIRM_ROW } from '../ui/surfaces';
 import { requestAccountDeletion } from './requests/actions';
 import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
+import { FailureLine } from '../ui/failure-line';
 
 /**
  * 떠나는 자리 — **한 번 더 묻고, 무엇이 지워지지 않는지 먼저 말한다.**
@@ -96,9 +97,7 @@ export function RequestDeletion() {
         </button>
       </div>
       {failure !== null && (
-        <p role="alert" className="w-full text-sm text-danger">
-          {failure}
-        </p>
+        <FailureLine className="w-full">{failure}</FailureLine>
       )}
     </SettingsRow>
   );
