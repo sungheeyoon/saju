@@ -5,7 +5,7 @@
 ## 먼저 읽는 것
 
 - `docs/architecture.md` 「문 — DB 를 부르는 자리」 · 「그 밖의 자리」
-- `docs/agents/delegation/permissions.md` 「권한 등급」 — 특히 「예외 — 마이그레이션이 든 PR」 문단
+- `docs/agents/delegation/permissions.md` 「권한 등급」 — 특히 「예외 — 마이그레이션이 든 PR」 문단. 반환 칸만 느는 함수 확장은 마이그레이션 PR 과 앱 PR 로 나누지 않는다(`docs/ops/runbook/deploy.md` 「규약 넷」의 3)
 - `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 — 원격 DB · 마이그레이션 사슬은 순차다
 - `docs/ops/runbook/deploy.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · 「묶음 배포」의 0
 - `docs/ops/runbook/access.md` 「개인정보는 화면으로만」
@@ -37,6 +37,7 @@
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「사람이 할 걸음」에 밟은 `db push` 와 본 값, 「문서」에 결정 여부와 고친 원본
 - [ ] 새 표 · 함수의 이름이 도메인 낱말이면 → [용어 ↔ 코드](../context/code-names.md#9-용어--코드)
 - [ ] 운영에서 손으로 도는 SQL · 절차가 바뀌었으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
+- [ ] 공유 문서를 고쳐 읽기량 시험이 붉으면 → [천장에 걸리면](../agents/delegation/done.md#읽기량-천장에-걸리면) — 줄이지 말고 고칠 자리를 고른다
 
 ## 닿을 때 여는 것
 

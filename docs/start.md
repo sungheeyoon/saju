@@ -4,7 +4,7 @@
 손을 댄다.** 역할 문서는 한 화면이고 칸이 넷이다 — 먼저 읽는 것 · 이 저장소의 방식 · 하지 않는 것 · 묻는 것 · 끝날 때
 고치는 것. 맨 뒤의 「닿을 때 여는 것」은 손대기 전에 읽지 않고, 일이 그 줄의 자리에 닿을 때 연다(ADR 0147). 역할 문서는 **원본으로 가는 길잡이(Router)다** — 규칙을 줄여 다시 말하지 않고 원본의 절을 링크로 가리키며,
 멈출 자리(「하지 않는 것 · 묻는 것」)만 짧게 들고 줄마다 출처를 단다(ADR 0140·0145). 규칙이 바뀌면 원본을 고치고, 역할
-문서는 가리키는 절이 옮겨졌을 때만 고친다. 가리킨 절 · 링크가 실제로 있는지와 역할마다 필수 읽기량은 `scripts/code-rules.test.ts` 가 잰다.
+문서는 가리키는 절이 옮겨졌을 때만 고친다. 가리킨 절 · 링크가 실제로 있는지와 역할마다 읽기량 예상치(고정 + 일마다 고르는 것 가운데 가장 큰 것)는 `scripts/code-rules.test.ts` 가 잰다.
 
 ## 모두가 먼저 보는 것
 
@@ -44,7 +44,7 @@
 | 코드가 어디에 살고 무엇을 불러도 되나 | `docs/architecture.md` | `scripts/layers.test.ts` · `eslint.config.mjs` 가 맞다 |
 | 코드를 어떻게 적나 | `CODING_STANDARDS.md` | `scripts/code-rules.test.ts` · 린트가 맞다 |
 | 무엇을 돌리나 | `docs/agents/test-map.md` | `scripts/ci-plan.mjs` 가 맞다 |
-| 이미 정한 화면 문구 | `docs/product/copy-ledger.md` | 없으면 표로 묻는다 |
+| 이미 정한 화면 문구 | `docs/product/copy-ledger.md`(규칙 · 무리 색인) → `docs/product/copy-ledger/` 의 그 화면 무리 | 없으면 표로 묻는다 |
 | 맡기는 법 · 권한 · 병렬 · PR 의 칸 | `docs/agents/delegation.md` | 권한 표는 `.claude/settings.json` 과 시험이 견준다 |
 | 운영에서 무엇을 어떤 차례로 | `docs/ops/runbook.md` | — |
 | 운영 주소 · 도메인 | `docs/ops/runbook/domain.md` 맨 위 | 주석 · 다른 문서는 주소를 적지 않고 여기를 가리킨다 — `scripts/code-rules.test.ts` 가 잰다 |
