@@ -6,6 +6,7 @@ import {
   pushRowState,
   type PushEnvironment,
   type PushRowState,
+  type PushToggleResult,
 } from '@/src/lib/push';
 
 import { pushSubscriptionRegistered, removePushSubscription, savePushSubscription } from './actions';
@@ -71,8 +72,6 @@ export async function readPushRowState(): Promise<PushRowState> {
   }
   return pushRowState(env);
 }
-
-export type PushToggleResult = { ok: true; state: PushRowState } | { ok: false; reason: 'denied' | 'failed'; state: PushRowState };
 
 /**
  * 켠다 — **누름 안에서 곧장** 권한을 묻는다. Safari 는 사용자 제스처 밖의 권한 요청을 거절하므로 이 함수의 첫 `await`

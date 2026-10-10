@@ -25,11 +25,11 @@ export const ROOM_SAFETY_NOTE = '불편한 대화는 오른쪽 위 ⋯ 메뉴에
 export const ROOM_NO_MESSAGES_YET = '아직 나눈 대화가 없어요';
 
 /**
- * 방이 스스로 갱신되며 새로 선 자리(ADR 0155) — **시안이다, 운영자 승인 대기.** 확정되면 문구 대장에 줄을 더한다.
+ * 방이 스스로 갱신되며 새로 선 자리(ADR 0155) — 운영자 확정(2026-10-10, 문구 대장 33).
  *
  * - 위에서 과거를 읽는 동안 상대의 새 말이 왔을 때 대화 칸 아래에 서는 단추. 누르면 맨 아래로 간다.
  * - 대화 칸 맨 위에서 가진 것 앞의 200건을 더 읽는 단추와 읽는 동안의 글자.
  */
-export const NEW_MESSAGES_LABEL = '새 메시지';
+export const NEW_MESSAGES_LABEL = '새 메시지 보기';
 export const OLDER_MESSAGES_LABEL = '이전 메시지 더 보기';
 export const OLDER_LOADING_LABEL = '불러오는 중…';
