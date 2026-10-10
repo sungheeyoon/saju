@@ -151,6 +151,35 @@ export function pushRowState(env: PushEnvironment): PushRowState {
 }
 
 /**
+ * 켜고 끈 결과(`app/me/push/browser.ts` 의 `turnOnPush` · `turnOffPush`). 켜기의 `denied` 는 권한 창이 「허용」으로 끝나지 않은
+ * 것이다 — 창을 닫기만 했으면 `state` 가 `off`, 막았으면 `denied` 다.
+ */
+export type PushToggleResult =
+  | { ok: true; state: PushRowState }
+  | { ok: false; reason: 'denied' | 'failed'; state: PushRowState };
+
+/**
+ * 「알림에는 메시지 내용과 보낸 사람을 표시하지 않아요.」가 서는가 — **꺼짐에서만**이다. 켤지 고르는 자리에서 하는 말이다
+ * (운영자 결정 2026-10-10, 문구 대장 33). 재는 동안(`null`)에는 서지 않는다.
+ */
+export function pushPrivacyNoteShown(state: PushRowState | null): boolean {
+  return state === 'off';
+}
+
+/** 켜기 · 끄기가 실패했을 때 카드 아래에 서는 줄의 갈래 */
+export type PushToggleFailure = 'not-allowed' | 'failed-on' | 'failed-off';
+
+/**
+ * 실패 줄을 세울까 — 권한 창을 닫기만 했으면(결과 상태가 `off`) 「알림 권한이 허용되지 않아 …」를 세운다. 결과 상태가 `denied`
+ * 면 **세우지 않는다** — 설명 줄의 차단 안내가 이미 같은 일을 말한다(운영자 결정 2026-10-10).
+ */
+export function pushToggleFailure(turningOn: boolean, result: PushToggleResult): PushToggleFailure | null {
+  if (result.ok) return null;
+  if (result.reason === 'denied') return result.state === 'denied' ? null : 'not-allowed';
+  return turningOn ? 'failed-on' : 'failed-off';
+}
+
+/**
  * iOS · iPadOS 인가 — 사용자 에이전트와 터치 점 수로 가른다.
  *
  * iPadOS 13 부터 Safari 는 데스크톱 Mac 의 사용자 에이전트를 낸다. 그래서 「Macintosh 인데 터치 점이 여럿」을

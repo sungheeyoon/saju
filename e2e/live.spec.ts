@@ -538,7 +538,7 @@ test.describe('앱이 스스로 갱신된다', () => {
     expect(activityOf(bId)).toBe(idle);
   });
 
-  test('위에서 과거를 읽는 동안 새 말이 오면 자리를 지키고 「새 메시지」가 서며, 맨 위에서 이전 메시지를 더 읽는다', async ({ openAs }) => {
+  test('위에서 과거를 읽는 동안 새 말이 오면 자리를 지키고 「새 메시지 보기」가 서며, 맨 위에서 이전 메시지를 더 읽는다', async ({ openAs }) => {
     const { a, b, tag, matchId, room } = await pair(openAs);
     // 첫 200건 밖까지 — 230건을 미리 쌓는다(한도는 SQL 이 아니라 문이 센다 — 표에 바로 넣는다)
     const roomId = sql(`select id from public.chat_room where match_id = '${matchId}'`);
