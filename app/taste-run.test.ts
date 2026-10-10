@@ -196,7 +196,6 @@ describe('갈래', () => {
     ['글이 비었다', { previewMarkdown: '  ' }],
     ['이어쓰기가 읽는 칸이 비었다', { continuationQuestion: '' }],
     ['DB 가 받는 길이를 넘었다', { previewMarkdown: `${'가'.repeat(2_001)}요?` }],
-    ['근거 경로가 DB 의 꼴이 아니다', { supportingClaims: ['구조가 그렇다'] }],
   ])('DB 가 받지 못하는 꼴(%s)은 여전히 막는다 — 실패 코드로 적고 글을 안 낸다', async (_why, patch) => {
     const { hands: one, seen } = hands(callModel(), {
       called: { ok: true, output: { ...HAND_SAMPLE.taste, ...patch }, usage: null, reasoningTokens: null, modelId: 'm' },
@@ -207,6 +206,24 @@ describe('갈래', () => {
     expect(seen.notes).toHaveLength(1);
     expect(seen.notes[0].findings.length).toBeGreaterThan(0);
     for (const finding of seen.notes[0].findings) expect(finding.detail.length).toBeLessThanOrEqual(200);
+  });
+
+  it('근거 경로는 막지 않는다 — 받는 꼴만 걸러 저장하고, 하나도 안 남아도 글을 낸다(운영자 2026-10-10)', async () => {
+    const { hands: one, seen } = hands(callModel(), {
+      called: {
+        ok: true,
+        output: { ...HAND_SAMPLE.taste, supportingClaims: ['구조가 그렇다', '아무 말'] },
+        usage: null,
+        reasoningTokens: null,
+        modelId: 'm',
+      },
+    });
+    expect(await serveTaste(DRAFT, one)).toMatchObject({ state: 'ready' });
+    expect(seen.finish[0]).toMatchObject({ failureCode: null, output: { supportingClaims: [] } });
+    const codes = seen.notes[0].findings.map((finding) => finding.code);
+    expect(codes).toContain('claims-filtered');
+    expect(codes).toContain('claims-out-of-contract');
+    expect(seen.notes[0].findings.find((finding) => finding.code === 'claims-filtered')?.detail).toBe('걸러 냄 2개 · 남음 0개');
   });
 
   it('모델이 실패한 시도와 늦게 와 무시된 결과는 검사를 적지 않는다', async () => {

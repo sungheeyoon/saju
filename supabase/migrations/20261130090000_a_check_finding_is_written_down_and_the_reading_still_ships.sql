@@ -21,9 +21,10 @@
 --
 -- ## 올리는 차례 — 앱보다 먼저다(넓히기, ADR 0071)
 --
--- 칸 셋과 문 둘 · 뷰 하나가 새로 설 뿐이다. 있는 문(`save_reading` · `fail_reading_job` · `finish_taste`)은 한 글자도 안
--- 바뀐다 — 지금 나가 있는 앱은 새 문을 모르고 그대로 돈다. 이 PR 의 앱이 새 문을 부르므로 이 파일이 먼저 올라야 한다 — 없으면
--- 기록만 못 적고(부속이라 저장 · 화면은 그대로 선다, 기록에 원문만 남는다) 글은 그대로 선다.
+-- 칸 셋과 문 둘 · 뷰 하나가 새로 선다. 있는 문 가운데 `save_reading` · `fail_reading_job` 은 그대로이고, `finish_taste` 는 근거
+-- 경로의 하한만 1 → 0 으로 넓힌다(아래 6) — 지금 나가 있는 앱은 새 문을 모르고 늘 1~6개를 보내 그대로 돈다. 이 PR 의 앱이 새 문을
+-- 부르므로 이 파일이 먼저 올라야 한다 — 없으면 기록을 못 적고(부속이라 저장 · 화면은 그대로다, 기록에 원문만 남는다), 근거 경로가
+-- 하나도 안 남은 맛보기는 `finish_taste` 가 22023 으로 거절해 `taste-internal-error` 로 닫힌다.
 --
 -- ## 겹치는 칸 — 좁힐 것이 없다
 --
@@ -252,7 +253,119 @@ comment on view public.reading_check_daily is
 revoke all on public.reading_check_daily from public, anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 6. 권한 — 문 둘은 열쇠에만, 나머지는 아무에게도
+-- 6. 맛보기의 근거 경로는 비어도 된다 — 막지 않고 걸러 저장한다(운영자 2026-10-10, ADR 0163)
+-- ---------------------------------------------------------------------------
+--
+-- 앱이 경로 꼴 · 여섯까지만 걸러 보낸다. 하나도 안 남아도 글은 선다 — 그래서 성공의 근거 경로를 0~6개로 넓힌다(`null` 은 여전히
+-- 안 받는다 — 「칸이 비었다」와 「고를 근거가 없었다」를 가른다). 옛 앱은 늘 1~6개를 보내므로 넓히기다. `finish_taste` 는 인자 ·
+-- 반환형 · 권한 그대로 몸만 바뀐다 — 정의는 `20261118090000` 의 것에서 근거 경로의 하한 한 줄만 바꿨다(그 뒤에 다시 적힌 적이 없다).
+
+alter table public.taste_artifact drop constraint taste_artifact_supporting_claims_check;
+alter table public.taste_artifact add constraint taste_artifact_supporting_claims_check
+  check (cardinality(supporting_claims) between 0 and 6);
+alter table public.taste_session drop constraint taste_session_supporting_claims_check;
+alter table public.taste_session add constraint taste_session_supporting_claims_check
+  check (cardinality(supporting_claims) between 0 and 6);
+
+create or replace function public.finish_taste(
+  p_artifact_id uuid,
+  p_attempt integer,
+  p_failure_code text default null,
+  p_preview_markdown text default null,
+  p_topic text default null,
+  p_distinctive_pattern text default null,
+  p_continuation_question text default null,
+  p_answer_direction text default null,
+  p_supporting_claims text[] default null,
+  p_input_tokens integer default null,
+  p_cache_read_tokens integer default null,
+  p_cache_write_tokens integer default null,
+  p_output_tokens integer default null,
+  p_reasoning_tokens integer default null,
+  p_response_ms integer default null
+)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target public.taste_artifact;
+  succeeded boolean := p_failure_code is null;
+begin
+  if p_artifact_id is null or p_attempt is null then
+    raise exception 'taste: artifact and attempt are required' using errcode = '22023';
+  end if;
+
+  if not succeeded and p_failure_code !~ '^[a-z0-9-]{1,64}$' then
+    raise exception 'taste: failure code is a short slug' using errcode = '22023';
+  end if;
+
+  if succeeded and (
+       coalesce(char_length(p_preview_markdown), 0) not between 1 and 2000
+       or coalesce(char_length(p_topic), 0) not between 1 and 100
+       or coalesce(char_length(p_distinctive_pattern), 0) not between 1 and 1000
+       or coalesce(char_length(p_continuation_question), 0) not between 1 and 500
+       or coalesce(char_length(p_answer_direction), 0) not between 1 and 1000
+       or p_supporting_claims is null
+       or cardinality(p_supporting_claims) > 6
+       or exists (select 1 from unnest(p_supporting_claims) c where c !~ '^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)*$')) then
+    raise exception 'taste: a success carries every field' using errcode = '22023';
+  end if;
+
+  if least(p_input_tokens, p_cache_read_tokens, p_cache_write_tokens, p_output_tokens, p_reasoning_tokens, p_response_ms) < 0 then
+    raise exception 'taste: usage is never negative' using errcode = '22023';
+  end if;
+
+  -- 사용량은 늘 센다
+  perform public.taste_tally('tokens:input', p_input_tokens);
+  perform public.taste_tally('tokens:cache_read', p_cache_read_tokens);
+  perform public.taste_tally('tokens:cache_write', p_cache_write_tokens);
+  perform public.taste_tally('tokens:output', p_output_tokens);
+  perform public.taste_tally('tokens:reasoning', p_reasoning_tokens);
+  if p_response_ms is not null then
+    perform public.taste_tally('ms:sum', p_response_ms);
+    perform public.taste_tally('ms:count', 1);
+    perform public.taste_tally('ms:max', p_response_ms, true);
+  end if;
+
+  select * into target from public.taste_artifact a where a.id = p_artifact_id for update;
+
+  if target.id is null or target.status <> 'running' or target.attempts <> p_attempt then
+    perform public.taste_tally('call:late');
+    return 'ignored';
+  end if;
+
+  update public.taste_artifact a
+  set status = case when succeeded then 'succeeded' else 'failed' end,
+      failure_code = p_failure_code,
+      preview_markdown = case when succeeded then p_preview_markdown end,
+      topic = case when succeeded then p_topic end,
+      distinctive_pattern = case when succeeded then p_distinctive_pattern end,
+      continuation_question = case when succeeded then p_continuation_question end,
+      answer_direction = case when succeeded then p_answer_direction end,
+      supporting_claims = case when succeeded then p_supporting_claims end,
+      input_tokens = p_input_tokens,
+      cache_read_tokens = p_cache_read_tokens,
+      cache_write_tokens = p_cache_write_tokens,
+      output_tokens = p_output_tokens,
+      reasoning_tokens = p_reasoning_tokens,
+      response_ms = p_response_ms,
+      updated_at = now()
+  where a.id = target.id;
+
+  perform public.taste_tally(case when succeeded then 'call:succeeded' else 'call:failed' end);
+
+  if succeeded then
+    perform public.taste_snapshot(target.id);
+  end if;
+
+  return 'recorded';
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 7. 권한 — 문 둘은 열쇠에만, 나머지는 아무에게도
 -- ---------------------------------------------------------------------------
 
 revoke execute on function

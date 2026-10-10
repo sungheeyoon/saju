@@ -8,10 +8,11 @@
 --   4. **내보냄 · 막음은 시도의 상태가 가른다** — 저장한 시도는 `shipped`, 실패로 닫은 시도는 `blocked`. 같은 코드는 한 시도에 하나
 --   5. **맛보기도 같은 수에 든다** — 지금 시도 번호에만, 그 시도에 한 번
 --   6. **뷰가 한 줄로 낸다** — 분모(`checked`)와 몫(`share`)
+--   7. **맛보기의 근거 경로는 빈 목록도 받는다** — 앱이 꼴 · 개수로 걸러 보낸다. `null` · 일곱은 그대로 거절
 --
 -- 날짜별 수는 전역 줄이라 오늘 줄을 트랜잭션 안에서 지우고 잰다(롤백이 되돌린다).
 begin;
-select plan(32);
+select plan(35);
 
 create or replace function public.reading_credit_limit()
 returns integer language sql immutable as $limit$ select 100 $limit$;
@@ -201,6 +202,23 @@ select is(
   array[pg_temp.count_of('taste', 'checked'), pg_temp.count_of('taste', 'length-out-of-contract')],
   array[array[1, 0], array[1, 0]]::bigint[],
   '맛보기도 같은 수에 내보냄으로 든다');
+
+-- ── 맛보기의 근거 경로는 비어도 성공으로 적힌다(앱이 걸러 보낸다) ──────────
+
+create temporary table bare as
+select * from public.reserve_taste(pg_temp.h('fp-bare'), 'taste-v1', 'luna-none-v1', pg_temp.h('browser'), pg_temp.h('ip'));
+
+select throws_ok(
+  format($$select public.finish_taste(%L, 1, null, '첫 문단이에요.', '겉과 속의 차이', '빠르다', '왜일까요?', '방향', null)$$,
+    (select artifact_id from bare)),
+  '22023', null, '근거 경로 칸이 없으면(`null`) 여전히 성공이 아니다');
+select throws_ok(
+  format($$select public.finish_taste(%L, 1, null, '첫 문단이에요.', '겉과 속의 차이', '빠르다', '왜일까요?', '방향', %L::text[])$$,
+    (select artifact_id from bare), array['a', 'b', 'c', 'd', 'e', 'f', 'g']),
+  '22023', null, '근거 경로가 일곱이면 여전히 거절한다');
+select is(
+  public.finish_taste((select artifact_id from bare), 1, null, '첫 문단이에요.', '겉과 속의 차이', '빠르다', '왜일까요?', '방향', array[]::text[]),
+  'recorded', '근거 경로가 하나도 안 남아도 성공으로 적힌다');
 
 -- ── 6. 뷰 ───────────────────────────────────────────────────────────────────
 

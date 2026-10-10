@@ -65,7 +65,7 @@ npm run db:remote -- --purpose "검사 기록 날짜별 수" \
 - `checked` — 그날 그 종류에서 검사를 적은 시도 전부(분모), `share` — 그 가운데 이 코드가 걸린 몫(%)
 
 코드가 어느 갈래인지는 ADR 0163 의 갈래 표가 든다. 몫이 큰 품질 코드가 프롬프트를 고칠 자리다 — 고치면 실호출로 다시 잰다
-(`docs/agents/test-map/what-to-run.md` 의 프롬프트 줄). 한 시도의 설명까지 볼 때(문의 응대 · G-92)는 그 시도 id 하나로만 읽는다 —
+(`docs/agents/test-map/what-to-run.md` 의 프롬프트 줄). 한 시도의 설명까지 볼 때(문의 응대 — 판단은 사람이 ADR 0148 대로)는 그 시도 id 하나로만 읽는다 —
 `select check_findings from public.reading_run where id = '<시도 id>';` `reading_run` 은 이용자의 시도라 일상 집계에 열지 않는다
 (`docs/ops/runbook/access.md` 「개인정보는 화면으로만」). 뷰는 `service_role` 에도 닫혀 있다 — `db:remote` 로만 본다.
 

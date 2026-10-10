@@ -13,6 +13,7 @@ import {
   TASTE_BLOCKING_CODES,
   checkTasteRun,
   tasteBlockingOf,
+  tasteClaimsForStore,
   type TasteCheckCode,
   tasteEvidenceOf,
   tasteFingerprintOf,
@@ -228,9 +229,9 @@ describe('맛보기 규칙 검사', () => {
     ['field-empty', true, { answerDirection: ' ' }],
     ['field-empty', true, { topic: '' as never }],
     ['field-too-long', true, { continuationQuestion: `${'왜'.repeat(501)}요?` }],
-    ['claims-unstorable', true, { supportingClaims: [] }],
-    ['claims-unstorable', true, { supportingClaims: ['구조가 그렇다'] }],
-    ['claims-unstorable', true, { supportingClaims: Array.from({ length: 7 }, () => 'analysis.structure') }],
+    ['claims-out-of-contract', false, { supportingClaims: [] }],
+    ['claims-out-of-contract', false, { supportingClaims: ['구조가 그렇다'] }],
+    ['claims-out-of-contract', false, { supportingClaims: Array.from({ length: 7 }, () => 'analysis.structure') }],
     ['unknown-topic', false, { topic: '책임감' as never }],
     ['claims-not-in-evidence', false, { supportingClaims: ['analysis.relations'] }],
     ['length-out-of-contract', false, { previewMarkdown: '짧은 글이에요.\n\n정말 짧을까요?' }],
@@ -248,6 +249,15 @@ describe('맛보기 규칙 검사', () => {
     expect(findings.map((finding) => finding.code)).toContain(code);
     expect(TASTE_BLOCKING_CODES.has(code)).toBe(blocks);
     expect(tasteBlockingOf(findings).length > 0).toBe(blocks);
+  });
+
+  it('근거 경로는 DB 가 받는 꼴 · 개수만 남긴다 — `chart.` 는 떼고, 꼴이 아닌 것과 여섯 뒤는 버린다', () => {
+    expect(tasteClaimsForStore([' chart.analysis.strength ', '구조가 그렇다', ''])).toEqual({ kept: ['analysis.strength'], dropped: 1 });
+    expect(tasteClaimsForStore(Array.from({ length: 8 }, (_, at) => `pillars.p${at}`))).toEqual({
+      kept: Array.from({ length: 6 }, (_, at) => `pillars.p${at}`),
+      dropped: 2,
+    });
+    expect(tasteClaimsForStore(['그냥 말'])).toEqual({ kept: [], dropped: 1 });
   });
 
   it('설명에는 모델이 쓴 글을 싣지 않는다 — 모르는 topic · 꼴이 아닌 경로는 길이와 개수만', () => {

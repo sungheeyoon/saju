@@ -5,8 +5,8 @@ import {
   TASTE_CHECK_FAILED,
   TASTE_RUN_CALL,
   checkTasteRun,
-  normalizeClaim,
   tasteBlockingOf,
+  tasteClaimsForStore,
   tasteEvidenceOf,
   tasteFingerprintOf,
   tasteRunPromptOf,
@@ -198,7 +198,13 @@ async function callReserved(
       : { ...NO_TOKENS, responseMs };
 
     const verdict = called.ok ? checkTasteRun(called.output, taste) : null;
-    const findings = verdict === null || verdict.ok ? [] : verdict.findings.map(findingForRecord);
+    const claims = called.ok ? tasteClaimsForStore(called.output.supportingClaims) : { kept: [], dropped: 0 };
+    const findings = [
+      ...(verdict === null || verdict.ok ? [] : verdict.findings),
+      ...(claims.dropped > 0
+        ? [{ code: 'claims-filtered' as const, detail: `걸러 냄 ${claims.dropped}개 · 남음 ${claims.kept.length}개` }]
+        : []),
+    ].map(findingForRecord);
     const blocked = tasteBlockingOf(findings).length > 0;
     const failureCode = called.ok ? (blocked ? TASTE_CHECK_FAILED : null) : called.code;
 
@@ -210,7 +216,7 @@ async function callReserved(
             distinctivePattern: called.output.distinctivePattern.trim(),
             continuationQuestion: called.output.continuationQuestion.trim(),
             answerDirection: called.output.answerDirection.trim(),
-            supportingClaims: called.output.supportingClaims.map(normalizeClaim).filter((claim) => claim !== ''),
+            supportingClaims: claims.kept,
           }
         : null;
 

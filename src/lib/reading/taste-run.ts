@@ -320,8 +320,9 @@ ${JSON.stringify(evidence)}
 // ---------------------------------------------------------------------------
 
 /**
- * 맛보기 검사 코드 — 막는 넷은 **DB 가 받지 못하는 꼴**이다(`finish_taste` 의 성공 검사 · `taste_artifact` 의 검사식과 같은 수).
- * 나머지는 품질이라 걸려도 글을 적고 화면에 세운다(ADR 0163).
+ * 맛보기 검사 코드 — 막는 셋은 **DB 가 받지 못하는 꼴**이다(`finish_taste` 의 성공 검사 · `taste_artifact` 의 검사식과 같은 수).
+ * 나머지는 품질이라 걸려도 글을 적고 화면에 세운다(ADR 0163). 근거 경로는 막지 않는다 — 받는 꼴 · 개수에 맞는 것만 걸러
+ * 저장한다(`tasteClaimsForStore`, 하나도 안 남아도 글은 선다).
  */
 export type TasteCheckCode =
   /** `previewMarkdown` 이 비었다 — 막는다 */
@@ -330,8 +331,10 @@ export type TasteCheckCode =
   | 'field-empty'
   /** 칸이 DB 가 받는 길이를 넘었다(`TASTE_STORE_LIMITS`) — 막는다 */
   | 'field-too-long'
-  /** 근거 경로가 1~6개가 아니거나 경로 꼴이 아니다 — 막는다 */
-  | 'claims-unstorable'
+  /** 근거 경로가 1~6개가 아니거나 경로 꼴이 아닌 것이 있다 */
+  | 'claims-out-of-contract'
+  /** 저장하기 전에 경로 꼴이 아니거나 여섯을 넘는 근거 경로를 걸러 냈다 — 앱(`app/taste-run.ts`)이 적는다 */
+  | 'claims-filtered'
   | 'unknown-topic'
   | 'claims-not-in-evidence'
   | 'length-out-of-contract'
@@ -350,7 +353,6 @@ export const TASTE_BLOCKING_CODES: ReadonlySet<TasteCheckCode> = new Set<TasteCh
   'preview-empty',
   'field-empty',
   'field-too-long',
-  'claims-unstorable',
 ]);
 
 /** DB 가 받는 칸의 길이 — `taste_artifact` · `taste_session` 의 검사식과 `finish_taste` 의 성공 검사가 같은 수를 든다 */
@@ -432,6 +434,16 @@ export const normalizeClaim = (claim: string): string => claim.trim().replace(/^
 const SEGMENT = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)*$/;
 
 /**
+ * DB 가 받는 근거 경로만 남긴다 — `chart.` 를 떼고(`normalizeClaim`), 경로 꼴(`finish_taste` 의 정규식과 같다)인 것만, 앞에서 여섯까지.
+ * 걸러 낸 것은 버린다 — 없는 경로를 가까운 경로로 고치지 않는다. 하나도 안 남으면 빈 목록이다(DB 가 받는다, `20261130090000`).
+ */
+export function tasteClaimsForStore(claims: readonly string[]): { kept: string[]; dropped: number } {
+  const given = claims.map(normalizeClaim).filter((claim) => claim !== '');
+  const kept = given.filter((claim) => SEGMENT.test(claim)).slice(0, TASTE_RUN_RULES.supportingClaims.max);
+  return { kept, dropped: given.length - kept.length };
+}
+
+/**
  * 맛보기 출력의 짧은 규칙 검사 — 걸린 것을 전부 모아 낸다. 막는 것과 품질을 함께 내고, 무엇을 막는지는 `tasteBlockingOf` 가
  * 가른다. 설명에는 모델이 쓴 글을 싣지 않는다 — 길이 · 개수 · 우리 표의 낱말 · 경로 꼴의 값까지만.
  *
@@ -454,10 +466,10 @@ export function checkTasteRun(output: TasteRunOutput, evidence?: TasteEvidence):
   }
   const claims = output.supportingClaims.map(normalizeClaim).filter((claim) => claim !== '');
   if (claims.length < TASTE_RUN_RULES.supportingClaims.min || claims.length > TASTE_RUN_RULES.supportingClaims.max) {
-    found('claims-unstorable', `supportingClaims 가 ${claims.length}개다`);
+    found('claims-out-of-contract', `supportingClaims 가 ${claims.length}개다`);
   }
   const malformed = claims.filter((claim) => !SEGMENT.test(claim));
-  if (malformed.length > 0) found('claims-unstorable', `경로 꼴이 아닌 supportingClaims ${malformed.length}개`);
+  if (malformed.length > 0) found('claims-out-of-contract', `경로 꼴이 아닌 supportingClaims ${malformed.length}개`);
   if (evidence !== undefined) {
     const allowed = new Set(tasteClaimPathsOf(evidence));
     const missing = claims.filter((claim) => SEGMENT.test(claim) && (!allowed.has(claim) || !pathExists(evidence.chart, claim)));
