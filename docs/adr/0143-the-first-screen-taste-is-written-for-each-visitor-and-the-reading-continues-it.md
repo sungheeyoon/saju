@@ -270,3 +270,12 @@
   궁합 입구(`app/compat-picker.tsx`)와 같은 몸짓이다. 회원의 `/saju` 는 그대로다.
 
 화면은 `app/taste.tsx` · `app/saju-calculator.tsx`, 시험은 `e2e/taste.spec.ts` · `e2e/signed-in.spec.ts`. PRD §3.1, 문구 대장 07 · 10.
+
+## 덧 — 퍼널은 다섯 단계다 (2026-10-10, 운영자 결정 · G-85)
+
+8 의 「더보기 클릭」을 걷는다 — 퍼널은 맛보기 생성 성공 → 가입 시작 → 가입 완료 · 세션 귀속 → 전체 풀이 시작 → 전체 풀이 성공이다.
+서버 액션 `noteTasteStep` 은 `signup_started` 만 받고, `TASTE_SESSION_STEPS` 는 둘(`signup_started` · `signup_completed`), 두 셈 문
+(`count_taste_step_once` · `count_taste_step`)은 `more_clicked` 를 22023 으로 거절하며, `taste_daily` 에서 그 칸을 뺐다
+(`20261128090000`). 운영 DB 에 그 단계로 센 줄은 한 번도 없었다(2026-10-10 집계 0). 위 「덧 — 앱이 붙고」의 「퍼널 8 의 뜻」은
+앱이 세는 셋이 둘로 줄어든 것 말고 그대로다. 로그인 전 사주 문단 프롬프트의 「[더보기]가 선다」 한 줄은 이번에 안 걷었다 —
+본문이 바뀌면 실호출이 들고 실호출은 운영자가 돌린다(G-85 에 남는다).

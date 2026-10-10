@@ -19,7 +19,8 @@
  *    실어 보내도 저장된 입력이 이긴다
  * 7. **세션 하나 = 풀이 하나** — 잇는 문이 터지면 그 시도는 실패로 닫히고(`taste-link-failed`), 「전체 풀이만 보기」가 귀속
  *    표를 걷으면 다음 누름은 보통 풀이고, 누름이 잇고, 실패한 풀이만 다시 잇고, 성공한 풀이가 있으면 새로 안 연다
- * 8. **퍼널은 세션당 한 번** — 「더보기」 · 가입 완료를 거듭해도 · 귀속 표를 지우고 다시 와도 한 번, 다른 브라우저 · 쿠키 없음은 0
+ * 8. **퍼널은 세션당 한 번** — 가입 시작 · 가입 완료를 거듭해도 · 귀속 표를 지우고 다시 와도 한 번, 다른 브라우저 · 쿠키 없음은 0.
+ *    걷은 「더보기」(`more_clicked`)는 서버 액션이 받지 않는다(G-85)
  * 9. **회원은 맛보기로 안 간다** — 로그인한 요청은 예약도 세션도 없이 닫힌다
  */
 import { createClient } from '@supabase/supabase-js';
@@ -178,17 +179,19 @@ try {
   check('내 세션은 내 쿠키로 다시 읽힌다', mine.state === 'ready' && mine.preview === PREVIEW);
 
   // -------------------------------------------------------------------------
-  // 8 · 퍼널은 세션당 한 번 — 「더보기」
+  // 8 · 퍼널은 세션당 한 번 — 가입 시작. 「더보기」는 걷었다(G-85)
   // -------------------------------------------------------------------------
-  const moreBefore = funnel('more_clicked');
+  const startedBefore = funnel('signup_started');
+  await act('/', NOTE, ['signup_started', again.sessionId], { jar: first, ip: '10.77.0.1' });
+  await act('/', NOTE, ['signup_started', again.sessionId], { jar: first, ip: '10.77.0.1' });
+  check('가입 시작을 두 번 눌러도 그 세션은 한 번 센다', funnel('signup_started') === startedBefore + 1, `${startedBefore} → ${funnel('signup_started')}`);
+  await act('/', NOTE, ['signup_started', again.sessionId], { jar: second, ip: '10.77.0.2' });
+  await act('/', NOTE, ['signup_started', again.sessionId], { jar: browser(), ip: '10.77.0.3' });
+  check('남의 세션 id 로는 · 쿠키 없이는 안 센다', funnel('signup_started') === startedBefore + 1, `${startedBefore} → ${funnel('signup_started')}`);
+  await act('/', NOTE, ['signup_started', other.sessionId], { jar: second, ip: '10.77.0.2' });
+  check('다른 세션은 따로 센다', funnel('signup_started') === startedBefore + 2);
   await act('/', NOTE, ['more_clicked', again.sessionId], { jar: first, ip: '10.77.0.1' });
-  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: first, ip: '10.77.0.1' });
-  check('「더보기」를 두 번 눌러도 그 세션은 한 번 센다', funnel('more_clicked') === moreBefore + 1, `${moreBefore} → ${funnel('more_clicked')}`);
-  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: second, ip: '10.77.0.2' });
-  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: browser(), ip: '10.77.0.3' });
-  check('남의 세션 id 로는 · 쿠키 없이는 안 센다', funnel('more_clicked') === moreBefore + 1, `${moreBefore} → ${funnel('more_clicked')}`);
-  await act('/', NOTE, ['more_clicked', other.sessionId], { jar: second, ip: '10.77.0.2' });
-  check('다른 세션은 따로 센다', funnel('more_clicked') === moreBefore + 2);
+  check('걷은 「더보기」는 서버 액션이 받지 않는다 — 퍼널은 다섯 단계다(G-85)', funnel('more_clicked') === 0);
 
   // -------------------------------------------------------------------------
   // 4 · 한도
