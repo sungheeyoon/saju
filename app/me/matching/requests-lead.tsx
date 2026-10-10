@@ -16,6 +16,7 @@ import {
 import { when } from '../requests/when';
 import type { PastRequests } from './history';
 import { RequestsBand } from './requests-band';
+import { FailureLine } from '../../ui/failure-line';
 
 /** 요청을 읽은 결과 — 못 읽었으면 까닭 한 줄이 선다. 덱은 그대로 선다 */
 export type RequestsRead = SkippableRead<Requests>;
@@ -42,7 +43,7 @@ export type RequestsRead = SkippableRead<Requests>;
  */
 export function ReceivedRequests({ loaded }: { loaded: RequestsRead }) {
   if (!loaded.ok) {
-    return <p className="text-sm text-muted">요청을 불러오지 못했어요. {loaded.reason}</p>;
+    return <FailureLine retry>요청을 불러오지 못했어요. {loaded.reason}</FailureLine>;
   }
 
   const received = receivedOf(loaded.value.requests);

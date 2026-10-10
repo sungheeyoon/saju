@@ -16,6 +16,7 @@ import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
+import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -134,6 +135,8 @@ export function SelfCard({
           </Link>
           <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} whitespace-nowrap px-3 sm:px-5`}>
             사주 자세히 보기
+            {/* 이 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누른 것이 보이게(`LinkPending`) */}
+            <LinkPending className={LINK_PENDING_SPINNER} />
             <Icon name="arrow" className="hidden size-4 sm:block" />
           </Link>
         </div>

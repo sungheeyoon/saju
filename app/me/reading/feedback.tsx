@@ -19,6 +19,7 @@ import {
   type ReadingAnswer,
 } from '@/src/lib/reading/feedback';
 
+import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { TYPE_NAME } from '../../ui/surfaces';
 
@@ -93,7 +94,7 @@ export function ReadingFeedback({
         comment: comment.trim() === '' ? null : comment.trim(),
       };
 
-      const result = await submitReadingFeedback(target, { runId, ...sent });
+      const result = await actionAnswer(submitReadingFeedback(target, { runId, ...sent }));
 
       if (result.ok) {
         /*

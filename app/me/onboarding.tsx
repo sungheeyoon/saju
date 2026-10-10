@@ -9,6 +9,7 @@ import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { saveSelfPerson } from './actions';
+import { actionAnswer } from '../ui/action-answer';
 
 /**
  * 자기 사주를 한 번 등록하는 화면.
@@ -32,7 +33,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
   const save = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await saveSelfPerson(query);
+      const result = await actionAnswer(saveSelfPerson(query));
       if (!result.ok) setFailure(result.message);
     });
   };

@@ -17,6 +17,7 @@ import { matchesForViewer, requestsForViewer, type InboxMatch, type Requests } f
 import { makingMatches, matchBooks, pastRequests } from '../history';
 import { COUNT_CHIP } from '../history-row';
 import { PastRequestList, receivedOf } from '../requests-lead';
+import { FailureLine } from '../../../ui/failure-line';
 
 export const metadata = {
   title: '인연 기록',
@@ -121,7 +122,7 @@ export default async function MatchHistoryPage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-muted">인연 궁합을 불러오지 못했어요. {readings.reason}</p>
+            <FailureLine retry>인연 궁합을 불러오지 못했어요. {readings.reason}</FailureLine>
           )}
         </section>
       )}
@@ -135,7 +136,7 @@ export default async function MatchHistoryPage() {
           {requests.ok ? (
             past !== null && <PastRequestList past={past} guide={receivedOf(requests.value.requests).length === 0} />
           ) : (
-            <p className="text-sm text-muted">요청을 불러오지 못했어요. {requests.reason}</p>
+            <FailureLine retry>요청을 불러오지 못했어요. {requests.reason}</FailureLine>
           )}
         </section>
       )}

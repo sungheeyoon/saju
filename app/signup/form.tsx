@@ -23,6 +23,7 @@ import {
 import { checkNickname } from '../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { completeSignup } from './actions';
+import { actionAnswer } from '../ui/action-answer';
 
 /** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
@@ -116,7 +117,7 @@ export function SignupForm({
   const check = () => {
     setFailure(null);
     startChecking(async () => {
-      const result = await checkNickname(nickname);
+      const result = await actionAnswer(checkNickname(nickname));
       if (result.ok) setChecked({ key: nicknameKey(nickname), available: result.available });
       else setFailure(result.message);
     });
@@ -135,16 +136,18 @@ export function SignupForm({
         **성공하면 이 줄 아래로 안 온다.** 서버 액션이 스스로 목적지로 보낸다 — 여기서
         보내면 관문이 한 번 더 튕기고, 그 두 번째 튕김이 화면을 비운다.
       */
-      const failed = await completeSignup({
-        returnTo,
-        code,
-        nickname,
-        version,
-        /* 이 사람이 **본 안내의 줄**이다. 그 사이에 바뀌었으면 DB 가 거절한다 */
-        scheduleId,
-        improvement: chosen.improvement === true,
-        contact: chosen.contact === true,
-      });
+      const failed = await actionAnswer(
+        completeSignup({
+          returnTo,
+          code,
+          nickname,
+          version,
+          /* 이 사람이 **본 안내의 줄**이다. 그 사이에 바뀌었으면 DB 가 거절한다 */
+          scheduleId,
+          improvement: chosen.improvement === true,
+          contact: chosen.contact === true,
+        }),
+      );
 
       setFailure(failed.message);
     });

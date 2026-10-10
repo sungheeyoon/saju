@@ -22,6 +22,7 @@ import {
   BUTTON_SECONDARY,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { actionAnswer } from '../../ui/action-answer';
 import { CONFIRM_FIRST_FOCUS, openConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
@@ -87,7 +88,10 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
    * 목적은 중복 행이 아니라 **풀이권이 두 번 나가는 것**을 막는 것이다(ADR 0034).
    */
   const attempt = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
-    const result = await addManagedPerson(query, note, evenIfSameChart);
+    const result = await actionAnswer(
+      addManagedPerson(query, note, evenIfSameChart),
+      (message) => ({ ok: false, kind: 'failed', message }) as const,
+    );
 
     if (result.ok) {
       setQuery({ ...DEFAULT_QUERY, name: '' });
@@ -271,7 +275,7 @@ export function NoteEditor({
   const save = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await updateNote(personId, value);
+      const result = await actionAnswer(updateNote(personId, value));
       if (result.ok) onDone();
       else setFailure(result.message);
     });
@@ -325,7 +329,7 @@ export function RemoveConfirm({
   const remove = () => {
     setFailure(null);
     startRemoving(async () => {
-      const result = await removeFromList(personId);
+      const result = await actionAnswer(removeFromList(personId));
       if (!result.ok) setFailure(result.message);
     });
   };

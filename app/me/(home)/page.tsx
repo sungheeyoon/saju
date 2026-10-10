@@ -24,6 +24,7 @@ import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
+import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -144,7 +145,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
           {stood === null ? (
-            <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
+            <FailureLine retry>내 사주를 불러오지 못했어요.</FailureLine>
           ) : !stood.ok ? (
             <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
               <p className="text-sm">{stood.message}</p>

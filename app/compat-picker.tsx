@@ -28,6 +28,7 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
+import { actionAnswer } from './ui/action-answer';
 import { BUTTON_PRIMARY, SEGMENT, SEGMENT_ON, SEGMENTS } from './ui/buttons';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
@@ -166,11 +167,14 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
   };
 
   const open = async (answers: PairAnswers): Promise<SaveOutcome> => {
-    const opened = await openPairScreen(
-      sideOf(slots.a),
-      sideOf(slots.b),
-      answered.current === pairKey || pairKey === '' ? relation : undefined,
-      answers,
+    const opened = await actionAnswer(
+      openPairScreen(
+        sideOf(slots.a),
+        sideOf(slots.b),
+        answered.current === pairKey || pairKey === '' ? relation : undefined,
+        answers,
+      ),
+      (message) => ({ ok: false, kind: 'failed', message }) as const,
     );
 
     if (opened.ok) {
@@ -432,7 +436,7 @@ function useStoredRelation(
 
     let alive = true;
     const [first, second] = pairKey.split('|');
-    void pairRelationFor(first, second).then((stored) => {
+    void actionAnswer(pairRelationFor(first, second), () => ({ ok: false }) as const).then((stored) => {
       // 못 읽었으면 칸을 안 건드린다 — 「못 읽었다」를 「모른다」로 세우지 않는다.
       // 방금 사용자가 이 쌍에서 고른 것이 있으면 그것이 저장된 값보다 뒤의 답이다.
       if (!alive || !stored.ok || answered.current === pairKey) return;

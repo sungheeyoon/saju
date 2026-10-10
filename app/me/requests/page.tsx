@@ -14,6 +14,7 @@ import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
 import { ReadNotificationsOnVisit } from './manage';
 import { when } from './when';
+import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
   title: '소식',
@@ -58,7 +59,7 @@ async function InboxSections() {
       있어 기록에만 보내고 일반 문장이 선다(`answerOfThrown`). 전에는 `error.message` 를 그대로 세웠다.
     */
     return (
-      <p className="text-sm text-muted">소식을 불러오지 못했어요. {answerOfThrown(thrown, 'inbox')}</p>
+      <FailureLine retry>소식을 불러오지 못했어요. {answerOfThrown(thrown, 'inbox')}</FailureLine>
     );
   }
 
