@@ -159,10 +159,11 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
   마지막 시도 · 결과 · 분류, **마지막 성공 시각 · 연속 실패 수 · 밀린 행 수**, 7일의 시도와 실패. 운영자 화면이 서면
   `public.operator_audit_export_status()`(운영자만, 읽으면 접속기록에 남는다)를 부른다
 - **파일** — `operator-access/<첫 줄의 서울 날짜 YYYY/MM/DD>/<첫 번호 12자리>-<마지막 번호 12자리>.jsonl`. 첫 줄이 머리
-  (`version` 2 · `rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다.
+  (`version` 3 · `rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다.
   해시는 머리를 뗀 나머지의 sha256 이다. 올릴 때 본문 전체의 `ChecksumSHA256` 을 싣는다(Object Lock 버킷이 요구한다).
-  `version` 1 은 CLI 결과 칸(`result_of` · `result` · `error_class`)이 서기 전의 파일이다
-- **담기는 것** — 운영자 id · 시각 · 채널 · 동작 · 대상 신고 id · 거른 조건 · CLI 의 목적 · 해시 · 실행자 이름 · 성공/거절 ·
+  `version` 1 은 CLI 결과 칸(`result_of` · `result` · `error_class`)이 서기 전, 2 는 목록이 보인 신고 id 들(`target_report_ids`)이
+  서기 전의 파일이다
+- **담기는 것** — 운영자 id · 시각 · 채널 · 동작 · 대상 신고 id(목록이면 발췌가 보인 신고 id 들) · 거른 조건 · CLI 의 목적 · 해시 · 실행자 이름 · 성공/거절 ·
   CLI 결과. **이용자 닉네임 · 메시지 본문 · 이메일은 없다** — Compliance 는 되돌릴 수 없다. 저장소에도 로그 원문을 넣지 않는다.
   **반출 파일의 운영자 UUID · 신고 id 도 개인정보에 준해 다룬다** — 다른 표와 이으면 사람을 가리킨다. 그래서 파일을 저장소 ·
   이슈 · 채팅에 붙이지 않고, 버킷의 읽기는 검증 역할 하나에만 연다(아래 9)

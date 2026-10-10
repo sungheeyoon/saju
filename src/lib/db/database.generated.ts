@@ -2503,6 +2503,7 @@ export type Database = {
           result_of: number
           sql_sha256: string
           target_report_id: string
+          target_report_ids: string[]
         }[]
       }
       audit_export_begin: {

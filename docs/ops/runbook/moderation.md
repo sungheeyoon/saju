@@ -213,7 +213,7 @@ SQL 은 전부 `npm run db:remote -- --purpose "G-24 검증 <걸음 번호>" "<s
 | ⑤ | 거르기 셋 | `?review=open`(처리 필요) · `?reason=other` · `?evidence=chat` 을 하나씩 연다(화면의 거르기 링크와 같다). 그리고 `?review=done`(처리 완료) · `?evidence=none` | 앞의 셋에서는 그 신고가 보이고, 뒤의 둘에서는 안 보인다 |
 | ⑥ | 상세 — 신고 내용과 스냅샷 | 「신고 내용 보기」로 `/ops/reports/<신고 id>` 를 연다 | 사유 · 설명 · 접수 시각이 ③ 과 같고, 대화 근거 절이 선다 |
 | ⑦ | 고른 메시지와 앞뒤의 차례 | 화면의 스냅샷을 위에서 아래로 읽고 3 번 질의(**break-glass — 사람이**)와 견준다 | 「신고한 메시지」로 강조된 줄이 **하나**이고 ③ 에서 고른 글이다. 앞뒤 줄이 보낸 차례(`seq`)대로 서고 앞 · 뒤 각각 최대 다섯이다. 보낸 쪽이 「신고한 사용자」 · 「신고받은 사용자」로 맞게 붙는다 |
-| ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id(목록은 비어 있다)로 선다. 줄 id 를 적는다 |
+| ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id 로 선다(목록 줄은 `target_report_id` 가 비고, 발췌가 보였으면 `target_report_ids` 에 그 신고 id 가 든다). 줄 id 를 적는다 |
 | ⑨ | 검토를 적는다 | 「신고와 차단」의 검토 문 — `select public.review_report('<신고 id>', '<운영자 UUID>', 'no_action', 'G-24 운영 검증 — 테스트 신고')`. 처리 필요에 남는 것을 보려면 먼저 `needs_more` 로 한 번 부르고 목록의 `?review=open` 에 그대로 서는지 본 뒤 `no_action` 으로 다시 부른다. 이용 정지 결정을 시험하려면 `suspension` 과 대상 A 의 UUID 까지(같은 트랜잭션에서 A 가 정지되고 방이 닫힌다 — 「이용 정지와 해제」로 푼다) | 돌려준 값 `report`. 정지를 시험했으면 1 번 질의에서 A 가 `suspended` |
 | ⑩ | 화면과 DB 가 같다 | 상세를 새로 고치고 5 번 질의와 견준다 | 처리 상태 · 검토 결과(`no_action` → 「조치 없음」, `suspension` → 「이용 정지 결정」) · 검토한 운영자(닉네임) · 판단 근거 · 당시 제재 대상(없으면 항목 없음)이 DB 값과 한 글자도 다르지 않다. 목록의 `?review=done` 에 그 신고가 옮겨 서고 배지가 `처리 완료 · 조치 없음` 이다 |
 | ⑪ | 비운영자는 못 읽는다 | A(또는 B)의 세션으로 `/ops/reports` 와 `/ops/reports/<신고 id>` 를 연다 | 둘 다 404 이고 자료가 한 줄도 안 선다. 6 번 질의에 그 계정의 `denied` 줄이 `reports.list` · `reports.detail` 로 선다 |
@@ -245,7 +245,7 @@ from public.chat_report_snapshot s cross join lateral jsonb_array_elements(s.mes
 where s.report_id = '<신고 id>' order by 차례;
 
 -- 4. 운영자의 열람이 셋 다 남았나 (⑧)
-select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, filter_summary, outcome
+select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, target_report_ids, filter_summary, outcome
 from audit.operator_access
 where channel = 'app' and actor_user_id = '<운영자 UUID>' and at > now() - interval '2 hours'
 order by id;

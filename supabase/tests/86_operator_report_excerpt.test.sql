@@ -7,11 +7,12 @@
 --   2. **발췌는 신고 당시의 사본에서, 고른 메시지의 첫 줄이다** — 앞의 빈 줄 · 공백은 걷고, 지금의 메시지 표는 안 본다,
 --      고른 표시가 둘이면 `seq` 가 앞선 것(상세 화면의 `chosenOnce` 와 같은 고름), 대화 근거가 없으면 `null`
 --   3. **길이는 60자다** — 넘으면 59자와 `…`, 60자 꼭 맞으면 그대로
---   4. **목록을 읽으면 접속기록은 여전히 한 줄이고, 그 줄에 발췌가 없다**(ADR 0105)
+--   4. **목록을 한 번 읽으면 접속기록은 한 줄이고, 그 줄에 그 쪽에서 발췌가 보인 신고 id 가 다 든다** — 쪽 차례로, 발췌가
+--      없던 신고는 빼고, 발췌가 하나도 없던 쪽이면 비운다. 본문은 안 든다(ADR 0105 · 그 추기 2026-10-10)
 --
 -- 세는 것은 이 파일이 만든 행뿐이다(`32_test_isolation`) — 목록은 표 전체를 내주므로 이 파일의 신고 id 로 거른다.
 begin;
-select plan(15);
+select plan(21);
 
 create temporary table folks as
 select
@@ -149,6 +150,48 @@ select is(
      and to_jsonb(a)::text ~ '(첫 줄만|가가가|나나나|고른 말)'),
   0,
   '접속기록에 발췌(메시지 본문)가 안 들어간다');
+
+create temporary table logged as
+select a.target_report_ids as ids from audit.operator_access a
+where a.actor_user_id = (select operator from folks) and a.action = 'reports.list';
+
+select is(
+  (select array_agg(x order by o)
+   from logged, unnest(ids) with ordinality u(x, o), cases c
+   where x in (c.multiline, c.long_line, c.exact_line, c.twice_chosen, c.plain)),
+  (select array[multiline, long_line, exact_line, twice_chosen] from cases),
+  '그 한 줄에 발췌가 보인 신고 id 가 쪽 차례로 다 든다 — 발췌가 없던 신고(대화 근거 없음)는 빠진다');
+
+select is(
+  (select cardinality(ids) from logged),
+  (select count(*)::integer from public.report r
+   join public.chat_report_snapshot s on s.report_id = r.id
+   where exists (select 1 from jsonb_array_elements(s.messages) e where (e ->> 'chosen')::boolean)),
+  '적힌 id 의 수는 그 쪽에서 발췌가 선 줄의 수다 — 더도 덜도 아니다');
+
+/** 발췌가 하나도 없는 쪽 — 대화 근거 없음으로 거른다 */
+set local role authenticated;
+select pg_temp.acting((select operator from folks));
+select ok((select count(*) >= 1 from public.operator_reports(p_has_snapshot => false)),
+  '운영자는 대화 근거 없는 신고만 거른 쪽을 읽는다');
+reset role;
+
+select is(
+  (select array_agg(a.target_report_ids is null order by a.id) from audit.operator_access a
+   where a.actor_user_id = (select operator from folks) and a.action = 'reports.list'),
+  array[false, true],
+  '발췌가 하나도 안 보인 쪽의 줄은 id 칸이 비어 있다 — 빈 배열이 아니라');
+
+select throws_ok(
+  format($$insert into audit.operator_access (channel, actor_user_id, action, target_report_id, outcome, target_report_ids)
+           values ('app', %L, 'reports.detail', %L, 'allowed', array[%L::uuid])$$,
+         (select operator from folks), (select plain from cases), (select plain from cases)),
+  '23514', null, 'id 들의 칸은 목록 줄에만 선다');
+
+select throws_ok(
+  format($$insert into audit.operator_access (channel, actor_user_id, action, outcome, target_report_ids)
+           values ('app', %L, 'reports.list', 'allowed', '{}')$$, (select operator from folks)),
+  '23514', null, '빈 배열은 안 받는다 — 없으면 null 이다');
 
 select * from finish();
 rollback;
