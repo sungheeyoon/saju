@@ -29,7 +29,7 @@ import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
-import { withPending, type PendingState } from './pending';
+import { droppable, withPending, type Pending } from './pending';
 import type { RoomTones } from '../tones';
 import { bubbleDaysOf, flaggable, type Bubble, type ShownMessage } from './bubbles';
 import { ReportPanel } from './report';
@@ -192,7 +192,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const outbox = useOutbox(room.matchId, thread.messages, catchUp, refresh);
   const pending = outbox.pending;
   const shown = useMemo(() => withPending(thread.messages, pending), [thread.messages, pending]);
-  const pendingStates = useMemo(() => new Map(pending.map((one) => [one.id, one.state])), [pending]);
+  const pendingById = useMemo(() => new Map(pending.map((one) => [one.id, one])), [pending]);
   const days = useMemo(() => bubbleDaysOf(shown), [shown]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
@@ -272,21 +272,27 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                 {day.label}
               </p>
               <ol className="flex flex-col gap-1">
-                {day.bubbles.map((bubble) => (
-                  <BubbleRow
-                    key={bubble.id}
-                    bubble={bubble}
-                    room={room}
-                    sending={pendingStates.get(bubble.id) ?? null}
-                    /* 닫힌 방에는 다시 보낼 곳이 없다 — 지우기만 선다 */
-                    onRetry={closed ? null : () => outbox.retry(bubble.id)}
-                    onDrop={() => outbox.drop(bubble.id)}
-                    /* 신고는 상대의 말에만 선다(`flaggable`). 고른 깃발을 다시 누르면 고르기가 풀린다 — 고르기는 선택이다 */
-                    pickable={picking && flaggable(bubble)}
-                    chosen={picked === bubble.id}
-                    onPick={() => setSlot({ kind: 'report', messageId: picked === bubble.id ? null : bubble.id })}
-                  />
-                ))}
+                {day.bubbles.map((bubble) => {
+                  const one = pendingById.get(bubble.id);
+                  return (
+                    <BubbleRow
+                      key={bubble.id}
+                      bubble={bubble}
+                      room={room}
+                      sending={one?.state ?? null}
+                      /*
+                        닫힌 방에는 다시 보낼 곳이 없다 — 다만 서버에 남았을 수 있는 말은 다시 보내기가 답을 받아 온다(같은 id 가 남았으면
+                        「받았다」, 아니면 「닫혔다」). 남았을 수 있는 말에는 「삭제」가 없다 — 지운 말이 상대에게 가면 안 된다
+                      */
+                      onRetry={closed && one?.mightBeKept !== true ? null : () => outbox.retry(bubble.id)}
+                      onDrop={one !== undefined && droppable(one) ? () => outbox.drop(bubble.id) : null}
+                      /* 신고는 상대의 말에만 선다(`flaggable`). 고른 깃발을 다시 누르면 고르기가 풀린다 — 고르기는 선택이다 */
+                      pickable={picking && flaggable(bubble)}
+                      chosen={picked === bubble.id}
+                      onPick={() => setSlot({ kind: 'report', messageId: picked === bubble.id ? null : bubble.id })}
+                    />
+                  );
+                })}
               </ol>
             </div>
           ))}
@@ -431,7 +437,7 @@ function BubbleRow({
   room,
   sending = null,
   onRetry = null,
-  onDrop,
+  onDrop = null,
   pickable,
   chosen,
   onPick,
@@ -442,10 +448,11 @@ function BubbleRow({
    * 아직 안 읽혀 온 내 말의 상태 — 읽혀 온 말은 `null`. 모양은 확정된 말과 같다(흐리지 않다). 보내는 중이면 시각 자리가 비고,
    * 서버가 받았으면 보낸 시각이 서고, 못 보냈으면 그 자리에 실패 단추가 선다(ADR 0155 덧)
    */
-  sending?: PendingState | null;
-  /** 실패한 말을 같은 id 로 다시 보낸다 — 닫힌 방은 `null` */
+  sending?: Pending['state'] | null;
+  /** 실패한 말을 같은 id 로 다시 보낸다 — 닫힌 방에서 서버에 간 적 없는 말은 `null` */
   onRetry?: (() => void) | null;
-  onDrop?: () => void;
+  /** 이 화면에서만 걷는다 — 서버에 간 적이 없다고 분명한 말에만 선다 */
+  onDrop?: (() => void) | null;
   pickable: boolean;
   chosen: boolean;
   onPick: () => void;
@@ -506,7 +513,7 @@ function BubbleRow({
             <Icon name="flag" className="size-[18px]" />
           </button>
         ) : sending === 'failed' ? (
-          <SendFailedMenu onRetry={onRetry} onDrop={onDrop ?? (() => {})} />
+          <SendFailedMenu onRetry={onRetry} onDrop={onDrop} />
         ) : (
           bubble.last &&
           sending !== 'sending' && (
@@ -522,12 +529,13 @@ function BubbleRow({
 
 /**
  * 못 보낸 말 곁의 단추 — 빨간 경고 하나(44px)이고, 누르면 「다시 보내기」 · 「삭제」가 선다(카카오톡의 방식, ADR 0155 덧).
- * 다시 보내기는 같은 id 로 보내므로 서버가 실은 받았던 말이어도 두 번 남지 않는다. 삭제는 이 화면에서만 걷는다 — 서버에
- * 간 적 없는 말이다. 닫힌 방은 삭제만 선다.
+ * 다시 보내기는 같은 id 로 보내므로 서버가 실은 받았던 말이어도 두 번 남지 않는다. 삭제는 이 화면에서만 걷으므로 서버가
+ * 분명히 거절한 말(한도 · 닫힘 · 문장 있는 거절)에만 선다 — 떠났는데 답을 못 받은 말(시한 · 망 끊김)은 서버에 남았을 수 있어
+ * 다시 보내기만 선다. 닫힌 방에서 거절된 말은 삭제만 선다.
  *
  * 말풍선은 대화 칸의 아래쪽에 서므로 판은 단추 위로 연다.
  */
-function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onDrop: () => void }) {
+function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onDrop: (() => void) | null }) {
   const { menu, close } = useDetailsMenu();
   const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
   return (
@@ -552,17 +560,19 @@ function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onD
             {SEND_RETRY_LABEL}
           </button>
         )}
-        <button
-          type="button"
-          className={`${item} text-danger`}
-          onClick={() => {
-            close();
-            onDrop();
-          }}
-        >
-          <Icon name="close" className="size-[18px]" />
-          {SEND_DROP_LABEL}
-        </button>
+        {onDrop !== null && (
+          <button
+            type="button"
+            className={`${item} text-danger`}
+            onClick={() => {
+              close();
+              onDrop();
+            }}
+          >
+            <Icon name="close" className="size-[18px]" />
+            {SEND_DROP_LABEL}
+          </button>
+        )}
       </div>
     </details>
   );

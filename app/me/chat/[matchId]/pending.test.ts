@@ -1,17 +1,18 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { RATE_LIMITED_TEXT } from '@/src/lib/chat';
 
 import type { ChatMessage } from './messages';
 import {
-  SendDeadlinePassed,
+  UNREACHED,
+  droppable,
   newClientId,
   pendingMessage,
   settlePending,
   verdictOf,
+  withFailure,
   withPending,
   withState,
-  withinDeadline,
   type Pending,
 } from './pending';
 
@@ -25,11 +26,12 @@ const message = (seq: number, body: string, clientId: string | null, mine = true
   clientId,
 });
 
-const pending = (id: string, body: string, state: Pending['state'] = 'sending'): Pending => ({
+const pending = (id: string, body: string, state: Pending['state'] = 'sending', mightBeKept = false): Pending => ({
   id,
   body,
   sentAt: '2026-10-08T00:00:01Z',
   state,
+  mightBeKept,
 });
 
 describe('보내는 중인 말 맞추기 — 본문이 아니라 보낸 사람이 지은 id 로', () => {
@@ -62,7 +64,7 @@ describe('보내는 중인 말 맞추기 — 본문이 아니라 보낸 사람�
 describe('보내는 중인 말의 상태', () => {
   it('실패한 말은 제자리에 남는다 — 목록의 차례가 그대로다', () => {
     const list = [pending('c1', '하나'), pending('c2', '둘'), pending('c3', '셋')];
-    const after = withState(list, 'c2', 'failed');
+    const after = withFailure(list, 'c2', false);
     expect(after.map((one) => [one.id, one.state])).toEqual([
       ['c1', 'sending'],
       ['c2', 'failed'],
@@ -73,6 +75,20 @@ describe('보내는 중인 말의 상태', () => {
   it('다시 보내면 같은 자리에서 보내는 중으로 돌아간다', () => {
     const list = [pending('c1', '하나', 'failed')];
     expect(withState(list, 'c1', 'sending')).toEqual([pending('c1', '하나', 'sending')]);
+  });
+
+  it('서버에 남았을 수 있다는 표지는 한 번 켜지면 다음 실패가 분명한 거절이어도 그대로다', () => {
+    const once = withFailure([pending('c1', '하나')], 'c1', true);
+    const again = withFailure(withState(once, 'c1', 'sending'), 'c1', false);
+    expect(again[0].mightBeKept).toBe(true);
+    expect(droppable(again[0])).toBe(false);
+  });
+
+  it('「삭제」는 서버가 분명히 거절한 실패에만 선다', () => {
+    expect(droppable(pending('c1', '하나', 'failed'))).toBe(true);
+    expect(droppable(pending('c1', '하나', 'failed', true))).toBe(false);
+    expect(droppable(pending('c1', '하나', 'sending'))).toBe(false);
+    expect(droppable(pending('c1', '하나', 'accepted'))).toBe(false);
   });
 });
 
@@ -101,32 +117,17 @@ describe('전송의 답을 화면의 갈래로', () => {
   it('받았다 · 닫혔다 · 한도 · 문장으로 거절', () => {
     expect(verdictOf({ ok: true, outcome: 'sent' })).toEqual({ kind: 'accepted' });
     expect(verdictOf({ ok: true, outcome: 'closed' })).toEqual({ kind: 'closed' });
-    expect(verdictOf({ ok: true, outcome: 'rate_limited' })).toEqual({ kind: 'failed', message: RATE_LIMITED_TEXT });
-    expect(verdictOf({ ok: false, message: '이용이 정지된 계정입니다.' })).toEqual({
+    expect(verdictOf({ ok: true, outcome: 'rate_limited' })).toEqual({ kind: 'failed', message: RATE_LIMITED_TEXT, mightBeKept: false });
+    expect(verdictOf({ ok: false, message: '이용이 정지된 계정입니다.', refused: true })).toEqual({
       kind: 'failed',
       message: '이용이 정지된 계정입니다.',
+      mightBeKept: false,
     });
   });
-});
 
-describe('전송의 시한', () => {
-  it('시한 안에 끝나면 그 답이다', async () => {
-    await expect(withinDeadline(Promise.resolve('sent'), 50)).resolves.toBe('sent');
-  });
-
-  it('시한을 넘기면 실패로 진다 — 늦게 온 답은 버린다', async () => {
-    vi.useFakeTimers();
-    try {
-      const raced = withinDeadline(new Promise<string>(() => {}), 15_000);
-      vi.advanceTimersByTime(15_000);
-      await expect(raced).rejects.toBeInstanceOf(SendDeadlinePassed);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('액션이 던지면 그대로 진다 — 부르는 쪽이 실패로 받는다', async () => {
-    await expect(withinDeadline(Promise.reject(new TypeError('Failed to fetch')), 50)).rejects.toBeInstanceOf(TypeError);
+  it('DB 가 분명히 거절하지 않은 실패는 서버에 남았을 수 있다', () => {
+    expect(verdictOf({ ok: false, message: '잠시 후 다시 시도해 주세요.', refused: false })).toMatchObject({ mightBeKept: true });
+    expect(verdictOf(UNREACHED)).toEqual({ kind: 'failed', message: null, mightBeKept: true });
   });
 });
 

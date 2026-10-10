@@ -10,8 +10,11 @@ import { Icon } from '../../ui/icons';
 /** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
 
-/** 손가락으로 쓰는 기기 — 화면 자판에는 Shift 가 없어 Enter 가 줄바꿈이고, 보내기는 단추로만 한다(카카오톡과 같다) */
-const TOUCH_QUERY = '(pointer: coarse)';
+/**
+ * 손가락으로만 쓰는 기기 — 화면 자판에는 Shift 가 없어 Enter 가 줄바꿈이고, 보내기는 단추로만 한다(카카오톡과 같다). 가리키는
+ * 기기가 함께 붙은 태블릿(올려 볼 수 있다 — `hover`)은 하드웨어 자판으로 여겨 Enter 가 보낸다.
+ */
+const TOUCH_QUERY = '(pointer: coarse) and (hover: none)';
 
 /**
  * 입력 칸 — **누르는 순간 칸을 비우고 방에 맡긴다**(`onSend`). 방이 그 말을 곧장 세우고 보낸다 — 못 보냈으면 그 말풍선이
@@ -20,7 +23,7 @@ const TOUCH_QUERY = '(pointer: coarse)';
  * **거절은 누른 뒤에 말한다**(GLOSSARY 「화면 문구 규칙」) — 버튼을 잠그지 않는다. 너무 긴 글은 여기서 막고, 서버가 문장으로
  * 거절한 것(한도 · 정지 등)은 방이 `said` 로 넘긴다. 빈 본문은 보내지 않는다 — 말할 것이 없다.
  *
- * Enter — 키보드가 있는 기기는 보내고 Shift+Enter 가 줄을 바꾼다. 손가락 기기(`(pointer: coarse)`)는 줄을 바꾼다.
+ * Enter — 키보드가 있는 기기는 보내고 Shift+Enter 가 줄을 바꾼다. 손가락으로만 쓰는 기기(`TOUCH_QUERY`)는 줄을 바꾼다.
  * 조합 중(한글 입력)에는 보내지 않는다.
  */
 export function Composer({ onSend, said }: { onSend: (body: string) => void; said: string | null }) {
