@@ -2435,7 +2435,6 @@ export type Database = {
           limited_request: number | null
           max_response_ms: number | null
           model_calls: number | null
-          more_clicked: number | null
           output_tokens: number | null
           preview_shown: number | null
           reading_started: number | null
