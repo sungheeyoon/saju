@@ -37,3 +37,18 @@
 | `.env.development.local` 의 값이 `"[SENSITIVE]"` 다 | Vercel 이 Secret 은 안 내려 준다. 그대로 두면 「있는」 값으로 세어져 401 로 떨어진다 | 주석 처리해 두면 오류가 이름을 대 준다. 실호출은 `OPENAI_API_KEY` 한 줄을 손으로 붙인다 |
 | 실호출 첫 콜이 `Incorrect API key` | `.env.development.local` 값이 `"…"` 로 감싸여 있다 | `loadLocalEnv` 가 벗긴다 — 새 읽는 자리를 만들면 같은 것을 한다 |
 | Production 배포가 전부 `Error` 인데 typecheck · lint · 단위 · e2e 는 초록이다 | `next build` 만 잡는 것이 있다 — 예: `app/**/icon.tsx` 는 메타데이터 라우트라 기본 내보내기가 없으면 「Export default doesn't exist」로 선다(2026-09-24). 파일 이름 `icon` · `apple-icon` · `opengraph-image` · `sitemap` · `robots` · `manifest` 는 `app/` 아래 어디서나 특별하다 | 화면을 바꾼 병합 뒤에 `npm run build` 를 한 번 돈다. 공용 아이콘은 `app/ui/icons.tsx` 다. 배포 상태는 `vercel ls --prod` |
+
+## 워크트리에서 전후 그림 찍기
+
+화면 PR 의 전후 그림(`docs/agents/delegation/done.md` 「끝났다는 것」)을 에이전트 워크트리에서 찍는 차례다. 도구와 그 사정은
+`docs/notes/ui-walk-and-gallery.md` 가 든다 — 여기는 워크트리에서 매번 다시 배우던 것만이다(2026-10-10 라운드 보고).
+
+1. **제 로컬 DB 를 세운다** — `npm run stack:slot -- N`(빈 번호는 `--auto`) 뒤 `npm run db:start`. 워크트리는 소스만 가르므로
+   자리 없이 띄우면 남의 스택을 밟는다(ADR 0096). 옛 볼륨이 남아 함수가 없다고 하면 `npm run db:reset`(위 표).
+2. **진짜 `node_modules` 를 복사한다** — 심볼릭 링크는 Turbopack 이 거절한다(위 표). `cp -a --reflink=auto <메인>/node_modules .`.
+3. **화면 서버는 `node scripts/ui-dev.mjs`** — 로컬 스택에 붙이고 모델 열쇠를 비운 채 3100(`UI_PORT`)에 뜬다. `npm run dev` 는
+   운영 DB 를 본다.
+4. **찍기는 `UI_ONLY=<id,id> node scripts/ui-shots.mjs <폴더>`** — 고친 화면의 id 만 두 폭으로 찍는다(id 는 그 파일의 `PLAN`).
+   고치기 전 그림은 main 을 체크아웃한 같은 자리에서 먼저 찍는다.
+5. **`aria-disabled` 단추는 Playwright 에서 `force: true` 로 누른다** — 잠긴 단추가 「누른 뒤에 까닭을 말하는」 화면(ADR 0160)은
+   보통의 `click()` 이 막혀 그 상태를 못 찍는다.

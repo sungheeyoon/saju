@@ -903,8 +903,16 @@ describe('용어집 ↔ 코드 (docs/context/code-names.md §9)', () => {
 
 const PRD_INDEX = 'docs/prd.md';
 const PRD_DIR = 'docs/product/prd';
-/** 색인의 「차례」 줄 — `| \`docs/product/prd/<영역>.md\` | 「절」 · … | 무엇을 드나 |` */
-const PRD_ROW = /^\| `docs\/product\/prd\/([a-z-]+\.md)` \| ([^|]+) \|/gm;
+/**
+ * 색인의 「차례」 줄 — `| \`docs/product/prd/<영역>.md\` | 「절」 · … | 무엇을 드나 |`. 화면(§3)은 무리마다 한 파일로 한 칸 더 내려가
+ * `screens/<무리>.md` 다(ADR 0162) — 그 줄의 「절」 칸은 `—` 이고 절 번호는 「무엇을 드나」 칸이 든다.
+ */
+const PRD_ROW = /^\| `docs\/product\/prd\/([a-z-]+(?:\/[a-z-]+)?\.md)` \| ([^|]+) \|/gm;
+/** `docs/product/prd/` 아래 `.md` 전부 — 한 칸 아래 폴더(`screens/`)까지, 뿌리에서의 상대 경로가 아니라 PRD 폴더에서의 경로 */
+const prdFiles = () =>
+  walk(join(ROOT, PRD_DIR))
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => relative(join(ROOT, PRD_DIR), file).split(sep).join('/'));
 const prdIndex = () => readFileSync(join(ROOT, PRD_INDEX), 'utf8');
 /** 영역 파일 이름 — 색인이 든 차례대로 */
 const prdParts = () => [...prdIndex().matchAll(PRD_ROW)].map((match) => match[1]);
@@ -914,7 +922,7 @@ const prdBody = () => prdParts().map((name) => readFileSync(join(ROOT, PRD_DIR, 
 describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
   it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 절을 들지 않는다', () => {
     const index = prdIndex();
-    const files = readdirSync(join(ROOT, PRD_DIR)).filter((name) => name.endsWith('.md'));
+    const files = prdFiles();
     expect(files.length).toBeGreaterThan(4);
     expect([...prdParts()].sort()).toEqual([...files].sort());
     // 색인에 절이 생기면 요구가 두 벌이 된다 — 제목은 문서 이름과 「차례」 하나뿐이고, 번호 붙은 절이 없다
@@ -959,7 +967,7 @@ describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
 
   it('색인이 부르는 절 번호(`§n.m`)와 그 파일의 절 번호(`##` · `###` · `####`)가 같다 — 하위 절 하나가 빠지거나 다른 파일로 가도 붉다', () => {
     const wrong: string[] = [];
-    for (const match of prdIndex().matchAll(/^\| `docs\/product\/prd\/([a-z-]+\.md)` \| ([^|]+) \| ([^|]+) \|/gm)) {
+    for (const match of prdIndex().matchAll(/^\| `docs\/product\/prd\/([a-z-]+(?:\/[a-z-]+)?\.md)` \| ([^|]+) \| ([^|]+) \|/gm)) {
       const listed = new Set([
         ...[...match[2].matchAll(/「(\d+)\. /g)].map((one) => one[1]),
         ...numbersOfCell(match[3]),
@@ -978,6 +986,66 @@ describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
     expect(STAGE_FILE.startsWith(`${PRD_DIR}/`)).toBe(true);
     expect(prdParts()).toContain(STAGE_FILE.slice(PRD_DIR.length + 1));
     expect(stagesOf(readFileSync(join(ROOT, STAGE_FILE), 'utf8')).length).toBeGreaterThan(2);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 화면 무리 (docs/product/prd/screens/ · docs/product/copy-ledger/, ADR 0162)
+// -----------------------------------------------------------------------------
+
+/**
+ * 화면의 요구(PRD §3)와 확정 문구(대장)는 화면 무리마다 한 파일이고, 두 폴더의 무리는 같은 이름이다. 공통 파일(`screens.md` ·
+ * `copy-ledger.md`)은 무리 색인을 들고, ui 역할은 「고칠 화면의 무리」 선택 묶음으로 그 짝을 하나 고른다 — 무리 파일을 더하면
+ * 색인과 역할 문서에도 들어야 읽기량 셈이 그 파일을 센다.
+ */
+describe('화면 무리 — PRD 화면 파일과 문구 대장이 같은 무리로 갈리고, 색인과 ui 역할이 그 무리를 다 든다 (ADR 0162)', () => {
+  const SCREENS_DIR = 'docs/product/prd/screens';
+  const LEDGER = 'docs/product/copy-ledger.md';
+  const LEDGER_DIR = 'docs/product/copy-ledger';
+  const groupsIn = (dir: string) => readdirSync(join(ROOT, dir)).filter((name) => name.endsWith('.md')).sort();
+  /** 대장 파일의 번호 붙은 절 — `## NN …` 의 NN 과 그 제목 */
+  const ledgerSections = (file: string) => [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## (\d{2}) (.+)$/gm)].map((match) => ({ no: match[1], title: match[2].trim() }));
+
+  it('두 폴더의 무리 이름이 같고, 공통 파일의 색인이 무리 파일 전부를 든다', () => {
+    const screens = groupsIn(SCREENS_DIR);
+    expect(screens.length).toBeGreaterThan(4);
+    expect(groupsIn(LEDGER_DIR)).toEqual(screens);
+    const screensIndex = readFileSync(join(ROOT, 'docs/product/prd/screens.md'), 'utf8');
+    const ledgerIndex = readFileSync(join(ROOT, LEDGER), 'utf8');
+    for (const name of screens) {
+      expect(screensIndex, name).toContain(`\`${SCREENS_DIR}/${name}\``);
+      expect(ledgerIndex, name).toContain(`\`${LEDGER_DIR}/${name}\``);
+    }
+  });
+
+  it('대장의 무리 색인 「절」 칸은 그 파일의 번호 절을 차례대로 다 들고, 한 번호는 어느 파일에서나 같은 제목이며 번호가 끊기지 않는다', () => {
+    const rows = [...readFileSync(join(ROOT, LEDGER), 'utf8').matchAll(/^\| [^|]+ \| [^|]+ \| (`docs\/product\/copy-ledger\/[a-z-]+\.md`|이 파일) \| ([^|]+) \|$/gm)];
+    const files = [LEDGER, ...groupsIn(LEDGER_DIR).map((name) => `${LEDGER_DIR}/${name}`)];
+    expect(rows.length).toBe(files.length);
+    const wrong: string[] = [];
+    const titles = new Map<string, string>();
+    for (const match of rows) {
+      const file = match[1] === '이 파일' ? LEDGER : match[1].slice(1, -1);
+      const listed = match[2].trim() === '—' ? [] : match[2].trim().split(' · ');
+      const sections = ledgerSections(file);
+      if (listed.join(' ') !== sections.map((one) => one.no).join(' ')) wrong.push(`${file}: 색인 ${listed.join(' ')} ↔ 파일 ${sections.map((one) => one.no).join(' ')}`);
+      for (const one of sections) {
+        const seen = titles.get(one.no);
+        if (seen !== undefined && seen !== one.title) wrong.push(`${one.no}: 「${seen.slice(0, 20)}」 ↔ 「${one.title.slice(0, 20)}」 (${file}) — 번호가 겹쳤다`);
+        titles.set(one.no, one.title);
+      }
+    }
+    expect(wrong).toEqual([]);
+    const numbers = [...titles.keys()].map(Number).sort((a, b) => a - b);
+    expect(numbers).toEqual(Array.from({ length: numbers.length }, (_, i) => i + 1));
+  });
+
+  it('ui 역할의 「고칠 화면의 무리」 선택지는 무리마다 하나이고, 그 무리의 PRD 화면 파일과 대장 파일을 짝으로 든다', () => {
+    const group = readBudgetOf('ui', ROOT).choices.find((one) => one.name.startsWith('고칠 화면의 무리'));
+    expect(group).toBeDefined();
+    const bySecond = (a: string[], b: string[]) => a[1].localeCompare(b[1]);
+    const pairs = (group?.options ?? []).map((option) => option.files.map((one) => one.file).sort()).sort(bySecond);
+    expect(pairs).toEqual(groupsIn(SCREENS_DIR).map((name) => [`${LEDGER_DIR}/${name}`, `${SCREENS_DIR}/${name}`]).sort(bySecond));
   });
 });
 
@@ -1240,7 +1308,7 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
   });
 
   /**
-   * **필수 읽기량**(ADR 0145 · 0147) — 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
+   * **읽기량 예상치**(ADR 0145 · 0147 · 0162) — 고정은 그대로, 동적 · 묶음은 후보의 최댓값이라 보수적 예상치다. 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
    * 고정 · 동적 · 합 · 천장을 찍는다. 읽기량 = 고정(역할 문서와 가리킨 파일 · 「절」만 가리켰으면 그 절, 지금 크기) + 동적 라우트(디렉터리를
    * 가리키는 Markdown 링크)마다 그 디렉터리 후보 가운데 가장 큰 것. 「닿을 때 여는 것」은 세지 않는다.
    *
@@ -1259,7 +1327,7 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로, 묶음을 평범한 줄로 되돌리거나 선택지를
    * 줄이면 묶음이 잠근 것과 달라 붉어진다.
    */
-  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)이 천장 이하이고, 천장은 ADR 줄이 있는 눈금이며 여유가 너무 크지 않고, 라우트와 묶음이 잠근 그대로다 (ADR 0145 · 0147)', () => {
+  it('역할마다 읽기량 예상치(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)가 천장 이하이고, 천장은 ADR 줄이 있는 눈금이며 여유가 너무 크지 않고, 라우트와 묶음이 잠근 그대로다 (ADR 0145 · 0147)', () => {
     expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
     const budgets = roles.map((role) => readBudgetOf(role, ROOT));
     const over = budgets.filter((budget) => budget.total > READ_BUDGET[budget.role].bytes).map((budget) => `${budget.role}: ${budget.total} > ${READ_BUDGET[budget.role].bytes}`);
@@ -1317,9 +1385,9 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect(groups).toBeGreaterThan(0);
   });
 
-  it('읽기량의 셈은 출력 명령과 시험이 같은 함수다 — 표의 합이 readBudgetOf 의 합이다', () => {
+  it('읽기량의 셈은 출력 명령과 시험이 같은 함수다 — 표의 예상치가 readBudgetOf 의 합이다', () => {
     const table = tableOf(ROOT);
-    const column = TABLE_COLUMNS.indexOf('합') + 1;
+    const column = TABLE_COLUMNS.indexOf('예상치') + 1;
     for (const role of roles) {
       const row = table.split('\n').find((line) => line.startsWith(`| ${role} |`));
       expect(row, role).toBeDefined();

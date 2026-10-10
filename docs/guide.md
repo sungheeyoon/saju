@@ -227,7 +227,7 @@ flowchart LR
 | **역할 문서** | 역할마다 한 장짜리 길잡이(`docs/roles/`). 칸이 「먼저 읽는 것 · 이 저장소의 방식 · 하지 않는 것 · 끝날 때 고치는 것」이에요 | [ADR 0140](adr/0140-each-role-reads-its-page-first-and-closes-by-fixing-the-docs.md) |
 | **길잡이 (Router)** | 규칙을 다시 쓰지 않고 원본의 절을 링크로 가리키는 문서. 역할 문서가 그래요 | [ADR 0145](adr/0145-role-documents-route-to-sources-and-do-not-restate-them.md) |
 | **색인 · 주제 파일 · 영역 파일** | 큰 문서를 쪼갠 모양. 색인은 차례 표만 들고, 내용은 그 아래 주제 · 영역별 파일에 있어요. 고칠 자리의 파일만 열어요 | 각 색인 문서 (`docs/prd.md`, `GLOSSARY.md` 등) |
-| **읽기량 (필수 읽기량)** | 역할을 받은 에이전트가 손대기 전에 읽어야 하는 바이트 수. 역할마다 상한이 잠겨 있어요 | [ADR 0145](adr/0145-role-documents-route-to-sources-and-do-not-restate-them.md), `scripts/read-budget.mjs` |
+| **읽기량 예상치** | 역할을 받은 에이전트가 손대기 전에 읽는 바이트의 보수적 예상치. 모든 일이 읽는 것은 그대로, 일마다 고르는 것은 가장 큰 후보로 세요. 역할마다 천장이 잠겨 있어요 | [ADR 0162](adr/0162-a-role-reads-the-common-rules-and-the-files-of-the-task-and-the-read-budget-is-a-conservative-estimate.md), `scripts/read-budget.mjs` |
 | **PRD** | 제품 요구사항 문서. 제품이 **지금** 무엇을 하는지 적어요 | [`docs/prd.md`](prd.md) |
 | **§ (예: PRD §7.0)** | PRD 의 절 번호. 「GLOSSARY §8」처럼 용어집 절에도 써요 | [`docs/prd.md`](prd.md) |
 | **선다 · 없다 · 다르다** | PRD 줄마다 붙는 상태 표시 셋 — 있고 확인됨 · 정했지만 아직 없음 · 코드와 문서가 어긋났던 자리 | [`docs/prd.md`](prd.md) |

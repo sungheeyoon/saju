@@ -12,7 +12,7 @@
   - 시험 — `docs/agents/test-map.md` 의 차례에서 [그 주제 파일](../agents/test-map/)
   - 보안 — `docs/ops/runbook/security.md` 「보안 점검」 · `docs/ops/runbook/access.md` 「개인정보는 화면으로만」
   - DB — `docs/ops/runbook/deploy.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · ADR 0084(모양을 잠근다)
-  - 프런트 — `docs/agents/code-rules/screen-copy.md` 「화면 문구」 · `docs/product/copy-ledger.md` 「01 규칙」 · ADR 0109(디자인 체계)
+  - 프런트 — `docs/agents/code-rules/screen-copy.md` 「화면 문구」 · `docs/product/copy-ledger.md`(규칙 · 여러 화면 · 무리 색인) · ADR 0109(디자인 체계) · 본 화면의 [PRD 무리 파일](../product/prd/screens/)과 [문구 무리 파일](../product/copy-ledger/)
   - 문서 — `docs/prd.md` 의 차례에서 [그 영역 파일](../product/prd/) · `docs/product/gaps.md`
   - SRE — `docs/ops/runbook.md` 의 차례에서 [그 작업 파일](../ops/runbook/)
 - `docs/architecture.md` 「무엇이 잠겨 있나 — 그리고 무엇이 아닌가」 — 잠기지 않은 자리가 볼 곳이다

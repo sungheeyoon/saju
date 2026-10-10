@@ -33,6 +33,7 @@
 - [ ] [세션 기록](../agents/delegation/notes.md)의 기준대로 라운드 노트와 `docs/notes/README.md` 「최근」 한 줄, PR `--auto`
 - [ ] 세션을 비우기 전에 `/retro` — 입력은 보고의 「헤맨 것 · 틀린 절」, 놓는 자리는 길잡이 → `docs/roles/`(AGENTS.md · CLAUDE.md 아님) · 기계로 잡을 실수 → `eslint.config.mjs` · `scripts/` 의 시험 · 판단 → `docs/agents/code-rules/`(색인 CODING_STANDARDS.md). 같은 노트 PR — [선순환](../start.md#선순환--일이-문서로-돌아오는-길) 3
 - [ ] 운영자만 할 수 있는 일 → 운영자 할 일 이슈. 머지된 워크트리는 [조율자 세션](../agents/delegation/coordinator.md)의 「끝난 워크트리를 걷는다」대로
+- [ ] 공유 문서를 고쳐 읽기량 시험이 붉으면 → [천장에 걸리면](../agents/delegation/done.md#읽기량-천장에-걸리면) — 줄이지 말고 고칠 자리를 고른다
 
 ## 닿을 때 여는 것
 

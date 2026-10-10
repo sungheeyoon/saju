@@ -34,6 +34,7 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯과 「문서」 칸의 결정 여부
 - [ ] 새 노트 → `docs/notes/` 의 차례(README)에 한 줄. 닫은 `G-nn` → 줄을 지우고 PRD 개정 기록 끝에 날짜와 함께 한 줄 (개정 기록은 끝에 쓰기만 하고 열지 않는다) — 꼴은 [끝났다는 것](../agents/delegation/done.md) 「문서」 칸
 - [ ] 원본의 절 이름을 바꿨으면 → 그 절을 가리키던 역할 문서도. `npx vitest run scripts/` 가 잰다
+- [ ] 공유 문서를 고쳐 읽기량 시험이 붉으면 → [천장에 걸리면](../agents/delegation/done.md#읽기량-천장에-걸리면) — 줄이지 말고 고칠 자리를 고른다
 
 ## 닿을 때 여는 것
 
