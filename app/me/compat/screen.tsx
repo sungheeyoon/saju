@@ -16,7 +16,6 @@ import { ScoringNote } from '../../match-index';
 import { pairRelationFor } from './actions';
 import { RelationNote } from './relation-note';
 import { CompatHero } from '../../compat-hero';
-import { INPUT_EDIT_REPLACED_NOTE } from '@/src/lib/input/edit';
 import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -405,8 +404,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
       }
       notice={
         <p className="text-[13px] leading-5 text-secondary">
-          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>{' '}
-          {INPUT_EDIT_REPLACED_NOTE}
+          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>
         </p>
       }
     />

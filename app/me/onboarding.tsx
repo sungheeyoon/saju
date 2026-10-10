@@ -53,7 +53,6 @@ export function Onboarding({ nickname }: { nickname: string }) {
         <h2 className={TYPE_TITLE}>내 사주 등록</h2>
         <p className="max-w-prose text-[15px] leading-6 text-secondary">
           <strong className="font-semibold text-foreground">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
-          나중에 언제든 고칠 수 있어요. 고치면 그때부터 새 정보로 계산해요.
         </p>
       </header>
 

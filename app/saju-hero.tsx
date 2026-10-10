@@ -8,7 +8,6 @@ import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import { useBrowserSession } from './auth/browser-session';
 import { visitorLandingOf } from './saju-landing';
 import { SignedInProvider } from './signed-in';
-import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
 import { Bone } from './ui/skeleton';
 import { TYPE_SECTION } from './ui/surfaces';
 
@@ -31,20 +30,6 @@ export function SajuHero({ calculator }: { calculator: ReactNode }) {
 
   return (
     <>
-      <header className={TAB_HERO_CARD}>
-        <TabHeroGlow />
-        <TabHeroBody
-          eyebrow="사주"
-          title="궁금한 사람의 사주를 바로 봐요"
-          lede={
-            <p>
-              생년월일시를 입력하면 여덟 글자를 확인할 수 있어요.<br />
-              저장하지 않아도 볼 수 있어요.
-            </p>
-          }
-        />
-      </header>
-
       <section id="calculator" className="scroll-mt-24">
         <div className="mb-5">
           <p className="text-[13px] font-semibold text-cream-ink">직접 입력</p>
