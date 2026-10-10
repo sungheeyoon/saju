@@ -658,6 +658,8 @@ export function BirthFields({
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
+                /* 이 칸은 대개 남의 이름이다(「엄마」 · 궁합 상대) — 브라우저가 내 이름을 채우지 않게 한다 */
+                autoComplete="off"
               />
             </label>
           )}
