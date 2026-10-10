@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { Query } from '@/src/lib/input/query';
 
@@ -8,6 +9,7 @@ import { ICON_BUTTON } from '../../ui/buttons';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon, type IconName } from '../../ui/icons';
 import { EditInputForm } from '../edit-input';
+import { usePanelSlot } from './finder';
 import { NoteEditor, RemoveConfirm } from './manage';
 
 /**
@@ -27,7 +29,8 @@ import { NoteEditor, RemoveConfirm } from './manage';
  * 사주풀이가 쓰고, 손대는 자리는 읽는 것 위에 얹히지 않는 구석으로 물러난다.
  *
  * 타일은 통째로 상세로 가는 링크라(이름 링크의 `after:` 덮개) 여기 서는 것은 전부 그 덮개보다 **위**에
- * 뜬다(`z-*`). 고치는 칸 · 메모 칸은 `data-panel` 을 달아 목록이 그 타일에 제 줄을 주고 폼 폭까지 넓히게 한다(`finder.tsx`).
+ * 뜬다(`z-*`). 고치는 칸 · 메모 칸은 카드 밖, 목록이 그 카드의 줄 아래에 마련한 제 줄에 선다(`usePanelSlot`, G-87) — 폼이
+ * 타일 폭에 끼어 세로로 길어지지 않고, 카드들의 차례 · 자리도 안 흔들린다.
  */
 type Panel = 'edit-input' | 'note' | 'remove';
 
@@ -51,6 +54,14 @@ export function PersonActions({
     close();
     setPanel((now) => (now === next ? null : next));
   };
+
+  const slot = usePanelSlot(personId, panel === 'edit-input' || panel === 'note');
+  const body =
+    panel === 'edit-input' && current !== null ? (
+      <EditInputForm personId={personId} current={current} onDone={() => setPanel(null)} onCancel={() => setPanel(null)} />
+    ) : panel === 'note' ? (
+      <NoteEditor personId={personId} note={note} onDone={() => setPanel(null)} onCancel={() => setPanel(null)} />
+    ) : null;
 
   return (
     <>
@@ -78,32 +89,11 @@ export function PersonActions({
       </details>
 
       {/*
-        열린 칸은 카드 본문의 **마지막 줄**로 선다 — 여는 메뉴와 열리는 칸을 두
-        컴포넌트로 가르지 않으려고 한 자리에 둔다.
+        여는 메뉴와 열리는 칸을 두 컴포넌트로 가르지 않으려고 한 자리에 둔다. 빼기는 확인창(`<dialog>`)이라 카드 안에 그대로
+        두고, 고치는 칸 · 메모 칸만 목록이 준 줄로 옮겨 그린다. 목록 밖이면(`inline`) 카드 본문의 마지막 줄로 선다.
       */}
-      {panel !== null && (
-        <div className="relative z-10 mt-1" data-panel={panel === 'remove' ? undefined : panel}>
-          {panel === 'edit-input' && current !== null && (
-            <EditInputForm
-              personId={personId}
-              current={current}
-              onDone={() => setPanel(null)}
-              onCancel={() => setPanel(null)}
-            />
-          )}
-          {panel === 'note' && (
-            <NoteEditor
-              personId={personId}
-              note={note}
-              onDone={() => setPanel(null)}
-              onCancel={() => setPanel(null)}
-            />
-          )}
-          {panel === 'remove' && (
-            <RemoveConfirm personId={personId} label={label} onCancel={() => setPanel(null)} />
-          )}
-        </div>
-      )}
+      {panel === 'remove' && <RemoveConfirm personId={personId} label={label} onCancel={() => setPanel(null)} />}
+      {body !== null && (slot.inline ? <div className="relative z-10 mt-1">{body}</div> : slot.target && createPortal(body, slot.target))}
     </>
   );
 }
