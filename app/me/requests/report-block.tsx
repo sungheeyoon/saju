@@ -36,7 +36,7 @@ const ON_PHOTO_ICON =
   'grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm';
 
 const FIELD =
-  'rounded-xl bg-surface px-3 text-[15px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]';
+  'rounded-xl bg-surface px-3 text-[16px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]';
 
 /** 「⋯」가 서는 판 — 흰 판 위(`plain`)인가 사진 위(`photo`)인가 */
 export type MenuLook = 'plain' | 'photo';

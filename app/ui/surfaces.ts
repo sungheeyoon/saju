@@ -70,6 +70,7 @@ export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border
 /*
   **글자의 단.** 둥근 서체(`font-rounded`, 고운돋움)는 제목 단에만 쓴다 — 굵기가 400 하나뿐이라 작은
   크기에서 획이 흐리다. 본문 · 단추 · 보조는 기기의 시스템 서체다(웹 글꼴을 싣지 않는다, ADR 0109 추기). 12px 아래는 딱지(11px)뿐이다.
+  글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 — iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
 */
 
 /** 표시 — 화면의 첫 한 줄(인사 · 빈 상태의 큰 말) */

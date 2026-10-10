@@ -115,7 +115,7 @@ function Filters({ filters }: { filters: ReportFilters }) {
             placeholder="W-7K3F"
             autoComplete="off"
             spellCheck={false}
-            className="min-h-9 w-32 rounded-full border border-border bg-surface-soft px-3 font-mono text-sm uppercase"
+            className="min-h-9 w-32 rounded-full border border-border bg-surface-soft px-3 font-mono text-[16px] uppercase"
           />
           <button
             type="submit"

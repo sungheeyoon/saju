@@ -65,6 +65,8 @@ export const metadata: Metadata = {
  * 하단 독(`site-header.tsx`)과 폰의 본문 끝은 홈 막대를 비키려고 `env(safe-area-inset-bottom)` 을 더하는데, 이 값은
  * `cover` 가 아니면 iOS 에서 늘 0 이다 — 적어 둔 여백이 한 번도 안 들었다. 가로로 누인 폰의 노치는
  * `globals.css` 의 `.app-shell` 이 양옆 값을 빼서 비킨다. 폭 · 배율은 Next 의 기본값과 같다.
+ * 배율은 잠그지 않는다(`maximum-scale` · `user-scalable` 없음) — 핀치 확대를 막는다. iOS 가 입력 칸 초점에 확대하는 것은
+ * 칸의 글자를 16px 이상으로 두어 막는다(`app/ui/fields.test.ts`).
  */
 export const viewport: Viewport = {
   width: 'device-width',

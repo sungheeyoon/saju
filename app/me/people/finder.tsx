@@ -132,7 +132,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
               aria-describedby={statusId}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
-              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[15px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[16px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
             />
           </div>
           {/*

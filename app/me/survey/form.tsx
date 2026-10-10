@@ -427,7 +427,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[16px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
       />
     </div>
   );
