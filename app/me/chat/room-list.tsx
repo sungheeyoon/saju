@@ -10,6 +10,7 @@ import { Avatar } from '../avatar';
 import type { ChatRoom } from './rooms';
 import type { RoomTones } from './tones';
 import { Icon } from '../../ui/icons';
+import { LINK_PENDING_RING, LinkPending } from '../../ui/link-pending';
 
 /**
  * **목록과 방이 한 틀에 선다** — 넓은 화면(lg)은 왼쪽 목록 + 오른쪽 방 두 칸, 폰은 주소마다 한 칸이다.
@@ -103,7 +104,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
       href={`/me/chat/${room.matchId}`}
       aria-current={active ? 'page' : undefined}
       /* 지금 열린 방은 그 사람의 파스텔이 깔린다 — 목록의 사진 고리와 같은 색이라 어느 방인지 색으로도 이어진다 */
-      className={`${elementScope(tone)} flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
+      className={`${elementScope(tone)} relative flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
         active ? (tone === null ? 'bg-surface-soft' : 'bg-[var(--tile)]') : 'hover:bg-surface-soft'
       }`}
     >
@@ -139,6 +140,8 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
           )}
         </span>
       </span>
+      {/* 방 화면은 뼈대(`loading.tsx`)가 없어 다 그려질 때까지 여기 머문다 — 누르면 줄의 테가 선다 */}
+      <LinkPending className={`${LINK_PENDING_RING} rounded-[1.25rem]`} />
     </Link>
   );
 }

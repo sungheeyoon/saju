@@ -8,6 +8,7 @@ const message = (seq: number, mine = false): ChatMessage => ({
   seq,
   mine,
   fromLeftPartner: false,
+  clientId: null,
   body: `본문 ${seq}`,
   createdAt: '2026-10-08T00:00:00Z',
 });

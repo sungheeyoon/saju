@@ -31,6 +31,11 @@ export type ChatMessage = {
   readonly fromLeftPartner: boolean;
   readonly body: string;
   readonly createdAt: string;
+  /**
+   * 보낸 사람이 전송마다 지은 id — **내 말에만** 온다(상대의 말 · 옛 말은 `null`). 방은 보내는 중인 말과 읽혀 온 말을 이것으로
+   * 짝짓고, 서버는 같은 id 를 두 번 남기지 않는다(`20261201090000`, ADR 0155 덧).
+   */
+  readonly clientId: string | null;
 };
 
 const messageOf = (row: MessageRow): ChatMessage => ({
@@ -40,6 +45,8 @@ const messageOf = (row: MessageRow): ChatMessage => ({
   fromLeftPartner: row.mine !== true && row.sender_user_id === null,
   body: row.body,
   createdAt: row.created_at,
+  // 생성 타입은 반환 칸을 `string` 으로 적지만 남의 말 · 옛 말은 비어 온다.
+  clientId: row.client_id ?? null,
 });
 
 /**

@@ -12,7 +12,14 @@ import {
 } from './session';
 
 import { CHAT_POLICY, LEFT_ROOM_TEXT, LEFT_USER_LABEL, RATE_LIMITED_TEXT, closedRoomText } from '@/src/lib/chat';
-import { CHAT_EMPTY_TITLE, CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '@/src/lib/chat/copy';
+import {
+  CHAT_EMPTY_TITLE,
+  CHAT_INPUT_PLACEHOLDER,
+  CHAT_SEND_LABEL,
+  SEND_DROP_LABEL,
+  SEND_FAILED_LABEL,
+  SEND_RETRY_LABEL,
+} from '@/src/lib/chat/copy';
 import { activityText } from '@/src/lib/presence';
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
 
@@ -71,6 +78,9 @@ const talkOf = (person: Person) => person.page.getByRole('log', { name: '메시�
  * (계정 메뉴의 `설정 메뉴` 와 같다)
  */
 const roomMenuOf = (person: Person) => person.page.getByLabel('신고 · 차단', { exact: true });
+
+/** 못 보낸 말 곁의 실패 단추 — 이것도 `<summary>` 다 */
+const failedMenuOf = (person: Person) => talkOf(person).getByLabel(SEND_FAILED_LABEL, { exact: true });
 
 async function openRoomMenu(person: Person): Promise<void> {
   await roomMenuOf(person).click();
@@ -226,9 +236,77 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     // `getByRole('alert')` 는 Next 의 라우트 안내와 겹친다 — 글자로 잡는다
     await expect(a.page.getByText(RATE_LIMITED_TEXT)).toBeVisible();
-    // 거절된 본문은 칸에 돌아온다 — 잠시 뒤 다시 보낼 수 있게. 먼저 섰던 흐린 말풍선은 걷힌다(`pending.ts`)
-    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('31');
+    // 거절된 말은 제자리에 남고 곁에 실패 단추가 선다 — 칸에 글을 돌려놓지 않는다(카카오톡의 방식, ADR 0155 덧)
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('');
+    await expect(talkOf(a).getByText('31', { exact: true })).toHaveCount(1);
+    await failedMenuOf(a).click();
+    await expect(a.page.getByRole('button', { name: SEND_RETRY_LABEL })).toBeVisible();
+    await a.page.getByRole('button', { name: SEND_DROP_LABEL }).click();
     await expect(talkOf(a).getByText('31', { exact: true })).toHaveCount(0);
+    await expect(failedMenuOf(a)).toHaveCount(0);
+  });
+
+  /**
+   * **끊긴 전송** — 첫 번째는 서버에 닿지 못하고, 다시 보낸 것은 서버에 닿았는데 답을 잃는다. 못 보낸 말은 제자리에 실패로
+   * 서고(화면 전체가 오류로 바뀌지 않는다), 답만 잃은 말은 채널이 알려 읽혀 오면 같은 id 로 짝지어 실패 자리가 걷힌다.
+   * 같은 id 는 서버가 한 번만 남긴다(`20261201090000` · pgTAP `89_chat_send_once`, ADR 0155 덧).
+   */
+  test('끊긴 전송은 제자리에 실패로 남고, 다시 보내면 한 번만 남는다', async ({ openAs }) => {
+    const { a, b, tag, room } = await pair(openAs);
+    const said = `끊긴 답 ${tag}`;
+    const count = () => sql(`select count(*) from public.chat_message where body = '${said}'`);
+
+    await a.page.goto(room);
+    let attempts = 0;
+    await a.page.route(
+      (url) => url.pathname === room,
+      async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST' || request.headers()['next-action'] === undefined) {
+          await route.fallback();
+          return;
+        }
+        attempts += 1;
+        if (attempts === 2) await route.fetch(); // 두 번째는 서버에 닿고 답만 잃는다
+        await route.abort('connectionreset');
+      },
+    );
+
+    await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(said);
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+    await expect(failedMenuOf(a)).toBeVisible();
+    await expect(talkOf(a).getByText(said, { exact: true })).toHaveCount(1);
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('');
+    expect(count()).toBe('0');
+
+    await failedMenuOf(a).click();
+    await a.page.getByRole('button', { name: SEND_RETRY_LABEL }).click();
+    await expect.poll(count).toBe('1');
+    await expect(failedMenuOf(a)).toHaveCount(0);
+    await expect(talkOf(a).getByText(said, { exact: true })).toHaveCount(1);
+
+    await b.page.goto(room);
+    await expect(talkOf(b).getByText(said, { exact: true })).toHaveCount(1);
+  });
+
+  /** 화면 자판에는 Shift 가 없다 — 손가락 기기에서 Enter 는 줄바꿈이고 보내기는 단추로만 한다(카카오톡과 같다) */
+  test('손가락 기기에서 Enter 는 줄을 바꾸고, 키보드 기기에서는 보낸다', async ({ openAs }) => {
+    const { a, tag, room } = await pair(openAs);
+    await a.page.goto(room);
+    const touch = await a.page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+    const field = a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
+
+    await field.fill(`첫 줄 ${tag}`);
+    await field.press('Enter');
+    if (touch) {
+      await expect(field).toHaveValue(`첫 줄 ${tag}\n`);
+      await field.pressSequentially('둘째 줄');
+      await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+      await expect(talkOf(a).getByText(`첫 줄 ${tag}\n둘째 줄`, { exact: true })).toBeVisible();
+    } else {
+      await expect(field).toHaveValue('');
+      await expect(talkOf(a).getByText(`첫 줄 ${tag}`, { exact: true })).toBeVisible();
+    }
   });
 
   test('차단이 방을 닫고, 닫힌 뒤 두 쪽 다 이전 대화를 본다', async ({ openAs }) => {

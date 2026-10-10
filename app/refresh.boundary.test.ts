@@ -283,8 +283,8 @@ describe('브라우저가 화면을 다시 읽는 자리', () => {
     'app/live/live-updates.tsx': '라이브 층 — 남이나 다른 탭이 바꾼 것을 채널이 알린다. 누름이 아니라 서버가 무를 액션이 없다(ADR 0155)',
     'app/me/home/running-band-live.tsx':
       '줄이 사라진 것을 본 물음만 — `runningLinesNow` 는 읽기라 안 무르고, 끝난 풀이의 카드 단추 · 받은 사주풀이를 다시 읽어야 한다(ADR 0157)',
-    'app/me/chat/composer.tsx':
-      '방이 닫힌 갈래(`closed`)만 — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
+    'app/me/chat/[matchId]/room.tsx':
+      '보내기가 방이 닫힌 갈래(`closed`)를 받았을 때만(`use-outbox.ts`) — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
     'app/me/profile/photo-grid.tsx':
       '거절된 누름만 — 서버가 아무것도 안 무르므로, 다른 탭이 바꾼 목록을 다시 받아 지금 모양을 그린다',
     'app/ui/failure-line.tsx':
