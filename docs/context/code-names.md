@@ -57,6 +57,7 @@
 | 맛보기 세션 | `taste_session` · `reserve_taste` · `claim_taste_session` · `link_taste_reading_run` | 표 · 함수 |
 | 맛보기 퍼널 단계 | `count_taste_step_once` · `taste_session_step` · `TASTE_SESSION_STEPS` · `count_taste_step`(`reading_succeeded` 만) · `taste_daily` | 함수 · 표 · `src/lib/reading/taste-visit.ts` · 뷰 |
 | 맛보기 생성 결과 | `taste_artifact` · `finish_taste` | 표 · 함수 |
+| 검사 기록(걸린 검사 · 막는 코드, ADR 0163) | `check_findings` · `note_reading_checks` · `note_taste_checks` · `check_finding_daily_count` · `reading_check_daily` · `READING_BLOCKING_CODES` · `TASTE_BLOCKING_CODES` | 칸 · 함수 · 표 · 뷰 · `src/lib/reading/check.ts` · `src/lib/reading/taste-run.ts` |
 | 근거 지문 | `tasteFingerprintOf` · `evidence_fingerprint` · `tasteEvidenceOf` | `src/lib/reading/taste-run.ts` · 칸 |
 | 이어쓰기 | `continuationAnswer` · `continuationBlockOf` · `continuedMarkdownOf` · `taste_continuation_of_run` | `src/lib/reading/continuation.ts` · 함수 |
 | 공유본 | `reading_share` · `share_my_reading` · `shared_reading` · `sharedReadingOf` | 표 · 함수 · 읽는 문 |

@@ -5,14 +5,17 @@ import {
   TASTE_CHECK_FAILED,
   TASTE_RUN_CALL,
   checkTasteRun,
-  normalizeClaim,
+  tasteBlockingOf,
+  tasteClaimsForStore,
   tasteEvidenceOf,
   tasteFingerprintOf,
   tasteRunPromptOf,
   tasteRunShapeOf,
+  type TasteCheckFinding,
   type TasteEvidence,
   type TasteRunOutput,
 } from '@/src/lib/reading/taste-run';
+import { findingForRecord } from '@/src/lib/reading/check';
 import {
   MODEL_TIMEOUT,
   TASTE_CLOSED,
@@ -44,8 +47,9 @@ import type { Visitor } from './taste-visitor';
  * ## 갈래
  *
  * 한도 · 다 쓴 입력은 모델을 안 부르고 답한다. 이미 성공한 글 · 지금 쓰는 글은 세션을 읽는다. 부르는 갈래만 모델을 부르고,
- * 결과가 검사(`checkTasteRun`)를 지나야 성공으로 적는다 — 못 지나면 실패 코드로 적고 다음 요청이 재시도한다(상한은 DB).
- * **실패해도 다른 글로 바꿔치기하지 않는다** — 화면은 실패를 실패로 세운다.
+ * 결과를 검사(`checkTasteRun`)한다. **품질 검사에 걸린 글도 성공으로 적고 화면에 세운다** — 막는 것은 DB 가 받지 못하는 꼴
+ * 넷뿐이고, 그것에 걸리면 실패 코드로 적고 다음 요청이 재시도한다(상한은 DB, ADR 0163). 걸린 검사는 성공이든 실패든 시도마다
+ * 적는다(`noteChecks`). **실패해도 다른 글로 바꿔치기하지 않는다** — 화면은 실패를 실패로 세운다.
  */
 
 /**
@@ -68,6 +72,11 @@ export type TasteHands = {
   reserve: (args: { fingerprint: string; browserHmac: string; ipHmac: string }) => Promise<Reserved | null>;
   view: (sessionId: string, browserHmac: string) => Promise<{ ok: true; value: TasteSessionView | null } | { ok: false }>;
   finish: (finish: TasteFinish) => Promise<'recorded' | 'ignored' | null>;
+  /**
+   * 그 시도에서 걸린 검사를 적는다 — 결과를 `recorded` 로 적은 뒤에만 부른다. **부속이다** — 못 적어도 답은 그대로다(기록에만
+   * 남는다). 던지지 않는다.
+   */
+  noteChecks: (note: { artifactId: string; attempt: number; findings: readonly TasteCheckFinding[] }) => Promise<void>;
   call: (
     prompt: string,
     options: {
@@ -188,18 +197,26 @@ async function callReserved(
         }
       : { ...NO_TOKENS, responseMs };
 
-    const passed = called.ok && checkTasteRun(called.output, taste).ok;
-    const failureCode = called.ok ? (passed ? null : TASTE_CHECK_FAILED) : called.code;
+    const verdict = called.ok ? checkTasteRun(called.output, taste) : null;
+    const claims = called.ok ? tasteClaimsForStore(called.output.supportingClaims) : { kept: [], dropped: 0 };
+    const findings = [
+      ...(verdict === null || verdict.ok ? [] : verdict.findings),
+      ...(claims.dropped > 0
+        ? [{ code: 'claims-filtered' as const, detail: `걸러 냄 ${claims.dropped}개 · 남음 ${claims.kept.length}개` }]
+        : []),
+    ].map(findingForRecord);
+    const blocked = tasteBlockingOf(findings).length > 0;
+    const failureCode = called.ok ? (blocked ? TASTE_CHECK_FAILED : null) : called.code;
 
     const output =
-      called.ok && passed
+      called.ok && !blocked
         ? {
             previewMarkdown: called.output.previewMarkdown.trim(),
-            topic: called.output.topic,
+            topic: called.output.topic.trim(),
             distinctivePattern: called.output.distinctivePattern.trim(),
             continuationQuestion: called.output.continuationQuestion.trim(),
             answerDirection: called.output.answerDirection.trim(),
-            supportingClaims: called.output.supportingClaims.map(normalizeClaim).filter((claim) => claim !== ''),
+            supportingClaims: claims.kept,
           }
         : null;
 
@@ -212,6 +229,11 @@ async function callReserved(
     });
     if (recorded === null) return TASTE_CLOSED;
     finished = true;
+
+    /* 검사를 한 시도만 — 모델이 실패한 시도에는 검사할 글이 없다. 늦게 와 무시된 결과는 그 시도의 것이 아니다 */
+    if (recorded === 'recorded' && called.ok) {
+      await hands.noteChecks({ artifactId: reserved.artifactId, attempt: reserved.attempt, findings });
+    }
 
     if (recorded === 'recorded' && output !== null) {
       return { state: 'ready', sessionId: reserved.sessionId, preview: output.previewMarkdown };

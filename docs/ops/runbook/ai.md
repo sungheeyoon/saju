@@ -49,6 +49,27 @@ provider 쪽에 있다.
 지금 서 있는 값은 `GENERATION` 이 든다. 무엇으로 얼마나 불렀는지는 위의
 `reading_run` 질의가 세고, **그것에 값을 곱해 보는 일은 대시보드에서 한다.**
 
+## 검사 기록 보는 법 (ADR 0163)
+
+품질 검사에 걸린 글도 저장하고 화면에 세운다 — 막는 것은 출생 원문 누출 · 동의 범위 밖 판정 · 그릴 수 없는 꼴 셋뿐이다. 걸린 검사는
+시도마다 `{code, detail}` 로 적히고(`reading_run.check_findings` · `taste_artifact.check_findings`), 날짜별 수가 뷰 한 줄로 선다.
+개인이 없다 — 글 원문 · 출생 원문은 기록에 안 든다.
+
+```bash
+npm run db:remote -- --purpose "검사 기록 날짜별 수" \
+  "select * from public.reading_check_daily where day > current_date - 14 order by day desc, kind, total desc;"
+```
+
+- `kind` — `self` · `person` · `private` · `match` · `taste`(로그인 전 사주 문단)
+- `shipped` · `blocked` — 이 코드가 걸리고도 내보낸 시도 · 막힌 시도. 막힌 시도는 같은 시도의 다른 코드가 막았을 수 있다
+- `checked` — 그날 그 종류에서 검사를 적은 시도 전부(분모), `share` — 그 가운데 이 코드가 걸린 몫(%)
+
+코드가 어느 갈래인지는 ADR 0163 의 갈래 표가 든다. 몫이 큰 품질 코드가 프롬프트를 고칠 자리다 — 고치면 실호출로 다시 잰다
+(`docs/agents/test-map/what-to-run.md` 의 프롬프트 줄). 한 시도의 설명까지 볼 때(문의 응대 — 판단은 사람이 ADR 0148 대로)는 그 시도 id 하나로만 읽는다 —
+`select check_findings from public.reading_run where id = '<시도 id>';` `reading_run` 은 이용자의 시도라 일상 집계에 열지 않는다
+(`docs/ops/runbook/access.md` 「개인정보는 화면으로만」). 뷰는 `service_role` 에도 닫혀 있다 — `db:remote` 로만 본다.
+
+
 ---
 
 ## AI 비용 한도 — **안쪽 벽과 바깥 벽** (ADR 0039)

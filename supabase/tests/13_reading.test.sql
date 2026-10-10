@@ -971,8 +971,11 @@ select is(
      * `discovery_need_rule()` 이 새 이름이 되는 날마다 백필이 이 둘을 지난다(운영자 결정 2026-09-25).
      */
     'need_summary_backfill_targets',
+    /** 걸린 검사를 시도마다 적는 문 둘 — 코드와 짧은 설명만, 글 원문은 안 받는다(`20261130090000`, ADR 0163) */
+    'note_reading_checks',
     /** 만드는 동안 몇 번째 절까지 썼는지 적는 문 — 절 번호만, 글은 안 받는다(`20261103090000`) */
     'note_reading_progress',
+    'note_taste_checks',
     'open_reading_jobs',
     /** Node 가 지은 것을 적는 문 — 계산 입력은 안 받는다(ADR 0071 · #66) */
     'prepare_reading_job',
@@ -1008,7 +1011,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 서른일곱 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 서른아홉 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

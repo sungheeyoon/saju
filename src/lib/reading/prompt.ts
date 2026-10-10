@@ -137,9 +137,8 @@ type Terminology = 'annotated' | 'plain';
  *
  * ## 계약이 절을 요구하지 않는다
  *
- * `checkReading` 이 막는 일곱(`length-out-of-contract`·`non-korean-self-body`·
- * `score-out-of-contract`·`evidence-path-leaked`·`invented-characters`·
- * `birth-input-leaked`·`out-of-scope-judgment`) 어디에도 절 이야기가 없고, 궁합은 절 수
+ * `checkReading` 의 검사(막는 넷 `READING_BLOCKING_CODES` 와 내보내고 적는 품질 코드, ADR 0163)
+ * 어디에도 절 이야기가 없고, 궁합은 절 수
  * 계약도 없다. **지금 열한 절은 필요해서 있는 것이 아니라 우리가 고른 것이다.**
  *
  * ## 한 번 놔봤고 얕아진 전례가 있다
@@ -522,7 +521,7 @@ const termsSection = (terminology: Terminology): string =>
  * 두면 규칙과 목록이 서로 다른 말을 하고, 그때 이기는 쪽은 눈앞의 낱말이다.
  *
  * 두 판에 공통으로 남는 것은 **글자 계약**이다 — 생한자와 외국 문자는 어느 판에서도
- * 사용자 본문에 못 나간다(`checkReading` 의 `non-korean-self-body`).
+ * 사용자 본문에 쓰지 않는다. 섞이면 `checkReading` 이 `non-korean-self-body` 로 적는다(막지는 않는다, ADR 0163).
  *
  * **번호를 안 붙여 돌려준다.** 자기 풀이는 번호 목록이고 궁합은 불릿이라 꼴이 다른데,
  * 규칙이 번호를 들고 있으면 궁합에는 못 건다 — 실제로 그동안 못 걸려 있었고, 그 자리에는

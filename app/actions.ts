@@ -11,7 +11,7 @@ import {
 
 import { supabaseOnServer } from './auth/server-client';
 import { signedInUser } from './auth/signed-in';
-import { countTasteStepOnce, finishTaste, reserveTaste, tasteSessionView } from './keyed-taste';
+import { countTasteStepOnce, finishTaste, noteTasteChecks, reserveTaste, tasteSessionView } from './keyed-taste';
 import { claimTasteSession } from './me/keyed-taste-claims';
 import { callModel } from './me/reading/model';
 import { selfTasteFingerprint } from './me/reading/taste-carry';
@@ -39,6 +39,7 @@ export async function requestTaste(draft: string): Promise<TasteAnswer> {
       reserve: reserveTaste,
       view: tasteSessionView,
       finish: finishTaste,
+      noteChecks: noteTasteChecks,
       call: (prompt, options) => callModel<TasteRunOutput>(prompt, options),
       clock: () => performance.now(),
     });

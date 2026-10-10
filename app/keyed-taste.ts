@@ -14,10 +14,10 @@ import { recordDbFailure } from './db-error';
 import { keyedClient } from './keyed-client';
 
 /**
- * **로그인 전 사주 문단의 맛보기 쪽 문 다섯을 열쇠로 부르는 유일한 자리**(ADR 0143).
+ * **로그인 전 사주 문단의 맛보기 쪽 문 여섯을 열쇠로 부르는 유일한 자리**(ADR 0143).
  *
- * 문 다섯(`reserve_taste` · `finish_taste` · `taste_session_view` · `count_taste_step` · `count_taste_step_once`)은
- * `service_role` 에만 열려 있다(`20261118090000` · `20261119090000`). `anon` 에 열면 아무나 HMAC 칸에 지어낸 값을 넣어 한도를 비켜 간다 — 그래서 지문 · HMAC 은 서버가
+ * 문 여섯(`reserve_taste` · `finish_taste` · `note_taste_checks` · `taste_session_view` · `count_taste_step` ·
+ * `count_taste_step_once`)은 `service_role` 에만 열려 있다(`20261118090000` · `20261119090000` · `20261130090000`). `anon` 에 열면 아무나 HMAC 칸에 지어낸 값을 넣어 한도를 비켜 간다 — 그래서 지문 · HMAC 은 서버가
  * 짓는다(`app/taste-run.ts` · `app/taste-visitor.ts`). 가입한 회원 쪽 문 셋은 `app/me/keyed-taste-claims.ts` 가 든다 —
  * 그쪽은 로그인 세션을 읽는다. 둘을 가른 까닭: 풀이 회수(`app/me/reading/collect.ts`)가 퍼널 끝을 세는데, 그 길은 webhook ·
  * 크론이라 로그인 세션을 읽는 모듈에 닿으면 안 된다(`app/auth/signed-in.boundary.test.ts`).
@@ -25,7 +25,7 @@ import { keyedClient } from './keyed-client';
  * 이 자리가 지키는 둘(`app/me/keyed-chart-writes.ts` 와 같은 꼴, ADR 0136):
  *
  * 1. **판 이름은 여기 한 곳**(`TASTE_RUN_VERSIONS`)에서 싣는다 — 부르는 쪽이 판을 고르지 않는다.
- * 2. **이 다섯만 부른다** — 열쇠 클라이언트를 밖으로 내주지 않는다. 판정(한도 · 예산 · 재사용)은 DB 가 한다.
+ * 2. **이 여섯만 부른다** — 열쇠 클라이언트를 밖으로 내주지 않는다. 판정(한도 · 예산 · 재사용)은 DB 가 한다.
  *
  * 실패는 값으로 낸다 — 문이 터지면 원문은 기록에 가고(`recordDbFailure`) 부르는 쪽은 `null` 을 받아 그 자리를 닫는다.
  * 이 파일은 서버 액션이 아니다 — 브라우저가 직접 못 부른다. 잠금은 `scripts/layers.test.ts`.
@@ -150,6 +150,28 @@ export async function finishTaste(finish: TasteFinish): Promise<'recorded' | 'ig
     return null;
   }
   return data === 'recorded' || data === 'ignored' ? data : null;
+}
+
+/**
+ * 그 시도에서 걸린 검사를 적는다(ADR 0163) — `finish_taste` 가 `recorded` 로 답한 뒤에 부른다. **부속이다** — 못 적어도 답은
+ * 그대로다. 문이 터지면 원문만 기록에 가고, 던지지 않는다. 같은 시도를 두 번 적으려 하면 DB 가 `false` 로 답하고 아무것도 안 는다.
+ */
+export async function noteTasteChecks(note: {
+  artifactId: string;
+  attempt: number;
+  findings: readonly { code: string; detail: string }[];
+}): Promise<void> {
+  const client = tasteKeyed();
+  if (client === null) return;
+  const { error } = await client.rpc(
+    'note_taste_checks',
+    rpcArgs<'note_taste_checks'>({
+      p_artifact_id: note.artifactId,
+      p_attempt: note.attempt,
+      p_findings: note.findings.map(({ code, detail }) => ({ code, detail })),
+    }),
+  );
+  if (error !== null) recordDbFailure(error, 'note_taste_checks');
 }
 
 /**

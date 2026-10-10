@@ -20,12 +20,11 @@ vi.mock('./model', () => ({
 const { collectReadingResult } = await import('./collect');
 
 /**
- * **가져온 글이 검사를 못 넘으면 저장하지 않는다.**
+ * **막는 검사에 걸린 글은 저장하지 않고, 품질 검사에만 걸린 글은 저장하고 적는다**(ADR 0163).
  *
  * 누름은 떠나보내기만 하고 완성본은 webhook 이나 복구기가 이 함수로 가져와 저장한다
- * (ADR 0020). 그래서 「검사에 걸린 글은 안 남는다」가 실제로 지켜지는 자리는 여기
- * 하나다. 그 약속을 재던 시험은 화면이 오지 않는 옛 길(`requestReading`)에만 있었고,
- * 그 길을 걷으면서 **이 자리는 한 번도 안 재인 채로 남았다.**
+ * (ADR 0020). 그래서 「막은 글은 안 남는다 · 품질에 걸린 글은 남고 적힌다」가 실제로 지켜지는
+ * 자리는 여기 하나다.
  *
  * 가짜는 열쇠 쓰는 DB 와 모델 회수뿐이다. 일감은 실제 명식으로 짓는다 — 검사가 재는
  * 것이 얼린 근거와 얼린 프롬프트이므로, 그 둘이 진짜여야 검사가 진짜로 문다.
@@ -122,7 +121,9 @@ beforeEach(() => {
   });
 });
 
-describe('가져온 글은 검사를 넘어야 저장된다', () => {
+const noted = () => called('note_reading_checks')?.[1] as { p_run_id: string; p_findings: { code: string; detail: string }[] } | undefined;
+
+describe('가져온 글은 막는 검사를 넘어야 저장된다', () => {
   /**
    * **멀쩡한 글은 실제로 저장된다** — 아래 시험들이 뜻을 가지려면 이것이 먼저 서야 한다.
    * 이 줄이 없으면 「저장하지 않는다」가 배선이 끊겨서 초록일 수도 있다.
@@ -133,6 +134,8 @@ describe('가져온 글은 검사를 넘어야 저장된다', () => {
     await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
     expect(called('save_reading'), '멀쩡한 글이 저장되지 않았다').toBeDefined();
     expect(called('fail_reading_job')).toBeUndefined();
+    /* 걸린 것 없음도 적는다 — 분모가 된다 */
+    expect(noted()).toEqual({ p_run_id: 'run-1', p_findings: [] });
   });
 
   it('출생 원문이 샌 글은 저장하지 않고 실패로 닫는다', async () => {
@@ -149,17 +152,70 @@ describe('가져온 글은 검사를 넘어야 저장된다', () => {
       p_run_id: 'run-1',
       p_failure_code: 'birth-input-leaked',
     });
+    /* 막은 시도도 적는다 — 설명에 샌 값은 없다 */
+    expect(noted()?.p_findings.map((f) => f.code)).toEqual(['birth-input-leaked']);
+    expect(JSON.stringify(noted())).not.toContain('1990-05-12');
+    /* 닫은 뒤에 적는다 — 내보냄 · 막음은 시도의 상태가 가른다 */
+    const order = keyedRpc.mock.calls.map(([name]) => name);
+    expect(order.indexOf('note_reading_checks')).toBeGreaterThan(order.indexOf('fail_reading_job'));
   });
 
-  it('점수 계약을 어긴 글도 저장하지 않는다', async () => {
-    // 한 사람짜리 풀이에는 점수가 없어야 한다.
-    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: 70 }));
+  it('비어 있는 본문 · 점수가 없는 궁합은 그릴 것이 없어 저장하지 않는다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: '   ', score: null }));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'body-unstorable' });
 
-    await expect(collectReadingResult('resp-1')).resolves.toEqual({
-      done: 'failed',
-      code: 'score-out-of-contract',
-    });
+    job = jobOf('match');
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'score-unreadable' });
     expect(called('save_reading')).toBeUndefined();
+  });
+
+  it('동의 범위 밖 판정을 만든 인연 궁합은 저장하지 않는다', async () => {
+    job = jobOf('match');
+    retrieve.mockResolvedValue(answered({ markdown: `${GOOD}\n첫 번째 분은 신강 한 편입니다.`, score: baselineIn(job.prompt) }));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'out-of-scope-judgment' });
+    expect(called('save_reading')).toBeUndefined();
+  });
+
+  /**
+   * **품질 검사에 걸린 글은 내보낸다**(ADR 0163) — 저장하고 화면에 세우며, 걸린 검사를 코드와 짧은 설명으로 적는다.
+   */
+  it('품질 검사에만 걸린 글은 저장하고, 걸린 검사를 적는다', async () => {
+    // 한 사람짜리 풀이에 점수가 붙고 · 글이 짧고 · 비유가 비었다 — 셋 다 품질이다
+    retrieve.mockResolvedValue(answered({ markdown: '## 한 줄로\n짧은 글입니다.', score: 70, metaphor: ' ' }));
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('fail_reading_job')).toBeUndefined();
+    expect(called('save_reading')?.[1]).toMatchObject({ p_output: '## 한 줄로\n짧은 글입니다.', p_score: null, p_metaphor: null });
+    expect(noted()?.p_findings.map((f) => f.code).sort()).toEqual(
+      ['length-out-of-contract', 'metaphor-out-of-contract', 'score-out-of-contract'].sort(),
+    );
+    for (const finding of noted()?.p_findings ?? []) expect(finding.detail).not.toContain('짧은 글입니다');
+    const order = keyedRpc.mock.calls.map(([name]) => name);
+    expect(order.indexOf('note_reading_checks')).toBeGreaterThan(order.indexOf('save_reading'));
+  });
+
+  it('본문에 샌 경로는 괄호째 걷어 저장하고 걷었다고 적는다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: `${GOOD}\n버틸 힘은 약한 쪽입니다 (analysis.strength).`, score: null }));
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1].p_output).toBe(`${GOOD}\n버틸 힘은 약한 쪽입니다.`);
+    expect(noted()?.p_findings).toEqual([{ code: 'evidence-path-stripped', detail: '괄호째 걷음: analysis.strength' }]);
+  });
+
+  it('검사 기록을 못 적어도 저장은 그대로다', async () => {
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: [job], error: null };
+      if (name === 'save_reading') return { data: 'reading-1', error: null };
+      if (name === 'note_reading_checks') return { data: null, error: { code: 'XX000', message: 'note failed' } };
+      return { data: null, error: null };
+    });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(logged).toHaveBeenCalledWith('collect: note_reading_checks', 'XX000', 'note failed');
+    logged.mockRestore();
   });
 
   /**
@@ -184,7 +240,7 @@ describe('가져온 글은 검사를 넘어야 저장된다', () => {
    * **검사에 걸린 실패에도 토큰은 나갔다**(ADR 0039). 모델은 다 돌았고 우리 검사가 문
    * 것이라, 여기서 안 적으면 그 지출이 어디에도 안 남는다.
    */
-  it('검사에 걸린 실패도 쓴 토큰을 함께 적는다', async () => {
+  it('검사가 막은 실패도 쓴 토큰을 함께 적는다', async () => {
     retrieve.mockResolvedValue(
       answered({ markdown: `${GOOD}\n부산에서 태어났습니다.`, score: null }),
     );
@@ -244,15 +300,30 @@ describe('가입 뒤 이어쓰기', () => {
     expect(called('count_taste_step')?.[1]).toEqual({ p_step: 'reading_succeeded' });
   });
 
-  it('답이 없거나 · 첫 절에 1번을 또 쓰면 저장하지 않는다', async () => {
+  it('답이 없거나 · 첫 절에 1번을 또 쓰면 답 없이 본 풀이를 저장하고, 어긴 까닭을 적는다(ADR 0163)', async () => {
     job = continuedJob();
     retrieve.mockResolvedValue(replied(CONTINUED));
-    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'continuation-out-of-contract' });
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1].p_output).toBe(CONTINUED);
+    expect(noted()?.p_findings.map((f) => f.code)).toContain('continuation-out-of-contract');
+    expect(noted()?.p_findings.find((f) => f.code === 'continuation-out-of-contract')?.detail).toMatch(/^답 없이 세움 — /);
 
-    retrieve.mockResolvedValue(replied(CONTINUED.replace('2. 일을', '1. 따로 쓴 답.\n2. 일을'), ANSWER));
-    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'continuation-out-of-contract' });
-    expect(called('save_reading')).toBeUndefined();
-    expect(called('count_taste_step')).toBeUndefined();
+    keyedRpc.mockClear();
+    const doubled = CONTINUED.replace('2. 일을', '1. 따로 쓴 답.\n2. 일을');
+    retrieve.mockResolvedValue(replied(doubled, ANSWER));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1].p_output).toBe(doubled);
+    /* 이어 쓴 풀이는 섰다 — 퍼널 끝을 센다 */
+    expect(called('count_taste_step')?.[1]).toEqual({ p_step: 'reading_succeeded' });
+  });
+
+  it('답은 있는데 품질 규칙만 어기면 그대로 끼워 저장하고 적는다', async () => {
+    job = continuedJob();
+    const short = '그 쉼은 말로 먼저 꺼내는 데서 와요.';
+    retrieve.mockResolvedValue(replied(CONTINUED, short));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1].p_output).toContain(`1. ${short}\n2. 일을`);
+    expect(noted()?.p_findings.find((f) => f.code === 'continuation-out-of-contract')?.detail).toMatch(/^답을 끼움 — .*너무 짧다/);
   });
 
   it('이어쓰기가 없는 풀이는 받은 본문 그대로다 — 답 칸이 와도 끼우지 않는다', async () => {
