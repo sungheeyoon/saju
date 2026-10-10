@@ -2,7 +2,7 @@ import type { ScorePolicy } from '@/src/lib/discovery';
 import type { MatchPreview } from '@/src/lib/matching';
 
 import { Icon } from './ui/icons';
-import { CARD, TYPE_NAME } from './ui/surfaces';
+import { CARD } from './ui/surfaces';
 
 /** 카드 위 딱지 — 운영자 확정 문구 #7(2026-09-25) */
 const POLICY_BADGE: Record<ScorePolicy, string> = {
@@ -101,18 +101,6 @@ export function MatchIndexCard({
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="border-t border-border pt-5">
-        <h3 className={TYPE_NAME}>먼저 보이는 신호</h3>
-        <ul className="mt-2 flex flex-col gap-2 text-[15px] leading-6">
-          {preview.highlights.map((highlight) => (
-            <li key={highlight} className="flex gap-2.5">
-              <span aria-hidden="true" className="mt-[0.6rem] size-1.5 shrink-0 rounded-full bg-foreground/40" />
-              <span>{highlight}</span>
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );
