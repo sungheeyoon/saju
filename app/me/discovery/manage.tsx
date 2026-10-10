@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 
 import {
@@ -11,9 +11,14 @@ import {
   SettingsRow,
 } from '../settings/card';
 import { savePreferGender, setDiscoveryParticipation } from './actions';
+import { saveLatest } from './save-latest';
 import type { PreferGender } from '@/src/lib/discovery';
+import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
 import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
+
+/** 「저장했어요」가 서 있는 동안 — 읽고 지나갈 만큼 */
+const SAVED_SHOWN_MS = 2500;
 
 /**
  * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**
@@ -25,24 +30,47 @@ import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
  * 않았습니다…」를 세 줄로 적어 두었는데, 칸이 하나뿐인 폼에서 그것은 **없는 기능을
  * 변호하는 문단**이다. 나이를 못 쓰는 이유는 ADR 0005 가 든다 — 실제로 그 칸이 생기는
  * 날 설명도 칸과 함께 선다.
+ *
+ * **고르면 곧 저장한다** — 바로 아래 인연 찾기 칸과 같은 방식이라 한 화면에 저장 방식이 하나다. 저장하는 동안 또 고르면
+ * 마지막 값이 이기고, 실패하면 서버가 든 마지막 값으로 되돌리고 까닭을 보인다 — 차례는 `save-latest.ts`.
  */
 export function PreferenceForm({ current }: { current: PreferGender }) {
   const [preferGender, setPreferGender] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  /** 마지막으로 고른 값까지 저장된 뒤 잠깐 — 「저장했어요」가 서는 동안 */
   const [saved, setSaved] = useState(false);
-  const [saving, startSaving] = useTransition();
+  /** 차례는 `save-latest.ts` 가 든다 — 한 번만 짓는다(상태 세터는 렌더마다 같다) */
+  const [save] = useState(() =>
+    saveLatest(
+      current,
+      savePreferGender,
+      {
+        busy: setSaving,
+        saved: () => setSaved(true),
+        failed: (back, message) => {
+          setPreferGender(back);
+          setFailure(message);
+        },
+      },
+      /* 문이 값 대신 던지면(연결이 끊기면) 까닭을 모른다 — 할 수 있는 일만 말한다 */
+      FEEDBACK_UNEXPECTED_NOTE,
+    ),
+  );
+  useEffect(() => {
+    if (!saved) return;
+    const fading = setTimeout(() => setSaved(false), SAVED_SHOWN_MS);
+    return () => clearTimeout(fading);
+  }, [saved]);
 
-  const changed = preferGender !== current;
-
-  const save = () => {
+  const choose = (value: PreferGender) => {
     setFailure(null);
     setSaved(false);
-    startSaving(async () => {
-      const result = await savePreferGender(preferGender);
-      if (result.ok) setSaved(true);
-      else setFailure(result.message);
-    });
+    setPreferGender(value);
+    save(value);
   };
+
+  const progress = saving ? '저장하는 중…' : saved ? '저장했어요' : '';
 
   return (
     <SettingsCard title="어떤 상대를 만나볼까요?">
@@ -59,7 +87,7 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
         고르는 값이 무엇에 대한 것인지는 줄이 들어야 한다 — 나이·거리 칸이 생기는 날
         이 이름이 그 자리를 가른다.
       */}
-      <fieldset className={SETTINGS_ROW}>
+      <fieldset className={SETTINGS_ROW} aria-describedby={failure !== null ? 'prefer-gender-failure' : undefined}>
         <legend className="contents">
           <span className="text-sm font-semibold sm:flex-1">성별</span>
         </legend>
@@ -83,24 +111,29 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
                 name="prefer-gender"
                 className="sr-only"
                 checked={preferGender === value}
-                onChange={() => setPreferGender(value)}
+                onChange={() => choose(value)}
               />
               <span>{PREFER_GENDER_KO[value]}</span>
             </label>
           ))}
         </div>
+        {/* 늘 서 있어야 바뀐 글자를 읽어 준다 — 보이는 글자는 아래 줄이 든다 */}
+        <span role="status" className="sr-only">
+          {progress}
+        </span>
       </fieldset>
 
-      {/* 마지막 줄이 이 카드의 꼬리다 — 왼쪽은 고른 값이 어떻게 쓰이는지(양쪽 조건이 다 맞아야 소개된다), 오른쪽은 시작하는 누름 */}
+      {/*
+        마지막 줄이 이 카드의 꼬리다 — 왼쪽은 고른 값이 어떻게 쓰이는지(양쪽 조건이 다 맞아야 소개된다), 오른쪽은 저장이
+        가는 동안의 「저장하는 중…」과, 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」. 화면 읽기에는 칸 안의
+        `role="status"` 가 같은 말을 알린다.
+      */}
       <SettingsRow note="서로 고른 성별이 맞는 사람끼리 소개돼요.">
-        {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}
-        <button type="button" onClick={save} disabled={saving || !changed} className={SETTINGS_PRIMARY}>
-          {saving ? '저장하는 중…' : '저장'}
-        </button>
+        {progress !== '' ? <span className="text-xs text-muted">{progress}</span> : undefined}
       </SettingsRow>
 
       {failure !== null && (
-        <p role="alert" className="border-t border-border pt-4 text-sm text-danger">
+        <p id="prefer-gender-failure" role="alert" className="border-t border-border pt-4 text-sm text-danger">
           저장하지 못했어요. {failure}
         </p>
       )}
