@@ -184,7 +184,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   return (
     <section
       aria-label={room.heading}
-      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden rounded-[1.75rem] bg-surface ring-1 ring-border lg:rounded-[2rem]`}
+      data-chat-room
+      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-[1.75rem] md:ring-1 md:ring-border lg:rounded-[2rem]`}
     >
       <header className="flex items-center gap-2 border-b border-border px-2.5 py-2.5 sm:gap-3 sm:px-4">
         <Link href="/me/chat" aria-label="대화방 목록" className={`${GHOST_ICON} lg:hidden`}>
