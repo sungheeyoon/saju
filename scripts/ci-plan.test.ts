@@ -1306,6 +1306,22 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     }
   });
 
+  it('정규식이 바뀐 글자 밖까지 붙잡아도 — 한글 세 자 이상 이어진 조각이 앞뒤 글자 안에 있으면 찾는 것이다 (재검토 2026-10-10)', () => {
+    // 본: e2e/saju.spec.ts 의 `toMatch(/\d{4}년 … \d{1,2}분 기준으로 짚었고/)` ↔ 화면 템플릿 조각 `${asOf} 기준으로 짚었고,`
+    const screen = 'export const F = ({ asOf }: { asOf: string }) => <p>{`${asOf} 기준으로 짚었고, 다시 제출하기 전까지는 그대로예요.`}</p>;\n';
+    const texts = copyOnlyChanged(ts, 'app/f.tsx', screen, screen.replace('기준으로 짚었고', '기준으로 봤고'))!;
+    expect(texts).toEqual([' 기준으로 짚었고, 다시 제출하기 전까지는 그대로예요.', ' 기준으로 봤고, 다시 제출하기 전까지는 그대로예요.'].map((one) => one.trim()));
+    const spec = 'expect(text).toMatch(/\\d{4}년 \\d{1,2}월 \\d{1,2}일 \\d{1,2}시 \\d{1,2}분 기준으로 짚었고/);';
+    expect(new RegExp('\\d{1,2}분 기준으로 짚었고').test(texts[0])).toBe(false);
+    expect(testsNamingLiterally(texts, [['e2e/saju.spec.ts', spec]], ts)).toEqual(['e2e/saju.spec.ts']);
+    // 저장소의 saju.spec 그대로도 찾는다
+    const real = readFileSync(resolve(ROOT, 'e2e/saju.spec.ts'), 'utf8');
+    expect(real).toContain('분 기준으로 짚었고/');
+    expect(testsNamingLiterally(texts, [['e2e/saju.spec.ts', real]], ts)).toEqual(['e2e/saju.spec.ts']);
+    // 두 자 조각(`/^인연/` · `/채팅/`)만 겹치면 그대로 빠진다
+    expect(testsNamingLiterally(['요청이 수락돼 인연 궁합이 열리면'], [['e2e/m.spec.ts', 'page.getByText(/^인연/);']], ts)).toEqual([]);
+  });
+
   it('값이 곧 동작인 요소의 글자(option · textarea · style · script · Script)는 몇 겹 아래든 문구가 아니다', () => {
     expect(copyOf(CARD, edit('<option>요청자</option>', '<option>보낸 사람</option>'))).toBeNull();
     const style = 'export const S = () => <style>body {"{"} color: red {"}"}</style>;\n';
@@ -1831,6 +1847,23 @@ describe('묶음 배포의 기다림 — 마지막 초록부터 HEAD 까지의 �
     expect(range([docsCommit(), commented]).verdict).toBe('docs-only');
     // 바꾼 파일이 없는 커밋은 문서로 센다
     expect(range([commit([])]).verdict).toBe('docs-only');
+  });
+
+  it('그 커밋의 시험을 못 읽으면 던지지 않고 wait 로 답한다 — 까닭에 커밋과 오류가 든다 (재검토 2026-10-10)', () => {
+    const broken = { ...copyCommit(), mentions: () => { throw new Error('fatal: bad object deadbeef\nmore'); } };
+    const waited = range([docsCommit(), broken]);
+    expect(waited.verdict).toBe('wait');
+    expect(waited.reason).toContain('그 커밋의 시험을 못 읽었다 — ');
+    expect(waited.reason).toContain(broken.sha.slice(0, 7));
+    expect(waited.reason).toContain('fatal: bad object deadbeef');
+    expect(waited.reason).not.toContain('more');
+    // `--from` 쪽 범위에서 못 읽어도 같다
+    const viaFrom = range([docsCommit()], { from: FROM, fromCommits: [broken] });
+    expect(viaFrom.verdict).toBe('wait');
+    expect(viaFrom.reason).toContain('그 커밋의 시험을 못 읽었다');
+    // 문구 후보가 없는 커밋은 시험을 읽지 않는다
+    const unused = { ...docsCommit(), mentions: () => { throw new Error('읽으면 안 된다'); } };
+    expect(range([unused]).verdict).toBe('docs-only');
   });
 
   it('범위를 끝과 끝이 아니라 커밋마다 가른다 — 동작 변경 → 되돌림 → 문구 커밋이면 기다린다', () => {

@@ -99,8 +99,8 @@ function gatePassed(repo, sha) {
 
 /**
  * 그 커밋의 시험 — `e2e/**` 의 글 파일과 흐름 검사(`scripts/check-*.mjs`). 문구 후보의 글자를 그 시험이 글자 그대로 찾으면 그 파일은
- * 동작이다(`testsNamingLiterally`, 운영자 2026-10-10). 문구 후보가 있는 커밋에서만 읽는다. 못 읽으면 던진다 — 판정이 서지 않고 종료
- * 코드가 1(`wait`)이다
+ * 동작이다(`testsNamingLiterally`, 운영자 2026-10-10). 문구 후보가 있는 커밋에서만 읽는다. 못 읽으면 던지고, `deployRangeOf` 가
+ * 그것을 받아 `wait — 그 커밋의 시험을 못 읽었다 …` 로 답한다
  */
 function testsAt(sha) {
   const files = run('git', 'ls-tree', '-r', '--name-only', sha, '--', 'e2e', 'scripts')

@@ -186,7 +186,7 @@
  *   함수 인자 · 데이터(배열 · 객체) 속 문자열 · 목록 밖 문자열 · 표의 키. 문구와 이것이 한 파일에 섞이면 그 파일은 지금 규칙 그대로다
  * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
  * - **시험이 글자로 찾으면 문구만이 아니다**(운영자 2026-10-10) — 바뀐 자리의 옛 글자나 새 글자를 `e2e/**` · `scripts/check-*.mjs` 가
- *   글자 그대로 찾으면(통째 · 따옴표 조각 · 그 글자를 실제로 찾는 글자 있는 정규식, `testsNamingLiterally`) 그 파일은 지금 규칙이고 배포는
+ *   글자 그대로 찾으면(통째 · 따옴표 조각 · 그 글자를 실제로 찾거나 한글 세 자 이상 조각이 그 안에 있는 정규식, `testsNamingLiterally`) 그 파일은 지금 규칙이고 배포는
  *   기다린다. 문구 상수는 시험이 이름으로 읽는다 — 그러면 글자를 바꿔도 시험을 고칠 일이 없고 여기 안 걸린다
  * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
  *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 바뀐 문구 파일을 들이는 시험도
@@ -1228,7 +1228,8 @@ export function regexTurnsOn(use, texts) {
  * 아님」). 문구만으로 세면 e2e 없이 배포까지 가는데, 그 시험은 글자가 바뀌면 붉다(`aria-label="메시지"` ↔ `getByRole('log', { name:
  * '메시지' })`, 2026-10-10 독립 검토). 「글자 그대로」는 셋이다 — 소스(주석 포함, 공백을 접은 것)에 앞뒤 글자 하나가 통째로 있다 ·
  * 따옴표 리터럴(공백을 걷어 `MENTION_PIECE` 자 이상)이 그 글자의 조각이다 · 본문을 아는 정규식이 문자열 정리 자리 밖에서 그 글자를
- * **실제로 찾는다**(`new RegExp(본문, 깃발).test(글자)` — 조각을 견주면 `/^인연/` 같은 두 자가 거의 모든 문구를 붙잡았다). 글자 없는
+ * **실제로 찾는다**(`new RegExp(본문, 깃발).test(글자)` — 조각을 견주면 `/^인연/` 같은 두 자가 거의 모든 문구를 붙잡았다) · 그 정규식의
+ * 기호 사이 조각에서 한글 세 자 이상 이어진 것이 그 글자 안에 있다(바뀐 글자 밖까지 붙잡는 정규식, 재검토 2026-10-10). 글자 없는
  * 정규식(`/.+/` · `/^\S+$/`)은 아무 글자나 찾으므로 여기 안 들고 차선만 켠다. 정규식을
  * 못 지으면 · 시험 파일을 파싱하지 못하면 판별 불가라 찾는 것으로 센다. 본문을 모르는 `RegExp(변수)` · 동적으로 지은 글자는 여기 안
  * 든다 — 그것은 차선을 켜는 근거(`testsMentioning`)로만 쓰인다. **문구 상수를 이름으로 읽는 시험은 여기 안 걸린다** — 글자를 바꿔도 시험을
@@ -1261,7 +1262,12 @@ export function testsNamingLiterally(texts, tests, ts) {
         } catch {
           return true;
         }
-        return texts.some((text) => pattern.test(text));
+        if (texts.some((text) => pattern.test(text))) return true;
+        // 정규식이 바뀐 글자 밖까지 붙잡으면(`/\d{1,2}분 기준으로 짚었고/` ↔ 템플릿 조각 「기준으로 짚었고,」) `.test` 는 거짓이다 —
+        // 기호 사이 조각의 한글 세 자 이상 이어진 것이 앞뒤 글자 안에 있으면 찾는 것으로 센다. `/^인연/` 같은 두 자는 빠진다(재검토 2026-10-10)
+        const shape = regexShape(use.body);
+        const runs = ('literals' in shape ? shape.literals : shape.fragments).flatMap((piece) => piece.match(/[가-힣]{3,}/g) ?? []);
+        return runs.some((run) => texts.some((text) => text.includes(run)));
       });
     })
     .map(([test]) => test);
@@ -1534,7 +1540,7 @@ function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
  * @typedef {{ sha: string, merge?: boolean, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null, mentions?: () => readonly (readonly [string, string])[] }} RangeCommit
  * @param {RangeCommit} commit
  * @param {typeof import('typescript')} ts
- * @returns {{ copy: string[], behavior: string[] }}
+ * @returns {{ copy: string[], behavior: string[], unread?: string }} `unread` 는 그 커밋의 시험을 못 읽은 까닭(`mentions` 가 던짐)
  */
 function commitChangeOf(commit, ts) {
   if (commit.merge === true) return { copy: [], behavior: ['(머지 커밋)'] };
@@ -1542,7 +1548,14 @@ function commitChangeOf(commit, ts) {
   const changed = commit.files.map((one) => one.trim()).filter((one) => one !== '');
   const commentOnly = commentOnlyOf(changed, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });
   const rest = changed.filter((file) => !isPolicy(file) && !commentOnly.includes(file));
-  const { copy, named } = copyOnlyOf(rest, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts, mentions: commit.mentions ?? mentionSources });
+  let found;
+  try {
+    found = copyOnlyOf(rest, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts, mentions: commit.mentions ?? mentionSources });
+  } catch (error) {
+    // 그 커밋의 시험을 못 읽으면 문구인지 가를 수 없다 — 던지지 않고 기다림의 까닭으로 돌려준다(재검토 2026-10-10)
+    return { copy: [], behavior: [], unread: error instanceof Error ? error.message.split('\n')[0] : String(error) };
+  }
+  const { copy, named } = found;
   const behavior = rest
     .filter((file) => !copy.has(file))
     .map((file) => (named.has(file) ? `${file}(시험이 글자 그대로 찾는다: ${named.get(file).join(' · ')})` : file));
@@ -1561,10 +1574,11 @@ function commitsChangeOf(commits, ts) {
   const behavior = [];
   for (const commit of commits) {
     const one = commitChangeOf(commit, ts);
+    if (one.unread !== undefined) return { copy: [], behavior: [], unread: `\`${commit.sha.slice(0, 7)}\`: ${one.unread}` };
     for (const file of one.copy) copy.add(file);
     for (const file of one.behavior) behavior.push(`${commit.sha.slice(0, 7)}:${file}`);
   }
-  return { copy: [...copy], behavior };
+  return { copy: [...copy], behavior, unread: undefined };
 }
 
 /**
@@ -1611,7 +1625,8 @@ export function deployRangeOf({ lastGreen, head, commits, from = null, fromCommi
   else {
     if (commits === null || commits.length === 0) return wait(`${range} 의 커밋을 못 읽었다`);
     if (ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
-    const { copy, behavior } = commitsChangeOf(commits, ts);
+    const { copy, behavior, unread } = commitsChangeOf(commits, ts);
+    if (unread !== undefined) return wait(`그 커밋의 시험을 못 읽었다 — ${unread}`);
     if (behavior.length > 0) return wait(`${range} 에 동작이 바뀐 커밋이 있다 — main 의 전체 CI 를 기다린다`, behavior);
     if (unpassed === null) return wait(`${range} 의 PR 검사(\`gate\`)를 못 읽었다`);
     if (unpassed.length > 0) return wait(`${range} 에 PR 검사(\`gate\`)가 초록이 아닌 커밋이 있다: ${unpassed.map((one) => `\`${short(one)}\``).join(' · ')}`);
@@ -1626,7 +1641,8 @@ export function deployRangeOf({ lastGreen, head, commits, from = null, fromCommi
   const compared = `\`${short(from)}..${short(head)}\``;
   if (fromCommits === null) return wait(`\`--from\` 의 범위 ${compared} 를 못 읽었다(HEAD 의 조상이 아님 · 읽기 실패)`);
   if (fromCommits.length > 0 && ts === null) return wait('파서(typescript)를 못 불러 주석 · 문구를 가르지 못한다');
-  const since = fromCommits.length === 0 ? { copy: [], behavior: [] } : commitsChangeOf(fromCommits, ts);
+  const since = fromCommits.length === 0 ? { copy: [], behavior: [], unread: undefined } : commitsChangeOf(fromCommits, ts);
+  if (since.unread !== undefined) return wait(`그 커밋의 시험을 못 읽었다 — ${since.unread}`);
   if (since.copy.length > 0 || since.behavior.length > 0) {
     return wait(`${compared} 에서 앱이 바뀌었다 — 올릴지 · 기다릴지는 \`--from\` 없이 부른 답이 정한다`, since.behavior);
   }
