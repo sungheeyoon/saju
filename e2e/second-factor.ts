@@ -47,7 +47,9 @@ export async function passSecondFactor(page: Page, next: string): Promise<string
   await page.getByRole('button', { name: '인증 앱 등록하기' }).click();
 
   await expect(page.getByRole('img', { name: '인증 앱에 등록할 QR 코드' })).toBeVisible();
-  const secret = (await page.locator('dt:text-is("설정 키") + dd').innerText()).trim();
+  /* 화면은 네 자씩 띄워 보이고 곁에 복사 단추를 둔다(화면 점검 C18) — 키 글자만 읽어 띄움을 걷는다 */
+  const shown = await page.locator('dt:text-is("설정 키") + dd > span').innerText();
+  const secret = shown.replace(/\s+/g, '');
 
   if (Date.now() / 1000 % 30 > 29) await page.waitForTimeout(1_500);
   await page.getByLabel('6자리 코드').fill(totpNow(secret));
