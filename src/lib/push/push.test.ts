@@ -7,8 +7,10 @@ import {
   looksLikeIos,
   pushEndpointAllowed,
   pushPayloadFor,
+  pushPrivacyNoteShown,
   pushRowState,
   pushSubscriptionShapeOk,
+  pushToggleFailure,
   pushTopicFor,
   settleResultOf,
   type PushEnvironment,
@@ -131,6 +133,30 @@ describe('설정 줄의 상태', () => {
   it('iOS 의 홈 화면 앱이면 다른 브라우저와 같이 판정한다', () => {
     expect(pushRowState({ ...base, ios: true, standalone: true })).toBe('off');
     expect(pushRowState({ ...base, ios: true, standalone: true, supported: false })).toBe('unsupported');
+  });
+});
+
+describe('설정 줄이 세우는 곁줄 (운영자 결정 2026-10-10)', () => {
+  it('「무엇이 안 보이나」는 꺼짐에서만 선다 — 켜짐 · 막힘 · 지원 안 함 · 재는 동안에는 없다', () => {
+    expect(pushPrivacyNoteShown('off')).toBe(true);
+    for (const state of ['on', 'denied', 'unsupported', 'ios-not-installed', null] as const) {
+      expect(pushPrivacyNoteShown(state)).toBe(false);
+    }
+  });
+
+  it('권한 창을 닫기만 했으면(꺼짐으로 남았으면) 「권한이 허용되지 않아」 줄이 선다', () => {
+    expect(pushToggleFailure(true, { ok: false, reason: 'denied', state: 'off' })).toBe('not-allowed');
+  });
+
+  it('권한을 막아 결과가 막힘이면 실패 줄을 안 세운다 — 설명 줄의 차단 안내가 이미 말한다', () => {
+    expect(pushToggleFailure(true, { ok: false, reason: 'denied', state: 'denied' })).toBeNull();
+  });
+
+  it('그 밖의 실패는 켜기 · 끄기로 갈리고, 성공은 줄이 없다', () => {
+    expect(pushToggleFailure(true, { ok: false, reason: 'failed', state: 'off' })).toBe('failed-on');
+    expect(pushToggleFailure(false, { ok: false, reason: 'failed', state: 'on' })).toBe('failed-off');
+    expect(pushToggleFailure(true, { ok: true, state: 'on' })).toBeNull();
+    expect(pushToggleFailure(false, { ok: true, state: 'off' })).toBeNull();
   });
 });
 
