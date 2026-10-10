@@ -1,6 +1,7 @@
 import type { WarningNotice } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { read, unread, type SkippableRead } from '../../db-error';
 
 /**
@@ -12,6 +13,11 @@ import { read, unread, type SkippableRead } from '../../db-error';
  */
 export async function readWarningNotice(): Promise<SkippableRead<WarningNotice | null>> {
   const supabase = await supabaseOnServer();
+  /*
+    **로그인하지 않았으면 묻지 않는다**(G-78). 이 안내는 `/me` 레이아웃에 서서 화면이 로그인으로 보내기(`redirect('/auth')`) 전에
+    먼저 돈다 — 비회원으로 부르면 문이 `42501` 로 거절하고 그 줄이 서버 기록에 남았다. 안 보이는 것은 같다.
+  */
+  if ((await signedInUser(supabase)) === null) return read(null);
   const { data, error } = await supabase.rpc('my_warning_notice');
   if (error) return unread(error, 'my_warning_notice');
 
