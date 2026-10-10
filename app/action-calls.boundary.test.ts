@@ -126,13 +126,7 @@ function unreceivedCalls(): string[] {
  * **아직 안 받는 자리 — 줄어들기만 한다.** 다른 작업이 맡은 파일이라 이번에 안 고쳤다(`docs/product/gaps.md` G-95).
  * 하나를 감싸면 그 줄을 지운다 — 남은 줄이 있으면 시험이 붉어져 지우라고 말한다.
  */
-const NOT_YET: readonly string[] = [
-  'app/me/discovery/manage.tsx :: setDiscoveryParticipation',
-  'app/me/profile/form.tsx :: checkNickname',
-  'app/me/profile/form.tsx :: saveProfile',
-  'app/me/profile/photo-grid.tsx :: movePhoto',
-  'app/me/profile/photo-grid.tsx :: removePhoto',
-];
+const NOT_YET: readonly string[] = [];
 
 /**
  * **다른 모양으로 받는 자리** — 부름 바로 곁이 아니라서 위의 셋으로는 안 보이지만 받는다. 까닭을 적는다.
