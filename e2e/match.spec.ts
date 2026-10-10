@@ -2,7 +2,7 @@ import type { Locator } from '@playwright/test';
 
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
-import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
+import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';

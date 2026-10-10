@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat';
+import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat/copy';
 
 import { ELEMENT_TONE } from '../../ui/element-tone';
 import { BUTTON_PRIMARY } from '../../ui/buttons';

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   DISCOVERY_DISCLOSURE,
   DISCOVERY_POLICY,
-  DISCOVERY_TEASER,
   DISCOVERY_V1,
   SCORE_POLICIES,
   boardNotes,
@@ -15,8 +14,11 @@ import {
   scoreAxesOf,
   scorePolicyOf,
   scoreSideOf,
+  PREFER_GENDERS,
   type BalanceBand,
+  type PreferGender,
 } from './index';
+import { DISCOVERY_TEASER, PREFER_GENDER_KO } from './copy';
 import { combinedCountBalanceOf, mutualDeficitComplementOf } from './element-axes';
 
 import { computeSaju, type Element } from '../saju';
@@ -187,6 +189,15 @@ describe('목록이 함께 드는 말', () => {
    */
   it('참고 점수라는 사실은 목록 머리에서 한 번만 말한다', () => {
     expect(DISCOVERY_TEASER).toContain('오행 구성을 바탕으로 계산한 참고 점수');
+  });
+
+  /**
+   * 성별 화면 이름은 문구 파일(`./copy`)의 표라 타입 표기를 못 단다(모양, ADR 0159 덧 G-90). 저장되는 값마다 하나이고 남는 키가
+   * 없는지는 여기서 잰다 — `satisfies` 가 키 누락 · 오타를 타입 검사로, 아래가 실행으로 잡는다
+   */
+  it('성별 화면 이름은 저장되는 값마다 하나다', () => {
+    const names = PREFER_GENDER_KO satisfies Record<PreferGender, string>;
+    expect(Object.keys(names).sort()).toEqual([...PREFER_GENDERS].sort());
   });
 });
 

@@ -147,7 +147,6 @@ export default async function MatchingPage() {
       cards={cards}
       me={me}
       passed={passedCards}
-      teaser={board.teaser}
       notice={board.notice}
       explorationNote={board.explorationNote}
     />
