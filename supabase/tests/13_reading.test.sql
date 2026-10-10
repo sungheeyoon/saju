@@ -11,7 +11,7 @@
 --    「이전 명식으로 쓴 글」인지는 그 값으로만 판정한다 — 앱은 한 글자도 안 댄다.
 -- 5. **열쇠가 부를 수 있는 문이 값으로 세어진다.** 판본을 내주던 문 둘이 여기서 빠진다.
 begin;
-select plan(75);
+select plan(79);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -674,19 +674,21 @@ select is(
 set local role authenticated;
 
 /**
- * 인연 궁합의 알림은 **시도를 연 사람의 상대에게만** 선다. 내가 주인인 풀이의 완성 소식은 연 사람에게 서므로
- * (`20261124090000`, ADR 0157) 여기서는 Match 를 가리키거나 인연 궁합 시도를 가리키는 줄만 센다 — 연 사람에게 `match_id` 없이 `reading_kind = 'match'` 소식이
- * 서도 잡힌다. 내가 주인인 셋은 `85_reading_ready_for_owner` 가 잰다.
- *
- * 「누른 사람은 그 자리에서 본다」가 이 규칙의 이유였는데, 이제 공유 궁합에서는 아무도
- * 안 누른다 — 동의가 연다(ADR 0038). 시도는 **청한 사람(김)** 것으로 서므로 준비 완료는
- * **이**에게 간다. 방향이 뒤집힌 것이 아니라, 여는 사람이 바뀐 것이다.
+ * 인연 궁합의 완성 소식은 **두 사람 다에게** 선다 — 시도를 연 쪽(청한 사람, 김)과 그 상대(이)(`20261126090000`, ADR 0157
+ * 「2026-10-10 덧」). 시도는 청한 사람 것으로 서지만(ADR 0038) 그도 누르지 않았고 다른 화면에 있을 수 있다 — 내가 주인인
+ * 풀이와 같은 규칙이다. 여기서는 Match 를 가리키거나 인연 궁합 시도를 가리키는 줄만 센다. 내가 주인인 셋은
+ * `85_reading_ready_for_owner` 가 잰다.
  */
 select pg_temp.acting((select kim from folks));
 select is(
   (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready' and (n.match_id is not null or n.reading_kind = 'match')),
-  0,
-  '시도를 연 쪽에는 알림이 서지 않는다');
+  1,
+  '시도를 연 쪽에도 준비 완료가 한 번 선다');
+
+select is(
+  (select counterpart_nickname from public.my_notifications() n where n.kind = 'reading_ready' and n.match_id is not null),
+  '이읽',
+  '연 쪽의 준비 완료는 상대 별명을 든다');
 
 select pg_temp.acting((select lee from folks));
 select is(
@@ -702,6 +704,33 @@ select is(
   (select counterpart_nickname from public.my_notifications() n where n.kind = 'reading_ready' and (n.match_id is not null or n.reading_kind = 'match')),
   '김읽',
   '준비 완료 알림이 상대 별명을 든다');
+
+/**
+ * **결과 화면을 열면 그 인연 궁합의 완성 소식이 읽음이 된다 — 연 사람 것만**(`mark_reading_ready_read`). 같은 글을 둘이
+ * 읽어도 소식은 저마다의 것이다. 두 번째 열기는 바꿀 것이 없다.
+ */
+reset role;
+create temporary table match_reading as
+select r.id from public.reading r where r.match_id = (select match_id from matched);
+grant select on match_reading to authenticated, service_role;
+set local role authenticated;
+
+select pg_temp.acting((select lee from folks));
+select is(
+  public.mark_reading_ready_read((select id from match_reading)),
+  1,
+  '인연 궁합을 열면 내 완성 소식 하나가 읽음이 된다');
+select is(
+  public.mark_reading_ready_read((select id from match_reading)),
+  0,
+  '다시 열면 바꿀 것이 없다');
+
+select pg_temp.acting((select kim from folks));
+select is(
+  (select count(*)::int from public.my_notifications() n
+   where n.kind = 'reading_ready' and n.match_id is not null and n.read_at is null),
+  1,
+  '상대가 열어도 연 쪽의 완성 소식은 안 읽은 채다');
 
 /**
  * **그날이 왔다.** 만드는 일이 누름에서 떨어져 나온 뒤로(ADR 0016) 생성은 요청과 같은

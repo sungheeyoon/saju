@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
  * 나서 범위를 적지 못해 다음 날 같은 범위를 다시 올려도 같은 키가 된다(Versioning 이 판을 하나 더 둘 뿐이다).
  * 번호는 열두 자리로 채운다 — 키를 이름순으로 늘어놓으면 번호순이 된다.
  *
- * 여기 드는 칸은 DB 가 기록한 것뿐이다 — 운영자 id · 시각 · 동작 · 대상 신고 id · 거른 조건 · CLI 의 목적과 해시 ·
+ * 여기 드는 칸은 DB 가 기록한 것뿐이다 — 운영자 id · 시각 · 동작 · 대상 신고 id(목록이면 발췌가 보인 신고 id 들) · 거른 조건 · CLI 의 목적과 해시 ·
  * 성공/거절. 반출본은 Compliance 로 잠겨 지울 수 없으므로 **이용자 개인정보 원문을 이 모양에 더하지 않는다.**
  */
 
@@ -32,12 +32,17 @@ export type AccessLine = {
   readonly result_of: number | null;
   readonly result: string | null;
   readonly error_class: string | null;
+  /**
+   * 목록 줄이면 그 쪽에서 고른 메시지의 발췌가 보인 신고 id 들(`20261125090000`, ADR 0105 추기 2026-10-10). 그 밖의 줄과 발췌가
+   * 없던 쪽은 `null`. 이 칸이 서기 전의 DB 는 칸 자체를 안 낸다 — 그때도 `null` 로 적는다
+   */
+  readonly target_report_ids?: readonly string[] | null;
 };
 
 type BundleHead = {
   readonly kind: 'saju-operator-access';
-  /** 2 — CLI 결과 칸 셋이 더해졌다(`20261014090000`). 1 은 그 전의 파일이다 */
-  readonly version: 2;
+  /** 3 — 목록이 보인 신고 id 들(`target_report_ids`)이 더해졌다(`20261125090000`). 2 는 CLI 결과 칸 셋까지(`20261014090000`), 1 은 그 전 */
+  readonly version: 3;
   readonly rows: number;
   readonly first_id: number;
   readonly last_id: number;
@@ -84,6 +89,7 @@ const lineOf = (line: AccessLine): string =>
     result_of: line.result_of,
     result: line.result,
     error_class: line.error_class,
+    target_report_ids: line.target_report_ids ?? null,
   });
 
 export const sha256Hex = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
@@ -104,7 +110,7 @@ export function bundleOf(lines: readonly AccessLine[], afterId: number, exported
   const last = lines[lines.length - 1];
   const head: BundleHead = {
     kind: 'saju-operator-access',
-    version: 2,
+    version: 3,
     rows: lines.length,
     first_id: first.id,
     last_id: last.id,

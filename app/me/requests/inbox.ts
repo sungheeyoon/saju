@@ -138,10 +138,10 @@ function destinationFor(
   if (kind !== 'reading_failed' && kind !== 'reading_ready') return null;
 
   /*
-    인연 궁합 상대의 완성 소식은 시도를 안 가리켜 `readingKind` 가 없다 — Match 가 곧 대상이다. 그 줄은 전에 글자로만 섰다.
+    인연 궁합의 완성 소식(두 사람 다)은 시도를 안 가리켜 `readingKind` 가 없다 — Match 가 곧 대상이다.
   */
-  const partnerReady = kind === 'reading_ready' && readingKind === null;
-  const result = resultOf(partnerReady ? 'match' : readingKind, row);
+  const matchReady = kind === 'reading_ready' && readingKind === null;
+  const result = resultOf(matchReady ? 'match' : readingKind, row);
   /* 소식에서 연 결과의 ← 는 소식으로, 불은 종에 선다(ADR 0134) */
   return result === null ? null : withCameFrom(result, 'news');
 }

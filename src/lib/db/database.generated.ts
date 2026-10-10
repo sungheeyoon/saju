@@ -2503,6 +2503,7 @@ export type Database = {
           result_of: number
           sql_sha256: string
           target_report_id: string
+          target_report_ids: string[]
         }[]
       }
       audit_export_begin: {
@@ -2909,6 +2910,10 @@ export type Database = {
         | { Args: { p_match_id: string }; Returns: number }
         | { Args: { p_match_id: string; p_up_to_seq: number }; Returns: number }
       mark_notifications_read: { Args: never; Returns: number }
+      mark_reading_ready_read: {
+        Args: { p_reading_id: string }
+        Returns: number
+      }
       mark_reading_webhook_processed: {
         Args: { p_event_id: string }
         Returns: undefined
@@ -3357,6 +3362,7 @@ export type Database = {
           p_warning_ref?: string
         }
         Returns: {
+          chosen_excerpt: string
           created_at: string
           is_open: boolean
           pages: number
@@ -3647,6 +3653,7 @@ export type Database = {
         Returns: string
       }
       report_daily_limit: { Args: never; Returns: number }
+      report_excerpt: { Args: { p_body: string }; Returns: string }
       report_is_open: {
         Args: { p_outcome: string; p_reviewed_at: string }
         Returns: boolean

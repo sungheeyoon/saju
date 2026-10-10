@@ -13,7 +13,8 @@ vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
 import type { LastRun } from './current';
 import { lastReadingRun } from './current';
-import { readingRunState } from './actions';
+import { markReadingReadyRead, readingRunState } from './actions';
+import { supabaseOnServer } from '../../auth/server-client';
 
 const run = (status: LastRun['status']): LastRun => ({
   status,
@@ -54,5 +55,48 @@ describe('기다리는 칸이 묻는 문', () => {
     await readingRunState({ kind: 'match', matchId: 'm-1' });
 
     expect(cacheCalls).toEqual(['refresh', 'revalidatePath /me/match/m-1']);
+  });
+});
+
+describe('결과 화면이 그 풀이의 완성 소식을 읽음으로 바꾸는 문', () => {
+  const answering = (answer: { data: number | null; error: { code: string; message: string } | null }) => {
+    const rpc = vi.fn(async () => answer);
+    vi.mocked(supabaseOnServer).mockResolvedValue({ rpc } as never);
+    return rpc;
+  };
+
+  it('그 풀이의 id 하나로 묻는다 — 어느 소식이 그 풀이 · 내 것인지는 DB 가 답한다', async () => {
+    const rpc = answering({ data: 1, error: null });
+
+    await markReadingReadyRead('reading-1');
+
+    expect(rpc).toHaveBeenCalledWith('mark_reading_ready_read', { p_reading_id: 'reading-1' });
+  });
+
+  it('바꾼 수를 싣는다 — 다시 열어 바꿀 것이 없으면 0 이다', async () => {
+    answering({ data: 1, error: null });
+    expect(await markReadingReadyRead('reading-1')).toEqual({ ok: true, marked: 1 });
+
+    answering({ data: 0, error: null });
+    expect(await markReadingReadyRead('reading-1')).toEqual({ ok: true, marked: 0 });
+  });
+
+  it('화면을 무르지 않는다 — 결과 화면에는 소식이 안 선다', async () => {
+    answering({ data: 1, error: null });
+
+    await markReadingReadyRead('reading-1');
+
+    expect(cacheCalls).toEqual([]);
+  });
+
+  it('못 바꾸면 원문을 싣지 않고 값으로 낸다', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    answering({ data: null, error: { code: '42501', message: 'permission denied for function mark_reading_ready_read' } });
+
+    const answer = await markReadingReadyRead('reading-1');
+
+    expect(answer.ok).toBe(false);
+    expect(answer.ok === false && answer.message).not.toContain('permission denied');
+    quiet.mockRestore();
   });
 });

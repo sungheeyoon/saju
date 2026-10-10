@@ -42,6 +42,9 @@ export const EVIDENCE_LABEL = {
   none: '대화 근거 없음',
 } as const;
 
+/** 신고한 사람이 고른 메시지 — 상세의 스냅샷 표시와 목록의 발췌가 같은 글자로 부른다 */
+export const CHOSEN_MESSAGE_LABEL = '신고한 메시지';
+
 /** 스냅샷의 보낸 쪽 — 방에는 둘뿐이라 이름 대신 신고 안의 자리로 부른다 */
 export const SIDE_LABEL = {
   reporter: '신고한 사용자',

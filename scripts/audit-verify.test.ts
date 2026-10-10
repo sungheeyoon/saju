@@ -18,7 +18,7 @@ function objectOf(ids: number[], afterId: number) {
   const rows = `${ids.map((id) => JSON.stringify({ id, action: 'reports.detail', outcome: 'allowed' })).join('\n')}\n`;
   const head = {
     kind: 'saju-operator-access',
-    version: 2,
+    version: 3,
     rows: ids.length,
     first_id: ids[0],
     last_id: ids.at(-1),
