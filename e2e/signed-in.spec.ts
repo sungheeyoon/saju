@@ -3856,11 +3856,13 @@ test.describe('누름 하나는 요청 하나다', () => {
     });
     await card.getByLabel(`${kin} 관리`, { exact: true }).click();
     await card.getByRole('button', { name: '메모 넣기' }).click();
-    await card.locator('textarea').fill('한 번만 그린다');
+    /* 메모 칸은 카드 밖, 그 줄 아래의 제 줄에 선다(G-87) — 그 줄의 이름이 사람 이름이다 */
+    const panel = page.getByRole('group', { name: kin, exact: true });
+    await panel.locator('textarea').fill('한 번만 그린다');
     sent.length = 0;
-    await card.getByRole('button', { name: '메모 저장' }).click();
+    await panel.getByRole('button', { name: '메모 저장' }).click();
     await expect(card.locator('p', { hasText: '한 번만 그린다' })).toBeVisible();
-    await expect(card.locator('textarea')).toHaveCount(0);
+    await expect(page.locator('main textarea')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     expect(sent).toEqual(['action']);
 
