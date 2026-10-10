@@ -184,7 +184,7 @@ describe('두 사람으로 궁합 화면을 여는 자리', () => {
     const result = await openPairScreen(person('민수'), person(''), null);
 
     expect(saveCall()).toBeUndefined();
-    expect(result.ok).toBe(false);
+    expect(result).toMatchObject({ ok: false, kind: 'failed', side: 'b' });
   });
 
   it('모르는 도시는 저장하러 가지 않는다', async () => {
@@ -195,7 +195,14 @@ describe('두 사람으로 궁합 화면을 여는 자리', () => {
     );
 
     expect(saveCall()).toBeUndefined();
-    expect(result.ok).toBe(false);
+    /* 어느 사람의 칸인지 함께 낸다 — 화면이 그 칸으로 데려간다 */
+    expect(result).toMatchObject({ ok: false, kind: 'failed', side: 'b' });
+  });
+
+  it('첫 번째 사람의 입력이 거절되면 그 쪽을 댄다', async () => {
+    const result = await openPairScreen(person(''), person('지영'), null);
+
+    expect(result).toMatchObject({ ok: false, kind: 'failed', side: 'a' });
   });
 
   /** 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람에게 풀이 화면을 연다 */

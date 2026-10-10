@@ -13,7 +13,7 @@ import { COLUMN } from '../../ui/surfaces';
 /**
  * 줄마다 글 상자의 높이(폰 · 넓은 화면)와 손잡이 폭 — 2026-10-10 에 실제 화면을 390 · 1280 에서 잰 값이다. 같은 높이의 줄로 두면
  * 넓은 화면에서 어떤 상대 판이 86 대 162px, 선택 동의 판이 240 대 336px 로 어긋났다(2026-10-09 화면 갤러리 감사). 어떤 상대는
- * 줄이 둘(성별 세 칸 · 그 아래 저장 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
+ * 줄이 둘(성별 세 칸 · 그 아래 설명 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
  */
 const GROUPS = [
   { link: true, description: false, rows: [] },
@@ -22,7 +22,8 @@ const GROUPS = [
     description: false,
     rows: [
       { text: 'h-5', handle: 'w-64' },
-      { text: 'h-5', handle: 'w-16' },
+      /* 성별은 고르면 곧 저장해 이 줄에 단추가 없다 — 설명 한 줄뿐이다 */
+      { text: 'h-5', handle: null },
     ],
   },
   { link: false, description: false, rows: [{ text: 'h-17 sm:h-12', handle: 'w-32' }] },
@@ -81,7 +82,9 @@ export default function SettingsLoading() {
                     </span>
                   ))}
                 </div>
-                <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
+                {row.handle !== null && (
+                  <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
+                )}
               </div>
             ))}
           </div>
