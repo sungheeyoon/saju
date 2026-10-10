@@ -82,7 +82,7 @@ export default async function MatchingPage() {
   const { state } = await readAccount(supabase, ['status', 'self_person_id']);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
+      <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );
@@ -203,7 +203,7 @@ function Quiet({
   action: string;
 }) {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-5 py-6 sm:gap-7 sm:py-10">
+    <main className="app-shell flex flex-1 flex-col gap-5 py-6 sm:gap-7 sm:py-12">
       <h1 className={TYPE_DISPLAY}>오늘의 인연</h1>
       {lead}
       <section className="grid items-center gap-6 overflow-hidden rounded-[2rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">

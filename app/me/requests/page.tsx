@@ -8,7 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
@@ -40,7 +40,7 @@ export default async function RequestsPage() {
   const { state } = await readAccount(supabase, ['status']);
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
       <h1 className={TYPE_TITLE}>소식</h1>
 
       {isBlocked(state) ? <AccountNotice state={state} /> : <InboxSections />}

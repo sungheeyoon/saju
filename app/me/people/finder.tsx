@@ -73,7 +73,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
       )}
 
       {/*
-        폰은 한 줄에 한 장, 넓어지면 둘 — 화면이 사람 기둥(`COLUMN_PEOPLE`)이라 셋째 칸은 안 든다. 관리 메뉴가 고치는 칸이나 메모 칸을
+        폰은 한 줄에 한 장, 넓어지면 둘 — 화면이 가운데 기둥(`COLUMN`)이라 셋째 칸은 안 든다. 관리 메뉴가 고치는 칸이나 메모 칸을
         열면 그 한 장이 제 줄을 혼자 쓴다(`data-panel`) — 폼이 타일 폭에 끼어 세로로 길어지지 않게.
       */}
       <ul className="grid gap-3 sm:grid-cols-2">

@@ -6,7 +6,7 @@ import { currentSchedule } from '../beta-schedule';
 import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
 import { Logo } from '../ui/logo';
-import { CARD, PAPER, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, COLUMN, PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
 import { SERVICE_NAME_OBJECT } from '@/src/lib/brand';
 import {
@@ -86,7 +86,7 @@ export default async function SignupPage({ searchParams }: {
 
   if (account === null) {
     return (
-      <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
+      <main className="app-shell flex w-full flex-1 flex-col gap-7 py-8 sm:py-12">
         <div className={`${CARD} text-sm leading-6`}>
           <AccountNotice state={state} />
         </div>
@@ -121,7 +121,7 @@ export default async function SignupPage({ searchParams }: {
   const again = account.signed_up_at !== null;
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       {/*
         **첫 화면이라 크림 판이 맞는다.** 로그인 뒤 처음 서는 자리이고, 서비스의 표지(점들이 모여
         관계를 이루는 로고)가 여기서 처음 얼굴을 보인다. 폼은 그 아래 흰 판 한 장이다.

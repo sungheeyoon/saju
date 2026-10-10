@@ -12,7 +12,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  */
 export default function MatchingLoading() {
   return (
-    <SkeletonMain name="matching" className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-10">
+    <SkeletonMain name="matching" className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-12">
       <div className="flex flex-row items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <Bone className="h-5 w-28 rounded-full" />

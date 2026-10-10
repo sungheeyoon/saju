@@ -1,4 +1,5 @@
 import { Bone, SkeletonMain } from '../../ui/skeleton';
+import { COLUMN } from '../../ui/surfaces';
 
 /**
  * 서비스 설문의 뼈대 — 크림 머리 판(`PAPER`: 제목 · 몇 줄의 안내 · 한 줄), 문항 판 둘(묻는 줄 · 안내 · 고르는 줄 넷)
@@ -10,7 +11,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  */
 export default function SurveyLoading() {
   return (
-    <SkeletonMain name="survey" className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+    <SkeletonMain name="survey" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       <div className="flex flex-col gap-2 rounded-[2rem] bg-cream p-6 sm:p-8">
         <Bone className="h-[2.275rem] w-56 max-w-full rounded-full sm:h-[2.6rem]" />
         <div className="flex flex-col gap-2 py-1">
