@@ -192,7 +192,7 @@ export function ReadingFeedback({
             onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
             maxLength={FEEDBACK_COMMENT.limit}
             rows={3}
-            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
+            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[16px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
           />
           <p className="text-right text-[12px] tabular-nums text-secondary">
             {comment.length} / {FEEDBACK_COMMENT.limit}자

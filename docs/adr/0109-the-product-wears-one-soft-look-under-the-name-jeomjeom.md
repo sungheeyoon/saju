@@ -101,3 +101,13 @@ sans-serif`)을 `--font-sans` · `--font-rounded` 의 대체 · `body` · `.glyp
 ## 추기 — 막힌 화면의 틀 (2026-10-09)
 
 막히거나 끝난 화면은 `app/ui/notice-screen.tsx` 한 틀이다 — 가운데 크림 카드 · 왼쪽 글. 까닭과 쓰는 자리는 그 파일 머리.
+
+## 추기 — 입력 칸의 글자는 16px 이상이다 (2026-10-10)
+
+운영자가 아이폰 Safari 에서 대화방 입력칸을 누르자 화면이 확대되고 좌우에 빈자리가 남는 것을 봤다. iOS Safari 는 글자가 16px 보다 작은
+입력 칸(input · textarea · select)에 초점이 가면 확대한다 — 대화방 칸이 15px 였다. **글을 받는 칸의 글자는 16px 이상이다**(대화방 ·
+가입 · 프로필 · 저장한 사람 찾기 · 메모 · 풀이 의견 · 설문 · 요청 · 신고 · 공유 주소 · 사람 고르는 칸 · 운영 신고 거르기, 13 · 14 · 15 → 16px).
+줄 높이(`leading-6`, 24px)와 칸 높이(44 · 48px)는 그대로 들어맞아 고치지 않았다. **viewport 를 `maximum-scale=1` · `user-scalable=no` 로
+잠그지 않는다** — 핀치 확대까지 막아 접근성을 해친다(`app/layout.tsx` 의 `viewport` 는 그대로). 고르는 칸(radio · checkbox)은 글자를 받지
+않아 이 규칙 밖이다. 잠금은 `app/ui/fields.test.ts` — Tailwind 로 꾸민 칸은 크기를 적어야 하고 16px 아래가 없으며, CSS 모듈(출생 정보 폼)의
+입력 칸 규칙도 본다.

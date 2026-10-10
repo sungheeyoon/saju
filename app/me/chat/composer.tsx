@@ -107,7 +107,7 @@ export function Composer({
             placeholder={CHAT_INPUT_PLACEHOLDER}
             maxLength={CHAT_POLICY.maxLength}
             rows={1}
-            className="field-sizing-content max-h-36 min-h-11 w-full resize-none bg-transparent py-2.5 text-[15px] leading-6 text-foreground outline-none placeholder:text-secondary"
+            className="field-sizing-content max-h-36 min-h-11 w-full resize-none bg-transparent py-2.5 text-[16px] leading-6 text-foreground outline-none placeholder:text-secondary"
           />
         </label>
         <button
