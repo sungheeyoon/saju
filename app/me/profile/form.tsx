@@ -169,7 +169,7 @@ export function ProfileForm({
           {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
           {saved && !changed && (
             <span role="status" className="text-[13px] text-secondary">
-              저장했습니다
+              저장했어요
             </span>
           )}
         </div>
