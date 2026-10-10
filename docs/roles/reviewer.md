@@ -42,3 +42,4 @@
 손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
 
 - 규모(몇 건 · 몇 %)를 보고에 적으려면 → [감사 노트의 세션 끝 상태](../notes/2026-09-28-overnight-audit.md#세션-끝-상태-2026-09-28-저녁-갱신--다음-세션은-여기서-시작) — 재는 법 · 뒤쪽 정정
+- 머지 전 PR 의 판정 함수(`scripts/` 의 `.mjs`)를 그 PR 의 코드로 돌려 보려면 → [일하는 법](../agents/delegation/working.md#일하는-법--세션마다-다시-배우던-것) — `git fetch origin pull/<N>/head:pr-<N>` 뒤 `git archive pr-<N> scripts/ | tar -x -C <스크래치>` 로 풀어 거기서 부른다. 그 사본은 git 저장소가 아니라 `scripts/code-rules.test.ts` 의 `git ls-files` 잠금은 늘 붉다 — 판정이 아니다

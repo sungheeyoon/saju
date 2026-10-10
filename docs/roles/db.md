@@ -47,3 +47,4 @@
 - 로컬 스택 · pgTAP 이 이상하면 → [로컬 환경의 함정](../agents/delegation/local-env.md) — 옛 볼륨 · 전역으로 세는 pgTAP · `db query` 의 한계
 - `security definer` 함수를 만들거나 고치면 → [공개 출시](../product/gaps.md#공개-출시) — `search_path` 를 재는 줄
 - 접속기록(`audit.operator_access`)의 칸을 바꾸면 → [반출](../ops/runbook/security.md#반출--매일-s3-한-번에-하나-결과는-db-에) — 묶음 `version` · 검증 허용 목록이 따라 바뀐다
+- PR 제목을 쓰면 → [커밋과 PR](../agents/code-rules/locks.md#커밋과-pr) — type 목록에 `db` 가 없다. 마이그레이션 PR 도 그 목록의 type 을 쓴다(목록은 `scripts/pr-title.mjs` 의 `TYPES`, 틀리면 `verify` 의 `plan` 이 붉다)

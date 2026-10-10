@@ -20,3 +20,6 @@
 | `docs/agents/test-map/live.md` | 「잠긴 시험 넷 — `*.live.test.ts`」 | 실호출 · 백필 시험과 켜는 값 · 운영 접속값을 읽는 파일 |
 | `docs/agents/test-map/ci.md` | 「CI」 | 출시 단계와 차선 여섯 · 주소로 고르는 판정 표 · `audit` · 빌드의 비밀 검사 · 공개 출시 뒤 세 단계 · 실패 artifact |
 | `docs/agents/test-map/reach.md` | 「커버리지 — 한 번 쟀다」 · 「계약 문구 — 글자가 곧 결정인 것」 · 「재지 않는 것」 · 「어디를 봐야 하나」 | 한 번 잰 커버리지와 문턱을 안 거는 까닭 · `copy-contracts` · 재지 않는 것 · 시험 도구 파일 |
+
+화면 그림(`scripts/ui-shots.mjs`)은 시험이 아니라 눈으로 보는 한 벌이다 — 쓰는 법은 `docs/notes/ui-walk-and-gallery.md` 「도구」,
+워크트리에서 전후 그림을 찍는 차례는 `docs/agents/delegation/local-env.md` 「워크트리에서 전후 그림 찍기」.
