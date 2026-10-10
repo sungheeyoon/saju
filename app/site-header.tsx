@@ -160,6 +160,7 @@ export function SiteHeader() {
 
   return (
     <>
+      {/* 폰의 대화방에서는 이 머리글이 안 선다 — 방이 화면 전체다(`globals.css` 의 `data-chat-room`, ADR 0109 추기) */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="app-shell flex h-16 items-center gap-2 md:gap-5">
           <Link

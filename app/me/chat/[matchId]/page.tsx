@@ -14,6 +14,7 @@ import { roomTonesForViewer } from '../tones';
 import { labelled } from './bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
+import styles from './room.module.css';
 
 export const metadata = {
   title: CHAT_TAB_LABEL,
@@ -56,7 +57,7 @@ export default async function ChatRoomPage({
   const [messages, tones] = await Promise.all([messagesForViewer(supabase, matchId), roomTonesForViewer(rooms)]);
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col py-3 md:py-6 lg:py-8">
+    <main className={`app-shell ${styles.page} flex w-full flex-1 flex-col md:py-6 lg:py-8`}>
       <ChatFrame
         opened
         list={<RoomList rooms={rooms} activeId={matchId} titleLevel="h2" tones={tones} />}

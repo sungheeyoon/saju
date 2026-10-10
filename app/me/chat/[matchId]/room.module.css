@@ -1,21 +1,34 @@
 /*
-  방의 높이 — 화면에서 머리글과 (폰이면) 하단 독을 뺀 만큼이다. 그래야 방의 머리와 입력칸이 제자리에 붙고
+  방의 높이 — 화면에서 (폰이 아니면) 머리글과 본문 여백을 뺀 만큼이다. 그래야 방의 머리와 입력칸이 제자리에 붙고
   대화 칸만 스크롤한다.
 
   Tailwind 의 임의 값(`h-[calc(...)]`)으로 못 적는다 — 그 안의 `-` 를 빼기로 읽어 `env(safe-area-inset-bottom)`
-  을 `env(safe - area - …)` 로 벌려 놓는다. 그래서 이 한 줄만 여기 둔다.
+  을 `env(safe - area - …)` 로 벌려 놓는다. 그래서 방의 틀은 여기 둔다.
 
-  폰(767px 까지): 머리글 4rem + 본문 위아래 여백 1.5rem + 기기 아래 틈. **방에서는 하단 독이 안 선다**(`dockStandsOn`,
-  화면 점검 2026-10-10 C5) — 전에는 독 자리 6rem 을 늘 비웠다.
+  **폰(767px 까지)에서는 방이 화면 전체다**(운영자 결정 2026-10-10 「머리줄도 걷기」, ADR 0109 추기). 앱 머리글이 안 서고
+  (`globals.css` 의 `data-chat-room`) 하단 독도 안 선다(화면 점검 2026-10-10 C5). 판의 테 · 둥근 모서리 · 바깥 여백이
+  없고, 방 머리가 화면 맨 위에 · 입력칸이 맨 아래에 붙는다. 화면이 기기의 가장자리까지 깔리므로(`viewport-fit=cover`,
+  `app/layout.tsx`) 판이 노치 · 홈 막대만큼 안쪽 여백을 둔다 — 위는 `safe-area-inset-top`, 아래는 `safe-area-inset-bottom`,
+  가로로 누인 폰의 양옆은 `.app-shell` 결대로 둘 중 큰 값을 양쪽에. 판의 색은 그 여백까지 깔린다.
+  높이는 `100dvh` 그대로다 — 자판이 올라올 때의 모양은 G-89 가 실기기에서 본다.
+
   그 위(md): 머리글 4rem + 여백 3rem. 넓은 화면(lg)은 두 칸 틀(`ChatFrame`)이 높이를 정하고 방은 그 칸을 채운다.
 */
 .room {
-  height: calc(100dvh - 5.5rem - env(safe-area-inset-bottom));
+  height: 100dvh;
   min-height: 24rem;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-inline: max(env(safe-area-inset-left), env(safe-area-inset-right));
+}
+
+/* 방 화면의 본문 틀 — 폰에서는 `.app-shell` 의 좌우 여백을 걷는다(두 클래스라 `globals.css` 의 폭 규칙보다 앞선다) */
+@media (max-width: 767.98px) {
+  :global(.app-shell).page { width: 100%; }
 }
 
 @media (min-width: 768px) {
-  .room { height: calc(100dvh - 7rem); }
+  .room { height: calc(100dvh - 7rem); padding: 0; }
 }
 
 @media (min-width: 1024px) {
