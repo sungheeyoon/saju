@@ -192,7 +192,7 @@ _Avoid_: 최종 궁합 점수, 저장된 Match 점수
 근거가 바뀌면 해석도 실질적으로 다시 써야 하는가.
 _Avoid_: 비뻔함(무엇을 재는지 말하지 않고 실패만 가리킨다), 독창성, 개인화 정도
 
-**체감 적합성** — `reading_feedback` 표 · `FEEDBACK_QUESTIONS` · `leave_reading_feedback` :
+**체감 적합성** — `reading_feedback` 표 · `feedbackQuestions` · `leave_reading_feedback` :
 사용자가 자기 해석을 읽고 실제와 맞는다고 느끼는 정도. **운영 지표이지 품질 게이트가
 아니다** — 내부 평가자는 근거만 보므로 대신 매길 수 없고, 사용자에게 보여준 뒤에만
 얻어진다. 반드시 **근거 밀착성과 함께** 본다 — 바넘 문장은 근거 없이도 「내 얘기 같다」를

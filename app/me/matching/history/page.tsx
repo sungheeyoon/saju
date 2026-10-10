@@ -94,7 +94,7 @@ export default async function MatchHistoryPage() {
           <h2 className={TYPE_DISPLAY}>아직 인연 기록이 없어요</h2>
           <Link href="/me/matching" className={BUTTON_PRIMARY}>
             <Icon name="people" className="size-[18px]" />
-            오늘의 인연 만나기
+            오늘의 인연 보기
           </Link>
         </section>
       )}
