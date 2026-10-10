@@ -1,7 +1,7 @@
 /**
  * 풀이 하나에 대해 **묻는 것**과 그 말들.
  *
- * `notes.ts` 와 같은 자리에 선다 — 정책이 문장을 들고 화면은 세우기만 한다. 세 kind 가
+ * `notes.ts` 와 같은 자리에 선다 — 정책이 문장을 들고 화면은 세우기만 한다. 네 kind 가
  * 같은 설문을 쓰므로 화면마다 적으면 한 곳만 고쳐지고, 그때 같은 열에 다른 질문의 답이
  * 쌓인다.
  *
@@ -17,23 +17,47 @@
  * **체감 적합성** — 읽고서 실제와 맞는다고 느낀 정도다(`prd-archive`).
  */
 
+import type { ReadingKind } from './policy';
+
 /** 눈금 하나의 폭 — 양 끝의 말이 함께 서야 무엇을 매기는지가 정해진다 */
 export const FEEDBACK_SCALE = [1, 2, 3, 4, 5] as const;
 export type FeedbackScore = (typeof FEEDBACK_SCALE)[number];
 
-export const FEEDBACK_QUESTIONS = {
-  usefulness: {
-    label: '이 풀이가 나를 이해하는 데 도움이 됐나요?',
-    low: '도움이 안 됐어요',
-    high: '많이 됐어요',
-  },
-  /** 「정확한가」가 아니라 「비슷한가」다 — 위 주석이 그 까닭을 든다 */
-  perceivedFit: {
-    label: '실제 경험과 얼마나 비슷했나요?',
-    low: '많이 달라요',
-    high: '많이 비슷해요',
-  },
-} as const;
+/**
+ * 첫 질문이 이해를 돕는 **대상** — kind 가 고른다(2026-10-10 화면 점검 B9, 운영자 승인).
+ *
+ * 한 문장으로 네 kind 에 물을 때는 어머니 풀이 아래에서도 「나를」 이해하는 데 도움이 됐는지를 물었다. 대상만
+ * 갈아 끼우고 열(`usefulness`) · 눈금 · 보낼 수 있는 조건은 그대로다.
+ *
+ * **그래서 같은 열에 쌓이는 답의 뜻이 kind 마다 갈린다** — `self` 는 나를, `person` 은 그 사람을, `private` ·
+ * `match` 는 두 사람을 이해하는 데 도움이 됐는지다. 견줄 때는 kind 로 나눠 읽는다(`/ops/survey` 가 kind 로 줄을 가른다).
+ */
+const USEFULNESS_SUBJECT: Record<ReadingKind, string> = {
+  self: '나를',
+  person: '이 사람을',
+  private: '두 사람을',
+  match: '두 사람을',
+};
+
+export const usefulnessLabel = (kind: ReadingKind): string =>
+  `이 풀이가 ${USEFULNESS_SUBJECT[kind]} 이해하는 데 도움이 됐나요?`;
+
+export type FeedbackQuestion = { readonly label: string; readonly low: string; readonly high: string };
+
+/** 「정확한가」가 아니라 「비슷한가」다 — 위 주석이 그 까닭을 든다. kind 와 상관없이 한 문장이다 */
+const PERCEIVED_FIT: FeedbackQuestion = {
+  label: '실제 경험과 얼마나 비슷했나요?',
+  low: '많이 달라요',
+  high: '많이 비슷해요',
+};
+
+/** 눈금 둘 — 첫 질문의 대상만 kind 가 고른다 */
+export const feedbackQuestions = (
+  kind: ReadingKind,
+): { readonly usefulness: FeedbackQuestion; readonly perceivedFit: FeedbackQuestion } => ({
+  usefulness: { label: usefulnessLabel(kind), low: '도움이 안 됐어요', high: '많이 됐어요' },
+  perceivedFit: PERCEIVED_FIT,
+});
 
 /** 분량 — 짧다도 길다도 고칠 거리다 */
 export const FELT_LENGTHS = ['short', 'right', 'long'] as const;

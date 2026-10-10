@@ -25,7 +25,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
       {hasSelf ? (
         <Link href="/me/matching" className={BUTTON_PRIMARY}>
           <Icon name="people" className="size-[18px]" />
-          오늘의 인연 만나기
+          오늘의 인연 보기
         </Link>
       ) : (
         <Link href="/me" className={BUTTON_PRIMARY}>

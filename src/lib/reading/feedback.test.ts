@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FEEDBACK_COMMENT,
-  FEEDBACK_QUESTIONS,
   FEEDBACK_SCALE,
   FELT_LENGTHS,
   FELT_LENGTH_LABEL,
   ISSUE_TAGS,
   ISSUE_TAG_LABEL,
+  feedbackQuestions,
 } from './feedback';
+import { READING_KINDS } from './policy';
+
+/** 네 kind 의 눈금 전부 — 첫 질문의 대상만 kind 가 고른다 */
+const everyQuestion = READING_KINDS.flatMap((kind) => Object.entries(feedbackQuestions(kind)));
 
 /**
  * 설문이 묻는 말은 **값이다.** 무엇을 물었는지가 답이 무엇을 뜻하는지를 정하므로,
@@ -23,14 +27,16 @@ describe('설문이 묻는 말', () => {
    * 낱말은 **체감 적합성**이다.
    */
   it('잰 적 없는 것을 쟀다고 말하지 않는다', () => {
-    const asked = Object.values(FEEDBACK_QUESTIONS)
-      .flatMap((one) => [one.label, one.low, one.high])
+    const asked = everyQuestion
+      .flatMap(([, one]) => [one.label, one.low, one.high])
       .join(' ');
 
     for (const overclaim of ['정확도', '맞았는지', '정답']) {
       expect(asked, overclaim).not.toContain(overclaim);
     }
-    expect(FEEDBACK_QUESTIONS.perceivedFit.label).toContain('비슷');
+    for (const kind of READING_KINDS) {
+      expect(feedbackQuestions(kind).perceivedFit.label, kind).toContain('비슷');
+    }
   });
 
   /**
@@ -40,7 +46,7 @@ describe('설문이 묻는 말', () => {
   it('눈금의 양 끝을 말로 세운다', () => {
     expect(FEEDBACK_SCALE).toEqual([1, 2, 3, 4, 5]);
 
-    for (const [name, question] of Object.entries(FEEDBACK_QUESTIONS)) {
+    for (const [name, question] of everyQuestion) {
       expect(question.low, name).not.toBe('');
       expect(question.high, name).not.toBe('');
       expect(question.low, name).not.toBe(question.high);
@@ -52,6 +58,28 @@ describe('설문이 묻는 말', () => {
  * **총평이 아니라 항목으로 받는다**(`matching-beta.md`). 별 몇 개는 오행 보완 공식의
  * 문제인지, 관계 신호의 해석 문제인지, 문장 표현의 문제인지 안 알려 준다.
  */
+/**
+ * **첫 질문은 풀이가 다루는 사람을 묻는다**(2026-10-10 화면 점검 B9). 어머니 풀이 아래에서 「나를」 이해하는 데
+ * 도움이 됐는지를 물으면 답이 무엇을 매겼는지 흐려진다. 둘째 문항과 눈금 양 끝은 kind 와 상관없이 같다.
+ */
+describe('첫 질문의 대상', () => {
+  it('내 사주는 나를, 저장한 사람은 이 사람을, 궁합 둘은 두 사람을 묻는다', () => {
+    expect(feedbackQuestions('self').usefulness.label).toBe('이 풀이가 나를 이해하는 데 도움이 됐나요?');
+    expect(feedbackQuestions('person').usefulness.label).toBe('이 풀이가 이 사람을 이해하는 데 도움이 됐나요?');
+    expect(feedbackQuestions('private').usefulness.label).toBe('이 풀이가 두 사람을 이해하는 데 도움이 됐나요?');
+    expect(feedbackQuestions('match').usefulness.label).toBe('이 풀이가 두 사람을 이해하는 데 도움이 됐나요?');
+  });
+
+  it('대상 말고는 kind 마다 같다', () => {
+    const self = feedbackQuestions('self');
+    for (const kind of READING_KINDS) {
+      const one = feedbackQuestions(kind);
+      expect(one.perceivedFit, kind).toEqual(self.perceivedFit);
+      expect([one.usefulness.low, one.usefulness.high], kind).toEqual([self.usefulness.low, self.usefulness.high]);
+    }
+  });
+});
+
 describe('아쉬운 점의 이름들', () => {
   /**
    * DB 의 `tags_are_known` 과 **같은 집합이어야 한다.** 한 낱말을 두 언어에 적었으므로
