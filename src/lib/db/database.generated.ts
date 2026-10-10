@@ -2906,9 +2906,10 @@ export type Database = {
       }
       lock_my_photos: { Args: never; Returns: string }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
-      mark_chat_read:
-        | { Args: { p_match_id: string }; Returns: number }
-        | { Args: { p_match_id: string; p_up_to_seq: number }; Returns: number }
+      mark_chat_read: {
+        Args: { p_match_id: string; p_up_to_seq: number }
+        Returns: number
+      }
       mark_notifications_read: { Args: never; Returns: number }
       mark_reading_ready_read: {
         Args: { p_reading_id: string }
