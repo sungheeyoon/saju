@@ -185,6 +185,9 @@
  *   `data-*` …) · 조건식 · `&&` `||` 의 왼쪽 · 이벤트 핸들러 · 식별자 · 구조(요소 · JSX 주석 `{/* *\/}` 을 새로 세움) · 템플릿의 식 ·
  *   함수 인자 · 데이터(배열 · 객체) 속 문자열 · 목록 밖 문자열 · 표의 키. 문구와 이것이 한 파일에 섞이면 그 파일은 지금 규칙 그대로다
  * - **판별이 불확실하면 지금 규칙** — 파서 없음 · base 를 못 읽음 · 파싱 실패 · 앱 밖 · 시험 파일
+ * - **시험이 글자로 찾으면 문구만이 아니다**(운영자 2026-10-10) — 바뀐 자리의 옛 글자나 새 글자를 `e2e/**` · `scripts/check-*.mjs` 가
+ *   글자 그대로 찾으면(통째 · 따옴표 조각 · 그 글자를 실제로 찾는 글자 있는 정규식, `testsNamingLiterally`) 그 파일은 지금 규칙이고 배포는
+ *   기다린다. 문구 상수는 시험이 이름으로 읽는다 — 그러면 글자를 바꿔도 시험을 고칠 일이 없고 여기 안 걸린다
  * - **바뀐 글자를 찾는 시험의 차선을 더한다** — 바뀐 자리의 옛 글자나 새 글자가 `e2e/**` 나 `scripts/check-*.mjs` 에 나타나면
  *   (통째로, 또는 시험의 리터럴 글자 넉 자 이상이 그 조각이면) 그 spec 의 차선 · `flow` 를 켠다. 바뀐 문구 파일을 들이는 시험도
  *   켠다(`testsImportingCopy`) — 상수를 이름으로 읽는 시험은 글자 검색에 안 걸린다. 정규식은 파서로 모아 글자가 있으면
@@ -994,15 +997,25 @@ export function copyOnlyChanged(ts, file, before, after) {
   return [...new Set(texts.map((text) => squeezed(decoded(text))).filter((text) => text !== ''))];
 }
 
-/** 바뀐 파일 중 문구만 바뀐 것과 그 앞뒤 글자 — 파서가 없으면 없다 */
-const copyOnlyOf = (changed, { sourceOf, baseSourceOf, ts }) => {
-  const found = new Map();
-  if (ts === null) return found;
+/**
+ * 바뀐 파일 중 문구만 바뀐 것과 그 앞뒤 글자 — 파서가 없으면 없다. **바뀐 글자를 시험이 글자 그대로 찾으면 문구만이 아니다**
+ * (`testsNamingLiterally`, 운영자 2026-10-10) — 그 파일은 `named` 에 그 시험과 함께 들고, 판정은 지금 규칙(PR) · 동작(배포)이다.
+ * `mentions` 는 찾을 시험들을 돌려주는 함수다 — 문구 후보가 있을 때만 부른다
+ *
+ * @returns {{ copy: Map<string, string[]>, named: Map<string, string[]> }}
+ */
+const copyOnlyOf = (changed, { sourceOf, baseSourceOf, ts, mentions }) => {
+  const copy = new Map();
+  const named = new Map();
+  if (ts === null) return { copy, named };
   for (const file of changed) {
     const gone = copyJudged(file) ? copyOnlyChanged(ts, file, baseSourceOf(file), sourceOf(file)) : null;
-    if (gone !== null) found.set(file, gone);
+    if (gone === null) continue;
+    const naming = testsNamingLiterally(gone, mentions(), ts);
+    if (naming.length > 0) named.set(file, naming);
+    else copy.set(file, gone);
   }
-  return found;
+  return { copy, named };
 };
 
 /** 정규식에서 글자 그대로가 아닌 기호 — 이스케이프(`\.`)로만 글자가 된다 */
@@ -1211,6 +1224,50 @@ export function regexTurnsOn(use, texts) {
 }
 
 /**
+ * 바뀐 글자를 **글자 그대로** 찾는 시험 — 그 시험이 있으면 그 파일은 문구만이 아니다(운영자 2026-10-10, 「글자로 찾는 건 문구만
+ * 아님」). 문구만으로 세면 e2e 없이 배포까지 가는데, 그 시험은 글자가 바뀌면 붉다(`aria-label="메시지"` ↔ `getByRole('log', { name:
+ * '메시지' })`, 2026-10-10 독립 검토). 「글자 그대로」는 셋이다 — 소스(주석 포함, 공백을 접은 것)에 앞뒤 글자 하나가 통째로 있다 ·
+ * 따옴표 리터럴(공백을 걷어 `MENTION_PIECE` 자 이상)이 그 글자의 조각이다 · 본문을 아는 정규식이 문자열 정리 자리 밖에서 그 글자를
+ * **실제로 찾는다**(`new RegExp(본문, 깃발).test(글자)` — 조각을 견주면 `/^인연/` 같은 두 자가 거의 모든 문구를 붙잡았다). 글자 없는
+ * 정규식(`/.+/` · `/^\S+$/`)은 아무 글자나 찾으므로 여기 안 들고 차선만 켠다. 정규식을
+ * 못 지으면 · 시험 파일을 파싱하지 못하면 판별 불가라 찾는 것으로 센다. 본문을 모르는 `RegExp(변수)` · 동적으로 지은 글자는 여기 안
+ * 든다 — 그것은 차선을 켜는 근거(`testsMentioning`)로만 쓰인다. **문구 상수를 이름으로 읽는 시험은 여기 안 걸린다** — 글자를 바꿔도 시험을
+ * 고칠 일이 없어서다(G-90)
+ *
+ * @param {readonly string[]} texts 바뀐 자리의 앞뒤 글자(`copyOnlyChanged`)
+ * @param {readonly (readonly [string, string])[]} tests `[시험 파일, 소스]`
+ * @param {typeof import('typescript')} ts
+ * @returns {string[]}
+ */
+export function testsNamingLiterally(texts, tests, ts) {
+  return tests
+    .filter(([file, source]) => {
+      const flat = squeezed(source);
+      if (texts.some((text) => flat.includes(text))) return true;
+      const quoted = quotedIn(source).some((literal) => {
+        const piece = squeezed(literal);
+        return piece.replace(/ /g, '').length >= MENTION_PIECE && texts.some((text) => text.includes(piece));
+      });
+      if (quoted) return true;
+      const uses = regexUsesIn(ts, file, source);
+      if (uses === null) return true;
+      return uses.some((use) => {
+        if (use.body === null || use.place === 'cleanup') return false;
+        // 글자 없는 정규식(`/.*/` · `/\d+/` …)은 글자 그대로가 아니다 — 아무 글자나 찾아 붙잡는다. 차선만 켠다(`regexTurnsOn`)
+        if (!/\p{L}/u.test(use.body.replace(/\\[a-zA-Z]/g, ''))) return false;
+        let pattern;
+        try {
+          pattern = new RegExp(use.body, use.flags.replace(/[gy]/g, ''));
+        } catch {
+          return true;
+        }
+        return texts.some((text) => pattern.test(text));
+      });
+    })
+    .map(([test]) => test);
+}
+
+/**
  * 바뀐 글자를 말하는 시험 — 소스에 그 글자가 통째로 있거나, 따옴표 리터럴 속 글자(공백을 걷어 `MENTION_PIECE` 자 이상)가 그 글자의
  * 조각이거나, 정규식 하나라도 차선을 켜거나(`regexTurnsOn`), 파싱이 실패했다. 옛 글자도 새 글자도 찾는다 — 새 글자가 「없어야」
  * 하는 글자(`toHaveCount(0)`)와 겹칠 수 있다. 파서가 없으면 정규식을 못 가르므로 전부를 든다.
@@ -1356,8 +1413,9 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   const rest = changed.filter((file) => !commentOnly.includes(file));
   if (LAUNCHED[stage]) return notingComments(decideLaunched(rest), commentOnly);
   // 문구만 바뀐 파일은 좁힐 수 있을 때만 core + 바뀐 글자를 찾는 시험의 차선으로 센다(위 「문구만 바뀐 파일」)
-  const copyOnly = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts });
-  const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: mentions ?? mentionSources() });
+  const tests = () => mentions ?? mentionSources();
+  const { copy: copyOnly } = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts, mentions: tests });
+  const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
   const judged = rest.filter((file) => !narrowed.has(file));
   return notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
 }
@@ -1470,7 +1528,10 @@ function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
  * 없음 · 읽기 실패) 그 커밋을 동작으로 센다. **머지 커밋(부모 둘 이상)도 동작으로 센다** — 첫 부모와의 차이는 다른 가지의 커밋들을
  * 하나로 뭉쳐, 그 가지 안의 동작 → 되돌림을 못 본다(2026-10-09 독립 검토). 빈 목록(바꾼 파일이 없는 커밋)은 문서로 센다
  *
- * @typedef {{ sha: string, merge?: boolean, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null }} RangeCommit
+ * 문구 후보의 글자를 시험이 글자 그대로 찾으면(`testsNamingLiterally`) 그 파일은 동작으로 센다 — 시험은 그 커밋의 것
+ * (`mentions`, 없으면 저장소의 지금 `e2e/**` 와 흐름 검사)이다
+ *
+ * @typedef {{ sha: string, merge?: boolean, files: readonly string[] | null, sourceOf: (file: string) => string | null, baseSourceOf: (file: string) => string | null, mentions?: () => readonly (readonly [string, string])[] }} RangeCommit
  * @param {RangeCommit} commit
  * @param {typeof import('typescript')} ts
  * @returns {{ copy: string[], behavior: string[] }}
@@ -1481,8 +1542,11 @@ function commitChangeOf(commit, ts) {
   const changed = commit.files.map((one) => one.trim()).filter((one) => one !== '');
   const commentOnly = commentOnlyOf(changed, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });
   const rest = changed.filter((file) => !isPolicy(file) && !commentOnly.includes(file));
-  const copyOnly = copyOnlyOf(rest, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts });
-  return { copy: [...copyOnly.keys()], behavior: rest.filter((file) => !copyOnly.has(file)) };
+  const { copy, named } = copyOnlyOf(rest, { sourceOf: commit.sourceOf, baseSourceOf: commit.baseSourceOf, ts, mentions: commit.mentions ?? mentionSources });
+  const behavior = rest
+    .filter((file) => !copy.has(file))
+    .map((file) => (named.has(file) ? `${file}(시험이 글자 그대로 찾는다: ${named.get(file).join(' · ')})` : file));
+  return { copy: [...copy.keys()], behavior };
 }
 
 /**

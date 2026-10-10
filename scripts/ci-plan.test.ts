@@ -47,6 +47,7 @@ import {
   specsOfLane,
   summaryOf,
   testsImportingCopy,
+  testsNamingLiterally,
 } from './ci-plan.mjs';
 import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
 
@@ -1033,6 +1034,9 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     });
   const copyOf = (before: string, after: string, file = 'app/me/matching/request-card.tsx') => copyOnlyChanged(ts, file, before, after);
 
+  /** 글자 없이 화면을 찾는 정규식 — 바뀐 글자를 글자 그대로 찾지 않지만(`testsNamingLiterally`) 차선은 켠다(`regexTurnsOn`) */
+  const SCREEN_REGEX = 'page.getByRole(\'heading\', { name: /^\\S+$/ });';
+
   /** 입구가 아닌 화면 — 문구가 아닌 것이 바뀌어도 지금 규칙으로 core 이므로, 갈림은 `copyOnlyChanged` 로 잰다 */
   const CARD = [
     "'use client';",
@@ -1234,6 +1238,74 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     });
   });
 
+  it('바뀐 글자를 시험이 글자 그대로 찾으면 문구만이 아니다 — 통째 · 따옴표 조각 · 글자 있는 정규식 · 주석, 이름으로 읽으면 아니다 (운영자 2026-10-10)', () => {
+    const texts = ['메시지', '대화'];
+    const of = (source: string) => testsNamingLiterally(texts, [['e2e/chat.spec.ts', source]], ts);
+    expect(of("await expect(page.getByRole('log', { name: '메시지' })).toBeVisible();")).toEqual(['e2e/chat.spec.ts']);
+    expect(of('// 메시지 칸을 본다\nconst x = 1;')).toEqual(['e2e/chat.spec.ts']);
+    expect(of("page.getByRole('log', { name: /대화/ });")).toEqual(['e2e/chat.spec.ts']);
+    expect(of("page.getByRole('log', { name: new RegExp('메시지') });")).toEqual(['e2e/chat.spec.ts']);
+    // 긴 글자의 조각(넉 자 이상)을 따옴표로 찾아도 글자 그대로다
+    expect(testsNamingLiterally(['요청을 보내면 상대의 인연 탭에 하나가 뜹니다.'], [['scripts/check-x.mjs', "body.includes('하나가 뜹니다')"]], ts)).toEqual(['scripts/check-x.mjs']);
+    // 정규식은 글자가 있고 그 글자를 실제로 찾을 때만 — 조각만 겹치고 못 찾으면 · 정리 자리면 · 글자 없는 정규식은 아니다
+    expect(of("page.getByRole('heading', { name: /^\\S+$/ });")).toEqual([]);
+    expect(of("await expect(x).not.toHaveAttribute('open', /.+/);")).toEqual([]);
+    const long = ['요청이 수락돼 인연 궁합이 열리면 메시지를 주고받을 수 있어요.'];
+    const reg = (source: string) => testsNamingLiterally(long, [['e2e/m.spec.ts', source]], ts);
+    expect(reg("page.getByText(/인연 궁합/);")).toEqual(['e2e/m.spec.ts']);
+    expect(reg("page.getByText(/^인연/);")).toEqual([]);
+    expect(reg("const s = name.replace(/인연/g, '');")).toEqual([]);
+    expect(reg('page.getByText(new RegExp(name));')).toEqual([]);
+    // 상수를 이름으로 읽거나, 짧은 조각 · 상관없는 글자면 아니다
+    expect(of("import { LOG_LABEL } from '@/src/lib/chat/copy';\npage.getByRole('log', { name: LOG_LABEL });")).toEqual([]);
+    expect(of("page.getByRole('heading', { name: /^\\d+$/ });")).toEqual([]);
+    expect(of("page.getByText('메');")).toEqual([]);
+    expect(of("page.getByText('보낸 말');")).toEqual([]);
+    // 파싱하지 못하는 시험은 판별 불가라 찾는 것으로 센다
+    expect(of('const broken = (;')).toEqual(['e2e/chat.spec.ts']);
+  });
+
+  it('독립 검토의 반례 — 대화방의 `aria-label="메시지"` 를 바꾸면 chat · live spec 이 글자 그대로 찾아 문구만이 아니다 (2026-10-10)', () => {
+    const file = 'app/me/chat/[matchId]/room.tsx';
+    const before = readFileSync(resolve(ROOT, file), 'utf8');
+    expect(before).toContain('aria-label="메시지"');
+    const after = before.replace('aria-label="메시지"', 'aria-label="대화 내용"');
+    // 글자만 놓고 보면 문구 자리다(HTML 요소의 aria-label)
+    expect(copyOnlyChanged(ts, file, before, after)).toEqual(['메시지', '대화 내용']);
+    // 저장소의 시험이 그 글자를 찾는다 — PR 계획은 지금 규칙, 배포는 기다린다
+    const disk = (one: string) => (existsSync(resolve(ROOT, one)) && statSync(resolve(ROOT, one)).isFile() ? readFileSync(resolve(ROOT, one), 'utf8') : null);
+    const plan = planFor({ files: [file], stage: '운영 베타', ts, sourceOf: (one) => (one === file ? after : disk(one)), baseSourceOf: (one) => (one === file ? before : null) });
+    expect(plan.reason).not.toContain('문구만 바뀐 파일');
+    const existing = planFor({ files: [file], stage: '운영 베타' });
+    expect(plan.lanes).toEqual(existing.lanes);
+    const commit = { sha: 'd'.repeat(40), files: [file], sourceOf: (one: string) => (one === file ? after : null), baseSourceOf: (one: string) => (one === file ? before : null) };
+    const range = deployRangeOf({ lastGreen: 'a'.repeat(40), head: 'b'.repeat(40), commits: [commit], ts, unpassed: [], mainRed: null });
+    expect(range.verdict).toBe('wait');
+    expect(range.behavior).toHaveLength(1);
+    expect(range.behavior[0]).toContain('시험이 글자 그대로 찾는다');
+    expect(range.behavior[0]).toContain('e2e/chat.spec.ts');
+    // 그 커밋의 시험이 글자를 찾지 않으면(`mentions`) 문구다
+    expect(deployRangeOf({ lastGreen: 'a'.repeat(40), head: 'b'.repeat(40), commits: [{ ...commit, mentions: () => [] }], ts, unpassed: [], mainRed: null }).verdict).toBe('copy');
+  });
+
+  it('이번에 옮긴 문구 상수는 e2e · 흐름 검사가 이름으로 읽는다 — 그 글자를 따옴표로 적은 시험이 없다 (G-90)', () => {
+    const tests = [...readdirSync(resolve(ROOT, 'e2e')).map((one) => `e2e/${one}`), ...readdirSync(resolve(ROOT, 'scripts')).map((one) => `scripts/${one}`).filter((one) => /^scripts\/check-[^/]+\.mjs$/.test(one))]
+      .filter((one) => /\.(?:ts|mjs)$/.test(one))
+      .map((one) => [one, readFileSync(resolve(ROOT, one), 'utf8')] as [string, string]);
+    /** 따옴표 · 백틱 리터럴의 글자(공백을 접은 것) — 상수를 이름으로 읽으면 여기 그 글자가 없다 */
+    const quoted = (source: string) => [...source.matchAll(/(['"`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((one) => one[2].replace(/\s+/g, ' ').trim());
+    // 정규식 · 짧은 따옴표 조각이 그 글자를 찾는 것은 남는다 — 그때 그 글자를 바꾼 PR 은 기다린다(`testsNamingLiterally`, 안전 쪽)
+    for (const file of ['src/lib/chat/copy.ts', 'src/lib/discovery/copy.ts']) {
+      const tree = ts.createSourceFile(file, readFileSync(resolve(ROOT, file), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+      for (const [name, { values }] of copyConstantsOf(ts, tree)!) {
+        for (const value of values) {
+          const text = (value as import('typescript').StringLiteral).text;
+          expect(tests.filter(([, source]) => quoted(source).includes(text)).map(([one]) => one), `${file} 의 ${name} 「${text}」`).toEqual([]);
+        }
+      }
+    }
+  });
+
   it('값이 곧 동작인 요소의 글자(option · textarea · style · script · Script)는 몇 겹 아래든 문구가 아니다', () => {
     expect(copyOf(CARD, edit('<option>요청자</option>', '<option>보낸 사람</option>'))).toBeNull();
     const style = 'export const S = () => <style>body {"{"} color: red {"}"}</style>;\n';
@@ -1345,9 +1417,9 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
           .filter(([one, text]) => one !== file && (new RegExp(`\\b${name}\\b`).test(text) || importing.test(text)))
           .map(([one]) => one);
         expect(callers.length, name).toBeGreaterThan(0);
-        // 시험은 그 상수를 읽어 화면을 찾는다 — e2e 가 이름으로 읽으면 글자가 바뀌어도 시험을 고칠 일이 없다(G-90)
+        // 시험(e2e · 흐름 검사)은 그 상수를 읽어 화면을 찾는다 — 이름으로 읽으면 글자가 바뀌어도 시험을 고칠 일이 없다(G-90)
         expect(
-          callers.filter((one) => !/^app\/.+\.tsx$/.test(one) && !/\.test\.tsx?$/.test(one) && !/^e2e\//.test(one)),
+          callers.filter((one) => !/^app\/.+\.tsx$/.test(one) && !/\.test\.tsx?$/.test(one) && !/^e2e\//.test(one) && !/^scripts\/check-[^/]+\.mjs$/.test(one)),
           name,
         ).toEqual([]);
         // 화면 안에서도 글자 자리(JSX 자식 `{NAME}` · 글자 속성의 값)에만 선다 — `href={NAME}` · 함수 인자 · 비교 · 키 · 다시 내보내기는 안 된다
@@ -1464,17 +1536,21 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(existing.tier).toBe('narrow');
     // 말하는 시험 없음 → core
     expect(planOf(file, before, after).lanes).toEqual(CORE_ONLY);
-    // 지금 규칙 안의 차선(match) → core + match
-    const inside = planOf(file, before, after, [], '운영 베타', [['e2e/match.spec.ts', "page.getByText('저장한 사람');"]]);
+    // 글자 그대로 찾는 시험이 있으면 문구만이 아니다 → 지금 규칙(운영자 2026-10-10)
+    const literal = planOf(file, before, after, [], '운영 베타', [['e2e/match.spec.ts', "page.getByText('저장한 사람');"]]);
+    expect(literal.lanes).toEqual(existing.lanes);
+    expect(literal.authedLanes).toEqual(existing.authedLanes);
+    // 글자 없이 화면을 찾는 정규식은 차선만 켠다 — 지금 규칙 안의 차선(match) → core + match
+    const inside = planOf(file, before, after, [], '운영 베타', [['e2e/match.spec.ts', SCREEN_REGEX]]);
     expect(inside.tier).toBe('narrow');
     expect(inside.lanes).toEqual({ ...CORE_ONLY, authed: true });
     expect(inside.authedLanes).toEqual(['match:desktop', 'match:mobile']);
     // 지금 규칙에 없는 차선(chat)을 켜면 지금 규칙 그대로 — 넓히지 않는다
-    const wider = planOf(file, before, after, [], '운영 베타', [['e2e/chat.spec.ts', "page.getByText('저장한 사람');"]]);
+    const wider = planOf(file, before, after, [], '운영 베타', [['e2e/chat.spec.ts', SCREEN_REGEX]]);
     expect(wider.lanes).toEqual(existing.lanes);
     expect(wider.authedLanes).toEqual(existing.authedLanes);
     // 검색이 전부(spec 아닌 도우미)를 부르면 지금 규칙 그대로
-    const helper = planOf(file, before, after, [], '운영 베타', [['e2e/session.ts', "const x = '저장한 사람';"]]);
+    const helper = planOf(file, before, after, [], '운영 베타', [['e2e/session.ts', SCREEN_REGEX]]);
     expect(helper.lanes).toEqual(existing.lanes);
     // 문구와 동작이 섞이면 문구가 아니라 지금 규칙
     const mixed = planOf(file, before, after.replace('className={TYPE_TITLE}', 'className={TYPE_DISPLAY}'));
@@ -1655,7 +1731,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     const before = readFileSync(resolve(ROOT, file), 'utf8');
     const after = before.replace('>저장한 사람<', '>저장한 이<');
     const existing = planFor({ files: [file], stage: '운영 베타' });
-    const withMention = (spec: string) => planOf(file, before, after, [], '운영 베타', [[spec, "page.getByText('저장한 사람');"]]);
+    const withMention = (spec: string) => planOf(file, before, after, [], '운영 베타', [[spec, SCREEN_REGEX]]);
     // 부분집합(core + match ⊂ 지금 규칙) → 채택
     expect(withMention('e2e/match.spec.ts').authedLanes).toEqual(['match:desktop', 'match:mobile']);
     // 같다(signed-in 이 지금 규칙의 차선 · 그 밖은 core 하나 더) → 부분집합이라 채택, 넓어지지 않는다

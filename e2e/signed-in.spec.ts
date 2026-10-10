@@ -17,6 +17,7 @@ import { TASTE_RUN_VERSIONS, tasteEvidenceOf, tasteFingerprintOf } from '@/src/l
 import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 import { DISCOVERY_POLICY } from '@/src/lib/discovery';
+import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
@@ -2136,7 +2137,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
     await expectTargets(
       Object.fromEntries(
-        ['남자', '여자', '상관없음'].map((label) => [
+        [PREFER_GENDER_KO.male, PREFER_GENDER_KO.female, PREFER_GENDER_KO.any].map((label) => [
           label,
           account.locator('label', { has: page.getByRole('radio', { name: label, exact: true }) }),
         ]),

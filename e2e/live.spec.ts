@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
 import { closedRoomText } from '@/src/lib/chat';
-import { CHAT_EMPTY_TITLE, NEW_MESSAGES_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
+import { CHAT_EMPTY_TITLE, CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL, NEW_MESSAGES_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
 /**
@@ -159,15 +159,15 @@ test.describe('앱이 스스로 갱신된다', () => {
     await channelUp(bLog, userIdOf(b.account.email));
 
     // B 는 쓰던 글이 있다 — 받는 동안 입력 칸이 다시 그려지면 이 글과 초점이 사라진다
-    const field = b.page.getByPlaceholder('메시지를 입력해 주세요');
+    const field = b.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
     await field.fill(`쓰던 글 ${tag}`);
     await field.focus();
 
     // 첫 건은 화면에서 보낸다 — 보낸 쪽도 다시 열지 않고 제 말을 본다
     const byHand = `손으로 ${tag}`;
     await stampWhenShown(b.page, [byHand]);
-    await a.page.getByPlaceholder('메시지를 입력해 주세요').fill(byHand);
-    await a.page.getByRole('button', { name: '보내기' }).click();
+    await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(byHand);
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     await expect(talkOf(a.page).getByText(byHand)).toBeVisible();
     await expect(talkOf(b.page).getByText(byHand)).toBeVisible({ timeout: WITHIN_MS });
 
@@ -327,14 +327,14 @@ test.describe('앱이 스스로 갱신된다', () => {
     const aLog = socketLog(a.page);
     await a.page.goto(room);
     await channelUp(aLog, userIdOf(a.account.email));
-    await a.page.getByPlaceholder('메시지를 입력해 주세요').fill(`쓰다 만 글 ${tag}`);
+    await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(`쓰다 만 글 ${tag}`);
 
     const blocked = await b.api.rpc('block_user', { p_user_id: userIdOf(a.account.email) });
     if (blocked.error) throw new Error(`차단이 안 됐습니다 — ${blocked.error.message}`);
 
     // 차단 사실은 말하지 않는다 — 닫힌 까닭의 문장은 읽는 문이 정한 그것뿐이다
     await expect(a.page.getByRole('status')).toHaveText(closedRoomText('block'), { timeout: WITHIN_MS + 1_000 });
-    await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveCount(0);
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveCount(0);
     const refused = await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: '닫힌 뒤' });
     expect(refused.data === 'sent').toBe(false);
   });
@@ -569,7 +569,7 @@ test.describe('앱이 스스로 갱신된다', () => {
     await expect(talkOf(b.page).getByText(`새로 온 말 ${tag}`)).toBeInViewport();
     await expect(b.page.getByRole('button', { name: NEW_MESSAGES_LABEL })).toHaveCount(0);
 
-    // 맨 위 — 이전 메시지 더 보기. 읽은 뒤에도 보던 말풍선이 제자리다
+    // 맨 위 — `OLDER_MESSAGES_LABEL` 단추. 읽은 뒤에도 보던 말풍선이 제자리다
     const more = b.page.getByRole('button', { name: OLDER_MESSAGES_LABEL });
     await more.scrollIntoViewIfNeeded();
     const oldest = talkOf(b.page).getByText(`쌓인 말 31 ${tag}`, { exact: true });

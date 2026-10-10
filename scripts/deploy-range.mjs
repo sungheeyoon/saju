@@ -97,7 +97,19 @@ function gatePassed(repo, sha) {
   }
 }
 
-/** `start..head` 의 커밋 — 커밋마다 그 첫 부모와 견준 바뀐 파일과 두 쪽 소스. 못 읽으면 `null` */
+/**
+ * 그 커밋의 시험 — `e2e/**` 의 글 파일과 흐름 검사(`scripts/check-*.mjs`). 문구 후보의 글자를 그 시험이 글자 그대로 찾으면 그 파일은
+ * 동작이다(`testsNamingLiterally`, 운영자 2026-10-10). 문구 후보가 있는 커밋에서만 읽는다. 못 읽으면 던진다 — 판정이 서지 않고 종료
+ * 코드가 1(`wait`)이다
+ */
+function testsAt(sha) {
+  const files = run('git', 'ls-tree', '-r', '--name-only', sha, '--', 'e2e', 'scripts')
+    .split('\n')
+    .filter((file) => (/^e2e\//.test(file) && /\.(?:ts|mts|mjs|js|txt|json)$/.test(file)) || /^scripts\/check-[^/]+\.mjs$/.test(file));
+  return files.map((file) => [file, execFileSync('git', ['show', `${sha}:${file}`], { encoding: 'utf8', maxBuffer: 1 << 26 })]);
+}
+
+/** `start..head` 의 커밋 — 커밋마다 그 첫 부모와 견준 바뀐 파일과 두 쪽 소스, 그 커밋의 시험. 못 읽으면 `null` */
 function commitsBetween(start, head) {
   try {
     run('git', 'merge-base', '--is-ancestor', start, head);
@@ -108,6 +120,7 @@ function commitsBetween(start, head) {
         const parents = run('git', 'rev-list', '--parents', '-n', '1', sha).split(' ').slice(1);
         const parent = parents[0] ?? null;
         let files = null;
+        let tests = null;
         if (parent !== null) {
           try {
             files = run('git', 'diff', '--name-only', '--no-renames', parent, sha).split('\n');
@@ -128,6 +141,7 @@ function commitsBetween(start, head) {
             }
           },
           baseSourceOf: (file) => (parent === null ? null : baseSourceFromGit(parent, file, sha)),
+          mentions: () => (tests ??= testsAt(sha)),
         };
       });
   } catch {

@@ -12,7 +12,7 @@ import {
 } from './session';
 
 import { CHAT_POLICY, LEFT_ROOM_TEXT, LEFT_USER_LABEL, RATE_LIMITED_TEXT, closedRoomText } from '@/src/lib/chat';
-import { CHAT_EMPTY_TITLE } from '@/src/lib/chat/copy';
+import { CHAT_EMPTY_TITLE, CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '@/src/lib/chat/copy';
 import { activityText } from '@/src/lib/presence';
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
 
@@ -108,11 +108,11 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(a.page.getByRole('heading', { name: `나${tag} 님` })).toBeVisible();
 
     const hello = `안녕하세요 ${tag}`;
-    await a.page.getByPlaceholder('메시지를 입력해 주세요').fill(hello);
-    await a.page.getByRole('button', { name: '보내기' }).click();
+    await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(hello);
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     await expect(talkOf(a).getByText(hello)).toBeVisible();
     // 보낸 뒤 입력 칸은 비고, 신고를 골라도 내 메시지에는 고를 깃발이 없다 — 상대 말이 0건이어도 사유 칸은 곧장 선다(ADR 0158)
-    await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveValue('');
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('');
     await openRoomMenu(a);
     await a.page.getByRole('button', { name: '신고', exact: true }).click();
     await expect(a.page.getByLabel('신고 사유')).toBeVisible();
@@ -138,8 +138,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(chatBadges).toHaveCount(0);
 
     const reply = `반갑습니다 ${tag}`;
-    await b.page.getByPlaceholder('메시지를 입력해 주세요').fill(reply);
-    await b.page.getByRole('button', { name: '보내기' }).click();
+    await b.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(reply);
+    await b.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     await expect(talkOf(b).getByText(reply)).toBeVisible();
 
     await b.page.goto('/me/chat');
@@ -222,12 +222,12 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     }
 
     await a.page.goto(room);
-    await a.page.getByPlaceholder('메시지를 입력해 주세요').fill('31');
-    await a.page.getByRole('button', { name: '보내기' }).click();
+    await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill('31');
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     // `getByRole('alert')` 는 Next 의 라우트 안내와 겹친다 — 글자로 잡는다
     await expect(a.page.getByText(RATE_LIMITED_TEXT)).toBeVisible();
     // 거절된 본문은 칸에 돌아온다 — 잠시 뒤 다시 보낼 수 있게. 먼저 섰던 흐린 말풍선은 걷힌다(`pending.ts`)
-    await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveValue('31');
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('31');
     await expect(talkOf(a).getByText('31', { exact: true })).toHaveCount(0);
   });
 
@@ -247,7 +247,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       await person.page.goto(room);
       await expect(talkOf(person).getByText(said)).toBeVisible();
       await expect(person.page.getByRole('status')).toHaveText(closedRoomText('block'));
-      await expect(person.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveCount(0);
+      await expect(person.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveCount(0);
     }
     // 닫힌 방에는 차단할 것이 없다 — 「⋯」 안에는 신고만 남는다
     await openRoomMenu(b);
@@ -372,7 +372,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(talkOf(a).getByText(theirs)).toBeVisible();
     await expect(talkOf(a).getByText(mine)).toBeVisible();
     await expect(a.page.getByRole('status')).toHaveText(LEFT_ROOM_TEXT);
-    await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveCount(0);
+    await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveCount(0);
     // 떠난 사람에게는 신고가 안 선다 — 신고당할 계정이 없다. 「⋯」도, 메시지를 고를 깃발도 없다
     await expect(roomMenuOf(a)).toHaveCount(0);
     await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
@@ -393,7 +393,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(b.page.getByRole('status').filter({ hasText: '신고를 접수했습니다' })).toBeVisible();
 
     // 방은 그대로 열려 있다 — 신고는 방을 닫지 않는다
-    await expect(b.page.getByPlaceholder('메시지를 입력해 주세요')).toBeVisible();
+    await expect(b.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toBeVisible();
 
     const snapshot = sql(`select s.messages
       from public.chat_report_snapshot s

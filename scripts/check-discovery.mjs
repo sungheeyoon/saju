@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
+import { DISCOVERY_TEASER } from '../src/lib/discovery/copy.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -250,7 +251,7 @@ const isolate = (emails) => {
     check('상세 궁합은 서로 선택한 뒤에 열린다고 말한다',
       body.includes('궁합 요청') && body.includes('풀이권 1회가 임시로 차감됩니다'));
     check('참고 점수라는 말이 목록 머리에 선다',
-      body.includes('오행 구성을 바탕으로 계산한 참고 점수'));
+      body.includes(DISCOVERY_TEASER));
 
     /**
      * **여기서 멈추는 것들.** 후보 카드가 여는 만큼 닫히는 자리도 또렷해야 한다 —

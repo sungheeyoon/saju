@@ -5,6 +5,7 @@ import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
+import { CHAT_EMPTY_TITLE, CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '../src/lib/chat/copy.ts';
 import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
@@ -114,7 +115,7 @@ try {
     check('로그인 없이는 목록이 안 열린다', sentAway, String(anonymous.status));
 
     const empty = plain(await body('/me/chat', cookie.a));
-    check('방이 없으면 빈 목록이 말한다', empty.includes('아직 채팅방이 없어요'));
+    check('방이 없으면 빈 목록이 말한다', empty.includes(CHAT_EMPTY_TITLE));
   }
 
   // ── 2. 후보 → 요청 → 수락 → 방 ────────────────────────────────────────────
@@ -149,7 +150,7 @@ try {
     check('방이 열린다', opened.status === 200, String(opened.status));
     check('제목은 「{닉네임} 님」이다', html.includes(`${NAME.a} 님`));
     check('메시지가 선다', html.includes(hello));
-    check('입력 칸과 보내기가 선다', html.includes('메시지를 입력해 주세요') && html.includes('보내기'));
+    check('입력 칸과 보내기가 선다', html.includes(CHAT_INPUT_PLACEHOLDER) && html.includes(CHAT_SEND_LABEL));
     check('상대의 이메일과 출생 원문은 방 화면에 새지 않는다',
       !html.includes(mail.a) && !html.includes(BIRTH.a.date) && !html.includes('1990'));
 
@@ -190,7 +191,7 @@ try {
       check(`${who}에서 방이 그대로 열린다`, opened.status === 200, String(opened.status));
       check(`${who}에서 이전 대화가 보인다`, html.includes(`안녕하세요 ${tag}`));
       check(`${who}에 닫힌 까닭 한 줄이 선다`, html.includes(closedRoomText('block')));
-      check(`${who}에서 입력이 안 된다`, !html.includes('메시지를 입력해 주세요'));
+      check(`${who}에서 입력이 안 된다`, !html.includes(CHAT_INPUT_PLACEHOLDER));
     }
 
     const listed = plain(await body('/me/chat', cookie.a));

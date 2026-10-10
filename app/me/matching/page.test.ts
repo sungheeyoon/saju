@@ -23,7 +23,7 @@ vi.mock('../requests/inbox', () => ({
   matchesForViewer: vi.fn(async () => []),
 }));
 vi.mock('../candidates', () => ({
-  candidatesForViewer: async () => ({ cards: [], teaser: null, notice: null }),
+  candidatesForViewer: async () => ({ cards: [], notice: null }),
   passedForViewer: async () => [],
 }));
 
