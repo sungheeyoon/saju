@@ -16,7 +16,7 @@
 -- `destinationFor` 는 Match 를 가리키는 완성 소식을 누가 받든 같게 읽는다). 이 PR 의 앱은 새 문을 부르므로 이 파일이 먼저 올라야
 -- 한다 — 없으면 결과 화면의 읽음 처리만 실패하고(부속이라 화면은 그대로 선다) 소식은 안 읽은 채 남는다.
 --
--- 재는 자리는 `supabase/tests/86_reading_ready_read_on_open.test.sql`(1)과 `supabase/tests/13_reading.test.sql`(2).
+-- 재는 자리는 `supabase/tests/87_reading_ready_read_on_open.test.sql`(1)과 `supabase/tests/13_reading.test.sql`(2).
 
 -- ---------------------------------------------------------------------------
 -- 1. 결과 화면을 열면 그 풀이의 완성 소식이 읽음이 된다
