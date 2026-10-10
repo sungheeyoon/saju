@@ -134,6 +134,9 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 
 #### 반출 — 매일 S3, 한 번에 하나, 결과는 DB 에
 
+**접속기록 표에 칸을 더하거나 바꾸면 같은 PR 이 셋을 함께 고친다** — 묶음 머리의 `version`(`app/api/cron/audit-export/bundle.ts`) ·
+검증 스크립트의 허용 칸 목록(`scripts/audit-verify.mjs`) · 이 절. #588(`target_report_ids`)이 셋을 함께 바꿨다(2026-10-10).
+
 Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03:37 전후 — Hobby 는 ±59분)가 지난 반출 뒤의
 줄을 번호 차례로 읽어 한 파일로 올리고, **올린 뒤에** 범위를 `audit.operator_access_export` 에 적는다. 적는 문은 앞 반출에서
 이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. **같은 범위를 그대로 두 번 적으면 조용히 받는다** —

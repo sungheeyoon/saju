@@ -46,3 +46,4 @@
 - 머지 직전 · main 에 새 마이그레이션이 들었으면 → [조율자 세션](../agents/delegation/coordinator.md) — 타임스탬프 · pgTAP 번호는 머지 직전 main 의 마지막 뒤
 - 로컬 스택 · pgTAP 이 이상하면 → [로컬 환경의 함정](../agents/delegation/local-env.md) — 옛 볼륨 · 전역으로 세는 pgTAP · `db query` 의 한계
 - `security definer` 함수를 만들거나 고치면 → [공개 출시](../product/gaps.md#공개-출시) — `search_path` 를 재는 줄
+- 접속기록(`audit.operator_access`)의 칸을 바꾸면 → [반출](../ops/runbook/security.md#반출--매일-s3-한-번에-하나-결과는-db-에) — 묶음 `version` · 검증 허용 목록이 따라 바뀐다

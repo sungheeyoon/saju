@@ -144,7 +144,8 @@ _Avoid_: 도배 방지, 스팸 필터, 쿨다운
 붙는 불변 사본. 고른 것과 앞 5 · 뒤 5 를 그때의 본문 그대로 jsonb 한 칸에 베낀다. **메시지에 FK 로
 매지 않는다** — 메시지가 지워져도 남고, 수명은 **신고**를 따른다. 운영자만 읽는다 — 신고 열람 화면
 (`/ops/reports`, `app/ops/reports/read.ts` 가 `operator_report_snapshot` 으로)이 읽고, 읽을 때마다 접속기록에 한 줄이
-남는다(ADR 0103 · 0105). 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
+남는다(ADR 0103 · 0105). 신고 목록(`operator_reports`)도 대화 신고 줄마다 이 사본에서 고른 메시지 첫 줄을 한 줄 발췌로
+읽고, 그 읽기가 목록 접속기록 한 줄(그 쪽의 신고 id 들)에 남는다(2026-10-10, #588). 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
 _Avoid_: 증거(법의 말), 캡처, 로그
 
 **접속 상태** — `user_activity` 표 · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` ·
