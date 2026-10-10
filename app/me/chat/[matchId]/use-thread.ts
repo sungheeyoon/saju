@@ -11,6 +11,9 @@ import { mergeMessages, needsNewer, newestSeq, oldestSeq, readNewer } from './th
 /** 새 메시지를 읽을 때 한 쪽의 크기 — 대개 한두 건이다. 가득 차면 `readNewer` 가 앞을 더 읽는다 */
 const NEWER_PAGE = 50;
 
+/** 뒤를 못 읽었을 때 다시 읽는 간격 — 세 번까지. 그 뒤는 다음 알림이나 다시 대조가 메운다 */
+const CATCH_UP_RETRY_MS = [1_000, 3_000, 9_000] as const;
+
 export type MergeKind = 'newer' | 'older';
 
 export type Thread = {
@@ -32,7 +35,8 @@ export type Thread = {
  * - 화면이 다시 그려져(`router.refresh()`) 새 첫 200건이 오면 그것도 합친다 — 가진 것을 버리지 않는다.
  *
  * 합치기 직전에 `beforeMerge` 를 부른다 — 방이 그때의 스크롤 자리를 재어 두고 그린 뒤에 지킨다.
- * 읽기가 실패하면 가진 것을 그대로 둔다 — 다음 알림이나 다시 대조가 메운다.
+ * 뒤를 못 읽으면 가진 것을 그대로 두고 조금 뒤 다시 읽는다(`CATCH_UP_RETRY_MS`) — 보낸 말이 읽혀 와야 보내는 중인 자리가
+ * 걷히므로, 한 번 실패로 그 자리가 남아 있지 않게다. 그래도 못 읽으면 다음 알림이나 다시 대조가 메운다.
  */
 export function useThread(
   matchId: string,
@@ -67,8 +71,20 @@ export function useThread(
   /* 한 번에 하나만 읽는다. 읽는 동안 또 알림이 오면 끝난 뒤 한 번 더 읽는다 */
   const reading = useRef(false);
   const again = useRef(false);
+  const failures = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimer.current !== null) clearTimeout(retryTimer.current);
+    },
+    [],
+  );
 
-  const catchUp = useCallback(() => {
+  const catchUp = useCallback(function catchUpNow() {
+    if (retryTimer.current !== null) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
     if (reading.current) {
       again.current = true;
       return;
@@ -85,8 +101,13 @@ export function useThread(
             NEWER_PAGE,
           );
           merge('newer', fresh.map(labelled));
+          failures.current = 0;
         } catch {
-          // 가진 것을 그대로 둔다 — 다음 알림이나 다시 대조가 메운다.
+          // 가진 것을 그대로 두고 조금 뒤 다시 읽는다 — 다 쓰면 다음 알림이나 다시 대조가 메운다.
+          const wait = CATCH_UP_RETRY_MS[failures.current];
+          failures.current += 1;
+          if (wait !== undefined && !again.current) retryTimer.current = setTimeout(catchUpNow, wait);
+          else if (wait === undefined) failures.current = 0;
         }
       } while (again.current);
       reading.current = false;

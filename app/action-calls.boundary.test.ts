@@ -127,7 +127,6 @@ function unreceivedCalls(): string[] {
  * 하나를 감싸면 그 줄을 지운다 — 남은 줄이 있으면 시험이 붉어져 지우라고 말한다.
  */
 const NOT_YET: readonly string[] = [
-  'app/me/chat/composer.tsx :: sendChatMessage',
   'app/me/discovery/manage.tsx :: setDiscoveryParticipation',
   'app/me/profile/form.tsx :: checkNickname',
   'app/me/profile/form.tsx :: saveProfile',

@@ -95,6 +95,7 @@ select set_eq(
            ('save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)'),
            ('save_service_survey(p_liked text[], p_unknown text[], p_improve text[], p_improve_text text, p_wants text[], p_wants_new text[], p_price_solo text, p_price_pair text, p_price_factors text[], p_free_text text, p_price_options text[], p_submit boolean)'),
            ('send_chat_message(p_match_id uuid, p_body text)'),
+           ('send_chat_message(p_match_id uuid, p_body text, p_client_id uuid)'),
            ('service_survey_context()'),
            ('set_contact_consent(p_consent boolean)'),
            ('set_improvement_consent(p_consent boolean)'),

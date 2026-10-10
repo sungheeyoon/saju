@@ -1,64 +1,143 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { RATE_LIMITED_TEXT } from '@/src/lib/chat';
 
 import type { ChatMessage } from './messages';
-import { pendingMessage, settlePending, withPending, type Pending } from './pending';
+import {
+  SendDeadlinePassed,
+  newClientId,
+  pendingMessage,
+  settlePending,
+  verdictOf,
+  withPending,
+  withState,
+  withinDeadline,
+  type Pending,
+} from './pending';
 
-const message = (seq: number, body: string, mine = true): ChatMessage => ({
+const message = (seq: number, body: string, clientId: string | null, mine = true): ChatMessage => ({
   messageId: `m${seq}`,
   seq,
   mine,
   fromLeftPartner: false,
   body,
   createdAt: '2026-10-08T00:00:00Z',
+  clientId,
 });
 
-const pending = (id: string, body: string, after: number): Pending => ({ id, body, after, sentAt: '2026-10-08T00:00:01Z' });
+const pending = (id: string, body: string, state: Pending['state'] = 'sending'): Pending => ({
+  id,
+  body,
+  sentAt: '2026-10-08T00:00:01Z',
+  state,
+});
 
-describe('보내는 중인 말 맞추기', () => {
-  it('보낸 뒤 읽혀 온 내 말과 본문이 같으면 걷는다', () => {
-    const left = settlePending([pending('p1', '안녕', 5)], [message(5, '앞 말'), message(6, '안녕')]);
-    expect(left).toEqual([]);
+describe('보내는 중인 말 맞추기 — 본문이 아니라 보낸 사람이 지은 id 로', () => {
+  it('읽혀 온 내 말의 id 가 같으면 걷는다', () => {
+    expect(settlePending([pending('c1', '안녕')], [message(5, '앞 말', null), message(6, '안녕', 'c1')])).toEqual([]);
   });
 
-  it('보내기 전부터 있던 같은 본문은 짝이 아니다 — 보낼 때 가진 차례 뒤의 말만 센다', () => {
-    const one = pending('p1', '네', 6);
-    expect(settlePending([one], [message(6, '네')])).toEqual([one]);
+  it('같은 본문이어도 id 가 다르면 짝이 아니다 — 같은 말을 연달아 보내도 섞이지 않는다', () => {
+    const first = pending('c1', 'ㅋㅋ');
+    const second = pending('c2', 'ㅋㅋ');
+    expect(settlePending([first, second], [message(3, 'ㅋㅋ', 'c2')])).toEqual([first]);
   });
 
-  it('상대의 같은 말은 짝이 아니다', () => {
-    const one = pending('p1', '응', 3);
-    expect(settlePending([one], [message(4, '응', false)])).toEqual([one]);
+  it('상대의 말은 짝이 아니다', () => {
+    const one = pending('c1', '응');
+    expect(settlePending([one], [message(4, '응', 'c1', false)])).toEqual([one]);
   });
 
-  it('같은 본문을 두 번 보내면 읽혀 온 말 하나가 보내는 중 하나만 걷는다', () => {
-    const first = pending('p1', 'ㅋㅋ', 2);
-    const second = pending('p2', 'ㅋㅋ', 2);
-    expect(settlePending([first, second], [message(3, 'ㅋㅋ')])).toEqual([second]);
-    expect(settlePending([first, second], [message(3, 'ㅋㅋ'), message(4, 'ㅋㅋ')])).toEqual([]);
+  it('실패로 보인 말도 서버가 받았던 것이면 읽혀 올 때 걷힌다 — 응답만 잃은 전송', () => {
+    expect(settlePending([pending('c1', '늦은 답', 'failed')], [message(9, '늦은 답', 'c1')])).toEqual([]);
   });
 
   it('걷을 것이 없으면 같은 목록을 돌려준다 — 다시 그리지 않는다', () => {
-    const list = [pending('p1', '아직', 9)];
-    expect(settlePending(list, [message(9, '다른 말')])).toBe(list);
+    const list = [pending('c1', '아직')];
+    expect(settlePending(list, [message(9, '다른 말', 'c0')])).toBe(list);
+    expect(settlePending(list, [message(9, '옛 말', null)])).toBe(list);
+  });
+});
+
+describe('보내는 중인 말의 상태', () => {
+  it('실패한 말은 제자리에 남는다 — 목록의 차례가 그대로다', () => {
+    const list = [pending('c1', '하나'), pending('c2', '둘'), pending('c3', '셋')];
+    const after = withState(list, 'c2', 'failed');
+    expect(after.map((one) => [one.id, one.state])).toEqual([
+      ['c1', 'sending'],
+      ['c2', 'failed'],
+      ['c3', 'sending'],
+    ]);
+  });
+
+  it('다시 보내면 같은 자리에서 보내는 중으로 돌아간다', () => {
+    const list = [pending('c1', '하나', 'failed')];
+    expect(withState(list, 'c1', 'sending')).toEqual([pending('c1', '하나', 'sending')]);
   });
 });
 
 describe('보내는 중인 말을 목록 끝에 붙이기', () => {
   it('가진 말 뒤에 보낸 차례대로 내 말로 선다', () => {
-    const shown = withPending([message(1, '앞', false)], [pending('p1', '하나', 1), pending('p2', '둘', 1)]);
+    const shown = withPending([message(1, '앞', null, false)], [pending('c1', '하나'), pending('c2', '둘')]);
     expect(shown.map((one) => one.body)).toEqual(['앞', '하나', '둘']);
     expect(shown.slice(1).every((one) => one.mine && !one.fromLeftPartner)).toBe(true);
-    expect(shown.slice(1).map((one) => one.messageId)).toEqual(['p1', 'p2']);
+    expect(shown.slice(1).map((one) => one.messageId)).toEqual(['c1', 'c2']);
   });
 
   it('보내는 중이 없으면 가진 목록 그대로다', () => {
-    const have = [message(1, '앞')];
+    const have = [message(1, '앞', null)];
     expect(withPending(have, [])).toBe(have);
   });
 
-  it('보내는 중인 말의 차례는 가진 어느 말보다 뒤다', () => {
-    const one = pendingMessage(pending('p1', '뒤', 40));
-    expect(one.seq).toBeGreaterThan(40);
+  it('보내는 중인 말의 차례는 가진 어느 말보다 뒤이고 제 id 를 든다', () => {
+    const one = pendingMessage(pending('c1', '뒤'));
+    expect(one.seq).toBe(Number.MAX_SAFE_INTEGER);
+    expect(one.clientId).toBe('c1');
     expect(one.createdAt).toBe('2026-10-08T00:00:01Z');
+  });
+});
+
+describe('전송의 답을 화면의 갈래로', () => {
+  it('받았다 · 닫혔다 · 한도 · 문장으로 거절', () => {
+    expect(verdictOf({ ok: true, outcome: 'sent' })).toEqual({ kind: 'accepted' });
+    expect(verdictOf({ ok: true, outcome: 'closed' })).toEqual({ kind: 'closed' });
+    expect(verdictOf({ ok: true, outcome: 'rate_limited' })).toEqual({ kind: 'failed', message: RATE_LIMITED_TEXT });
+    expect(verdictOf({ ok: false, message: '이용이 정지된 계정입니다.' })).toEqual({
+      kind: 'failed',
+      message: '이용이 정지된 계정입니다.',
+    });
+  });
+});
+
+describe('전송의 시한', () => {
+  it('시한 안에 끝나면 그 답이다', async () => {
+    await expect(withinDeadline(Promise.resolve('sent'), 50)).resolves.toBe('sent');
+  });
+
+  it('시한을 넘기면 실패로 진다 — 늦게 온 답은 버린다', async () => {
+    vi.useFakeTimers();
+    try {
+      const raced = withinDeadline(new Promise<string>(() => {}), 15_000);
+      vi.advanceTimersByTime(15_000);
+      await expect(raced).rejects.toBeInstanceOf(SendDeadlinePassed);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('액션이 던지면 그대로 진다 — 부르는 쪽이 실패로 받는다', async () => {
+    await expect(withinDeadline(Promise.reject(new TypeError('Failed to fetch')), 50)).rejects.toBeInstanceOf(TypeError);
+  });
+});
+
+describe('전송의 id', () => {
+  it('보안 맥락이 아니어도 uuid v4 모양으로 짓는다', () => {
+    const id = newClientId({ getRandomValues: crypto.getRandomValues.bind(crypto) });
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it('randomUUID 가 있으면 그것을 쓴다', () => {
+    const fixed = '00000000-0000-4000-8000-000000000000';
+    expect(newClientId({ getRandomValues: crypto.getRandomValues.bind(crypto), randomUUID: () => fixed })).toBe(fixed);
   });
 });
