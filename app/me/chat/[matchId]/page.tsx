@@ -43,7 +43,7 @@ export default async function ChatRoomPage({
 
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
+      <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );

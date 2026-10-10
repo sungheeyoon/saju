@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useBrowserSession } from './auth/browser-session';
 import { SERVICE_FEATURES } from './service-features';
 import { Icon, type IconName } from './ui/icons';
-import { TYPE_SECTION } from './ui/surfaces';
+import { COLUMN, TYPE_SECTION } from './ui/surfaces';
 
 /**
  * 로그인 전 첫 화면의 **「할 수 있는 것」** — 폼 아래. 서비스 소개(`/about`)의 같은 구역 이름이다.
@@ -15,7 +15,7 @@ import { TYPE_SECTION } from './ui/surfaces';
  * 서비스 소개로 넘긴다. **로그인 · 풀이권 조건은 싣지 않는다**(운영자 결정 2026-10-08) — 홈은 관심과 이해를 먼저 만들고,
  * 조건은 그 일을 하는 자리(로그인 단추 · 비용 확인)와 서비스 소개가 말한다.
  *
- * 폼과 같은 42rem 한 축에 아이콘이 왼쪽인 낮은 카드로 쌓인다 — 넓은 화면에서도. 세 칸으로 나누면 그 폭에서 설명이 여섯
+ * 폼과 같은 가운데 기둥(`COLUMN`)에 아이콘이 왼쪽인 낮은 카드로 쌓인다 — 넓은 화면에서도. 세 칸으로 나누면 그 폭에서 설명이 여섯
  * 줄로 접혔다.
  *
  * **로그인한 사람에게는 안 선다** — 그 사람은 `/` 에 머물지 않고(ADR 0144) 넷은 이미 탭에 있다. 세션을 모르는 동안에도
@@ -28,7 +28,7 @@ export function LandingGuide() {
   return (
     <section
       aria-labelledby="landing-guide"
-      className="mx-auto flex w-full max-w-[42rem] flex-col gap-5 border-t border-border pt-8 sm:gap-6 sm:pt-10"
+      className={`mx-auto flex w-full ${COLUMN} flex-col gap-5 border-t border-border pt-8 sm:gap-6 sm:pt-10`}
     >
       {/* 폰에서는 제목이 두 줄로 갈리지 않게 링크가 아랫줄로 내려간다 */}
       <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">

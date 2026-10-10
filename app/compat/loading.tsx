@@ -15,7 +15,7 @@ import { Bone, SkeletonMain } from '../ui/skeleton';
  */
 export default function CompatLoading() {
   return (
-    <SkeletonMain name="compat" className="app-shell flex max-w-[58rem] flex-1 flex-col gap-8 py-6 sm:gap-10 sm:py-10">
+    <SkeletonMain name="compat" className="app-shell flex max-w-[58rem] flex-1 flex-col gap-8 py-6 sm:gap-10 sm:py-12">
       <div className="flex flex-col gap-4">
         <Bone className="h-8 w-40 rounded-full" />
 

@@ -24,7 +24,7 @@ const READING_OUTLINE: readonly string[] = selfSectionTexts(CONTROL).map((text) 
  */
 export default function Home() {
   return (
-    // 넓은 화면에서도 폼과 「할 수 있는 것」이 42rem 한 축이다(`HomeHero` · `LandingGuide`)
+    // 넓은 화면에서도 폼과 「할 수 있는 것」이 가운데 기둥(`COLUMN`, 46rem) 한 축이다(`HomeHero` · `LandingGuide`)
     <main className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
       <HomeHero
         calculator={

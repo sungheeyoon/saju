@@ -13,7 +13,7 @@ import { SajuHero } from '../saju-hero';
  */
 export default function SajuPage() {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[42rem]">
+    <main className="app-shell flex flex-1 flex-col gap-8 py-8 sm:gap-10 sm:py-12 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[46rem]">
       <SajuHero
         calculator={
           <Suspense fallback={<div className="h-[34rem]" />}>

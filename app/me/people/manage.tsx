@@ -164,8 +164,8 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
       <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" surface="flat" />
 
-      {/* 메모 칸도 출생 정보 칸들과 같은 폭에서 끝난다 — 넓은 화면에서 폼은 40rem 까지만 넓어진다(`birth-form.module.css`) */}
-      <div className="max-w-[40rem]">
+      {/* 메모 칸도 출생 정보 칸들과 같은 폭에서 끝난다 — 넓은 화면에서 폼은 43rem 까지만 넓어진다(`birth-form.module.css`) */}
+      <div className="max-w-[43rem]">
         <NoteField value={note} onChange={setNote} idPrefix="add" />
       </div>
 

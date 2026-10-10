@@ -5,7 +5,7 @@ import { SURVEY_COPY } from '@/src/lib/survey';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { PAPER, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
+import { COLUMN, PAPER, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ConsentSwitch } from './consent-switch';
@@ -43,7 +43,7 @@ export default async function SurveyPage() {
   const { state } = await readAccount(supabase, ['status']);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+      <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
         <AccountNotice state={state} />
       </main>
     );
@@ -52,7 +52,7 @@ export default async function SurveyPage() {
   const [context, given] = await Promise.all([surveyContext(), mySurvey()]);
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       {/*
         머리는 크림 판 한 장이다 — 설문은 메뉴에서 빠져 톱니 안에 있으므로, 들어온 사람에게 「무엇을
         왜 묻는지」를 먼저 건넨다. 문항은 그 아래 흰 판들로 선다.

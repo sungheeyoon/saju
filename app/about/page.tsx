@@ -33,7 +33,7 @@ const STEPS: readonly { title: string; body: string }[] = [
 
 export default function AboutPage() {
   return (
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-10 py-9 sm:py-14">
+    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-10 py-8 sm:py-12">
       <header className={`flex flex-col gap-3 ${PAPER}`}>
         <Logo className="size-11" />
         <p className={TYPE_META}>{SERVICE_TAGLINE}</p>

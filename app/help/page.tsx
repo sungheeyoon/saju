@@ -125,7 +125,7 @@ const GROUPS: readonly {
 
 export default function HelpPage() {
   return (
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-8 py-9 sm:py-14">
+    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-8 py-8 sm:py-12">
       <OpenHashed />
       <header className="flex flex-col gap-2">
         <h1 className={TYPE_TITLE}>자주 묻는 질문</h1>
