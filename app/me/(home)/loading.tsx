@@ -17,8 +17,15 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
 export default function HomeLoading() {
   return (
     <SkeletonMain name="home" className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-4 sm:gap-12 sm:py-12">
-      {/* 인사는 폰에서 제목으로만 남는다 — 뼈대도 넓은 화면에서만 선다 */}
-      <div className="hidden flex-col gap-1 sm:flex">
+      {/*
+        인사는 폰에서 제목으로만 남는다 — 뼈대도 넓은 화면에서만 자리를 둔다.
+
+        **자리만 두고 그리지 않는다(`invisible`, G-88).** 인사의 높이와 위 끝은 등록 전후가 같지만 옆 자리는 갈린다 — 등록 뒤는
+        전폭의 왼쪽(1280 에서 x=64), 등록 전은 가운데 기둥(`COLUMN`, x=272). 뼈대는 등록 여부를 읽기 전에 서므로(미리 받아 두는
+        정적 뼈대다, ADR 0116) 어느 한쪽에 뼈를 그리면 다른 쪽에서 다 불러온 순간 인사가 옆으로 옮긴다. 그래서 있을지 모르는 줄처럼
+        (ADR 0116 추기) 그리지 않고, 높이만 지켜 아래 본문이 출렁이지 않게 한다. 인사는 두 상태 모두 이 빈 띠 안에 제자리로 선다.
+      */}
+      <div className="invisible hidden flex-col gap-1 sm:flex">
         <Bone className="h-5 w-32 rounded-full" />
         <Bone className="h-[2.925rem] w-72 max-w-full rounded-full" />
       </div>
