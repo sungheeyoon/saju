@@ -6,6 +6,7 @@ import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
 
 import { setOptionalConsent } from './actions';
 import { ROW_STATUS, SETTINGS_QUIET, SettingsRow } from './settings/card';
+import { actionAnswer } from '../ui/action-answer';
 
 /**
  * 선택 동의를 켜고 끄는 자리 — **끄는 것이 곧 지움이라는 것을 그 자리에서 말한다.**
@@ -48,7 +49,7 @@ export function ConsentControls({
   const flip = (key: 'improvement' | 'contact', next: boolean) => {
     setFailure(null);
     startSaving(async () => {
-      const result = await setOptionalConsent(key, next);
+      const result = await actionAnswer(setOptionalConsent(key, next));
       if (!result.ok) setFailure(result.message);
     });
   };

@@ -28,6 +28,7 @@ import {
   reportUser,
   respondToRequest,
 } from './actions';
+import { actionAnswer } from '../../ui/action-answer';
 
 /**
  * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 취소) — 셋째 단추의 기하에 보조 글자색.
@@ -74,7 +75,7 @@ export function RespondButtons({ requestId }: { requestId: string }) {
   const answer = (accept: boolean) => {
     setFailure(null);
     startWorking(async () => {
-      const result = await respondToRequest(requestId, accept);
+      const result = await actionAnswer(respondToRequest(requestId, accept));
       if (!result.ok) {
         setFailure(result.message);
         return;
@@ -124,7 +125,7 @@ export function CancelButton({ requestId }: { requestId: string }) {
   const cancel = () => {
     setFailure(null);
     startWorking(async () => {
-      const result = await cancelRequest(requestId);
+      const result = await actionAnswer(cancelRequest(requestId));
       announceIfMoved(result);
       if (!result.ok) setFailure(result.message);
     });
@@ -154,7 +155,7 @@ export function BlockButton({ userId }: { userId: string }) {
   const block = () => {
     setFailure(null);
     startWorking(async () => {
-      const result = await blockUser(userId);
+      const result = await actionAnswer(blockUser(userId));
       if (result.ok) {
         // 차단은 그 사람의 요청을 거둔다 — 답할 요청 수가 준다
         announceRequestsToAnswerMoved();
@@ -213,7 +214,7 @@ export function ReportButton({ userId }: { userId: string }) {
   const send = () => {
     setFailure(null);
     startWorking(async () => {
-      const result = await reportUser(userId, reason, detail);
+      const result = await actionAnswer(reportUser(userId, reason, detail));
       if (result.ok) {
         setDone(true);
         setAsking(false);
@@ -317,7 +318,7 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
     started.current = true;
 
     void (async () => {
-      const result = await markNotificationsRead();
+      const result = await actionAnswer(markNotificationsRead());
       if (result.ok) {
         // 머리글의 종은 주소가 안 바뀌면 다시 안 센다 — 읽은 것을 바로 알린다
         announceNotificationsUnreadMoved();

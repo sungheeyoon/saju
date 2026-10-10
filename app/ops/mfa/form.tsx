@@ -8,6 +8,7 @@ import { CARD } from '../../ui/surfaces';
 import { CopyText } from '../../me/reading/copy-text';
 import { confirmTotpCode, startTotpEnrollment } from './actions';
 import { SECOND_FACTOR_COPY as COPY } from './copy';
+import { actionAnswer } from '../../ui/action-answer';
 
 const FIELD =
   'min-h-12 w-40 rounded-2xl border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-[0.3em] outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft';
@@ -28,7 +29,7 @@ export function SecondFactorForm({ enrolled, next }: { enrolled: boolean; next: 
   const start = () => {
     setFailure(null);
     startStarting(async () => {
-      const opened = await startTotpEnrollment();
+      const opened = await actionAnswer(startTotpEnrollment());
       if (opened.ok) setEnrollment({ qrCode: opened.qrCode, secret: opened.secret });
       else setFailure(opened.message);
     });
@@ -38,7 +39,7 @@ export function SecondFactorForm({ enrolled, next }: { enrolled: boolean; next: 
     setFailure(null);
     startConfirming(async () => {
       /* 성공하면 이 줄 아래로 안 온다 — 액션이 돌아갈 운영 화면으로 보낸다 */
-      const failed = await confirmTotpCode({ code, next });
+      const failed = await actionAnswer(confirmTotpCode({ code, next }));
       setFailure(failed.message);
     });
   };

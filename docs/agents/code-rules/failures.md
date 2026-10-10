@@ -18,6 +18,12 @@
 영어 안내로 바꾼다. `answerOfThrown` 은 `DbFailure`(`dbFailure` 가 지은 우리말)만 옮기고 나머지는 기록에
 보낸 뒤 일반 문장을 세운다. `app/actions.boundary.test.ts` 가 받지 않은 부름을 센다.
 
+**클라이언트가 액션을 부르는 자리는 `actionAnswer(부름)` 을 지난다**(`app/ui/action-answer.ts`, ADR 0164) — 값으로 답하는 액션도 부름 자체는
+던질 수 있다(망 · 배포 직후 액션 id 불일치 · 받지 않은 예외). 받지 않으면 오류 경계로 올라가 입력이 사라진다. 래퍼는 던진 것을
+`{ ok: false, message }` 로 접고 `redirect()` 의 이동 표지는 다시 던진다. 이미 제 문장으로 받는 `try … catch` · `.catch(…)` 는 그대로다.
+`app/action-calls.boundary.test.ts` 가 `'use client'` 파일의 부름을 세고, 아직 안 받는 자리는 목록으로 줄어들기만 한다. **화면 안에서 한 칸을
+못 읽은 줄**은 `FailureLine`(`app/ui/failure-line.tsx` — 붉은 줄 · `role="alert"` · 읽기 실패면 「다시 시도하기」)이다.
+
 넷 다 한 가지를 지킨다: **`error.message` 를 사용자에게 그대로 내지 않는다.** 우리가 쓴 한국어
 거절만 옮기고 나머지는 `console.error` 로 기록에 보낸다 — `app/db-error.boundary.test.ts` 가
 모든 파일을 훑는다(#67). `if (error) return null` 은 「DB 실패」와 「없음」을 한 값으로 합치므로

@@ -7,6 +7,7 @@ import { WARNING_ACKNOWLEDGE_LABEL } from '@/src/lib/account';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 
 import { acknowledgeWarning } from './actions';
+import { actionAnswer } from '../../ui/action-answer';
 
 /**
  * 「확인했습니다」 — 누르면 확인한 시각이 적히고 레이아웃이 다시 그려져 안내가 내려간다(다음 경고가 있으면 그것이 선다).
@@ -19,7 +20,7 @@ export function AcknowledgeWarning({ warningRef }: { warningRef: string }) {
   const acknowledge = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await acknowledgeWarning(warningRef);
+      const result = await actionAnswer(acknowledgeWarning(warningRef));
       if (!result.ok) setFailure(result.message);
     });
   };

@@ -18,6 +18,7 @@ import { Icon } from '../../ui/icons';
 import { DIALOG } from '../../ui/surfaces';
 import { blockUser, reportUser } from './actions';
 import { announceRequestsToAnswerMoved } from './unread-signal';
+import { actionAnswer } from '../../ui/action-answer';
 
 /**
  * **신고 · 차단 한 벌 — 대화방 머리 · 인연 궁합 머리 · 오늘의 인연 카드가 같은 「⋯」를 연다**(ADR 0158).
@@ -124,7 +125,7 @@ export function ReportForm({
   const submit = () => {
     setFailure(null);
     startWorking(async () => {
-      const result = await send(reason, detail);
+      const result = await actionAnswer(send(reason, detail));
       if (result.ok) onDone();
       else setFailure(result.message);
     });
@@ -192,7 +193,7 @@ export function BlockConfirm({
     setFailure(null);
     startWorking(async () => {
       // 액션의 응답이 이 화면을 다시 그린다(`requests-changed` 의 `THIS_SCREEN`) — 방은 닫히고, 궁합은 닫힌다
-      const result = await blockUser(userId);
+      const result = await actionAnswer(blockUser(userId));
       if (!result.ok) {
         setFailure(result.message);
         return;
@@ -299,7 +300,7 @@ export function ReportBlock({
                 <>
                   <p className="text-[13px] leading-5 text-secondary">{REPORT_NOTE}</p>
                   <ReportForm
-                    send={(reason, detail) => reportUser(userId, reason, detail)}
+                    send={(reason, detail) => actionAnswer(reportUser(userId, reason, detail))}
                     onDone={() => setStep('reported')}
                     onBlock={() => setStep('block')}
                   />

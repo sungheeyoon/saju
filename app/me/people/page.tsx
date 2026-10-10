@@ -31,6 +31,7 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { COLUMN, EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
+import { LINK_PENDING_RING, LinkPending } from '../../ui/link-pending';
 
 /*
   **이 화면의 이름은 「저장한 사람」 하나다.**
@@ -314,6 +315,8 @@ function PersonCard({
             className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
           >
             {person.local_label}
+            {/* 사람 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누르면 카드 테가 선다(`LinkPending`) */}
+            <LinkPending className={`${LINK_PENDING_RING} rounded-[1.5rem]`} />
           </Link>
         </h2>
         {person.chart.ok && <BirthLines query={person.chart.query} />}

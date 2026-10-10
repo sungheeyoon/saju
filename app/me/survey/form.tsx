@@ -38,6 +38,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 import { TYPE_SECTION } from '../../ui/surfaces';
+import { actionAnswer } from '../../ui/action-answer';
 
 /**
  * 서비스 설문 폼 — **쓰는 동안 저절로 남고, 제출은 손으로 한다.**
@@ -95,7 +96,8 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
     /* 손이 멈춘 뒤에 보낸다 — 글자마다 보내면 저장이 타자를 따라다닌다 */
     const timer = setTimeout(() => {
       setDraft('saving');
-      void saveServiceSurvey(withoutHidden(answers, shown), false).then((result) => {
+      /* 부름이 던져도(망 · 배포 직후) 「저장 중」에 머물지 않고 실패로 선다 — 다음 고침이 다시 보낸다 */
+      void actionAnswer(saveServiceSurvey(withoutHidden(answers, shown), false)).then((result) => {
         if (result.ok) {
           saved.current = next;
           setDraft('saved');
@@ -111,7 +113,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
   const send = () => {
     setFailure(null);
     startSending(async () => {
-      const result = await saveServiceSurvey(withoutHidden(answers, shown), true);
+      const result = await actionAnswer(saveServiceSurvey(withoutHidden(answers, shown), true));
       if (!result.ok) {
         setFailure(result.message);
         return;

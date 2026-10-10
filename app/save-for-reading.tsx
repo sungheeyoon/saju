@@ -27,6 +27,7 @@ import {
 import { selfPersonState, type SelfPersonState } from './self-person-state';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { CARD } from './ui/surfaces';
+import { actionAnswer } from './ui/action-answer';
 
 /**
  * 직접 입력한 사람을 **저장해서 풀이까지 가는 길.**
@@ -278,7 +279,10 @@ export function SavePersonForReading({ query }: { query: Query }) {
    * 그것이 이 물음이 있는 이유다.
    */
   const savePerson = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
-    const saved = await savePersonForReading(query, evenIfSameChart);
+    const saved = await actionAnswer(
+      savePersonForReading(query, evenIfSameChart),
+      (message) => ({ ok: false, kind: 'failed', message }) as const,
+    );
     if (saved.ok) {
       router.push(`/me/readings/${saved.personId}`);
       return { done: true };
@@ -456,7 +460,7 @@ function SelfConfirm({
     setFailure(null);
     startSaving(async () => {
       /* 내 사주의 이름은 닉네임이다 — 적은 이름이 비어 있어도(이름 없이 나눈 링크) 막히지 않게 그 이름으로 보낸다 */
-      const saved = await saveSelfPerson({ ...query, name });
+      const saved = await actionAnswer(saveSelfPerson({ ...query, name }));
       if (!saved.ok) {
         setFailure(saved.message);
         return;

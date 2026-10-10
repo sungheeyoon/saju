@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
 
+import { actionAnswer } from '../ui/action-answer';
 import { BUTTON_DANGER } from '../ui/buttons';
 import { requestAccountDeletion } from './requests/actions';
 import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
@@ -29,7 +30,7 @@ export function RequestDeletion() {
   const leave = () => {
     setFailure(null);
     startWorking(async () => {
-      const result = await requestAccountDeletion();
+      const result = await actionAnswer(requestAccountDeletion());
       // 성공하면 이 화면이 통째로 「탈퇴를 신청한 계정입니다」로 바뀐다(`AccountNotice`).
       if (!result.ok) setFailure(result.message);
     });

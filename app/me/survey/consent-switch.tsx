@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { setOptionalConsent } from '../actions';
+import { actionAnswer } from '../../ui/action-answer';
 
 /**
  * 여기서 켤 수 있게 하는 버튼 하나 — **문은 계정 관리와 같은 문이다.**
@@ -26,7 +27,7 @@ export function ConsentSwitch() {
         onClick={() => {
           setFailure(null);
           startSaving(async () => {
-            const result = await setOptionalConsent('improvement', true);
+            const result = await actionAnswer(setOptionalConsent('improvement', true));
             if (!result.ok) setFailure(result.message);
           });
         }}

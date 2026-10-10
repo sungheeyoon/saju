@@ -11,6 +11,7 @@ import {
   samePillarInput,
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
+import { actionAnswer } from '../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
@@ -109,7 +110,7 @@ export function EditInputForm({
     setConfirming(false);
     setFailure(null);
     startSaving(async () => {
-      const result = await editPersonInput(personId, query);
+      const result = await actionAnswer(editPersonInput(personId, query));
       if (result.ok) onDone();
       else setFailure(result.message);
     });
