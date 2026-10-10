@@ -49,6 +49,49 @@ const endsOn = () => {
  * (원격 값)도 안 읽는다.
  */
 const laterPort = Number(port) + 1;
+const builtPort = Number(port) + 2;
+
+/**
+ * **로딩 뼈대(`loading.tsx`)는 지은 서버에서만 찍힌다**(G-84).
+ *
+ * 뼈대는 서버가 늦을 때만 잠깐 선다 — 곧바로 열면 로컬 DB 가 빨라 본문이 먼저 온다. 그래서 탭을 누른 것처럼 클라이언트로
+ * 옮기고 **그 이동의 RSC 응답을 붙잡아 둔다.** Next 는 미리 받아 둔 뼈대를 세운 채 응답을 기다리므로, 지금 레이아웃 안의
+ * 실제 `loading.tsx` 가 그대로 남는다. 미리보기 페이지를 따로 세우지 않으니 운영 주소가 늘지 않는다.
+ *
+ * `next dev` 로는 안 된다 — 개발 서버는 미리 받기를 끈다(`createPrefetchURL` 이 `NODE_ENV === 'development'` 면 빈손,
+ * 2026-10-10 Next 16.3.8). 미리 받은 뼈대가 없으면 Next 는 응답 전체를 기다려 화면을 한 번에 바꾸고, 그 응답의 첫 줄(`0:`)도
+ * 본문이 다 그려진 뒤에야 온다 — 붙잡으면 앞 화면에 머물 뿐이다. 그래서 시계를 민 쪽처럼 지어(`next start`) 따로 세운다.
+ * Next 의 `instant()` 시험 손잡이(`next-instant-navigation-testing` 쿠키)는 Cache Components 앱의 것이라 이 앱에서는
+ * 본문까지 그대로 그렸다.
+ */
+async function serverAsBuilt() {
+  const local = localStack();
+  return startCheckServer({
+    port: builtPort,
+    supabaseUrl: local.api,
+    anonKey: local.publishableKey,
+    secretKey: local.secretKey,
+  });
+}
+
+/**
+ * `via` 를 연 뒤 `at` 으로 탭을 누른 것처럼 옮기고, 본문을 실을 응답을 **놓아주지 않는다.** 미리 받기(`next-router-prefetch`)만
+ * 지나간다 — 뼈대는 그 응답에 실려 온다. `via` 는 뼈대가 서는 폴더 밖이어야 한다: 같은 폴더 안의 이동은 바깥 뼈대가 안 선다
+ * (`/me/matching` → `/me/matching/history` 처럼 안쪽 뼈대를 찍을 때는 바깥 화면에서 옮긴다).
+ */
+async function holdOnSkeleton(page, at) {
+  await page.route('**/*', (route) => {
+    const headers = route.request().headers();
+    /* 답하지 않고 둔다 — `undefined` 를 돌려주면 요청이 열린 채 남는다 */
+    if (headers.rsc === '1' && !headers['next-router-prefetch']) return undefined;
+    return route.fallback();
+  });
+  await page.evaluate((to) => window.next.router.prefetch(to), at);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
+  await page.evaluate((to) => window.next.router.push(to), at);
+  await page.locator('main[data-skeleton]').waitFor({ timeout: 10_000 });
+}
 
 async function serverPastTheEnd(day) {
   const local = localStack();
@@ -252,6 +295,26 @@ const PLAN = [
     ],
   },
   /*
+    **뼈대는 지은 서버에서 옮겨 가며 찍는다**(`holdOnSkeleton`, G-84). `at` 이 뼈대가 서는 화면, `via` 가 옮기기 전 화면이다.
+    `app/` 아래 `loading.tsx` 하나에 한 줄이다.
+  */
+  {
+    state: 'full',
+    group: '로딩 뼈대',
+    from: 'built',
+    shots: [
+      { id: 'skeleton-home', via: '/me/requests', at: '/me', name: '뼈대 — 홈' },
+      { id: 'skeleton-compat', via: '/me/requests', at: '/compat', name: '뼈대 — 궁합' },
+      { id: 'skeleton-matching', via: '/me/requests', at: '/me/matching', name: '뼈대 — 인연' },
+      { id: 'skeleton-matching-history', via: '/me/matching', at: '/me/matching/history', name: '뼈대 — 인연 지난 기록' },
+      { id: 'skeleton-chat', via: '/me/requests', at: '/me/chat', name: '뼈대 — 대화 목록' },
+      { id: 'skeleton-readings', via: '/me/requests', at: '/me/readings', name: '뼈대 — 사주풀이' },
+      { id: 'skeleton-settings', via: '/me/requests', at: '/me/settings', name: '뼈대 — 계정 관리' },
+      { id: 'skeleton-profile', via: '/me/requests', at: '/me/profile', name: '뼈대 — 프로필' },
+      { id: 'skeleton-survey', via: '/me/requests', at: '/me/survey', name: '뼈대 — 설문' },
+    ],
+  },
+  /*
     **맨 끝에 둔다.** 베타를 끝내는 것은 이 DB 전체에 걸리는 값이라, 앞에 두면 뒤의
     상태들이 전부 관문에 막힌다. 찍고 나서 되돌린다.
   */
@@ -290,6 +353,7 @@ const browser = await chromium.launch();
 const index = [];
 
 let later = null;
+let asBuilt = null;
 
 /** 몇 화면만 다시 찍을 때 — 빈 값이면 전부 */
 const only = (process.env.UI_ONLY ?? '').split(',').filter((one) => one !== '');
@@ -300,13 +364,17 @@ for (const step of PLAN) {
   const built = step.state === null ? null : await build(step.state);
   const person = built?.people[0] ?? null;
 
-  /* 시계를 민 서버는 **쓸 때 세운다** — 앞의 스물여덟 화면에는 필요 없다 */
+  /* 시계를 민 서버 · 지은 서버는 **쓸 때 세운다** — 앞의 스물여덟 화면에는 필요 없다 */
   if (step.from === 'later' && later === null) {
     const day = endsOn();
     console.log(`  · 시계를 ${day} 다음으로 민 서버를 ${laterPort} 에 세웁니다`);
     later = await serverPastTheEnd(day);
   }
-  const from = step.from === 'later' ? later.base : baseURL;
+  if (step.from === 'built' && asBuilt === null) {
+    console.log(`  · 뼈대를 찍을 지은 서버를 ${builtPort} 에 세웁니다`);
+    asBuilt = await serverAsBuilt();
+  }
+  const from = step.from === 'later' ? later.base : step.from === 'built' ? asBuilt.base : baseURL;
 
   for (const size of SIZES) {
     const context = await browser.newContext({
@@ -328,7 +396,9 @@ for (const step of PLAN) {
       /* 화면 밖에서 상태를 먼저 세울 줄이 있다 — 한 번만(데스크톱 차례에서) */
       if (shot.before && size.id === 'desktop') await shot.before(person, built);
       const at = typeof shot.at === 'function' ? shot.at(person, built) : shot.at;
-      await page.goto(`${from}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
+      await page.goto(`${from}${shot.via ?? at}`, { waitUntil: 'networkidle' }).catch(() => {});
+      /* 뼈대는 옮겨 가는 도중을 붙잡아 찍는다 — 안 서면 그 까닭을 적고 그대로 찍는다 */
+      if (shot.via) await holdOnSkeleton(page, at).catch((error) => console.log(`    ↳ 뼈대가 안 섰습니다: ${error.message}`));
       /* 화면이 누름 뒤에만 서면 그 누름까지 하고 찍는다 — 실패해도 찍는다(그 화면도 값이다) */
       if (shot.act) await shot.act(page).catch((error) => console.log(`    ↳ ${error.message}`));
       /*
@@ -343,9 +413,13 @@ for (const step of PLAN) {
         /* 창이 떠 있으면 덮인 화면만 — 긴 화면 전체를 찍으면 가림막이 첫 한 화면에만 선다 */
         fullPage: (await page.locator('dialog[open]').count()) === 0,
         style: DEV_ONLY,
+        /* 뼈대의 반짝임이 그림마다 다른 자리에 걸리지 않게 멈춘다 */
+        animations: shot.via ? 'disabled' : 'allow',
         type: 'jpeg',
         quality: 72,
       });
+      /* 붙잡은 응답을 놓는다 — 다음 화면은 보통으로 연다 */
+      if (shot.via) await page.unrouteAll({ behavior: 'ignoreErrors' });
 
       if (size.id === 'desktop') {
         index.push({ id: shot.id, group: step.group, name: shot.name, at, landed });
@@ -354,9 +428,9 @@ for (const step of PLAN) {
       /*
         **팝업은 그 화면에 이미 들어 있다.** 확인 창(`<dialog>`)은 누르기 전에도 DOM 에 서 있으므로
         누를 손잡이를 화면마다 찾지 않고 하나씩 직접 연다. 같은 창을 두 화면이 들면 둘 다 찍힌다.
-        `act` 가 있는 줄은 이미 무엇을 편 상태라 건너뛴다.
+        `act` 가 있는 줄은 이미 무엇을 편 상태라, `via` 가 있는 줄(뼈대)은 본문이 아직 없어 건너뛴다.
       */
-      const dialogs = shot.act ? 0 : await page.locator('dialog').count();
+      const dialogs = shot.act || shot.via ? 0 : await page.locator('dialog').count();
       for (let n = 0; n < dialogs; n += 1) {
         const label = await page
           .locator('dialog')
@@ -423,4 +497,5 @@ const merged = await (async () => {
 await writeFile(join(out, 'index.json'), `${JSON.stringify(merged, null, 2)}\n`);
 await browser.close();
 later?.stop();
+asBuilt?.stop();
 console.log(`\n${index.length}개 화면 × 2폭 → ${out}/`);
