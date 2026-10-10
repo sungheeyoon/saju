@@ -41,6 +41,7 @@ select set_eq(
            ('mark_chat_read(p_match_id uuid)'), -- 옛 서명 — 넓히는 동안 두 벌이다(G-77). 좁히는 날 이 줄을 뺀다
            ('mark_chat_read(p_match_id uuid, p_up_to_seq bigint)'),
            ('mark_notifications_read()'),
+           ('mark_reading_ready_read(p_reading_id uuid)'),
            ('match_reading_source(p_match_id uuid)'),
            ('match_request_ttl()'),
            ('move_my_photo(p_from integer, p_to integer, p_version bigint)'),

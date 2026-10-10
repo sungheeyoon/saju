@@ -23,7 +23,7 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
-import { generateReading, readingRunState, skipTasteCarry } from './actions';
+import { generateReading, markReadingReadyRead, readingRunState, skipTasteCarry } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
 import type { CurrentReading, ReadingCredits, RunProgress } from './current';
@@ -34,6 +34,8 @@ import { Markdown, READING_COLUMN } from './markdown';
 import { coverFace, readingMinutes } from './essay';
 import { readingOutline, type OutlineRow } from './outline';
 import { watchRun, type PageVisibility } from './watch-run';
+import { markAndAnnounce, newsKeyOf, readNewsWhenSeen } from './news-read';
+import { announceNotificationsUnreadMoved } from '../requests/unread-signal';
 import flow from './flow.module.css';
 import { skipCarriedTaste, takeTasteArrival } from '../../carried-taste';
 import {
@@ -322,6 +324,25 @@ export function ReadingPanel({
   /* 예시 글이 서 있는 것과 `mock !== null` 은 같은 말이다 — 따로 들면 한쪽만 지운다 */
   const isMock = flow.mock !== null;
   const reading = flow.mock ?? initialReading;
+
+  /**
+   * **이 글의 완성 소식을 읽음으로 바꾼다**(ADR 0157 「2026-10-10 덧」) — 서버가 준 글이 보일 때 한 번. 예시 글은 서버에
+   * 없는 글이라 안 부른다. 다시 받아 새 글이 서면(만든 시각이 바뀐다) 그 글의 소식도 한 번 — 기다리며 본 사람의 종이 남지 않는다.
+   * 개발 모드의 두 번 도는 effect 와 같은 글의 다시 그림은 열쇠가 막는다.
+   */
+  const newsKey = isMock ? null : newsKeyOf(initialReading);
+  const newsReadingId = isMock ? null : (initialReading?.id ?? null);
+  const newsSentFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (newsKey === null || newsReadingId === null || newsSentFor.current === newsKey) return;
+    return readNewsWhenSeen({
+      visibility: documentVisibility,
+      send: () => {
+        newsSentFor.current = newsKey;
+        void markAndAnnounce(newsReadingId, markReadingReadyRead, announceNotificationsUnreadMoved);
+      },
+    });
+  }, [newsKey, newsReadingId]);
 
   /**
    * **도는 시도를 지켜본다.** 끝난 것을 본 그 물음의 응답이 이 화면을 다시 그려 싣는다(`readingRunState` 의 `refreshPaths`).

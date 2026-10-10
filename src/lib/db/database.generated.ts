@@ -2910,6 +2910,10 @@ export type Database = {
         | { Args: { p_match_id: string }; Returns: number }
         | { Args: { p_match_id: string; p_up_to_seq: number }; Returns: number }
       mark_notifications_read: { Args: never; Returns: number }
+      mark_reading_ready_read: {
+        Args: { p_reading_id: string }
+        Returns: number
+      }
       mark_reading_webhook_processed: {
         Args: { p_event_id: string }
         Returns: undefined

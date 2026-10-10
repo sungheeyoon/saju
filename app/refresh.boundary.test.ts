@@ -170,6 +170,8 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '읽기만 한다 — 홈의 「만드는 중」 줄을 몇 초마다 다시 묻는다. 줄이 사라진 것을 본 섬이 홈을 다시 그린다(ADR 0157)',
     'app/me/reading/actions.ts::generateReading':
       '이 누름이 여는 것은 **시도**뿐이다. 글은 응답 뒤에 나고, 끝난 것을 확인한 자리가 무른다(ADR 0016)',
+    'app/me/reading/actions.ts::markReadingReadyRead':
+      '결과 화면에는 소식이 안 선다 — 머리글의 종은 부른 자리가 창 신호로 다시 세고, 소식 화면 · 홈은 계정 채널이 다시 그린다(ADR 0155 · 0157)',
     'app/me/reading/share.ts::shareMyReading':
       '링크 하나를 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 주소는 브라우저가 세운다',
     'app/nickname.ts::checkNickname': '읽기만 한다 — 참·거짓 하나',

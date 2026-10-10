@@ -118,3 +118,24 @@ export async function submitReadingFeedback(
 
   return { ok: true };
 }
+
+/** 완성 소식을 읽음으로 바꾼 답 — 바꾼 수가 실려야 머리글의 종을 다시 세울지 안다 */
+export type ReadingNewsRead = { ok: true; marked: number } | { ok: false; message: string };
+
+/**
+ * 결과 화면이 보인 **그 풀이의 완성 소식**을 읽음으로 바꾼다(ADR 0157 「2026-10-10 덧」).
+ *
+ * 어느 소식이 그 풀이의 것인지 · 내 것인지 · 이미 읽었는지는 DB 가 답한다(`mark_reading_ready_read`) — 다른 풀이의 소식과
+ * 남의 소식은 안 바뀌고, 이미 읽은 것은 다시 안 적는다. 그래서 같은 풀이를 몇 번 열어도 바뀌는 것은 처음 한 번이다.
+ *
+ * 화면을 무르지 않는다 — 결과 화면에는 소식이 안 서고, 머리글의 종은 부른 쪽이 창 신호로 다시 센다(`news-read.ts`).
+ * 소식 화면과 홈은 계정 채널의 `notifications` 가 다시 그린다(ADR 0155).
+ */
+export async function markReadingReadyRead(readingId: string): Promise<ReadingNewsRead> {
+  const supabase = await supabaseOnServer();
+
+  const { data, error } = await supabase.rpc('mark_reading_ready_read', { p_reading_id: readingId });
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_reading_ready_read') };
+
+  return { ok: true, marked: data ?? 0 };
+}
