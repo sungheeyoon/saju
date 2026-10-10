@@ -128,11 +128,6 @@ function unreceivedCalls(): string[] {
  */
 const NOT_YET: readonly string[] = [
   'app/me/chat/composer.tsx :: sendChatMessage',
-  'app/me/discovery/manage.tsx :: setDiscoveryParticipation',
-  'app/me/profile/form.tsx :: checkNickname',
-  'app/me/profile/form.tsx :: saveProfile',
-  'app/me/profile/photo-grid.tsx :: movePhoto',
-  'app/me/profile/photo-grid.tsx :: removePhoto',
 ];
 
 /**
