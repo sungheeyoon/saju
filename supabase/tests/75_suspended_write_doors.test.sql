@@ -13,7 +13,7 @@
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
 -- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(51);
+select plan(52);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -162,6 +162,7 @@ from (values
                             '42501 이용이 정지된 계정입니다.', null),
   ('send_chat_message',     format($$select public.send_chat_message(%L, '안녕하세요')$$, (select v from kept where k = 'match')),
                             '42501 이용이 정지된 계정입니다.', null),
+  ('set_my_photo_focus',    $$select public.set_my_photo_focus(1, 50, 50, 0)$$, '42501 이용이 정지된 계정입니다.', null),
   ('share_my_reading',      $$select public.share_my_reading('본문', '비유', 'self', null, null)$$, 'P0001 이용이 정지된 계정입니다.',
                             'errcode 없이 던진다 — 문장만 맞췄다(`36_suspended_sentence`)'),
 
