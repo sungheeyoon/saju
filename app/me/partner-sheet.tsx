@@ -11,7 +11,7 @@ import { Icon } from '../ui/icons';
 import { Avatar } from './avatar';
 import { CardPhotos } from './matching/card-photos';
 import { Letter } from './matching/letter';
-import { DetailSheet, openSheet } from './matching/today-card';
+import { closeSheet, DetailSheet, openSheet } from './matching/today-card';
 
 /**
  * 매칭된 상대 한 사람 — **지금의** 사진 · 소개다(동의 당시의 것이 아니다). 서버가 이미 열린 문에서 지어 넘긴다 —
@@ -40,8 +40,10 @@ export function usePartnerSheet() {
     setShown(true);
     openSheet(sheet.current);
   }, []);
+  /** 시트 안의 단추가 다른 칸으로 넘길 때 — X · Esc 와 같은 닫힘 몸짓으로 닫는다 */
+  const close = useCallback(() => closeSheet(sheet.current), []);
   const closed = useCallback(() => setShown(false), []);
-  return { sheet, shown, open, closed };
+  return { sheet, shown, open, close, closed };
 }
 
 export type PartnerSheetControl = ReturnType<typeof usePartnerSheet>;

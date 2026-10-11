@@ -46,11 +46,19 @@ export type ChatRoom = {
   readonly partnerActivity: ActivityBand | null;
 };
 
-const roomOf = (row: RoomRow): ChatRoom | null => {
+/** 문의 한 줄 → 방 하나(시험이 부른다) */
+export const roomOf = (row: RoomRow): ChatRoom | null => {
   const reason = row.closed_reason === null ? null : closedReasonOf(row.closed_reason);
   // 닫혔는데 이유를 모르면 무슨 말을 세울지 알 수 없다 — 그리지 않는다.
   if (row.closed_reason !== null && reason === null) return null;
-  const photos = photosFromFocus(row.partner_user_id ?? '', row.partner_photo_focus, row.partner_has_photo === true);
+  /*
+    닫힌 방(차단 · 정지 · 탈퇴 · 떠난 상대)에는 시트가 없다 — 상대의 장 수 · 보일 자리를 브라우저로 싣지 않는다. 머리 · 목록의
+    얼굴(대표 한 장, `partnerHasPhoto` · `partnerPhotoFocus`)은 그대로다
+  */
+  const open = reason === null && row.partner_left !== true;
+  const photos = open
+    ? photosFromFocus(row.partner_user_id ?? '', row.partner_photo_focus, row.partner_has_photo === true)
+    : { photoUrls: [], photoFocus: [] };
   return {
     matchId: row.match_id,
     partnerUserId: row.partner_user_id ?? null,

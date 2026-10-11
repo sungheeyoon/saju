@@ -41,14 +41,19 @@ export function Avatar({
 }) {
   const box = `${size}px`;
   const ringed = tone !== undefined;
-  /** 사진을 못 받았다 — 주소가 404 · 망 실패. 같은 사람의 같은 자리는 다시 묻지 않는다 */
-  const [failed, setFailed] = useState(false);
+  /**
+   * 사진을 못 받은 사람 — 주소가 404 · 망 실패. 같은 사람의 같은 자리는 다시 묻지 않는다. 사람이나 「사진이 있다」가 바뀌면
+   * 표시가 저절로 풀린다(그 값을 열쇠로 적어 둔다)
+   */
+  const photoKey = `${userId}:${hasPhoto}`;
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const failed = failedFor === photoKey;
   const image = useRef<HTMLImageElement>(null);
   /* 서버가 그린 그림은 수화 전에 이미 실패했을 수 있다 — 그때는 `onError` 가 안 온다. 붙은 뒤 한 번 본다 */
   useEffect(() => {
     const one = image.current;
-    if (one !== null && one.complete && one.naturalWidth === 0) setFailed(true);
-  }, []);
+    if (one !== null && one.complete && one.naturalWidth === 0) setFailedFor(photoKey);
+  }, [photoKey]);
 
   return (
     <span
@@ -72,7 +77,7 @@ export function Avatar({
             height={size}
             className="h-full w-full object-cover"
             style={{ objectPosition: focusPosition(focus) }}
-            onError={() => setFailed(true)}
+            onError={() => setFailedFor(photoKey)}
           />
         ) : (
           <span className="font-semibold">{initialOf(nickname)}</span>

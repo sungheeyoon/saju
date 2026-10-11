@@ -304,16 +304,7 @@ export function DetailSheet({
   /** 손잡이를 아래로 끈 만큼(px) */
   const [drag, setDrag] = useState(0);
 
-  const close = () => {
-    const dialog = sheet.current;
-    if (dialog === null || !dialog.open) return;
-    const settle = () => { dialog.close(); setDrag(0); };
-    if (reducedMotion()) { settle(); return; }
-    const frames = wideSheet()
-      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(12px)' }]
-      : [{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }];
-    dialog.animate(frames, { duration: wideSheet() ? 160 : 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
-  };
+  const close = () => closeSheet(sheet.current, drag, () => setDrag(0));
 
   return (
     <dialog
@@ -370,6 +361,20 @@ export function DetailSheet({
 
 /** 넓은 화면인가 — 시트가 가운데 대화상자로 서는 폭(`lg`, 클래스의 `lg:` 와 같은 문턱) */
 const wideSheet = (): boolean => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
+/**
+ * 시트를 닫는다 — 폰은 아래로 내려가고(끈 만큼에서 이어), 넓은 화면은 제자리에서 옅어진다. 시트 안의 단추가 다른 칸으로
+ * 넘길 때도(상대 프로필 시트의 「⋯」) 이 길로 닫는다. `settled` 는 닫힌 뒤 한 번
+ */
+export function closeSheet(dialog: HTMLDialogElement | null, drag = 0, settled?: () => void) {
+  if (dialog === null || !dialog.open) return;
+  const settle = () => { dialog.close(); settled?.(); };
+  if (reducedMotion()) { settle(); return; }
+  const frames = wideSheet()
+    ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(12px)' }]
+    : [{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }];
+  dialog.animate(frames, { duration: wideSheet() ? 160 : 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
+}
 
 /** 시트를 연다 — 폰은 아래에서 올라오고, 넓은 화면은 제자리에서 떠오른다 */
 export function openSheet(sheet: HTMLDialogElement | null) {

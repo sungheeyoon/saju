@@ -87,6 +87,8 @@ export function CardPhotos({
       data-card-photos=""
       className="absolute inset-0 touch-pan-y"
       onPointerDown={(event) => {
+        /* 새 누름이다 — 앞의 쓸기 뒤에 누름(click)이 안 왔어도(터치) 그 표시가 이 누름을 버리지 않게 */
+        swiped.current = false;
         press.current = { x: event.clientX, y: event.clientY };
       }}
       onPointerUp={(event) => {

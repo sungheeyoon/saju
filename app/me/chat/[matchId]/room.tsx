@@ -413,12 +413,12 @@ export function ChatRoomView({ room }: { room: RoomView }) {
             <ReportBlockMenu
               canBlock
               onReport={() => {
-                profile.sheet.current?.close();
+                profile.close();
                 setReported(false);
                 setSlot({ kind: 'report', messageId: null });
               }}
               onBlock={() => {
-                profile.sheet.current?.close();
+                profile.close();
                 setSlot({ kind: 'block' });
               }}
             />
