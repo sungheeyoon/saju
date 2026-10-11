@@ -28,8 +28,14 @@ export type Book = {
   readonly stale: boolean;
   /** 표지의 주인 — 한 사람이면 하나, 궁합이면 둘. 못 읽은 사람은 `null`(회색 표지) */
   readonly subjects: readonly (DayMaster | null)[];
+  /** 보관함의 찾는 칸이 맞춰 볼 이름 — 저장한 사람 · 인연의 이름. 나는 이름이 없어 비어 있다 */
+  readonly names: readonly string[];
   readonly href: string;
 };
+
+/** 찾는 칸이 맞춰 볼 이름 — 목록 문이 준 두 이름 가운데 있는 것만(만드는 중인 권도 같은 두 칸을 든다) */
+export const shelfNamesOf = (labelA: string | null, labelB: string | null): readonly string[] =>
+  [labelA, labelB].filter((label): label is string => label !== null && label !== '');
 
 export function bookOf(entry: ReadingEntry): Book {
   const single = READING_NOUN[entry.kind] === '사주풀이';
@@ -52,6 +58,7 @@ export function bookOf(entry: ReadingEntry): Book {
     score: entry.score,
     stale: !entry.fromCurrentChart,
     subjects,
+    names: shelfNamesOf(entry.labelA, entry.labelB),
     href: readingHref(entry),
   };
 }

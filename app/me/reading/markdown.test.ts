@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { markdownBlocks } from './markdown';
+import { markdownBlocks, outlineOf } from './markdown';
+
+/** 다 쓴 글의 목차 — 큰 소제목만, 차례 그대로, 둘부터 */
+describe('다 쓴 글의 목차', () => {
+  const titles = (source: string) => outlineOf(markdownBlocks(source)).map((part) => part.title);
+
+  it('큰 소제목(# · ##)이 차례대로 줄이 되고, 작은 소제목은 안 든다', () => {
+    expect(titles('## 첫 절\n\n본문.\n\n### 작은 머리\n\n## **둘째** 절\n\n본문.')).toEqual(['첫 절', '둘째 절']);
+  });
+
+  it('큰 소제목이 하나뿐이면 목차가 없다', () => {
+    expect(titles('## 하나\n\n본문.\n\n### 작은 머리')).toEqual([]);
+  });
+});
 
 const paragraphs = (source: string) =>
   markdownBlocks(source).flatMap((block) => (block.kind === 'paragraph' ? [block] : []));

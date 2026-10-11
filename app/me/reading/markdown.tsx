@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { Icon } from '../../ui/icons';
+
 /**
  * 결과 원문을 그대로 세운다 — **화면은 글의 절 구조를 알지 않는다.**
  *
@@ -142,8 +144,36 @@ export function markdownBlocks(source: string): MarkdownBlock[] {
   return blocks;
 }
 
-export function Markdown({ source }: { source: string }) {
-  const blocks = markdownBlocks(source).map((block, at): ReactNode => {
+/** 목차가 서는 큰 소제목의 수 — 하나뿐이면 갈 곳이 없다 */
+const OUTLINE_FROM = 2;
+
+/** 목차와 절의 주소 — `#part-2` 로 그 절에 바로 간다. 목차 자신은 `#outline` */
+export const OUTLINE_ID = 'outline';
+export const partIdOf = (index: number): string => `part-${index + 1}`;
+
+/** 목차 줄의 글자 — 소제목의 `**` · `` ` `` 표시만 걷는다 */
+const plain = (text: string): string => text.replace(/\*\*|`/g, '');
+
+/**
+ * 목차에 설 큰 소제목(`#` · `##`) — 덩이 차례 그대로. 둘보다 적으면 빈 목록이다.
+ */
+export function outlineOf(blocks: readonly MarkdownBlock[]): readonly { readonly at: number; readonly title: string }[] {
+  const parts = blocks.flatMap((block, at) =>
+    block.kind === 'heading' && block.depth <= 2 ? [{ at, title: plain(block.text) }] : [],
+  );
+  return parts.length >= OUTLINE_FROM ? parts : [];
+}
+
+/**
+ * `outline` 이면 **다 쓴 글 머리에 목차가 서고 절마다 목차로 돌아가는 길이 붙는다** — 긴 글에서 보고 싶은 절을 다시 찾으려면
+ * 끝까지 내려야 했다. 줄은 모델이 단 소제목 그대로다(화면은 이름을 짓지 않는다). 공유본은 안 단다.
+ */
+export function Markdown({ source, outline = false }: { source: string; outline?: boolean }) {
+  const parsed = markdownBlocks(source);
+  const parts = outline ? outlineOf(parsed) : [];
+  const partOf = new Map(parts.map((part, index) => [part.at, index]));
+
+  const blocks = parsed.map((block, at): ReactNode => {
     const key = `${block.kind}-${at}`;
     switch (block.kind) {
       case 'rule':
@@ -169,25 +199,63 @@ export function Markdown({ source }: { source: string }) {
           </p>
         );
 
-      case 'heading':
-        return block.depth <= 2 ? (
+      case 'heading': {
+        const part = partOf.get(at);
+        const title = (
           <h3
             key={key}
-            className={`flex items-center gap-2.5 font-rounded text-[1.5rem] leading-[1.35] text-foreground ${at === 0 ? '' : 'mt-8'}`}
+            id={part === undefined ? undefined : partIdOf(part)}
+            className={`flex min-w-0 flex-1 scroll-mt-24 items-center gap-2.5 font-rounded text-[1.5rem] leading-[1.35] text-foreground ${at === 0 || part !== undefined ? '' : 'mt-8'}`}
           >
             <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
             <span>{inline(block.text, key)}</span>
           </h3>
-        ) : (
-          <h4 key={key} className={`text-[17px] font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
-            {inline(block.text, key)}
-          </h4>
         );
+        if (block.depth > 2) {
+          return (
+            <h4 key={key} className={`text-[17px] font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
+              {inline(block.text, key)}
+            </h4>
+          );
+        }
+        if (part === undefined) return title;
+        /* 목차로 돌아가는 길은 소제목 밖 곁에 선다 — 안에 두면 소제목을 읽을 때 「목차」가 함께 읽힌다 */
+        return (
+          <div key={key} className={`flex items-start gap-2 ${at === 0 ? '' : 'mt-8'}`}>
+            {title}
+            <a
+              href={`#${OUTLINE_ID}`}
+              className="flex min-h-11 shrink-0 items-center gap-1 rounded-full px-2 text-[13px] font-semibold text-secondary hover:text-foreground"
+            >
+              <Icon name="send" className="size-3.5" />
+              목차
+            </a>
+          </div>
+        );
+      }
     }
   });
 
   return (
     <div className={`${READING_COLUMN} flex flex-col gap-5 text-[17px] leading-[1.85] text-foreground/90 [&_strong]:text-foreground`}>
+      {parts.length > 0 && (
+        <nav id={OUTLINE_ID} aria-label="목차" className="mb-3 flex scroll-mt-24 flex-col gap-1 rounded-[1.5rem] bg-surface-sunken p-3">
+          <p className="px-2 pt-1 text-[13px] font-semibold text-secondary">목차</p>
+          <ol className="flex flex-col">
+            {parts.map((part, index) => (
+              <li key={part.at}>
+                <a
+                  href={`#${partIdOf(index)}`}
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-2 text-[15px] leading-6 text-foreground hover:bg-surface"
+                >
+                  <span className="w-5 shrink-0 text-right text-[13px] font-semibold tabular-nums text-muted">{index + 1}</span>
+                  {part.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       {blocks}
     </div>
   );
