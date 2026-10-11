@@ -21,7 +21,7 @@ import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { withCameFrom } from '../../../came-from';
 import { elementScope } from '../../../ui/element-tone';
-import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, ICON_BUTTON_GHOST } from '../../../ui/buttons';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { useDetailsMenu } from '../../../ui/details-menu';
@@ -77,10 +77,6 @@ type RoomView = {
   /** 그 인연 궁합이 어디까지 왔나 — 궁합 단추가 든다. 열린 방에만 온다(닫힌 방에는 단추가 없다) */
   readonly compat: RoomCompat | null;
 };
-
-/** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다(「⋯」도 같은 모양이다, `ReportBlockMenu`) */
-const GHOST_ICON =
-  'grid size-11 shrink-0 place-items-center rounded-full text-foreground hover:bg-surface-soft active:scale-95';
 
 type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageId: string | null };
 
@@ -237,7 +233,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-[1.75rem] md:ring-1 md:ring-border lg:rounded-[2rem]`}
     >
       <header className="flex items-center gap-2 border-b border-border px-2.5 py-2.5 sm:gap-3 sm:px-4">
-        <Link href="/me/chat" aria-label="대화방 목록" className={`${GHOST_ICON} lg:hidden`}>
+        <Link href="/me/chat" aria-label="대화방 목록" className={`${ICON_BUTTON_GHOST} lg:hidden`}>
           <Icon name="back" />
         </Link>
         {/*

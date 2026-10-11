@@ -43,6 +43,10 @@ export const BUTTON_SECONDARY_SMALL = `${BUTTON_SECONDARY_SMALL_FACE} min-h-11 p
 /** 되돌릴 수 없는 누름(탈퇴 · 차단 · 삭제) — 주 단추의 모양에 위험 색 */
 export const BUTTON_DANGER = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-danger px-5 text-[15px] font-semibold text-surface hover:opacity-90 ${PRESS}`;
 
+/** 판 위에 테 없이 서는 아이콘 단추 44px — 화면 머리의 ← · 「⋯」. 이름은 `aria-label` 이 든다 */
+export const ICON_BUTTON_GHOST =
+  'grid size-11 shrink-0 place-items-center rounded-full text-foreground hover:bg-surface-soft active:scale-95';
+
 /** 동그란 아이콘 단추 44px — 안에 `<Icon>` 하나. 이름은 `aria-label` 이 든다 */
 const ICON_BUTTON_SHAPE = `relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full ring-1 hover:ring-border-strong active:scale-95`;
 export const ICON_BUTTON = `${ICON_BUTTON_SHAPE} bg-surface text-foreground ring-border`;

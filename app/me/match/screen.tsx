@@ -10,9 +10,9 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { PillarPair } from '../../compat-view';
-import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, ICON_BUTTON_GHOST } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT } from '../../ui/surfaces';
+import { EMPTY_SLOT, TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { ReportBlock } from '../requests/report-block';
 import { PartnerFace } from '../partner-sheet';
 import { ReadingSection } from '../reading/section';
@@ -89,7 +89,7 @@ export async function MatchScreen({
         <Link
           href={back.href}
           aria-label={back.label}
-          className={`grid size-11 shrink-0 place-items-center rounded-full text-secondary hover:bg-surface-soft hover:text-foreground ${besideShelf ? 'lg:hidden' : ''}`}
+          className={`${ICON_BUTTON_GHOST} ${besideShelf ? 'lg:hidden' : ''}`}
         >
           <Icon name="back" className="size-5" />
         </Link>
@@ -111,13 +111,13 @@ export async function MatchScreen({
         <Title className="min-w-0 flex-1">
           {outcome.kind === 'ok' ? (
             <>
-              <span className="block break-words text-[18px] font-semibold leading-6 text-foreground sm:text-[20px]">
+              <span className={`${TYPE_NAME} block break-words`}>
                 {outcome.result.partnerNickname} 님
               </span>{' '}
-              <span className="mt-0.5 block text-[13px] font-normal leading-5 text-secondary">궁합 결과</span>
+              <span className={`${TYPE_META} block`}>궁합 결과</span>
             </>
           ) : (
-            <span className="block break-words text-[18px] font-semibold leading-6 text-foreground sm:text-[20px]">궁합 결과</span>
+            <span className={`${TYPE_NAME} block break-words`}>궁합 결과</span>
           )}
         </Title>
         <div className="flex shrink-0 items-center gap-1">
