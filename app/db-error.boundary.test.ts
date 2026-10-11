@@ -65,8 +65,6 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/me/requests/page.tsx': '오류 경계 — 던지는 자리가 이미 번역한 Error 를 세운다',
 
   /* 엔진이 우리말로 내는 오류 — DB 거절이 아니다 */
-  'app/birth-form.tsx': 'LunarConversionError — 엔진이 우리말로 낸다',
-  'src/lib/input/edit.ts': 'LunarConversionError — 같다',
   'src/lib/input/chart.ts': '명식 계산 실패 — 엔진 오류지 DB 거절이 아니다',
   'src/lib/input/stored.ts': 'UnreadableInputError · LunarConversionError 만 옮긴다 — 둘 다 우리말이다',
   'app/me/reading/preview.ts': 'ReadingEvidenceError 만 옮긴다 — `src/lib/reading` 이 우리말로 낸다',

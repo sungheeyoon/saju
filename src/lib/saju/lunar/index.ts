@@ -143,6 +143,16 @@ function monthsOf(record: RawLunarYear): { month: number; leap: boolean; days: n
   return months;
 }
 
+/**
+ * 그 해 음력의 달들 — 시간순으로, 윤달이면 `leap` 이고 날 수(29 · 30)를 든다. 표 밖의 해면 `LunarConversionError`.
+ *
+ * 변환이 거절한 까닭을 사람의 말로 옮기는 쪽(`src/lib/input`)이 그 달이 며칠까지인지 · 그 해 윤달이 몇 월인지를 여기서 읽는다.
+ * 엔진은 사실만 내고 문장은 입력 층이 짓는다.
+ */
+export function lunarMonthsOf(year: number): readonly { month: number; leap: boolean; days: number }[] {
+  return monthsOf(yearRecordOf(year));
+}
+
 /** 음력 날짜를 양력으로. 없는 날이면 `LunarConversionError` 를 던진다. */
 export function solarFromLunar(date: LunarDate): CivilDate {
   const record = yearRecordOf(date.year);
