@@ -12,7 +12,7 @@ import {
 import { BLOCK_NOTE } from '@/src/lib/consent';
 
 import type { SaveResult } from '../../save-result';
-import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../../ui/buttons';
+import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON, ICON_BUTTON_GHOST } from '../../ui/buttons';
 import { ConfirmDialog, openConfirmDialog, pressedOutside } from '../../ui/confirm-dialog';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon } from '../../ui/icons';
@@ -30,10 +30,6 @@ import { FailureLine } from '../../ui/failure-line';
  * 셋이 같은 모양을 쓰도록 대화방의 「⋯」를 여기로 옮겼다. 신고는 사람에게 건다(`report_user`) — 대화방만 메시지를 골라
  * 근거를 붙일 수 있고, 그것도 고르지 않아도 된다(C1).
  */
-
-/** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다 */
-const GHOST_ICON =
-  'grid size-11 shrink-0 place-items-center rounded-full text-foreground hover:bg-surface-soft active:scale-95';
 
 /** 사진 위의 단추 — 카드의 ⓘ 와 같은 반투명 검정 동그라미. 사진이 희어도 읽힌다 */
 const ON_PHOTO_ICON =
@@ -72,7 +68,7 @@ export function ReportBlockMenu({
     <details ref={menu} className={`${className || 'relative'} shrink-0`}>
       <summary
         aria-label="신고 · 차단"
-        className={`${look === 'photo' ? ON_PHOTO_ICON : GHOST_ICON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+        className={`${look === 'photo' ? ON_PHOTO_ICON : ICON_BUTTON_GHOST} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
         <Icon name="more" />
       </summary>

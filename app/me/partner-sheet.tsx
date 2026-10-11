@@ -85,7 +85,7 @@ export function PartnerSheet({
         {partner.photoUrls.length > 0 ? (
           <div
             ref={frame}
-            className="relative aspect-square w-full select-none overflow-hidden rounded-[1.25rem] bg-surface-sunken lg:aspect-[4/5] lg:max-h-[42dvh]"
+            className="relative aspect-square w-full select-none overflow-hidden rounded-[1.75rem] bg-surface-sunken lg:aspect-[4/5] lg:max-h-[42dvh]"
           >
             <CardPhotos
               card={{
@@ -112,7 +112,7 @@ export function PartnerSheet({
           {toMatch !== null && <div className="shrink-0">{toMatch}</div>}
         </div>
         {intro !== null && (
-          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-secondary">{intro}</p>
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">{intro}</p>
         )}
       </div>
     </DetailSheet>
