@@ -8,7 +8,8 @@ import { refresh } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sendAcceptedMatchReading } from '../reading/pipeline';
-import { userFacingDbMessage } from '../../db-error';
+import { answerOfThrown, userFacingDbMessage } from '../../db-error';
+import { matchOfAcceptedRequest } from './inbox';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -19,7 +20,7 @@ import { rpcArgs } from '@/src/lib/db';
  * 없는 Match 를 찾게 된다. 그래서 결과를 성공/실패가 아니라 **상태**로 돌려준다.
  */
 type RespondResult =
-  | { ok: true; status: RequestStatus; credits?: 'moved' }
+  | { ok: true; status: RequestStatus; credits?: 'moved'; matchId?: string }
   | { ok: false; message: string };
 
 function statusOf(value: unknown): RequestStatus | null {
@@ -68,7 +69,18 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
   }
 
   refresh('requests-changed');
-  return { ok: true, status };
+  if (status !== 'accepted') return { ok: true, status };
+
+  /*
+    **수락하면 그 인연 궁합으로 간다**(ADR 0130 「2026-10-11」) — 단추가 「수락하고 궁합 열기」다. 그 Match 를 못 찾거나 읽기가
+    실패해도 수락은 이미 끝났다 — 실패로 답하지 않고 옮길 곳 없이 답한다. 화면은 카드를 내리고 인연 탭에 남는다.
+    못 읽은 까닭은 `answerOfThrown` 이 기록에 남긴다(DB 실패면 `dbFailure` 가 이미 남겼다).
+  */
+  const matchId = await matchOfAcceptedRequest(requestId).catch((thrown: unknown) => {
+    answerOfThrown(thrown, 'matchOfAcceptedRequest');
+    return null;
+  });
+  return matchId === null ? { ok: true, status } : { ok: true, status, matchId };
 }
 
 /**

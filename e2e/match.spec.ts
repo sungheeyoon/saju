@@ -89,14 +89,17 @@ async function sentRequest(person: Person): Promise<void> {
 
 /**
  * **「답했다」도 마찬가지다.** 수락을 누르면 단추의 글자가 「보내는 중…」으로 바뀌므로
- * 「수락하고 궁합 열기」가 사라진 것은 눌렀다는 뜻이지 답했다는 뜻이 아니다. 답이 나면 화면이 새로 그려져 받은
- * 요청 띠가 내려간다 — 그것을 기다린 뒤에 옮긴다. 그 요청은 인연 기록의 「끝난 요청」으로 가서 성립을 말한다
- * (2026-09-29 u2) — 그 문장까지 본다.
+ * 「수락하고 궁합 열기」가 사라진 것은 눌렀다는 뜻이지 답했다는 뜻이 아니다. 수락이 성립하면 화면이 **그 인연 궁합으로
+ * 옮겨 간다**(ADR 0130 「2026-10-11」) — ← 는 인연 탭이다. 그 주소를 기다린 뒤에 옮긴다. 그 요청은 인연 기록의 「끝난 요청」으로
+ * 가서 성립을 말하고, 그 줄이 같은 인연 궁합으로 간다 — 거기까지 본다.
  */
 async function acceptedRequest(person: Person): Promise<void> {
-  await expect(person.page.locator('#requests-lead')).toHaveCount(0);
+  await expect(person.page).toHaveURL(/\/me\/match\/[0-9a-f-]+\?from=matching$/);
+  const opened = new URL(person.page.url()).pathname;
+  await expect(person.page.getByRole('main').getByRole('link', { name: '인연', exact: true })).toHaveAttribute('href', '/me/matching');
   await person.page.goto('/me/matching/history');
-  await expect(person.page.getByText('수락해서 인연 궁합이 열렸어요.')).toBeVisible();
+  const line = person.page.locator('#requests-log').getByRole('link', { name: /수락해서 인연 궁합이 열렸어요\./ });
+  await expect(line).toHaveAttribute('href', `${opened}?from=history`);
 }
 
 /** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
@@ -696,10 +699,7 @@ test.describe('동의로 열리는 흐름', () => {
     await reach(receiver, '수락하고 궁합 열기', received);
     await receiver.page.keyboard.press('Enter');
     /**
-     * **수락은 화면을 옮기지 않는다**(ADR 0058) — 성립한 궁합은 요청 카드 자리가 아니라 풀이
-     * 목록에 선다. 그래서 답이 난 것을 이 자리에서 재고, 결과가 어디 서는지는 흐름
-     * 시험이 따로 잡는다. 결과 화면으로 옮겨 가는 것을 여기서 기다리면, 안 눌렸을
-     * 때와 「안 옮겨 가는 것이 맞을 때」가 같은 실패로 보인다.
+     * **수락하면 그 인연 궁합으로 옮겨 간다**(ADR 0130 「2026-10-11」) — 키보드로 누른 수락도 그 주소에 닿아야 답이 난 것이다.
      *
      * 단추가 사라진 것으로 재면 안 된다 — 누르는 순간 글자가 바뀌어 사라진다. 그 뒤에
      * 화면을 옮기면 가던 POST 가 끊겨 수락이 서버에 닿지 않는다(`acceptedRequest`).
