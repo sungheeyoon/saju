@@ -73,7 +73,9 @@ export default async function MatchHistoryPage() {
   const matchCount = books.length + making.length;
   const past = requests.ok ? pastRequests(requests.value, matches.ok ? matches.value : null) : null;
   const pastCount = past === null ? 0 : past.sent.length + past.decided.length;
-  const empty = readings.ok && requests.ok && matchCount === 0 && pastCount === 0 && past?.blocked === 0;
+  /* 만드는 중인 것을 가를 `my_matches` 를 못 읽으면 수가 모자라다 — 수를 안 세우고 빈 기록이라 하지 않는다(G-100) */
+  const matchesWhole = readings.ok && matches.ok;
+  const empty = matchesWhole && requests.ok && matchCount === 0 && pastCount === 0 && past?.blocked === 0;
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
@@ -100,11 +102,11 @@ export default async function MatchHistoryPage() {
         </section>
       )}
 
-      {(!readings.ok || matchCount > 0) && (
+      {(!matchesWhole || matchCount > 0) && (
         <section aria-labelledby="history-matches" className="flex flex-col gap-4">
           <h2 id="history-matches" className={`${TYPE_SECTION} flex items-center gap-2`}>
             인연 궁합
-            {readings.ok && <span className={COUNT_CHIP}>{matchCount}</span>}
+            {matchesWhole && <span className={COUNT_CHIP}>{matchCount}</span>}
           </h2>
           {readings.ok ? (
             <>
@@ -120,6 +122,7 @@ export default async function MatchHistoryPage() {
                   ))}
                 </ul>
               )}
+              {!matches.ok && <FailureLine retry>만드는 중인 인연 궁합을 불러오지 못했어요. {matches.reason}</FailureLine>}
             </>
           ) : (
             <FailureLine retry>인연 궁합을 불러오지 못했어요. {readings.reason}</FailureLine>
