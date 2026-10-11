@@ -3707,6 +3707,15 @@ export type Database = {
         Args: { p_endpoint: string }
         Returns: boolean
       }
+      replace_my_photo: {
+        Args: {
+          p_base64: string
+          p_content_type: string
+          p_position: number
+          p_version: number
+        }
+        Returns: number
+      }
       report_chat_message: {
         Args: { p_detail?: string; p_message_id: string; p_reason: string }
         Returns: string

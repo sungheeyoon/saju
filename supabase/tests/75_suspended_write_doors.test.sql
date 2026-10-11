@@ -13,7 +13,7 @@
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
 -- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(50);
+select plan(51);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -148,6 +148,7 @@ from (values
   ('my_discovery_board',    $$select * from public.my_discovery_board()$$, '42501 이용이 정지된 계정입니다.', null),
   ('my_passed_connections', $$select * from public.my_passed_connections()$$, '42501 이용이 정지된 계정입니다.', null),
   ('remove_my_photo',       $$select public.remove_my_photo(1, 0)$$, '42501 이용이 정지된 계정입니다.', null),
+  ('replace_my_photo',      $$select public.replace_my_photo(1, 0, 'image/jpeg', '/9j/4A==')$$, '42501 이용이 정지된 계정입니다.', null),
   ('report_chat_message',   $$select public.report_chat_message(gen_random_uuid(), 'etc', null)$$, '42501 이용이 정지된 계정입니다.', null),
   ('report_user',           format($$select public.report_user(%L, 'etc', null)$$, (select lee from folks)), '42501 이용이 정지된 계정입니다.', null),
   ('request_account_deletion', $$select public.request_account_deletion()$$, '42501 이용이 정지된 계정입니다.', null),
@@ -234,7 +235,7 @@ order by d.name;
 select is(
   (select count(*)::int from public.profile_photo where user_id = (select kim from folks)),
   1,
-  '사진은 그대로다 — 올리기 · 옮기기 · 지우기 문이 막혔고, 전부 내리던 옛 문(`clear_my_photo`)은 걷었다');
+  '사진은 그대로다 — 올리기 · 바꾸기 · 옮기기 · 지우기 문이 막혔고, 전부 내리던 옛 문(`clear_my_photo`)은 걷었다');
 
 select is(
   (select count(*)::int from public.match_request where requester_user_id = (select kim from folks) and status = 'pending'),
