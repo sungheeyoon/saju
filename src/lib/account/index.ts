@@ -172,6 +172,21 @@ export function accountNoticeOf(
 }
 
 /**
+ * 화면이 계정을 **못 읽었을 때** 세우는 실패 줄 — 문장 하나와 다음 길 하나(ADR 0164, G-100).
+ *
+ * 회색 안내 상자(`accountNoticeOf`)로 서던 때는 다른 안내와 구별이 안 되고 다시 읽을 길이 없었다. 두 까닭의 지시가 다른 것은
+ * 그대로다 — 행이 없으면 다시 로그인해야 새 행이 서고(대장 07 의 6), 못 닿았으면 다시 받아 그리면 된다. 지시는 문장이 아니라
+ * 줄 곁의 링크 · 단추가 든다. 정지 · 탈퇴 대기(`halted`)는 못 읽은 것이 아니라 여기 안 든다 — 다시 해도 안 풀린다.
+ */
+export function accountFailureOf(
+  state: AccountState,
+): { readonly line: string; readonly next: 'signIn' | 'retry' } | null {
+  if (state.kind === 'missing') return { line: '계정을 찾지 못했어요.', next: 'signIn' };
+  if (state.kind === 'unreachable') return { line: '계정을 확인하지 못했어요.', next: 'retry' };
+  return null;
+}
+
+/**
  * 떠나기 전에 읽는 말.
  *
  * **화면이 약속한 것과 실제로 벌어지는 일이 반대였다.**
