@@ -16,6 +16,7 @@
 | localLabel | `local_label` | `user_person_access` 칸 |
 | 닉네임 | `nickname` · `nicknameKey` | `app_user` 칸 · `src/lib/profile` |
 | 프로필 사진 | `profile_photo` · `photo_at` | 표 · 함수 |
+| 보일 자리 | `focus_x` · `focus_y` · `set_my_photo_focus` · `PhotoFocus` | `profile_photo` 칸 · 함수 · `src/lib/profile` |
 | 이용 정지 | `suspended` · `AccountStatus` | `app_user.status` 값 · `src/lib/account` |
 | 계정을 못 읽음 | `AccountRead` · `readAccount` | `app/me/account.ts` |
 | 탈퇴 대기 | `deletion_requested` · `requestAccountDeletion` | `app_user.status` 값 · 액션 |

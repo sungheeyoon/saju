@@ -11,6 +11,7 @@ import {
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
 import type { RpcRow } from '@/src/lib/db';
+import { focusesOf, type PhotoFocus } from '@/src/lib/profile';
 
 /**
  * **후보가 브라우저로 내려가는 유일한 문.**
@@ -44,6 +45,8 @@ type CandidateCard = {
   readonly hasPhoto: boolean;
   /** 사진 주소들 — 자리 순서, 첫 장이 대표(G-60). 사진이 없으면 빈 배열 */
   readonly photoUrls: readonly string[];
+  /** 장마다 보일 자리 — `photoUrls` 와 같은 차례 · 같은 수(G-98) */
+  readonly photoFocus: readonly PhotoFocus[];
   /**
    * 기본 아바타의 색 — 그 사람 일간의 오행(운영자 2026-09-24). **색에만 쓰고 글자로 말하지 않는다.**
    * 사진이 있거나 명식을 모르면 `null`. 카드 · 기운 칸 · 지도의 색(채워 주는 기운)과는 다른 값이다
@@ -178,16 +181,18 @@ const photoCountOf = (count: number | null | undefined, hasPhoto: boolean): numb
 /** RPC가 허용한 공개 행을 직렬화 가능한 카드로 옮긴다. 복원도 기존 점수 문구를 쓴다. */
 export function publicCardFromRow(
   row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>
-    & Partial<Pick<BoardRow, 'avatar_element' | 'photo_count'>>,
+    & Partial<Pick<BoardRow, 'avatar_element' | 'photo_count' | 'photo_focus'>>,
   mySummary: ElementSummary,
 ) {
   const hasPhoto = row.has_photo === true;
+  const photoUrls = photoUrlsOf(row.candidate_user_id, photoCountOf(row.photo_count, hasPhoto));
   return {
     candidateUserId: row.candidate_user_id,
     nickname: row.nickname,
     intro: row.intro,
     hasPhoto,
-    photoUrls: photoUrlsOf(row.candidate_user_id, photoCountOf(row.photo_count, hasPhoto)),
+    photoUrls,
+    photoFocus: focusesOf(row.photo_focus, photoUrls.length),
     avatarElement: avatarElementOf(row.avatar_element),
     exploration: false,
     ...candidateCardText({

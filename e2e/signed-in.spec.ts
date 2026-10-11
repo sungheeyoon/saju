@@ -3195,6 +3195,8 @@ test.describe('가입 관문', () => {
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: '사진 변경' }).click();
     await (await chooser).setFiles('e2e/fixtures/jiwoo.webp');
+    /* 고른 뒤 올리기 전에 위치 조정 창이 선다(G-98) — 그대로 「저장」 */
+    await page.getByRole('dialog', { name: '위치 조정' }).getByRole('button', { name: '저장', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: '사진을 변경했어요' })).toBeVisible();
     await expect.poll(() => versionAt(6)).not.toBe(before[5]);
     expect(await Promise.all([1, 2, 3, 4, 5].map(versionAt))).toEqual(before.slice(0, 5));
@@ -3244,6 +3246,8 @@ test.describe('가입 관문', () => {
     await page.goto('/me/profile');
 
     await page.getByLabel('사진 추가').setInputFiles(['e2e/fixtures/harin.webp']);
+    /* 한 장을 고르면 위치 조정 창이 선다(G-98) — 그대로 「저장」 */
+    await page.getByRole('dialog', { name: '위치 조정' }).getByRole('button', { name: '저장', exact: true }).click();
     const photo = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
     await expect(photo).toBeVisible();
 

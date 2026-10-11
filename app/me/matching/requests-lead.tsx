@@ -195,6 +195,7 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
           userId={request.counterpartUserId}
           nickname={request.nickname}
           hasPhoto={request.hasPhoto}
+          focus={request.photoFocus}
           size={large ? 52 : 40}
         />
         <div className="min-w-0 flex-1">

@@ -10,6 +10,7 @@ import {
   type RequestDirection,
   type RequestStatus,
 } from '@/src/lib/consent';
+import { leadFocusOf, type PhotoFocus } from '@/src/lib/profile';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { withCameFrom } from '../../came-from';
@@ -43,6 +44,8 @@ export type InboxRequest = {
   readonly nickname: string;
   readonly intro: string | null;
   readonly hasPhoto: boolean;
+  /** 대표 사진의 보일 자리(G-98) */
+  readonly photoFocus: PhotoFocus;
   readonly status: RequestStatus;
   /** 상대가 내게 채우는 오행 — **내 자리 기준**이다. 방향은 DB 가 뒤집어 준다 */
   readonly suppliedToMe: string | null;
@@ -59,6 +62,8 @@ export type InboxMatch = {
   readonly nickname: string;
   readonly intro: string | null;
   readonly hasPhoto: boolean;
+  /** 대표 사진의 보일 자리(G-98) */
+  readonly photoFocus: PhotoFocus;
   readonly suppliedToMe: string | null;
   readonly balanceLabel: string;
   readonly createdAt: string;
@@ -97,6 +102,7 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   nickname: row.partner_nickname ?? '',
   intro: row.partner_intro,
   hasPhoto: row.partner_has_photo === true,
+  photoFocus: leadFocusOf(row.partner_photo_focus),
   suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
   balanceLabel: balanceLabelOf(row.balance_band),
   createdAt: row.created_at,
@@ -178,6 +184,7 @@ function requestOf(row: RequestRow): InboxRequest[] {
       nickname: row.counterpart_nickname ?? '',
       intro: row.counterpart_intro,
       hasPhoto: row.counterpart_has_photo === true,
+      photoFocus: leadFocusOf(row.counterpart_photo_focus),
       status,
       suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
       suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),

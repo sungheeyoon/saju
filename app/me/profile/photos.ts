@@ -1,5 +1,6 @@
 import { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
+import { focusOf, type PhotoFocus } from '@/src/lib/profile';
 
 /** 내 사진 한 장 — 자리와 판본. **바이트는 없다** — 그림은 주소로 받아 간다 */
 export type MyPhoto = {
@@ -7,6 +8,8 @@ export type MyPhoto = {
   readonly position: number;
   /** 그 장을 올린 시각에서 온 수. 옮겨도 안 바뀌어 주소의 `?v=` 가 그 장을 가리킨다 */
   readonly version: number;
+  /** 보일 자리(G-98) — 모든 사진 자리가 이 자리를 보인다 */
+  readonly focus: PhotoFocus;
 };
 
 /**
@@ -21,5 +24,5 @@ export async function myPhotos(): Promise<MyPhoto[]> {
   const { data, error } = await supabase.rpc('my_photos');
   if (error) throw dbFailure(error, 'my_photos');
 
-  return (data ?? []).map((row) => ({ position: row.position, version: row.version }));
+  return (data ?? []).map((row) => ({ position: row.position, version: row.version, focus: focusOf(row.focus_x, row.focus_y) }));
 }

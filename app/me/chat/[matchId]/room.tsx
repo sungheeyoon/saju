@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { REPORT_DONE } from '@/src/lib/account';
+import type { PhotoFocus } from '@/src/lib/profile';
 import {
   NEW_MESSAGES_LABEL,
   OLDER_LOADING_LABEL,
@@ -53,6 +54,8 @@ type RoomView = {
   /** 상대가 떠났으면 `null` — 사진도 신고도 차단도 걸 사람이 없다(ADR 0094) */
   readonly partnerUserId: string | null;
   readonly partnerHasPhoto: boolean;
+  /** 상대 대표 사진의 보일 자리(G-98) */
+  readonly partnerPhotoFocus: PhotoFocus;
   /** 닫힌 까닭 한 줄 — 열린 방은 `null` */
   readonly notice: string | null;
   /** 열린 방에만 온다(ADR 0092) */
@@ -221,7 +224,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         */}
         <div className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <span className={closed ? 'opacity-60 grayscale' : ''}>
-            <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} tone={theirTone} />
+            <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto}
+              focus={room.partnerPhotoFocus} size={44} tone={theirTone} />
           </span>
           <div className="min-w-0 flex-1">
             {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
@@ -423,7 +427,8 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
   if (tones === null) {
     return (
       <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
-        <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={72} />
+        <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto}
+              focus={room.partnerPhotoFocus} size={72} />
         <p className={TYPE_NAME}>{room.heading}</p>
         {toMatch}
         {hello}
@@ -510,6 +515,7 @@ function BubbleRow({
               userId={room.partnerUserId ?? ''}
               nickname={room.name}
               hasPhoto={room.partnerHasPhoto}
+              focus={room.partnerPhotoFocus}
               size={36}
               tone={room.tones?.theirs.element ?? null}
             />

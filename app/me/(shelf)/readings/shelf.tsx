@@ -287,7 +287,7 @@ export function MakingShelf({
                 className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 <span className="flex items-center gap-3.5">
-                  <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} size={56} />
+                  <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} focus={match.photoFocus} size={56} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[17px] font-semibold text-foreground">
                       {match.nickname} 님과의 궁합풀이
