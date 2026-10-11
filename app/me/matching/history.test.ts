@@ -49,6 +49,8 @@ const request = (over: Partial<InboxRequest>): InboxRequest => ({
   intro: null,
   hasPhoto: false,
   photoFocus: FOCUS_CENTER,
+  photoUrls: [],
+  photoFocuses: [],
   status: 'pending',
   suppliedToMe: null,
   suppliedToThem: null,

@@ -28,6 +28,7 @@ import { PassedConnections } from './passed-connections';
 import { ReportBlock } from '../requests/report-block';
 import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
 import { FailureLine } from '../../ui/failure-line';
+import { HISTORY_HREF } from './history-href';
 import { Letter } from './letter';
 
 
@@ -36,6 +37,8 @@ const CHOICE_HOLD_MS = 100;
 const CARD_EXIT_MS = 360;
 const FLASH_MS = 2000;
 const EMPTY_CARDS: readonly DeckCard[] = [];
+/** 요청 부름이 던졌다 — 서버가 받았는지 모른다. 보낸 요청은 인연 기록에 서므로 줄이 그리로 가는 링크를 단다(G-103) */
+const REQUEST_UNSURE = '요청이 갔는지 확인하지 못했어요. 인연 기록에서 확인해 주세요.';
 
 type View = 'today' | 'passed';
 
@@ -198,7 +201,7 @@ export function MatchingExperience({
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
-        setFailure('요청이 갔는지 확인하지 못했어요. 새로고침한 뒤 보낸 요청에서 확인해 주세요.');
+        setFailure(REQUEST_UNSURE);
       } finally { busy.current = false; }
     });
   }
@@ -601,7 +604,19 @@ function Feedback({
           </button>
         </p>
       )}
-      {failure !== null && <FailureLine>{failure}</FailureLine>}
+      {failure !== null && (
+        <FailureLine
+          action={
+            failure === REQUEST_UNSURE ? (
+              <Link href={HISTORY_HREF} className={BUTTON_TERTIARY}>
+                인연 기록 보기
+              </Link>
+            ) : undefined
+          }
+        >
+          {failure}
+        </FailureLine>
+      )}
       {/* 한 줄이 둘을 한다 — 보조기기에는 늘 읽히고, 눈에는 잠깐(`flash`)만 선다 */}
       <p
         role="status"

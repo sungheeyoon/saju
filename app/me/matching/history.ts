@@ -11,8 +11,7 @@ import type { InboxMatch, InboxRequest, Requests } from '../requests/inbox';
  * (`/me/matching/history`)의 목록이 같은 셈에서 나와야 줄이 말한 수와 화면에 선 수가 갈리지 않는다 — 그래서 셈은 여기 한 자리다.
  */
 
-/** 기록 화면 — 인연 탭에 불이 켜진 채 들어간다(주소가 `/me/matching` 아래다) */
-export const HISTORY_HREF = '/me/matching/history';
+export { HISTORY_HREF } from './history-href';
 
 /** 인연 궁합 — DB 가 준 차례(최근 것이 앞) 그대로, 표지는 책장의 한 권. 누르면 결과 화면이 「인연 기록」으로 돌아온다 */
 export function matchBooks(readings: readonly ReadingEntry[]): readonly Book[] {
