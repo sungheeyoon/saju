@@ -66,7 +66,7 @@ export const REQUEST_STATUS_TEXT: Record<
   accepted: {
     label: '성립',
     sent: '상대가 수락해 인연 궁합이 열렸어요.',
-    received: '수락해서 인연 궁합이 열렸어요.',
+    received: '수락해서 대화가 열렸어요.',
   },
   rejected: {
     label: '거절',

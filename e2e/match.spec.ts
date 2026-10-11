@@ -102,7 +102,7 @@ async function acceptedRequest(person: Person): Promise<void> {
     `/me/match/${matchId}?from=chat`,
   );
   await person.page.goto('/me/matching/history');
-  const line = person.page.locator('#requests-log').getByRole('link', { name: /수락해서 인연 궁합이 열렸어요\./ });
+  const line = person.page.locator('#requests-log').getByRole('link', { name: /수락해서 대화가 열렸어요\./ });
   await expect(line).toHaveAttribute('href', `/me/match/${matchId}?from=history`);
 }
 
