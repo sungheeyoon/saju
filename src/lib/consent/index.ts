@@ -65,8 +65,8 @@ export const REQUEST_STATUS_TEXT: Record<
   },
   accepted: {
     label: '성립',
-    sent: '상대가 수락해 인연 궁합이 열렸어요.',
-    received: '수락해서 대화가 열렸어요.',
+    sent: '상대가 수락해 채팅방이 열렸어요.',
+    received: '수락해서 채팅방이 열렸어요.',
   },
   rejected: {
     label: '거절',
@@ -174,8 +174,8 @@ export function notificationText({
         : `${who} 님이 상세 궁합을 함께 보자고 요청했어요`;
     case 'request_accepted':
       return who === ''
-        ? '요청이 수락돼 대화가 열렸어요'
-        : `${who} 님과 대화가 열렸어요`;
+        ? '요청이 수락돼 채팅방이 열렸어요'
+        : `${who} 님과 채팅방이 열렸어요`;
     case 'request_rejected':
       return who === ''
         ? '상대가 요청을 거절했어요'

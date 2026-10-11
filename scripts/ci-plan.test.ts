@@ -1787,8 +1787,8 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(both.lanes.anon).toBe(alone.lanes.anon);
   });
 
-  it('PR 계획 — 입구가 아닌 컴포넌트는 옛 글자를 말하는 spec 이 있어도 core 다(저장소의 match.spec 이 「수락해서 대화가 열렸어요.」를 말한다)', () => {
-    const screen = 'export const S = () => <p>수락해서 대화가 열렸어요.</p>;\n';
+  it('PR 계획 — 입구가 아닌 컴포넌트는 옛 글자를 말하는 spec 이 있어도 core 다(저장소의 match.spec 이 「수락해서 채팅방이 열렸어요.」를 말한다)', () => {
+    const screen = 'export const S = () => <p>수락해서 채팅방이 열렸어요.</p>;\n';
     const match = 'e2e/match.spec.ts';
     const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'), [], '운영 베타', [
       [match, readFileSync(resolve(ROOT, match), 'utf8')],

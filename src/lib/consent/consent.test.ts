@@ -111,11 +111,11 @@ describe('알림은 여섯 사건을 말한다', () => {
    * **성립 소식은 대화를 말한다** — 누르면 그 채팅방으로 가고(ADR 0130 「2026-10-11 저녁」), 두 사람이 같은 글자를
    * 받는다(운영자 결정 2026-10-11, G-105).
    */
-  it('성립 소식은 대화가 열렸다고 말한다', () => {
+  it('성립 소식은 채팅방이 열렸다고 말한다', () => {
     expect(notificationText({ kind: 'request_accepted', nickname: '지영', readingKind: null }))
-      .toBe('지영 님과 대화가 열렸어요');
+      .toBe('지영 님과 채팅방이 열렸어요');
     expect(notificationText({ kind: 'request_accepted', nickname: null, readingKind: null }))
-      .toBe('요청이 수락돼 대화가 열렸어요');
+      .toBe('요청이 수락돼 채팅방이 열렸어요');
   });
 });
 
