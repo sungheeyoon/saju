@@ -33,7 +33,12 @@ export const BUTTON_TERTIARY = `inline-flex min-h-11 items-center gap-1 rounded-
 
 /** 작은 자리의 주 · 보조 — 줄 끝 · 카드 머리처럼 48px 이 무거운 곳. 누를 자리는 44px 그대로다 */
 export const BUTTON_PRIMARY_SMALL = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-on-accent hover:bg-accent-strong ${PRIMARY_OFF}`;
-export const BUTTON_SECONDARY_SMALL = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:border-border-strong ${PRESS}`;
+/**
+ * 작은 보조의 **면만** — 높이 · 옆 여백은 쓰는 자리가 한 번만 정한다. 클래스 문자열을 이어 붙여 `px-4` 를 `px-3` 으로 덮으면
+ * 어느 쪽이 이길지는 CSS 의 순서가 정해 폰에서 덮은 값이 안 먹는다 — 크기를 바꾸는 자리(방 머리의 궁합 단추)는 이것을 쓴다.
+ */
+export const BUTTON_SECONDARY_SMALL_FACE = `inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-surface text-sm font-semibold text-foreground hover:border-border-strong ${PRESS}`;
+export const BUTTON_SECONDARY_SMALL = `${BUTTON_SECONDARY_SMALL_FACE} min-h-11 px-4`;
 
 /** 되돌릴 수 없는 누름(탈퇴 · 차단 · 삭제) — 주 단추의 모양에 위험 색 */
 export const BUTTON_DANGER = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-danger px-5 text-[15px] font-semibold text-surface hover:opacity-90 ${PRESS}`;
