@@ -3186,7 +3186,7 @@ test.describe('가입 관문', () => {
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: '사진 변경' }).click();
     await (await chooser).setFiles('e2e/fixtures/jiwoo.webp');
-    await expect(page.getByRole('status').filter({ hasText: '사진을 바꿨어요' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: '사진을 변경했어요' })).toBeVisible();
     await expect.poll(() => versionAt(6)).not.toBe(before[5]);
     expect(await Promise.all([1, 2, 3, 4, 5].map(versionAt))).toEqual(before.slice(0, 5));
     const replaced = await versionAt(6);

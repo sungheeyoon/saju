@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 export const DONE_NOTE_SHOWN_MS = 2500;
 
 /**
- * 끝난 일을 잠깐 말한다 — 「저장했어요」 · 「사진을 올렸어요」(대장 01 「완료 안내」, 2026-10-11).
+ * 끝난 일을 잠깐 말한다 — 「저장했어요」 · 「사진을 저장했어요」(대장 01 「완료 안내」, 2026-10-11).
  *
  * **토스트를 띄우지 않는다.** 말은 누른 단추 · 칸 곁의 한 줄(`DoneNote`)에 서고 `DONE_NOTE_SHOWN_MS` 뒤에 걷힌다. 같은 말을
  * 다시 해도(두 장째를 올렸다) 시계가 처음부터 다시 간다. `clear` 는 다음 누름이 시작될 때 부른다 — 끝난 말이 새 일 곁에
