@@ -1076,7 +1076,7 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
   const rows = ledger
     .split('\n')
     .map((line) => line.split('|').map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 6 && /^G-\d{2}$/.test(cells[1]));
+    .filter((cells) => cells.length >= 6 && /^G-\d{2,3}$/.test(cells[1]));
 
   it('줄마다 번호가 하나씩이고 상태는 다섯 중 하나다', () => {
     // 파싱이 0 으로 떨어지는 것을 막는 문턱이다 — 줄이 닫혀 줄어드는 것은 정상이다. 수를 걸면 닫을 때마다
@@ -1127,14 +1127,14 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
   });
 
   it('대장에 「## G-nn 기록」 절이 다시 서지 않는다 — 기록은 줄마다 한 파일이다', () => {
-    expect([...ledger.matchAll(/^#{1,6} G-\d{2} 기록\s*$/gm)].map((match) => match[0])).toEqual([]);
+    expect([...ledger.matchAll(/^#{1,6} G-\d{2,3} 기록\s*$/gm)].map((match) => match[0])).toEqual([]);
   });
 
   it('표의 기록 링크와 기록 파일은 일대일이다 — 번호가 같고, 가리킨 파일이 있고, 표에 없는 기록 파일이 없다', () => {
     expect(recordFiles.length).toBeGreaterThan(0);
     expect(recordLinks.length).toBeGreaterThan(0);
-    // 파일 이름은 `g-` 와 두 자리 번호뿐이다
-    expect(recordFiles.filter((name) => !/^g-\d{2}\.md$/.test(name))).toEqual([]);
+    // 파일 이름은 `g-` 와 번호(두 자리 · G-100 부터 세 자리)뿐이다
+    expect(recordFiles.filter((name) => !/^g-\d{2,3}\.md$/.test(name))).toEqual([]);
     // 링크는 제 줄의 번호를 가리키고, 그 파일은 있다
     expect(
       recordLinks
@@ -1145,15 +1145,15 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
     const memoLinked = new Set(
       rows.flatMap((cells) => [...cells[6].matchAll(/\]\(gaps\/records\/([^)#\s]+)\)/g)].map((match) => `${cells[1]}→${match[1]}`)),
     );
-    expect(recordFiles.filter((name) => !memoLinked.has(`G-${name.slice(2, 4)}→${name}`))).toEqual([]);
+    expect(recordFiles.filter((name) => !memoLinked.has(`G-${name.slice(2, -3)}→${name}`))).toEqual([]);
   });
 
   it('기록 파일은 제 번호의 제목으로 열고 대장으로 돌아가는 링크를 든다', () => {
     const wrong = recordFiles
-      .filter((name) => /^g-\d{2}\.md$/.test(name))
+      .filter((name) => /^g-\d{2,3}\.md$/.test(name))
       .filter((name) => {
         const text = readFileSync(join(ROOT, RECORDS_DIR, name), 'utf8');
-        return !text.startsWith(`# G-${name.slice(2, 4)} 기록\n`) || !/\]\(\.\.\/\.\.\/gaps\.md(#[^)]*)?\)/.test(text);
+        return !text.startsWith(`# G-${name.slice(2, -3)} 기록\n`) || !/\]\(\.\.\/\.\.\/gaps\.md(#[^)]*)?\)/.test(text);
       });
     expect(wrong).toEqual([]);
   });
