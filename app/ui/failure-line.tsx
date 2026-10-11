@@ -26,11 +26,14 @@ export const FAILURE_TEXT = 'text-sm leading-6 text-danger';
  *
  * 결과를 다른 화면에서 확인해야 하는 줄은 그리로 가는 링크(`action`)를 단다 — 덱의 「요청이 갔는지 확인하지 못했어요」가 인연 기록으로
  * 간다(G-103). 「새로고침한 뒤 …에서 확인해 주세요」처럼 길을 글로만 말하지 않는다.
+ *
+ * 문장 없이 다시 로그인이 답인 자리(계정 행을 못 찾음 — `app/me/account-notice.tsx`)는 `signIn` 으로 같은 링크를 단다.
  */
 export function FailureLine({
   children,
   retry = false,
   action,
+  signIn = false,
   id,
   className = '',
 }: {
@@ -41,12 +44,14 @@ export function FailureLine({
   retry?: boolean;
   /** 줄 끝에 서는 링크 하나 — 결과를 확인할 화면으로 간다. `retry` 와 함께 쓰지 않는다 */
   action?: ReactNode;
+  /** 「다시 로그인」 링크를 단다 — 다시 받아 그려도 안 풀리고 로그인해야 풀리는 자리에만 */
+  signIn?: boolean;
   className?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [refreshing, startRefreshing] = useTransition();
-  const signedOut = textOf(children).includes(SIGN_IN_AGAIN_NOTE);
+  const signedOut = signIn || textOf(children).includes(SIGN_IN_AGAIN_NOTE);
 
   return (
     <div id={id} role="alert" className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${FAILURE_TEXT} ${className}`}>
