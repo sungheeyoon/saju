@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { FOCUS_CENTER } from '@/src/lib/profile';
 import type { ReadingEntry } from '../reading/current';
 import type { InboxMatch, InboxRequest } from '../requests/inbox';
 import { historySummary, makingMatches, matchBooks, pastRequests } from './history';
@@ -34,6 +35,7 @@ const made = (matchId: string, nickname: string): InboxMatch => ({
   nickname,
   intro: null,
   hasPhoto: false,
+  photoFocus: FOCUS_CENTER,
   suppliedToMe: null,
   balanceLabel: '',
   createdAt: '2026-09-03T00:00:00Z',
@@ -46,6 +48,7 @@ const request = (over: Partial<InboxRequest>): InboxRequest => ({
   nickname: '누군가',
   intro: null,
   hasPhoto: false,
+  photoFocus: FOCUS_CENTER,
   status: 'pending',
   suppliedToMe: null,
   suppliedToThem: null,

@@ -1,5 +1,6 @@
 import type { ActivityBand } from '@/src/lib/presence';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
+import { FOCUS_CENTER, type PhotoFocus } from '@/src/lib/profile';
 
 /**
  * 덱으로 내려오는 후보 한 장 — **`CandidateCard` 에서 증표만 뗀 것**이다.
@@ -22,6 +23,8 @@ export type DeckCard = {
    * `candidates.ts` 가 채우고, 예시 카드는 제 파일을 넣는다. 비워 두면 `hasPhoto` 로 대표 한 장을 짓는다
    */
   readonly photoUrls?: readonly string[];
+  /** 장마다 보일 자리 — `photoUrls` 와 같은 차례(G-98). 없으면 가운데 */
+  readonly photoFocus?: readonly PhotoFocus[];
   readonly exploration: boolean;
   /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD 「접속 상태」) */
   readonly activity?: ActivityBand | null;
@@ -35,6 +38,9 @@ export type DeckCard = {
 /** 그 사람의 사진 전부, 대표가 먼저 — 목록이 없으면 `hasPhoto` 로 한 장. 비면 이름의 첫 글자가 선다 */
 export const photosOf = (card: DeckCard): readonly string[] =>
   card.photoUrls ?? (card.hasPhoto ? [`/me/photo/${card.candidateUserId}`] : []);
+
+/** 그 장(0 = 대표)의 보일 자리 — 모르면 가운데 */
+export const focusAt = (card: DeckCard, at: number): PhotoFocus => card.photoFocus?.[at] ?? FOCUS_CENTER;
 
 /** 서버가 준 기운 이름 — 오행 다섯 중 하나면 그것, 아니면 `null`(모르는 기운의 회색) */
 export const elementOf = (value: string | undefined): Element | null =>

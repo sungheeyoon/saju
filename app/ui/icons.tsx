@@ -44,7 +44,8 @@ export type IconName =
   | 'note'
   | 'remove'
   | 'check'
-  | 'link';
+  | 'link'
+  | 'move';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: <path d="M4 11 12 4.5l8 6.5v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z" />,
@@ -144,6 +145,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   check: <path d="M5 12.4 10 17l9-10" />,
+  /** 위치 조정 — 네 쪽 화살표(G-98) */
+  move: <path d="M12 3.5v17M3.5 12h17M9.5 6 12 3.5 14.5 6M9.5 18l2.5 2.5 2.5-2.5M6 9.5 3.5 12 6 14.5M18 9.5l2.5 2.5-2.5 2.5" />,
   link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />,
 };
 

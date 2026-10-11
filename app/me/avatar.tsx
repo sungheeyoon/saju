@@ -1,4 +1,4 @@
-import { initialOf } from '@/src/lib/profile';
+import { focusPosition, initialOf, type PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../ui/element-tone';
@@ -17,12 +17,15 @@ export function Avatar({
   userId,
   nickname,
   hasPhoto,
+  focus,
   size = 40,
   tone,
 }: {
   userId: string;
   nickname: string;
   hasPhoto: boolean;
+  /** 대표 사진의 보일 자리(G-98) — 카드 · 프로필과 같은 두 수. 안 주면 가운데 */
+  focus?: PhotoFocus;
   /** 픽셀. 카드는 40, 프로필 화면은 96 */
   size?: number;
   /**
@@ -54,6 +57,7 @@ export function Avatar({
             width={size}
             height={size}
             className="h-full w-full object-cover"
+            style={{ objectPosition: focusPosition(focus) }}
           />
         ) : (
           <span className="font-semibold">{initialOf(nickname)}</span>

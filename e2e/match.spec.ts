@@ -6,6 +6,7 @@ import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';
+import { hydrated } from './hydrated';
 import { expectTargets } from './target';
 
 /**
@@ -1226,6 +1227,66 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
       await passShownCard(viewer.page, card.getByRole('heading').first(), next);
     }
     expect([...seen].sort()).toEqual([`사${tag}`, `아${tag}`]);
+  });
+
+  /**
+   * **사진의 보일 자리는 맞춘 그대로 남의 카드에도 선다**(G-98, `20261203090000`).
+   *
+   * 한 장을 고르면 위치 조정 창이 서고, 화살표로 옮겨 「저장」한다. 그 자리(CSS `object-position`)가 내 프로필 칸과 상대가 보는
+   * 인연 카드에 같이 선다. 메뉴의 「위치 조정」으로 끌어 다시 맞추면 바이트(판본)는 그대로이고 자리만 바뀐다.
+   */
+  test('위치를 맞춰 저장하면 내 프로필과 상대의 인연 카드에 같은 자리가 선다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await bothParticipate(viewer, partner, tag);
+
+    const page = partner.page;
+    await page.goto('/me/profile');
+    await page.getByLabel('사진 추가').setInputFiles(['e2e/fixtures/harin.webp']);
+    const framer = page.getByRole('dialog', { name: '위치 조정' });
+    const frame = framer.getByRole('group', { name: '사진 위치' });
+    await expect(frame).toBeFocused();
+    /* → 두 번은 사진을 오른쪽으로 민다(왼쪽을 더 보인다), ↓ 네 번은 아래로 민다 — 50 · 50 에서 40 · 30 */
+    for (const key of ['ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown']) await page.keyboard.press(key);
+    const round = framer.locator('[data-focus-frame="round"]');
+    await expect(round).toHaveCSS('background-position', '40% 30%');
+    await framer.getByRole('button', { name: '저장', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: '사진을 저장했어요' })).toBeVisible();
+
+    const slot = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
+    await expect(slot.locator('img')).toHaveCSS('object-position', '40% 30%');
+    await page.reload();
+    await expect(slot.locator('img')).toHaveCSS('object-position', '40% 30%');
+    const version = await slot.locator('img').getAttribute('src');
+
+    /* 상대가 보는 카드 — 같은 자리 */
+    const card = await showCandidate(viewer, `나${tag}`);
+    const cardPhoto = card.locator('img:not([aria-hidden="true"] img)').first();
+    await expect(cardPhoto).toHaveCSS('object-position', '40% 30%');
+
+    /* 메뉴의 「위치 조정」 — 큰 틀을 끌어 다시 맞춘다. 3:4 틀에 4:5 사진이라 가로로 넘친다 */
+    await hydrated(slot);
+    await slot.click();
+    await page.getByRole('button', { name: '위치 조정' }).click();
+    await expect(frame).toBeVisible();
+    const box = (await frame.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 - 200, box.y + box.height / 2, { steps: 6 });
+    await page.mouse.up();
+    /* 왼쪽으로 끝까지 밀었다 — 오른쪽 끝(100%)이 보인다. 세로는 이 틀에서 안 넘쳐 그대로다 */
+    await expect(round).toHaveCSS('background-position', '100% 30%');
+    await framer.getByRole('button', { name: '저장', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: '위치를 저장했어요' })).toBeVisible();
+    await expect(slot.locator('img')).toHaveCSS('object-position', '100% 30%');
+    /* 바이트는 그대로 — 그림 주소의 판본이 안 바뀐다 */
+    await page.reload();
+    expect(await slot.locator('img').getAttribute('src')).toBe(version);
+    await expect(slot.locator('img')).toHaveCSS('object-position', '100% 30%');
+
+    const again = await showCandidate(viewer, `나${tag}`);
+    await expect(again.locator('img:not([aria-hidden="true"] img)').first()).toHaveCSS('object-position', '100% 30%');
   });
 
   test('오른쪽 반은 다음 · 왼쪽 반은 이전, 끝에서 돌지 않고 글은 그대로다', async ({ openAs }, testInfo) => {

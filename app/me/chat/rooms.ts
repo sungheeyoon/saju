@@ -1,6 +1,7 @@
 import { closedReasonOf, type ClosedReason } from '@/src/lib/chat';
 import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { RpcRow } from '@/src/lib/db';
+import { leadFocusOf, type PhotoFocus } from '@/src/lib/profile';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
@@ -26,6 +27,8 @@ export type ChatRoom = {
    */
   readonly partnerLeft: boolean;
   readonly partnerHasPhoto: boolean;
+  /** 상대 대표 사진의 보일 자리(G-98) */
+  readonly partnerPhotoFocus: PhotoFocus;
   readonly openedAt: string;
   /** `null` 이면 열려 있다. 모르는 이유로 닫힌 방은 목록에서 그리지 않는다 */
   readonly closedReason: ClosedReason | null;
@@ -46,6 +49,7 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
     partnerNickname: row.partner_nickname ?? '',
     partnerLeft: row.partner_left === true,
     partnerHasPhoto: row.partner_has_photo === true,
+    partnerPhotoFocus: leadFocusOf(row.partner_photo_focus),
     openedAt: row.opened_at,
     closedReason: reason,
     lastMessageAt: row.last_message_at,

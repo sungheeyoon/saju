@@ -81,6 +81,7 @@ export default async function ChatRoomPage({
               name: partnerNameOf(room),
               partnerUserId: room.partnerUserId,
               partnerHasPhoto: room.partnerHasPhoto,
+              partnerPhotoFocus: room.partnerPhotoFocus,
               notice: roomNoticeOf(room),
               activity: room.partnerActivity,
               unread: room.unread,

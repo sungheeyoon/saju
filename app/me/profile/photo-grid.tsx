@@ -16,7 +16,10 @@ import {
   PHOTO_MAX_EDGE,
   PHOTO_NOTE,
   PHOTO_TYPES,
+  FOCUS_CENTER,
+  focusPosition,
   movedPhotos,
+  type PhotoFocus,
 } from '@/src/lib/profile';
 
 import { PHOTO_ADD } from '@/src/lib/account/copy';
@@ -26,7 +29,8 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { Icon, type IconName } from '../../ui/icons';
-import { addPhoto, movePhoto, removePhoto, replacePhoto } from './actions';
+import { addPhoto, movePhoto, removePhoto, replacePhoto, setPhotoFocus } from './actions';
+import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
 import type { MyPhoto } from './photos';
 import { FailureLine } from '../../ui/failure-line';
 
@@ -44,16 +48,11 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
 const UNREADABLE_PHOTO = '사진을 열지 못했어요. 다른 사진을 골라 주세요.';
 /** 바꾸려던 장이 그 사이 서버 목록에서 빠졌다 — DB 가 낡은 누름에 내는 문장과 같은 글자(`20261202090000`) */
 const REPLACE_FAILED = '사진을 바꾸지 못했어요. 다시 시도해 주세요.';
+/** 맞추려던 장이 그 사이 서버 목록에서 빠졌다 — DB 가 낡은 누름에 내는 문장과 같은 글자(`20261203090000`) */
+const FOCUS_FAILED = '위치를 저장하지 못했어요. 다시 시도해 주세요.';
 
-/**
- * **고른 뒤 올리기 전의 한 단계** — 지금은 빈 단계다. 고른 그대로 돌려준다.
- *
- * 「사진 변경」으로 고른 장이 이 자리를 지난다. 얼굴 위치 조정(다음 차례)이 여기 선다 — 사람이 그 장을 보고 자리를 정하거나
- * 그만두면(`null`) 아무것도 안 올린다. 미리보기 · 「저장 중…」 · 끝난 말은 이 단계가 돌려준 장으로 선다.
- */
-async function framePhoto(file: File): Promise<File | null> {
-  return file;
-}
+/** 「위치 조정」이 끝난 말 — 사진 저장의 말과 같은 꼴(대장 settings-01) */
+const FOCUS_SAVED = '위치를 저장했어요';
 
 /**
  * 올린 사진을 줄여서 보낸다 — **폰으로 찍은 사진은 그대로 못 올린다.**
@@ -64,7 +63,7 @@ async function framePhoto(file: File): Promise<File | null> {
  * 그만하다.
  *
  * **잘라 내지 않는다.** 비율을 지켜 줄이기만 한다 — 얼굴이 잘리는 자리를 우리가 고르면
- * 그것은 사용자가 고른 사진이 아니다. 칸에 담을 때만 CSS 가 가운데를 보인다.
+ * 그것은 사용자가 고른 사진이 아니다. 칸에 담을 때 CSS 가 사람이 고른 자리를 보인다(G-98, `object-position`).
  */
 async function shrink(
   file: File,
@@ -115,13 +114,16 @@ async function shrink(
 type Lift = { from: number; over: number; dx: number; dy: number };
 
 /** 고른 순간 칸에 서는 기기의 사진 — 서버가 그 장을 내줄 때까지의 미리보기 */
-type Upload = { key: number; url: string; done: boolean };
+type Upload = { key: number; url: string; done: boolean; focus: PhotoFocus };
 
 /**
  * 그 자리에서 바꾸는 장 — `version` 은 바꾸기 전의 장, `next` 는 서버가 답한 새 판본(답 전에는 `null`). 기기의 사진이 옛 장의
  * 칸을 덮고, 새 판본의 장이 서면 그 뒤에 깔린다
  */
-type Replacing = { version: number; url: string; next: number | null };
+type Replacing = { version: number; url: string; next: number | null; focus: PhotoFocus };
+
+/** 열린 위치 조정 창 — 맞출 사진과 지금 자리. 닫히면 `settle` 이 고른 자리(「취소」면 `null`)를 한 번 돌려준다 */
+type Framing = { src: string; focus: PhotoFocus; settle: (focus: PhotoFocus | null) => void };
 
 /**
  * 사진 여섯 칸 — **첫 칸이 두 배라 대표 사진으로 읽힌다**(G-60, 운영자 2026-09-25 시안).
@@ -138,7 +140,12 @@ type Replacing = { version: number; url: string; next: number | null };
  *
  * 기기의 사진을 하나 고르면 그 칸에 미리보기가 「저장 중…」 덮개를 쓰고 서고, 서버가 그 자리의 바이트를 갈아 끼우면
  * (`replace_my_photo`, 한 트랜잭션) 상태 줄이 「사진을 변경했어요」를 잠깐 말한다. 여섯 장이 차도 된다 — 지우고 올리지 않는다.
- * 하루 올리기 한도는 올리기와 같이 한 번 센다. 고른 뒤 올리기 전에 한 단계(`framePhoto`, 지금은 빈 단계)를 지난다.
+ * 하루 올리기 한도는 올리기와 같이 한 번 센다. 고른 뒤 올리기 전에 위치 조정 창(`frame`)을 지난다 — 새 사진을 한 장 골랐을 때도 같다(G-98).
+ *
+ * ## 보일 자리
+ *
+ * 사진 칸 메뉴의 「위치 조정」이 이미 있는 장의 자리만 다시 맞춘다(`set_my_photo_focus` — 바이트 · 판본 · 하루 한도는 그대로).
+ * 고른 자리는 이 칸과 인연 카드 · 아바타가 같이 보인다(`focusPosition`).
  *
  * **고르면 바로 올라간다.** 「고르기」와 「저장」을 갈라 두면 고르고 저장을 안 한 사람이 생기고,
  * 그 사람은 사진을 올렸다고 알고 있다.
@@ -176,6 +183,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       movedPhotos(current, positionOf(current, step.version), positionOf(current, step.onto)),
   );
   const [failure, setFailure] = useState<string | null>(null);
+  /** 열린 위치 조정 창 */
+  const [framing, setFraming] = useState<Framing | null>(null);
+  /**
+   * 「위치 조정」으로 고른 자리(판본별) — 서버 목록보다 먼저 그린다. 서버 목록도 곧 같은 자리를 들고 오므로 걷지 않는다 — 실패면
+   * 그 장만 걷는다. 판본은 장마다 하나라(바꾸면 새 판본) 다른 장에 번지지 않는다
+   */
+  const [placed, setPlaced] = useState<ReadonlyMap<number, PhotoFocus>>(() => new Map());
   const [working, startWorking] = useTransition();
   const [lift, setLift] = useState<Lift | null>(null);
   const done = useDoneNote();
@@ -228,7 +242,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const backdrop = new Map(
     fresh.flatMap((photo, index) => {
       const upload = uploads[index];
-      return upload?.done ? [[photo.version, upload.url] as const] : [];
+      return upload?.done ? [[photo.version, { url: upload.url, focus: upload.focus }] as const] : [];
     }),
   );
   const waiting = uploads.filter((upload, index) => !(upload.done && index < landed));
@@ -413,6 +427,57 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     };
   };
 
+  /**
+   * **고른 뒤 올리기 전의 한 단계** — 위치 조정 창을 열고 사람이 고른 자리를 기다린다(G-98). 「취소」면 `null` — 그 장은
+   * 안 올린다. 미리보기 · 「저장 중…」은 고른 자리로 선다.
+   */
+  const frame = (src: string, focus: PhotoFocus) =>
+    new Promise<PhotoFocus | null>((resolve) => {
+      let settled = false;
+      setFraming({
+        src,
+        focus,
+        settle: (chosen) => {
+          if (settled) return;
+          settled = true;
+          setFraming(null);
+          resolve(chosen);
+        },
+      });
+    });
+
+  /** 「위치 조정」 — 이미 있는 장의 자리만 다시 맞춘다. 바이트 · 판본 · 하루 한도는 그대로다(`set_my_photo_focus`) */
+  const adjust = async (photo: MyPhoto) => {
+    if (busy) return;
+    setFailure(null);
+    setOverflowed(false);
+    done.clear();
+    settleUploads();
+    const chosen = await frame(`/me/photo/${userId}/${photo.position}?v=${photo.version}`, focusOfPhoto(photo));
+    if (chosen === null) return;
+    setPlaced((was) => new Map(was).set(photo.version, chosen));
+    setSending(true);
+    await sendRemoval();
+    const position = serverPosition(latest.current, gone.current, photo.version);
+    const result =
+      position === null
+        ? { ok: false as const, message: FOCUS_FAILED }
+        : await actionAnswer(setPhotoFocus({ position, version: photo.version, focus: chosen }));
+    if (result.ok) done.say(FOCUS_SAVED);
+    else {
+      setPlaced((was) => {
+        const next = new Map(was);
+        next.delete(photo.version);
+        return next;
+      });
+      failed(result.message);
+    }
+    setSending(false);
+  };
+
+  /** 그 장이 지금 보이는 자리 — 방금 고른 자리가 서버 목록보다 앞선다 */
+  const focusOfPhoto = (photo: MyPhoto): PhotoFocus => placed.get(photo.version) ?? photo.focus;
+
   const pick = async (files: FileList | null) => {
     const all = [...(files ?? [])];
     const chosen = all.slice(0, PHOTO_MAX_COUNT - total);
@@ -422,23 +487,34 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     if (chosen.length === 0) return;
 
     for (const url of previews.current) URL.revokeObjectURL(url);
-    const batch = chosen.map((file) => ({ file, key: nextKey.current++, url: URL.createObjectURL(file) }));
+    /*
+      **한 장을 고르면 자리를 맞추고 올린다** — 「취소」면 안 올린다. 여러 장을 한꺼번에 고르면 창을 장마다 세우지 않는다(여섯 번
+      「저장」을 누르게 된다) — 가운데로 올리고, 장마다 메뉴의 「위치 조정」으로 맞춘다.
+    */
+    const batch: { file: File; key: number; url: string; focus: PhotoFocus }[] = [];
+    for (const file of chosen) {
+      const url = URL.createObjectURL(file);
+      const focus = chosen.length === 1 ? await frame(url, FOCUS_CENTER) : FOCUS_CENTER;
+      if (focus === null) URL.revokeObjectURL(url);
+      else batch.push({ file, key: nextKey.current++, url, focus });
+    }
     previews.current = batch.map((one) => one.url);
+    if (batch.length === 0) return;
     setBefore(new Set(latest.current.map((photo) => photo.version)));
-    setUploads(batch.map(({ key, url }) => ({ key, url, done: false })));
+    setUploads(batch.map(({ key, url, focus }) => ({ key, url, focus, done: false })));
     setSending(true);
 
     /* 지운 장이 아직 서버에 있으면 여섯 칸이 찼다고 거절된다 — 먼저 보낸다 */
     await sendRemoval();
 
     let sent = 0;
-    for (const [index, { file, key }] of batch.entries()) {
+    for (const [index, { file, key, focus }] of batch.entries()) {
       let message: string | null = null;
       try {
         const shrunk = await shrink(file);
         if (!shrunk.ok) message = shrunk.message;
         else {
-          const result = await actionAnswer(addPhoto({ contentType: shrunk.contentType, base64: shrunk.base64 }));
+          const result = await actionAnswer(addPhoto({ contentType: shrunk.contentType, base64: shrunk.base64, focus }));
           if (!result.ok) message = result.message;
         }
       } catch {
@@ -481,13 +557,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     done.clear();
     settleUploads();
 
-    const framed = await framePhoto(file);
-    if (framed === null) return;
-
-    for (const url of previews.current) URL.revokeObjectURL(url);
-    const url = URL.createObjectURL(framed);
+    for (const old of previews.current) URL.revokeObjectURL(old);
+    const url = URL.createObjectURL(file);
     previews.current = [url];
-    setReplacing({ version, url, next: null });
+    const focus = await frame(url, FOCUS_CENTER);
+    if (focus === null) return;
+
+    setReplacing({ version, url, next: null, focus });
     setSending(true);
 
     /* 지운 장이 아직 서버에 있으면 그 장 뒤의 자리가 하나 밀려 있다 — 먼저 보낸다 */
@@ -496,13 +572,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     let message: string | null = null;
     let next: number | null = null;
     try {
-      const shrunk = await shrink(framed);
+      const shrunk = await shrink(file);
       const position = serverPosition(latest.current, gone.current, version);
       if (!shrunk.ok) message = shrunk.message;
       else if (position === null) message = REPLACE_FAILED;
       else {
         const result = await actionAnswer(
-          replacePhoto({ position, version, contentType: shrunk.contentType, base64: shrunk.base64 }),
+          replacePhoto({ position, version, contentType: shrunk.contentType, base64: shrunk.base64, focus }),
         );
         if (result.ok) next = result.version;
         else message = result.message;
@@ -516,7 +592,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       setReplacing(null);
       failed(message ?? REPLACE_FAILED);
     } else {
-      setReplacing({ version, url, next });
+      setReplacing({ version, url, next, focus });
       done.say('사진을 변경했어요');
     }
     setSending(false);
@@ -581,12 +657,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     const target = lift !== null && !lifting && lift.over === position;
     /* 바꾸는 중인 칸 — 옛 장 대신 기기의 사진이 서고, 새 판본의 장이 서면 그 뒤에 깔린다 */
     const covering = replacing !== null && replacing.version === photo.version ? replacing : null;
-    const under =
-      replacing !== null && (replacing.next === photo.version || covering !== null)
-        ? replacing.url
-        : backdrop.get(photo.version);
+    const replaced = replacing !== null && (replacing.next === photo.version || covering !== null) ? replacing : null;
+    const under = replaced?.url ?? backdrop.get(photo.version)?.url;
+    const underFocus = replaced?.focus ?? backdrop.get(photo.version)?.focus ?? FOCUS_CENTER;
+    const focus = focusOfPhoto(photo);
     const items: MenuChoice[] = [
       { icon: 'pencil', label: '사진 변경', run: () => chooseReplacement(photo) },
+      { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
       ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
       { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
     ];
@@ -635,7 +712,12 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
             style={{
               ...(lifting && lift !== null ? { transform: `translate(${lift.dx}px, ${lift.dy}px) scale(1.05)` } : {}),
               ...(under !== undefined
-                ? { backgroundImage: `url(${under})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '1rem' }
+                ? {
+                    backgroundImage: `url(${under})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: focusPosition(underFocus),
+                    borderRadius: '1rem',
+                  }
                 : {}),
             }}
           >
@@ -646,6 +728,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
                 alt=""
                 draggable={false}
                 className="h-full w-full rounded-2xl object-cover"
+                style={{ objectPosition: focusPosition(focus) }}
               />
             )}
             {covering !== null && covering.next === null && (
@@ -683,8 +766,8 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const uploadSlot = (upload: Upload) => (
     <div
       aria-hidden="true"
-      className="relative h-full w-full overflow-hidden rounded-2xl bg-surface bg-cover bg-center"
-      style={{ backgroundImage: `url(${upload.url})` }}
+      className="relative h-full w-full overflow-hidden rounded-2xl bg-surface bg-cover"
+      style={{ backgroundImage: `url(${upload.url})`, backgroundPosition: focusPosition(upload.focus) }}
     >
       {!upload.done && (
         <span className="absolute inset-0 grid place-items-center bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
@@ -796,6 +879,14 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       </div>
 
       <p className="text-[13px] leading-5 text-cream-ink">{PHOTO_NOTE}</p>
+      <PhotoFramer
+        open={framing !== null}
+        src={framing?.src ?? null}
+        focus={framing?.focus ?? FOCUS_CENTER}
+        onFocus={(focus) => setFraming((was) => (was === null ? was : { ...was, focus }))}
+        onSave={() => framing?.settle(framing.focus)}
+        onCancel={() => framing?.settle(null)}
+      />
       {failure !== null && (
         <FailureLine>{failure}</FailureLine>
       )}

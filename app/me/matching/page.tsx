@@ -169,6 +169,7 @@ function deckCardOf(
     hasPhoto: card.hasPhoto,
     avatarElement: card.avatarElement,
     photoUrls: card.photoUrls,
+    photoFocus: card.photoFocus,
     ...extra,
     previewScore: card.previewScore,
     verdict: card.verdict,

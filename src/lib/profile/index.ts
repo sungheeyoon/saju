@@ -106,3 +106,5 @@ export const PHOTO_NOTE =
 export function initialOf(nickname: string): string {
   return [...nickname.trim()][0] ?? '';
 }
+
+export * from './focus';

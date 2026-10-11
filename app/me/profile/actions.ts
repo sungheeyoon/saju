@@ -3,7 +3,7 @@
 import { refresh } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
-import { PHOTO_TYPES, missingInProfile, type ProfileInput } from '@/src/lib/profile';
+import { FOCUS_CENTER, PHOTO_TYPES, missingInProfile, sameFocus, type PhotoFocus, type ProfileInput } from '@/src/lib/profile';
 import { userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
@@ -48,17 +48,61 @@ const PHOTO_TYPE_REFUSED = 'JPG · PNG · WebP 사진만 올릴 수 있어요. �
 export async function addPhoto(photo: {
   contentType: string;
   base64: string;
+  /** 고른 뒤 맞춘 보일 자리 — 가운데면 따로 안 적는다(새 장의 기본값) */
+  focus?: PhotoFocus;
 }): Promise<SaveResult> {
   if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) return { ok: false, message: PHOTO_TYPE_REFUSED };
 
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('add_my_photo', rpcArgs<'add_my_photo'>({
+  const { data: placed, error } = await supabase.rpc('add_my_photo', rpcArgs<'add_my_photo'>({
     p_content_type: photo.contentType,
     p_base64: photo.base64,
   }));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'add_my_photo') };
+
+  /*
+    자리는 올린 뒤에 따로 적는다 — 올리기와 한 문이 아니다. 이것이 실패하면 사진은 가운데로 선 채 남고 까닭이 선다
+    (「위치 조정」으로 다시 맞춘다). 막 올린 장이라 판본을 모른다 — 자리 번호로 적는다(같은 사람의 쓰기는 계정 잠금으로 줄을 선다).
+  */
+  const framed = await savedFocus(supabase, placed, null, photo.focus);
+  refresh('account-changed');
+  return framed;
+}
+
+/** 고른 자리를 적는다 — 가운데면 부르지 않는다(올린 · 바꾼 장은 이미 가운데다) */
+async function savedFocus(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  position: number,
+  version: number | null,
+  focus: PhotoFocus | undefined,
+): Promise<SaveResult> {
+  if (focus === undefined || sameFocus(focus, FOCUS_CENTER)) return { ok: true };
+  const { error } = await supabase.rpc('set_my_photo_focus', rpcArgs<'set_my_photo_focus'>({
+    p_position: position,
+    p_x: focus.x,
+    p_y: focus.y,
+    ...(version === null ? {} : { p_version: version }),
+  }));
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo_focus') };
+  return { ok: true };
+}
+
+/**
+ * 한 장의 **보일 자리**만 바꾼다(「위치 조정」, G-98) — 바이트 · 판본 · 하루 한도는 그대로다(`20261203090000`).
+ *
+ * `version` 은 그 자리에 있다고 화면이 본 장이다 — 다른 탭이 먼저 목록을 바꿨으면 거절된다.
+ */
+export async function setPhotoFocus(photo: { position: number; version: number; focus: PhotoFocus }): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+  const { error } = await supabase.rpc('set_my_photo_focus', rpcArgs<'set_my_photo_focus'>({
+    p_position: photo.position,
+    p_x: photo.focus.x,
+    p_y: photo.focus.y,
+    p_version: photo.version,
+  }));
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo_focus') };
 
   refresh('account-changed');
   return { ok: true };
@@ -79,6 +123,8 @@ export async function replacePhoto(photo: {
   version: number;
   contentType: string;
   base64: string;
+  /** 고른 뒤 맞춘 보일 자리 — 바꾼 장은 DB 가 가운데로 돌려 두므로 가운데가 아니면 다시 적는다 */
+  focus?: PhotoFocus;
 }): Promise<PhotoReplaced> {
   if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) return { ok: false, message: PHOTO_TYPE_REFUSED };
 
@@ -93,8 +139,9 @@ export async function replacePhoto(photo: {
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'replace_my_photo') };
 
+  const framed = await savedFocus(supabase, photo.position, data, photo.focus);
   refresh('account-changed');
-  return { ok: true, version: data };
+  return framed.ok ? { ok: true, version: data } : framed;
 }
 
 /**
