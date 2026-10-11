@@ -264,11 +264,8 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
   await expect(refusal).toContainText('윤5월');
 
   /*
-    표 밖은 다른 말을 한다 — 그런데 **폼으로는 거기까지 못 간다.**
-
-    연도 목록이 달력에 맞춰 좁혀지므로(음력은 1912년부터) 1905년은 고를 수가 없다.
-    그래도 거절 문장이 필요하다: 입력은 주소의 `#` 뒤에서도 들어오고, 그 링크는
-    폼이 좁아지기 전에 나갔을 수도 남이 손으로 고쳤을 수도 있다. 그래서 폼이 아니라
+    표 밖은 다른 말을 한다. 폼에서는 양력 1905년을 적고 음력으로 옮겨도 닿지만(해 칸이 붉어진다),
+    입력은 주소의 `#` 뒤에서도 들어오고 그 링크는 남이 손으로 고쳤을 수도 있다. 그래서
     **링크로** 그 자리를 짚는다.
   */
   await page.goto('/#cal=lunar&date=1905-04-01&hour=unknown&gender=female&city=%EC%84%9C%EC%9A%B8&rule=jo&basis=localMean&saeun=2026');
@@ -332,21 +329,38 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
 
   /*
     **고르는 칸이던 동안에는 「2월 30일」이 만들어질 수가 없었다.** 적는 칸은 그 보호막을
-    내주므로 자리마다의 범위를 칸이 안다 — 벗어나면 날짜를 아예 내보내지 않고, 그래서
-    제출이 거절한다. 판정하는 자리를 새로 만들지 않고 이미 있는 그 자리에 얹는 것이 요점이다.
+    내주므로 자리마다의 범위를 칸이 안다 — 벗어나면 칸이 붉어지고, 누르면 무엇이 틀렸는지
+    말하며 그 칸으로 데려간다. 적은 숫자는 지우지 않는다.
   */
   await year.fill('1990');
-  for (const [label, bad, good] of [
-    ['출생월', '13', '02'],
-    ['출생일', '30', '15'],
+  for (const [label, bad, good, said] of [
+    ['출생월', '13', '02', '월은 1~12로 입력해 주세요.'],
+    ['출생일', '30', '15', '2월은 28일까지예요.'],
   ] as const) {
     await page.getByLabel(label).fill(bad);
     await expect(page.getByLabel(label)).toHaveAttribute('aria-invalid', 'true');
     await show.click();
-    await expect(refusal).toHaveText('생년월일을 입력해 주세요.');
+    await expect(refusal).toHaveText(said);
+    await expect(page.getByLabel(label)).toBeFocused();
+    await expect(page.getByLabel(label)).toHaveValue(bad);
     await page.getByLabel(label).fill(good);
     await expect(refusal).toHaveCount(0);
   }
+
+  /*
+    **달력을 바꿔도 적은 숫자는 남는다.** 양력 31일을 음력(30일까지)으로 옮기면 날 칸만 붉어진다 — 세 칸을 비우지 않는다.
+  */
+  await page.getByLabel('출생월').fill('01');
+  await page.getByLabel('출생일').fill('31');
+  await chooseCalendar(page, 'lunar');
+  await expect(year).toHaveValue('1990');
+  await expect(page.getByLabel('출생월')).toHaveValue('01');
+  await expect(page.getByLabel('출생일')).toHaveValue('31');
+  await expect(page.getByLabel('출생일')).toHaveAttribute('aria-invalid', 'true');
+  await chooseCalendar(page, 'solar');
+  await expect(page.getByLabel('출생일')).not.toHaveAttribute('aria-invalid', 'true');
+  await page.getByLabel('출생월').fill('02');
+  await page.getByLabel('출생일').fill('15');
 
   // 2월은 스물여덟까지다 — 그 달의 마지막 날을 칸이 안다.
   await expect(page.getByLabel('출생일')).toHaveAttribute('placeholder', '1~28');

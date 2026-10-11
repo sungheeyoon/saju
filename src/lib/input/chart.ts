@@ -1,12 +1,13 @@
 import {
   CITY_LONGITUDES,
+  LunarConversionError,
   computeSaju,
   solarFromLunar,
   type CivilDate,
   type Saju,
 } from '../saju';
 
-import { TIME_BASIS, missingForCalculation, type Query } from './query';
+import { TIME_BASIS, dateEntryRefusal, missingForCalculation, type DatePart, type Query } from './query';
 
 /**
  * 입력의 생년월일을 양력으로 — **음력을 양력으로 바꾸는 유일한 자리.**
@@ -23,6 +24,26 @@ export function solarDateOf(query: Query): CivilDate {
   if (query.calendar === 'solar') return { year, month, day };
 
   return solarFromLunar({ year, month, day, leap: query.calendar === 'lunar_leap' });
+}
+
+/**
+ * 다 적힌 생년월일이 **어느 칸에서 거절되는가** — 자리 범위(`dateEntryRefusal`) 다음에 음력 표가 본다. 없으면 `null`.
+ *
+ * 폼이 그 칸을 붉히는 데 쓴다. 문장은 변환이 이미 들고 있다(없는 윤달 · 그 달에 없는 날 · 표 밖의 해).
+ */
+export function dateRefusal(query: Query): { part: DatePart; message: string } | null {
+  const entry = dateEntryRefusal(query);
+  if (entry !== null || query.calendar === 'solar' || query.date === '') return entry;
+
+  try {
+    solarDateOf(query);
+    return null;
+  } catch (error) {
+    if (!(error instanceof LunarConversionError)) throw error;
+    const part: DatePart =
+      error.reason === 'out-of-range' ? 'year' : error.reason === 'no-such-leap-month' ? 'month' : 'day';
+    return { part, message: error.message };
+  }
 }
 
 /**

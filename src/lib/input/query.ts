@@ -272,6 +272,35 @@ export function birthYearRefusal(query: Query): string | null {
   return `${min}~${max}년에 태어난 분만 계산할 수 있어요. 태어난 해(${year}년)를 확인해 주세요.`;
 }
 
+/** 생년월일의 세 칸 — 거절이 어느 칸을 짚는가 */
+export type DatePart = 'year' | 'month' | 'day';
+
+/**
+ * 다 적힌 생년월일이 **어느 칸에서 어긋났는가** — 해 · 달 · 그 달의 날. 없으면 `null`.
+ *
+ * 폼은 세 칸이 다 적히면 범위를 따지지 않고 날짜를 내보낸다 — 그래서 판정은 여기 하나고, 버튼 곁의 문장과 붉어지는 칸이
+ * 같은 답을 본다. 「생년월일을 입력해 주세요」는 아직 덜 적은 칸에만 선다 — 다 적은 사람에게는 무엇이 틀렸는지를 말한다.
+ *
+ * 음력의 날은 여기서 안 센다 — 그 달이 29일인지 30일인지, 윤달이 있는지는 음력 표가 안다(`dateRefusal`, `chart.ts`).
+ */
+export function dateEntryRefusal(query: Query): { part: DatePart; message: string } | null {
+  const year = birthYearRefusal(query);
+  if (year !== null) return { part: 'year', message: year };
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(query.date);
+  if (match === null) return null;
+
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return { part: 'month', message: '월은 1~12로 입력해 주세요.' };
+  if (query.calendar !== 'solar') return null;
+
+  const last = new Date(Date.UTC(Number(match[1]), month, 0)).getUTCDate();
+  const day = Number(match[3]);
+  if (day > last) return { part: 'day', message: `${month}월은 ${last}일까지예요.` };
+  if (day < 1) return { part: 'day', message: `${month}월은 1일부터 ${last}일까지예요.` };
+  return null;
+}
+
 /**
  * 아직 답하지 않은 칸 — **버튼을 잠그는 쪽과 계산하는 쪽이 같은 답을 본다.**
  *
@@ -288,9 +317,9 @@ export function birthYearRefusal(query: Query): string | null {
  */
 export function missingForCalculation(query: Query): string | null {
   if (query.date === '') return '생년월일을 입력해 주세요.';
-  // 범위 밖의 해는 **여기서** 걸린다 — 버튼을 잠그는 자리와 계산을 막는 자리가 하나다.
-  const refused = birthYearRefusal(query);
-  if (refused !== null) return refused;
+  // 범위 밖의 해 · 달 · 날은 **여기서** 걸린다 — 버튼을 잠그는 자리와 계산을 막는 자리가 하나다.
+  const refused = dateEntryRefusal(query);
+  if (refused !== null) return refused.message;
   // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
   if (query.hourKnown === null) return `출생 시각을 입력하거나 「${HOUR_UNKNOWN_CHOICE}」을 골라 주세요.`;
   if (query.hourKnown && query.time === '') return '출생 시각을 입력해 주세요.';

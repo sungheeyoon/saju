@@ -14,7 +14,7 @@ import {
   type LateNightRule,
 } from '@/src/lib/saju';
 
-import { solarDateOf } from '@/src/lib/input/chart';
+import { dateRefusal, solarDateOf } from '@/src/lib/input/chart';
 import {
   DEFAULT_QUERY,
   HOUR_UNKNOWN_CHOICE,
@@ -22,7 +22,8 @@ import {
   TIME_BASES,
   TIME_BASIS,
   birthYearRangeOf,
-  birthYearRefusal,
+  dateEntryRefusal,
+  type DatePart,
   type Query,
 } from '@/src/lib/input/query';
 
@@ -46,8 +47,10 @@ import styles from './birth-form.module.css';
  * 이라 오전/오후가 한 번 접히면 「오후 12시」가 0시인지 12시인지에서 갈린다.
  * 그리고 태어난 해는 대개 40~90년 전이라, 달력 위젯으로는 그만큼을 넘겨야 한다.
  *
- * 그래서 년·월·일과 시·분을 각각 고르게 한다. 고르는 것만 허용하므로 폼이 반쪽
- * 날짜를 들고 있을 수는 있어도 **없는 날짜를 들 수는 없다.**
+ * 그래서 년·월·일과 시·분을 각각 숫자로 적게 한다.
+ *
+ * **적은 숫자는 폼이 지우지 않는다.** 달력을 바꾸든 없는 날을 적든 칸의 숫자는 그대로 서고, 어긋난 칸만 붉어진다
+ * (`dateRefusal`) — 무엇이 틀렸는지는 버튼 곁의 문장이 말하고(`missingAnswer`), 누르면 그 칸으로 초점이 간다(`focusBirthGap`).
  */
 
 /**
@@ -261,14 +264,14 @@ function convertedLine(value: Query): { ok: boolean; text: string } | null {
   if (value.calendar === 'solar' || value.date === '') return null;
 
   /*
-    받지 않기로 한 해는 **변환해 볼 것도 없다.**
+    받지 않기로 한 해 · 없는 달은 **변환해 볼 것도 없다.**
 
-    음력 표는 2100년까지 덮지만 태어난 해로는 2020년까지만 받는다. 두 범위가 다르므로
+    음력 표는 2100년까지 덮지만 태어난 해로는 그보다 좁게 받는다. 두 범위가 다르므로
     범위 밖의 해에서는 두 문장이 동시에 설 수 있다 — 「음력 1912~2100년만 변환합니다」와
-    「1912~2020년에 태어난 분만 계산합니다」. 나란히 두면 사용자는 자기가 무엇을 어겼는지
-    고르게 된다. 거절의 이유는 하나여야 하고, 그 하나는 우리가 받기로 한 범위다.
+    「1912~2030년에 태어난 분만 계산할 수 있어요」. 나란히 두면 사용자는 자기가 무엇을 어겼는지
+    고르게 된다. 거절의 이유는 하나여야 하고, 그 하나는 버튼 곁의 문장이다(`dateEntryRefusal`).
   */
-  if (birthYearRefusal(value) !== null) return null;
+  if (dateEntryRefusal(value) !== null) return null;
 
   try {
     const { year, month, day } = solarDateOf(value);
@@ -306,21 +309,31 @@ function limitsOf(calendar: Calendar, year: string, month: string) {
 }
 
 /**
- * 이 날짜를 그 달력으로 고를 수 있는가.
+ * 세 칸의 숫자를 날짜 한 벌로 — **다 적혔으면 범위를 따지지 않고 낸다.**
  *
- * 달력을 바꾸는 순간 **고를 수 있는 것 자체가 달라진다** — 음력은 1912년부터고 하루는
- * 30일까지다. 밀려난 값을 그대로 들고 있으면 화면에는 서 있는데 변환이 거절하는,
- * 사용자가 무엇을 고쳐야 할지 알 수 없는 상태가 된다.
- *
- * 판정만 하고 고치지는 않는다. 고치는 것은 **달력을 바꾼 그 자리**의 일이다
- * (`BirthFields`) — 날짜 칸은 자기가 밖에서 지워졌다는 것만 알면 된다.
+ * 해가 네 자리이고 달 · 날이 비어 있지 않으면 날짜다. 「1990-02-30」도 그대로 낸다 — 거절은 무엇이 틀렸는지 말하는
+ * 한 자리(`dateEntryRefusal`)의 일이고, 여기서 빈 값으로 삼키면 다 적은 사람이 「생년월일을 입력해 주세요」를 듣는다.
+ * 달력은 보지 않는다 — 그래서 달력을 바꿔도 날짜가 그대로고 칸의 숫자도 그대로 선다.
  */
-export function fitsCalendar(date: string, calendar: Calendar): boolean {
-  const { year, month, day } = splitDate(date);
-  if (year === '') return true;
+export function dateOfParts(parts: { year: string; month: string; day: string }): string {
+  if (!isFullYear(parts.year) || parts.month === '' || parts.day === '') return '';
+  return `${parts.year}-${pad2(Number(parts.month))}-${pad2(Number(parts.day))}`;
+}
 
-  const { years, maxDay } = limitsOf(calendar, year, month);
-  return Number(year) >= years.min && Number(year) <= years.max && Number(day) <= maxDay;
+/**
+ * 고칠 칸으로 데려간다 — 붉어진 칸, 없으면 아직 빈 칸. 데려갔으면 `true`.
+ *
+ * 폼을 쓰는 화면이 누름을 받았는데 넘어가지 못할 때 부른다. 라디오 · 잠긴 칸은 빼고 적는 칸만 본다.
+ */
+export function focusBirthGap(scope: ParentNode | null | undefined): boolean {
+  const fields = [
+    ...(scope?.querySelectorAll<HTMLInputElement>(
+      'input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)',
+    ) ?? []),
+  ];
+  const target = fields.find((one) => one.getAttribute('aria-invalid') === 'true') ?? fields.find((one) => one.value === '');
+  target?.focus();
+  return target !== undefined;
 }
 
 /**
@@ -344,6 +357,7 @@ function NumberField({
   max,
   placeholder,
   autoComplete,
+  refused = false,
 }: {
   label: string;
   /** 칸 안 오른쪽에 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
@@ -355,6 +369,8 @@ function NumberField({
   max: number;
   placeholder: string;
   autoComplete?: string;
+  /** 날짜 한 벌이 이 칸에서 거절됐는가 — 칸 범위 안이어도 없는 날(음력 29일까지인 달의 30일)이 있다 */
+  refused?: boolean;
 }) {
   /**
    * 다 적힌 값만 판정한다. 「1」을 치는 도중에 「1~12 아님」이라고 붉히면, 사용자는
@@ -372,7 +388,7 @@ function NumberField({
         autoComplete={autoComplete}
         aria-label={label}
         // 붉어지는 것은 `aria-invalid` 를 셀렉터로 쓴다(`birth-form.module.css`) — 낭독기가 읽는 값과 눈에 보이는 색이 한 자리다
-        aria-invalid={outOfRange || undefined}
+        aria-invalid={outOfRange || refused || undefined}
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
@@ -401,17 +417,26 @@ const within = (value: string, min: number, max: number) =>
  * 고르는 칸이던 동안에는 「2월 30일」이 **만들어질 수가 없었다.** 적는 칸은 그
  * 보호막을 내주므로, 막는 자리를 대신 세워야 한다. 두 층으로 나눈다.
  *
- * 1. **자리마다의 범위**(월 1~12, 일 1~그 달의 마지막 날)는 여기가 안다. 벗어나면
- *    날짜를 **내보내지 않는다** — 그래서 `date` 가 빈 문자열로 남고, 버튼은
- *    `missingAnswer` 가 이미 잠근다. 판정하는 자리를 새로 만들지 않는다.
- * 2. **날짜의 존재**(없는 윤달, 29일까지인 음력 달의 30일)는 여기가 모른다. 그것은
- *    변환과 엔진이 이유를 붙여 거절하고, 화면은 그 문장을 그대로 세운다.
+ * 1. **자리마다의 범위**(월 1~12, 일 1~그 달의 마지막 날)는 칸이 붉어져 보이고, 다 적힌
+ *    날짜는 범위 밖이어도 **그대로 낸다**(`dateOfParts`). 거절은 `missingAnswer` 가 무엇이
+ *    틀렸는지 말하며 한다(「2월은 28일까지예요.」) — 판정하는 자리는 그 하나다.
+ * 2. **날짜의 존재**(없는 윤달, 29일까지인 음력 달의 30일)는 음력 표가 이유를 붙여
+ *    거절하고, 화면은 그 문장을 그대로 세우고 그 칸을 붉힌다(`refused`).
  *
  * 폼이 자기 조각을 따로 들고 있으므로 **밖에서 값이 바뀐 것과 자기가 방금 낸
  * 것을 구별해야 한다**(뒤로가기·링크로 들어옴). 마지막으로 올려 보낸 값을
  * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다.
  */
-function DateFields({ value, onDate }: { value: Query; onDate: (date: string) => void }) {
+function DateFields({
+  value,
+  onDate,
+  refused,
+}: {
+  value: Query;
+  onDate: (date: string) => void;
+  /** 날짜 한 벌이 거절된 칸 — 없으면 `null` */
+  refused: DatePart | null;
+}) {
   const [parts, setParts] = useState(() => splitDate(value.date));
   const lastEmitted = useRef(value.date);
 
@@ -426,14 +451,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
   const update = (key: keyof typeof parts, next: string) => {
     const changed = { ...parts, [key]: next };
     setParts(changed);
-
-    // 자리마다의 범위를 다 지켜야 날짜가 된다. 하나라도 어긋나면 내보내지 않는다 —
-    // 「1990-13-05」를 실어 보내면 그 값을 판정하는 자리가 하나 더 생긴다.
-    const limit = limitsOf(value.calendar, changed.year, changed.month).maxDay;
-    const whole =
-      isFullYear(changed.year) && within(changed.month, 1, 12) && within(changed.day, 1, limit);
-
-    const date = whole ? `${changed.year}-${pad2(Number(changed.month))}-${pad2(Number(changed.day))}` : '';
+    const date = dateOfParts(changed);
     lastEmitted.current = date;
     onDate(date);
   };
@@ -450,6 +468,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         max={years.max}
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
+        refused={refused === 'year'}
       />
       <NumberField
         label="출생월"
@@ -461,6 +480,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         max={12}
         placeholder="1~12"
         autoComplete="bday-month"
+        refused={refused === 'month'}
       />
       <NumberField
         label="출생일"
@@ -472,6 +492,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         max={maxDay}
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
+        refused={refused === 'day'}
       />
     </DigitsField>
   );
@@ -623,23 +644,15 @@ export function BirthFields({
   const advancedShown = advanced || value.basis !== DEFAULT_QUERY.basis;
 
   /**
-   * 달력을 바꾸면 **못 고르게 된 날짜는 비운다.**
-   *
-   * 양력 1908년을 고른 사람이 음력으로 옮기면 그 해는 표 밖이다(1912~). 남겨 두면
-   * 화면에는 서 있는데 변환이 거절하는 값이 되고, 그때 화면은 사용자가 방금 고른 것을
-   * 잃어버린 것처럼 보인다. 지우는 이유를 변환 줄이 바로 아래에서 말하므로
-   * (`convertedLine`), 지운 자리는 침묵하지 않는다.
+   * 달력을 바꿔도 **날짜는 그대로다.** 양력 1908년을 음력으로 옮기면 그 해는 음력 표 밖(1912~)이지만, 지우지 않고
+   * 해 칸을 붉힌다 — 지우면 사용자가 다시 적어야 하고, 무엇이 틀렸는지는 버튼 곁의 문장이 말한다(ADR 0132 「2026-10-11 덧」).
    */
-  const chooseCalendar = (calendar: Calendar) =>
-    onChange({
-      ...value,
-      calendar,
-      date: fitsCalendar(value.date, calendar) ? value.date : '',
-    });
+  const chooseCalendar = (calendar: Calendar) => onChange({ ...value, calendar });
 
   // 미리보기도 계산과 **같은 함수**를 부른다. 폼이 따로 변환하면 화면에 보인
   // 양력과 계산에 들어간 양력이 갈릴 수 있다.
   const converted = convertedLine(value);
+  const refused = dateRefusal(value)?.part ?? null;
 
   return (
     /*
@@ -671,7 +684,7 @@ export function BirthFields({
             options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
 
-          <DateFields value={value} onDate={(date) => set('date', date)} />
+          <DateFields value={value} onDate={(date) => set('date', date)} refused={refused} />
 
           {/*
             **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,

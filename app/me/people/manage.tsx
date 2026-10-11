@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { PersonSlots } from '@/src/lib/people';
 
-import { BirthFields } from '../../birth-form';
+import { BirthFields, focusBirthGap } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { NOTE_MAX } from '@/src/lib/input/edit';
 import { useHashParams } from '../../hash-query';
@@ -124,12 +124,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   const save = () => {
     if (missing !== null) {
       setTried(true);
-      const fields = [
-        ...(form.current?.querySelectorAll<HTMLInputElement>(
-          'input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not(:disabled)',
-        ) ?? []),
-      ];
-      (fields.find((one) => one.getAttribute('aria-invalid') === 'true') ?? fields.find((one) => one.value === ''))?.focus();
+      focusBirthGap(form.current);
       return;
     }
     setTried(false);

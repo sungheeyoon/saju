@@ -7,7 +7,7 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, mergeSearchParams, missingAnswer, toSearchParams, type Query } from '@/src/lib/input/query';
 import { pairTasteOf, type PairTaste as Taste } from '@/src/lib/matching/pair-taste';
 
-import { BirthFields } from './birth-form';
+import { BirthFields, focusBirthGap } from './birth-form';
 import { PAIR_DRAFT_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
 import { BUTTON_PRIMARY } from './ui/buttons';
@@ -35,15 +35,17 @@ export function PairTaste() {
 
   const missing = missingAnswer(forms.a) ?? missingAnswer(forms.b);
 
-  const submit = () => {
+  const submit = (form: HTMLFormElement) => {
     if (missing !== null) {
       setTried(true);
+      focusBirthGap(form);
       return;
     }
     const a = calculateChart(forms.a);
     const b = calculateChart(forms.b);
     if (!a.ok || !b.ok) {
       setTried(true);
+      focusBirthGap(form);
       return;
     }
     setTried(false);
@@ -69,7 +71,7 @@ export function PairTaste() {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          submit(event.currentTarget);
         }}
         // 첫 화면 종이의 아래 토막 — 입구 「궁합 보기」 곧장 아래에 「나」 · 「상대」 판 두 장이 선다(ADR 0132)
         className={`${PAPER_BOTTOM} flex flex-col gap-4`}
