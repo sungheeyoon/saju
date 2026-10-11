@@ -995,15 +995,18 @@ describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
 
 /**
  * 화면의 요구(PRD §3)와 확정 문구(대장)는 화면 무리마다 한 파일이고, 두 폴더의 무리는 같은 이름이다. 공통 파일(`screens.md` ·
- * `copy-ledger.md`)은 무리 색인을 들고, ui 역할은 「고칠 화면의 무리」 선택 묶음으로 그 짝을 하나 고른다 — 무리 파일을 더하면
- * 색인과 역할 문서에도 들어야 읽기량 셈이 그 파일을 센다.
+ * `copy-ledger.md`)은 무리 색인을 들고, ui 역할은 「고칠 화면의 무리」 선택 묶음으로 PRD 무리 파일을 하나 고른다 — 무리 파일을
+ * 더하면 색인과 역할 문서에도 들어야 읽기량 셈이 그 파일을 센다. 대장 무리 파일은 찾아보는 표라 「닿을 때 여는 것」이 들고, 새 절은
+ * 그 파일 이름을 단 번호라 색인이 자라지 않는다(ADR 0169).
  */
-describe('화면 무리 — PRD 화면 파일과 문구 대장이 같은 무리로 갈리고, 색인과 ui 역할이 그 무리를 다 든다 (ADR 0162)', () => {
+describe('화면 무리 — PRD 화면 파일과 문구 대장이 같은 무리로 갈리고, 색인과 ui 역할이 그 무리를 다 든다 (ADR 0162 · 0169)', () => {
   const SCREENS_DIR = 'docs/product/prd/screens';
   const LEDGER = 'docs/product/copy-ledger.md';
   const LEDGER_DIR = 'docs/product/copy-ledger';
   const groupsIn = (dir: string) => readdirSync(join(ROOT, dir)).filter((name) => name.endsWith('.md')).sort();
   /** 대장 파일의 번호 붙은 절 — `## NN …` 의 NN 과 그 제목 */
+  /** 대장 전체에서 하나인 번호의 끝 — 그 뒤의 절은 파일 이름을 단 번호다(ADR 0169) */
+  const LAST_SHARED_NUMBER = 47;
   const ledgerSections = (file: string) => [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## (\d{2}) (.+)$/gm)].map((match) => ({ no: match[1], title: match[2].trim() }));
 
   it('두 폴더의 무리 이름이 같고, 공통 파일의 색인이 무리 파일 전부를 든다', () => {
@@ -1037,15 +1040,30 @@ describe('화면 무리 — PRD 화면 파일과 문구 대장이 같은 무리�
     }
     expect(wrong).toEqual([]);
     const numbers = [...titles.keys()].map(Number).sort((a, b) => a - b);
-    expect(numbers).toEqual(Array.from({ length: numbers.length }, (_, i) => i + 1));
+    // 대장 전체에서 하나인 번호는 01–47 에서 멈췄다 — 새 절은 아래 시험의 `<파일 이름>-NN` (ADR 0169)
+    expect(numbers, '새 절은 `## <파일 이름>-NN …` 이다 — 머리의 「무리 색인」').toEqual(Array.from({ length: LAST_SHARED_NUMBER }, (_, i) => i + 1));
   });
 
-  it('ui 역할의 「고칠 화면의 무리」 선택지는 무리마다 하나이고, 그 무리의 PRD 화면 파일과 대장 파일을 짝으로 든다', () => {
+  it('새 절의 번호는 그 파일 이름을 달고(머리는 `all`) 한 파일 안에서 01 부터 끊기지 않는다 — 나란히 도는 PR 이 다른 무리에 같은 번호를 노리지 않게 (ADR 0169)', () => {
+    const files = [LEDGER, ...groupsIn(LEDGER_DIR).map((name) => `${LEDGER_DIR}/${name}`)];
+    const wrong: string[] = [];
+    for (const file of files) {
+      const own = file === LEDGER ? 'all' : file.slice(LEDGER_DIR.length + 1, -'.md'.length);
+      const named = [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## ([a-z]+)-(\d{2}) /gm)];
+      for (const match of named) if (match[1] !== own) wrong.push(`${file}: ${match[1]}-${match[2]} — 이 파일의 절은 ${own}-NN`);
+      const mine = named.filter((match) => match[1] === own).map((match) => Number(match[2]));
+      if (mine.join(' ') !== mine.map((_, i) => i + 1).join(' ')) wrong.push(`${file}: ${own}-${mine.join(' · ')} — 01 부터 끊기지 않게`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('ui 역할의 「고칠 화면의 무리」 선택지는 무리마다 하나이고 그 무리의 PRD 화면 파일을 들며, 대장 무리 파일은 「닿을 때 여는 것」이 폴더로 든다 (ADR 0169)', () => {
     const group = readBudgetOf('ui', ROOT).choices.find((one) => one.name.startsWith('고칠 화면의 무리'));
     expect(group).toBeDefined();
-    const bySecond = (a: string[], b: string[]) => a[1].localeCompare(b[1]);
-    const pairs = (group?.options ?? []).map((option) => option.files.map((one) => one.file).sort()).sort(bySecond);
-    expect(pairs).toEqual(groupsIn(SCREENS_DIR).map((name) => [`${LEDGER_DIR}/${name}`, `${SCREENS_DIR}/${name}`]).sort(bySecond));
+    const picked = (group?.options ?? []).map((option) => option.files.map((one) => one.file).sort());
+    expect(picked.sort()).toEqual(groupsIn(SCREENS_DIR).map((name) => [`${SCREENS_DIR}/${name}`]).sort());
+    const onDemand = sectionIn(readFileSync(join(ROOT, 'docs/roles/ui.md'), 'utf8'), ON_DEMAND_SECTION) ?? '';
+    expect(onDemand).toContain('](../product/copy-ledger/)');
   });
 });
 

@@ -257,11 +257,11 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
 
   // Next 의 라우트 안내판도 `role="alert"` 이라 폼 안으로 좁힌다.
   const refusal = page.locator('main').getByRole('alert');
-  await expect(refusal).toContainText('2019년에는 윤달이 없습니다');
+  await expect(refusal).toContainText('2019년에는 윤달이 없어요.');
 
   // 2017년에는 윤5월이 있다 — 어느 것이 있는지까지 말한다.
   await fillBirthDate(page, '2017-04-01');
-  await expect(refusal).toContainText('윤5월');
+  await expect(refusal).toContainText('2017년 윤달은 윤5월이에요.');
 
   /*
     표 밖은 다른 말을 한다. 폼에서는 양력 1905년을 적고 음력으로 옮겨도 닿지만(해 칸이 붉어진다),

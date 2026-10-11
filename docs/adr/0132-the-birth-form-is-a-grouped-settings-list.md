@@ -122,3 +122,8 @@
 - **어긋난 칸이 붉어지고, 누르면 그 칸으로 초점이 간다** — `dateRefusal`(`src/lib/input/chart.ts`)이 칸(해 · 달 · 날)을 짚고 음력 표의
   거절도 그 칸에 붙인다. 초점은 `focusBirthGap`(붉어진 칸 → 빈 칸)이고 첫 화면 · `/saju` · 궁합 입구 · 사람 추가가 부른다. 궁합 고르는 판은
   제 `bringTo` 가 같은 순서로 데려간다.
+- **음력 표의 거절도 같은 말투다**(같은 날 덧, 조율자 승인 · 대장 42) — 엔진(`solarFromLunar`)은 갈래(`LunarConversionError.reason`)와
+  표의 사실(새로 연 `lunarMonthsOf` — 그 해 달마다 윤달인가 · 날 수)만 내고, 문장은 입력 층의 `dateRefusal` 이 짓는다. 엔진의 오류 값 ·
+  문장 · 계산은 그대로다. 버튼 곁(`calculateChart`) · 음력 아래 줄(`convertedLine`) · 저장(`unsupportedForSaving`)이 그 하나를 부른다 —
+  전에는 셋이 엔진의 합쇼체 문장(「음력 1990년 1월은 29일까지입니다: 31일」)을 그대로 세웠다. 저장된 입력을 못 읽는 화면
+  (`UnreadableInputError`)은 폼이 아니라 그대로다.

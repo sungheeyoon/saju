@@ -258,7 +258,7 @@ function DigitsField({
  * 음력 입력 아래에 적을 한 줄 — 바뀐 양력이거나, 못 바꾼 이유다.
  *
  * 못 바꾼 이유를 「변환할 수 없습니다」로 뭉개지 않는다. 표 밖·없는 윤달·없는 날은
- * 사용자가 할 일이 서로 다르고, 그 말을 이미 변환 모듈이 들고 있다.
+ * 사용자가 할 일이 서로 다르다 — 그 말은 칸을 붉히는 것과 같은 `dateRefusal` 이 짓는다.
  */
 function convertedLine(value: Query): { ok: boolean; text: string } | null {
   if (value.calendar === 'solar' || value.date === '') return null;
@@ -273,12 +273,11 @@ function convertedLine(value: Query): { ok: boolean; text: string } | null {
   */
   if (dateEntryRefusal(value) !== null) return null;
 
-  try {
-    const { year, month, day } = solarDateOf(value);
-    return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산해요` };
-  } catch (error) {
-    return { ok: false, text: error instanceof Error ? error.message : '양력으로 바꾸지 못했어요. 날짜를 다시 확인해 주세요.' };
-  }
+  const refused = dateRefusal(value);
+  if (refused !== null) return { ok: false, text: refused.message };
+
+  const { year, month, day } = solarDateOf(value);
+  return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산해요` };
 }
 
 /** 네 자리로 다 적힌 해인가 — 타이핑 중인 「19」로는 달 길이를 셀 수 없다 */

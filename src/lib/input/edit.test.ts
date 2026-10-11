@@ -43,7 +43,7 @@ describe('저장 전에 거절하는 것', () => {
     // 2024년에는 윤달이 없다.
     const impossible: Query = { ...submitted, calendar: 'lunar_leap', date: '2024-04-01' };
 
-    expect(unsupportedForSaving(impossible)).toMatch(/윤달이 없습니다/);
+    expect(unsupportedForSaving(impossible)).toBe('2024년에는 윤달이 없어요.');
   });
 
   it.each([
