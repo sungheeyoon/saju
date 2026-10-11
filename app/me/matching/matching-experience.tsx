@@ -15,7 +15,7 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { ROW_CARD, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
@@ -272,6 +272,7 @@ export function MatchingExperience({
   /** 카드 위 — 되돌리기 줄이 없다(카드 아래 ↶ 가 같은 일을 한다). 줄은 덱이 비었을 때만 선다 */
   const cardFeedback = (
     <Feedback
+      onCard
       undo={null}
       working={working}
       failure={failure}
@@ -582,12 +583,18 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
  * 한 화면에 한 자리에만 선다(카드 위 · 빈 날 · 지나친 인연).
  */
 function Feedback({
+  onCard = false,
   undo,
   working,
   failure,
   announcement,
   flash,
 }: {
+  /**
+   * 사진 · 큰 첫 글자 위에 뜨는 자리 — 실패 줄을 줄 카드(`ROW_CARD`) 상자에 담는다. 맨 글자로 서면 배경 글자와 겹쳐 안 읽혔다
+   * (운영자 시안 선택 2026-10-11). 그림자는 카드 위 자리가 단다. 공용 `FailureLine` 은 상자 없이 그대로다
+   */
+  onCard?: boolean;
   undo: (() => void) | null;
   working: boolean;
   failure: string | null;
@@ -606,6 +613,7 @@ function Feedback({
       )}
       {failure !== null && (
         <FailureLine
+          className={onCard ? ROW_CARD : ''}
           action={
             failure === REQUEST_UNSURE ? (
               <Link href={HISTORY_HREF} className={BUTTON_TERTIARY}>
