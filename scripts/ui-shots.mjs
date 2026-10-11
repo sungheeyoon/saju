@@ -64,6 +64,17 @@ const builtPort = Number(port) + 2;
  * Next 의 `instant()` 시험 손잡이(`next-instant-navigation-testing` 쿠키)는 Cache Components 앱의 것이라 이 앱에서는
  * 본문까지 그대로 그렸다.
  */
+/** 오늘의 인연 한 사람을 지나치고(저장이 끝나 되돌리기가 풀릴 때까지 — 덱이 비었으면 앞 장이 지나친 사람이 있다) 지나친 인연 보기로 간다 — 폭마다 단추가 다르다 */
+async function passOneAndOpenPassed(page) {
+  const pass = page.getByRole('button', { name: '다음 인연으로 지나가기' });
+  if ((await pass.count()) > 0) {
+    await pass.click();
+    await page.getByRole('button', { name: /^(이전 인연으로 되돌리기|실행 취소)$/ }).and(page.locator(':enabled')).first().waitFor();
+  }
+  await page.locator('header button:visible', { hasText: '지나친 인연' }).first().click();
+  await page.getByRole('region', { name: /지나친 인연/ }).waitFor();
+}
+
 async function serverAsBuilt() {
   const local = localStack();
   return startCheckServer({
@@ -276,6 +287,25 @@ const PLAN = [
     shots: [
       { id: 'me-board', at: '/me', name: '내 계정 (홈) — 오늘의 인연이 섰을 때' },
       { id: 'matching-board', at: '/me/matching', name: '인연 탭 — 오늘의 인연' },
+      {
+        id: 'matching-passed',
+        at: '/me/matching',
+        name: '인연 탭 — 지나친 인연',
+        act: async (page) => {
+          await passOneAndOpenPassed(page);
+        },
+      },
+      {
+        id: 'matching-passed-sheet',
+        at: '/me/matching',
+        name: '인연 탭 — 지나친 인연의 시트',
+        act: async (page) => {
+          await passOneAndOpenPassed(page);
+          await page.getByRole('region', { name: /지나친 인연/ }).getByRole('listitem').first().getByRole('button').click();
+          await page.locator('dialog[open]').waitFor();
+          await page.waitForTimeout(400);
+        },
+      },
     ],
   },
   {

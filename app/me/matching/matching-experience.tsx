@@ -278,23 +278,25 @@ export function MatchingExperience({
     />
   );
 
-  /** 폰의 ⓘ 시트와 넓은 화면의 옆 열이 함께 드는 것 — 판정의 까닭 · 채워 주는 기운의 문장 */
-  const details = profile && (
+  /** 폰의 ⓘ 시트와 넓은 화면의 옆 열이 함께 드는 것 — 판정의 까닭 · 채워 주는 기운의 문장. 지나친 인연의 시트도 같은 것을 든다 */
+  const detailsOf = (card: DeckCard) => (
     <>
       <div className="flex flex-col gap-1">
-        <p className="font-rounded text-[1.25rem] leading-snug text-[var(--ink)]">{profile.verdict}</p>
-        <p className="max-w-prose text-[14px] leading-6 text-foreground">{profile.reason}</p>
+        <p className="font-rounded text-[1.25rem] leading-snug text-[var(--ink)]">{card.verdict}</p>
+        <p className="max-w-prose text-[14px] leading-6 text-foreground">{card.reason}</p>
       </div>
       <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border">
-        <SupplyBody card={profile} explorationNote={explorationNote} />
+        <SupplyBody card={card} explorationNote={explorationNote} />
       </div>
     </>
   );
+  const details = profile && detailsOf(profile);
   /*
     소개 전문 — 폰은 ⓘ 시트가, 넓은 화면은 **카드 열** 아래가 든다. 오른쪽 열(지도 + 까닭 + 기운)이 카드보다 길어 왼쪽 열
     아래가 통째로 비었다(화면 감사 2026-10-09). 그 사람의 말이라 그 사람 카드 밑이 제자리이기도 하다.
   */
-  const letter = profile && <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />;
+  const letterOf = (card: DeckCard) => <Letter key={card.candidateUserId} nickname={card.nickname} intro={card.intro} />;
+  const letter = profile && letterOf(profile);
 
   return (
     <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-12">
@@ -369,6 +371,12 @@ export function MatchingExperience({
             ) : null
           }
           feedback={feedback}
+          detail={(card) => (
+            <>
+              {detailsOf(card)}
+              {letterOf(card)}
+            </>
+          )}
         />
       ) : profile === undefined ? (
         <EmptyDeck me={me} feedback={feedback} />

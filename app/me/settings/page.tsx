@@ -5,6 +5,7 @@ import { isBlocked } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
+import { FailureLine } from '../../ui/failure-line';
 import { Icon } from '../../ui/icons';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
@@ -71,13 +72,23 @@ export default async function SettingsPage() {
         </SettingsCard>
       )}
 
-      {/* 못 읽었으면 두 칸을 비운다 — 기본값으로 메우면 끈 사람에게 「켜져 있다」고 말한다(ADR 0078) */}
-      {state.kind === 'active' && discoveryProfile.ok && (
-        <>
-          <PreferenceForm current={discoveryProfile.value?.preferGender ?? 'any'} />
-          <ParticipationToggle resting={discoveryProfile.value?.optedOut ?? false} />
-        </>
-      )}
+      {/*
+        못 읽었으면 두 칸 대신 실패 줄 하나가 선다 — 기본값으로 메우면 끈 사람에게 「켜져 있다」고 말하고(ADR 0078), 말없이 비우면
+        그 설정이 있는 줄도 모른다(ADR 0164 덧).
+      */}
+      {state.kind === 'active' &&
+        (discoveryProfile.ok ? (
+          <>
+            <PreferenceForm current={discoveryProfile.value?.preferGender ?? 'any'} />
+            <ParticipationToggle resting={discoveryProfile.value?.optedOut ?? false} />
+          </>
+        ) : (
+          <SettingsCard title="인연 찾기">
+            <FailureLine retry className="py-3">
+              인연 찾기 설정을 불러오지 못했어요. {discoveryProfile.reason}
+            </FailureLine>
+          </SettingsCard>
+        ))}
 
       {/*
         이 기기의 새 메시지 알림 — 상태는 브라우저만 알아 줄이 스스로 잰다(ADR 0156). **공개 열쇠가 없는 배포에는 안 세운다** —

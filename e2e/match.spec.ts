@@ -915,7 +915,8 @@ test.describe('보관함 복원 회귀', () => {
     await asker.page.reload();
     await asker.page.getByRole('button', { name: /지나친 인연/ }).click();
     const panel = asker.page.getByRole('region', { name: /지나친 인연/ });
-    await panel.getByRole('listitem').filter({ hasText: `나${tag}` }).getByRole('button', { name: '다시 만나보기' }).click();
+    await panel.getByRole('listitem').filter({ hasText: `나${tag}` }).getByRole('button').click(); // 타일은 보기만 연다 — 복원은 시트 안이다
+    await asker.page.getByRole('dialog', { name: `나${tag} 님 자세히` }).getByRole('button', { name: '다시 만나보기' }).click();
     await expect(panel).not.toBeVisible();
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
     expect((await asker.api.rpc('my_passed_connections')).data).toEqual([]);
