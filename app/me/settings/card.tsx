@@ -110,11 +110,14 @@ export function SettingsLinkRow({
   leading,
   label,
   help,
+  trailing,
 }: {
   href: string;
   leading?: ReactNode;
   label: ReactNode;
   help?: ReactNode;
+  /** 화살표 앞에 작게 서는 글자 — 그 줄이 지금 무엇을 기다리는지(예: 사진이 없을 때 「사진 추가」) */
+  trailing?: ReactNode;
 }) {
   return (
     <Link
@@ -126,6 +129,7 @@ export function SettingsLinkRow({
         <span className="truncate text-[15px] font-semibold leading-6">{label}</span>
         {help !== undefined && <span className="text-[13px] leading-5 text-secondary">{help}</span>}
       </span>
+      {trailing !== undefined && <span className="shrink-0 text-[13px] font-semibold text-secondary">{trailing}</span>}
       <span aria-hidden="true" className="text-muted">
         <Icon name="chevron" className="size-4" />
       </span>

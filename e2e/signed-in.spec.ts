@@ -3035,10 +3035,15 @@ test.describe('가입 관문', () => {
    */
   test('프로필 사진을 여러 장 올리고, 길게 눌러 끌거나 ← → 로 옮기고, × 로 지운다', async ({ openAs }) => {
     const { page } = await openAs({ selfPerson: true });
+    /* 사진이 없으면 계정 관리 맨 위 「나」 줄 끝에 「사진 추가」가 선다(대장 47) — 있으면 안 선다(이 시험 끝) */
+    await page.goto('/me/settings');
+    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toBeVisible();
     await page.goto('/me/profile');
 
     const lead = page.getByRole('group', { name: '대표 사진' });
     await expect(lead).toBeVisible();
+    /* 한 장도 없으면 큰 대표 칸에 「+」만이 아니라 보이는 글자가 선다 */
+    await expect(lead.getByText('사진 추가', { exact: true })).toBeVisible();
 
     /*
       **주소가 아니라 그림을 잰다.** 칸의 `src` 는 자리 주소(`/me/photo/{id}/{n}?v=`)라, 옮긴 순서를 먼저 그리는
@@ -3061,7 +3066,7 @@ test.describe('가입 관문', () => {
       return bodies.get(src) ?? Buffer.alloc(0);
     };
 
-    await page.getByLabel('사진 올리기').setInputFiles([
+    await page.getByLabel('사진 추가').setInputFiles([
       'e2e/fixtures/harin.webp',
       'e2e/fixtures/jiwoo.webp',
     ]);
@@ -3143,6 +3148,10 @@ test.describe('가입 관문', () => {
     expect(byPosition.status()).toBe(200);
     expect(Buffer.compare(await byPosition.body(), await byAlias.body())).toBe(0);
     expect((await page.request.get(`/me/photo/${userId}/2`)).status()).toBe(404);
+
+    await page.goto('/me/settings');
+    await expect(page.locator('main a[href="/me/profile"]')).toBeVisible();
+    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toHaveCount(0);
   });
 
   /**
@@ -3157,11 +3166,11 @@ test.describe('가입 관문', () => {
     await expect(page.getByText('사진은 바로 저장돼요')).toBeVisible();
 
     const fixtures = ['e2e/fixtures/harin.webp', 'e2e/fixtures/jiwoo.webp', 'e2e/fixtures/seoyeon.webp'];
-    await page.getByLabel('사진 올리기').setInputFiles([...fixtures, ...fixtures]);
+    await page.getByLabel('사진 추가').setInputFiles([...fixtures, ...fixtures]);
     const slot = (n: number) => page.getByLabel(`사진 ${n} / 6, 길게 눌러 옮기기`, { exact: true });
     /* 여섯 장을 차례로 줄이고 올린다 — 한 장씩이라 기본 기다림보다 길다 */
     await expect(slot(6)).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByLabel('사진 올리기')).toHaveCount(0);
+    await expect(page.getByLabel('사진 추가')).toHaveCount(0);
 
     const versionAt = async (n: number) =>
       new URL((await slot(n).locator('img').getAttribute('src')) ?? '', 'http://x').searchParams.get('v');
@@ -3234,7 +3243,7 @@ test.describe('가입 관문', () => {
     });
     await page.goto('/me/profile');
 
-    await page.getByLabel('사진 올리기').setInputFiles(['e2e/fixtures/harin.webp']);
+    await page.getByLabel('사진 추가').setInputFiles(['e2e/fixtures/harin.webp']);
     const photo = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
     await expect(photo).toBeVisible();
 
@@ -3250,7 +3259,7 @@ test.describe('가입 관문', () => {
     const { page } = await openAs({ selfPerson: true });
     await page.goto('/me/profile');
 
-    await page.getByLabel('사진 올리기').setInputFiles([
+    await page.getByLabel('사진 추가').setInputFiles([
       'e2e/fixtures/harin.webp',
       'e2e/fixtures/jiwoo.webp',
       'e2e/fixtures/seoyeon.webp',
