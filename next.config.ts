@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+
+import { remoteDevRefusal } from "./src/lib/local-env";
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -101,4 +104,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * **개발 서버는 운영 Supabase 에 붙지 않는다** — `next dev` 가 `.env.development.local`(운영 접속값)을 그대로 읽으면 시작하지 않고
+ * 로컬 스택으로 띄우는 길을 말한다(`remoteDevRefusal`). 빌드 · `next start` 는 이 검사 밖이다.
+ */
+export default function config(phase: string): NextConfig {
+  if (phase === PHASE_DEVELOPMENT_SERVER) {
+    const refusal = remoteDevRefusal(supabaseUrl, process.env.DEV_ALLOW_REMOTE, process.env.CI);
+    if (refusal !== null) throw new Error(refusal);
+  }
+  return nextConfig;
+}

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:local": "node scripts/ui-dev.mjs",
     "build": "node scripts/heavy.mjs next build && node scripts/secret-env.mjs",
     "start": "next start",
     "lint": "eslint",
