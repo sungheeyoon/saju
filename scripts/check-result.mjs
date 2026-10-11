@@ -211,8 +211,19 @@ try {
      *
      * 소개 카드는 **이 실행만의 소개 글**(`INTRO`)이 본문에 실리는지로 잰다. 카드 제목이
      * 무엇으로 바뀌든, 소개가 돌아오면 걸린다.
+     *
+     * **소개는 머리 얼굴이 여는 상대 프로필 시트에만 선다**(운영자 결정 2026-10-11, ADR 0155 덧). 그래서 시트(`data-partner-sheet`)
+     * 밖의 화면 — 머리와 결과 본문 — 에 그 글이 없고, 시트 안에 있는지를 잰다. 스크립트(넘겨진 값)는 화면이 아니라 걷고 본다.
+     * 닫힌 시트에는 안쪽 창이 없어(「⋯」는 열린 동안만 선다) 시트의 끝은 그 뒤 첫 `</dialog>` 다.
      */
-    check('상대 소개 카드는 빠진다', !mine.includes(introOf(NAME.b)));
+    const screen = mine.replace(/<script[\s\S]*?<\/script>/g, '');
+    const marker = screen.indexOf('data-partner-sheet');
+    const from = screen.lastIndexOf('<dialog', marker);
+    const to = screen.indexOf('</dialog>', marker);
+    const sheet = marker > 0 && from >= 0 && to > marker ? screen.slice(from, to) : '';
+    const outside = sheet === '' ? screen : screen.slice(0, from) + screen.slice(to);
+    check('상대 소개 카드는 결과 본문에서 빠진다', !outside.includes(introOf(NAME.b)));
+    check('상대 소개는 상대 프로필 시트에 선다', sheet.includes(introOf(NAME.b)));
     check('동의 범위 설명 카드는 빠진다',
       [...MATCH_DISCLOSURE.shown, ...MATCH_DISCLOSURE.hidden].every((line) => !mine.includes(line)));
     check('결과 화면의 긴 판본·엔진 설명은 빠진다',

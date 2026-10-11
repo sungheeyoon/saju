@@ -281,6 +281,7 @@ export function DetailSheet({
   label,
   menu,
   nameInBody = false,
+  onClose,
   children,
 }: {
   sheet: RefObject<HTMLDialogElement | null>;
@@ -295,6 +296,8 @@ export function DetailSheet({
    * 읽히고, 본문의 이름은 보이기만 한다(한 이름을 두 번 읽지 않게)
    */
   nameInBody?: boolean;
+  /** 판이 닫힌 뒤 — 어느 길(X · Esc · 바깥 · 끌기)로 닫혀도 한 번 */
+  onClose?: () => void;
   children: ReactNode;
 }) {
   const press = useRef<number | null>(null);
@@ -318,6 +321,7 @@ export function DetailSheet({
       aria-label={label ?? `${nickname} 님 자세히`}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
       onCancel={(event) => { event.preventDefault(); close(); }}
+      onClose={onClose}
       style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
       /*
         폭은 40rem 에서 멈추고 가운데 선다 — ⓘ 는 `lg` 아래에서 열리므로 640~1023px 에서 시트가 화면 끝까지 늘어나 한 줄이

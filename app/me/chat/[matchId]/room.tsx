@@ -27,8 +27,7 @@ import { Icon } from '../../../ui/icons';
 import { useDetailsMenu } from '../../../ui/details-menu';
 import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
-import { PartnerSheet, partnerSheetName, type PartnerProfile } from '../../partner-sheet';
-import { openSheet } from '../../matching/today-card';
+import { PartnerSheet, partnerSheetName, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
 import { DayMasterChip } from '../../people/chart-bits';
 import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
@@ -188,7 +187,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
     **상대 프로필 시트** — 머리의 사진 · 이름과 상대 말풍선 곁 사진이 연다(운영자 결정 2026-10-11, ADR 0155 덧). 시트라 방의
     스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로다. 닫힌 방(차단 · 정지 · 탈퇴 · 떠난 상대)은 열지 않고 누를 단서도 없다
   */
-  const sheet = useRef<HTMLDialogElement>(null);
+  const profile = usePartnerSheet();
   const partner: PartnerProfile | null =
     room.partnerUserId !== null && !closed
       ? {
@@ -200,7 +199,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           tone: theirTone,
         }
       : null;
-  const openPartner = useCallback(() => openSheet(sheet.current), []);
+  const openPartner = profile.open;
   /* 닫힌 방에는 쓸 칸이 없다 — 쓰다 만 글도 탭에서 걷는다(`draft.ts`) */
   useEffect(() => {
     if (closed) dropDraft(() => sessionStorage, room.matchId);
@@ -406,7 +405,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       </div>
       {partner !== null && (
         <PartnerSheet
-          sheet={sheet}
+          control={profile}
           partner={partner}
           toMatch={withCameFrom(`/me/match/${room.matchId}`, 'chat')}
           /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 입력 자리에 신고 · 차단 칸을 세운다 */
@@ -414,12 +413,12 @@ export function ChatRoomView({ room }: { room: RoomView }) {
             <ReportBlockMenu
               canBlock
               onReport={() => {
-                sheet.current?.close();
+                profile.sheet.current?.close();
                 setReported(false);
                 setSlot({ kind: 'report', messageId: null });
               }}
               onBlock={() => {
-                sheet.current?.close();
+                profile.sheet.current?.close();
                 setSlot({ kind: 'block' });
               }}
             />

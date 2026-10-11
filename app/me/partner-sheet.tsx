@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, type ReactNode, type RefObject } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 
 import type { PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
@@ -29,6 +29,23 @@ export type PartnerProfile = {
   readonly tone: Element | null;
 };
 
+/**
+ * 시트를 여는 손잡이 — 여는 쪽(머리 · 말풍선 · 얼굴)이 `open` 을 부른다. **「⋯」는 열려 있는 동안만 선다** — 닫힌 시트 안에
+ * 같은 「신고 · 차단」이 하나 더 서 있으면 문서에 그 단추가 둘이 되어, 머리의 「⋯」를 찾는 자리가 어느 것인지 갈리지 않는다.
+ */
+export function usePartnerSheet() {
+  const sheet = useRef<HTMLDialogElement>(null);
+  const [shown, setShown] = useState(false);
+  const open = useCallback(() => {
+    setShown(true);
+    openSheet(sheet.current);
+  }, []);
+  const closed = useCallback(() => setShown(false), []);
+  return { sheet, shown, open, closed };
+}
+
+export type PartnerSheetControl = ReturnType<typeof usePartnerSheet>;
+
 /** 시트 · 머리 단추의 보조기기 이름 — 오늘의 인연 · 지나친 인연 시트와 같은 이름이다(문구 대장 43) */
 export const partnerSheetName = (nickname: string): string => `${nickname} 님 자세히`;
 
@@ -42,12 +59,12 @@ export const partnerSheetName = (nickname: string): string => `${nickname} 님 �
  * 그 줄을 뺀다. `toMatch` 가 없으면(인연 궁합 화면 자신이 연 시트) 「인연 궁합」 단추가 안 선다.
  */
 export function PartnerSheet({
-  sheet,
+  control,
   partner,
   toMatch,
   menu,
 }: {
-  sheet: RefObject<HTMLDialogElement | null>;
+  control: PartnerSheetControl;
   partner: PartnerProfile;
   toMatch: string | null;
   menu?: ReactNode;
@@ -55,8 +72,15 @@ export function PartnerSheet({
   const frame = useRef<HTMLDivElement>(null);
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
   return (
-    <DetailSheet sheet={sheet} nickname={partner.nickname} label={partnerSheetName(partner.nickname)} menu={menu} nameInBody>
-      <div className="flex flex-col gap-4">
+    <DetailSheet
+      sheet={control.sheet}
+      nickname={partner.nickname}
+      label={partnerSheetName(partner.nickname)}
+      menu={control.shown ? menu : null}
+      onClose={control.closed}
+      nameInBody
+    >
+      <div data-partner-sheet="" className="flex flex-col gap-4">
         {partner.photoUrls.length > 0 ? (
           <div
             ref={frame}
@@ -108,14 +132,14 @@ export function PartnerFace({
   size: number;
   menu?: ReactNode;
 }) {
-  const sheet = useRef<HTMLDialogElement>(null);
+  const control = usePartnerSheet();
   return (
     <>
       <button
         type="button"
         aria-haspopup="dialog"
         aria-label={partnerSheetName(partner.nickname)}
-        onClick={() => openSheet(sheet.current)}
+        onClick={control.open}
         className="shrink-0 rounded-full active:scale-95"
       >
         <Avatar
@@ -126,7 +150,7 @@ export function PartnerFace({
           size={size}
         />
       </button>
-      <PartnerSheet sheet={sheet} partner={partner} toMatch={null} menu={menu} />
+      <PartnerSheet control={control} partner={partner} toMatch={null} menu={menu} />
     </>
   );
 }
