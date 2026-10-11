@@ -128,6 +128,7 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/discovery/actions.ts::requestMatch': 'match-requested',
     'app/me/profile/actions.ts::saveProfile': 'account-changed',
     'app/me/profile/actions.ts::addPhoto': 'account-changed',
+    'app/me/profile/actions.ts::replacePhoto': 'account-changed',
     'app/me/profile/actions.ts::removePhoto': 'account-changed',
     'app/me/profile/actions.ts::movePhoto': 'account-changed',
     'app/me/requests/actions.ts::respondToRequest': 'requests-changed',

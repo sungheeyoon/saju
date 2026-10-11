@@ -36,6 +36,9 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
   return { ok: true };
 }
 
+/** 받지 않는 형식 — 올리기와 바꾸기가 같은 말이다 */
+const PHOTO_TYPE_REFUSED = 'JPG · PNG · WebP 사진만 올릴 수 있어요. 다른 사진을 골라 주세요.';
+
 /**
  * 사진 한 장을 **맨 뒤에** 더한다 — **줄이는 일은 브라우저가 했다**(G-60).
  *
@@ -46,9 +49,7 @@ export async function addPhoto(photo: {
   contentType: string;
   base64: string;
 }): Promise<SaveResult> {
-  if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) {
-    return { ok: false, message: 'JPG · PNG · WebP 사진만 올릴 수 있어요. 다른 사진을 골라 주세요.' };
-  }
+  if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) return { ok: false, message: PHOTO_TYPE_REFUSED };
 
   const supabase = await supabaseOnServer();
 
@@ -61,6 +62,39 @@ export async function addPhoto(photo: {
 
   refresh('account-changed');
   return { ok: true };
+}
+
+/** 바꾼 장의 새 판본 — 화면이 서버 목록이 오기 전에 그 칸의 미리보기를 새 장에 잇는다 */
+export type PhotoReplaced = { ok: true; version: number } | { ok: false; message: string };
+
+/**
+ * 한 장을 **그 자리에서** 바꾼다 — 자리 · 다른 장은 그대로, 판본만 바뀐다(`20261202090000`).
+ *
+ * 지우기 + 올리기 + 옮기기 세 번을 부르지 않는다 — 여섯 장이 찼을 때 · 그 사이 망이 끊겼을 때 한 장이 사라지거나 대표가
+ * 바뀐 채 남는다. DB 가 한 트랜잭션에서 바이트를 갈아 끼우고 하루 올리기 한도를 한 번 센다. `version` 은 그 자리에 있다고
+ * 화면이 본 장이다 — 다른 탭이 먼저 바꿨으면 거절된다.
+ */
+export async function replacePhoto(photo: {
+  position: number;
+  version: number;
+  contentType: string;
+  base64: string;
+}): Promise<PhotoReplaced> {
+  if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) return { ok: false, message: PHOTO_TYPE_REFUSED };
+
+  const supabase = await supabaseOnServer();
+
+  const { data, error } = await supabase.rpc('replace_my_photo', rpcArgs<'replace_my_photo'>({
+    p_position: photo.position,
+    p_version: photo.version,
+    p_content_type: photo.contentType,
+    p_base64: photo.base64,
+  }));
+
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'replace_my_photo') };
+
+  refresh('account-changed');
+  return { ok: true, version: data };
 }
 
 /**
