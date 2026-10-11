@@ -184,7 +184,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await sheet.getByRole('link', { name: /^궁합/ }).click();
     await expect(a.page).toHaveURL(new RegExp(`/me/match/${matchId}\\?from=chat$`));
     /* 제목이 상대를 부른다(화면 점검 C12) */
-    await expect(a.page.getByRole('heading', { name: `나${tag} 님과의 인연 궁합`, exact: true })).toBeVisible();
+    await expect(a.page.getByRole('heading', { name: `나${tag} 님 궁합 결과`, exact: true })).toBeVisible();
     await expect(lit).toHaveCount(1);
     await expect(lit).toContainText(/^인연/);
 

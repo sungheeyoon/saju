@@ -349,7 +349,7 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(main.getByLabel('신고 · 차단', { exact: true })).toBeVisible();
 
       /* 제목이 상대를 부른다(화면 점검 C12) — 옆 책장에도 「인연 궁합」 절 제목이 서므로 글 칸(`article`) 안에서 찾는다 */
-      await expect(main.getByRole('article').getByRole('heading', { name: `${partner} 님과의 인연 궁합`, exact: true })).toBeVisible();
+      await expect(main.getByRole('article').getByRole('heading', { name: `${partner} 님 궁합 결과`, exact: true })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       /* 두 사람의 여덟 글자가 각자의 네 기둥 띠로 선다(`PillarPair`) — 관계 표는 없다 */

@@ -10,9 +10,9 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { PillarPair } from '../../compat-view';
-import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT, TYPE_TITLE } from '../../ui/surfaces';
+import { EMPTY_SLOT } from '../../ui/surfaces';
 import { ReportBlock } from '../requests/report-block';
 import { PartnerFace } from '../partner-sheet';
 import { ReadingSection } from '../reading/section';
@@ -84,62 +84,53 @@ export async function MatchScreen({
       있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
     */
     <Frame frame={frame}>
-      <header className="flex flex-col gap-5">
-        {/* 되돌아가는 자리는 **온 곳**이다(ADR 0134) — 인연 탭 · 인연 기록 · 대화방 · 보관함, 없으면 인연 탭 첫 화면 */}
-        <Link href={back.href} className={`${BUTTON_TERTIARY} self-start ${besideShelf ? 'lg:hidden' : ''}`}>
-          <Icon name="back" className="size-4" />
-          {back.label}
+      <header className="flex items-center gap-3">
+        {/* ← 는 온 곳으로 간다(ADR 0134) — 글자 대신 아이콘이고, 가는 곳의 이름은 보조기기가 읽는다 */}
+        <Link
+          href={back.href}
+          aria-label={back.label}
+          className={`grid size-11 shrink-0 place-items-center rounded-full text-secondary hover:bg-surface-soft hover:text-foreground ${besideShelf ? 'lg:hidden' : ''}`}
+        >
+          <Icon name="back" className="size-5" />
         </Link>
-        {/*
-          **머리는 한 줄이 상대를 부른다**(운영자 2026-10-10, 화면 점검 C12). 「인연」 눈썹 → 「인연 궁합」 → 「… 님과의 궁합풀이」가
-          같은 대상을 세 번 불렀다. 제목이 상대 이름을 품고, 눈썹은 걷고, 아래 풀이 칸의 이름표는 보조기기에만 읽힌다. 닫힌 결과는
-          상대가 안 실려 와 「인연 궁합」 그대로다.
-        */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              {/*
-                **상대의 얼굴 — 누르면 상대 프로필 시트다**(운영자 결정 2026-10-11). 대화방 머리와 같은 시트 한 벌이고, 이 화면이
-                연 시트에는 「인연 궁합」 단추가 없다(지금 여기다). 닫힌 결과는 상대가 안 실려 와 서지 않는다.
-              */}
-              {outcome.kind === 'ok' && (
-                <PartnerFace
-                  size={48}
-                  partner={{
-                    userId: outcome.result.partnerUserId,
-                    nickname: outcome.result.partnerNickname,
-                    intro: outcome.result.partnerIntro,
-                    photoUrls: outcome.result.partnerPhotoUrls,
-                    photoFocus: outcome.result.partnerPhotoFocus,
-                    tone: STEM_INFO[outcome.result.charts.b.dayMaster].element,
-                  }}
-                  menu={<ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />}
-                />
-              )}
-              <Title className={`${TYPE_TITLE} min-w-0 break-keep`}>
-                {outcome.kind === 'ok' ? `${outcome.result.partnerNickname} 님과의 인연 궁합` : '인연 궁합'}
-              </Title>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
-              {toRoom !== null && (
-                <Link href={toRoom} className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
-                  <Icon name="chat" className="size-[18px]" />
-                  {CHAT_TAB_LABEL}
-                </Link>
-              )}
-              {/*
-                **끊는 자리는 머리의 「⋯」다**(운영자 결정 2026-10-09, ADR 0158). 차단이 풀이와 긴 설문 아래 글 끝에 혼자
-                있었다 — 대화방과 같은 「⋯」에 신고와 함께 둔다. 닫힌 결과에는 상대가 안 실려 와 서지 않는다.
-              */}
-              {outcome.kind === 'ok' && (
-                <ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />
-              )}
-            </div>
-          </div>
-          <p className="text-[15px] leading-6 text-secondary">
-            두 분 모두 같은 글과 같은 점수를 봐요.
-          </p>
+        {outcome.kind === 'ok' && (
+          <PartnerFace
+            size={40}
+            partner={{
+              userId: outcome.result.partnerUserId,
+              nickname: outcome.result.partnerNickname,
+              intro: outcome.result.partnerIntro,
+              photoUrls: outcome.result.partnerPhotoUrls,
+              photoFocus: outcome.result.partnerPhotoFocus,
+              tone: STEM_INFO[outcome.result.charts.b.dayMaster].element,
+            }}
+            menu={<ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />}
+          />
+        )}
+        {/* 제목 하나가 두 줄을 든다 — 보조기기에는 「{닉네임} 님 궁합 결과」 한 이름으로 읽힌다 */}
+        <Title className="min-w-0 flex-1">
+          {outcome.kind === 'ok' ? (
+            <>
+              <span className="block break-words text-[18px] font-semibold leading-6 text-foreground sm:text-[20px]">
+                {outcome.result.partnerNickname} 님
+              </span>{' '}
+              <span className="mt-0.5 block text-[13px] font-normal leading-5 text-secondary">궁합 결과</span>
+            </>
+          ) : (
+            <span className="block break-words text-[18px] font-semibold leading-6 text-foreground sm:text-[20px]">궁합 결과</span>
+          )}
+        </Title>
+        <div className="flex shrink-0 items-center gap-1">
+          {toRoom !== null && (
+            <Link href={toRoom} className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
+              <Icon name="chat" className="size-[18px]" />
+              {CHAT_TAB_LABEL}
+            </Link>
+          )}
+          {/* 끊는 자리는 머리의 「⋯」다(ADR 0158) — 닫힌 결과에는 상대가 안 실려 와 서지 않는다 */}
+          {outcome.kind === 'ok' && (
+            <ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />
+          )}
         </div>
       </header>
 
