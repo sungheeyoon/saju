@@ -42,7 +42,7 @@ export function NoRoomChosen({ empty = false }: { empty?: boolean }) {
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-surface px-6 text-center ring-1 ring-border">
       <ChatIllustration className={`h-auto opacity-80 ${empty ? 'w-[16rem]' : 'w-[11rem]'}`} />
-      {!empty && <p className="text-[15px] text-secondary">대화방을 고르면 여기에 대화가 열려요.</p>}
+      {!empty && <p className="text-[15px] text-secondary">채팅방을 선택하면 여기에 대화가 표시돼요.</p>}
     </section>
   );
 }
