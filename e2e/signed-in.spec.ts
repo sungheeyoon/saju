@@ -2964,14 +2964,66 @@ test.describe('가입 관문', () => {
     await two.page.goto('/me/profile');
     await expect(two.page.getByRole('heading', { name: '프로필' })).toBeVisible();
 
-    /* 남이 쓰는 이름으로 고치려 하면 확인 자리에서 먼저 말한다 */
-    await two.page.getByLabel('닉네임').fill(one.account.nickname);
-    await two.page.getByRole('button', { name: '중복 확인' }).click();
+    /* 남이 쓰는 이름으로 고치면 입력을 멈춘 뒤 스스로 묻고 칸 아래에 말한다 — 「중복 확인」 단추는 없다(2026-10-11) */
+    const nickname = two.page.getByLabel('닉네임');
+    const save = two.page.getByRole('button', { name: '닉네임 · 소개 저장' });
+    await expect(two.page.getByRole('button', { name: '중복 확인' })).toHaveCount(0);
+    await nickname.fill(one.account.nickname);
     await expect(two.page.getByText('이미 사용 중인 닉네임입니다.')).toBeVisible();
 
-    /* 그래도 눌러 보면 저장이 거절한다 — 확인은 안내이고 막는 것은 DB 다 */
-    await two.page.getByRole('button', { name: '프로필 저장' }).click();
-    await expect(two.page.getByText(/저장하지 못했어요/)).toBeVisible();
+    /* 그래도 눌러 보면 저장하지 않고 닉네임 칸으로 돌아간다 */
+    const posted: string[] = [];
+    two.page.on('request', (request) => {
+      if (request.method() === 'POST') posted.push(request.url());
+    });
+    await save.click();
+    await expect(nickname).toBeFocused();
+    expect(posted).toEqual([]);
+
+    /*
+      확인이 끝나기 전에 저장을 눌러도 저장이 먼저 묻는다 — 쓰는 이름이면 저장하지 않는다. 막는 것은 끝내 DB 다
+      (`save_my_profile`) — 여기서는 화면이 그 앞에서 멈추는지를 잰다.
+    */
+    await nickname.fill('');
+    await nickname.pressSequentially(one.account.nickname);
+    await save.click();
+    await expect(two.page.getByText('이미 사용 중인 닉네임입니다.')).toBeVisible();
+    await expect(nickname).toBeFocused();
+    await two.page.reload();
+    await expect(nickname).toHaveValue(two.account.nickname);
+
+    /* 쓸 수 있는 이름 · 소개는 저장되고, 소개 칸 아래에 쓴 글자 수가 선다 */
+    const fresh = `새${String(Date.now()).slice(-5)}`;
+    await nickname.fill(fresh);
+    await expect(two.page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
+    await two.page.getByLabel('소개 (선택)').fill('주말엔 걷습니다');
+    await expect(two.page.locator('#intro-count')).toHaveText('8/300');
+    await save.click();
+    await expect(two.page.getByRole('status').filter({ hasText: '저장했어요' })).toBeVisible();
+    await two.page.reload();
+    await expect(nickname).toHaveValue(fresh);
+  });
+
+  /**
+   * **이름 · 소개를 고친 채 떠나면 브라우저가 묻는다**(`useLeaveGuard`, ADR 0166). 고친 것이 없으면 안 묻는다.
+   */
+  test('프로필을 고친 채 새로고침하면 떠날지 묻는다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    await page.goto('/me/profile');
+    const intro = page.getByLabel('소개 (선택)');
+    await hydrated(intro);
+
+    const asked: string[] = [];
+    page.on('dialog', (dialog) => {
+      asked.push(dialog.type());
+      void dialog.dismiss();
+    });
+    /* 브라우저는 사람이 한 번 누른 화면에서만 묻는다 — 칸을 눌러 적는다 */
+    await intro.click();
+    await intro.fill('적다 만 소개');
+    await page.reload({ timeout: 3000 }).catch(() => {});
+    await expect.poll(() => asked).toEqual(['beforeunload']);
+    await expect(intro).toHaveValue('적다 만 소개');
   });
 
   /**
@@ -3014,11 +3066,11 @@ test.describe('가입 관문', () => {
       'e2e/fixtures/jiwoo.webp',
     ]);
 
-    const first = page.getByRole('button', { name: '사진 1 / 2, 길게 눌러 옮기기' });
-    const second = page.getByRole('button', { name: '사진 2 / 2, 길게 눌러 옮기기' });
+    const first = page.getByLabel('사진 1 / 2, 길게 눌러 옮기기', { exact: true });
+    const second = page.getByLabel('사진 2 / 2, 길게 눌러 옮기기', { exact: true });
     await expect(first).toBeVisible();
     await expect(second).toBeVisible();
-    await expect(lead.getByRole('button', { name: '사진 1 / 2, 길게 눌러 옮기기' })).toBeVisible();
+    await expect(lead.getByLabel('사진 1 / 2, 길게 눌러 옮기기', { exact: true })).toBeVisible();
 
     const versionAt = async (slot: typeof first) =>
       new URL((await slot.locator('img').getAttribute('src')) ?? '', 'http://x').searchParams.get('v');
@@ -3069,7 +3121,7 @@ test.describe('가입 관문', () => {
       실행 취소는 아무 요청 없이 그 장을 제자리에 다시 세운다.
     */
     await lead.getByRole('button', { name: '사진 지우기' }).click();
-    const only = page.getByRole('button', { name: '사진 1 / 1, 길게 눌러 옮기기' });
+    const only = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
     await expect(only).toBeVisible();
     await expect.poll(() => versionAt(only)).toBe(b);
     await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
@@ -3094,6 +3146,74 @@ test.describe('가입 관문', () => {
   });
 
   /**
+   * **사진을 누르면 메뉴 — 「사진 변경」은 그 칸에서 바꾸고, 「대표로 설정」은 1번으로 옮긴다**(`20261202090000`, 2026-10-11).
+   *
+   * 여섯 칸이 다 차도 바꿀 수 있다 — 지우고 올리는 것이 아니라 그 자리의 바이트만 갈아 끼운다. 바뀐 칸만 판본이 바뀌고
+   * 다른 칸은 그대로다. 첫 칸에는 「대표」 딱지가 선다.
+   */
+  test('사진을 누르면 메뉴가 열리고, 여섯 장이 차도 그 칸에서 바꾸고, 대표로 올린다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    await page.goto('/me/profile');
+    await expect(page.getByText('사진은 바로 저장돼요')).toBeVisible();
+
+    const fixtures = ['e2e/fixtures/harin.webp', 'e2e/fixtures/jiwoo.webp', 'e2e/fixtures/seoyeon.webp'];
+    await page.getByLabel('사진 올리기').setInputFiles([...fixtures, ...fixtures]);
+    const slot = (n: number) => page.getByLabel(`사진 ${n} / 6, 길게 눌러 옮기기`, { exact: true });
+    /* 여섯 장을 차례로 줄이고 올린다 — 한 장씩이라 기본 기다림보다 길다 */
+    await expect(slot(6)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByLabel('사진 올리기')).toHaveCount(0);
+
+    const versionAt = async (n: number) =>
+      new URL((await slot(n).locator('img').getAttribute('src')) ?? '', 'http://x').searchParams.get('v');
+    const before = await Promise.all([1, 2, 3, 4, 5, 6].map(versionAt));
+
+    /* 대표 칸에만 딱지가 선다 */
+    const lead = page.getByRole('group', { name: '대표 사진' });
+    await expect(lead.getByText('대표', { exact: true })).toBeVisible();
+    await expect(page.getByText('대표', { exact: true })).toHaveCount(1);
+
+    /* 대표 칸의 메뉴에는 「대표로 설정」이 없다 */
+    await hydrated(slot(1));
+    await slot(1).click();
+    await expect(page.getByRole('button', { name: '사진 변경' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '대표로 설정' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: '사진 변경' })).toHaveCount(0);
+    await expect(slot(1)).toBeFocused();
+
+    /* 여섯째 칸을 바꾼다 — 그 칸만 판본이 바뀐다 */
+    await slot(6).click();
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: '사진 변경' }).click();
+    await (await chooser).setFiles('e2e/fixtures/jiwoo.webp');
+    await expect(page.getByRole('status').filter({ hasText: '사진을 바꿨어요' })).toBeVisible();
+    await expect.poll(() => versionAt(6)).not.toBe(before[5]);
+    expect(await Promise.all([1, 2, 3, 4, 5].map(versionAt))).toEqual(before.slice(0, 5));
+    const replaced = await versionAt(6);
+
+    /* 다시 열어도 그 자리에 그 장이다 */
+    await page.reload();
+    await expect.poll(() => versionAt(6)).toBe(replaced);
+
+    /* 「대표로 설정」 — 바꾼 장이 1번에 서고 나머지가 한 칸씩 밀린다 */
+    await hydrated(slot(6));
+    await slot(6).click();
+    await page.getByRole('button', { name: '대표로 설정' }).click();
+    await expect.poll(() => versionAt(1)).toBe(replaced);
+    await expect.poll(() => versionAt(2)).toBe(before[0]);
+    await page.reload();
+    await expect.poll(() => versionAt(1)).toBe(replaced);
+
+    /* 메뉴의 「삭제」는 × 와 같은 일이다 — 실행 취소 띠가 선다 */
+    await hydrated(slot(2));
+    await slot(2).click();
+    /* 글자가 채팅의 문구 상수(`SEND_DROP_LABEL`)와 같아 따옴표로 안 적는다 — 그 상수는 다른 화면의 말이다(G-90 잠금) */
+    await page.locator('[data-photo-slot="2"]').getByRole('button', { name: /^삭제$/ }).click();
+    await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
+    await expect(page.getByLabel('사진 5 / 5, 길게 눌러 옮기기', { exact: true })).toBeVisible();
+  });
+
+  /**
    * **같은 지우기를 두 번 보내도 한 장만 지워진다**(`20261027090000`).
    *
    * 두 탭이 같은 목록(1 · 2 · 3)을 본다. 한 탭이 둘째 장을 지우면 셋째 장이 둘째 자리로 당겨 앉는다. 다른 탭은
@@ -3115,7 +3235,7 @@ test.describe('가입 관문', () => {
     await page.goto('/me/profile');
 
     await page.getByLabel('사진 올리기').setInputFiles(['e2e/fixtures/harin.webp']);
-    const photo = page.getByRole('button', { name: '사진 1 / 1, 길게 눌러 옮기기' });
+    const photo = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
     await expect(photo).toBeVisible();
 
     const src = (await photo.locator('img').getAttribute('src')) ?? '';
@@ -3136,7 +3256,7 @@ test.describe('가입 관문', () => {
       'e2e/fixtures/seoyeon.webp',
     ]);
     const slot = (tab: typeof page, n: number, total: number) =>
-      tab.getByRole('button', { name: `사진 ${n} / ${total}, 길게 눌러 옮기기` });
+      tab.getByLabel(`사진 ${n} / ${total}, 길게 눌러 옮기기`, { exact: true });
     await expect(slot(page, 3, 3)).toBeVisible();
 
     const versionAt = async (button: ReturnType<typeof slot>) =>

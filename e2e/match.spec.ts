@@ -227,9 +227,9 @@ test.describe('동의로 열리는 흐름', () => {
       */
       await person.page.goto('/me/profile');
       await person.page.getByLabel('닉네임').fill(nickname);
-      await person.page.getByRole('button', { name: '중복 확인' }).click();
+      /* 「중복 확인」 단추는 없다 — 입력을 멈추면 스스로 묻는다(2026-10-11) */
       await expect(person.page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
-      await person.page.getByRole('button', { name: '프로필 저장' }).click();
+      await person.page.getByRole('button', { name: '닉네임 · 소개 저장' }).click();
       await expect(person.page.getByText('저장했어요')).toBeVisible();
 
       await person.page.goto('/me/settings');

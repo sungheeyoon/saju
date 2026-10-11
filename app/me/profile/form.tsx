@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import {
   INTRO_MAX,
@@ -9,6 +9,7 @@ import {
   NICKNAME_MIN,
   NICKNAME_TAKEN_NOTE,
   missingInProfile,
+  missingNickname,
   nicknameKey,
   type ProfileInput,
 } from '@/src/lib/profile';
@@ -16,8 +17,9 @@ import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
 import { checkNickname } from '../../nickname';
 import { actionAnswer } from '../../ui/action-answer';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
+import { useLeaveGuard } from '../../ui/leave-guard';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
@@ -32,6 +34,9 @@ const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surf
 
 const LABEL = 'text-[13px] font-semibold text-secondary';
 
+/** 닉네임을 이만큼 안 고치면 쓸 수 있는지 스스로 묻는다 — 한 글자마다 묻지 않는다 */
+const NICKNAME_CHECK_AFTER_MS = 500;
+
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
  *
@@ -44,11 +49,24 @@ const LABEL = 'text-[13px] font-semibold text-secondary';
  * (줄여서 굽는 데 시간이 든다), 이름은 확인을 거쳐 저장하는 값이다. 한 버튼에 묶으면
  * 사진만 바꾸려는 사람이 이름 확인을 다시 지나야 한다.
  *
+ * 그래서 저장 단추의 이름이 「닉네임 · 소개 저장」이고 사진 판 첫 줄이 「사진은 바로 저장돼요」다(대장 40, 2026-10-11).
+ *
+ * ## 닉네임은 스스로 확인한다 (2026-10-11)
+ *
+ * 「중복 확인」 단추를 걷었다 — 눌러야 하는지 헷갈렸다. 닉네임을 고치고 `NICKNAME_CHECK_AFTER_MS` 동안 멈추면 그 이름을 묻고
+ * 칸 아래에 답을 세운다(「확인하는 중…」 → 「사용할 수 있는 닉네임입니다.」 · 「이미 사용 중인 닉네임입니다.」). 저장도 그 답을
+ * 기다린다 — 답이 아직이면 저장이 먼저 묻고, 쓰는 이름이면 저장하지 않고 닉네임 칸에 초점을 둔다. 그래도 막는 것은 DB 다.
+ *
  * ## 단추를 잠그지 않는다 (ADR 0160, 2026-10-11)
  *
- * 「중복 확인」 · 「프로필 저장」은 이름이 비었거나 고친 것이 없어도 누름을 받는다 — 모양만 가라앉고(`aria-disabled`),
+ * 저장 단추는 이름이 비었거나 고친 것이 없어도 누름을 받는다 — 모양만 가라앉고(`aria-disabled`),
  * 누르면 무엇이 빠졌는지 경고 색으로 말하고 닉네임 칸에 초점을 둔다. 채워지면 그 말은 스스로 걷힌다. 고친 것이 없는 저장은
  * 아무 일도 안 한다 — 할 말이 없다. 닉네임 칸에서 Enter 가 저장을 누른다(`<form>`).
+ *
+ * ## 고친 채 떠나면 묻는다
+ *
+ * 닉네임 · 소개를 고치고 저장하지 않은 채 탭을 닫거나 새로고침하면 브라우저가 한 번 묻는다(`useLeaveGuard`, ADR 0166 — 메모 ·
+ * 신고와 같은 방식).
  *
  * ## 망이 끊겨도 이 화면에 머문다
  *
@@ -77,11 +95,28 @@ export function ProfileForm({
   const [checking, startChecking] = useTransition();
 
   const missing = missingInProfile(profile);
+  const nicknameChanged = nicknameKey(profile.nickname) !== nicknameKey(current.nickname);
   const changed =
     profile.nickname.trim() !== current.nickname.trim() ||
     profile.intro.trim() !== current.intro.trim();
 
-  const answer = checked?.key === nicknameKey(profile.nickname) ? checked : null;
+  const answer = nicknameChanged && checked?.key === nicknameKey(profile.nickname) ? checked : null;
+
+  useLeaveGuard(changed);
+
+  /* 고친 이름을 멈춘 뒤에 한 번 묻는다 — 답은 그 이름(`key`)에 붙어 칸이 바뀌면 안 보인다 */
+  useEffect(() => {
+    if (!nicknameChanged || missingNickname(profile.nickname) !== null) return;
+    const name = profile.nickname;
+    const timer = window.setTimeout(() => {
+      startChecking(async () => {
+        const result = await actionAnswer(checkNickname(name));
+        if (result.ok) setChecked({ key: nicknameKey(name), available: result.available });
+        else setFailure(result.message);
+      });
+    }, NICKNAME_CHECK_AFTER_MS);
+    return () => window.clearTimeout(timer);
+  }, [profile.nickname, nicknameChanged]);
 
   /** 빠진 것이 있으면 말하고 그 칸으로 데려간다 — 누름을 받은 뒤에 거절한다 */
   const refused = () => {
@@ -91,21 +126,29 @@ export function ProfileForm({
     return true;
   };
 
-  const check = () => {
-    if (checking || refused()) return;
-    setFailure(null);
-    startChecking(async () => {
-      const result = await actionAnswer(checkNickname(profile.nickname));
-      if (result.ok) setChecked({ key: nicknameKey(profile.nickname), available: result.available });
-      else setFailure(result.message);
-    });
-  };
-
   const save = () => {
     if (saving || refused() || !changed) return;
+    /* 쓰는 이름이라고 이미 답했다 — 칸 아래 그 말이 서 있다 */
+    if (answer?.available === false) {
+      nicknameRef.current?.focus();
+      return;
+    }
     setFailure(null);
     done.clear();
     startSaving(async () => {
+      /* 확인이 아직이면 저장이 먼저 묻는다 — 확인이 끝나야 저장한다 */
+      if (nicknameChanged && answer === null) {
+        const asked = await actionAnswer(checkNickname(profile.nickname));
+        if (!asked.ok) {
+          setFailure(`저장하지 못했어요. ${asked.message}`);
+          return;
+        }
+        setChecked({ key: nicknameKey(profile.nickname), available: asked.available });
+        if (!asked.available) {
+          nicknameRef.current?.focus();
+          return;
+        }
+      }
       /* 부름이 던지면(망이 끊김) 「저장하지 못했어요.」 뒤에 할 수 있는 일만 — 같은 말이 두 번 서지 않게 */
       const result = await actionAnswer(saveProfile(profile), () => ({ ok: false, message: FEEDBACK_UNEXPECTED_NOTE }));
       if (!result.ok) {
@@ -139,49 +182,35 @@ export function ProfileForm({
         }}
       >
         <div className="flex flex-col gap-1.5">
-          {/*
-            **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
-            읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
-          */}
           <label htmlFor="nickname" className={LABEL}>
             닉네임
           </label>
-          <div className="flex items-center gap-2">
-            <input
-              ref={nicknameRef}
-              id="nickname"
-              type="text"
-              value={profile.nickname}
-              onChange={(event) =>
-                setProfile({ ...profile, nickname: event.target.value.slice(0, NICKNAME_MAX) })
-              }
-              maxLength={NICKNAME_MAX}
-              placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-invalid={tried && missing !== null ? true : undefined}
-              aria-describedby="nickname-note"
-              className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
-            />
-            <button
-              type="button"
-              onClick={check}
-              aria-disabled={checking || missing !== null ? true : undefined}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0 aria-disabled:opacity-55`}
-            >
-              {checking ? '확인하는 중…' : '중복 확인'}
-            </button>
-          </div>
+          <input
+            ref={nicknameRef}
+            id="nickname"
+            type="text"
+            value={profile.nickname}
+            onChange={(event) =>
+              setProfile({ ...profile, nickname: event.target.value.slice(0, NICKNAME_MAX) })
+            }
+            maxLength={NICKNAME_MAX}
+            placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-invalid={(tried && missing !== null) || answer?.available === false ? true : undefined}
+            aria-describedby="nickname-note"
+            className={`${FIELD} min-w-0 sm:max-w-64`}
+          />
           {/*
             **확인 결과는 그 이름에 붙는다.** 칸을 고치면 사라진다 — 「쓸 수 있습니다」가
             이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다. 빠진 것을 말하는 줄도 여기다 — 단추를
-            누른 뒤에만, 경고 색으로. 상자는 늘 서 있어 바뀐 글자를 화면 읽기가 읽는다.
+            누른 뒤에만, 경고 색으로. 고치지 않은 이름에는 아무 말도 안 선다. 상자는 늘 서 있어 바뀐 글자를 화면 읽기가 읽는다.
           */}
           <p
             id="nickname-note"
             role="status"
-            className={`text-sm ${tried && missing !== null ? 'text-danger' : answer?.available === false ? 'text-danger' : 'text-secondary'}`}
+            className={`min-h-5 text-sm ${tried && missing !== null ? 'text-danger' : answer?.available === false ? 'text-danger' : 'text-secondary'}`}
           >
             {tried && missing !== null
               ? missing
@@ -189,13 +218,18 @@ export function ProfileForm({
                 ? answer.available
                   ? NICKNAME_AVAILABLE_NOTE
                   : NICKNAME_TAKEN_NOTE
-                : ''}
+                : checking && nicknameChanged
+                  ? '확인하는 중…'
+                  : ''}
           </p>
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span className={LABEL}>소개 (선택)</span>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="intro" className={LABEL}>
+            소개 (선택)
+          </label>
           <textarea
+            id="intro"
             value={profile.intro}
             onChange={(event) =>
               setProfile({ ...profile, intro: event.target.value.slice(0, INTRO_MAX) })
@@ -203,9 +237,14 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
+            aria-describedby="intro-count"
             className={`${FIELD} py-3 leading-6`}
           />
-        </label>
+          {/* 쓴 글자 수 — 칸이 상한에서 글자를 더 안 받으므로 그 까닭이 여기 보인다 */}
+          <p id="intro-count" className="self-end text-[13px] leading-5 tabular-nums text-secondary">
+            {profile.intro.length}/{INTRO_MAX}
+          </p>
+        </div>
 
         <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
           <button
@@ -213,7 +252,8 @@ export function ProfileForm({
             aria-disabled={missing !== null || saving || !changed ? true : undefined}
             className={BUTTON_PRIMARY}
           >
-            {saving ? '저장하는 중…' : '프로필 저장'}
+            {/* 사진은 따로 바로 저장된다 — 이 단추가 드는 둘만 이름에 적는다(대장 40) */}
+            {saving ? '저장하는 중…' : '닉네임 · 소개 저장'}
           </button>
           {/* 저장이 성공한 뒤에만 잠깐 — 다시 고치기 시작하면 걷힌다(대장 31) */}
           <DoneNote>{changed ? '' : done.note}</DoneNote>

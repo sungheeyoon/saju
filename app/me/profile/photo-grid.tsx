@@ -21,8 +21,10 @@ import {
 
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
+import { useDetailsMenu } from '../../ui/details-menu';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
-import { addPhoto, movePhoto, removePhoto } from './actions';
+import { Icon, type IconName } from '../../ui/icons';
+import { addPhoto, movePhoto, removePhoto, replacePhoto } from './actions';
 import type { MyPhoto } from './photos';
 import { FailureLine } from '../../ui/failure-line';
 
@@ -34,8 +36,22 @@ const SCROLL_SLOP_PX = 10;
 const UNDO_MS = 5000;
 /** 빈 칸보다 많이 골랐을 때 — 앞의 장만 올리고 이 한 줄을 남긴다 */
 const PHOTO_LIMIT_NOTE = `${PHOTO_MAX_COUNT}장까지 올릴 수 있어요`;
+/** 사진 판의 첫 줄 — 저장 단추가 사진을 안 든다는 말(대장 40) */
+const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
 /** 사진 올리기를 막은, 우리가 안 쓴 문장 — 우리 문장 하나로 선다(`app/db-error.boundary.test.ts`) */
 const UNREADABLE_PHOTO = '사진을 열지 못했어요. 다른 사진을 골라 주세요.';
+/** 바꾸려던 장이 그 사이 서버 목록에서 빠졌다 — DB 가 낡은 누름에 내는 문장과 같은 글자(`20261202090000`) */
+const REPLACE_FAILED = '사진을 바꾸지 못했어요. 다시 시도해 주세요.';
+
+/**
+ * **고른 뒤 올리기 전의 한 단계** — 지금은 빈 단계다. 고른 그대로 돌려준다.
+ *
+ * 「사진 변경」으로 고른 장이 이 자리를 지난다. 얼굴 위치 조정(다음 차례)이 여기 선다 — 사람이 그 장을 보고 자리를 정하거나
+ * 그만두면(`null`) 아무것도 안 올린다. 미리보기 · 「올리는 중…」 · 끝난 말은 이 단계가 돌려준 장으로 선다.
+ */
+async function framePhoto(file: File): Promise<File | null> {
+  return file;
+}
 
 /**
  * 올린 사진을 줄여서 보낸다 — **폰으로 찍은 사진은 그대로 못 올린다.**
@@ -100,12 +116,27 @@ type Lift = { from: number; over: number; dx: number; dy: number };
 type Upload = { key: number; url: string; done: boolean };
 
 /**
+ * 그 자리에서 바꾸는 장 — `version` 은 바꾸기 전의 장, `next` 는 서버가 답한 새 판본(답 전에는 `null`). 기기의 사진이 옛 장의
+ * 칸을 덮고, 새 판본의 장이 서면 그 뒤에 깔린다
+ */
+type Replacing = { version: number; url: string; next: number | null };
+
+/**
  * 사진 여섯 칸 — **첫 칸이 두 배라 대표 사진으로 읽힌다**(G-60, 운영자 2026-09-25 시안).
  *
  * - 사진 칸을 **길게 누르면 들리고**, 끌어 다른 사진 칸에 두면 그 자리로 옮겨 앉는다 — 사이의 장이
  *   한 칸씩 밀린다(`movedPhotos` · DB 의 `move_my_photo` 가 같은 뜻). 키보드는 ← → 로 한 칸씩.
- * - × 가 그 장을 내린다. 뒤의 장이 당겨 앉는다.
+ * - 사진 칸을 **누르면 메뉴**가 열린다 — 「사진 변경」 · 「대표로 설정」(대표가 아닐 때) · 「삭제」(조율자 지시 2026-10-11).
+ *   누름과 길게 누름을 가른다 — 들린 뒤에 손을 떼면 메뉴가 안 열린다. 메뉴는 `<details>` 한 벌(`useDetailsMenu`)이다.
+ * - × 가 그 장을 내린다(메뉴의 「삭제」와 같은 일). 뒤의 장이 당겨 앉는다.
  * - 빈 칸의 + 가 올린다. 어느 빈 칸을 눌러도 **맨 뒤에** 앉는다 — 자리는 빈틈없이 1..k 다.
+ * - 첫 칸에 「대표」 딱지가 선다.
+ *
+ * ## 사진 변경은 그 칸에서 바뀐다
+ *
+ * 기기의 사진을 하나 고르면 그 칸에 미리보기가 「올리는 중…」 덮개를 쓰고 서고, 서버가 그 자리의 바이트를 갈아 끼우면
+ * (`replace_my_photo`, 한 트랜잭션) 상태 줄이 「사진을 바꿨어요」를 잠깐 말한다. 여섯 장이 차도 된다 — 지우고 올리지 않는다.
+ * 하루 올리기 한도는 올리기와 같이 한 번 센다. 고른 뒤 올리기 전에 한 단계(`framePhoto`, 지금은 빈 단계)를 지난다.
  *
  * **고르면 바로 올라간다.** 「고르기」와 「저장」을 갈라 두면 고르고 저장을 안 한 사람이 생기고,
  * 그 사람은 사진을 올렸다고 알고 있다.
@@ -152,6 +183,11 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const [sending, setSending] = useState(false);
   /** 빈 칸보다 많이 골랐다 — 다음 누름까지 상태 줄에 남는다 */
   const [overflowed, setOverflowed] = useState(false);
+  /** 그 자리에서 바꾸는 장 — 다음 누름까지 */
+  const [replacing, setReplacing] = useState<Replacing | null>(null);
+  /** 「사진 변경」이 고른 장이 앉을 자리(판본) — 파일 창이 닫힐 때까지 */
+  const replaceTarget = useRef<number | null>(null);
+  const replaceInput = useRef<HTMLInputElement>(null);
   /** 이번 올리기 전에 서버에 있던 판본 — 이 밖의 판본이 서면 그것이 방금 올린 장이다 */
   const [before, setBefore] = useState<ReadonlySet<number>>(() => new Set());
   const nextKey = useRef(0);
@@ -168,13 +204,15 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const undoRef = useRef<HTMLButtonElement>(null);
 
   const gridRef = useRef<HTMLDivElement>(null);
-  const slotRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const slotRefs = useRef<(HTMLElement | null)[]>([]);
   /** 옮긴 뒤 초점을 둘 자리 — 그린 뒤에 옮긴다 */
   const focusAfter = useRef<number | null>(null);
   /** 누르기 시작한 자리와 시각을 재는 타이머 — 그리기와 상관없는 값이라 상태에 안 둔다 */
   const press = useRef<{ position: number; x: number; y: number; timer: number | null } | null>(null);
   /** 들린 동안 페이지가 스크롤되지 않게 — 비수동 `touchmove` 가 읽는다 */
   const lifted = useRef(false);
+  /** 들었다 놓은 뒤의 누름(`click`)은 메뉴를 안 연다 — 길게 누름은 옮기기다 */
+  const swallowClick = useRef(false);
 
   const shown = order.filter((photo) => !hidden.has(photo.version));
   const total = shown.length;
@@ -280,7 +318,10 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     지난 올리기의 미리보기를 걷는다 — 다음 누름(옮기기 · 지우기)이 시작될 때. 걷지 않으면 방금 올린 장을 지운 뒤 「서버에 선
     새 장」의 수가 줄어 그 장의 미리보기가 다시 섰다. 올리는 동안에는 두 누름이 안 받아진다(`busy`).
   */
-  const settleUploads = () => setUploads([]);
+  const settleUploads = () => {
+    setUploads([]);
+    setReplacing(null);
+  };
 
   const unhide = (version: number) =>
     setHidden((was) => {
@@ -422,6 +463,63 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     setSending(false);
   };
 
+  /** 「사진 변경」 — 그 장을 기억하고 기기의 사진 창을 연다. 고르면 `replace` 가 받는다 */
+  const chooseReplacement = (photo: MyPhoto) => {
+    if (busy) return;
+    replaceTarget.current = photo.version;
+    replaceInput.current?.click();
+  };
+
+  const replace = async (file: File | undefined) => {
+    const version = replaceTarget.current;
+    replaceTarget.current = null;
+    if (file === undefined || version === null || busy) return;
+    setFailure(null);
+    setOverflowed(false);
+    done.clear();
+    settleUploads();
+
+    const framed = await framePhoto(file);
+    if (framed === null) return;
+
+    for (const url of previews.current) URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(framed);
+    previews.current = [url];
+    setReplacing({ version, url, next: null });
+    setSending(true);
+
+    /* 지운 장이 아직 서버에 있으면 그 장 뒤의 자리가 하나 밀려 있다 — 먼저 보낸다 */
+    await sendRemoval();
+
+    let message: string | null = null;
+    let next: number | null = null;
+    try {
+      const shrunk = await shrink(framed);
+      const position = serverPosition(latest.current, gone.current, version);
+      if (!shrunk.ok) message = shrunk.message;
+      else if (position === null) message = REPLACE_FAILED;
+      else {
+        const result = await actionAnswer(
+          replacePhoto({ position, version, contentType: shrunk.contentType, base64: shrunk.base64 }),
+        );
+        if (result.ok) next = result.version;
+        else message = result.message;
+      }
+    } catch {
+      /* 브라우저가 못 읽은 사진(`createImageBitmap`) — 올리기와 같은 우리 문장 */
+      message = UNREADABLE_PHOTO;
+    }
+
+    if (message !== null || next === null) {
+      setReplacing(null);
+      failed(message ?? REPLACE_FAILED);
+    } else {
+      setReplacing({ version, url, next });
+      done.say('사진을 바꿨어요');
+    }
+    setSending(false);
+  };
+
   /** 손가락 아래의 사진 칸 — 들린 그림은 `pointer-events: none` 이라 그 아래 칸이 잡힌다 */
   const slotUnder = (x: number, y: number): number | null => {
     const hit = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-photo-slot]');
@@ -436,13 +534,16 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     setLift(null);
   };
 
-  const onPointerDown = (position: number) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const onPointerDown = (position: number) => (event: ReactPointerEvent<HTMLElement>) => {
     if (busy || event.button !== 0) return;
+    /* 지난 길게 누름 뒤에 누름(`click`)이 안 왔으면 걸쇠가 남아 있다 — 새 누름마다 푼다 */
+    swallowClick.current = false;
     const target = event.currentTarget;
     const pointerId = event.pointerId;
     const start = { position, x: event.clientX, y: event.clientY, timer: null as number | null };
     start.timer = window.setTimeout(() => {
       lifted.current = true;
+      swallowClick.current = true;
       /* 들린 뒤에는 칸 밖으로 나가도 이 칸이 손가락을 쥔다 */
       try {
         target.setPointerCapture(pointerId);
@@ -454,7 +555,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     press.current = start;
   };
 
-  const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     const start = press.current;
     if (start === null) return;
     const dx = event.clientX - start.x;
@@ -476,56 +577,88 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const photoSlot = (photo: MyPhoto, position: number) => {
     const lifting = lift?.from === position;
     const target = lift !== null && !lifting && lift.over === position;
+    /* 바꾸는 중인 칸 — 옛 장 대신 기기의 사진이 서고, 새 판본의 장이 서면 그 뒤에 깔린다 */
+    const covering = replacing !== null && replacing.version === photo.version ? replacing : null;
+    const under =
+      replacing !== null && (replacing.next === photo.version || covering !== null)
+        ? replacing.url
+        : backdrop.get(photo.version);
+    const items: MenuChoice[] = [
+      { icon: 'pencil', label: '사진 변경', run: () => chooseReplacement(photo) },
+      ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
+      { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
+    ];
     return (
       <div data-photo-slot={position} className="relative h-full w-full">
-        <button
-          type="button"
-          ref={(element) => {
-            slotRefs.current[position - 1] = element;
+        <PhotoMenu
+          align={menuAlign(position)}
+          items={items}
+          summary={{
+            ref: (element) => {
+              slotRefs.current[position - 1] = element;
+            },
+            'aria-label': `사진 ${position} / ${total}, 길게 눌러 옮기기`,
+            'aria-keyshortcuts': 'ArrowLeft ArrowRight',
+            onPointerDown: onPointerDown(position),
+            onPointerMove,
+            onPointerUp,
+            onPointerCancel: endPress,
+            onContextMenu: (event) => event.preventDefault(),
+            onClick: (event) => {
+              /* 들었다 놓은 누름 · 처리하는 동안의 누름은 메뉴를 안 연다 */
+              if (swallowClick.current || busy) event.preventDefault();
+              swallowClick.current = false;
+            },
+            onKeyDown: (event) => {
+              /* 처리하는 동안은 ← → 도 안 받는다 — 끌기와 같은 문턱 */
+              if (busy) return;
+              if (event.key === 'ArrowLeft' && position > 1) {
+                event.preventDefault();
+                move(position, position - 1);
+              } else if (event.key === 'ArrowRight' && position < total) {
+                event.preventDefault();
+                move(position, position + 1);
+              }
+            },
+            className: `block h-full w-full cursor-grab list-none touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] [&::-webkit-details-marker]:hidden focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+              target ? 'ring-4 ring-accent' : ''
+            }`,
           }}
-          aria-label={`사진 ${position} / ${total}, 길게 눌러 옮기기`}
-          aria-keyshortcuts="ArrowLeft ArrowRight"
-          onPointerDown={onPointerDown(position)}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={endPress}
-          onContextMenu={(event) => event.preventDefault()}
-          onKeyDown={(event) => {
-            /* 처리하는 동안은 ← → 도 안 받는다 — 끌기와 같은 문턱 */
-            if (busy) return;
-            if (event.key === 'ArrowLeft' && position > 1) {
-              event.preventDefault();
-              move(position, position - 1);
-            } else if (event.key === 'ArrowRight' && position < total) {
-              event.preventDefault();
-              move(position, position + 1);
-            }
-          }}
-          className={`block h-full w-full cursor-grab touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
-            target ? 'ring-4 ring-accent' : ''
-          }`}
         >
           <span
             aria-hidden="true"
-            className={`pointer-events-none block h-full w-full transition-transform duration-150 motion-reduce:transition-none ${
-              lifting ? 'relative z-20 rounded-2xl shadow-float' : ''
+            className={`pointer-events-none relative block h-full w-full transition-transform duration-150 motion-reduce:transition-none ${
+              lifting ? 'z-20 rounded-2xl shadow-float' : ''
             }`}
             style={{
               ...(lifting && lift !== null ? { transform: `translate(${lift.dx}px, ${lift.dy}px) scale(1.05)` } : {}),
-              ...(backdrop.has(photo.version)
-                ? { backgroundImage: `url(${backdrop.get(photo.version)})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '1rem' }
+              ...(under !== undefined
+                ? { backgroundImage: `url(${under})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '1rem' }
                 : {}),
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */}
-            <img
-              src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
-              alt=""
-              draggable={false}
-              className="h-full w-full rounded-2xl object-cover"
-            />
+            {covering === null && (
+              /* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */
+              <img
+                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
+                alt=""
+                draggable={false}
+                className="h-full w-full rounded-2xl object-cover"
+              />
+            )}
+            {covering !== null && covering.next === null && (
+              <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
+                올리는 중…
+              </span>
+            )}
+            {position === 1 && (
+              /* 대표 딱지 — 화면 읽기에는 첫 칸 무리의 이름(「대표 사진」)이 말한다 */
+              <span className="absolute left-2 top-2 rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-soft">
+                대표
+              </span>
+            )}
           </span>
-        </button>
+        </PhotoMenu>
         <button
           type="button"
           onClick={() => remove(position)}
@@ -606,6 +739,21 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
   return (
     <section className="flex flex-col gap-4 rounded-[2rem] bg-cream px-4 py-5 sm:px-6 sm:py-6">
+      {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
+      <p className="text-[13px] font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      {/* 「사진 변경」의 기기 사진 창 — 한 장만. 메뉴의 누름이 연다 */}
+      <input
+        ref={replaceInput}
+        type="file"
+        accept={PHOTO_TYPES.join(',')}
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(event) => {
+          void replace(event.target.files?.[0]);
+          event.target.value = '';
+        }}
+        className="sr-only"
+      />
       <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:gap-3">
         {/* 첫 칸 — 두 줄 두 칸을 차지한다 */}
         <div role="group" aria-label="대표 사진" className="col-span-2 row-span-2">
@@ -660,4 +808,61 @@ function serverPosition(list: readonly MyPhoto[], gone: ReadonlySet<number>, ver
     version,
   );
   return position === 0 ? null : position;
+}
+
+/** 사진 칸 메뉴의 한 줄 */
+type MenuChoice = { icon: IconName; label: string; tone?: 'danger'; run: () => void };
+
+/**
+ * 메뉴 판이 서는 쪽 — 칸이 화면 오른쪽 끝에 있으면 판이 밖으로 안 나가게 오른쪽에 붙인다. 대표 칸은 그 칸 안 왼쪽 위다.
+ * 칸의 자리는 세 칸 격자(대표가 두 줄 두 칸)로 정해져 있다 — 2 · 3 은 셋째 열, 4 · 5 · 6 은 셋째 줄.
+ */
+function menuAlign(position: number): string {
+  if (position === 1) return 'left-3 top-3';
+  if (position === 4) return 'left-0 top-full mt-1.5';
+  if (position === 5) return 'left-1/2 top-full mt-1.5 -translate-x-1/2';
+  return 'right-0 top-full mt-1.5';
+}
+
+/**
+ * 사진 칸 하나의 메뉴 — **사진 자체가 여는 자리다**(`<summary>`). 계정 메뉴 · 사람 관리 메뉴와 같은 `<details>` 한 벌이라
+ * 바깥 누름 · Esc 로 닫히고 Esc 면 초점이 그 사진으로 돌아온다(`useDetailsMenu`). 고르면 먼저 닫고 그 일을 한다.
+ */
+function PhotoMenu({
+  summary,
+  items,
+  align,
+  children,
+}: {
+  summary: Omit<React.ComponentProps<'summary'>, 'ref'> & { ref: (element: HTMLElement | null) => void };
+  items: readonly MenuChoice[];
+  align: string;
+  children: React.ReactNode;
+}) {
+  const { menu, close } = useDetailsMenu();
+  return (
+    <details ref={menu} className="group relative h-full w-full">
+      <summary {...summary}>{children}</summary>
+      <div
+        className={`absolute z-40 flex w-44 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border ${align}`}
+      >
+        {items.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => {
+              close();
+              item.run();
+            }}
+            className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-[15px] font-semibold hover:bg-surface-sunken ${
+              item.tone === 'danger' ? 'text-danger' : 'text-foreground'
+            }`}
+          >
+            <Icon name={item.icon} className="size-4.5" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
 }
