@@ -116,8 +116,9 @@ select set_eq(
     cross join lateral unnest(p.proargnames, p.proargmodes) as a(name, mode)
     where n.nspname = 'public' and p.proname = 'my_discovery_board' and a.mode = 't'$$,
   $$values ('candidate_user_id'), ('nickname'), ('intro'), ('has_photo'), ('seat'), ('exploration'),
-           ('supplied_elements'), ('balance_band'), ('preview_score'), ('activity'), ('avatar_element'), ('photo_count')$$,
-  '후보 목록이 내주는 칸은 이 열둘뿐이다 — 일간 · 명식 칸은 없다');
+           ('supplied_elements'), ('balance_band'), ('preview_score'), ('activity'), ('avatar_element'), ('photo_count'),
+           ('photo_focus')$$,
+  '후보 목록이 내주는 칸은 이 열셋뿐이다 — 일간 · 명식 칸은 없다');
 
 select set_eq(
   $$select a.name from pg_proc p
@@ -125,7 +126,8 @@ select set_eq(
     cross join lateral unnest(p.proargnames, p.proargmodes) as a(name, mode)
     where n.nspname = 'public' and p.proname = 'my_passed_connections' and a.mode = 't'$$,
   $$values ('candidate_user_id'), ('nickname'), ('intro'), ('has_photo'), ('passed_at'),
-           ('supplied_elements'), ('balance_band'), ('preview_score'), ('avatar_element'), ('photo_count')$$,
+           ('supplied_elements'), ('balance_band'), ('preview_score'), ('avatar_element'), ('photo_count'),
+           ('photo_focus')$$,
   '지나친 인연이 내주는 칸은 이 열뿐이다 — 일간 · 명식 칸은 없다');
 
 select ok(

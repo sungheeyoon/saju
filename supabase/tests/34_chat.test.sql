@@ -273,8 +273,8 @@ select set_eq(
   $$values ('match_id'), ('partner_user_id'), ('partner_nickname'), ('partner_has_photo'),
            ('opened_at'), ('closed_reason'), ('closed_at'),
            ('last_message_at'), ('last_message_body'), ('unread_count'),
-           ('partner_activity'), ('partner_left')$$,
-  '방 목록이 내주는 칸은 이 열둘뿐이다 — 상대의 접속 상태는 구간 하나로, 떠났는지는 참 · 거짓 하나로 나간다(ADR 0092 · 0094)');
+           ('partner_activity'), ('partner_left'), ('partner_photo_focus')$$,
+  '방 목록이 내주는 칸은 이 열셋뿐이다 — 상대의 접속 상태는 구간 하나로, 떠났는지는 참 · 거짓 하나로 나간다(ADR 0092 · 0094)');
 
 select set_eq(
   $$select a.name from pg_proc p

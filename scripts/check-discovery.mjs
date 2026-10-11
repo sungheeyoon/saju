@@ -345,9 +345,9 @@ const isolate = (emails) => {
       String(rows?.[0]?.preview_score));
     /* `activity` 는 구간 셋 중 하나다 — 시각이 아니다(ADR 0092). 카드에 서는 값이라 여기 든다.
        `avatar_element` 는 사진 없는 아바타의 일간 오행 한 글자(사진이면 null) — 원국이 아니다(ADR 0109).
-       `photo_count` 는 사진 장 수 — 바이트도 판본도 아니다(G-60) */
+       `photo_count` 는 사진 장 수 — 바이트도 판본도 아니다(G-60). `photo_focus` 는 장마다 보일 자리(가로 · 세로 %, G-98) */
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'activity,avatar_element,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,photo_count,preview_score,seat,supplied_elements',
+      keys.join(',') === 'activity,avatar_element,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,photo_count,photo_focus,preview_score,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_count_balance_v1', { a: {}, b: {} });

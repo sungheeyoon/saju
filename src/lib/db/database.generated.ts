@@ -1056,6 +1056,8 @@ export type Database = {
         Row: {
           bytes: string
           content_type: string
+          focus_x: number
+          focus_y: number
           position: number
           updated_at: string
           user_id: string
@@ -1063,6 +1065,8 @@ export type Database = {
         Insert: {
           bytes: string
           content_type: string
+          focus_x?: number
+          focus_y?: number
           position: number
           updated_at?: string
           user_id?: string
@@ -1070,6 +1074,8 @@ export type Database = {
         Update: {
           bytes?: string
           content_type?: string
+          focus_x?: number
+          focus_y?: number
           position?: number
           updated_at?: string
           user_id?: string
@@ -3024,6 +3030,7 @@ export type Database = {
           partner_has_photo: boolean
           partner_left: boolean
           partner_nickname: string
+          partner_photo_focus: number[]
           partner_user_id: string
           unread_count: number
         }[]
@@ -3040,6 +3047,7 @@ export type Database = {
           intro: string
           nickname: string
           photo_count: number
+          photo_focus: number[]
           preview_score: number
           seat: number
           supplied_elements: string[]
@@ -3069,6 +3077,7 @@ export type Database = {
           counterpart_has_photo: boolean
           counterpart_intro: string
           counterpart_nickname: string
+          counterpart_photo_focus: number[]
           counterpart_user_id: string
           created_at: string
           decided_at: string
@@ -3104,6 +3113,7 @@ export type Database = {
           partner_has_photo: boolean
           partner_intro: string
           partner_nickname: string
+          partner_photo_focus: number[]
           partner_user_id: string
           supplied_to_me: string[]
         }[]
@@ -3136,6 +3146,7 @@ export type Database = {
           nickname: string
           passed_at: string
           photo_count: number
+          photo_focus: number[]
           preview_score: number
           supplied_elements: string[]
         }[]
@@ -3151,6 +3162,8 @@ export type Database = {
       my_photos: {
         Args: never
         Returns: {
+          focus_x: number
+          focus_y: number
           position: number
           version: number
         }[]
@@ -3545,6 +3558,7 @@ export type Database = {
           content_type: string
         }[]
       }
+      photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }
       pick_reading_credit_share: {
         Args: { p_user: string }
         Returns: Record<string, unknown>
@@ -3850,6 +3864,15 @@ export type Database = {
       }
       set_improvement_consent: {
         Args: { p_consent: boolean }
+        Returns: undefined
+      }
+      set_my_photo_focus: {
+        Args: {
+          p_position: number
+          p_version?: number
+          p_x: number
+          p_y: number
+        }
         Returns: undefined
       }
       set_pair_relation: {
