@@ -47,7 +47,7 @@ const REPLACE_FAILED = '사진을 바꾸지 못했어요. 다시 시도해 주�
  * **고른 뒤 올리기 전의 한 단계** — 지금은 빈 단계다. 고른 그대로 돌려준다.
  *
  * 「사진 변경」으로 고른 장이 이 자리를 지난다. 얼굴 위치 조정(다음 차례)이 여기 선다 — 사람이 그 장을 보고 자리를 정하거나
- * 그만두면(`null`) 아무것도 안 올린다. 미리보기 · 「올리는 중…」 · 끝난 말은 이 단계가 돌려준 장으로 선다.
+ * 그만두면(`null`) 아무것도 안 올린다. 미리보기 · 「저장 중…」 · 끝난 말은 이 단계가 돌려준 장으로 선다.
  */
 async function framePhoto(file: File): Promise<File | null> {
   return file;
@@ -134,8 +134,8 @@ type Replacing = { version: number; url: string; next: number | null };
  *
  * ## 사진 변경은 그 칸에서 바뀐다
  *
- * 기기의 사진을 하나 고르면 그 칸에 미리보기가 「올리는 중…」 덮개를 쓰고 서고, 서버가 그 자리의 바이트를 갈아 끼우면
- * (`replace_my_photo`, 한 트랜잭션) 상태 줄이 「사진을 바꿨어요」를 잠깐 말한다. 여섯 장이 차도 된다 — 지우고 올리지 않는다.
+ * 기기의 사진을 하나 고르면 그 칸에 미리보기가 「저장 중…」 덮개를 쓰고 서고, 서버가 그 자리의 바이트를 갈아 끼우면
+ * (`replace_my_photo`, 한 트랜잭션) 상태 줄이 「사진을 변경했어요」를 잠깐 말한다. 여섯 장이 차도 된다 — 지우고 올리지 않는다.
  * 하루 올리기 한도는 올리기와 같이 한 번 센다. 고른 뒤 올리기 전에 한 단계(`framePhoto`, 지금은 빈 단계)를 지난다.
  *
  * **고르면 바로 올라간다.** 「고르기」와 「저장」을 갈라 두면 고르고 저장을 안 한 사람이 생기고,
@@ -143,8 +143,8 @@ type Replacing = { version: number; url: string; next: number | null };
  *
  * ## 올렸는지 눈으로 안다 (운영자 2026-10-11 「올라간 건지 애매하다」)
  *
- * - **고른 순간 그 칸에 기기의 사진이 미리보기로 선다** — 「올리는 중…」 덮개를 쓰고. 한 장이 끝나면 덮개가 걷히고 아래
- *   상태 줄이 「사진을 올렸어요」를 잠깐 말한다(`app/ui/done-note.tsx`). 여러 장이면 **장마다 따로** 걷힌다 — 올리기는
+ * - **고른 순간 그 칸에 기기의 사진이 미리보기로 선다** — 「저장 중…」 덮개를 쓰고. 한 장이 끝나면 덮개가 걷히고 아래
+ *   상태 줄이 「사진을 저장했어요」를 잠깐 말한다(`app/ui/done-note.tsx`). 여러 장이면 **장마다 따로** 걷힌다 — 올리기는
  *   전이(`startTransition`) 밖에서 돈다. 한 전이로 묶으면 그 안의 화면 갱신이 마지막 장까지 기다려 한꺼번에 섰다.
  * - 실패하면 그 칸과 아직 안 간 뒤의 칸이 걷히고 까닭이 선다. 앞서 올라간 장은 그대로이고 상태 줄이 몇 장을 올렸는지 말한다.
  * - 빈 칸보다 많이 고르면 앞의 장만 올리고 「6장까지 올릴 수 있어요」가 남는다 — 말없이 버리지 않는다.
@@ -458,7 +458,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
       sent += 1;
       setUploads((was) => was.map((upload) => (upload.key === key ? { ...upload, done: true } : upload)));
-      done.say(sent === 1 ? '사진을 올렸어요' : `사진 ${sent}장을 올렸어요`);
+      done.say(sent === 1 ? '사진을 저장했어요' : `사진 ${sent}장을 저장했어요`);
     }
     setSending(false);
   };
@@ -515,7 +515,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       failed(message ?? REPLACE_FAILED);
     } else {
       setReplacing({ version, url, next });
-      done.say('사진을 바꿨어요');
+      done.say('사진을 변경했어요');
     }
     setSending(false);
   };
@@ -648,7 +648,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
             )}
             {covering !== null && covering.next === null && (
               <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
-                올리는 중…
+                저장 중…
               </span>
             )}
             {position === 1 && (
@@ -677,7 +677,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     );
   };
 
-  /** 올라가는 중인 장 — 기기의 사진 위에 「올리는 중…」 덮개. 끝나면 덮개만 걷히고, 서버의 장이 오면 그 장으로 바뀐다 */
+  /** 올라가는 중인 장 — 기기의 사진 위에 「저장 중…」 덮개. 끝나면 덮개만 걷히고, 서버의 장이 오면 그 장으로 바뀐다 */
   const uploadSlot = (upload: Upload) => (
     <div
       aria-hidden="true"
@@ -686,7 +686,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     >
       {!upload.done && (
         <span className="absolute inset-0 grid place-items-center bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
-          올리는 중…
+          저장 중…
         </span>
       )}
     </div>
@@ -734,8 +734,8 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     return upload === undefined ? emptySlot(position) : uploadSlot(upload);
   };
 
-  /* 한 장이 끝나면 그 말이 잠깐 서고, 아직 남은 장이 있으면 다시 「올리는 중…」으로 돌아온다 */
-  const status = undoable !== null ? '사진을 지웠어요' : done.note !== '' ? done.note : sending ? '올리는 중…' : '';
+  /* 한 장이 끝나면 그 말이 잠깐 서고, 아직 남은 장이 있으면 다시 「사진 저장 중…」으로 돌아온다 */
+  const status = undoable !== null ? '사진을 지웠어요' : done.note !== '' ? done.note : sending ? '사진 저장 중…' : '';
 
   return (
     <section className="flex flex-col gap-4 rounded-[2rem] bg-cream px-4 py-5 sm:px-6 sm:py-6">

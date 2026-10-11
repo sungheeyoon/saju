@@ -939,7 +939,7 @@ function Result({
           </header>
         )}
         <article id={`reading-${reading.id}`}>
-          <Markdown source={body} outline />
+          <Markdown source={body} />
         </article>
         {/* 글의 끝 — 다섯 상징이 마침표 자리에 선다 */}
         <span aria-hidden="true" className="mt-12 flex justify-center gap-3 opacity-80">
