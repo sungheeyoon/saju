@@ -29,6 +29,8 @@ import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
+import { dropDraft } from '../draft';
+import { bodyPartsOf } from './links';
 import { droppable, withPending, type Pending } from './pending';
 import type { RoomTones } from '../tones';
 import { bubbleDaysOf, flaggable, type Bubble, type ShownMessage } from './bubbles';
@@ -173,6 +175,10 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const picking = slot.kind === 'report';
   const picked = slot.kind === 'report' ? slot.messageId : null;
   const theirTone = room.tones?.theirs.element ?? null;
+  /* 닫힌 방에는 쓸 칸이 없다 — 쓰다 만 글도 탭에서 걷는다(`draft.ts`) */
+  useEffect(() => {
+    if (closed) dropDraft(() => sessionStorage, room.matchId);
+  }, [closed, room.matchId]);
 
   /* 메시지는 방이 든다 — 서버의 첫 200건에서 시작해 채널이 알릴 때마다 합친다(ADR 0155) */
   /* 방이 합치기 직전에 스크롤 자리를 재는 손 — 스크롤 자리는 합쳐진 메시지를 보고 지키므로 손을 뒤에서 잇는다 */
@@ -209,14 +215,32 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         <Link href="/me/chat" aria-label="대화방 목록" className={`${GHOST_ICON} lg:hidden`}>
           <Icon name="back" />
         </Link>
-        <span className={closed ? 'opacity-60 grayscale' : ''}>
-          <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} tone={theirTone} />
-        </span>
-        <div className="min-w-0 flex-1">
-          {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
-          <h1 className="truncate font-rounded text-[1.25rem] leading-7 text-foreground">{room.heading}</h1>
-          {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD 「접속 상태」, ADR 0092) */}
-          {room.activity !== null && <Activity band={room.activity} />}
+        {/*
+          **사진 · 이름을 누르면 인연 궁합이다**(카카오톡의 프로필, ADR 0155 덧) — 긴 대화 끝에서도 폰의 머리가 그 길을 든다. 이름의
+          링크가 사진까지 덮는다(`after:inset-0`) — 누를 자리는 하나다. 서는 조건은 「인연 궁합」 단추와 같다(상대가 있고 열린 방).
+        */}
+        <div className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <span className={closed ? 'opacity-60 grayscale' : ''}>
+            <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} tone={theirTone} />
+          </span>
+          <div className="min-w-0 flex-1">
+            {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
+            <h1 className="truncate font-rounded text-[1.25rem] leading-7 text-foreground">
+              {hasPartner && !closed ? (
+                <Link
+                  href={withCameFrom(`/me/match/${room.matchId}`, 'chat')}
+                  aria-label={`${room.name} 님과의 인연 궁합`}
+                  className="after:absolute after:inset-0 after:rounded-2xl"
+                >
+                  {room.heading}
+                </Link>
+              ) : (
+                room.heading
+              )}
+            </h1>
+            {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD 「접속 상태」, ADR 0092) */}
+            {room.activity !== null && <Activity band={room.activity} />}
+          </div>
         </div>
         {/*
           폰에서는 이름에 자리를 준다 — 같은 길이 대화의 첫머리에 있다. 닫힌 방에는 안 선다: 차단 · 정지 · 탈퇴 신청으로
@@ -338,6 +362,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           </p>
         ) : (
           <Composer
+            matchId={room.matchId}
             said={outbox.said}
             onSend={(body) => {
               // 보낸 사람은 제 말을 곧장 본다 — 맨 아래로 내려가고 말풍선이 선다.
@@ -498,7 +523,7 @@ function BubbleRow({
             chosen ? 'outline-[3px] outline-offset-2 outline-danger' : ''
           }`}
         >
-          {bubble.body}
+          <BubbleBody body={bubble.body} />
         </p>
         {pickable ? (
           <button
@@ -524,6 +549,28 @@ function BubbleRow({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * 말풍선의 본문 — 글은 글자 그대로 서고 `http(s)://` 주소만 링크다(`links.ts`). 새 탭으로 열고, 이 화면을 넘기지 않으며
+ * (`noopener noreferrer`) 검색 엔진에 보증하지 않는다(`nofollow`). 글자 색은 말풍선의 것을 그대로 입고 밑줄로 갈린다.
+ */
+function BubbleBody({ body }: { body: string }) {
+  return bodyPartsOf(body).map((part, index) =>
+    part.kind === 'text' ? (
+      part.text
+    ) : (
+      <a
+        key={index}
+        href={part.href}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="underline decoration-1 underline-offset-2 [overflow-wrap:anywhere]"
+      >
+        {part.text}
+      </a>
+    ),
   );
 }
 

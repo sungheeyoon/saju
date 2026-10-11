@@ -1,11 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 
 import { CHAT_POLICY, TOO_LONG_TEXT, checkBody } from '@/src/lib/chat';
 import { CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '@/src/lib/chat/copy';
 
 import { Icon } from '../../ui/icons';
+import { readDraft, writeDraft } from './draft';
 
 /** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
@@ -16,6 +17,9 @@ const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
  */
 const TOUCH_QUERY = '(pointer: coarse) and (hover: none)';
 
+/** 적어 둔 글은 이 칸만 바꾼다 — 다른 데서 오는 바뀜을 들을 것이 없다 */
+const noSubscription = () => () => {};
+
 /**
  * 입력 칸 — **누르는 순간 칸을 비우고 방에 맡긴다**(`onSend`). 방이 그 말을 곧장 세우고 보낸다 — 못 보냈으면 그 말풍선이
  * 제자리에 실패로 남는다(`[matchId]/pending.ts`, ADR 0155 덧). 칸은 보내는 동안에도 잠그지 않는다 — 이어서 쓸 수 있다.
@@ -25,12 +29,22 @@ const TOUCH_QUERY = '(pointer: coarse) and (hover: none)';
  *
  * Enter — 키보드가 있는 기기는 보내고 Shift+Enter 가 줄을 바꾼다. 손가락으로만 쓰는 기기(`TOUCH_QUERY`)는 줄을 바꾼다.
  * 조합 중(한글 입력)에는 보내지 않는다.
+ *
+ * **쓰던 글은 방마다 탭에 남는다**(`draft.ts`) — 신고 · 차단 판이 이 칸을 내렸다 다시 세워도, 다른 방에 다녀와도 그대로다.
+ * 첫 그림은 서버와 같은 빈 칸이고, 수화 뒤에 적어 둔 글이 선다 — 손으로 고치기 전까지는 적어 둔 글이 칸의 값이다.
  */
-export function Composer({ onSend, said }: { onSend: (body: string) => void; said: string | null }) {
-  const [body, setBody] = useState('');
+export function Composer({ matchId, onSend, said }: { matchId: string; onSend: (body: string) => void; said: string | null }) {
+  const stored = useSyncExternalStore(noSubscription, () => readDraft(() => sessionStorage, matchId), () => '');
+  const [typed, setTyped] = useState<string | null>(null);
+  const body = typed ?? stored;
   const [tooLong, setTooLong] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const failure = tooLong ? TOO_LONG_TEXT : said;
+
+  const change = (next: string) => {
+    setTyped(next);
+    writeDraft(() => sessionStorage, matchId, next);
+  };
 
   const send = () => {
     const shape = checkBody(body);
@@ -40,7 +54,7 @@ export function Composer({ onSend, said }: { onSend: (body: string) => void; sai
       return;
     }
     setTooLong(false);
-    setBody('');
+    change('');
     field.current?.focus();
     onSend(body);
   };
@@ -60,7 +74,7 @@ export function Composer({ onSend, said }: { onSend: (body: string) => void; sai
           <textarea
             ref={field}
             value={body}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={(event) => change(event.target.value)}
             onKeyDown={(event) => {
               if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
               if (window.matchMedia(TOUCH_QUERY).matches) return;
