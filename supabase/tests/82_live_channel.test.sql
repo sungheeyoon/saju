@@ -10,7 +10,7 @@
 -- `realtime.messages` 는 날마다 파티션이고 파티션은 Realtime 서버가 만든다. 오늘 것이 없으면 `realtime.send` 가 경고만
 -- 남기고 지나가 이 파일이 아무것도 못 잰다 — 그래서 없을 때만 오늘 몫을 세운다(트랜잭션이 되돌린다).
 begin;
-select plan(55);
+select plan(59);
 
 do $$
 begin
@@ -399,7 +399,7 @@ select results_eq(
   '풀이권이 부여되면 그 계정이 credits 를 듣는다');
 
 -- ---------------------------------------------------------------------------
--- b. 인연 궁합 — 끝나면 두 사람
+-- b. 인연 궁합 — 시작하면 · 끝나면 두 사람
 -- ---------------------------------------------------------------------------
 
 insert into public.match (user_low, user_high)
@@ -409,8 +409,36 @@ create temporary table pair_run as
 select m.id as match_id from public.match m
 where m.user_low = (select least(choi, jung) from more) and m.user_high = (select greatest(choi, jung) from more);
 
+delete from realtime.messages where topic in (select 'user:' || choi::text from more union all select 'user:' || jung::text from more);
+
 insert into public.reading_run (user_id, kind, match_id, idempotency_key)
 select choi, 'match', (select match_id from pair_run), 'live-test-run-1' from more;
+
+-- 새 시도(INSERT)도 운다(G-106) — 상대가 「궁합풀이 받기」를 누르면 내 방 머리가 「만드는 중」으로 선다
+select results_eq(
+  $$select area, match_id from pg_temp.heard((select jung from more))$$,
+  $$values ('requests', (select match_id from pair_run))$$,
+  '인연 궁합의 새 시도가 서면 누르지 않은 상대가 requests · match_id 를 한 번 듣는다');
+
+select results_eq(
+  $$select area, match_id from pg_temp.heard((select choi from more)) where area = 'requests'$$,
+  $$values ('requests', (select match_id from pair_run))$$,
+  '누른 사람도 requests · match_id 를 한 번 듣는다(풀이권을 잡아 credits 도 듣는다)');
+
+select is(
+  (select keys from pg_temp.heard((select jung from more)) limit 1),
+  'area,id,match_id,seq',
+  '시작 신호도 area · match_id · seq(와 메시지 id)뿐이다 — 시도 id · 상태 · 누른 사람은 싣지 않는다');
+
+delete from realtime.messages where topic in (select 'user:' || choi::text from more union all select 'user:' || jung::text from more);
+
+insert into public.reading_run (user_id, kind, idempotency_key)
+select jung, 'self', 'live-test-run-self' from more;
+
+select is_empty(
+  $$select * from pg_temp.heard((select jung from more)) where area = 'requests'
+    union all select * from pg_temp.heard((select choi from more))$$,
+  '한 사람 풀이의 새 시도는 아무 채널에도 안 운다');
 
 delete from realtime.messages where topic in (select 'user:' || choi::text from more union all select 'user:' || jung::text from more);
 
