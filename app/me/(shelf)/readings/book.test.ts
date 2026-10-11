@@ -70,3 +70,14 @@ describe('표지의 주인', () => {
     expect(bookOf(entry({ fromCurrentChart: false })).stale).toBe(true);
   });
 });
+
+describe('찾는 칸이 맞춰 볼 이름', () => {
+  it('저장한 사람 · 두 사람 · 인연은 그 이름이고, 나는 비어 있다', () => {
+    expect(bookOf(entry({ kind: 'self' })).names).toEqual([]);
+    expect(bookOf(entry({ kind: 'person', personA: 'mom', labelA: '엄마' })).names).toEqual(['엄마']);
+    expect(
+      bookOf(entry({ kind: 'private', personA: 'a', personB: 'b', labelA: '엄마', labelB: '철수' })).names,
+    ).toEqual(['엄마', '철수']);
+    expect(bookOf(entry({ kind: 'match', matchId: 'm', labelA: '하늘' })).names).toEqual(['하늘']);
+  });
+});

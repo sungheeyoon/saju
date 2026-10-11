@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from 'next/navigation';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { findStatus, findsInList, matchesName } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
+
+import { NO_MATCH, PLACEHOLDER } from '../../../person-combobox';
 
 import { elementScope } from '../../../ui/element-tone';
 import { FaceSymbol } from '../../../ui/stem-symbol';
@@ -78,6 +81,25 @@ function useStuck() {
   return [ref, on] as const;
 }
 
+/**
+ * **찾는 칸이 남긴 권인가** — 표지 주소를 받아 답한다. 찾는 칸 밖(홈의 한 줄 · 인연 기록)이면 `null` 이고 늘 선다.
+ * 주소가 `null` 인 것은 점선 한 권(「한 권 더」)이다 — 이름이 없으니 이름을 치는 동안은 숨는다.
+ */
+const ShelfFind = createContext<((href: string | null) => boolean) | null>(null);
+
+/**
+ * 책장의 한 칸 — **표지는 서버가 그린 그대로이고, 찾는 칸은 줄을 숨기기만 한다**(`hidden`, 사람 목록의 찾는 칸과 같다).
+ * 한 구역의 칸이 다 숨으면 그 구역도 숨는다(`Shelf` 의 `:has`).
+ */
+export function ShelfItem({ href, className, children }: { href: string | null; className?: string; children: ReactNode }) {
+  const shows = useContext(ShelfFind);
+  return (
+    <li hidden={shows !== null && !shows(href)} className={className}>
+      {children}
+    </li>
+  );
+}
+
 /** 지금 글이 어디서 열렸나 — 주소의 `?from=` 과 `?kind=`(ADR 0134) */
 function usePlace() {
   const params = useSearchParams();
@@ -90,6 +112,7 @@ export function ReadingsFrame({
   lists,
   nothing,
   singles,
+  names,
   children,
 }: {
   /** 로그인한 사용자의 id — 마지막으로 연 글의 기억을 계정마다 가른다(`lastOpenedKeyOf`) */
@@ -102,6 +125,8 @@ export function ReadingsFrame({
   nothing: ReactNode | null;
   /** 한 사람 풀이 — DB 가 준 차례(최근 것이 먼저) */
   singles: readonly NextBook[];
+  /** 표지 주소마다 찾는 칸이 맞춰 볼 이름(`Book.names`) — 주소는 `lists` 와 같은 꼴이다 */
+  names: Readonly<Record<string, readonly string[]>>;
   children: ReactNode;
 }) {
   const segment = useSelectedLayoutSegment();
@@ -112,6 +137,18 @@ export function ReadingsFrame({
   const reading = segment !== null;
   /* 이 칸에 펼 글이 있나 — 어느 글인지는 이 브라우저의 기억을 읽어야 해서 아래 효과가 고른다. 있나 없나는 기억과 무관하다 */
   const hasOpening = lists[kind].length > 0;
+
+  /*
+    **이름으로 찾는 칸은 여섯 권부터 선다** — 저장한 사람 목록 · 궁합의 고르는 칸과 같은 수(`findsInList`)다. 다섯까지는 표지를
+    눈으로 훑는다. 친 글자는 칩을 옮겨도 남는다 — 같은 이름을 다른 칸에서 다시 찾게 하지 않는다.
+  */
+  const [typed, setTyped] = useState('');
+  const finds = findsInList(lists.all.length);
+  const wanted = finds ? typed.trim() : '';
+  const shows = (href: string | null) =>
+    wanted === '' || (href !== null && (names[href] ?? []).some((name) => matchesName(name, wanted)));
+  const found = findStatus(wanted, lists[kind].filter(shows).length);
+  const find = finds ? { typed, setTyped, found } : null;
 
   /* 펼친 글을 기억한다 — 그 권이 선 칩(전체와 제 칸)에서 다음에 목록만 열면 이 글을 편다 */
   useEffect(() => {
@@ -162,8 +199,8 @@ export function ReadingsFrame({
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-12">
       <div className={`${reading ? 'hidden lg:flex' : 'flex'} min-w-0 flex-col gap-10`}>
-        <ShelfHead kind={kind} />
-        {shelves[kind]}
+        <ShelfHead kind={kind} find={find} />
+        <ShelfFind.Provider value={shows}>{shelves[kind]}</ShelfFind.Provider>
       </div>
 
       <div className={`${reading ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-8`}>
@@ -258,8 +295,16 @@ function NextCard({ book }: { book: NextBook }) {
  * 칩은 주소를 바꾼다(`replace`) — 칩을 누를 때마다 뒤로 가기가 쌓이지 않고, 새로고침 · 공유해도 같은 칸이 열린다.
  * 안내 한 장만 서는 빈 보관함(`kind === null`)에는 칩이 안 선다 — 가를 것이 없다.
  */
-function ShelfHead({ kind }: { kind: ShelfKind | null }) {
+function ShelfHead({
+  kind,
+  find = null,
+}: {
+  kind: ShelfKind | null;
+  /** 이름으로 찾는 칸 — 여섯 권부터만 온다 */
+  find?: { typed: string; setTyped: (typed: string) => void; found: ReturnType<typeof findStatus> } | null;
+}) {
   const [ref, stuck] = useStuck();
+  const base = useId();
   return (
     <header
       ref={ref}
@@ -290,6 +335,38 @@ function ShelfHead({ kind }: { kind: ShelfKind | null }) {
             })}
           </ul>
         </nav>
+      )}
+      {kind !== null && find !== null && (
+        /* 모양은 사람 목록의 찾는 칸(`app/me/people/finder.tsx`)과 같다 — 결과는 늘 마운트된 칸이 말한다 */
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${base}-find`} className="sr-only">
+            {PLACEHOLDER}
+          </label>
+          <div className="relative w-full">
+            <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-secondary" />
+            <input
+              id={`${base}-find`}
+              type="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder={PLACEHOLDER}
+              aria-describedby={`${base}-found`}
+              value={find.typed}
+              onChange={(event) => find.setTyped(event.target.value)}
+              className="h-11 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[16px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+            />
+          </div>
+          <p
+            id={`${base}-found`}
+            role="status"
+            className={find.found.kind === 'idle' ? 'sr-only' : 'px-2 text-[13px] text-secondary'}
+          >
+            {find.found.kind === 'none' ? NO_MATCH : find.found.kind === 'some' ? `검색 결과 ${find.found.count}권` : ''}
+          </p>
+        </div>
       )}
     </header>
   );

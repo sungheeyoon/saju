@@ -17,7 +17,7 @@ import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
 import type { CameFrom } from '../../../came-from';
 import type { Book } from './book';
-import { CoverLink } from './frame';
+import { CoverLink, ShelfItem } from './frame';
 import type { DayMaster } from './subject';
 
 /**
@@ -51,9 +51,15 @@ const COVER =
 const COVER_ROW =
   'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
 
+/**
+ * 칸이 하나도 안 보이는 구역은 통째로 숨는다 — 보관함의 찾는 칸이 그 구역의 권을 다 숨겼을 때(`ShelfItem`). 찾지 않을 때는
+ * 구역마다 적어도 점선 한 권이 서므로 걸리지 않는다.
+ */
+const FOUND_NONE_HIDES = '[&:not(:has(li:not([hidden])))]:hidden';
+
 export function Shelf({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className={`flex flex-col gap-4 ${FOUND_NONE_HIDES}`}>
       <div>
         <h2 className={TYPE_SECTION}>{title}</h2>
         <p className="mt-0.5 text-[13px] leading-5 text-secondary">{description}</p>
@@ -199,7 +205,7 @@ export function BlankBook({
     ? 'flex-row justify-start gap-4 px-5 py-4 text-left'
     : `${row ? 'min-h-[9rem] px-2 py-4 sm:min-h-[14rem] sm:p-4' : 'min-h-[14rem] p-4'} flex-col justify-center gap-3 text-center`;
   return (
-    <li className={wide ? 'col-span-full' : className}>
+    <ShelfItem href={null} className={wide ? 'col-span-full' : className}>
       <CoverLink
         href={href}
         from={from}
@@ -211,7 +217,7 @@ export function BlankBook({
         {/* 홈의 한 줄 셋(`row`)은 폰에서 표지 폭이 110px 남짓이라 「사주풀이 받기」가 두 줄로 접혔다 — 그 자리만 14px 한 줄이다 */}
         <span className={`font-semibold text-foreground ${row ? 'whitespace-nowrap text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{label}</span>
       </CoverLink>
-    </li>
+    </ShelfItem>
   );
 }
 
@@ -263,7 +269,7 @@ export function MakingShelf({
   titled?: boolean;
 }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className={`flex flex-col gap-4 ${FOUND_NONE_HIDES}`}>
       {titled && (
         <div>
           <h2 className={TYPE_SECTION}>인연 궁합</h2>
@@ -274,7 +280,7 @@ export function MakingShelf({
         {matches.map((match) => {
           const supplied = ELEMENTS.find((one) => one === match.suppliedToMe) ?? null;
           return (
-            <li key={match.matchId}>
+            <ShelfItem key={match.matchId} href={`/me/match/${match.matchId}`}>
               {/* 보관함 옆 칸에 펼친 편지에도 테가 선다 — 표지와 같은 링크(`CoverLink`)다 */}
               <CoverLink
                 href={hrefOf(match.matchId)}
@@ -310,7 +316,7 @@ export function MakingShelf({
                   <Icon name="arrow" className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </CoverLink>
-            </li>
+            </ShelfItem>
           );
         })}
       </ul>
