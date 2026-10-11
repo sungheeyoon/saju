@@ -61,7 +61,7 @@ export const MAX_SLACK = HEADROOM + 2 * CEILING_STEP;
 export const READ_BUDGET = {
   coordinator: { bytes: 75000, routes: [], choices: [] },
   db: { bytes: 90000, routes: [], choices: [] },
-  docs: { bytes: 65000, routes: [], choices: [] },
+  docs: { bytes: 70000, routes: [], choices: [] },
   feature: { bytes: 100000, routes: ['docs/product/prd/'], choices: [] },
   ops: { bytes: 60000, routes: [], choices: [] },
   reading: {

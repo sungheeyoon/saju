@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { Element } from '@/src/lib/saju';
 
-import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL_FACE } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { Icon } from '../../../ui/icons';
 import { LINK_PENDING_SPINNER } from '../../../ui/link-pending';
@@ -10,10 +10,11 @@ import type { RoomCompat } from './room-compat';
 
 /**
  * 상대의 파스텔을 입은 알약 — 원본 시안의 궁합 알약이다. 보조 단추와 같은 44px · 같은 글자 크기이고, 면과 글자가
- * 한 오행 한 벌이라(글자 `--ink` · 면 `--tile`, 대비 5.6:1 이상) 어느 오행이어도 읽힌다.
+ * 한 오행 한 벌이라(글자 `--ink` · 면 `--tile`, 대비 5.6:1 이상) 어느 오행이어도 읽힌다. 면만 정한다 — 높이 · 옆 여백은
+ * 아래 `size` 한 자리에서(겹치면 CSS 순서가 이겨 폰의 `px-3` 이 안 먹는다).
  */
 const TONED_PILL =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] px-4 text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
+  'inline-flex items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
 
 /**
  * 단추를 읽는 이름 — 보이는 글자를 품는다(폰에서 글자가 빠져도 이름은 같다). 글자는 운영자 시안(2026-10-11 저녁)이다 — 이 단추에는
@@ -52,8 +53,8 @@ export function CompatChip({
   /** 시트의 한 줄 단추 — 폭을 다 쓰고 글자가 늘 선다 */
   fill?: boolean;
 }) {
-  const shape = tone === null ? BUTTON_SECONDARY_SMALL : `${elementScope(tone)} ${TONED_PILL}`;
-  const size = fill ? 'w-full min-h-12' : 'min-w-11 shrink-0 px-3 sm:px-4';
+  const shape = tone === null ? BUTTON_SECONDARY_SMALL_FACE : `${elementScope(tone)} ${TONED_PILL}`;
+  const size = fill ? 'w-full min-h-12 px-4' : 'min-h-11 min-w-11 shrink-0 px-3 sm:px-4';
   /* 폰의 방 머리에서는 빠지는 글자 — 시트에서는 늘 선다 */
   const wideOnly = fill ? '' : 'hidden sm:inline';
   return (
