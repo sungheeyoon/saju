@@ -98,7 +98,7 @@ export const READ_BUDGET = {
     ],
   },
   ui: {
-    bytes: 100000,
+    bytes: 85000,
     routes: [],
     choices: [
       {
