@@ -7,8 +7,8 @@ import type { Element } from '@/src/lib/saju';
 
 import { Avatar } from './avatar';
 import { CardPhotos } from './matching/card-photos';
-import { Letter } from './matching/letter';
 import { closeSheet, DetailSheet, openSheet } from './matching/today-card';
+import { TYPE_SECTION } from '../ui/surfaces';
 
 /**
  * 매칭된 상대 한 사람 — **지금의** 사진 · 소개다(동의 당시의 것이 아니다). 서버가 이미 열린 문에서 지어 넘긴다 —
@@ -53,7 +53,7 @@ export const partnerSheetName = (nickname: string): string => `${nickname} 님 �
  *
  * 별도 화면이 아니라 시트다 — 방의 스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로 남는다. 모양은 오늘의 인연 ⓘ 시트
  * (`DetailSheet`) 한 벌이라 폰은 아래에서 올라오고 넓은 화면(lg)은 가운데 대화상자다. 위에서부터 사진 넘기기(오늘의 인연
- * 카드와 같은 판 `CardPhotos` — 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표) → 이름 → 소개 전문 → 궁합 단추이고,
+ * 카드와 같은 판 `CardPhotos` — 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표) → 이름과 궁합 단추 → 소개 전문이고,
  * 머리에 「⋯」(신고 · 차단, 부르는 쪽이 준다)와 닫기가 선다. 사진이 없으면 사진 칸 대신 첫 글자 동그라미 하나, 소개가 없으면
  * 그 줄을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고(`CompatChip`), 인연
  * 궁합 화면 자신이 연 시트는 `null` 이라 안 선다.
@@ -85,7 +85,7 @@ export function PartnerSheet({
         {partner.photoUrls.length > 0 ? (
           <div
             ref={frame}
-            className="relative mx-auto aspect-[4/5] w-full max-w-[24rem] select-none overflow-hidden rounded-[1.75rem] bg-surface-sunken"
+            className="relative aspect-square w-full select-none overflow-hidden rounded-[1.25rem] bg-surface-sunken lg:aspect-[4/5] lg:max-h-[42dvh]"
           >
             <CardPhotos
               card={{
@@ -105,11 +105,15 @@ export function PartnerSheet({
           </span>
         )}
         {/* 이름은 머리의 제목(보조기기)이 이미 읽는다 — 여기는 보이기만 한다 */}
-        <p aria-hidden="true" className="break-keep text-center font-rounded text-[1.5rem] leading-8 text-foreground">
-          {partner.nickname}
-        </p>
-        {intro !== null && <Letter nickname={partner.nickname} intro={intro} />}
-        {toMatch}
+        <div className="flex items-center justify-between gap-4">
+          <p aria-hidden="true" className={`${TYPE_SECTION} min-w-0 break-words`}>
+            {partner.nickname}
+          </p>
+          {toMatch !== null && <div className="shrink-0">{toMatch}</div>}
+        </div>
+        {intro !== null && (
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-secondary">{intro}</p>
+        )}
       </div>
     </DetailSheet>
   );

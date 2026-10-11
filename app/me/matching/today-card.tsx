@@ -318,11 +318,11 @@ export function DetailSheet({
         폭은 40rem 에서 멈추고 가운데 선다 — ⓘ 는 `lg` 아래에서 열리므로 640~1023px 에서 시트가 화면 끝까지 늘어나 한 줄이
         너무 길었다(화면 감사 2026-10-09). 폰 폭에서는 그대로 꽉 찬다.
       */
-      className="mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-[40rem] overflow-y-auto overscroll-contain rounded-t-[2rem] bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:max-h-[min(85dvh,48rem)] lg:rounded-[2rem] lg:shadow-float"
+      className={`mx-auto mb-0 mt-auto max-h-[85dvh] w-full ${nameInBody ? 'max-w-[28rem]' : 'max-w-[40rem]'} overflow-y-auto overscroll-contain rounded-t-[2rem] bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:max-h-[min(85dvh,48rem)] lg:rounded-[2rem] lg:shadow-float`}
     >
       <div className="flex flex-col gap-4 px-5 pb-10 lg:px-6 lg:pb-6">
         <div
-          className="sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col gap-2 bg-background px-5 pb-1 pt-3 lg:-mx-6 lg:touch-auto lg:px-6 lg:pt-5"
+          className={`sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col ${nameInBody ? 'gap-1' : 'gap-2'} bg-background px-5 pb-1 pt-3 lg:-mx-6 lg:touch-auto lg:px-6 lg:pt-5`}
           onPointerDown={(event) => {
             if (wideSheet()) return;
             press.current = event.clientY;
