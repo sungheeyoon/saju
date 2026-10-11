@@ -13,8 +13,8 @@ import { runningReadings } from '../../home/running';
 import { runningName } from '../../home/running-line';
 import { readingHrefOf } from '../../reading/target';
 import { withCameFrom } from '../../../came-from';
-import { bookOf } from './book';
-import { ReadingsFrame, type NextBook } from './frame';
+import { bookOf, shelfNamesOf } from './book';
+import { ReadingsFrame, ShelfItem, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
 import type { ShelfLists } from './opening';
 import { BlankBook, MakingCover, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
@@ -105,16 +105,24 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     const href = readingHrefOf(one.target);
     return one.target.kind === 'match' || shelved.has(href)
       ? []
-      : [{ key: href, href, name: runningName(one), single: one.target.kind === 'self' || one.target.kind === 'person' }];
+      : [
+          {
+            key: href,
+            href,
+            name: runningName(one),
+            names: shelfNamesOf(one.labelA, one.labelB),
+            single: one.target.kind === 'self' || one.target.kind === 'person',
+          },
+        ];
   });
   const makingSingles = runningBooks.filter((one) => one.single);
   const makingPairs = runningBooks.filter((one) => !one.single);
   const makingSelfReading = runningBooks.some((one) => one.href === readingHrefOf({ kind: 'self' }));
   const makingCovers = (entries: typeof runningBooks) =>
     entries.map((one) => (
-      <li key={one.key}>
+      <ShelfItem key={one.key} href={one.href}>
         <MakingCover href={one.href} name={one.name} from="shelf" />
-      </li>
+      </ShelfItem>
     ));
 
   const sajuShelf = (
@@ -125,9 +133,9 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이예요.">
       {makingCovers(makingSingles)}
       {singles.map((book) => (
-        <li key={book.key}>
+        <ShelfItem key={book.key} href={book.href}>
           <SingleCover book={book} from="shelf" />
-        </li>
+        </ShelfItem>
       ))}
       {selfPersonId === null ? (
         <BlankBook href="/me" element="木" label="내 사주 등록하기" />
@@ -149,9 +157,9 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이예요.">
         {makingCovers(makingHere)}
         {pairs.map(({ book, kind }) => (
-          <li key={book.key}>
+          <ShelfItem key={book.key} href={book.href}>
             <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" />
-          </li>
+          </ShelfItem>
         ))}
         {pairs.length === 0 && makingHere.length === 0 && blank}
       </Shelf>
@@ -204,9 +212,16 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     stem: book.subjects[0]?.stem ?? null,
   }));
 
+  /* 찾는 칸이 맞춰 볼 이름 — 주소는 `lists` 와 같은 꼴(인연 궁합의 편지는 `/me/match/[id]`)이다 */
+  const names: Record<string, readonly string[]> = Object.fromEntries([
+    ...making.map((match) => [`/me/match/${match.matchId}`, [match.nickname]] as const),
+    ...runningBooks.map((one) => [one.href, one.names] as const),
+    ...books.map(({ book }) => [book.href, book.names] as const),
+  ]);
+
   return (
     <main className="app-shell flex flex-1 flex-col py-8 sm:py-12">
-      <ReadingsFrame account={user.id} shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks}>
+      <ReadingsFrame account={user.id} shelves={shelves} lists={lists} nothing={nothing} singles={nextBooks} names={names}>
         {children}
       </ReadingsFrame>
     </main>
