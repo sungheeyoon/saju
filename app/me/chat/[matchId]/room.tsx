@@ -36,8 +36,10 @@ import { bodyPartsOf } from './links';
 import { droppable, withPending, type Pending } from './pending';
 import type { RoomTones } from '../tones';
 import { bubbleDaysOf, flaggable, type Bubble, type ShownMessage } from './bubbles';
+import { CompatChip } from './compat-chip';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
+import type { RoomCompat } from './room-compat';
 import { readAlready } from './thread';
 import { THEIR_SEQ, useReadMarker } from './use-read-marker';
 import { useOutbox } from './use-outbox';
@@ -72,14 +74,9 @@ type RoomView = {
   readonly fromBeginning: boolean;
   /** 두 사람의 일간 — 인연 궁합이 연 값이 있을 때만(`roomTonesForViewer`). 없으면 중립 색이다 */
   readonly tones: RoomTones | null;
+  /** 그 인연 궁합이 어디까지 왔나 — 궁합 단추가 든다. 열린 방에만 온다(닫힌 방에는 단추가 없다) */
+  readonly compat: RoomCompat | null;
 };
-
-/**
- * 상대의 파스텔을 입은 알약 — 원본 시안의 궁합 알약이다. 보조 단추와 같은 44px · 같은 글자 크기이고, 면과 글자가
- * 한 오행 한 벌이라(글자 `--ink` · 면 `--tile`, 대비 5.6:1 이상) 어느 오행이어도 읽힌다.
- */
-const TONED_PILL =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] px-4 text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
 
 /** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다(「⋯」도 같은 모양이다, `ReportBlockMenu`) */
 const GHOST_ICON =
@@ -200,6 +197,9 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         }
       : null;
   const openPartner = profile.open;
+  /* 인연 궁합으로 가는 길 — 상대가 있는 열린 방에만. 머리와 시트의 궁합 단추가 같은 곳 · 같은 상태다 */
+  const matchLink = hasPartner && !closed ? withCameFrom(`/me/match/${room.matchId}`, 'chat') : null;
+  const chipTone = room.tones === null ? null : theirTone;
   /* 닫힌 방에는 쓸 칸이 없다 — 쓰다 만 글도 탭에서 걷는다(`draft.ts`) */
   useEffect(() => {
     if (closed) dropDraft(() => sessionStorage, room.matchId);
@@ -273,17 +273,12 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           </div>
         </div>
         {/*
-          폰에서는 이름에 자리를 준다 — 같은 길이 대화의 첫머리에 있다. 닫힌 방에는 안 선다: 차단 · 정지 · 탈퇴 신청으로
-          닫히면 인연 궁합도 그 쌍에게 닫힌다(`visible_matches()`) — 누르면 없는 화면이다.
+          **궁합 단추는 상태를 든다 — 폰에도 선다**(운영자 2026-10-11 저녁, ADR 0155 「2026-10-11 저녁 덧」). 수락하면 방으로 오고
+          궁합풀이는 그동안 만들어진다 — 대화가 중심이고 생성 상태는 이 단추 하나가 작게 든다. 끝나면 채널이 방을 다시 그려 점수로
+          바뀐다(`room-compat.ts`). 닫힌 방에는 안 선다: 차단 · 정지 · 탈퇴 신청으로 닫히면 인연 궁합도 그 쌍에게 닫힌다
+          (`visible_matches()`) — 누르면 없는 화면이다.
         */}
-        {hasPartner && !closed && (
-          <span className="hidden shrink-0 sm:block">
-            <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={room.tones === null ? BUTTON_SECONDARY_SMALL : `${elementScope(theirTone)} ${TONED_PILL}`}>
-              <Icon name="heart" className={`size-[18px] ${room.tones === null ? 'text-danger' : ''}`} />
-              인연 궁합
-            </Link>
-          </span>
-        )}
+        {matchLink !== null && <CompatChip compat={room.compat ?? { kind: 'quiet' }} href={matchLink} tone={chipTone} />}
         {hasPartner && (
           <ReportBlockMenu
             canBlock={!closed}
@@ -407,7 +402,9 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         <PartnerSheet
           control={profile}
           partner={partner}
-          toMatch={withCameFrom(`/me/match/${room.matchId}`, 'chat')}
+          toMatch={
+            matchLink === null ? null : <CompatChip compat={room.compat ?? { kind: 'quiet' }} href={matchLink} tone={chipTone} fill />
+          }
           /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 입력 자리에 신고 · 차단 칸을 세운다 */
           menu={
             <ReportBlockMenu
@@ -441,7 +438,7 @@ function Activity({ band }: { band: ActivityBand }) {
 }
 
 /**
- * 대화의 첫머리 — 누구와 이야기하는지와 (폰에서) 인연 궁합으로 가는 길.
+ * 대화의 첫머리 — 누구와 이야기하는지.
  *
  * 두 일간을 아는 방은 **두 사람의 카드**다: 나와 상대가 제 일간 오행의 파스텔 한 장씩으로 나란히 서고(결과 화면의
  * 「각자의 사주」와 같은 조각 `DayMasterChip`), 아래로 인연 궁합이 이어진다. 「이 사람과 왜 이야기하게
@@ -462,16 +459,9 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
     </div>
   );
   /*
-    **폰에서만 선다** — 넓은 화면(sm 이상)은 머리에 같은 단추가 늘 서 있어, 여기도 서면 한 화면에 「인연 궁합」이 둘이었다
-    (화면 감사 2026-10-09). 폰의 머리는 이름에 자리를 주느라 그 단추가 없다. 서는 조건은 머리와 같다(상대가 있고 열린 방).
+    인연 궁합으로 가는 길은 여기 없다 — 방 머리의 궁합 단추가 폰에도 서므로(ADR 0155 「2026-10-11 저녁 덧」) 여기도 서면 한 화면에
+    같은 길이 둘이다(화면 감사 2026-10-09).
   */
-  const toMatch = room.partnerUserId !== null && room.notice === null && (
-    <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={`${BUTTON_SECONDARY_SMALL} sm:hidden`}>
-      <Icon name="heart" className="size-4 text-danger" />
-      인연 궁합
-      <Icon name="arrow" className="size-4" />
-    </Link>
-  );
 
   if (tones === null) {
     return (
@@ -479,7 +469,6 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
         <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto}
               focus={room.partnerPhotoFocus} size={72} />
         <p className={TYPE_NAME}>{room.heading}</p>
-        {toMatch}
         {hello}
       </div>
     );
@@ -491,7 +480,6 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
         <StartSide label="나" stem={tones.mine.stem} />
         <StartSide label={room.name} stem={tones.theirs.stem} />
       </div>
-      {toMatch}
       {hello}
     </div>
   );

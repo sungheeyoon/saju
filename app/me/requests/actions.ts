@@ -72,7 +72,7 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
   if (status !== 'accepted') return { ok: true, status };
 
   /*
-    **수락하면 그 인연 궁합으로 간다**(ADR 0130 「2026-10-11」) — 단추가 「수락하고 궁합 열기」다. 그 Match 를 못 찾거나 읽기가
+    **수락하면 그 Match 의 채팅방으로 간다**(ADR 0130 「2026-10-11 저녁」) — 단추가 「수락하고 대화하기」다. 그 Match 를 못 찾거나 읽기가
     실패해도 수락은 이미 끝났다 — 실패로 답하지 않고 옮길 곳 없이 답한다. 화면은 카드를 내리고 인연 탭에 남는다.
     못 읽은 까닭은 `answerOfThrown` 이 기록에 남긴다(DB 실패면 `dbFailure` 가 이미 남겼다).
   */

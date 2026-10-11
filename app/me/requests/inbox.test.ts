@@ -63,11 +63,11 @@ const matchRow = (over: Record<string, unknown>) => ({
 beforeEach(() => vi.mocked(supabaseOnServer).mockReset());
 
 describe('소식이 가는 곳', () => {
-  it('성립 소식은 그 인연 궁합으로 가고 ← 는 소식이다', async () => {
+  it('성립 소식은 그 Match 의 채팅방으로 간다 — 수락한 쪽이 도착한 그 방이다', async () => {
     answering({ my_notifications: { data: [notification({ match_id: 'm1' })], error: null } });
 
     const { notifications } = await inboxForViewer();
-    expect(notifications.map((one) => one.href)).toEqual(['/me/match/m1?from=news']);
+    expect(notifications.map((one) => one.href)).toEqual(['/me/chat/m1']);
   });
 
   it('Match 를 안 든 성립 소식과 다른 요청 소식은 인연 탭이다', async () => {

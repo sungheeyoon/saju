@@ -51,6 +51,8 @@ describe('갈래 → 다시 그릴 화면', () => {
     for (const path of ['/me', '/me/matching', '/me/matching/history', '/me/requests', `/me/match/${MATCH}`, '/me/readings', '/me/chat']) {
       expect(redrawsOn('requests', path), path).toBe(true);
     }
+    /* 방 안도 — 인연 궁합이 끝나면 방 머리의 궁합 단추가 점수로 바뀐다(ADR 0155 「2026-10-11 저녁 덧」) */
+    expect(redrawsOn('requests', `/me/chat/${MATCH}`)).toBe(true);
     expect(redrawsOn('requests', '/me/profile')).toBe(false);
     expect(redrawsOn('requests', '/')).toBe(false);
   });

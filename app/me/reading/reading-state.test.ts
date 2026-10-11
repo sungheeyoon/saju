@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   READING_ALREADY_RUNNING_NOTE,
   READING_FAILED_NOTE,
+  READING_FIRST_FAILED_NOTE,
   READING_UNEXPECTED_NOTE,
 } from '@/src/lib/reading';
 
@@ -40,7 +41,7 @@ const preview: CurrentReading = {
   scoreScale: { baseline: null, version: null, relation: null },
 };
 
-const idle = (): ReadingFlow => initialFlow({ running: false, failed: false });
+const idle = (): ReadingFlow => initialFlow({ running: false, failed: false, hasReading: false });
 
 describe('누름과 기다림이 지나는 자리', () => {
   /**
@@ -48,16 +49,22 @@ describe('누름과 기다림이 지나는 자리', () => {
    * 새로고침하고 돌아오거나 다른 기기에서 열어도 서버에는 도는 시도가 있다.
    */
   it('열릴 때 이미 도는 시도가 있으면 기다리는 모습으로 선다', () => {
-    expect(initialFlow({ running: true, failed: false }).phase).toBe('loading');
+    expect(initialFlow({ running: true, failed: false, hasReading: false }).phase).toBe('loading');
     expect(idle().phase).toBe('idle');
   });
 
   /** 지난번 실패는 다른 기기에서 열어도 말할 수 있어야 한다 — 다만 경고는 아니다 */
   it('지난번이 실패였으면 그 사실을 들고 열되 오류 자리에 서지 않는다', () => {
-    const flow = initialFlow({ running: false, failed: true });
+    const flow = initialFlow({ running: false, failed: true, hasReading: true });
 
     expect(flow.failure).toBe(READING_FAILED_NOTE);
     expect(flow.phase).toBe('idle');
+  });
+
+  /** 「지금 보이는 글은 그 전에 만든 풀이예요」는 그 글이 서 있을 때만 참이다(운영자 2026-10-11 저녁) */
+  it('그 전에 만든 글이 없으면 실패 문장에 「지금 보이는 글」이 없다', () => {
+    expect(initialFlow({ running: false, failed: true, hasReading: false }).failure).toBe(READING_FIRST_FAILED_NOTE);
+    expect(READING_FIRST_FAILED_NOTE).not.toContain('지금 보이는 글');
   });
 
   it('누르면 지난번 실패도 세워 두었던 예시 글도 함께 지운다', () => {
@@ -106,7 +113,7 @@ describe('누름과 기다림이 지나는 자리', () => {
       started: false,
     });
 
-    const done = readingFlow(joined, { type: 'settled', status: 'succeeded', arrived: true });
+    const done = readingFlow(joined, { type: 'settled', status: 'succeeded', arrived: true, hasReading: true });
     expect(done.phase).toBe('idle');
     expect(done.failure).toBeNull();
   });
@@ -116,11 +123,23 @@ describe('누름과 기다림이 지나는 자리', () => {
       type: 'settled',
       status: 'failed',
       arrived: false,
+      hasReading: true,
     });
 
     expect(settled.failure).toBe(READING_FAILED_NOTE);
     /* 누름이 깨진 것이 아니라 만들던 것이 실패한 것이다 — 다시 누를 수 있다 */
     expect(settled.phase).toBe('idle');
+  });
+
+  it('처음 받기가 실패로 끝나면 그 전에 만든 글을 말하지 않는다', () => {
+    const settled = readingFlow(readingFlow(idle(), { type: 'press' }), {
+      type: 'settled',
+      status: 'failed',
+      arrived: false,
+      hasReading: false,
+    });
+
+    expect(settled.failure).toBe(READING_FIRST_FAILED_NOTE);
   });
 
   /**
@@ -160,7 +179,7 @@ describe('누름과 기다림이 지나는 자리', () => {
 describe('끝난 뒤 새 글이 설 때까지', () => {
   const pressed = () => readingFlow(idle(), { type: 'press' });
   const succeeded = (flow: ReadingFlow, arrived = false) =>
-    readingFlow(flow, { type: 'settled', status: 'succeeded', arrived });
+    readingFlow(flow, { type: 'settled', status: 'succeeded', arrived, hasReading: true });
 
   it('성공을 봤어도 새 글이 아직 안 섰으면 기다리는 모습 그대로다', () => {
     const waiting = succeeded(pressed());
@@ -190,7 +209,7 @@ describe('끝난 뒤 새 글이 설 때까지', () => {
   });
 
   it('실패는 기다릴 글이 없다 — 곧바로 내린다', () => {
-    expect(readingFlow(pressed(), { type: 'settled', status: 'failed', arrived: false }).phase).toBe('idle');
+    expect(readingFlow(pressed(), { type: 'settled', status: 'failed', arrived: false, hasReading: false }).phase).toBe('idle');
   });
 });
 
@@ -263,14 +282,14 @@ describe('지켜보다 본 것', () => {
    * 왕복이 80번이다 — 그중 한 번이 끊긴 것을 「끝났다」로 읽으면 다 된 글을 못 세운다.
    */
   it('못 물은 것으로는 아무것도 안 한다', () => {
-    expect(afterAsking({ kind: 'unreachable' }, false)).toEqual({
+    expect(afterAsking({ kind: 'unreachable' }, false, true)).toEqual({
       event: null,
       announcesCredits: false,
     });
   });
 
   it('아직 도는 중이면 그대로 기다린다', () => {
-    expect(afterAsking({ kind: 'running' }, false).event).toBeNull();
+    expect(afterAsking({ kind: 'running' }, false, true).event).toBeNull();
   });
 
   /**
@@ -279,7 +298,7 @@ describe('지켜보다 본 것', () => {
    * 끝내면 **도는 중인 시도를 두고 「없다」고 말하는** 화면이 된다.
    */
   it('가리킬 시도가 없다는 답으로도 끝내지 않는다', () => {
-    expect(afterAsking({ kind: 'none' }, false).event).toBeNull();
+    expect(afterAsking({ kind: 'none' }, false, true).event).toBeNull();
   });
 
   /**
@@ -287,13 +306,13 @@ describe('지켜보다 본 것', () => {
    * `refreshPaths`) — 칸이 한 번 더 읽으면 같은 화면을 두 번 받는다(ADR 0016 덧, e2e 가 `_rsc` 0 을 잰다).
    */
   it('끝난 것을 보면 그 사실을 세우고 풀이권을 다시 묻게 한다', () => {
-    expect(afterAsking({ kind: 'settled', status: 'succeeded' }, true)).toEqual({
-      event: { type: 'settled', status: 'succeeded', arrived: true },
+    expect(afterAsking({ kind: 'settled', status: 'succeeded' }, true, true)).toEqual({
+      event: { type: 'settled', status: 'succeeded', arrived: true, hasReading: true },
       announcesCredits: true,
     });
     /* 실패도 잡고 있던 자리가 풀리는 일이라 똑같이 한다 */
-    expect(afterAsking({ kind: 'settled', status: 'failed' }, false)).toEqual({
-      event: { type: 'settled', status: 'failed', arrived: false },
+    expect(afterAsking({ kind: 'settled', status: 'failed' }, false, false)).toEqual({
+      event: { type: 'settled', status: 'failed', arrived: false, hasReading: false },
       announcesCredits: true,
     });
   });

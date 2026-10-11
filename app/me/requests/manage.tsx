@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { announceIfMoved } from '../reading/credits-signal';
-import { withCameFrom } from '../../came-from';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from './unread-signal';
@@ -59,8 +58,8 @@ export function MatchConsentQuestion() {
  * **결과를 상태로 받는다.** 수락을 눌렀는데 무효가 나오는 경우가 실재한다 — 그 사이에
  * 낀 판본 수정이다. 그때 「수락했습니다」라고 말하면 사용자는 없는 Match 를 찾는다.
  *
- * **수락이 성립하면 그 인연 궁합으로 간다**(ADR 0130 「2026-10-11」) — 단추 이름이 약속한 대로. ← 는 인연 탭이다(`from=matching`).
- * 액션이 그 Match 를 못 찾았으면 옮기지 않고 카드만 내려간다.
+ * **수락이 성립하면 그 Match 의 채팅방으로 간다**(ADR 0130 「2026-10-11 저녁」) — 단추 이름이 약속한 대로. 궁합풀이는 그동안
+ * 만들어지고 방 머리의 궁합 단추가 그 상태를 든다. 액션이 그 Match 를 못 찾았으면 옮기지 않고 카드만 내려간다.
  */
 export function RespondButtons({ requestId, nickname }: { requestId: string; nickname: string }) {
   const [failure, setFailure] = useState<string | null>(null);
@@ -85,7 +84,7 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
       // 인연 탭의 딱지는 주소가 안 바뀌면 다시 안 센다 — 답한 것을 바로 알린다(ADR 0130)
       announceRequestsToAnswerMoved();
       if (result.status === 'accepted' && result.matchId !== undefined) {
-        router.push(withCameFrom(`/me/match/${result.matchId}`, 'matching'));
+        router.push(`/me/chat/${result.matchId}`);
       }
     });
   };
@@ -99,7 +98,7 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
       {/* 폰에서는 주 단추가 위에 한 줄을 다 갖는다 — 엄지가 먼저 닿는 자리다 */}
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <button type="button" onClick={() => answer(true)} disabled={working} className={BUTTON_PRIMARY}>
-          {working && !asking ? '보내는 중…' : '수락하고 궁합 열기'}
+          {working && !asking ? '보내는 중…' : '수락하고 대화하기'}
         </button>
         <button type="button" onClick={() => setAsking(true)} disabled={working} className={BUTTON_SECONDARY}>
           거절

@@ -311,7 +311,7 @@ export function ReadingPanel({
   const showsCarry = carry !== null && !(carry.state === 'shown' && pressed);
   const [flow, dispatch] = useReducer(
     readingFlow,
-    { running: initialRunning, failed: initialFailed },
+    { running: initialRunning, failed: initialFailed, hasReading: initialReading !== null },
     initialFlow,
   );
   /**
@@ -385,7 +385,7 @@ export function ReadingPanel({
       /* 못 물었으면 앞서 본 진행을 그대로 둔다 — 한 번 끊긴 것으로 목차를 비우지 않는다 */
       if (seen !== undefined) setProgress((before) => progressSoFar(before, seen));
 
-      apply(afterAsking(answer, keyNow.current !== keyBeforeWait.current), dispatch);
+      apply(afterAsking(answer, keyNow.current !== keyBeforeWait.current, keyNow.current !== null), dispatch);
     };
 
     const stop = watchRun({ ask, visibility: documentVisibility });

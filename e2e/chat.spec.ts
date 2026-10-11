@@ -172,11 +172,16 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       .locator('a[aria-current="page"]');
 
     await a.page.goto(room);
-    /* 머리의 사진 · 이름이 상대 프로필 시트를 열고, 그 시트의 「인연 궁합」이 그 길이다(ADR 0155 덧, 2026-10-11) */
+    /*
+      방 머리의 궁합 단추와 상대 프로필 시트의 궁합 단추가 같은 곳 · 같은 상태다(ADR 0155 「2026-10-11 저녁 덧」). 이름은 상태를 든다 —
+      이 시험 환경에는 모델 열쇠가 없어 만드는 중이거나 실패다. 머리의 사진 · 이름이 시트를 연다(ADR 0155 덧, 2026-10-11)
+    */
+    const headChip = a.page.locator('[data-chat-room] header').getByRole('link', { name: /^궁합/ });
+    await expect(headChip).toHaveAttribute('href', `/me/match/${matchId}?from=chat`);
     await a.page.locator('[data-chat-room] header').getByRole('button', { name: `나${tag} 님 자세히`, exact: true }).click();
     const sheet = a.page.getByRole('dialog', { name: `나${tag} 님 자세히` });
     await expect(sheet).toBeVisible();
-    await sheet.getByRole('link', { name: '인연 궁합', exact: true }).click();
+    await sheet.getByRole('link', { name: /^궁합/ }).click();
     await expect(a.page).toHaveURL(new RegExp(`/me/match/${matchId}\\?from=chat$`));
     /* 제목이 상대를 부른다(화면 점검 C12) */
     await expect(a.page.getByRole('heading', { name: `나${tag} 님과의 인연 궁합`, exact: true })).toBeVisible();

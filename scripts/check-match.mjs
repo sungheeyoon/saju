@@ -247,7 +247,7 @@ try {
     const news = plain(await body('/me/requests', bCookie));
     check('새 요청 알림이 종의 소식에 뜨고 인연 탭으로 간다',
       news.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했어요`) && news.includes('href="/me/matching"'));
-    check('소식 화면에는 받은 요청 카드가 없다', !news.includes('수락하고 궁합 열기'));
+    check('소식 화면에는 받은 요청 카드가 없다', !news.includes('수락하고 대화하기'));
 
     check('수락 카드가 여덟 글자 공개와 인연 궁합을 한 문장으로 묻는다',
       text.includes('당신의 사주팔자 여덟 글자가 상대에게 공개됩니다')
@@ -323,9 +323,9 @@ try {
     for (const [who, cookie, partner] of [['청한 쪽', aCookie, NAME.b], ['받은 쪽', bCookie, NAME.a]]) {
       const news = plain(await body('/me/requests', cookie));
       const readings = plain(await body('/me/readings', cookie));
-      /* 성립 소식은 그 인연 궁합으로 가고 ← 는 소식이다(ADR 0130 「2026-10-11」) — 인연 탭으로 가던 줄이다 */
-      check(`${who} 소식 화면의 성립 소식은 그 인연 궁합으로 간다`,
-        /href="\/me\/match\/[0-9a-f-]+\?from=news"/.test(news));
+      /* 성립 소식은 그 Match 의 채팅방으로 간다(ADR 0130 「2026-10-11 저녁」) — 수락한 쪽이 도착한 그 방이다 */
+      check(`${who} 소식 화면의 성립 소식은 그 채팅방으로 간다`,
+        /href="\/me\/chat\/[0-9a-f-]+"/.test(news));
       check(`${who} 풀이 화면에 인연 궁합이 선다`,
         /* 보관함에서 여는 인연 궁합은 보관함 틀 안 주소다 — 사주풀이와 같은 옆 칸(ADR 0134 덧붙임) */
         readings.includes(partner) && readings.includes('/me/readings/match/') && readings.includes('함께 보기'));
