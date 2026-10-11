@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
-import { photoUrlsOf, publicCardFromRow } from './candidates';
+import { photoUrlsOf, photosFromFocus, publicCardFromRow } from './candidates';
 
 const summary = {
   glyphCount: 8,
@@ -46,5 +46,22 @@ describe('후보 카드의 사진 주소', () => {
   it('옛 DB 라 `photo_count` 가 없으면 `has_photo` 로 대표 한 장을 센다', () => {
     expect(publicCardFromRow(row, summary).photoUrls).toEqual(['/me/photo/u-1/1']);
     expect(publicCardFromRow({ ...row, has_photo: false }, summary).photoUrls).toEqual([]);
+  });
+});
+
+describe('photosFromFocus — 매칭된 상대의 사진', () => {
+  it('초점의 짝 수가 장 수다', () => {
+    expect(photosFromFocus('u-1', [10, 20, 50, 50, 80, 30], true)).toEqual({
+      photoUrls: ['/me/photo/u-1/1', '/me/photo/u-1/2', '/me/photo/u-1/3'],
+      photoFocus: [{ x: 10, y: 20 }, { x: 50, y: 50 }, { x: 80, y: 30 }],
+    });
+  });
+
+  it('초점이 없는 옛 문이면 대표 한 장이다', () => {
+    expect(photosFromFocus('u-1', null, true).photoUrls).toEqual(['/me/photo/u-1/1']);
+  });
+
+  it('사진이 없으면 빈 목록이다', () => {
+    expect(photosFromFocus('u-1', [], false)).toEqual({ photoUrls: [], photoFocus: [] });
   });
 });

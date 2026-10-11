@@ -11,7 +11,7 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { ChatFrame, RoomList } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
-import { roomTonesForViewer } from '../tones';
+import { roomScopesForViewer } from '../tones';
 import { labelled } from './bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
@@ -64,7 +64,7 @@ export default async function ChatRoomPage({
   const room = rooms.find((one) => one.matchId === matchId) ?? null;
   if (room === null) notFound();
 
-  const [messages, tones] = await Promise.all([messagesForViewer(supabase, matchId), roomTonesForViewer(rooms)]);
+  const [messages, { tones, intros }] = await Promise.all([messagesForViewer(supabase, matchId), roomScopesForViewer(rooms)]);
 
   return (
     <main className={`app-shell ${styles.page} flex w-full flex-1 flex-col md:py-6 lg:py-8`}>
@@ -82,6 +82,9 @@ export default async function ChatRoomPage({
               partnerUserId: room.partnerUserId,
               partnerHasPhoto: room.partnerHasPhoto,
               partnerPhotoFocus: room.partnerPhotoFocus,
+              partnerPhotoUrls: room.partnerPhotoUrls,
+              partnerPhotoFocuses: room.partnerPhotoFocuses,
+              partnerIntro: intros.get(matchId) ?? null,
               notice: roomNoticeOf(room),
               activity: room.partnerActivity,
               unread: room.unread,

@@ -35,12 +35,18 @@ export type DeckCard = {
   readonly highlights: readonly { readonly element: string; readonly text: string }[];
 };
 
+/**
+ * 사진 판이 읽는 칸만 — 오늘의 인연 카드와 상대 프로필 시트(`../partner-sheet.tsx`)가 같은 판을 쓴다. 매칭된 상대는
+ * `candidateUserId` 자리에 그 사람의 id 를 둔다(사진 주소를 짓는 자리 하나).
+ */
+export type PhotoFace = Pick<DeckCard, 'candidateUserId' | 'nickname' | 'hasPhoto' | 'photoUrls' | 'photoFocus' | 'avatarElement'>;
+
 /** 그 사람의 사진 전부, 대표가 먼저 — 목록이 없으면 `hasPhoto` 로 한 장. 비면 이름의 첫 글자가 선다 */
-export const photosOf = (card: DeckCard): readonly string[] =>
+export const photosOf = (card: PhotoFace): readonly string[] =>
   card.photoUrls ?? (card.hasPhoto ? [`/me/photo/${card.candidateUserId}`] : []);
 
 /** 그 장(0 = 대표)의 보일 자리 — 모르면 가운데 */
-export const focusAt = (card: DeckCard, at: number): PhotoFocus => card.photoFocus?.[at] ?? FOCUS_CENTER;
+export const focusAt = (card: PhotoFace, at: number): PhotoFocus => card.photoFocus?.[at] ?? FOCUS_CENTER;
 
 /** 서버가 준 기운 이름 — 오행 다섯 중 하나면 그것, 아니면 `null`(모르는 기운의 회색) */
 export const elementOf = (value: string | undefined): Element | null =>

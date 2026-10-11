@@ -280,6 +280,8 @@ export function DetailSheet({
   nickname,
   label,
   menu,
+  nameInBody = false,
+  onClose,
   children,
 }: {
   sheet: RefObject<HTMLDialogElement | null>;
@@ -289,22 +291,20 @@ export function DetailSheet({
   label?: string;
   /** 머리의 닫기(X) 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
   menu?: ReactNode;
+  /**
+   * 이름이 머리가 아니라 본문(사진 아래)에 선다 — 상대 프로필 시트(`../partner-sheet.tsx`). 머리의 제목은 보조기기에만
+   * 읽히고, 본문의 이름은 보이기만 한다(한 이름을 두 번 읽지 않게)
+   */
+  nameInBody?: boolean;
+  /** 판이 닫힌 뒤 — 어느 길(X · Esc · 바깥 · 끌기)로 닫혀도 한 번 */
+  onClose?: () => void;
   children: ReactNode;
 }) {
   const press = useRef<number | null>(null);
   /** 손잡이를 아래로 끈 만큼(px) */
   const [drag, setDrag] = useState(0);
 
-  const close = () => {
-    const dialog = sheet.current;
-    if (dialog === null || !dialog.open) return;
-    const settle = () => { dialog.close(); setDrag(0); };
-    if (reducedMotion()) { settle(); return; }
-    const frames = wideSheet()
-      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(12px)' }]
-      : [{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }];
-    dialog.animate(frames, { duration: wideSheet() ? 160 : 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
-  };
+  const close = () => closeSheet(sheet.current, drag, () => setDrag(0));
 
   return (
     <dialog
@@ -312,6 +312,7 @@ export function DetailSheet({
       aria-label={label ?? `${nickname} 님 자세히`}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
       onCancel={(event) => { event.preventDefault(); close(); }}
+      onClose={onClose}
       style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
       /*
         폭은 40rem 에서 멈추고 가운데 선다 — ⓘ 는 `lg` 아래에서 열리므로 640~1023px 에서 시트가 화면 끝까지 늘어나 한 줄이
@@ -337,8 +338,8 @@ export function DetailSheet({
         >
           <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />
           <div className="flex items-center justify-between gap-3">
-            <h2 className="min-w-0 truncate font-rounded text-[1.5rem]">{nickname}</h2>
-            <span className="flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
+            <h2 className={nameInBody ? 'sr-only' : 'min-w-0 truncate font-rounded text-[1.5rem]'}>{nickname}</h2>
+            <span className="ml-auto flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
               {menu}
               {/* 보는 판을 닫는 것은 오른쪽 위 X 한 벌이다 — 관계 지도 카드 · 신고 창과 같은 모양, 이름은 「닫기」(ADR 0166) */}
               <button
@@ -360,6 +361,20 @@ export function DetailSheet({
 
 /** 넓은 화면인가 — 시트가 가운데 대화상자로 서는 폭(`lg`, 클래스의 `lg:` 와 같은 문턱) */
 const wideSheet = (): boolean => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
+/**
+ * 시트를 닫는다 — 폰은 아래로 내려가고(끈 만큼에서 이어), 넓은 화면은 제자리에서 옅어진다. 시트 안의 단추가 다른 칸으로
+ * 넘길 때도(상대 프로필 시트의 「⋯」) 이 길로 닫는다. `settled` 는 닫힌 뒤 한 번
+ */
+export function closeSheet(dialog: HTMLDialogElement | null, drag = 0, settled?: () => void) {
+  if (dialog === null || !dialog.open) return;
+  const settle = () => { dialog.close(); settled?.(); };
+  if (reducedMotion()) { settle(); return; }
+  const frames = wideSheet()
+    ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(12px)' }]
+    : [{ transform: `translateY(${drag}px)` }, { transform: 'translateY(100%)' }];
+  dialog.animate(frames, { duration: wideSheet() ? 160 : 240, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = settle;
+}
 
 /** 시트를 연다 — 폰은 아래에서 올라오고, 넓은 화면은 제자리에서 떠오른다 */
 export function openSheet(sheet: HTMLDialogElement | null) {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { REPORT_DONE } from '@/src/lib/account';
 import type { PhotoFocus } from '@/src/lib/profile';
@@ -27,6 +27,7 @@ import { Icon } from '../../../ui/icons';
 import { useDetailsMenu } from '../../../ui/details-menu';
 import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
+import { PartnerSheet, partnerSheetName, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
 import { DayMasterChip } from '../../people/chart-bits';
 import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
 import { Composer } from '../composer';
@@ -56,6 +57,10 @@ type RoomView = {
   readonly partnerHasPhoto: boolean;
   /** 상대 대표 사진의 보일 자리(G-98) */
   readonly partnerPhotoFocus: PhotoFocus;
+  /** 상대의 사진 전부 · 장마다의 자리 · 지금 소개 — 상대 프로필 시트가 쓴다(운영자 결정 2026-10-11) */
+  readonly partnerPhotoUrls: readonly string[];
+  readonly partnerPhotoFocuses: readonly PhotoFocus[];
+  readonly partnerIntro: string | null;
   /** 닫힌 까닭 한 줄 — 열린 방은 `null` */
   readonly notice: string | null;
   /** 열린 방에만 온다(ADR 0092) */
@@ -178,6 +183,23 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const picking = slot.kind === 'report';
   const picked = slot.kind === 'report' ? slot.messageId : null;
   const theirTone = room.tones?.theirs.element ?? null;
+  /*
+    **상대 프로필 시트** — 머리의 사진 · 이름과 상대 말풍선 곁 사진이 연다(운영자 결정 2026-10-11, ADR 0155 덧). 시트라 방의
+    스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로다. 닫힌 방(차단 · 정지 · 탈퇴 · 떠난 상대)은 열지 않고 누를 단서도 없다
+  */
+  const profile = usePartnerSheet();
+  const partner: PartnerProfile | null =
+    room.partnerUserId !== null && !closed
+      ? {
+          userId: room.partnerUserId,
+          nickname: room.name,
+          intro: room.partnerIntro,
+          photoUrls: room.partnerPhotoUrls,
+          photoFocus: room.partnerPhotoFocuses,
+          tone: theirTone,
+        }
+      : null;
+  const openPartner = profile.open;
   /* 닫힌 방에는 쓸 칸이 없다 — 쓰다 만 글도 탭에서 걷는다(`draft.ts`) */
   useEffect(() => {
     if (closed) dropDraft(() => sessionStorage, room.matchId);
@@ -219,8 +241,9 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           <Icon name="back" />
         </Link>
         {/*
-          **사진 · 이름을 누르면 인연 궁합이다**(카카오톡의 프로필, ADR 0155 덧) — 긴 대화 끝에서도 폰의 머리가 그 길을 든다. 이름의
-          링크가 사진까지 덮는다(`after:inset-0`) — 누를 자리는 하나다. 서는 조건은 「인연 궁합」 단추와 같다(상대가 있고 열린 방).
+          **사진 · 이름을 누르면 상대 프로필 시트다**(카카오톡의 프로필, 운영자 결정 2026-10-11 — ADR 0155 덧이 인연 궁합에서 바꿨다).
+          인연 궁합은 그 시트의 단추다. 이름의 단추가 사진까지 덮는다(`after:inset-0`) — 누를 자리는 하나다. 이름 곁의 「›」가
+          누를 수 있다는 단서다(글자 없이). 상대가 있고 열린 방에만 선다.
         */}
         <div className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <span className={closed ? 'opacity-60 grayscale' : ''}>
@@ -230,14 +253,17 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           <div className="min-w-0 flex-1">
             {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
             <h1 className="truncate font-rounded text-[1.25rem] leading-7 text-foreground">
-              {hasPartner && !closed ? (
-                <Link
-                  href={withCameFrom(`/me/match/${room.matchId}`, 'chat')}
-                  aria-label={`${room.name} 님과의 인연 궁합`}
-                  className="after:absolute after:inset-0 after:rounded-2xl"
+              {partner !== null ? (
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-label={partnerSheetName(room.name)}
+                  onClick={openPartner}
+                  className="inline-flex max-w-full items-center gap-0.5 text-left after:absolute after:inset-0 after:rounded-2xl"
                 >
-                  {room.heading}
-                </Link>
+                  <span className="truncate">{room.heading}</span>
+                  <Icon name="chevron" className="size-4 text-secondary" />
+                </button>
               ) : (
                 room.heading
               )}
@@ -318,6 +344,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                       pickable={picking && flaggable(bubble)}
                       chosen={picked === bubble.id}
                       onPick={() => setSlot({ kind: 'report', messageId: picked === bubble.id ? null : bubble.id })}
+                      onFace={partner === null ? null : openPartner}
                     />
                   );
                 })}
@@ -376,6 +403,28 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           />
         )}
       </div>
+      {partner !== null && (
+        <PartnerSheet
+          control={profile}
+          partner={partner}
+          toMatch={withCameFrom(`/me/match/${room.matchId}`, 'chat')}
+          /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 입력 자리에 신고 · 차단 칸을 세운다 */
+          menu={
+            <ReportBlockMenu
+              canBlock
+              onReport={() => {
+                profile.close();
+                setReported(false);
+                setSlot({ kind: 'report', messageId: null });
+              }}
+              onBlock={() => {
+                profile.close();
+                setSlot({ kind: 'block' });
+              }}
+            />
+          }
+        />
+      )}
     </section>
   );
 }
@@ -471,6 +520,7 @@ function BubbleRow({
   pickable,
   chosen,
   onPick,
+  onFace = null,
 }: {
   bubble: Bubble;
   room: RoomView;
@@ -486,6 +536,8 @@ function BubbleRow({
   pickable: boolean;
   chosen: boolean;
   onPick: () => void;
+  /** 곁 사진을 누르면 상대 프로필 시트 — 닫힌 방은 `null`(누를 자리가 없다) */
+  onFace?: (() => void) | null;
 }) {
   const mine = bubble.mine;
   /*
@@ -510,7 +562,7 @@ function BubbleRow({
     >
       {!mine &&
         (bubble.first ? (
-          <span className="shrink-0 self-start">
+          <BubbleFace onFace={onFace} name={room.name}>
             <Avatar
               userId={room.partnerUserId ?? ''}
               nickname={room.name}
@@ -519,7 +571,7 @@ function BubbleRow({
               size={36}
               tone={room.tones?.theirs.element ?? null}
             />
-          </span>
+          </BubbleFace>
         ) : (
           <span aria-hidden="true" className="w-9 shrink-0" />
         ))}
@@ -555,6 +607,25 @@ function BubbleRow({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * 상대 말풍선 곁의 얼굴 — 열린 방이면 누르는 단추(상대 프로필 시트), 닫힌 방이면 그림만. 단추는 보이는 36px 둘레로 4px 씩
+ * 누를 자리를 넓혀 44px 이다(자리는 그대로 — 음의 여백이 메운다).
+ */
+function BubbleFace({ onFace, name, children }: { onFace: (() => void) | null; name: string; children: ReactNode }) {
+  if (onFace === null) return <span className="shrink-0 self-start">{children}</span>;
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      aria-label={partnerSheetName(name)}
+      onClick={onFace}
+      className="-m-1 shrink-0 self-start rounded-full p-1 active:scale-95"
+    >
+      {children}
+    </button>
   );
 }
 

@@ -1,11 +1,13 @@
 import type { CompatSide } from '@/src/lib/saju';
+import type { PhotoFocus } from '@/src/lib/profile';
 import { balanceLabelOf } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { storedPillarChart, type SharedPillarChart } from '../../shared-pillar';
 import { UUID } from '../../uuid';
-import { dbFailure } from '../../db-error';
+import { dbFailure, recordDbFailure } from '../../db-error';
+import { photosFromFocus } from '../candidates';
 
 /**
  * **공유 결과가 브라우저로 내려가는 유일한 문.**
@@ -45,6 +47,12 @@ export type SharedResult = {
   readonly partnerNickname: string;
   readonly partnerIntro: string | null;
   /**
+   * 상대의 **지금** 사진 전부 · 장마다의 자리 — 머리의 얼굴과 상대 프로필 시트가 쓴다(운영자 결정 2026-10-11). 동의로 연 것이
+   * 아니라 매칭된 쌍에게 이미 열린 사진이다(`may_see_photo` 의 `visible_matches()` 갈래)
+   */
+  readonly partnerPhotoUrls: readonly string[];
+  readonly partnerPhotoFocus: readonly PhotoFocus[];
+  /**
    * 두 사람을 부르는 말 — **`a` 가 언제나 보는 사람이다.**
    *
    * 갈리는 것은 부르는 말뿐이라, 읽는 사람이 자기를 어디에 놓아야 할지 헤매지 않도록
@@ -80,6 +88,7 @@ type ScopeRow = {
   partner_user_id: string;
   partner_nickname: string | null;
   partner_intro: string | null;
+  partner_has_photo: boolean | null;
   my_chart: unknown;
   partner_chart: unknown;
   supplied_to_me: string[] | null;
@@ -98,7 +107,10 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
 
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_match_scope', { p_match_id: matchId });
+  const [{ data, error }, focus] = await Promise.all([
+    supabase.rpc('my_match_scope', { p_match_id: matchId }),
+    partnerFocusOf(supabase, matchId),
+  ]);
 
   /**
    * 「이용이 정지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
@@ -134,6 +146,7 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       partnerUserId: scope.partner_user_id,
       partnerNickname: names.b,
       partnerIntro: scope.partner_intro,
+      ...partnerPhotosOf(scope, focus),
       names,
       charts: { a: mine, b: theirs },
       suppliedToMe: suppliedText(scope.supplied_to_me, 'toMe'),
@@ -144,3 +157,25 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
     },
   };
 }
+
+/**
+ * 상대 사진의 초점 — `my_match_scope` 는 사진 칸을 안 낸다(결과 화면이 사진을 안 그리던 때의 문). 같은 범위
+ * (`visible_matches()`)의 `my_matches` 가 장마다의 초점을 이미 내므로 거기서 그 Match 한 줄을 집는다 — 새 문도 새 권한도 없다.
+ * **꾸밈이다** — 못 읽으면 기록에 남기고 `null`, 머리는 대표 한 장으로 선다(ADR 0078).
+ */
+async function partnerFocusOf(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  matchId: string,
+): Promise<readonly number[] | null> {
+  const { data, error } = await supabase.rpc('my_matches');
+  if (error) {
+    recordDbFailure(error, 'my_matches');
+    return null;
+  }
+  return (data ?? []).find((row) => row.match_id === matchId)?.partner_photo_focus ?? null;
+}
+
+const partnerPhotosOf = (scope: ScopeRow, focus: readonly number[] | null) => {
+  const { photoUrls, photoFocus } = photosFromFocus(scope.partner_user_id, focus, scope.partner_has_photo === true);
+  return { partnerPhotoUrls: photoUrls, partnerPhotoFocus: photoFocus };
+};

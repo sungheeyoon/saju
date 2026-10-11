@@ -28,30 +28,51 @@ export type RoomTones = {
   readonly theirs: { readonly stem: Stem; readonly element: Element };
 };
 
-async function tonesOf(matchId: string): Promise<SkippableRead<RoomTones | null>> {
+/** 열린 방 하나에서 인연 궁합의 문이 내준 것 — 두 사람의 색과 상대의 지금 소개 */
+type RoomScope = { readonly tones: RoomTones | null; readonly intro: string | null };
+
+async function scopeOf(matchId: string): Promise<SkippableRead<RoomScope | null>> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('my_match_scope', { p_match_id: matchId });
   if (error) return unread(error, 'my_match_scope');
 
   const row = (data ?? [])[0];
   if (row === undefined) return read(null);
+  /* 상대의 지금 소개 — 상대 프로필 시트가 쓴다(운영자 결정 2026-10-11). 같은 줄에 이미 온 칸이라 더 묻지 않는다 */
+  const intro = row.partner_intro ?? null;
   const mine = storedPillarChart(row.my_chart);
   const theirs = storedPillarChart(row.partner_chart);
-  if (mine === null || theirs === null) return read(null);
+  if (mine === null || theirs === null) return read({ tones: null, intro });
 
   return read({
-    mine: { stem: mine.dayMaster, element: STEM_INFO[mine.dayMaster].element },
-    theirs: { stem: theirs.dayMaster, element: STEM_INFO[theirs.dayMaster].element },
+    tones: {
+      mine: { stem: mine.dayMaster, element: STEM_INFO[mine.dayMaster].element },
+      theirs: { stem: theirs.dayMaster, element: STEM_INFO[theirs.dayMaster].element },
+    },
+    intro,
   });
+}
+
+/**
+ * 열린 방마다 두 사람의 색과 상대의 소개. 못 읽었거나 없는 방은 이 표에 없다 — 화면은 중립 색으로 서고, 시트는 소개 줄을 뺀다.
+ * 소개도 꾸밈과 같이 다룬다 — 못 읽으면 방은 그대로 열리고 시트에 소개만 안 선다(ADR 0078).
+ */
+export async function roomScopesForViewer(
+  rooms: readonly ChatRoom[],
+): Promise<{ tones: ReadonlyMap<string, RoomTones>; intros: ReadonlyMap<string, string> }> {
+  const open = rooms.filter((room) => room.closedReason === null && !room.partnerLeft && room.partnerUserId !== null);
+  const reads = await Promise.all(open.map(async (room) => [room.matchId, await scopeOf(room.matchId)] as const));
+  const tones = new Map<string, RoomTones>();
+  const intros = new Map<string, string>();
+  for (const [matchId, one] of reads) {
+    if (!one.ok || one.value === null) continue;
+    if (one.value.tones !== null) tones.set(matchId, one.value.tones);
+    if (one.value.intro !== null) intros.set(matchId, one.value.intro);
+  }
+  return { tones, intros };
 }
 
 /** 열린 방마다 두 사람의 색. 없으면 그 방은 이 표에 없다 — 화면은 중립 색으로 선다 */
 export async function roomTonesForViewer(rooms: readonly ChatRoom[]): Promise<ReadonlyMap<string, RoomTones>> {
-  const open = rooms.filter((room) => room.closedReason === null && !room.partnerLeft && room.partnerUserId !== null);
-  const reads = await Promise.all(open.map(async (room) => [room.matchId, await tonesOf(room.matchId)] as const));
-  const tones = new Map<string, RoomTones>();
-  for (const [matchId, one] of reads) {
-    if (one.ok && one.value !== null) tones.set(matchId, one.value);
-  }
-  return tones;
+  return (await roomScopesForViewer(rooms)).tones;
 }
