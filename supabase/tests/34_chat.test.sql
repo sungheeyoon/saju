@@ -151,7 +151,7 @@ select is(
 -- ---------------------------------------------------------------------------
 
 select is(
-  public.send_chat_message((select kim_lee from rooms), '안녕하세요'),
+  public.send_chat_message((select kim_lee from rooms), '안녕하세요', gen_random_uuid()),
   'sent',
   '김이 보낸다');
 
@@ -183,7 +183,7 @@ select ok(public.mark_chat_read((select kim_lee from rooms), 9223372036854775807
 select is(public.unread_chat_count(), 0, '적고 나면 0이다');
 
 select is(
-  public.send_chat_message((select kim_lee from rooms), '반갑습니다'),
+  public.send_chat_message((select kim_lee from rooms), '반갑습니다', gen_random_uuid()),
   'sent',
   '이가 답한다');
 
@@ -237,12 +237,12 @@ select is(
   '표를 직접 읽어도 0행이다 — 정책이 막는다');
 
 select throws_ok(
-  format($$select public.send_chat_message(%L, '끼어들기')$$, (select kim_lee from rooms)),
+  format($$select public.send_chat_message(%L, '끼어들기', gen_random_uuid())$$, (select kim_lee from rooms)),
   '42501', null,
   '남의 방에는 보내지 못한다 — 없는 방과 같은 답이다');
 
 select throws_ok(
-  $$select public.send_chat_message('00000000-0000-0000-0000-000000000000', '허공')$$,
+  $$select public.send_chat_message('00000000-0000-0000-0000-000000000000', '허공', gen_random_uuid())$$,
   '42501', null,
   '없는 방도 같은 답이다');
 
@@ -250,17 +250,17 @@ select throws_ok(
 select pg_temp.acting((select kim from folks));
 
 select throws_ok(
-  format($$select public.send_chat_message(%L, '   ')$$, (select kim_lee from rooms)),
+  format($$select public.send_chat_message(%L, '   ', gen_random_uuid())$$, (select kim_lee from rooms)),
   '22023', null,
   '빈 본문은 받지 않는다');
 
 select throws_ok(
-  format($$select public.send_chat_message(%L, repeat('가', 1001))$$, (select kim_lee from rooms)),
+  format($$select public.send_chat_message(%L, repeat('가', 1001), gen_random_uuid())$$, (select kim_lee from rooms)),
   '22023', '적어 주신 내용이 너무 깁니다.',
   '1,001자는 거절한다 — 신고의 덧붙이는 말과 같은 문장이다');
 
 select is(
-  public.send_chat_message((select kim_lee from rooms), repeat('가', 1000)),
+  public.send_chat_message((select kim_lee from rooms), repeat('가', 1000), gen_random_uuid()),
   'sent',
   '1,000자는 된다');
 
@@ -296,18 +296,18 @@ select results_eq(
 select pg_temp.acting((select park from folks));
 
 create temporary table burst as
-select public.send_chat_message((select kim_park from rooms), '도배 ' || g) as outcome
+select public.send_chat_message((select kim_park from rooms), '도배 ' || g, gen_random_uuid()) as outcome
 from generate_series(1, 30) g;
 
 select is((select count(*)::int from burst where outcome = 'sent'), 30, '1분에 30건은 전부 간다');
 
 select is(
-  public.send_chat_message((select kim_park from rooms), '서른한 번째'),
+  public.send_chat_message((select kim_park from rooms), '서른한 번째', gen_random_uuid()),
   'rate_limited',
   '31번째는 거절된다 — 값으로 돌아온다');
 
 select is(
-  public.send_chat_message((select kim_park from rooms), '서른두 번째'),
+  public.send_chat_message((select kim_park from rooms), '서른두 번째', gen_random_uuid()),
   'rate_limited',
   '그 뒤도 창이 지날 때까지 거절이다');
 
@@ -320,7 +320,7 @@ select is(
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
 select is(
-  public.send_chat_message((select kim_park from rooms), '나는 아직 된다'),
+  public.send_chat_message((select kim_park from rooms), '나는 아직 된다', gen_random_uuid()),
   'sent',
   '한도는 계정 단위다 — 상대는 같은 방에서 그대로 보낸다');
 
@@ -332,7 +332,7 @@ where sender_user_id = (select park from folks);
 set local role authenticated;
 select pg_temp.acting((select park from folks));
 select is(
-  public.send_chat_message((select kim_park from rooms), '창이 지났다'),
+  public.send_chat_message((select kim_park from rooms), '창이 지났다', gen_random_uuid()),
   'sent',
   '창이 지나면 다시 보낸다');
 
@@ -380,7 +380,7 @@ select is(
   '그래도 Match 는 목록에서 내려간다(`visible_matches`) — 방과 Match 목록은 다른 문이다');
 
 select is(
-  public.send_chat_message((select kim_lee from rooms), '더 하고 싶은 말'),
+  public.send_chat_message((select kim_lee from rooms), '더 하고 싶은 말', gen_random_uuid()),
   'closed',
   '닫힌 방에는 못 보낸다');
 
@@ -397,7 +397,7 @@ select is(
   '차단당한 쪽도 이전 대화를 본다 — 「둘 다 본다」');
 
 select is(
-  public.send_chat_message((select kim_lee from rooms), '왜요'),
+  public.send_chat_message((select kim_lee from rooms), '왜요', gen_random_uuid()),
   'closed',
   '양쪽 다 입력이 안 된다');
 
@@ -437,7 +437,7 @@ select is(
 select is(public.unread_chat_count(), 0, '안 읽은 수도 0이다');
 
 select throws_ok(
-  format($$select public.send_chat_message(%L, '아직 되나')$$, (select kim_park from rooms)),
+  format($$select public.send_chat_message(%L, '아직 되나', gen_random_uuid())$$, (select kim_park from rooms)),
   '42501', '이용이 정지된 계정입니다.',
   '이용이 정지된 쪽은 보내지 못한다');
 
@@ -454,7 +454,7 @@ select is(
   '중지되지 않은 쪽은 이전 대화를 본다 — 30 + 1 + 1');
 
 select is(
-  public.send_chat_message((select kim_park from rooms), '거기 있어요?'),
+  public.send_chat_message((select kim_park from rooms), '거기 있어요?', gen_random_uuid()),
   'closed',
   '그래도 보내지는 못한다');
 
@@ -479,7 +479,7 @@ select is(
 -- ---------------------------------------------------------------------------
 select pg_temp.acting((select lee from folks));
 select is(
-  public.send_chat_message((select lee_choi from rooms), '잘 지내요?'),
+  public.send_chat_message((select lee_choi from rooms), '잘 지내요?', gen_random_uuid()),
   'sent',
   '이가 최에게 보낸다');
 
@@ -517,7 +517,7 @@ select is(
   1,
   '요청하지 않은 쪽은 이전 대화를 본다 — 대화는 두 사람의 것이다');
 select is(
-  public.send_chat_message((select lee_choi from rooms), '가지 마요'),
+  public.send_chat_message((select lee_choi from rooms), '가지 마요', gen_random_uuid()),
   'closed',
   '그래도 보내지는 못한다');
 

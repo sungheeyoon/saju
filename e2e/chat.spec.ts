@@ -226,7 +226,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const { a, room, matchId } = await pair(openAs);
 
     for (let i = 0; i < CHAT_POLICY.rateLimit; i += 1) {
-      const sent = await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: `${i + 1}` });
+      const sent = await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: `${i + 1}`, p_client_id: crypto.randomUUID() });
       if (sent.error || sent.data !== 'sent') {
         throw new Error(`${i + 1}번째가 막혔습니다 — ${sent.error?.message ?? String(sent.data)}`);
       }
@@ -407,7 +407,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
   test('차단이 방을 닫고, 닫힌 뒤 두 쪽 다 이전 대화를 본다', async ({ openAs }) => {
     const { a, b, tag, room, matchId } = await pair(openAs);
     const said = `차단 전 ${tag}`;
-    await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: said });
+    await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: said, p_client_id: crypto.randomUUID() });
 
     await a.page.goto(room);
     await openRoomMenu(a);
@@ -489,6 +489,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await suspended.a.api.rpc('send_chat_message', {
       p_match_id: suspended.matchId,
       p_body: `정지 전 ${suspended.tag}`,
+      p_client_id: crypto.randomUUID(),
     });
     sql(`update public.app_user set status = 'suspended'
          where id = '${userIdOf(suspended.b.account.email)}'`);
@@ -506,6 +507,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await leaving.a.api.rpc('send_chat_message', {
       p_match_id: leaving.matchId,
       p_body: `탈퇴 전 ${leaving.tag}`,
+      p_client_id: crypto.randomUUID(),
     });
     const asked = await leaving.b.api.rpc('request_account_deletion');
     if (asked.error) throw new Error(`탈퇴를 못 신청했습니다 — ${asked.error.message}`);
@@ -528,8 +530,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const { a, b, tag, room, matchId } = await pair(openAs);
     const theirs = `떠나기 전 ${tag}`;
     const mine = `남는 쪽 ${tag}`;
-    await b.api.rpc('send_chat_message', { p_match_id: matchId, p_body: theirs });
-    await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: mine });
+    await b.api.rpc('send_chat_message', { p_match_id: matchId, p_body: theirs, p_client_id: crypto.randomUUID() });
+    await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: mine, p_client_id: crypto.randomUUID() });
 
     const asked = await b.api.rpc('request_account_deletion');
     if (asked.error) throw new Error(`탈퇴를 못 신청했습니다 — ${asked.error.message}`);
@@ -554,7 +556,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
   test('신고 한 건이 고른 메시지와 앞뒤 문맥의 스냅샷과 함께 남는다', async ({ openAs }) => {
     const { a, b, tag, room, matchId } = await pair(openAs);
     for (const body of ['하나', '둘', `셋 ${tag}`, '넷']) {
-      await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body });
+      await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body, p_client_id: crypto.randomUUID() });
     }
 
     await b.page.goto(room);
@@ -592,7 +594,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       { from: b, body: `다섯 ${tag}` },
     ];
     for (const { from, body } of said) {
-      const sent = await from.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body });
+      const sent = await from.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body, p_client_id: crypto.randomUUID() });
       if (sent.error || sent.data !== 'sent') throw new Error(`못 보냈습니다 — ${sent.error?.message}`);
     }
 

@@ -115,13 +115,13 @@ values ((select park from folks), (select lee_self from pairs), '이 친구', 'v
 -- 주고받는다
 set local role authenticated;
 select pg_temp.acting((select lee from folks));
-select is(public.send_chat_message((select kim_lee from pairs), '이가 먼저'), 'sent', '이가 보낸다');
+select is(public.send_chat_message((select kim_lee from pairs), '이가 먼저', gen_random_uuid()), 'sent', '이가 보낸다');
 select pg_temp.acting((select kim from folks));
-select is(public.send_chat_message((select kim_lee from pairs), '김이 답한다'), 'sent', '김이 보낸다');
+select is(public.send_chat_message((select kim_lee from pairs), '김이 답한다', gen_random_uuid()), 'sent', '김이 보낸다');
 select pg_temp.acting((select lee from folks));
-select is(public.send_chat_message((select kim_lee from pairs), '이가 마지막'), 'sent', '이가 한 번 더 보낸다');
+select is(public.send_chat_message((select kim_lee from pairs), '이가 마지막', gen_random_uuid()), 'sent', '이가 한 번 더 보낸다');
 select pg_temp.acting((select park from folks));
-select is(public.send_chat_message((select kim_park from pairs), '박이 보낸다'), 'sent', '박이 보낸다');
+select is(public.send_chat_message((select kim_park from pairs), '박이 보낸다', gen_random_uuid()), 'sent', '박이 보낸다');
 
 -- 이가 탈퇴를 신청한다 — 방이 닫힌다(ADR 0091)
 select pg_temp.acting((select lee from folks));
@@ -249,7 +249,7 @@ select is(
   '떠난 쪽의 메시지는 「내 것」이 아니다 — 참 · 거짓 둘뿐이다');
 
 select is(
-  public.send_chat_message((select kim_lee from pairs), '거기 있어요?'),
+  public.send_chat_message((select kim_lee from pairs), '거기 있어요?', gen_random_uuid()),
   'closed',
   '떠난 사람에게는 보낼 수 없다');
 

@@ -4,7 +4,7 @@
 --   b. 그 사이 방이 닫혔어도 이미 받은 id 는 `sent`, 새 id 는 `closed`
 --   c. 상대가 우연히 같은 id 를 써도 서로 막지 않는다
 --   d. `my_chat_messages` 는 id 를 내 말에만 싣는다
---   e. id 없이는 안 받는다 · 로그인 안 한 사람에게 닫혀 있다 · 옛 두 칸 서명은 아직 돈다(넓히기, G-96)
+--   e. id 없이는 안 받는다 · 로그인 안 한 사람에게 닫혀 있다 · 옛 두 칸 서명은 없다(좁히기, G-96)
 begin;
 select plan(14);
 
@@ -121,16 +121,15 @@ select throws_ok(
   'id 없이는 안 받는다');
 
 reset role;
-update public.chat_room set closed_at = null, closed_reason = null where id = (select room from rooms);
-set local role authenticated;
-select pg_temp.acting((select kim from folks));
-select is(public.send_chat_message((select kim_lee from rooms), '옛 앱'), 'sent', '옛 두 칸 서명은 아직 돈다 — 떠 있는 옛 앱(G-96)');
+select hasnt_function(
+  'public', 'send_chat_message', array['uuid', 'text'],
+  '옛 두 칸 서명은 없다 — 좁혔다(G-96)');
 
-reset role;
 select is(
-  (select client_id from public.chat_message where body = '옛 앱' and room_id = (select room from rooms)),
-  null,
-  '옛 서명으로 보낸 말은 id 가 비어 있다');
+  (select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'send_chat_message'),
+  1,
+  '보내기는 한 벌뿐이다 — 전송 id 를 받는 세 칸');
 
 select ok(
   not has_function_privilege('anon', 'public.send_chat_message(uuid, text, uuid)', 'EXECUTE'),

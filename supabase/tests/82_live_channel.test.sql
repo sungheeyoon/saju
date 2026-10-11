@@ -133,7 +133,7 @@ select pg_temp.forget();
 
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
-select is(public.send_chat_message((select kim_lee from rooms), '비밀스러운 본문'), 'sent', '김이 보낸다');
+select is(public.send_chat_message((select kim_lee from rooms), '비밀스러운 본문', gen_random_uuid()), 'sent', '김이 보낸다');
 reset role;
 
 create temporary table first_seq as

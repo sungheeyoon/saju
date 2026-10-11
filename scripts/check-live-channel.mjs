@@ -86,7 +86,7 @@ try {
     });
     /** 부르기 전부터 센다 — 보내는 왕복이 든 위쪽 값이다. 소켓이 HTTP 응답보다 먼저 닿기도 한다 */
     const started = performance.now();
-    const { data, error } = await b.client.rpc('send_chat_message', { p_match_id: matchId, p_body: `실측 ${round}` });
+    const { data, error } = await b.client.rpc('send_chat_message', { p_match_id: matchId, p_body: `실측 ${round}`, p_client_id: crypto.randomUUID() });
     if (error || data !== 'sent') {
       check(`보내기 ${round}`, false, error?.message ?? String(data));
       break;
