@@ -18,7 +18,7 @@ const TONED_PILL =
 
 /**
  * 단추를 읽는 이름 — 보이는 글자를 품는다(폰에서 글자가 빠져도 이름은 같다). 글자는 운영자 시안(2026-10-11 저녁)이다 — 이 단추에는
- * 「인연」을 쓰지 않는다(G-104).
+ * 「인연」을 쓰지 않는다(ADR 0155 「2026-10-11 저녁 덧」).
  */
 function compatChipName(compat: RoomCompat): string {
   switch (compat.kind) {
