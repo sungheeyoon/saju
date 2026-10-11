@@ -72,6 +72,7 @@ reviewer 의 예상치가 85,006 으로 천장(85,000)을 넘었다(G-94 가 적
 
 - 인연 기록(`app/me/matching/history/page.tsx`)이 `my_matches` 만 못 읽으면 만드는 중인 인연 궁합을 가르지 못해 빠졌고, 기록이 없으면
   「아직 인연 기록이 없어요」까지 섰다. 이제 인연 궁합 칸에 `FailureLine retry` 가 서고, 수가 모자라므로 수 칩과 빈 기록 판은 안 선다.
+  줄은 앞 문장만이고 까닭 문장은 안 붙인다(운영자 2026-10-11, 대장 matching-02) — 문이 막은 까닭이면 `signIn` 으로 「다시 로그인」.
 - 계정을 못 읽은 안내(`app/me/account-notice.tsx`, 아홉 화면)는 회색 상자에서 `FailureLine` 이 됐다. 줄과 다음 길은 `accountFailureOf`
   (`src/lib/account`)가 든다 — 못 닿았으면(`unreachable`) 「다시 시도하기」, 행이 없으면(`missing`) 다시 받아 그려도 안 풀리므로 「다시 로그인」.
   두 까닭에 다른 지시를 주는 것(ADR 0048)은 문장이 아니라 곁의 단추 · 링크가 맡는다. 정지 · 탈퇴 대기는 못 읽은 것이 아니라 상자 그대로다.

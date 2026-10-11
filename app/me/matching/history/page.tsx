@@ -18,6 +18,7 @@ import { makingMatches, matchBooks, pastRequests } from '../history';
 import { COUNT_CHIP } from '../history-row';
 import { PastRequestList, receivedOf } from '../requests-lead';
 import { FailureLine } from '../../../ui/failure-line';
+import { SIGN_IN_AGAIN_NOTE } from '../../../ui/sign-in-again';
 
 export const metadata = {
   title: '인연 기록',
@@ -122,7 +123,12 @@ export default async function MatchHistoryPage() {
                   ))}
                 </ul>
               )}
-              {!matches.ok && <FailureLine retry>만드는 중인 인연 궁합을 불러오지 못했어요. {matches.reason}</FailureLine>}
+              {/* 까닭 문장은 안 붙인다 — 앞 문장만(대장 matching-02). 문이 막았으면 다시 받아도 같으니 「다시 로그인」 */}
+              {!matches.ok && (
+                <FailureLine retry signIn={matches.reason === SIGN_IN_AGAIN_NOTE}>
+                  만드는 중인 인연 궁합을 불러오지 못했어요.
+                </FailureLine>
+              )}
             </>
           ) : (
             <FailureLine retry>인연 궁합을 불러오지 못했어요. {readings.reason}</FailureLine>
