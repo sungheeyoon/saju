@@ -19,6 +19,8 @@ import {
   movedPhotos,
 } from '@/src/lib/profile';
 
+import { PHOTO_ADD } from '@/src/lib/account/copy';
+
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { useDetailsMenu } from '../../ui/details-menu';
@@ -695,6 +697,8 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const emptySlot = (position: number) => {
     /* 첫 빈 칸만 올리기 칸으로 읽힌다 — 나머지 빈 칸도 누르면 같은 칸을 연다. 앉는 자리는 맨 뒤다 */
     const first = position === total + waiting.length + 1;
+    /* 한 장도 없으면 큰 대표 칸에 「+」 아래 「사진 추가」가 눈에도 선다 — 권유 화면 · 알림 없이 길만 보인다(대장 47) */
+    const bare = position === 1 && total === 0 && waiting.length === 0;
     return (
       <label
         htmlFor={inputId}
@@ -705,10 +709,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
             : ''
         } ${busy ? 'cursor-progress opacity-60' : ''}`}
       >
-        <span aria-hidden="true">+</span>
+        <span className={bare ? 'flex flex-col items-center gap-1' : undefined}>
+          <span aria-hidden="true">+</span>
+          {bare && <span className="text-[15px] text-secondary">{PHOTO_ADD}</span>}
+        </span>
         {first && (
           <>
-            <span className="sr-only">사진 올리기</span>
+            {!bare && <span className="sr-only">{PHOTO_ADD}</span>}
             <input
               id={inputId}
               type="file"

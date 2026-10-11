@@ -17,6 +17,8 @@ import { SignOutRow } from './sign-out-row';
 import { PushRow } from './push-row';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
+import { PHOTO_ADD } from '@/src/lib/account/copy';
+import { myPhotos } from '../profile/photos';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
 
 export const metadata = {
@@ -36,9 +38,17 @@ export default async function SettingsPage() {
   if (!user) return redirectToSignIn();
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸과 이름을 함께 읽는다 */
-  const [{ state, row: account }, discoveryProfile] = await Promise.all([
+  const [{ state, row: account }, discoveryProfile, photoless] = await Promise.all([
     readAccount(supabase, ['status', 'nickname', 'improvement_consent', 'contact_consent', 'notice_version', 'notice_ack_at']),
     myDiscoveryProfile(),
+    /*
+      **사진이 한 장도 없다고 읽었을 때만 참이다.** 못 읽었으면 거짓 — 「사진 추가」는 덧붙이는 한 줄이라 안 서는 것이 원래
+      모습이고, 사진이 있는 사람에게 「사진 추가」를 세우지 않는다(ADR 0078). 이 화면을 오류 경계로 보내지도 않는다.
+    */
+    myPhotos().then(
+      (photos) => photos.length === 0,
+      () => false,
+    ),
   ]);
 
   return (
@@ -68,6 +78,7 @@ export default async function SettingsPage() {
             }
             label={account.nickname ?? '프로필'}
             help="닉네임 · 사진 · 소개"
+            trailing={photoless ? <>{PHOTO_ADD}</> : undefined}
           />
         </SettingsCard>
       )}
