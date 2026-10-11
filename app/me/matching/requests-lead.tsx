@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { CONSENT_FLOW_CAVEAT, CONSENT_FLOW_STEPS, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 
 import type { SkippableRead } from '../../db-error';
@@ -14,7 +16,7 @@ import {
   RespondButtons,
 } from '../requests/manage';
 import { when } from '../requests/when';
-import type { PastRequests } from './history';
+import type { DecidedRequest, PastRequests } from './history';
 import { RequestsBand } from './requests-band';
 import { FailureLine } from '../../ui/failure-line';
 
@@ -160,29 +162,57 @@ function ConsentGuide() {
   );
 }
 
-function DecidedRequests({ requests }: { requests: readonly InboxRequest[] }) {
+/**
+ * 끝난 요청 — 상태와 날짜, 왜 끝났는지 한 줄.
+ *
+ * **성립한 줄은 줄 전체가 그 인연 궁합으로 가는 링크다**(ADR 0130 「2026-10-11」) — 새 글자 없이 끝의 셰브론이 「간다」를 말한다
+ * (인연 기록 한 줄 · 설정 목록과 같은 모양). 그 Match 를 지금 못 열면(차단 · 정지) 줄은 글자로만 선다(`matchHref` 가 `null`).
+ */
+function DecidedRequests({ requests }: { requests: readonly DecidedRequest[] }) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-[15px] font-bold text-secondary">끝난 요청</h3>
       <ul className="flex flex-col divide-y divide-border text-sm">
         {requests.map((request) => (
-          <li key={request.requestId} className="flex flex-col gap-1 py-3">
-            <span className="flex flex-wrap items-center gap-2">
-              <strong className="font-semibold">{request.nickname}</strong>
-              <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-medium text-secondary">
-                {REQUEST_STATUS_TEXT[request.status].label}
-              </span>
-              <span className={`ml-auto ${TYPE_META}`}>{when(request.decidedAt ?? request.createdAt)}</span>
-            </span>
-            <span className="text-[13px] leading-5 text-secondary">
-              {request.direction === 'sent'
-                ? REQUEST_STATUS_TEXT[request.status].sent
-                : REQUEST_STATUS_TEXT[request.status].received}
-            </span>
+          <li key={request.requestId}>
+            {request.matchHref === null ? (
+              <div className="py-3">
+                <DecidedLine request={request} />
+              </div>
+            ) : (
+              <Link
+                href={request.matchHref}
+                className="group -mx-2 flex min-h-11 items-center gap-3 rounded-lg px-2 py-3 active:opacity-70"
+              >
+                <span className="min-w-0 flex-1">
+                  <DecidedLine request={request} />
+                </span>
+                <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+              </Link>
+            )}
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+function DecidedLine({ request }: { request: DecidedRequest }) {
+  return (
+    <span className="flex flex-col gap-1">
+      <span className="flex flex-wrap items-center gap-2">
+        <strong className="font-semibold group-hover:underline">{request.nickname}</strong>
+        <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-medium text-secondary">
+          {REQUEST_STATUS_TEXT[request.status].label}
+        </span>
+        <span className={`ml-auto ${TYPE_META}`}>{when(request.decidedAt ?? request.createdAt)}</span>
+      </span>
+      <span className="text-[13px] leading-5 text-secondary">
+        {request.direction === 'sent'
+          ? REQUEST_STATUS_TEXT[request.status].sent
+          : REQUEST_STATUS_TEXT[request.status].received}
+      </span>
+    </span>
   );
 }
 

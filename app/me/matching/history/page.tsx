@@ -71,7 +71,7 @@ export default async function MatchHistoryPage() {
   /* 글이 아직 없는 인연 궁합 — 수락 직후 만드는 중이다. 글 목록을 못 읽었으면 가르지 못하므로 안 세운다 */
   const making = readings.ok && matches.ok ? makingMatches(readings.value, matches.value) : [];
   const matchCount = books.length + making.length;
-  const past = requests.ok ? pastRequests(requests.value) : null;
+  const past = requests.ok ? pastRequests(requests.value, matches.ok ? matches.value : null) : null;
   const pastCount = past === null ? 0 : past.sent.length + past.decided.length;
   const empty = readings.ok && requests.ok && matchCount === 0 && pastCount === 0 && past?.blocked === 0;
 
