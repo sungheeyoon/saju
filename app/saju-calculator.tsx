@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { BirthFields } from './birth-form';
+import { BirthFields, focusBirthGap } from './birth-form';
 import { CopyLinkButton } from './copy-link';
 import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
@@ -147,6 +147,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           */
           if (missing !== null) {
             setTried(true);
+            // 고칠 칸으로 데려간다 — 붉어진 칸, 없으면 아직 빈 칸
+            focusBirthGap(event.currentTarget);
             return;
           }
           setTried(false);
