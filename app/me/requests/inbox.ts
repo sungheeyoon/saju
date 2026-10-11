@@ -14,6 +14,7 @@ import { leadFocusOf, type PhotoFocus } from '@/src/lib/profile';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { withCameFrom } from '../../came-from';
+import { photosFromFocus } from '../candidates';
 import { acceptedMatchOf } from '../matching/history';
 import { dbFailure } from '../../db-error';
 
@@ -47,6 +48,12 @@ export type InboxRequest = {
   readonly hasPhoto: boolean;
   /** 대표 사진의 보일 자리(G-98) */
   readonly photoFocus: PhotoFocus;
+  /**
+   * 상대 프로필 시트(`../partner-sheet.tsx`)가 넘기는 사진 전부와 장마다의 보일 자리 — 답할 요청에만 있다(끝난 줄은 빈 목록).
+   * 요청 카드의 머리가 시트를 연다(G-103)
+   */
+  readonly photoUrls: readonly string[];
+  readonly photoFocuses: readonly PhotoFocus[];
   readonly status: RequestStatus;
   /** 상대가 내게 채우는 오행 — **내 자리 기준**이다. 방향은 DB 가 뒤집어 준다 */
   readonly suppliedToMe: string | null;
@@ -198,6 +205,7 @@ function requestOf(row: RequestRow): InboxRequest[] {
   // 모르는 상태는 그리지 않는다. 「알 수 없음」으로 세워 두면 사용자가 그 카드로
   // 무엇을 할 수 있는지 알 수 없다.
   if (status === undefined) return [];
+  const photos = photosFromFocus(row.counterpart_user_id, row.counterpart_photo_focus, row.counterpart_has_photo === true);
 
   return [
     {
@@ -208,6 +216,8 @@ function requestOf(row: RequestRow): InboxRequest[] {
       intro: row.counterpart_intro,
       hasPhoto: row.counterpart_has_photo === true,
       photoFocus: leadFocusOf(row.counterpart_photo_focus),
+      photoUrls: photos.photoUrls,
+      photoFocuses: photos.photoFocus,
       status,
       suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
       suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),

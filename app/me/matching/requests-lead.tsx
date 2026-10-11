@@ -4,8 +4,7 @@ import { CONSENT_FLOW_CAVEAT, CONSENT_FLOW_STEPS, REQUEST_STATUS_TEXT } from '@/
 
 import type { SkippableRead } from '../../db-error';
 import { Icon } from '../../ui/icons';
-import { CARD, ROW_CARD, TYPE_META, TYPE_NAME } from '../../ui/surfaces';
-import { Avatar } from '../avatar';
+import { CARD, ROW_CARD, TYPE_META } from '../../ui/surfaces';
 import type { InboxRequest, Requests } from '../requests/inbox';
 import {
   BlockButton,
@@ -17,6 +16,7 @@ import {
 } from '../requests/manage';
 import { when } from '../requests/when';
 import type { DecidedRequest, PastRequests } from './history';
+import { RequestFace } from './request-face';
 import { RequestsBand } from './requests-band';
 import { FailureLine } from '../../ui/failure-line';
 
@@ -216,25 +216,28 @@ function DecidedLine({ request }: { request: DecidedRequest }) {
   );
 }
 
-/** 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행** */
+/**
+ * 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행**. 얼굴 · 이름 줄을 누르면 상대 프로필 시트가 열린다(`RequestFace`, G-103)
+ */
 function RequestHead({ request, large = false }: { request: InboxRequest; large?: boolean }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <Avatar
-          userId={request.counterpartUserId}
-          nickname={request.nickname}
-          hasPhoto={request.hasPhoto}
-          focus={request.photoFocus}
-          size={large ? 52 : 40}
-        />
-        <div className="min-w-0 flex-1">
-          <h3 className={large ? TYPE_NAME : 'text-base font-semibold'}>{request.nickname}</h3>
+      <RequestFace
+        large={large}
+        partner={{
+          userId: request.counterpartUserId,
+          nickname: request.nickname,
+          intro: request.intro,
+          photoUrls: request.photoUrls,
+          photoFocus: request.photoFocuses,
+          tone: null,
+        }}
+        meta={
           <time dateTime={request.createdAt} className={`block ${TYPE_META}`}>
             {when(request.createdAt)}
           </time>
-        </div>
-      </div>
+        }
+      />
 
       {request.intro !== null && <p className="text-sm leading-6 text-secondary">{request.intro}</p>}
 
