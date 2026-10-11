@@ -76,6 +76,8 @@ export const CONFIG_ENV = [
   'NEXT_DIST_DIR',
   /** 개발 서버를 일부러 운영 Supabase 에 붙일 때만 `1` — 없으면 `next dev` 는 로컬 스택만 받는다(`remoteDevRefusal`) */
   'DEV_ALLOW_REMOTE',
+  /** CI 러너가 주는 표시 — 개발 서버의 운영 거절은 CI 에서 안 본다(운영 접속값 파일이 없다) */
+  'CI',
   'SITE_URL',
   'PORT',
   'VERCEL_ENV',

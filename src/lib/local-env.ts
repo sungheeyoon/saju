@@ -94,9 +94,12 @@ export const DEV_ALLOW_REMOTE = 'DEV_ALLOW_REMOTE';
  * `next dev` 를 그냥 띄우면 `.env.development.local`(Vercel 이 내린 **운영** 접속값)을 읽는다. 화면을 보려고 누른 것이 곧 운영
  * 자료를 바꾸고, 로컬 픽스처의 쿠키는 그 서버에서 안 먹어 로그인 화면만 돌아온다. 로컬 스택에 붙이는 길은 `scripts/ui-dev.mjs` ·
  * `playwright.config.ts` 다 — 둘 다 프로세스 환경으로 이 값을 덮는다. 주소가 비었으면 붙을 곳이 없어 거절하지 않는다.
+ *
+ * **CI(`CI=true`)는 보지 않는다** — 거기에는 운영 접속값 파일이 없고, DB 없이 도는 차선(익명 e2e)은 가짜 원격 주소
+ * (`ci-placeholder.supabase.co`)로 개발 서버를 띄운다.
  */
-export function remoteDevRefusal(supabaseUrl: string, allow: string | undefined): string | null {
-  if (supabaseUrl === '' || allow === '1') return null;
+export function remoteDevRefusal(supabaseUrl: string, allow: string | undefined, ci: string | undefined): string | null {
+  if (supabaseUrl === '' || allow === '1' || ci === 'true') return null;
   let host: string;
   try {
     host = new URL(supabaseUrl).hostname;

@@ -110,7 +110,7 @@ const nextConfig: NextConfig = {
  */
 export default function config(phase: string): NextConfig {
   if (phase === PHASE_DEVELOPMENT_SERVER) {
-    const refusal = remoteDevRefusal(supabaseUrl, process.env.DEV_ALLOW_REMOTE);
+    const refusal = remoteDevRefusal(supabaseUrl, process.env.DEV_ALLOW_REMOTE, process.env.CI);
     if (refusal !== null) throw new Error(refusal);
   }
   return nextConfig;
