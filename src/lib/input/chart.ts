@@ -2,6 +2,7 @@ import {
   CITY_LONGITUDES,
   LunarConversionError,
   computeSaju,
+  lunarMonthsOf,
   solarFromLunar,
   type CivilDate,
   type Saju,
@@ -16,8 +17,8 @@ import { TIME_BASIS, dateEntryRefusal, missingForCalculation, type DatePart, typ
  * 폼과 계산이 서로 다른 자리에서 바꾸면 「화면에 보이는 양력」과 「계산에 들어간
  * 양력」이 갈릴 수 있기 때문이다. 폼의 미리보기도 이 함수를 부른다.
  *
- * 표 밖이거나 없는 날이면 `LunarConversionError` 를 던진다 — 부르는 쪽이
- * `calculateChart` 면 그 문장이 그대로 화면에 선다.
+ * 표 밖이거나 없는 날이면 `LunarConversionError` 를 던진다. 그 문장은 엔진의 것이라 화면에 세우지 않는다 —
+ * 사람에게 하는 말은 `dateRefusal` 이 짓는다.
  */
 export function solarDateOf(query: Query): CivilDate {
   const [year, month, day] = query.date.split('-').map(Number);
@@ -29,7 +30,9 @@ export function solarDateOf(query: Query): CivilDate {
 /**
  * 다 적힌 생년월일이 **어느 칸에서 거절되는가** — 자리 범위(`dateEntryRefusal`) 다음에 음력 표가 본다. 없으면 `null`.
  *
- * 폼이 그 칸을 붉히는 데 쓴다. 문장은 변환이 이미 들고 있다(없는 윤달 · 그 달에 없는 날 · 표 밖의 해).
+ * 폼이 그 칸을 붉히고 버튼 곁 · 계산 · 저장이 같은 문장을 쓴다. 음력의 갈래(없는 윤달 · 그 달에 없는 날 · 표 밖의 해)는
+ * 엔진이 값으로 내고(`LunarConversionError.reason`), 문장은 여기서 양력 쪽(`dateEntryRefusal`)과 같은 말투로 짓는다 — 엔진의
+ * 문장은 합쇼체에 디버그 꼬리(「…29일까지입니다: 31일」)라 화면에 세우지 않는다(대장 42).
  */
 export function dateRefusal(query: Query): { part: DatePart; message: string } | null {
   const entry = dateEntryRefusal(query);
@@ -40,10 +43,31 @@ export function dateRefusal(query: Query): { part: DatePart; message: string } |
     return null;
   } catch (error) {
     if (!(error instanceof LunarConversionError)) throw error;
-    const part: DatePart =
-      error.reason === 'out-of-range' ? 'year' : error.reason === 'no-such-leap-month' ? 'month' : 'day';
-    return { part, message: error.message };
+    return lunarRefusalOf(query, error);
   }
+}
+
+/** 음력 표가 거절한 갈래를 사람의 말로 — 숫자는 표에서 읽는다(`lunarMonthsOf`) */
+function lunarRefusalOf(query: Query, error: LunarConversionError): { part: DatePart; message: string } {
+  const [year, month, day] = query.date.split('-').map(Number);
+  // 받는 해는 표보다 좁아 `dateEntryRefusal` 이 먼저 걸린다 — 여기 오는 것은 숫자가 아닌 해뿐이다.
+  if (error.reason === 'out-of-range') return { part: 'year', message: '생년월일을 다시 확인해 주세요.' };
+
+  const months = lunarMonthsOf(year);
+  if (error.reason === 'no-such-leap-month') {
+    const leap = months.find((one) => one.leap);
+    return {
+      part: 'month',
+      message: leap === undefined ? `${year}년에는 윤달이 없어요.` : `${year}년 윤달은 윤${leap.month}월이에요.`,
+    };
+  }
+
+  const leap = query.calendar === 'lunar_leap';
+  const days = months.find((one) => one.month === month && one.leap === leap)?.days;
+  // 평달 1~12 는 해마다 있고 윤달이 없으면 위에서 갈렸다 — 달을 못 찾으면 표나 변환의 버그다.
+  if (days === undefined) throw error;
+  const name = `음력 ${leap ? '윤' : ''}${month}월`;
+  return { part: 'day', message: day < 1 ? `${name}은 1일부터 ${days}일까지예요.` : `${name}은 ${days}일까지예요.` };
 }
 
 /**
@@ -109,7 +133,11 @@ export function calculateChart(query: Query): ChartResult {
     return { ok: false, message: '생년월일을 입력해 주세요.' };
   }
 
-  // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
+  // 음력 표의 거절은 폼이 칸을 붉히는 것과 같은 문장이다 — 엔진의 문장을 세우지 않는다.
+  const refused = dateRefusal(query);
+  if (refused !== null) return { ok: false, message: refused.message };
+
+  // 그 밖에 엔진이 던지는 메시지는 그대로 보여준다. 검증 규칙을 UI에 복제하면
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
     return { ok: true, saju: chartOf(query) };

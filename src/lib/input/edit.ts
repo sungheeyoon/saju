@@ -3,7 +3,6 @@ import {
   CHART_ENGINE_VERSION,
   CITY_LONGITUDES,
   GENDERS,
-  LunarConversionError,
   chartSnapshotOf,
   type Calendar,
   type ChartSnapshot,
@@ -12,7 +11,7 @@ import {
   type LateNightRule,
 } from '../saju';
 
-import { chartOf, isoOf, solarDateOf } from './chart';
+import { chartOf, dateRefusal, isoOf, solarDateOf } from './chart';
 
 import {
   LATE_NIGHT_RULES,
@@ -191,10 +190,12 @@ export function unsupportedForSaving(query: Query): string | null {
   if (!(CALENDARS as readonly string[]).includes(query.calendar)) return '달력을 다시 골라 주세요.';
   // 변환이 안 되는 음력 날짜는 여기서 멈춘다. 그냥 두면 `chartFields` 가 던지고,
   // 서버 액션이 500 으로 죽어서 사용자는 아무 말도 못 듣는다.
+  // 문장은 폼이 그 칸을 붉힐 때와 같다(`dateRefusal`).
   try {
-    solarDateOf(query);
-  } catch (error) {
-    return error instanceof LunarConversionError ? error.message : '생년월일을 다시 확인해 주세요.';
+    const refused = dateRefusal(query);
+    if (refused !== null) return refused.message;
+  } catch {
+    return '생년월일을 다시 확인해 주세요.';
   }
   if (!(GENDERS as readonly string[]).includes(query.gender)) return '성별을 다시 골라 주세요.';
   if (!Object.hasOwn(CITY_LONGITUDES, query.city)) return '출생지를 다시 골라 주세요.';
