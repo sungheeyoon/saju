@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  accountFailureOf,
   accountNoticeOf,
   accountStateOf,
   haltedText,
@@ -103,5 +104,18 @@ describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
       expect(notice.title.endsWith('.')).toBe(false);
       expect(notice.detail.endsWith('.')).toBe(true);
     }
+  });
+});
+
+describe('accountFailureOf — 못 읽은 계정은 실패 줄로 선다 (G-100)', () => {
+  it('못 읽은 까닭 둘만 줄이 서고, 다음 길이 다르다', () => {
+    expect(accountFailureOf({ kind: 'missing' })?.next).toBe('signIn');
+    expect(accountFailureOf({ kind: 'unreachable' })?.next).toBe('retry');
+  });
+
+  it('정지 · 활성 · 온보딩에는 줄이 없다 — 다시 해도 안 풀리거나 막힌 것이 아니다', () => {
+    expect(accountFailureOf({ kind: 'halted', status: 'suspended' })).toBeNull();
+    expect(accountFailureOf({ kind: 'active', selfPersonId: 'p1' })).toBeNull();
+    expect(accountFailureOf({ kind: 'onboarding' })).toBeNull();
   });
 });
