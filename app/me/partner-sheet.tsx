@@ -1,13 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 
 import type { PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
 
-import { BUTTON_SECONDARY } from '../ui/buttons';
-import { Icon } from '../ui/icons';
 import { Avatar } from './avatar';
 import { CardPhotos } from './matching/card-photos';
 import { Letter } from './matching/letter';
@@ -56,9 +53,10 @@ export const partnerSheetName = (nickname: string): string => `${nickname} 님 �
  *
  * 별도 화면이 아니라 시트다 — 방의 스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로 남는다. 모양은 오늘의 인연 ⓘ 시트
  * (`DetailSheet`) 한 벌이라 폰은 아래에서 올라오고 넓은 화면(lg)은 가운데 대화상자다. 위에서부터 사진 넘기기(오늘의 인연
- * 카드와 같은 판 `CardPhotos` — 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표) → 이름 → 소개 전문 → 「인연 궁합」이고,
+ * 카드와 같은 판 `CardPhotos` — 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표) → 이름 → 소개 전문 → 궁합 단추이고,
  * 머리에 「⋯」(신고 · 차단, 부르는 쪽이 준다)와 닫기가 선다. 사진이 없으면 사진 칸 대신 첫 글자 동그라미 하나, 소개가 없으면
- * 그 줄을 뺀다. `toMatch` 가 없으면(인연 궁합 화면 자신이 연 시트) 「인연 궁합」 단추가 안 선다.
+ * 그 줄을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고(`CompatChip`), 인연
+ * 궁합 화면 자신이 연 시트는 `null` 이라 안 선다.
  */
 export function PartnerSheet({
   control,
@@ -68,7 +66,8 @@ export function PartnerSheet({
 }: {
   control: PartnerSheetControl;
   partner: PartnerProfile;
-  toMatch: string | null;
+  /** 인연 궁합으로 가는 단추 — 없으면 `null` */
+  toMatch: ReactNode | null;
   menu?: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
@@ -110,12 +109,7 @@ export function PartnerSheet({
           {partner.nickname}
         </p>
         {intro !== null && <Letter nickname={partner.nickname} intro={intro} />}
-        {toMatch !== null && (
-          <Link href={toMatch} className={`${BUTTON_SECONDARY} w-full`}>
-            <Icon name="heart" className="size-5 text-danger" />
-            인연 궁합
-          </Link>
-        )}
+        {toMatch}
       </div>
     </DetailSheet>
   );

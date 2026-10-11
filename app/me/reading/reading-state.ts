@@ -1,4 +1,9 @@
-import { READING_ALREADY_RUNNING_NOTE, READING_FAILED_NOTE, READING_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
+import {
+  READING_ALREADY_RUNNING_NOTE,
+  READING_FAILED_NOTE,
+  READING_FIRST_FAILED_NOTE,
+  READING_UNEXPECTED_NOTE,
+} from '@/src/lib/reading/notes';
 import { isScored } from '@/src/lib/reading/policy';
 import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 
@@ -71,10 +76,19 @@ export type ReadingEvent =
   | { type: 'threw' }
   /** 연결을 못 써서 예시 글을 세운다 */
   | { type: 'mock'; reading: CurrentReading }
-  /** 지켜보던 시도가 끝났다 — `arrived` 는 **그 물음을 본 때 이미 새 글이 서 있었나**다 */
-  | { type: 'settled'; status: 'succeeded' | 'failed'; arrived: boolean }
+  /**
+   * 지켜보던 시도가 끝났다 — `arrived` 는 **그 물음을 본 때 이미 새 글이 서 있었나**, `hasReading` 은 **그 전에 만든 글이 화면에
+   * 서 있나**다(실패 문장이 갈린다, `failedNoteOf`)
+   */
+  | { type: 'settled'; status: 'succeeded' | 'failed'; arrived: boolean; hasReading: boolean }
   /** 기다리기 전과 다른 글이 화면에 섰다 */
   | { type: 'arrived' };
+
+/**
+ * 지난 시도가 실패했을 때 서는 한 줄 — **그 전에 만든 글이 서 있을 때만** 「지금 보이는 글은 그 전에 만든 풀이」라고 말한다.
+ * 글이 없는 자리(처음 받기가 실패했다)에서 그 말은 「아직 받은 풀이가 없어요」와 함께 서서 거짓이 된다(운영자 2026-10-11 저녁).
+ */
+export const failedNoteOf = (hasReading: boolean): string => (hasReading ? READING_FAILED_NOTE : READING_FIRST_FAILED_NOTE);
 
 /**
  * 화면이 열릴 때의 자리 — **도는 시도는 내 누름이 아니어도 기다린다.**
@@ -85,13 +99,16 @@ export type ReadingEvent =
 export function initialFlow({
   running,
   failed,
+  hasReading,
 }: {
   running: boolean;
   failed: boolean;
+  /** 서버가 준 글이 있나 — 실패 문장이 갈린다(`failedNoteOf`) */
+  hasReading: boolean;
 }): ReadingFlow {
   return {
     phase: running ? 'loading' : 'idle',
-    failure: failed ? READING_FAILED_NOTE : null,
+    failure: failed ? failedNoteOf(hasReading) : null,
     mock: null,
     arriving: null,
   };
@@ -137,7 +154,7 @@ export function readingFlow(state: ReadingFlow, event: ReadingEvent): ReadingFlo
       return {
         ...state,
         phase: 'idle',
-        failure: event.status === 'failed' ? READING_FAILED_NOTE : null,
+        failure: event.status === 'failed' ? failedNoteOf(event.hasReading) : null,
         arriving: null,
       };
     }
@@ -249,6 +266,8 @@ export function afterAsking(
   answer: RunAnswer,
   /** 기다리기 전과 다른 글이 이미 화면에 서 있나 — 아니면 끝났어도 새 글을 기다린다(`ReadingFlow.arriving`) */
   arrived: boolean,
+  /** 지금 화면에 서버가 준 글이 서 있나 — 실패면 문장이 갈린다(`failedNoteOf`) */
+  hasReading: boolean,
 ): FlowDecision {
   if (answer.kind !== 'settled') return nothing(null);
 
@@ -260,7 +279,7 @@ export function afterAsking(
     싣는다(`readingRunState` 의 `refreshPaths`, ADR 0016 덧). 칸이 한 번 더 읽으면 같은 화면을 두 번 그린다.
   */
   return {
-    event: { type: 'settled', status: answer.status, arrived },
+    event: { type: 'settled', status: answer.status, arrived, hasReading },
     announcesCredits: true,
   };
 }

@@ -135,7 +135,7 @@ export async function matchOfAcceptedRequest(requestId: string): Promise<string 
   return acceptedMatchOf(request, (matches.data ?? []).map(matchOf));
 }
 
-/** 요청에서 난 소식 — 누르면 인연 탭으로 간다. 성립 소식만 그 인연 궁합으로 간다(`destinationFor`) */
+/** 요청에서 난 소식 — 누르면 인연 탭으로 간다. 성립 소식만 그 Match 의 채팅방으로 간다(`destinationFor`) */
 const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
   'request_received',
   'request_accepted',
@@ -150,9 +150,10 @@ const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
  * **주소를 지어 내지 않는다.** 대상을 못 알아보면 `null` 이고, 그때 알림은 글자로만
  * 선다 — 눌러도 아무것도 없는 줄을 만들지 않는다.
  *
- * 요청의 소식은 **인연 탭**으로 간다(ADR 0130) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. **성립 소식만 그 인연 궁합으로
- * 간다**(ADR 0130 「2026-10-11」) — 문장이 「인연 궁합이 열렸어요」다. 소식 줄의 Match 는 지금 볼 수 있는 것뿐이라
- * (`visible_notifications` 가 `visible_matches` 로 거른다) 이 링크는 404 로 떨어지지 않는다. Match 가 없는 옛 줄은 인연 탭이다.
+ * 요청의 소식은 **인연 탭**으로 간다(ADR 0130) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. **성립 소식만 그 Match 의
+ * 채팅방으로 간다**(ADR 0130 「2026-10-11 저녁」) — 수락한 쪽이 도착한 그 방이다. 소식 줄의 Match 는 지금 볼 수 있는 것뿐이고
+ * (`visible_notifications` 가 `visible_matches` 로 거른다) 열린 Match 에는 방이 늘 서 있어(ADR 0091) 이 링크는 404 로 떨어지지
+ * 않는다. Match 가 없는 옛 줄은 인연 탭이다. 인연 궁합의 완성 소식은 그 결과 화면이다.
  */
 function destinationFor(
   kind: NotificationKind,
@@ -160,7 +161,7 @@ function destinationFor(
   row: NotificationRow,
 ): string | null {
   if (kind === 'request_accepted' && row.match_id !== null) {
-    return withCameFrom(`/me/match/${row.match_id}`, 'news');
+    return `/me/chat/${row.match_id}`;
   }
   if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
   if (kind !== 'reading_failed' && kind !== 'reading_ready') return null;

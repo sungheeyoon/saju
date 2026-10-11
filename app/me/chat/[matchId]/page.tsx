@@ -15,6 +15,7 @@ import { roomScopesForViewer } from '../tones';
 import { labelled } from './bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
+import { roomCompatForViewer } from './room-compat';
 import styles from './room.module.css';
 
 export const metadata = {
@@ -64,7 +65,14 @@ export default async function ChatRoomPage({
   const room = rooms.find((one) => one.matchId === matchId) ?? null;
   if (room === null) notFound();
 
-  const [messages, { tones, intros }] = await Promise.all([messagesForViewer(supabase, matchId), roomScopesForViewer(rooms)]);
+  /* 궁합 단추는 열린 방 · 상대가 있는 방에만 선다 — 닫힌 방은 묻지 않는다(결과 화면도 그 쌍에게 닫혔다) */
+  const notice = roomNoticeOf(room);
+  const open = notice === null && room.partnerUserId !== null;
+  const [messages, { tones, intros }, compat] = await Promise.all([
+    messagesForViewer(supabase, matchId),
+    roomScopesForViewer(rooms),
+    open ? roomCompatForViewer(supabase, matchId) : null,
+  ]);
 
   return (
     <main className={`app-shell ${styles.page} flex w-full flex-1 flex-col md:py-6 lg:py-8`}>
@@ -85,12 +93,13 @@ export default async function ChatRoomPage({
               partnerPhotoUrls: room.partnerPhotoUrls,
               partnerPhotoFocuses: room.partnerPhotoFocuses,
               partnerIntro: intros.get(matchId) ?? null,
-              notice: roomNoticeOf(room),
+              notice,
               activity: room.partnerActivity,
               unread: room.unread,
               messages: messages.map(labelled),
               fromBeginning: messages.length < MESSAGE_WINDOW,
               tones: tones.get(matchId) ?? null,
+              compat,
             }}
           />
         }
