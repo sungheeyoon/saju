@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { FailureLine } from '../../ui/failure-line';
 import { Icon } from '../../ui/icons';
 import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 import { PASSED_LIMIT } from './deck-state';
+import { DetailSheet, openSheet } from './today-card';
 
 /*
   **지나친 인연 — 「오늘의 인연」 옆의 두 번째 보기.**
@@ -27,6 +29,7 @@ export function PassedConnections({
   onBack,
   map,
   feedback,
+  detail,
 }: {
   cards: readonly DeckCard[];
   working: boolean;
@@ -34,9 +37,19 @@ export function PassedConnections({
   onBack: () => void;
   map: ReactNode;
   feedback: ReactNode;
+  /** 시트가 펴는 그 사람의 까닭 · 기운 · 소개 — 오늘의 인연 시트와 같은 것 */
+  detail: (card: DeckCard) => ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const [restoring, setRestoring] = useState<string | null>(null);
+  const sheet = useRef<HTMLDialogElement>(null);
+  /** 시트가 펴고 있는 사람 */
+  const [looking, setLooking] = useState<DeckCard | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (looking !== null) openSheet(sheet.current);
+  }, [looking]);
 
   // 보기가 바뀌면 초점을 제목으로 — 화면 낭독기가 어디로 왔는지 먼저 읽는다
   useEffect(() => {
@@ -70,33 +83,30 @@ export function PassedConnections({
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => (
-            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-card">
-              <span className="relative block aspect-square text-[3rem]">
-                <CandidatePhoto card={card} />
-                <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>
-                  <ElementSymbol element={supplyOf(card)} className="size-5" />
+            <li key={card.candidateUserId}>
+              <button
+                type="button"
+                onClick={() => {
+                  setFailure(null);
+                  setLooking(card);
+                  if (looking?.candidateUserId === card.candidateUserId) openSheet(sheet.current);
+                }}
+                className="flex size-full flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface text-left shadow-card hover:border-border-strong active:scale-[0.98]"
+              >
+                <span className="relative block aspect-square text-[3rem]">
+                  <CandidatePhoto card={card} />
+                  <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>
+                    <ElementSymbol element={supplyOf(card)} className="size-5" />
+                  </span>
                 </span>
-              </span>
-              <span className="flex flex-1 flex-col gap-2 p-3">
-                <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-                  <span className="font-rounded truncate text-[1.25rem] text-foreground">{card.nickname}</span>
-                  <span className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
+                <span className="flex flex-1 flex-col gap-2 p-3">
+                  <span className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <span className="font-rounded truncate text-[1.25rem] text-foreground">{card.nickname}</span>
+                    <span className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
+                  </span>
+                  <span className="line-clamp-2 text-[13px] leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>
                 </span>
-                <span className="line-clamp-2 text-[13px] leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>
-                <button
-                  type="button"
-                  disabled={working}
-                  onClick={async () => {
-                    setRestoring(card.candidateUserId);
-                    await onRestore(card);
-                    setRestoring(null);
-                  }}
-                  className={`${BUTTON_SECONDARY_SMALL} mt-auto w-full disabled:opacity-55`}
-                >
-                  <Icon name="undo" className="size-4" />
-                  {restoring === card.candidateUserId ? '복원하는 중…' : '다시 만나보기'}
-                </button>
-              </span>
+              </button>
             </li>
           ))}
         </ul>
@@ -113,6 +123,31 @@ export function PassedConnections({
           최근 {PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.
         </p>
       </div>
+
+      {looking !== null && (
+        <DetailSheet sheet={sheet} nickname={looking.nickname}>
+          <div className={`${elementScope(supplyOf(looking))} flex flex-col gap-4`}>
+            {detail(looking)}
+            {failure !== null && <FailureLine>{failure}</FailureLine>}
+            <button
+              type="button"
+              disabled={working || restoring}
+              onClick={async () => {
+                setRestoring(true);
+                setFailure(null);
+                const message = await onRestore(looking);
+                setRestoring(false);
+                if (message === null) sheet.current?.close();
+                else setFailure(message);
+              }}
+              className={`${BUTTON_PRIMARY} w-full`}
+            >
+              <Icon name="undo" className="size-5" />
+              {restoring ? '복원하는 중…' : '다시 만나보기'}
+            </button>
+          </div>
+        </DetailSheet>
+      )}
     </section>
   );
 }
