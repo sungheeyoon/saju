@@ -156,7 +156,7 @@ try {
   const saved = await b.rpc('save_push_subscription', { p_endpoint: first.endpoint, p_p256dh: first.p256dh, p_auth: first.auth });
   check('받는 사람이 이 기기의 구독을 남긴다', !saved.error, saved.error?.message ?? '');
 
-  await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `비밀 본문 ${tag}` });
+  await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `비밀 본문 ${tag}`, p_client_id: crypto.randomUUID() });
   const got = await fake.waitFor((one) => one.name === 'b-1');
   check(
     '메시지 한 통이 pg_net → 배달 문 → 푸시 서비스로 간다',
@@ -175,7 +175,7 @@ try {
   check('배달 줄이 보냄으로 닫힌다', await waitUntil(() => rowsOf(matchId).some((row) => row.status === 'sent')));
 
   // ── 2. 같은 방에 셋이 연달아 와도 대기 줄은 하나 ─────────────────────────────
-  for (const n of [1, 2, 3]) await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `연달아 ${n}` });
+  for (const n of [1, 2, 3]) await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `연달아 ${n}`, p_client_id: crypto.randomUUID() });
   const waiting = rowsOf(matchId).filter((row) => row.status === 'pending');
   check('셋이 와도 기다리는 배달 줄은 하나다', waiting.length === 1, `${waiting.length}줄`);
 
@@ -196,7 +196,7 @@ try {
   {
     fake.answer('b-1', 500);
     const before = fake.received.filter((one) => one.name === 'b-1').length;
-    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '오백' });
+    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '오백', p_client_id: crypto.randomUUID() });
     dueNow(matchId);
     wake();
     await fake.waitFor((one) => one.name === 'b-1' && one.status === 500);
@@ -216,7 +216,7 @@ try {
   // ── 5. 410 → 구독이 지워진다 ─────────────────────────────────────────────────
   {
     fake.answer('b-1', 410);
-    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '사백십' });
+    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '사백십', p_client_id: crypto.randomUUID() });
     dueNow(matchId);
     wake();
     await fake.waitFor((one) => one.name === 'b-1' && one.status === 410);
@@ -275,7 +275,7 @@ try {
       await b.rpc('save_push_subscription', { p_endpoint: one.endpoint, p_p256dh: one.p256dh, p_auth: one.auth });
     }
     const started = Date.now();
-    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '느린 서버' });
+    await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '느린 서버', p_client_id: crypto.randomUUID() });
     const hung = await fake.waitFor((one) => one.name === 'slow');
     const fast = await fake.waitFor((one) => one.name === 'quick');
     check('답하지 않는 서버가 받는 동안에도 다른 구독은 간다', hung !== null && fast !== null && fast.at - started < 8000,

@@ -99,7 +99,7 @@ grant select on rooms to authenticated;
 
 set local role authenticated;
 select pg_temp.acting((select lee from folks));
-select public.send_chat_message((select kim_lee from rooms), '거듭 신고할 메시지');
+select public.send_chat_message((select kim_lee from rooms), '거듭 신고할 메시지', gen_random_uuid());
 
 select pg_temp.acting((select kim from folks));
 create temporary table chosen as

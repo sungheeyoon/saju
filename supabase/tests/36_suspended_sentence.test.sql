@@ -75,7 +75,7 @@ select throws_ok(
   '사람을 못 만든다');
 
 select throws_ok(
-  format($$select public.send_chat_message(%L, '안녕하세요')$$, gen_random_uuid()),
+  format($$select public.send_chat_message(%L, '안녕하세요', gen_random_uuid())$$, gen_random_uuid()),
   '42501', '이용이 정지된 계정입니다.',
   '대화를 못 보낸다');
 

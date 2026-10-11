@@ -107,7 +107,7 @@ declare
 begin
   perform pg_temp.acting(sender);
   set local role authenticated;
-  answer := public.send_chat_message(p_match, body);
+  answer := public.send_chat_message(p_match, body, gen_random_uuid());
   reset role;
   return answer;
 end;

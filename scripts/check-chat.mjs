@@ -138,7 +138,7 @@ try {
   // ── 3. 보내고, 상대의 목록과 방에 선다 ────────────────────────────────────
   {
     const hello = `안녕하세요 ${tag}`;
-    const sent = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: hello });
+    const sent = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: hello, p_client_id: crypto.randomUUID() });
     check('보내면 값 sent 가 온다', sent.data === 'sent', sent.error?.message ?? String(sent.data));
 
     const listed = plain(await body('/me/chat', cookie.b));
@@ -168,11 +168,11 @@ try {
   {
     let last = null;
     for (let i = 1; i < CHAT_POLICY.rateLimit; i += 1) {
-      last = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `${i}` });
+      last = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `${i}`, p_client_id: crypto.randomUUID() });
       if (last.error || last.data !== 'sent') break;
     }
     check(`${CHAT_POLICY.rateLimit}번째까지 sent 다`, last?.data === 'sent', last?.error?.message ?? String(last?.data));
-    const over = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '넘침' });
+    const over = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '넘침', p_client_id: crypto.randomUUID() });
     check(`${CHAT_POLICY.rateLimit + 1}번째는 rate_limited 다`, over.data === 'rate_limited', String(over.data));
     check('한도 거절의 문장은 lib 가 든다 — 화면이 값을 문장으로 옮긴다',
       RATE_LIMITED_TEXT.length > 0 && !RATE_LIMITED_TEXT.includes('rate_limited'));
@@ -197,7 +197,7 @@ try {
     const listed = plain(await body('/me/chat', cookie.a));
     check('목록에도 닫힌 채 남는다', listed.includes(NAME.b) && listed.includes(closedRoomText('block')));
 
-    const sent = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '닫힌 뒤' });
+    const sent = await a.rpc('send_chat_message', { p_match_id: matchId, p_body: '닫힌 뒤', p_client_id: crypto.randomUUID() });
     check('닫힌 방에 보내면 값 closed 가 온다', sent.data === 'closed', String(sent.data));
   }
 } finally {

@@ -160,7 +160,7 @@ from (values
                             '42501 이용이 정지된 계정입니다.', null),
   ('save_service_survey',   $$select public.save_service_survey(array[]::text[], array[]::text[], array[]::text[], null, array[]::text[], array[]::text[], null, null, array[]::text[], null, array[]::text[], false)$$,
                             '42501 이용이 정지된 계정입니다.', null),
-  ('send_chat_message',     format($$select public.send_chat_message(%L, '안녕하세요')$$, (select v from kept where k = 'match')),
+  ('send_chat_message',     format($$select public.send_chat_message(%L, '안녕하세요', gen_random_uuid())$$, (select v from kept where k = 'match')),
                             '42501 이용이 정지된 계정입니다.', null),
   ('set_my_photo_focus',    $$select public.set_my_photo_focus(1, 50, 50, 0)$$, '42501 이용이 정지된 계정입니다.', null),
   ('share_my_reading',      $$select public.share_my_reading('본문', '비유', 'self', null, null)$$, 'P0001 이용이 정지된 계정입니다.',

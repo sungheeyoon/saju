@@ -65,7 +65,7 @@ async function pair(openAs: (seed: { selfPerson: true }) => Promise<Person>) {
 
 /** 서버에 메시지를 쓴다 — 돌아오면 커밋된 것이다. 그 시각(벽시계 ms)을 낸다 */
 async function sendAs(person: Person, matchId: string, body: string): Promise<number> {
-  const sent = await person.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body });
+  const sent = await person.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body, p_client_id: crypto.randomUUID() });
   const committedAt = Date.now();
   if (sent.error || sent.data !== 'sent') throw new Error(`못 보냈습니다 — ${sent.error?.message ?? String(sent.data)}`);
   return committedAt;
@@ -335,7 +335,7 @@ test.describe('앱이 스스로 갱신된다', () => {
     // 차단 사실은 말하지 않는다 — 닫힌 까닭의 문장은 읽는 문이 정한 그것뿐이다
     await expect(a.page.getByRole('status')).toHaveText(closedRoomText('block'), { timeout: WITHIN_MS + 1_000 });
     await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveCount(0);
-    const refused = await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: '닫힌 뒤' });
+    const refused = await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: '닫힌 뒤', p_client_id: crypto.randomUUID() });
     expect(refused.data === 'sent').toBe(false);
   });
 

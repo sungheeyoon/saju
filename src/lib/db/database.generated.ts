@@ -3824,12 +3824,10 @@ export type Database = {
         }
         Returns: string
       }
-      send_chat_message:
-        | { Args: { p_body: string; p_match_id: string }; Returns: string }
-        | {
-            Args: { p_body: string; p_client_id: string; p_match_id: string }
-            Returns: string
-          }
+      send_chat_message: {
+        Args: { p_body: string; p_client_id: string; p_match_id: string }
+        Returns: string
+      }
       service_survey_context: {
         Args: never
         Returns: {
