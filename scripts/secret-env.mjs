@@ -74,6 +74,8 @@ export const PUBLIC_ENV = [
 export const CONFIG_ENV = [
   'NODE_ENV',
   'NEXT_DIST_DIR',
+  /** 개발 서버를 일부러 운영 Supabase 에 붙일 때만 `1` — 없으면 `next dev` 는 로컬 스택만 받는다(`remoteDevRefusal`) */
+  'DEV_ALLOW_REMOTE',
   'SITE_URL',
   'PORT',
   'VERCEL_ENV',
