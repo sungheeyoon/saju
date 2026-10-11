@@ -4,6 +4,7 @@ import type { RpcRow } from '@/src/lib/db';
 import { leadFocusOf, type PhotoFocus } from '@/src/lib/profile';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { photosFromFocus } from '../candidates';
 import { dbFailure } from '../../db-error';
 
 /**
@@ -29,6 +30,12 @@ export type ChatRoom = {
   readonly partnerHasPhoto: boolean;
   /** 상대 대표 사진의 보일 자리(G-98) */
   readonly partnerPhotoFocus: PhotoFocus;
+  /**
+   * 상대의 사진 전부와 장마다의 자리 — 상대 프로필 시트가 넘긴다(운영자 결정 2026-10-11). 같은 문이 이미 낸 초점의 짝 수가
+   * 장 수라(`photosFromFocus`) 더 묻지 않는다
+   */
+  readonly partnerPhotoUrls: readonly string[];
+  readonly partnerPhotoFocuses: readonly PhotoFocus[];
   readonly openedAt: string;
   /** `null` 이면 열려 있다. 모르는 이유로 닫힌 방은 목록에서 그리지 않는다 */
   readonly closedReason: ClosedReason | null;
@@ -43,6 +50,7 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
   const reason = row.closed_reason === null ? null : closedReasonOf(row.closed_reason);
   // 닫혔는데 이유를 모르면 무슨 말을 세울지 알 수 없다 — 그리지 않는다.
   if (row.closed_reason !== null && reason === null) return null;
+  const photos = photosFromFocus(row.partner_user_id ?? '', row.partner_photo_focus, row.partner_has_photo === true);
   return {
     matchId: row.match_id,
     partnerUserId: row.partner_user_id ?? null,
@@ -50,6 +58,8 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
     partnerLeft: row.partner_left === true,
     partnerHasPhoto: row.partner_has_photo === true,
     partnerPhotoFocus: leadFocusOf(row.partner_photo_focus),
+    partnerPhotoUrls: photos.photoUrls,
+    partnerPhotoFocuses: photos.photoFocus,
     openedAt: row.opened_at,
     closedReason: reason,
     lastMessageAt: row.last_message_at,

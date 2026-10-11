@@ -280,6 +280,7 @@ export function DetailSheet({
   nickname,
   label,
   menu,
+  nameInBody = false,
   children,
 }: {
   sheet: RefObject<HTMLDialogElement | null>;
@@ -289,6 +290,11 @@ export function DetailSheet({
   label?: string;
   /** 머리의 닫기(X) 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
   menu?: ReactNode;
+  /**
+   * 이름이 머리가 아니라 본문(사진 아래)에 선다 — 상대 프로필 시트(`../partner-sheet.tsx`). 머리의 제목은 보조기기에만
+   * 읽히고, 본문의 이름은 보이기만 한다(한 이름을 두 번 읽지 않게)
+   */
+  nameInBody?: boolean;
   children: ReactNode;
 }) {
   const press = useRef<number | null>(null);
@@ -337,8 +343,8 @@ export function DetailSheet({
         >
           <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />
           <div className="flex items-center justify-between gap-3">
-            <h2 className="min-w-0 truncate font-rounded text-[1.5rem]">{nickname}</h2>
-            <span className="flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
+            <h2 className={nameInBody ? 'sr-only' : 'min-w-0 truncate font-rounded text-[1.5rem]'}>{nickname}</h2>
+            <span className="ml-auto flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
               {menu}
               {/* 보는 판을 닫는 것은 오른쪽 위 X 한 벌이다 — 관계 지도 카드 · 신고 창과 같은 모양, 이름은 「닫기」(ADR 0166) */}
               <button

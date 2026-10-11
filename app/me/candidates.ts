@@ -172,6 +172,18 @@ export const photoUrlsOf = (userId: string, count: number): string[] =>
   Array.from({ length: Math.max(0, Math.min(count, 6)) }, (_, index) => `/me/photo/${userId}/${index + 1}`);
 
 /**
+ * 매칭된 상대의 사진 전부 — 대화방 · 인연 궁합의 상대 프로필 시트(`partner-sheet.tsx`)가 넘긴다.
+ *
+ * 장 수는 읽는 문이 낸 초점(`[x1, y1, x2, y2, …]`, `photo_focus_of`)의 짝 수다 — 그 문은 장마다 두 수를 내므로 장 수를 따로
+ * 묻지 않는다. 초점이 비었는데 사진이 있다고 하면(옛 문) 대표 한 장이다. 볼 수 있는지는 바이트 문(`may_see_photo`)이 그대로 답한다.
+ */
+export function photosFromFocus(userId: string, flat: readonly number[] | null | undefined, hasPhoto: boolean) {
+  const count = hasPhoto ? Math.max(1, Math.floor((flat?.length ?? 0) / 2)) : 0;
+  const photoUrls = photoUrlsOf(userId, count);
+  return { photoUrls, photoFocus: focusesOf(flat, photoUrls.length) };
+}
+
+/**
  * 장 수 — **칸이 없으면 옛 칸으로 한 장을 센다.** 앱이 DB 보다 먼저 배포되면 옛 문은 `photo_count` 를
  * 안 준다. 그때 카드는 대표 한 장으로 서고 나머지는 그대로 돈다.
  */

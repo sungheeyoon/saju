@@ -1,7 +1,7 @@
 import { focusPosition, initialOf } from '@/src/lib/profile';
 
 import { elementScope } from '../../ui/element-tone';
-import { focusAt, photosOf, type DeckCard } from './deck-card';
+import { focusAt, photosOf, type PhotoFace } from './deck-card';
 
 /**
  * 후보의 얼굴 한 자리 — 덱 · 지도 · 확인 창 · 지나친 인연이 모두 이것을 쓴다.
@@ -12,7 +12,7 @@ import { focusAt, photosOf, type DeckCard } from './deck-card';
  * `at` 은 몇째 장인가(0 = 대표) — 오늘의 인연 카드가 넘길 때만 쓴다(`CardPhotos`). 사진은 그 사람이 고른 자리를 보인다(G-98) —
  * 프로필 · 아바타와 같은 두 수(`focusPosition`)다.
  */
-export function CandidatePhoto({ card, initialClass = 'text-[1.2em]', at = 0 }: { card: DeckCard; initialClass?: string; at?: number }) {
+export function CandidatePhoto({ card, initialClass = 'text-[1.2em]', at = 0 }: { card: PhotoFace; initialClass?: string; at?: number }) {
   const src = photosOf(card)[at] ?? null;
   if (src === null) {
     return (

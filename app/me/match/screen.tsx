@@ -14,6 +14,7 @@ import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../ui/surfaces';
 import { ReportBlock } from '../requests/report-block';
+import { PartnerFace } from '../partner-sheet';
 import { ReadingSection } from '../reading/section';
 import { backOf, placeOf } from '../../came-from';
 import { matchResultForViewer, type SharedResult } from './result';
@@ -96,9 +97,29 @@ export async function MatchScreen({
         */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-3">
-            <Title className={`${TYPE_TITLE} min-w-0 break-keep`}>
-              {outcome.kind === 'ok' ? `${outcome.result.partnerNickname} 님과의 인연 궁합` : '인연 궁합'}
-            </Title>
+            <div className="flex min-w-0 items-center gap-3">
+              {/*
+                **상대의 얼굴 — 누르면 상대 프로필 시트다**(운영자 결정 2026-10-11). 대화방 머리와 같은 시트 한 벌이고, 이 화면이
+                연 시트에는 「인연 궁합」 단추가 없다(지금 여기다). 닫힌 결과는 상대가 안 실려 와 서지 않는다.
+              */}
+              {outcome.kind === 'ok' && (
+                <PartnerFace
+                  size={48}
+                  partner={{
+                    userId: outcome.result.partnerUserId,
+                    nickname: outcome.result.partnerNickname,
+                    intro: outcome.result.partnerIntro,
+                    photoUrls: outcome.result.partnerPhotoUrls,
+                    photoFocus: outcome.result.partnerPhotoFocus,
+                    tone: STEM_INFO[outcome.result.charts.b.dayMaster].element,
+                  }}
+                  menu={<ReportBlock userId={outcome.result.partnerUserId} nickname={outcome.result.partnerNickname} />}
+                />
+              )}
+              <Title className={`${TYPE_TITLE} min-w-0 break-keep`}>
+                {outcome.kind === 'ok' ? `${outcome.result.partnerNickname} 님과의 인연 궁합` : '인연 궁합'}
+              </Title>
+            </div>
             <div className="flex shrink-0 items-center gap-1">
               {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
               {toRoom !== null && (
