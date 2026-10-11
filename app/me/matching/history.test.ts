@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FOCUS_CENTER } from '@/src/lib/profile';
 import type { ReadingEntry } from '../reading/current';
 import type { InboxMatch, InboxRequest } from '../requests/inbox';
-import { historySummary, makingMatches, matchBooks, pastRequests } from './history';
+import { acceptedMatchOf, historySummary, makingMatches, matchBooks, pastRequests } from './history';
 
 /**
  * 인연 기록 — **줄이 말한 수와 화면에 선 수가 같다**(2026-09-29 u2).
@@ -81,6 +81,36 @@ describe('인연 기록', () => {
     expect(past.sent.map((one) => one.requestId)).toEqual(['sent']);
     expect(past.decided.map((one) => one.requestId)).toEqual(['done']);
     expect(past.blocked).toBe(2);
+  });
+
+  /** 끝난 요청의 성립한 줄은 그 인연 궁합으로 간다(ADR 0130 「2026-10-11」) — 갈 수 없는 Match 로는 링크를 안 세운다 */
+  it('성립한 끝난 요청만 지금 보이는 그 상대의 Match 로 가고, 기록으로 돌아오게 `from=history` 를 단다', () => {
+    const past = pastRequests(
+      {
+        requests: [
+          request({ requestId: 'open', counterpartUserId: 'u-m1', status: 'accepted' }),
+          request({ requestId: 'blocked', counterpartUserId: 'u-gone', status: 'accepted' }),
+          request({ requestId: 'no', counterpartUserId: 'u-m2', status: 'rejected' }),
+        ],
+        blocked: 0,
+      },
+      [made('m1', '다온'), made('m2', '유진')],
+    );
+    expect(past.decided.map((one) => [one.requestId, one.matchHref])).toEqual([
+      ['open', '/me/match/m1?from=history'],
+      ['blocked', null],
+      ['no', null],
+    ]);
+  });
+
+  it('성립한 Match 목록을 못 읽었으면 끝난 요청에 링크가 없다', () => {
+    const past = pastRequests({ requests: [request({ counterpartUserId: 'u-m1', status: 'accepted' })], blocked: 0 }, null);
+    expect(past.decided.map((one) => one.matchHref)).toEqual([null]);
+  });
+
+  it('성립하지 않은 요청은 같은 상대의 Match 가 있어도 그리로 가지 않는다', () => {
+    expect(acceptedMatchOf(request({ counterpartUserId: 'u-m1', status: 'invalidated' }), [made('m1', '다온')])).toBeNull();
+    expect(acceptedMatchOf(request({ counterpartUserId: 'u-m1', status: 'accepted' }), [made('m1', '다온')])).toBe('m1');
   });
 
   it('글이 아직 없는 인연 궁합만 「만드는 중」으로 가른다 — 책장과 같은 셈이다', () => {

@@ -14,6 +14,7 @@ import { leadFocusOf, type PhotoFocus } from '@/src/lib/profile';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { withCameFrom } from '../../came-from';
+import { acceptedMatchOf } from '../matching/history';
 import { dbFailure } from '../../db-error';
 
 /**
@@ -117,7 +118,24 @@ export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
   return (data ?? []).map(matchOf);
 }
 
-/** 요청에서 난 소식 — 누르면 인연 탭으로 간다 */
+/**
+ * 방금 수락한 요청의 인연 궁합 — 수락한 사람을 그 결과로 보낸다(ADR 0130 「2026-10-11」).
+ *
+ * 수락 RPC 는 상태만 답한다. 요청과 Match 를 같은 사람 눈으로 다시 읽어 잇는다(`acceptedMatchOf`). 못 찾으면 `null`.
+ */
+export async function matchOfAcceptedRequest(requestId: string): Promise<string | null> {
+  const supabase = await supabaseOnServer();
+  const [requests, matches] = await Promise.all([supabase.rpc('my_match_requests'), supabase.rpc('my_matches')]);
+  for (const [{ error }, where] of [[requests, 'my_match_requests'], [matches, 'my_matches']] as const) {
+    if (error) throw dbFailure(error, where);
+  }
+
+  const request = (requests.data ?? []).flatMap(requestOf).find((row) => row.requestId === requestId);
+  if (request === undefined) return null;
+  return acceptedMatchOf(request, (matches.data ?? []).map(matchOf));
+}
+
+/** 요청에서 난 소식 — 누르면 인연 탭으로 간다. 성립 소식만 그 인연 궁합으로 간다(`destinationFor`) */
 const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
   'request_received',
   'request_accepted',
@@ -132,14 +150,18 @@ const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
  * **주소를 지어 내지 않는다.** 대상을 못 알아보면 `null` 이고, 그때 알림은 글자로만
  * 선다 — 눌러도 아무것도 없는 줄을 만들지 않는다.
  *
- * 요청의 소식은 **인연 탭**으로 간다(ADR 0130) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. 성립한 요청도
- * 그렇다 — 결과 화면은 풀이 목록이 든다(소식 화면에 Match 로 가는 길을 따로 세우지 않는다, `check-match` 7).
+ * 요청의 소식은 **인연 탭**으로 간다(ADR 0130) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. **성립 소식만 그 인연 궁합으로
+ * 간다**(ADR 0130 「2026-10-11」) — 문장이 「인연 궁합이 열렸어요」다. 소식 줄의 Match 는 지금 볼 수 있는 것뿐이라
+ * (`visible_notifications` 가 `visible_matches` 로 거른다) 이 링크는 404 로 떨어지지 않는다. Match 가 없는 옛 줄은 인연 탭이다.
  */
 function destinationFor(
   kind: NotificationKind,
   readingKind: ReadingKind | null,
   row: NotificationRow,
 ): string | null {
+  if (kind === 'request_accepted' && row.match_id !== null) {
+    return withCameFrom(`/me/match/${row.match_id}`, 'news');
+  }
   if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
   if (kind !== 'reading_failed' && kind !== 'reading_ready') return null;
 
