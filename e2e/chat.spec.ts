@@ -172,7 +172,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       .locator('a[aria-current="page"]');
 
     await a.page.goto(room);
-    await a.page.getByRole('link', { name: /인연 궁합/ }).filter({ visible: true }).first().click();
+    /* 머리의 사진 · 이름이 그 길이다 — 폰에도 넓은 화면에도 선다(ADR 0155 덧) */
+    await a.page.getByRole('link', { name: `나${tag} 님과의 인연 궁합`, exact: true }).click();
     await expect(a.page).toHaveURL(new RegExp(`/me/match/${matchId}\\?from=chat$`));
     /* 제목이 상대를 부른다(화면 점검 C12) */
     await expect(a.page.getByRole('heading', { name: `나${tag} 님과의 인연 궁합`, exact: true })).toBeVisible();
@@ -344,6 +345,46 @@ test.describe('매칭된 한 쌍의 채팅', () => {
   });
 
   /** 화면 자판에는 Shift 가 없다 — 손가락으로만 쓰는 기기에서 Enter 는 줄바꿈이고 보내기는 단추로만 한다(카카오톡과 같다, `composer.tsx`) */
+  test('쓰던 글은 신고 판을 열었다 닫아도 · 다른 화면에 다녀와도 칸에 남고, 보내면 사라진다', async ({ openAs }) => {
+    const { a, room } = await pair(openAs);
+    await a.page.goto(room);
+    const field = a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
+    const draft = '쓰다 만 글';
+    await field.fill(draft);
+
+    await openRoomMenu(a);
+    await a.page.getByRole('button', { name: '신고', exact: true }).click();
+    await expect(field).toHaveCount(0);
+    await a.page.getByRole('button', { name: '작성 그만두기', exact: true }).click();
+    await expect(field).toHaveValue(draft);
+
+    await a.page.goto('/me/chat');
+    await a.page.goto(room);
+    await expect(field).toHaveValue(draft);
+
+    await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+    await expect(talkOf(a).getByText(draft)).toBeVisible();
+    await a.page.reload();
+    await expect(field).toHaveValue('');
+  });
+
+  test('받은 말의 http · https 주소만 새 탭으로 여는 링크다', async ({ openAs }) => {
+    const { a, b, room } = await pair(openAs);
+    await b.page.goto(room);
+    const body = '여기 https://example.com/a?b=1 봐요 javascript:alert(1)';
+    await b.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(body);
+    await b.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
+    await expect(talkOf(b).getByText(/여기/)).toBeVisible();
+
+    await a.page.goto(room);
+    const link = talkOf(a).getByRole('link', { name: 'https://example.com/a?b=1', exact: true });
+    await expect(link).toHaveAttribute('href', 'https://example.com/a?b=1');
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow');
+    await expect(talkOf(a).getByRole('link', { name: /javascript/ })).toHaveCount(0);
+    await expect(talkOf(a).getByText('봐요 javascript:alert(1)')).toBeVisible();
+  });
+
   test('손가락 기기에서 Enter 는 줄을 바꾸고, 키보드 기기에서는 보낸다', async ({ openAs }) => {
     const { a, tag, room } = await pair(openAs);
     await a.page.goto(room);
@@ -408,8 +449,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(report).toBeVisible();
     await expect(block).toBeVisible();
 
-    // 바깥을 누르면 닫힌다
-    await a.page.getByRole('heading', { level: 1 }).click();
+    // 바깥을 누르면 닫힌다 — 머리의 이름은 인연 궁합으로 가는 링크라 대화 칸을 누른다
+    await talkOf(a).click();
     await expect(report).toBeHidden();
 
     // Esc 를 누르면 닫히고, 판 안에 있던 초점이 여는 자리로 돌아온다
