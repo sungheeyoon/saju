@@ -7,12 +7,12 @@ import { CALENDAR_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { dbFailure } from '../../db-error';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { storedInputsOf } from '../person-input';
-import { managedEdges, personSlotsFrom } from '../../person-slots';
+import { managedEdges } from '../../person-slots';
+import { myPeople, type MyEdge } from '../home/circle';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { readingHref } from '../reading/line';
 import { runningReadings } from '../home/running';
@@ -66,24 +66,17 @@ export default async function PeoplePage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { state }, { data: edges, error: edgesError }, made, runningRead] = await Promise.all([
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    supabase.rpc('my_person_slots'),
-    readAccount(supabase),
+  const [mine, { state }, made, runningRead] = await Promise.all([
     /*
-      정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
+      엣지와 자리 수는 「내 사람」 문이 읽는다 — 못 읽은 엣지는 던진다(ADR 0078): 목록이 이 화면의 본체라, 빈 목록으로
+      세우면 내 사람들이 지워진 것으로 읽힌다. 자리 수는 **DB 가 센다**.
 
-      **목록에 서는 사람만 읽는다**(`listed`). 궁합만 보려고 만든 사람도 내 엣지이지만
+      **목록에 서는 사람만 쓴다**(`listed`). 궁합만 보려고 만든 사람도 내 엣지이지만
       사용자가 저장한 적 없는 사람이고, 그 사람이 여기 서면 「내가 등록한 적 없는 것이
       목록에 있다」가 된다. 그 궁합은 풀이 목록에 선다.
     */
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    supabase
-      .from('user_person_access')
-      .select('person_id, local_label, note')
-      .eq('listed', true)
-      .order('created_at', { ascending: true }),
+    myPeople(supabase),
+    readAccount(supabase),
     /*
       **풀이는 카드마다 묻지 않는다.** 사람 열이면 열 번 묻게 되고, 그 열 번이 같은
       한 표를 본다. 목록 화면이 이미 쓰는 한 번(`my_readings`)으로 전부 덮는다 —
@@ -93,8 +86,6 @@ export default async function PeoplePage() {
     /* 만드는 중인 풀이 — 부속 정보다. 못 읽으면 단추는 「받기」로 선다(ADR 0157 · 0078) */
     runningReadings(),
   ]);
-  /* 목록이 이 화면의 본체다 — 못 읽은 것을 빈 목록으로 세우면 내 사람들이 지워진 것으로 읽힌다(ADR 0078) */
-  if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
 
   const selfPersonId = selfPersonIdOf(state);
   const making = makingPeopleOf(runningRead.ok ? runningRead.value : []);
@@ -124,12 +115,12 @@ export default async function PeoplePage() {
    * 없다」가 같은 화면이면 사용자는 자기 자료가 지워진 줄 안다. 그래서 여기서 한 번 더
    * 말한다 — 막는 것은 정책이고, 화면은 그 사실을 옮기기만 한다.
    */
-  const slots = personSlotsFrom(slotRow.data, slotRow.error);
+  const slots = mine.slots;
 
   const blocked = isBlocked(state);
 
   /** 온보딩이면 `null` 이고, 그때는 뺄 자기 것이 없다 — 목록은 그대로 선다 */
-  const managed = managedEdges(edges, selfPersonId ?? undefined);
+  const managed = managedEdges(mine.listed, selfPersonId ?? undefined);
   const people = blocked ? [] : await peopleWithCharts(managed);
 
   return (
@@ -200,7 +191,7 @@ function PeopleList({
     <PeopleFinder
       people={people.map((person) => ({
         personId: person.personId,
-        label: person.local_label,
+        label: person.label,
         card: (
           <PersonCard
             person={person}
@@ -215,16 +206,13 @@ function PeopleList({
   );
 }
 
-type Edge = { person_id: string; local_label: string; note: string | null };
-
 /**
  * 목록 한 사람이 든 것 — 못 읽는 판본이면 **명식 대신 그 사실을 든다.**
  *
  * 「없다」와 「못 읽었다」를 값 옆에 둔다. 기본값으로 메우면 저장할 때 본 사주와
  * 다른 사주가 이 목록에 조용히 선다.
  */
-type Person = Edge & {
-  personId: string;
+type Person = MyEdge & {
   chart: { ok: true; query: Query; saju: Saju } | { ok: false; message: string };
 };
 
@@ -234,26 +222,25 @@ type Person = Edge & {
  * 카드가 다시 `chartOf` 를 부르지 않는 것이 요점이다. 부르면 같은 입력을 두 번 세는
  * 자리가 생기고, 그 둘은 엔진을 고치는 날 갈릴 수 있다.
  */
-async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
+async function peopleWithCharts(edges: readonly MyEdge[]): Promise<Person[]> {
   if (edges.length === 0) return [];
 
   const supabase = await supabaseOnServer();
   const byPerson = await storedInputsOf(
     supabase,
-    edges.map((edge) => edge.person_id),
+    edges.map((edge) => edge.personId),
   );
 
   return edges.map((edge) => {
-    const stored = byPerson.get(edge.person_id);
+    const stored = byPerson.get(edge.personId);
 
     return {
       ...edge,
-      personId: edge.person_id,
       /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다 */
       chart:
         stored === undefined
           ? ({ ok: false, message: '출생 정보를 불러오지 못했어요.' } as const)
-          : storedChartOf(stored, edge.local_label),
+          : storedChartOf(stored, edge.label),
     };
   });
 }
@@ -314,7 +301,7 @@ function PersonCard({
             href={`/me/people/${person.personId}`}
             className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           >
-            {person.local_label}
+            {person.label}
             {/* 사람 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누르면 카드 테가 선다(`LinkPending`) */}
             <LinkPending className={`${LINK_PENDING_RING} rounded-[1.5rem]`} />
           </Link>
@@ -331,7 +318,7 @@ function PersonCard({
 
       {person.chart.ok ? (
         <>
-          <PillarStrip pillars={person.chart.saju.pillars} name={person.local_label} />
+          <PillarStrip pillars={person.chart.saju.pillars} name={person.label} />
           {/* 한 줄 평은 늘 두 줄 높이 — 없거나 짧아도 칸을 비워 둬서 타일끼리 단추 줄이 맞는다. 넘치면 … */}
           <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
             {reading !== null && (
@@ -369,7 +356,7 @@ function PersonCard({
       {/* 못 읽는 입력은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 저장된 입력을 덮어쓴다 */}
       <PersonActions
         personId={person.personId}
-        label={person.local_label}
+        label={person.label}
         note={person.note ?? ''}
         current={person.chart.ok ? person.chart.query : null}
       />

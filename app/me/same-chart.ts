@@ -3,6 +3,7 @@ import type { Query } from '@/src/lib/input/query';
 import { storedChartOf } from '@/src/lib/input/stored';
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
+import { myEdges } from './home/circle';
 import { storedInputsOf } from './person-input';
 
 /**
@@ -75,22 +76,18 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
 
   const supabase = await supabaseOnServer();
 
-  const [{ data: account, error: accountError }, { data: edges, error: edgesError }] = await Promise.all([
+  /* 엣지는 「내 사람」 문이 읽는다 — 못 읽으면 던진다(ADR 0078) */
+  const [{ data: account, error: accountError }, edges] = await Promise.all([
     supabase.from('app_user').select('self_person_id').maybeSingle(),
-    // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
-    supabase
-      .from('user_person_access')
-      .select('person_id, local_label, listed')
-      .order('created_at', { ascending: true }),
+    myEdges(supabase),
   ]);
 
   if (accountError) throw dbFailure(accountError, 'app_user.self_person_id');
-  if (edgesError) throw dbFailure(edgesError, 'user_person_access.same_chart');
-  if (!edges || edges.length === 0) return null;
+  if (edges.length === 0) return null;
 
   const byPerson = await storedInputsOf(
     supabase,
-    edges.map((edge) => edge.person_id as string),
+    edges.map((edge) => edge.personId),
   );
 
   if (byPerson.size === 0) return null;
@@ -106,20 +103,20 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
   let hidden: SameChart | null = null;
 
   for (const edge of edges) {
-    const stored = byPerson.get(edge.person_id as string);
+    const stored = byPerson.get(edge.personId);
     if (stored === undefined) continue;
 
-    const stood = storedChartOf(stored, edge.local_label as string);
+    const stood = storedChartOf(stored, edge.label);
     // 못 읽는 입력은 **견주지 않는다** — 「모른다」이지 「다르다」가 아니다.
     if (!stood.ok) continue;
 
     if (chartFingerprint(stood.saju) !== mine) continue;
 
     const found: SameChart = {
-      personId: edge.person_id as string,
-      label: edge.local_label as string,
-      isSelfPerson: edge.person_id === account?.self_person_id,
-      listed: edge.listed as boolean,
+      personId: edge.personId,
+      label: edge.label,
+      isSelfPerson: edge.personId === account?.self_person_id,
+      listed: edge.listed,
     };
 
     if (found.listed) return found;

@@ -47,9 +47,6 @@ const ALLOWED_LIB_EDGES = new Set([
  * 호출은 표시가 있어도 빨개진다 — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도.
  */
 const SCREEN_DB_CALLS_STILL_THERE = new Set([
-  "app/compat/page.tsx :: supabase.from('user_person_access')",
-  "app/me/people/page.tsx :: supabase.from('user_person_access')",
-  "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
   "app/save-for-reading.tsx :: supabaseInBrowser().rpc('my_person_slots')",
 ]);
 const SCREEN_EXCEPTION = 'eslint-disable-next-line no-restricted-syntax';

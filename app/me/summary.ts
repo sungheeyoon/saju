@@ -5,6 +5,7 @@ import { chartSnapshotOf, type Stem } from '@/src/lib/saju';
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
 import { storedChartOf, type StoredChartResult } from '@/src/lib/input/stored';
+import { myEdge } from './home/circle';
 import { storedInputOf, type InputVersions } from './person-input';
 
 /**
@@ -61,14 +62,10 @@ export async function selfElementSummary(knownSelfPersonId?: string): Promise<Se
     personId = account.self_person_id;
   }
 
-  const [person, { data: edge, error: edgeError }] = await Promise.all([
-    storedInputOf(supabase, personId),
-    supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
-  ]);
-  if (edgeError) throw dbFailure(edgeError, 'user_person_access.self');
-  if (person === null || !edge) return null;
+  const [person, edge] = await Promise.all([storedInputOf(supabase, personId), myEdge(supabase, personId)]);
+  if (person === null || edge === null) return null;
 
-  return selfSummaryOf(personId, storedChartOf(person.input, edge.local_label), person.versions);
+  return selfSummaryOf(personId, storedChartOf(person.input, edge.label), person.versions);
 }
 
 /**

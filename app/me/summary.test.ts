@@ -20,6 +20,8 @@ const chain = (answer: Answer) => {
   const link = {
     select: () => link,
     eq: () => link,
+    /* 엣지는 「내 사람」 문이 통째로 읽는다(`myEdges`) */
+    order: async () => answer,
     maybeSingle: async () => answer,
   };
   return link;
@@ -47,7 +49,7 @@ beforeEach(() => vi.mocked(supabaseOnServer).mockReset());
 
 describe('내 오행 요약', () => {
   it('계정 · 엣지 · 입력을 읽으면 요약을 낸다', async () => {
-    answering({ app_user: OK({ self_person_id: 'p-1' }), person: OK(PERSON), user_person_access: OK({ local_label: '나' }) });
+    answering({ app_user: OK({ self_person_id: 'p-1' }), person: OK(PERSON), user_person_access: OK([{ person_id: 'p-1', local_label: '나', note: null, listed: false }]) });
 
     expect((await selfElementSummary())?.personId).toBe('p-1');
   });

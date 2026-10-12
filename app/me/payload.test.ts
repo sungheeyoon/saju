@@ -19,6 +19,8 @@ const chain = (answer: Answer) => {
   const link = {
     select: () => link,
     eq: () => link,
+    /* 엣지는 「내 사람」 문이 통째로 읽는다(`myEdges`) */
+    order: async () => answer,
     maybeSingle: async () => answer,
   };
   return link;
@@ -48,7 +50,7 @@ beforeEach(() => vi.mocked(supabaseOnServer).mockReset());
 
 describe('한 사람의 payload', () => {
   it('엣지가 없으면 null 이다 — 없는 것과 못 보는 것을 안 가른다', async () => {
-    answering({ person: OK(PERSON), user_person_access: OK(null) });
+    answering({ person: OK(PERSON), user_person_access: OK([]) });
 
     expect(await payloadForViewer(ID)).toBeNull();
   });
