@@ -111,6 +111,7 @@
 | `app/ui` → 문 · 액션 · 클라이언트 · `@supabase` | — | `app` 안에서는 `app/ui` 만 |
 | `'use client'` 파일에서 값으로 닿는 모듈에 풀이 입구(`src/lib/reading/index`)와 프롬프트 원문(`prompt`), 열쇠(`app/keyed-client.ts` · `app/me/keyed-chart-writes.ts`) | — | `app/` 의 `'use client'` 전부를 뿌리로 값 import 를 따라간다(타입만 부르면 안 따라가고, `'use server'` 에서 멈춘다). 닿으면 그 길을 보여 준다. 클라이언트는 잎(`reading/notes` · `feedback` · `policy`)을 부른다 |
 | 열쇠(`app/keyed-client.ts`)를 부르는 파일 | `no-restricted-imports` — `KEY_HOLDERS` 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가, 풀에 오르는 값을 쓰는 문 넷의 `.rpc()` 가 `app/me/keyed-chart-writes.ts` 밖에 없는가, 그 모듈이 넷 밖을 안 부르고 사람 id 를 인자로 안 받는가(ADR 0136). 로그인 전 사주 문단의 문 일곱도 같은 꼴로 제 모듈(`app/keyed-taste.ts` · `app/me/keyed-taste-claims.ts`)에서만(ADR 0143) |
+| 모델 SDK(`ai` · `openai` · `@ai-sdk/*`)를 부르는 `app` 파일 | `no-restricted-imports` — `MODEL_HOLDERS`(`app/me/reading/model.ts`) 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가(ADR 0047) |
 | `src/lib` 이 DB 함수를 이름으로 든다 | — | 호출 인자의 문자열이 생성된 `Functions` 의 키면 빨개진다(`*.live.test.ts` 제외). 표 이름은 도메인 낱말과 겹쳐 안 본다 |
 
 **보장하는 것은 여기까지다** — 역방향 import 와 화면 안의 새 DB 호출을 막는다. 아래는 **안**
