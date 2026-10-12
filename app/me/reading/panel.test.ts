@@ -51,11 +51,23 @@ describe('만드는 버튼이 서는 자리와 닫히는 자리', () => {
    * 닫지 않는다 — 그 사람이 누르면 DB 가 이유를 붙여 답하고, 그 이유는 이 화면이
    * 대신 말해 줄 수 없다(다른 대상을 만들고 있을 수도 있다).
    */
-  it('남은 자리가 없어도 잡고 있는 자리가 있으면 안 닫는다', () => {
-    expect(panelChrome(view({ credits: credits({ available: 0 }) })).makeDisabled).toBe(true);
-    expect(
-      panelChrome(view({ credits: credits({ available: 0, reserved: 1 }) })).makeDisabled,
-    ).toBe(false);
+  it('남은 자리가 없어도 잡고 있는 자리가 있으면 만들기 그대로다', () => {
+    const waiting = panelChrome(view({ credits: credits({ available: 0, reserved: 1 }) }));
+    expect(waiting.makeDisabled).toBe(false);
+    expect(waiting.buysCredits).toBe(false);
+    expect(waiting.makeLabel).toBe('사주풀이 받기');
+  });
+
+  /** 닫힌 단추는 누른 사람에게 아무 말도 안 했다 — 다 썼으면 누를 수 있고 누르면 풀이권 창이다(만들기 요청은 안 나간다) */
+  it('풀이권을 다 썼으면 버튼은 열린 채 풀이권 창을 연다', () => {
+    const spent = panelChrome(view({ credits: credits({ available: 0 }) }));
+    expect(spent.makeDisabled).toBe(false);
+    expect(spent.buysCredits).toBe(true);
+    expect(spent.makeLabel).toBe('사주풀이 받기');
+  });
+
+  it('만드는 중에는 다 썼어도 구매 길이 아니다', () => {
+    expect(panelChrome(view({ credits: credits({ available: 0 }), loading: true })).buysCredits).toBe(false);
   });
 
   /** 못 물은 숫자로 버튼을 닫지 않는다 — 모르는 것은 막는 근거가 아니다 */

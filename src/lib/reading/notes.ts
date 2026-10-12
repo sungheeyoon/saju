@@ -180,16 +180,11 @@ export const READING_ALREADY_RUNNING_NOTE =
  * 모델의 토큰과 같은 낱말이 되면 사용자는 글자 수를 세는 무언가로 읽고, 긴 풀이가
  * 더 비싸다고 믿게 된다. 여기서 세는 것은 **만드는 횟수** 하나뿐이다.
  *
- * 숫자만 세운다. 「5번 중 3번」은 남은 것과 준 것을 함께 보여 주므로, 사용자가 자기가
- * 얼마나 썼는지를 따로 세지 않아도 된다.
+ * **남은 수만 세운다**(「풀이권 3개」 — 운영자 결정 2026-10-12, 대장 credits-04). 폰 폭의 머리글은 표 그림만 보이고 이 글자는 칸의 이름이다. 한도는 무료 몫 · 예외 ·
+ * 산 묶음을 더한 값이라(ADR 0106) 사면 늘어나고, 「몇 번 중」은 그때 뜻을 잃는다. 0개도 「풀이권 0개」로 선다 — 그 칸은 누르면
+ * 구매 길이다(`useBuyCredits`).
  */
-export const readingCreditsLabel = ({
-  limit,
-  available,
-}: {
-  limit: number;
-  available: number;
-}): string => `풀이권 ${limit}번 중 ${available}번 남음`;
+export const readingCreditsLabel = ({ available }: { available: number }): string => `풀이권 ${available}개`;
 
 /**
  * 숫자 옆에 붙는 한 줄 — **없을 때가 기본이다.**
@@ -206,7 +201,7 @@ export const readingCreditsLabel = ({
  *
  * 「새로 만들 수는 없지만 이미 만든 풀이는 언제든 다시 볼 수 있어요」가 서 있었다. 다시
  * 보기가 닫힌 적이 한 번도 없으므로 **그 자리에서 새로 알려 주는 것이 없다** — 잔액은
- * 머리글이 이미 들고 있고, 못 누른다는 것은 닫힌 버튼이 말한다.
+ * 머리글이 이미 들고 있고, 다 쓴 사람이 만드는 단추를 누르면 풀이권 창(「보유 풀이권 0개」)이 열린다.
  *
  * 그래서 이 함수는 **잔액을 묻지 않는다.** 남은 갈래는 자리를 잡고 있는 둘뿐이다.
  *
@@ -245,3 +240,20 @@ export const readingCreditsNote = ({
  */
 export const REQUEST_RESERVES_NOTE =
   '요청을 보내면 풀이권 1회가 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
+
+/**
+ * 풀이권 구매 안내 — 머리글은 펼침 메뉴, 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)은 부족 창이다(운영자 결정 2026-10-12, 대장 credits-06).
+ * 판매가 열린 계정은 「풀이권 구매」 · 「닫기」, 닫힌 계정은 한 줄과 「확인」 하나다. 알림을 보낼 수단이 없어 「판매가
+ * 열리면 알려 드릴게요」는 약속하지 않는다.
+ */
+export const creditsHeldTitle = (available: number): string => `보유 풀이권 ${available}개`;
+export const BUY_CREDITS_LABEL = '풀이권 구매';
+export const CREDITS_DIALOG_CLOSE = '닫기';
+export const SALE_CLOSED_NOTE = '지금은 비공개 베타라 풀이권을 구매할 수 없어요.';
+export const SALE_CLOSED_OK = '확인';
+/** 상단 펼침 메뉴 · 부족 창의 B안 문구(운영자 승인 2026-10-12, 대장 credits-06). */
+export const CREDITS_USAGE_NOTE = '사주풀이와 궁합풀이에 사용할 수 있어요.';
+export const CREDITS_USAGE_RATE = '풀이 1회당 풀이권 1개';
+export const CREDITS_SHORTAGE_TITLE = '풀이권이 부족해요';
+export const CREDITS_AVAILABLE_LABEL = '보유 풀이권';
+export const CREDITS_REQUIRED_LABEL = '필요 풀이권';

@@ -154,8 +154,9 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           </li>
           <li>구매 전 무료 풀이권으로 풀이 한 편을 먼저 받아 볼 수 있습니다.</li>
           <li>
-            유료 풀이권은 구매일로부터 {READING_BUNDLE_VALID_YEARS}년, 무료로 받은 풀이권은 받은 날로부터 1년이 지나면
-            소멸됩니다.
+            {/* 시행일 전에 받은 몫은 시행일부터 센다 — 약관 제13조⑦ · 환불정책과 같은 기준(ADR 0173 추기) */}
+            유료 풀이권은 구매일로부터 {READING_BUNDLE_VALID_YEARS}년, 무료로 받은 풀이권은 받은 날(약관 시행일 전에 받은 풀이권은
+            시행일)로부터 1년이 지나면 소멸됩니다.
           </li>
         </ul>
         <Link href="/refund" className={`${BUTTON_TERTIARY} self-start text-[12px] font-medium text-secondary`}>

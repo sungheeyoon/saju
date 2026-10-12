@@ -17,7 +17,9 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
 import { ROW_CARD, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
-import { announceIfMoved } from '../reading/credits-signal';
+import { outOfCreditsNow } from '../credits/asked-on-press';
+import { useBuyCredits } from '../credits/buy-credits';
+import { announceCreditsMoved, announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
@@ -110,6 +112,30 @@ export function MatchingExperience({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 요청 확인 창이 열렸나 */
   const [asking, setAsking] = useState(false);
+  const buy = useBuyCredits();
+  const [checkingCredits, setCheckingCredits] = useState(false);
+
+  /**
+   * 하트 — **풀이권이 0개면 요청 확인 창 대신 풀이권 창이다**(`useBuyCredits`). 요청 한 건이 풀이권 한 번을 잡으므로(ADR 0038) 0개인
+   * 사람의 요청은 DB 가 거절한다 — 그 거절을 받으러 확인 창을 지나게 하지 않는다. 잔액은 누를 때 머리글과 같은 문으로 묻는다 —
+   * 화면을 그릴 때 묻지 않는다. 못 물었으면 확인 창이고 DB 가 판정한다.
+   */
+  function askToRequest() {
+    if (checkingCredits) return;
+    setCheckingCredits(true);
+    void (async () => {
+      let spent = false;
+      try {
+        spent = await outOfCreditsNow();
+      } catch {
+        /* 부름이 던졌다(망) — 확인 창으로 간다. 요청을 보내면 DB 가 판정한다 */
+      } finally {
+        setCheckingCredits(false);
+      }
+      if (spent) buy.offer(0, 'request');
+      else setAsking(true);
+    })();
+  }
   const sheet = useRef<HTMLDialogElement>(null);
   const profile = deck.remaining[0];
 
@@ -198,6 +224,8 @@ export function MatchingExperience({
       try {
         const result = await requestMatch(sending.candidateUserId);
         announceIfMoved(result);
+        /* 잔액을 본 뒤 그 사이 다른 탭에서 마지막 풀이권을 썼다 — 오류 줄 대신 풀이권 창(ADR 0171 「덧」) */
+        if (!result.ok && 'outOfCredits' in result) { announceCreditsMoved(); buy.offer(0, 'request'); return; }
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
@@ -407,7 +435,7 @@ export function MatchingExperience({
               actions={{
                 undo,
                 pass,
-                request: () => setAsking(true),
+                request: askToRequest,
                 canUndo: !!hidden && !working && exit !== 'right',
                 busy: !!exit || working,
               }}
@@ -505,6 +533,7 @@ export function MatchingExperience({
           <p>{REQUEST_OPENS_CHAT_NOTE}</p>
         </ConfirmDialog>
       )}
+      {buy.notice}
     </main>
   );
 }

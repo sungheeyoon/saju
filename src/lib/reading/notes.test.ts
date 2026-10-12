@@ -81,7 +81,7 @@ describe('풀이권 문구', () => {
    * 비싸다고 읽힌다 — 여기서 세는 것은 만드는 횟수 하나뿐이다.
    */
   it('모델의 낱말을 빌려 쓰지 않는다', () => {
-    const label = readingCreditsLabel({ limit: 5, available: 3 });
+    const label = readingCreditsLabel({ available: 3 });
 
     for (const borrowed of ['토큰', '크레딧', '포인트', 'token']) {
       expect(label, borrowed).not.toContain(borrowed);
@@ -89,15 +89,14 @@ describe('풀이권 문구', () => {
     expect(label).toContain('풀이권');
   });
 
-  /** 준 것과 남은 것을 함께 세운다 — 얼마나 썼는지를 사용자가 따로 세지 않게 */
-  it('준 것과 남은 것을 함께 말한다', () => {
-    expect(readingCreditsLabel({ limit: 5, available: 3 })).toBe('풀이권 5번 중 3번 남음');
-    expect(readingCreditsLabel({ limit: 5, available: 0 })).toBe('풀이권 5번 중 0번 남음');
+  /** 한도는 사면 늘어나는 값이라(ADR 0106) 「몇 번 중」은 뜻을 잃는다 — 남은 수만 센다 */
+  it('남은 수만 말한다', () => {
+    expect(readingCreditsLabel({ available: 3 })).toBe('풀이권 3개');
   });
 
-  /** 값에서 짓는다 — 손으로 적었다면 상한을 옮겨도 문구가 안 따라온다 */
-  it('상한이 바뀌면 문구도 바뀐다', () => {
-    expect(readingCreditsLabel({ limit: 10, available: 3 })).toContain('10번 중');
+  /** 0개도 선다 — 그 칸은 누르면 구매 길이다 */
+  it('0개도 「풀이권 0개」로 선다', () => {
+    expect(readingCreditsLabel({ available: 0 })).toBe('풀이권 0개');
   });
 
   /**
@@ -106,7 +105,7 @@ describe('풀이권 문구', () => {
    *
    * **다 썼을 때도 마찬가지다.** 한동안 「새로 만들 수는 없지만 이미 만든 풀이는 언제든
    * 다시 볼 수 있어요」가 섰다. 다시 보기가 닫힌 적이 한 번도 없어서 그 줄이 새로 알려
-   * 주는 것이 없었다 — 잔액은 머리글이 들고, 못 누른다는 것은 닫힌 버튼이 말한다.
+   * 주는 것이 없었다 — 잔액은 머리글이 들고, 다 쓴 사람이 누르면 풀이권 창이 열린다.
    * 그래서 이 함수는 이제 잔액을 묻지 않고, 갈래가 도는 시도 하나뿐이다.
    */
   it('평소에는 아무 말도 하지 않는다', () => {

@@ -14,7 +14,7 @@ vi.mock('../../keyed-client', () => ({ keyedClient: () => ({ rpc: async () => ({
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { selfElementSummary } from '../summary';
-import { passCandidate, restorePassed, savePreferGender, setDiscoveryParticipation } from './actions';
+import { passCandidate, requestMatch, restorePassed, savePreferGender, setDiscoveryParticipation } from './actions';
 
 /**
  * **처음인지를 못 읽었으면 저장하지 않고 값으로 말한다**(ADR 0078).
@@ -105,5 +105,29 @@ describe('덱에서 지나치기', () => {
   it('지나치면 지금 화면을 다시 그리고 경로는 무르지 않는다', async () => {
     expect(await passCandidate('someone')).toEqual({ ok: true });
     expect(cacheCalls).toEqual(['refresh']);
+  });
+});
+
+/**
+ * **잔액을 본 뒤 그 사이 풀이권이 바닥났으면** 요청 문이 잔액으로 막는다 — 화면이 오류 줄 대신 풀이권 창을 열 수 있게 그 거절에 표를 단다
+ * (ADR 0171 「덧」). 같은 코드의 다른 거절에는 안 단다.
+ */
+describe('인연 요청이 풀이권으로 막힌 거절', () => {
+  const refusing = (error: { code: string; message: string }) =>
+    vi.mocked(supabaseOnServer).mockResolvedValue({ rpc: async () => ({ data: null, error }) } as never);
+
+  it('풀이권이 없어 막혔으면 문장과 함께 outOfCredits 를 단다', async () => {
+    const message = '풀이권이 없어 요청할 수 없습니다. 요청 한 건이 풀이권 한 번을 잡고, 동의가 나면 그 한 번으로 궁합 풀이가 만들어집니다.';
+    refusing({ code: '23514', message });
+
+    expect(await requestMatch('c-1')).toEqual({ ok: false, message, outOfCredits: true });
+  });
+
+  it('같은 코드의 다른 거절은 문장만 낸다', async () => {
+    refusing({ code: '23514', message: '이미 요청을 보냈어요.' });
+
+    const answer = await requestMatch('c-1');
+    expect(answer.ok).toBe(false);
+    expect('outOfCredits' in answer).toBe(false);
   });
 });

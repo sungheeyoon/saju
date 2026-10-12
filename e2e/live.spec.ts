@@ -285,7 +285,7 @@ test.describe('앱이 스스로 갱신된다', () => {
     const before = await a.api.rpc('my_reading_credits');
     const row = before.data?.[0];
     if (!row) throw new Error('풀이권을 못 읽었습니다');
-    await expect(a.page.getByText(readingCreditsLabel({ limit: row.credit_limit, available: row.available }))).toBeVisible();
+    await expect(a.page.getByRole('banner').getByLabel(readingCreditsLabel({ available: row.available }), { exact: true })).toBeVisible();
 
     // 풀이 하나를 열면 풀이권 한 자리를 잡는다 — 다른 탭(여기서는 문)에서 연다. 모델은 안 부른다(열쇠가 없다)
     const started = await a.api.rpc('start_reading_run', {
@@ -297,7 +297,7 @@ test.describe('앱이 스스로 갱신된다', () => {
     });
     if (started.error) throw new Error(`풀이를 못 열었습니다 — ${started.error.message}`);
     await expect(
-      a.page.getByText(readingCreditsLabel({ limit: row.credit_limit, available: row.available - 1 })),
+      a.page.getByRole('banner').getByLabel(readingCreditsLabel({ available: row.available - 1 }), { exact: true }),
     ).toBeVisible({ timeout: WITHIN_MS + 1_000 });
   });
 

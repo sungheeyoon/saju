@@ -14,6 +14,7 @@ import { supabaseInBrowser } from './auth/browser-client';
 import { lightOf, placeOf, resultKindOf } from './came-from';
 import { useBrowserSession } from './auth/browser-session';
 import { useSignOut } from './auth/sign-out';
+import { CreditsMenu } from './me/credits/credits-menu';
 import { readUnreadChat } from './me/chat/unread';
 import { CHAT_UNREAD_MOVED } from './me/chat/unread-signal';
 import { readReadingCredits } from './me/reading/credits';
@@ -139,7 +140,7 @@ export function SiteHeader() {
   const memberNavigation = !shared && !operator && (protectedPath || session === 'in');
   const live = memberNavigation && !ended;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
-  const creditsLabel = useReadingCredits(session === 'in' && !ended && !operator);
+  const creditsLeft = useReadingCredits(session === 'in' && !ended && !operator);
   /**
    * **수는 세션을 확인한 뒤에만 묻는다**(G-78). 회원 화면 주소에서는 세션을 알기 전에도 회원 머리글이 자리를 잡는데(`live`),
    * 그 자리가 묻기까지 하면 로그인하지 않은 사람이 로그인으로 옮겨지기 전에 세 문을 비회원으로 불러 401 · `42501` 이 콘솔에
@@ -225,7 +226,7 @@ export function SiteHeader() {
                 **세션을 확인한 뒤에만 세운다.** 풀이권은 이 글의 성질이 아니라 **계정의 성질**이라 계정이
                 사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.
               */}
-              {creditsLabel !== null && <Credits label={creditsLabel} />}
+              {creditsLeft !== null && <Credits available={creditsLeft} />}
               {live && (
                 <WithCameFrom
                   render={(from) => (
@@ -264,8 +265,8 @@ export function SiteHeader() {
  *
  * 「—」이나 「불러오는 중」을 세우면 사용자가 있지도 않은 숫자를 세어 보게 된다.
  */
-function useReadingCredits(enabled: boolean): string | null {
-  const [label, setLabel] = useState<string | null>(null);
+function useReadingCredits(enabled: boolean): number | null {
+  const [available, setAvailable] = useState<number | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -276,14 +277,7 @@ function useReadingCredits(enabled: boolean): string | null {
       const credits = await readReadingCredits(supabaseInBrowser());
       if (!watching) return;
 
-      setLabel(
-        credits.ok && credits.value !== null
-          ? readingCreditsLabel({
-              limit: credits.value.limit,
-              available: credits.value.available,
-            })
-          : null,
-      );
+      setAvailable(credits.ok && credits.value !== null ? credits.value.available : null);
     };
 
     void read();
@@ -295,7 +289,7 @@ function useReadingCredits(enabled: boolean): string | null {
     };
   }, [enabled]);
 
-  return enabled ? label : null;
+  return enabled ? available : null;
 }
 
 /**
@@ -348,12 +342,18 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
   );
 }
 
-function Credits({ label }: { label: string }) {
+/** 상단 잔액은 설정처럼 펼친다(B안, 운영자 2026-10-12). 폰은 표 그림, 넓은 폭은 잔액 알약이다. */
+function Credits({ available }: { available: number }) {
+  const label = readingCreditsLabel({ available });
   return (
-    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border">
-      <Icon name="ticket" className="hidden size-4 md:block" />
-      <span>{label}</span>
-    </span>
+    <CreditsMenu
+      available={available}
+      label={label}
+      className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cream text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-95 sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:px-3 sm:text-[12px] sm:font-semibold sm:tabular-nums sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1"
+    >
+      <Icon name="ticket" className="size-5 sm:size-4" />
+      <span aria-hidden="true" className="hidden translate-y-[0.625px] sm:inline">{label}</span>
+    </CreditsMenu>
   );
 }
 
