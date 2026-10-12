@@ -347,8 +347,9 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
  * 판매가 열린 계정에게만 「풀이권 구매」를 세운다.
  *
  * **폰 폭은 표 그림 + 숫자, 넓은 폭은 표 그림 + 「풀이권 N개」**(운영자 결정 2026-10-12 — 운세 앱의 꼴). 남은 수만 센다 — 한도는 사면
- * 늘어나 「몇 번 중」이 뜻을 잃는다(ADR 0106). 0개면 0 이 선다. 판 · 테 · 높이(44px) · 그림 크기는 옆의 종 · 톱니(`ICON_BUTTON`)와
- * 같은 한 벌이고 칸 전체가 누름 자리다. 이름은 늘 「풀이권 N개」다(`aria-label`).
+ * 늘어나 「몇 번 중」이 뜻을 잃는다(ADR 0106). 0개면 0 이 선다. **색은 이 칸만의 살구빛 알약이다**(`bg-cream` · `text-cream-ink`, 운영자
+ * 2026-10-12 — 종 · 톱니의 무채 원으로 바꿨다가 되살렸다). 알약은 36px 이고 누르는 자리는 위아래로 4px 씩 내민 덮개(`after:`)까지 44px 다.
+ * 이름은 늘 「풀이권 N개」다(`aria-label`).
  */
 function Credits({ available }: { available: number }) {
   const { offer, checking, notice } = useBuyCredits();
@@ -360,9 +361,9 @@ function Credits({ available }: { available: number }) {
         onClick={() => offer(available)}
         aria-busy={checking}
         aria-label={label}
-        className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-surface px-3 text-[14px] font-semibold tabular-nums text-foreground ring-1 ring-border hover:ring-border-strong active:scale-95"
+        className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border after:absolute after:inset-x-0 after:-inset-y-1 hover:ring-border-strong active:scale-95"
       >
-        <Icon name="ticket" />
+        <Icon name="ticket" className="size-4" />
         <span aria-hidden="true" className="sm:hidden">{available}</span>
         <span aria-hidden="true" className="hidden sm:inline">{label}</span>
       </button>
