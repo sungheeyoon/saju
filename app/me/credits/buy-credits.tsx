@@ -72,8 +72,8 @@ export function useBuyCredits(): {
       cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
     >
       <dl className="space-y-2">
-        <div className="flex justify-between gap-4"><dt>{CREDITS_AVAILABLE_LABEL}</dt><dd className="font-semibold tabular-nums">{shown?.available ?? 0}개</dd></div>
-        <div className="flex justify-between gap-4"><dt>{CREDITS_REQUIRED_LABEL}</dt><dd className="font-semibold tabular-nums">1개</dd></div>
+        <div className="flex justify-between gap-4"><dt>{CREDITS_AVAILABLE_LABEL}</dt><dd className="font-semibold tabular-nums">{shown?.available ?? 0}장</dd></div>
+        <div className="flex justify-between gap-4"><dt>{CREDITS_REQUIRED_LABEL}</dt><dd className="font-semibold tabular-nums">1장</dd></div>
       </dl>
       {!open && <p>{SALE_CLOSED_NOTE}</p>}
     </ConfirmDialog>

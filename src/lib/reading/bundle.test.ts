@@ -49,9 +49,9 @@ describe('상품 화면의 판단', () => {
     expect(READING_BUNDLES.map((b) => bundleMark(b.credits))).toEqual([null, null, '추천', '최대 할인']);
   });
 
-  it('상품 이름은 회차를 말하고 시험 표식 · 0원이 없다 — 카드사 심사가 반려하는 꼴', () => {
+  it('상품 이름은 장수를 말하고 시험 표식 · 0원이 없다 — 카드사 심사가 반려하는 꼴', () => {
     for (const b of READING_BUNDLES) {
-      expect(bundleOrderName(b.credits)).toBe(`풀이권 ${b.credits}회`);
+      expect(bundleOrderName(b.credits)).toBe(`풀이권 ${b.credits}장`);
       expect(bundleOrderName(b.credits)).not.toMatch(/test/i);
       expect(b.price).toBeGreaterThan(0);
     }

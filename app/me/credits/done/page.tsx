@@ -26,7 +26,7 @@ type Outcome = {
 const OUTCOMES: Record<PaymentOutcome, Outcome> = {
   failed: { title: '결제를 마치지 못했어요', line: () => '다시 시도해 주세요.', again: true },
   missing: { title: '주문을 찾지 못했어요', line: () => '풀이권을 다시 골라 주세요.', again: true },
-  paid: { title: '결제가 완료됐어요', line: (credits) => `풀이권 ${credits}회가 추가됐어요.`, history: true },
+  paid: { title: '결제가 완료됐어요', line: (credits) => `풀이권 ${credits}장이 추가됐어요.`, history: true },
   waiting: { title: '결제를 확인하고 있어요', line: () => '잠시만 기다려 주세요.', wait: true },
 };
 
