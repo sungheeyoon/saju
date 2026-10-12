@@ -3,6 +3,7 @@ import { Gowun_Dodum } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
+import { currentBusinessInfo } from './business-info';
 import { LiveUpdates } from './live/live-updates';
 import { PushOwnerCheck } from './me/push/push-owner';
 import { SiteFooter } from './site-footer';
@@ -100,7 +101,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* 이 브라우저의 푸시 구독이 앞 계정의 것이면 푼다 — 그리는 것은 없다(ADR 0156) */}
         <PushOwnerCheck />
         {children}
-        <SiteFooter />
+        {/* 사업자 정보는 서버에서 환경변수로 읽어 넘긴다 — 바닥글은 클라이언트라 직접 못 읽는다(ADR 0171) */}
+        <SiteFooter business={currentBusinessInfo()} />
       </body>
     </html>
   );
