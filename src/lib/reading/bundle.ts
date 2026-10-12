@@ -50,3 +50,19 @@ export const refundableCredits = (usage: BundleUsage): { refundable: number; wai
   refundable: Math.max(0, usage.credits - usage.refundedCredits - usage.used - usage.reserved),
   waiting: usage.reserved,
 });
+
+/** 파는 묶음 하나 — 목록에 없는 회차 수면 `null`. 주문 금액은 DB 가 정하므로 이 값은 화면이 말할 때만 쓴다 */
+export const readingBundleOf = (credits: number): (typeof READING_BUNDLES)[number] | null =>
+  READING_BUNDLES.find((bundle) => bundle.credits === credits) ?? null;
+
+/**
+ * 묶음에 다는 표시 — 5회는 추천, 20회는 최대 할인(§7.0 표, G-21). 둘은 까닭이 달라 하나씩만 단다.
+ */
+export const bundleMark = (credits: number): '추천' | '최대 할인' | null =>
+  credits === 5 ? '추천' : credits === 20 ? '최대 할인' : null;
+
+/**
+ * 결제창 · 카드 명세에 서는 상품 이름. 카드사 심사는 상품 이름에 「TEST」가 들면 반려하므로 시험 표식을 싣지 않는다
+ * (PortOne 필수 구축요건). PG 이름도 싣지 않는다 — PG 는 아직 안 정했다(G-21).
+ */
+export const bundleOrderName = (credits: number): string => `풀이권 ${credits}회`;

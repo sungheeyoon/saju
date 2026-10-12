@@ -195,6 +195,8 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/push/actions.ts::pushSubscriptionRegistered': '읽기만 한다 — 참·거짓 하나',
     'app/me/chat/actions.ts::reportChatMessage':
       '신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 서버가 그리는 화면이 안 바뀐다. 접수됐다는 말은 누른 자리가 든다',
+    'app/me/credits/actions.ts::openReadingOrder':
+      '대기 주문은 어느 화면에도 안 서고 잔액도 안 바꾼다 — 결제창이 닫히면 결제 뒤 화면이 서버에서 주문을 읽는다(ADR 0171)',
   };
 
   /** `'use server'` 를 든 파일에서 내보낸 액션을 그 몸통과 함께 집어 온다 */
@@ -287,6 +289,8 @@ describe('브라우저가 화면을 다시 읽는 자리', () => {
       '줄이 사라진 것을 본 물음만 — `runningLinesNow` 는 읽기라 안 무르고, 끝난 풀이의 카드 단추 · 받은 사주풀이를 다시 읽어야 한다(ADR 0157)',
     'app/me/chat/[matchId]/room.tsx':
       '보내기가 방이 닫힌 갈래(`closed`)를 받았을 때만(`use-outbox.ts`) — `sendChatMessage` 는 무르지 않으므로 닫힌 까닭을 다시 읽어야 입력 자리에 선다',
+    'app/me/credits/done/wait.tsx':
+      '결제 뒤 화면이 승인을 기다리는 동안만 — 주문을 승인하는 것은 누름이 아니라 웹훅이라 무를 액션이 없다(ADR 0171)',
     'app/me/profile/photo-grid.tsx':
       '거절된 누름만 — 서버가 아무것도 안 무르므로, 다른 탭이 바꾼 목록을 다시 받아 지금 모양을 그린다',
     'app/ui/failure-line.tsx':

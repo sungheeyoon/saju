@@ -96,6 +96,7 @@
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |
 | 사용 이력 | `reading_credit_use` · `operator_reading_refund_basis` · `refundableCredits` | 표 · 함수 · `src/lib/reading` |
+| 심사 계정 | `reading_sale_reviewer` · `reading_sale_is_open_for` · `my_reading_sale_is_open` · `mySaleIsOpen` | 표 · 함수 · `app/me/credits/sale.ts` |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |
 | 운영 베타 | `beta_schedule` · `BetaDates` | 표 · `src/lib/consent` |
 | 테스트 코드 | `signup_code` · `valid_on` · `max_uses` | 표 · 칸 |
