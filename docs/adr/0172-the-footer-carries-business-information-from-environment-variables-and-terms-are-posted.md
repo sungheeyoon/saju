@@ -30,14 +30,14 @@ PG(포트원 필수 구축요건, <https://help.portone.io/content/requirements>
    | `BUSINESS_REPRESENTATIVE` | 대표자 |
    | `BUSINESS_REGISTRATION_NUMBER` | 사업자등록번호(`123-45-67890` 꼴) |
    | `BUSINESS_ADDRESS` | 사업장 주소 |
-   | `BUSINESS_PHONE` | 전화 |
+   | `BUSINESS_PHONE` | 대표전화 |
    | `BUSINESS_EMAIL` | 이메일 |
    | `BUSINESS_MAIL_ORDER_NUMBER` | 통신판매업 신고번호 |
    | `BUSINESS_HOSTING_PROVIDER` | 호스팅서비스 제공자 |
    | `BUSINESS_DISCLOSURE_URL` | 공정위 사업자정보 공개 페이지 주소(https) — 사업자등록번호 곁의 링크 |
 
-3. **값이 빈 칸은 그리지 않는다.** 비었거나, 자리표시(「홍길동」 · 「000-00-00000」 · 「［기입］」)이거나, 꼴이 틀린 번호 · 이메일 ·
-   주소(https 아님)는 빈 값으로 본다(`src/lib/brand/business.ts` 의 `businessInfoFrom`, 시험 `business.test.ts`). 하나도 없으면 묶음째
+3. **값이 빈 칸은 그리지 않는다.** 비었거나, 자리표시(「홍길동」 · 「000-00-00000」 · 「［기입］」)이거나, 꼴이 틀린 사업자등록번호 · 전화 ·
+   이메일 · 공개 페이지 주소(https 아님)는 빈 값으로 본다(`src/lib/brand/business.ts` 의 `businessInfoFrom`, 시험 `business.test.ts`). 하나도 없으면 묶음째
    안 선다 — 값을 넣기 전의 바닥글은 지금과 같다(앱 안은 약관 링크 셋만).
 4. **이용약관은 `/terms`, 환불정책은 `/refund` 다**(처리방침 `/privacy` 를 본떴다). 로그인 없이 열린다 — `proxy.ts` 의 matcher 밖이다.
    글자는 `src/lib/brand/terms.ts` · `refund.ts` 가 들고, 원본은 `docs/legal/terms-draft.md` · `refund-policy.md` 다 — 초안을 고치면
@@ -56,12 +56,10 @@ PG(포트원 필수 구축요건, <https://help.portone.io/content/requirements>
 
 ## 남은 것
 
-- **약관 제30조②(분쟁 조정기관)는 싣지 않았다** — 운영자가 선택지(가 · 나 · 다)를 고르기 전이다(`docs/legal/README.md` 물음 5). 지금
-  글은 「선택지 다」와 같아 보이지만 고른 것이 아니다.
+- **약관 제30조②(분쟁 조정기관)는 운영자가 표준 그대로(옛 선택지 가)를 골랐다**(2026-10-12). 1372 는 싣지 않는다(G-25 ④).
 - 약관 제3조의 호스트서버 소재지 · 개인정보 보호책임자 줄은 환경변수가 없어 싣지 않았다.
 - 값을 넣기 전에 운영자가 사업장 주소(집 · 비상주 사무실)를 정한다. 값은 Vercel Production 에 넣고 다시 배포한다.
-- 화면 문구(칸 이름 · 페이지 제목 · 링크 글자)는 시안이다 — 운영자가 확정하면 문구 대장 `docs/product/copy-ledger/public.md` 에 절을
-  더한다.
+- 화면 문구는 운영자가 승인했다(2026-10-12 — 「대표전화」 · 「사업자 정보 확인」으로 고치고 나머지는 시안 그대로). 대장 `docs/product/copy-ledger/public.md` 의 `public-01`.
 
 ## 치르는 값
 

@@ -5,7 +5,7 @@
  * 않는다** — 저장소가 공개이고 사업장 주소가 아직 운영자의 집이다(ADR 0151 「정한 것」 2). 값은 배포의 환경변수에서 온다
  * (`app/business-info.ts` 가 이름으로 읽어 여기로 넘긴다). 이 모듈은 환경을 모른다 — 받은 값을 고르고 줄로 짓기만 한다.
  *
- * **빈 값은 줄째 안 선다.** 「000-00-00000」 · 「홍길동」 · 「［기입］」 같은 자리표시나 꼴이 틀린 번호 · 이메일 · 주소도 빈 값으로
+ * **빈 값은 줄째 안 선다.** 「000-00-00000」 · 「홍길동」 · 「［기입］」 같은 자리표시나 꼴이 틀린 사업자등록번호 · 전화 · 이메일 · 공개 페이지 주소(https 가 아닌 것)도 빈 값으로
  * 본다 — 화면에 나가면 거짓 표시다.
  */
 export type BusinessInfo = {
@@ -81,14 +81,14 @@ const LABELS: readonly (readonly [Exclude<BusinessKey, 'disclosureUrl'>, string]
   ['representative', '대표자'],
   ['registrationNumber', '사업자등록번호'],
   ['address', '사업장 주소'],
-  ['phone', '전화'],
+  ['phone', '대표전화'],
   ['email', '이메일'],
   ['mailOrderNumber', '통신판매업 신고번호'],
   ['hostingProvider', '호스팅서비스 제공자'],
 ];
 
 /** 사업자등록번호 곁에 서는 공정위 공개 페이지 링크의 글자 */
-export const BUSINESS_DISCLOSURE_LINK = '사업자정보 확인';
+export const BUSINESS_DISCLOSURE_LINK = '사업자 정보 확인';
 
 /** 값이 있는 줄만, 정한 차례로 */
 export function businessInfoLines(info: BusinessInfo): readonly BusinessInfoLine[] {

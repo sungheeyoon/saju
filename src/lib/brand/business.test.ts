@@ -74,13 +74,13 @@ describe('사업자 정보 — 환경변수에서 고른다 (ADR 0172)', () => {
       '대표자',
       '사업자등록번호',
       '사업장 주소',
-      '전화',
+      '대표전화',
       '이메일',
       '통신판매업 신고번호',
       '호스팅서비스 제공자',
     ]);
     expect(businessInfoLines(businessInfoFrom({ phone: '070-0000-1234' }))).toEqual([
-      { key: 'phone', label: '전화', value: '070-0000-1234' },
+      { key: 'phone', label: '대표전화', value: '070-0000-1234' },
     ]);
   });
 
@@ -115,7 +115,7 @@ describe('사업자 정보 묶음의 자리', () => {
   it('약관 제3조는 값이 있는 줄만 든다', () => {
     const terms = termsFor(businessInfoFrom({ tradeName: '시험상호', phone: '070-0000-1234' }), SITE);
     const article3 = terms.parts[0].sections.find((section) => section.title.startsWith('제3조'));
-    expect(article3?.blocks).toContainEqual({ kind: 'bullets', items: ['상호: 시험상호', '전화: 070-0000-1234'] });
+    expect(article3?.blocks).toContainEqual({ kind: 'bullets', items: ['상호: 시험상호', '대표전화: 070-0000-1234'] });
   });
 
   it('환불정책의 판매자 정보는 값이 없으면 절째 안 선다', () => {
