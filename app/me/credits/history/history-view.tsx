@@ -12,7 +12,7 @@ function OrderCard({ order }: { order: PaidOrder }) {
     ...(order.refundedAmount > 0 ? [['환불 금액', won(order.refundedAmount)] as const] : []),
     ['결제 시각', order.paidAt],
     ['유효기간', `${order.validUntil}까지`],
-    ['남은 회차', `${order.remaining}회`],
+    ['남은 풀이권', `${order.remaining}장`],
   ];
   return (
     <li className={`${CARD} flex flex-col gap-3`}>

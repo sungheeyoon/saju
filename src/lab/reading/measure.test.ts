@@ -4,7 +4,7 @@ import {
   CONTROL,
   selfSectionCount,
   type PromptAssembly,
-} from '.';
+} from '@/src/lib/reading';
 import { measureMarkdown, outputDeviations } from './measure';
 import { PROMPT_VARIANTS } from './variants';
 

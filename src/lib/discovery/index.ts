@@ -55,7 +55,7 @@ export type ScorePolicy = (typeof SCORE_POLICIES)[number];
  * 정책 — **축·가중치·탐색 비율·버전을 값으로 선언한다**(`prd-archive`).
  *
  * `v2-beta`(ADR 0113)는 사이로 가른 두 공식이다. 무게는 근거가 아니라 **가설**이다 — 조사가 받친 것은
- * 서열(일주 · 일지 > 필요한 기운 보완 > 오행 균형)이고 수가 아니다. 비교기(`src/lib/matching/formula-comparison`)가
+ * 서열(일주 · 일지 > 필요한 기운 보완 > 오행 균형)이고 수가 아니다. 비교기(`src/lab/matching/formula-comparison`)가
  * 분포를 재고 사후에 고친다.
  *
  * - **연인용** — 일주 · 일지 관계 40 · 필요한 기운 보완(양방향) 40 · 오행 균형 20

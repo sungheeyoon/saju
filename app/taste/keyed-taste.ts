@@ -10,15 +10,15 @@ import {
   type TasteStep,
 } from '@/src/lib/reading/taste-visit';
 
-import { recordDbFailure } from './db-error';
-import { keyedClient } from './keyed-client';
+import { recordDbFailure } from '../db-error';
+import { keyedClient } from '../keyed-client';
 
 /**
  * **로그인 전 사주 문단의 맛보기 쪽 문 여섯을 열쇠로 부르는 유일한 자리**(ADR 0143).
  *
  * 문 여섯(`reserve_taste` · `finish_taste` · `note_taste_checks` · `taste_session_view` · `count_taste_step` ·
  * `count_taste_step_once`)은 `service_role` 에만 열려 있다(`20261118090000` · `20261119090000` · `20261130090000`). `anon` 에 열면 아무나 HMAC 칸에 지어낸 값을 넣어 한도를 비켜 간다 — 그래서 지문 · HMAC 은 서버가
- * 짓는다(`app/taste-run.ts` · `app/taste-visitor.ts`). 가입한 회원 쪽 문 셋은 `app/me/keyed-taste-claims.ts` 가 든다 —
+ * 짓는다(`app/taste/taste-run.ts` · `app/taste/taste-visitor.ts`). 가입한 회원 쪽 문 셋은 `app/taste/keyed-taste-claims.ts` 가 든다 —
  * 그쪽은 로그인 세션을 읽는다. 둘을 가른 까닭: 풀이 회수(`app/me/reading/collect.ts`)가 퍼널 끝을 세는데, 그 길은 webhook ·
  * 크론이라 로그인 세션을 읽는 모듈에 닿으면 안 된다(`app/auth/signed-in.boundary.test.ts`).
  *

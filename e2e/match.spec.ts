@@ -289,7 +289,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirmRequest = asker.page.getByRole('dialog');
-    await expect(confirmRequest).toContainText('풀이권 1개가 임시로 차감됩니다');
+    await expect(confirmRequest).toContainText('풀이권 1장이 임시로 차감됩니다');
     await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
     await expect(confirmRequest).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
     await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
@@ -543,7 +543,7 @@ test.describe('동의로 열리는 흐름', () => {
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).first().click();
 
     const dialog = asker.page.getByRole('dialog');
-    const scope = dialog.getByText('풀이권 1개가 임시로 차감됩니다', { exact: false });
+    const scope = dialog.getByText('풀이권 1장이 임시로 차감됩니다', { exact: false });
     const send = dialog.getByRole('button', { name: '요청 보내기' });
     await expect(scope).toBeVisible();
     await expect(send).toBeVisible();
@@ -776,7 +776,7 @@ test.describe('동의로 열리는 흐름', () => {
  * 덱으로 보는 오늘의 인연 — **목록과 같은 자료, 같은 문턱.**
  *
  * 카드 모양이 다르다고 규칙이 달라지면 안 된다. 재는 것은 둘이다: 진짜 후보가 실제로
- * 서는가, 그리고 **하트 한 번으로 요청이 나가 버리지 않는가.** 풀이권 1개 예약과
+ * 서는가, 그리고 **하트 한 번으로 요청이 나가 버리지 않는가.** 풀이권 1장 예약과
  * 여덟 글자 공개는 누르기 전에 읽혀야 한다.
  */
 test.describe('덱으로 보는 오늘의 인연', () => {
@@ -803,7 +803,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     // ── 하트만으로는 안 나간다 ──────────────────────────────────────────────
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirming = asker.page.getByRole('dialog');
-    await expect(confirming).toContainText('풀이권 1개가 임시로 차감됩니다');
+    await expect(confirming).toContainText('풀이권 1장이 임시로 차감됩니다');
     await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);

@@ -3,11 +3,11 @@
  *
  * 모델은 안 부른다 — 서버의 `OPENAI_API_KEY` 를 비워 두면 부르는 갈래는 그 자리에서 실패로 적힌다(`model-call-failed`).
  * 성공한 글은 **모델이 냈다고 치고** artifact 를 성공으로 바꿔 둔다 — 재려는 것은 글을 어떻게 쓰는가가 아니라 예약 · 재사용 ·
- * 한도 · 귀속 · 잇기가 서버 액션에서 DB 까지 실제로 이어지는가다(글과 검사는 단위 시험 `app/taste-run.test.ts`).
+ * 한도 · 귀속 · 잇기가 서버 액션에서 DB 까지 실제로 이어지는가다(글과 검사는 단위 시험 `app/taste/taste-run.test.ts`).
  *
  * 서버 액션은 브라우저가 부르는 그대로 부른다 — `Next-Action` 머리에 빌드가 지은 액션 id 를 싣고(`server-reference-manifest.json`),
  * 답은 RSC 줄에서 읽는다. IP 는 `x-forwarded-for` 로 가른다 — 로컬 Next 서버는 그 머리가 있으면 그대로 둔다
- * (`app/taste-visitor.ts` 머리말).
+ * (`app/taste/taste-visitor.ts` 머리말).
  *
  * 1. **연타 · 새로고침** — 같은 브라우저 · 같은 입력은 세션 하나 · 모델 0번이다
  * 2. **같은 입력 다른 브라우저 · 쿠키 지우고 같은 입력** — 새 세션, 같은 글, 모델 0번
@@ -117,10 +117,10 @@ async function act(path, [filename, name], args, { jar = browser(), ip = '10.0.0
   return value === undefined ? { broken: response.status } : JSON.parse(value);
 }
 
-const REQUEST = ['app/actions.ts', 'requestTaste'];
-const READ = ['app/actions.ts', 'readTaste'];
-const CLAIM = ['app/actions.ts', 'claimTaste'];
-const NOTE = ['app/actions.ts', 'noteTasteStep'];
+const REQUEST = ['app/taste/actions.ts', 'requestTaste'];
+const READ = ['app/taste/actions.ts', 'readTaste'];
+const CLAIM = ['app/taste/actions.ts', 'claimTaste'];
+const NOTE = ['app/taste/actions.ts', 'noteTasteStep'];
 const GENERATE = ['app/me/reading/actions.ts', 'generateReading'];
 const SKIP = ['app/me/reading/actions.ts', 'skipTasteCarry'];
 

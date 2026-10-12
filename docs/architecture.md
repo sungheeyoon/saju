@@ -61,7 +61,7 @@
 `SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078).
 `if (error) return []` 는 셋을 하나로 합치므로 쓰지 않는다.
 
-**옛 자리 넷.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로, 2026-09-24 에 홈의 엣지 읽기가 문(`app/me/home/circle.ts`)으로, 2026-09-25 에 세 화면의 일정 읽기가 문(`app/beta-schedule.ts`)으로, 같은 날 G-60 에서 프로필의 사진 읽기가 문(`app/me/profile/photos.ts`)으로, 2026-09-30 에 매칭의 참여를 여는 부름이 열쇠 모듈(`app/me/keyed-chart-writes.ts`, G-64)로, 2026-10-01 에 사주풀이 글 화면의 엣지 읽기가 문(`app/me/(shelf)/readings/subject.ts` 의 `savedPersonOf`)으로 옮겼다. 잠근 날 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
+**옛 자리 하나.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로, 2026-09-24 에 홈의 엣지 읽기가 문(`app/me/home/circle.ts`)으로, 2026-09-25 에 세 화면의 일정 읽기가 문(`app/beta-schedule.ts`)으로, 같은 날 G-60 에서 프로필의 사진 읽기가 문(`app/me/profile/photos.ts`)으로, 2026-09-30 에 매칭의 참여를 여는 부름이 열쇠 모듈(`app/me/keyed-chart-writes.ts`, G-64)로, 2026-10-01 에 사주풀이 글 화면의 엣지 읽기가 문(`app/me/(shelf)/readings/subject.ts` 의 `savedPersonOf`)으로, 2026-10-12 에 저장한 사람 · 궁합 탭의 엣지 · 자리 수 읽기 셋이 「내 사람」 문(`app/me/home/circle.ts` 의 `myPeople` — 한 그림 안에서 한 번 읽는다)으로 옮겼다. 남은 하나는 브라우저가 자리 수를 읽는 `app/save-for-reading.tsx` 다. 잠근 날 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
 **호출 하나마다** 그 줄 위에 `eslint-disable-next-line no-restricted-syntax` 가 붙어 있고,
 `scripts/layers.test.ts` 가 **호출의 지문**(`파일 :: supabase.from('표')`)을 목록으로 든다 —
 **줄어들기만 한다.** 하나를 문으로 옮기면 표시와 지문을 함께 지운다. 표시는 줄 하나를 통째로
@@ -76,12 +76,14 @@
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |
 | `app/ui/` | 공용 부품 — 단추 · 판(`CARD` 포함) · 오행 색(`element-tone`) · 아이콘 · 로고의 모양 상수, 오행 · 천간 그림(`element-symbol` · `stem-symbol`), 두 궤도 지도의 같은 문법(`orbit`), 탭의 뼈대(`skeleton`, ADR 0116), 액션 부름을 받는 래퍼(`action-answer`) · 화면 안 실패 줄(`failure-line`) · 누른 링크 표시(`link-pending`, ADR 0164), 작은 부품, 메뉴 닫기 · 줄인 움직임 같은 작은 훅(G-58). 여러 화면이 부르므로 **화면 층의 바닥**이다 | `src/lib` · `app/ui` 뿐. 문 · 액션 · 클라이언트 · `@supabase` 는 모른다 |
+| `src/lab/` | **실험 · 평가 코드** — 프롬프트 변형 · 출력 재기 · 인연 입력 두 판의 자(`reading/`), 궁합 공식 비교기(`matching/formula-comparison/`). 앱이 안 부르고 시험 · 잠긴 실호출 · e2e 만 쓴다(ADR 0179) | 엔진 · 도메인 lib. 밖으로는 도메인 lib 과 같은 줄이고, **부르는 쪽은 시험(`*.test.ts` · `*.spec.ts` · `e2e/`)뿐**이다 |
 | `scripts/` | 흐름 검사·생성기·UI 훑기. **화면 모듈을 안 부른다** — 주소로 두드린다 | `src/lib` |
-| `e2e/` | Playwright. 같다 | `src/lib` |
+| `e2e/` | Playwright. 같다 | `src/lib` · `src/lab`(실험판이 화면에 안 서는지 재려고 변형 id 를 읽는다) |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
 | `app/me/keyed-chart-writes.ts` | **풀에 오르는 값을 열쇠로 쓰는 자리** — 「사용자 경로에 열쇠를 안 쓴다」의 제한된 예외(G-64, ADR 0136). 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation`)만 부른다. 사람 id 는 세션에서, 값은 저장된 입력에서 서버가 짓는다. 열쇠(`app/keyed-client.ts`)를 부르는 파일은 `eslint.config.mjs` 의 `KEY_HOLDERS` 가 이름으로 들고 `scripts/layers.test.ts` 가 견준다 | 도메인 lib · `summary` · 열쇠 · 세션 |
-| `app/keyed-taste.ts` · `app/me/keyed-taste-claims.ts` | **로그인 전 사주 문단의 문 일곱을 열쇠로 부르는 자리**(ADR 0143) — 로그인 전 쪽 넷(`reserve_taste` · `finish_taste` · `taste_session_view` · `count_taste_step`)은 방문자가 로그인 전이라, 가입한 회원 쪽 셋(`claim_taste_session` · `link_taste_reading_run` · `taste_continuation_of_run`)은 판정이 서버가 다시 잰 지문과 서버만 짓는 HMAC 에 기대서 열쇠에만 열렸다. 지문 · HMAC 은 서버가 짓고(`app/taste-run.ts` · `app/taste-visitor.ts`), 회원 id 는 세션에서 얻는다. 둘로 가른 것은 풀이 회수(webhook · 크론)가 퍼널을 세며 로그인 세션을 읽는 모듈에 닿지 않게다 | 도메인 lib · 열쇠 · 세션(회원 쪽만) |
-| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 열) · `app/taste-visitor.ts`(로그인 전 사주 문단의 HMAC 비밀 둘, ADR 0143) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) · `app/api/push/dispatch/route.ts` · `app/api/push/dispatch/send.ts`(웹 푸시의 배달 비밀과 VAPID 비밀 열쇠, ADR 0156) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
+| `app/taste/` | **로그인 전 사주 문단 한 벌**(ADR 0143) — 서버 액션(`actions.ts`) · 받기(`taste-run.ts`) · 쿠키와 HMAC(`taste-visitor.ts`) · 열쇠 문 둘(아래 줄) · 가입 뒤 귀속(`taste-carry.ts`) · 탭에 들고 가는 세션(`carried-taste.ts`) · 화면(`taste.tsx`). `page` 가 없어 주소가 아니다. 폴더 밖이 부르는 이름은 `scripts/layers.test.ts` 의 입구 목록 그대로다. 순수한 절반(출력 계약 · 검사 · 화면 상태 · 실패 코드)은 `src/lib/reading/taste-run.ts` · `taste-visit.ts` 다 | 도메인 lib · 문 · 열쇠 · 세션 |
+| `app/taste/keyed-taste.ts` · `app/taste/keyed-taste-claims.ts` | **로그인 전 사주 문단의 문 일곱을 열쇠로 부르는 자리**(ADR 0143) — 로그인 전 쪽 넷(`reserve_taste` · `finish_taste` · `taste_session_view` · `count_taste_step`)은 방문자가 로그인 전이라, 가입한 회원 쪽 셋(`claim_taste_session` · `link_taste_reading_run` · `taste_continuation_of_run`)은 판정이 서버가 다시 잰 지문과 서버만 짓는 HMAC 에 기대서 열쇠에만 열렸다. 지문 · HMAC 은 서버가 짓고(`app/taste/taste-run.ts` · `app/taste/taste-visitor.ts`), 회원 id 는 세션에서 얻는다. 둘로 가른 것은 풀이 회수(webhook · 크론)가 퍼널을 세며 로그인 세션을 읽는 모듈에 닿지 않게다 | 도메인 lib · 열쇠 · 세션(회원 쪽만) |
+| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 열) · `app/taste/taste-visitor.ts`(로그인 전 사주 문단의 HMAC 비밀 둘, ADR 0143) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) · `app/api/push/dispatch/route.ts` · `app/api/push/dispatch/send.ts`(웹 푸시의 배달 비밀과 VAPID 비밀 열쇠, ADR 0156) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
 
 ## 새 것을 놓을 때
 
@@ -101,16 +103,18 @@
 
 | 무엇 | 린트 (`eslint.config.mjs`) | 시험 (`scripts/layers.test.ts`) |
 | --- | --- | --- |
-| `src/lib` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 다섯 형태의 import 전부(정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`), 확장자를 뗀 대상 |
+| `src/lib` · `src/lab` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 다섯 형태의 import 전부(정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`), 확장자를 뗀 대상 |
 | `src/lib/saju` → 다른 lib | 같다 | 같다 |
 | `scripts`·`e2e` → `app` | 같다 | 같다 |
-| `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
+| `src/lib` · `src/lab` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
+| 시험 아닌 파일 → `src/lab` | — | 부르는 쪽이 `src/lab` 자신 · `*.test.ts` · `*.spec.ts` · `e2e/` 뿐인가(ADR 0179) |
 | 문자열이 아닌 `import()` 대상 | `no-restricted-syntax` | 대상을 모르는 import 0건 |
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
-| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 넷 안에만, 표시 수 = 호출 수 |
+| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 하나 안에만, 표시 수 = 호출 수 |
 | `app/ui` → 문 · 액션 · 클라이언트 · `@supabase` | — | `app` 안에서는 `app/ui` 만 |
 | `'use client'` 파일에서 값으로 닿는 모듈에 풀이 입구(`src/lib/reading/index`)와 프롬프트 원문(`prompt`), 열쇠(`app/keyed-client.ts` · `app/me/keyed-chart-writes.ts`) | — | `app/` 의 `'use client'` 전부를 뿌리로 값 import 를 따라간다(타입만 부르면 안 따라가고, `'use server'` 에서 멈춘다). 닿으면 그 길을 보여 준다. 클라이언트는 잎(`reading/notes` · `feedback` · `policy`)을 부른다 |
-| 열쇠(`app/keyed-client.ts`)를 부르는 파일 | `no-restricted-imports` — `KEY_HOLDERS` 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가, 풀에 오르는 값을 쓰는 문 넷의 `.rpc()` 가 `app/me/keyed-chart-writes.ts` 밖에 없는가, 그 모듈이 넷 밖을 안 부르고 사람 id 를 인자로 안 받는가(ADR 0136). 로그인 전 사주 문단의 문 일곱도 같은 꼴로 제 모듈(`app/keyed-taste.ts` · `app/me/keyed-taste-claims.ts`)에서만(ADR 0143) |
+| 열쇠(`app/keyed-client.ts`)를 부르는 파일 | `no-restricted-imports` — `KEY_HOLDERS` 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가, 풀에 오르는 값을 쓰는 문 넷의 `.rpc()` 가 `app/me/keyed-chart-writes.ts` 밖에 없는가, 그 모듈이 넷 밖을 안 부르고 사람 id 를 인자로 안 받는가(ADR 0136). 로그인 전 사주 문단의 문 일곱도 같은 꼴로 제 모듈(`app/taste/keyed-taste.ts` · `app/taste/keyed-taste-claims.ts`)에서만(ADR 0143) |
+| `app/taste` 밖이 그 폴더에서 부르는 이름 | — | 입구 목록과 **정확히 같은가**(시험 파일 제외), 폴더에 `page` · `route` · `layout` 이 없는가(ADR 0143) |
 | 모델 SDK(`ai` · `openai` · `@ai-sdk/*`)를 부르는 `app` 파일 | `no-restricted-imports` — `MODEL_HOLDERS`(`app/me/reading/model.ts`) 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가(ADR 0047) |
 | `src/lib` 이 DB 함수를 이름으로 든다 | — | 호출 인자의 문자열이 생성된 `Functions` 의 키면 빨개진다(`*.live.test.ts` 제외). 표 이름은 도메인 낱말과 겹쳐 안 본다 |
 

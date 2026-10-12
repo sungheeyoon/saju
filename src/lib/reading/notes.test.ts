@@ -91,12 +91,12 @@ describe('풀이권 문구', () => {
 
   /** 한도는 사면 늘어나는 값이라(ADR 0106) 「몇 번 중」은 뜻을 잃는다 — 남은 수만 센다 */
   it('남은 수만 말한다', () => {
-    expect(readingCreditsLabel({ available: 3 })).toBe('풀이권 3개');
+    expect(readingCreditsLabel({ available: 3 })).toBe('풀이권 3장');
   });
 
   /** 0개도 선다 — 그 칸은 누르면 구매 길이다 */
-  it('0개도 「풀이권 0개」로 선다', () => {
-    expect(readingCreditsLabel({ available: 0 })).toBe('풀이권 0개');
+  it('0장도 「풀이권 0장」으로 선다', () => {
+    expect(readingCreditsLabel({ available: 0 })).toBe('풀이권 0장');
   });
 
   /**

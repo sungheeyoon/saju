@@ -38,7 +38,7 @@ import { markAndAnnounce, newsKeyOf, readNewsWhenSeen } from './news-read';
 import { announceNotificationsUnreadMoved } from '../requests/unread-signal';
 import { when } from '../requests/when';
 import flow from './flow.module.css';
-import { skipCarriedTaste, takeTasteArrival } from '../../carried-taste';
+import { skipCarriedTaste, takeTasteArrival } from '../../taste/carried-taste';
 import {
   afterAsking,
   afterPress,
@@ -54,7 +54,7 @@ import {
   type RunAnswer,
 } from './reading-state';
 import type { ReadingTarget } from './target';
-import type { TasteCarryView } from './taste-carry';
+import type { TasteCarryView } from '../../taste/taste-carry';
 import { useBuyCredits } from '../credits/buy-credits';
 import { outOfCredits } from '../credits/buy-path';
 
@@ -110,7 +110,7 @@ export function panelChrome({
   /*
     **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼이 만들기 그대로다 — 그 사람이 누르면 DB 가
     「끝나면 다시 눌러 주세요」로 답하고, 그것이 이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
-    다 썼으면 버튼은 닫히지 않고 누르면 풀이권 창(「보유 풀이권 0개」)이 열린다 — 닫힌 단추는 누른 사람에게 아무 말도 안 했다.
+    다 썼으면 버튼은 닫히지 않고 누르면 풀이권 창(「보유 풀이권 0장」)이 열린다 — 닫힌 단추는 누른 사람에게 아무 말도 안 했다.
   */
   const spent = outOfCredits(credits);
 
@@ -731,7 +731,7 @@ export function ReadingPanel({
             <Icon name="ticket" className="size-5" />
           </span>
         }
-        title="풀이권 1개를 사용하시겠어요?"
+        title="풀이권 1장을 사용하시겠어요?"
         /* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5). 잃을 글이 없으면 첫 초점도 받기 쪽이다 */
         confirmLabel={reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
         onConfirm={confirmGenerate}

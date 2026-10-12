@@ -18,7 +18,7 @@ import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 import { DISCOVERY_POLICY } from '@/src/lib/discovery';
 import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
-import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
+import { PROMPT_VARIANTS } from '@/src/lab/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 import { SERVICE_NAME } from '@/src/lib/brand';
@@ -30,7 +30,7 @@ import { expectTargets, focusedOutline } from './target';
 import { writeSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 
-/** 한 사람 명식의 자기 풀이 근거 — 서버가 맛보기 지문을 재는 그 길(`app/taste-run.ts`)과 같다 */
+/** 한 사람 명식의 자기 풀이 근거 — 서버가 맛보기 지문을 재는 그 길(`app/taste/taste-run.ts`)과 같다 */
 const readingEvidenceOfSelf = (saju: Saju) => {
   const built = readingEvidenceOf('self', { a: saju }, new Date());
   if (built.kind !== 'self') throw new Error('한 사람의 근거가 아니다');
@@ -81,7 +81,7 @@ async function expireSessionCookie(page: Page) {
 /** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
 async function expectReadingCredits(page: Page, label: string) {
   const header = page.getByRole('banner');
-  /* 폰 폭은 표 그림만 보인다 — 이름(`aria-label`)은 어느 폭이든 「풀이권 N개」다 */
+  /* 폰 폭은 표 그림만 보인다 — 이름(`aria-label`)은 어느 폭이든 「풀이권 N장」다 */
   await expect(header.getByLabel(label, { exact: true })).toBeVisible();
 }
 
@@ -143,7 +143,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAttribute('href', '/me/requests');
 
     /* 풀이권 칸은 설정처럼 펼치는 메뉴(`summary`)라 단추 역할이 아니다 — 설정 메뉴처럼 이름(`aria-label`)으로 찾는다 */
-    const mobileCredit = banner.getByLabel('풀이권 5개', { exact: true });
+    const mobileCredit = banner.getByLabel('풀이권 5장', { exact: true });
     const settingsMenu = page.getByLabel('설정 메뉴');
     await expect(mobileCredit).toBeVisible();
     const creditBox = await mobileCredit.boundingBox();
@@ -501,18 +501,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       그래서 「있다」가 아니라 **머리글 안에 있다**를 잰다. 본문 어딘가로 돌아가면
       이 줄이 빨개진다.
     */
-    await expectReadingCredits(page, '풀이권 5개');
+    await expectReadingCredits(page, '풀이권 5장');
 
     /* 처음 받을 때도 풀이권을 쓰기 전에 확인한다. 취소하면 생성은 시작되지 않는다. */
     await page.getByRole('button', { name: '사주풀이 받기' }).click();
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1개가 사용됩니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
-    await expectReadingCredits(page, '풀이권 5개');
+    await expectReadingCredits(page, '풀이권 5장');
 
     // 다시 열어도 만들어지지 않는다 — 같은 자리에 같은 문장이 그대로 선다.
     await page.reload();
@@ -836,7 +836,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
-    await expectReadingCredits(page, '풀이권 4개');
+    await expectReadingCredits(page, '풀이권 4장');
   });
 
   /**
@@ -1047,7 +1047,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 닫힌 `<dialog>` 는 접근성 트리에 없다 — 그래서 이 자리가 「열렸는가」를 잰다 */
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1개가 사용됩니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
 
     await asking.getByRole('button', { name: '취소' }).click();
@@ -1058,7 +1058,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       풀이권이 하나 더 잡힌다 — 둘 다 그대로인 것으로 잰다(하나는 이미 이 글을 만들 때 썼다).
     */
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
-    await expectReadingCredits(page, '풀이권 4개');
+    await expectReadingCredits(page, '풀이권 4장');
     await expect(again).toBeEnabled();
   });
 
@@ -1135,7 +1135,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(make).toBeVisible();
 
     /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
-    await expectReadingCredits(page, '풀이권 5개');
+    await expectReadingCredits(page, '풀이권 5장');
 
     /*
       **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
@@ -1294,7 +1294,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
   /**
    * **회원의 입력은 로그인 전 사주 문단으로 가지 않는다**(ADR 0143). 계산기는 세션을 알기 전에도 붙는데, 그동안 현관 쪽
-   * 결과(`taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
+   * 결과(`app/taste/taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
    * 화면은 세션을 모르는 동안 그 결과를 안 세우고, 서버(`requestTaste`)도 로그인한 사람이면 닫는다 — 여기서는 앞쪽을 잰다.
    */
   test('회원이 생일이 실린 `/` 주소로 와도 로그인 전 사주 문단을 서버에 묻지 않고 /saju 로 옮긴다', async ({ page, signedIn }) => {
@@ -3692,7 +3692,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await page.unroute('**/*');
     await page.getByRole('button', { name: '다시 시도하기' }).click();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
-    const confirm = page.getByRole('dialog', { name: '풀이권 1개를 사용하시겠어요?' });
+    const confirm = page.getByRole('dialog', { name: '풀이권 1장을 사용하시겠어요?' });
     await expect(confirm).toBeVisible();
     await expect(page.locator('section[aria-labelledby="carry-heading"]')).toContainText('새벽빛이 들기 전에');
     expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
@@ -3799,7 +3799,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await page.unroute('**/*');
     await page.reload();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
-    const confirm = page.getByRole('dialog', { name: '풀이권 1개를 사용하시겠어요?' });
+    const confirm = page.getByRole('dialog', { name: '풀이권 1장을 사용하시겠어요?' });
     await expect(confirm).toBeVisible();
     const carry = page.getByRole('region', { name: '아까 보던 내용' });
     await expect(carry).toContainText('한낮 가까이에');

@@ -198,7 +198,7 @@ function resolvePillars(
  * 4주와 보정된 시각만 — 대운 · 세운 · 월운 · 신살 · 분석 없이.
  *
  * `computeSaju` 한 번이 약 1ms 인데 그중 4주까지는 약 0.01ms 다(2026-09-25, 2000건). 수만 명을 도는
- * 오프라인 비교기(`src/lib/matching/formula-comparison`)가 4주만 쓰므로 앞 절반을 따로 낸다. 보정을
+ * 오프라인 비교기(`src/lab/matching/formula-comparison`)가 4주만 쓰므로 앞 절반을 따로 낸다. 보정을
  * 여기서 하므로 `getFourPillars` 를 밖에 내지 않는 까닭(위)은 그대로 지켜진다 — 같은 `resolvePillars`
  * 를 타서 `computeSaju(input).pillars` 와 늘 같다.
  *

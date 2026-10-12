@@ -167,7 +167,7 @@ const usageOf = (response: {
  *
  * **화면은 이 길로 오지 않는다** — 누름은 `submitBackgroundReading` 으로 떠나보내고
  * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 로그인 전 사주 문단의 서버 액션
- * (`app/actions.ts` 의 `requestTaste`, ADR 0143 — 짧은 글이라 기다린다)과 운영자가 손으로 돌리는 실호출 시험 둘
+ * (`app/taste/actions.ts` 의 `requestTaste`, ADR 0143 — 짧은 글이라 기다린다)과 운영자가 손으로 돌리는 실호출 시험 둘
  * (`app/me/reading/call.live.test.ts` · `app/me/reading/taste-run.live.test.ts`)이다.
  * 선택 인자(`CallOptions`)를 안 넘기면 모양 · 세기 · 상한 · 재시도가 지금까지와 같다.
  *

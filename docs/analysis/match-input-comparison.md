@@ -16,7 +16,7 @@ ADR 0067 의 두 판(A 제한형 · B 확장형)을 **같은 조건**으로 부�
 
 ## 표본 — 관계 구조가 서로 다르다
 
-`src/lib/reading/match-input-eval.ts` 의 `MATCH_INPUT_FIXTURES`. 성질은 `npm test` 가 늘 잰다.
+`src/lab/reading/match-input-eval.ts` 의 `MATCH_INPUT_FIXTURES`. 성질은 `npm test` 가 늘 잰다.
 
 | id | 보려는 것 |
 |---|---|

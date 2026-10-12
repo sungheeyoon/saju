@@ -7,7 +7,7 @@ import { cookies, headers } from 'next/headers';
 import { ipSubjectOf } from '@/src/lib/reading/taste-visit';
 import { seoulDateOf } from '@/src/lib/reading/seoul-date';
 
-import { UUID } from './uuid';
+import { UUID } from '../uuid';
 
 /**
  * **로그인 전 방문자를 가리키는 두 이름 — 브라우저 묶음과 IP 의 HMAC**(ADR 0143 의 4 · 6).

@@ -1,7 +1,7 @@
-import { plainTermsIn } from './check';
-import { readingBody } from './display';
-import { type PairKind } from './policy';
-import { selfSectionCount, type PromptAssembly } from './prompt';
+import { plainTermsIn } from '@/src/lib/reading/check';
+import { readingBody } from '@/src/lib/reading/display';
+import { type PairKind } from '@/src/lib/reading/policy';
+import { selfSectionCount, type PromptAssembly } from '@/src/lib/reading/prompt';
 
 
 /**

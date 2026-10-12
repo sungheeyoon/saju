@@ -6,6 +6,7 @@ import { useId, useState, useTransition } from 'react';
 
 import {
   bundleMark,
+  bundleOrderName,
   discountAgainstSingles,
   READING_BUNDLE_VALID_YEARS,
   READING_BUNDLES,
@@ -106,14 +107,14 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
               />
               <span className="flex flex-1 flex-col">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className={TYPE_NAME}>{bundle.credits}회</span>
+                  <span className={TYPE_NAME}>{bundleOrderName(bundle.credits)}</span>
                   {mark !== null && (
                     <span className="rounded-full bg-cream px-2 py-0.5 text-fine font-semibold text-cream-ink">
                       {mark}
                     </span>
                   )}
                 </span>
-                {discount > 0 && <span className={TYPE_META}>1회권 대비 {discount}% 할인</span>}
+                {discount > 0 && <span className={TYPE_META}>1장 대비 {discount}% 할인</span>}
               </span>
               <span className="text-body font-semibold tabular-nums text-foreground">{won(bundle.price)}</span>
             </label>
@@ -144,7 +145,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
         )}
 
         <ul aria-label="유의사항" className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-fine leading-[1.125rem] text-secondary">
-          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 회차 비율에 따라 수수료 없이 환불합니다.</li>
+          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 장수 비율에 따라 수수료 없이 환불합니다.</li>
           <li>{refundLine}</li>
           <li>
             정상적으로 제공된 풀이는 단순 변심으로 환불되지 않습니다. 풀이가 제공되지 않거나 표시·광고 또는 계약 내용과

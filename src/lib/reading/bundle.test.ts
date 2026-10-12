@@ -7,8 +7,6 @@ import {
   discountAgainstSingles,
   READING_BUNDLES,
   readingBundleValidUntil,
-  refundableCredits,
-  shareIsRefundable,
 } from './bundle';
 
 describe('풀이권 묶음', () => {
@@ -51,42 +49,12 @@ describe('상품 화면의 판단', () => {
     expect(READING_BUNDLES.map((b) => bundleMark(b.credits))).toEqual([null, null, '추천', '최대 할인']);
   });
 
-  it('상품 이름은 회차를 말하고 시험 표식 · 0원이 없다 — 카드사 심사가 반려하는 꼴', () => {
+  it('상품 이름은 장수를 말하고 시험 표식 · 0원이 없다 — 카드사 심사가 반려하는 꼴', () => {
     for (const b of READING_BUNDLES) {
-      expect(bundleOrderName(b.credits)).toBe(`풀이권 ${b.credits}회`);
+      expect(bundleOrderName(b.credits)).toBe(`풀이권 ${b.credits}장`);
       expect(bundleOrderName(b.credits)).not.toMatch(/test/i);
       expect(b.price).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('환불 셈의 판단', () => {
-  it('돈으로 돌려줄 수 있는 몫은 산 묶음뿐이다', () => {
-    expect(shareIsRefundable('bundle')).toBe(true);
-    expect(shareIsRefundable('free')).toBe(false);
-    expect(shareIsRefundable('grant')).toBe(false);
-    expect(shareIsRefundable('outside')).toBe(false);
-  });
-
-  it('안 쓴 것만 걷고 예약 중인 것은 풀릴 때까지 기다린다', () => {
-    expect(refundableCredits({ credits: 3, refundedCredits: 0, used: 1, reserved: 1 })).toEqual({
-      refundable: 1,
-      waiting: 1,
-    });
-  });
-
-  it('이미 걷은 회차는 다시 걷지 않는다', () => {
-    expect(refundableCredits({ credits: 5, refundedCredits: 2, used: 1, reserved: 0 })).toEqual({
-      refundable: 2,
-      waiting: 0,
-    });
-  });
-
-  it('다 쓴 묶음에서 걷을 것은 0 이다 — 음수가 되지 않는다', () => {
-    expect(refundableCredits({ credits: 1, refundedCredits: 0, used: 1, reserved: 1 })).toEqual({
-      refundable: 0,
-      waiting: 1,
-    });
   });
 });
 

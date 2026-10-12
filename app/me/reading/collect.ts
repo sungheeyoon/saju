@@ -12,7 +12,7 @@ import {
 import { checkContinuation, continuedMarkdownOf, firstSectionItemNumbersOf } from '@/src/lib/reading/continuation';
 
 import { keyedClient } from '../../keyed-client';
-import { countTasteStep } from '../../keyed-taste';
+import { countTasteStep } from '../../taste/keyed-taste';
 import type { StoredInput } from '@/src/lib/input/stored';
 
 import { failReadingJob } from './fail-job';

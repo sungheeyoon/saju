@@ -8,7 +8,7 @@ vi.mock('next/cache', () => ({
 }));
 vi.mock('./current', () => ({ lastReadingRun: vi.fn() }));
 vi.mock('./pipeline', () => ({ beginReading: vi.fn() }));
-vi.mock('../../taste-visitor', () => ({ forgetTasteClaim: vi.fn(async () => {}) }));
+vi.mock('../../taste/taste-visitor', () => ({ forgetTasteClaim: vi.fn(async () => {}) }));
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
 import type { LastRun } from './current';

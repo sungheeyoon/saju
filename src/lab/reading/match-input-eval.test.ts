@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readingEvidenceOf } from '.';
+import { readingEvidenceOf } from '@/src/lib/reading';
 import {
   MATCH_INPUT_FIXTURES,
   aggregateMatchRuns,

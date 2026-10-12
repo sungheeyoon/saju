@@ -68,7 +68,7 @@ export function CreditsMenu({ available, label, children, className }: {
       <div className={`${MENU_PANEL} fixed right-4 top-15.5 z-50 w-72 max-w-[calc(100vw-2rem)] p-5 sm:absolute sm:right-0 sm:top-12`}>
         <p className={TYPE_META}>{CREDITS_AVAILABLE_LABEL}</p>
         <p className="mt-2 flex items-baseline gap-1.5 text-headline font-bold leading-none tabular-nums text-foreground">
-          {available}<span className="text-lead font-semibold">개</span>
+          {available}<span className="text-lead font-semibold">장</span>
         </p>
         <p className="mt-4 text-body leading-6 text-secondary">{CREDITS_USAGE_NOTE}</p>
         <p className={`mt-1 ${TYPE_META}`}>{CREDITS_USAGE_RATE}</p>

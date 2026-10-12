@@ -11,7 +11,7 @@ import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
 import { currentReading } from '../../../reading/current';
 import { ReadingSection } from '../../../reading/section';
-import { tasteCarryOfPage } from '../../../reading/taste-carry';
+import { tasteCarryOfPage } from '../../../../taste/taste-carry';
 import { ReadingBack } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf, savedPersonOf } from '../subject';
