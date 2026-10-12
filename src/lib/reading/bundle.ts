@@ -88,5 +88,8 @@ export const bundleMark = (credits: number): '추천' | '최대 할인' | null =
 /**
  * 결제창 · 카드 명세에 서는 상품 이름. 카드사 심사는 상품 이름에 「TEST」가 들면 반려하므로 시험 표식을 싣지 않는다
  * (PortOne 필수 구축요건). PG 이름도 싣지 않는다 — PG 는 아직 안 정했다(G-21).
+ *
+ * 상품 화면의 묶음 이름과 결제 내역의 상품 칸도 이 값이다. 이름은 DB 에 두지 않는다 — 결제 내역은 묶음 수량(`bundle_credits`)에서
+ * 다시 짓고, 웹훅 · 정산은 이름을 견주지 않는다. 그래서 단위가 「회」에서 「장」으로 바뀐 날(대장 all-02) 앞의 주문도 「장」으로 읽힌다.
  */
-export const bundleOrderName = (credits: number): string => `풀이권 ${credits}회`;
+export const bundleOrderName = (credits: number): string => `풀이권 ${credits}장`;

@@ -16,7 +16,7 @@ describe('결제 내역 한 줄 (G-21, ADR 0174)', () => {
   it('주문 번호 · 상품 · 금액 · 상태 · 남은 회차를 화면의 말로 옮긴다', () => {
     expect(paidOrderOf(ROW)).toMatchObject({
       orderNumber: 'rdo_0f1e2d3c4b5a49688776655443322110',
-      product: '풀이권 3회',
+      product: '풀이권 3장',
       amount: 12900,
       refundedAmount: 4300,
       status: '부분 환불',

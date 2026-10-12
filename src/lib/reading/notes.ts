@@ -43,7 +43,7 @@ export const readingNoneNote = (noun: string) =>
  * 풀이를 만들기 전 확인 창의 약속 — 쓰이는 것과 실패하면 돌아오는 것. 글자 그대로가 계약이다
  * (`scripts/copy-contracts.test.ts`, #147). 화면(`panel.tsx`)에만 있던 문장을 여기로 옮겼다 — 글자는 같다.
  */
-export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1개가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
+export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1장이 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
 
 /**
  * 새로 만들면 지금 것은 사라진다 — **누르는 그때 읽힌다.**
@@ -180,11 +180,11 @@ export const READING_ALREADY_RUNNING_NOTE =
  * 모델의 토큰과 같은 낱말이 되면 사용자는 글자 수를 세는 무언가로 읽고, 긴 풀이가
  * 더 비싸다고 믿게 된다. 여기서 세는 것은 **만드는 횟수** 하나뿐이다.
  *
- * **남은 수만 세운다**(「풀이권 3개」 — 운영자 결정 2026-10-12, 대장 credits-04). 폰 폭의 머리글은 표 그림만 보이고 이 글자는 칸의 이름이다. 한도는 무료 몫 · 예외 ·
- * 산 묶음을 더한 값이라(ADR 0106) 사면 늘어나고, 「몇 번 중」은 그때 뜻을 잃는다. 0개도 「풀이권 0개」로 선다 — 그 칸은 누르면
+ * **남은 수만 세운다**(「풀이권 3장」 — 운영자 결정 2026-10-12, 대장 credits-04 · 단위는 all-02). 폰 폭의 머리글은 표 그림만 보이고 이 글자는 칸의 이름이다. 한도는 무료 몫 · 예외 ·
+ * 산 묶음을 더한 값이라(ADR 0106) 사면 늘어나고, 「몇 번 중」은 그때 뜻을 잃는다. 0장도 「풀이권 0장」으로 선다 — 그 칸은 누르면
  * 구매 길이다(`useBuyCredits`).
  */
-export const readingCreditsLabel = ({ available }: { available: number }): string => `풀이권 ${available}개`;
+export const readingCreditsLabel = ({ available }: { available: number }): string => `풀이권 ${available}장`;
 
 /**
  * 숫자 옆에 붙는 한 줄 — **없을 때가 기본이다.**
@@ -201,7 +201,7 @@ export const readingCreditsLabel = ({ available }: { available: number }): strin
  *
  * 「새로 만들 수는 없지만 이미 만든 풀이는 언제든 다시 볼 수 있어요」가 서 있었다. 다시
  * 보기가 닫힌 적이 한 번도 없으므로 **그 자리에서 새로 알려 주는 것이 없다** — 잔액은
- * 머리글이 이미 들고 있고, 다 쓴 사람이 만드는 단추를 누르면 풀이권 창(「보유 풀이권 0개」)이 열린다.
+ * 머리글이 이미 들고 있고, 다 쓴 사람이 만드는 단추를 누르면 풀이권 창(「보유 풀이권 0장」)이 열린다.
  *
  * 그래서 이 함수는 **잔액을 묻지 않는다.** 남은 갈래는 자리를 잡고 있는 둘뿐이다.
  *
@@ -221,10 +221,10 @@ export const readingCreditsNote = ({
   requested?: number;
 }): string | null => {
   if (reserved > 0) {
-    return '만드는 중인 풀이에 풀이권 1개가 예약되어 있어요. 풀이를 만들지 못하면 돌려드려요.';
+    return '만드는 중인 풀이에 풀이권 1장이 예약되어 있어요. 풀이를 만들지 못하면 돌려드려요.';
   }
   if (requested > 0) {
-    return `보낸 인연 요청 ${requested}건에 풀이권 ${requested}개가 사용 중입니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 복구됩니다.`;
+    return `보낸 인연 요청 ${requested}건에 풀이권 ${requested}장이 사용 중입니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 복구됩니다.`;
   }
   return null;
 };
@@ -239,7 +239,7 @@ export const readingCreditsNote = ({
  * 잃는 것은 동의가 났을 때뿐이고 그때는 글이 남는다.
  */
 export const REQUEST_RESERVES_NOTE =
-  '요청을 보내면 풀이권 1개가 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
+  '요청을 보내면 풀이권 1장이 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
 
 /**
  * 풀이권 구매 안내 — 머리글은 펼침 메뉴, 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)은 부족 창이다(운영자 결정 2026-10-12, 대장 credits-06).
@@ -252,7 +252,7 @@ export const SALE_CLOSED_NOTE = '지금은 비공개 베타라 풀이권을 구�
 export const SALE_CLOSED_OK = '확인';
 /** 상단 펼침 메뉴 · 부족 창의 B안 문구(운영자 승인 2026-10-12, 대장 credits-06). */
 export const CREDITS_USAGE_NOTE = '사주풀이와 궁합풀이에 사용할 수 있어요.';
-export const CREDITS_USAGE_RATE = '풀이 1회당 풀이권 1개';
+export const CREDITS_USAGE_RATE = '풀이 한 편당 풀이권 1장';
 export const CREDITS_SHORTAGE_TITLE = '풀이권이 부족해요';
 export const CREDITS_AVAILABLE_LABEL = '보유 풀이권';
 export const CREDITS_REQUIRED_LABEL = '필요 풀이권';
