@@ -18,7 +18,7 @@ import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 import { DISCOVERY_POLICY } from '@/src/lib/discovery';
 import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
-import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
+import { PROMPT_VARIANTS } from '@/src/lab/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 import { SERVICE_NAME } from '@/src/lib/brand';

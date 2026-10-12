@@ -153,6 +153,12 @@ const libModuleOf = (path: string | null) => {
   if (!under(path, 'src/lib')) return null;
   return path!.slice('src/lib/'.length).split('/')[0].replace(/\.(m|c)?ts$/, '');
 };
+/**
+ * **실험 · 평가 자리(`src/lab`)** — 앱이 부르지 않고 시험 · 잠긴 실호출 · e2e 만 쓰는 코드(ADR 0179). 밖으로는 도메인 lib 과
+ * 같은 줄을 지키고(앱 · 관문 · React · supabase · 모델 SDK · 실행 환경을 모른다), 안으로는 시험만 들어온다.
+ */
+const inLibOrLab = (path: string | null) => under(path, 'src/lib') || under(path, 'src/lab');
+const isTestSource = (file: string) => /\.(test|spec)\.ts$/.test(file) || under(file, 'e2e');
 const say = (edge: Edge) => `${edge.file}:${edge.line} → ${edge.spec ?? '<정적으로 모르는 대상>'}`;
 
 describe('층의 방향 (ADR 0085)', () => {
@@ -163,22 +169,32 @@ describe('층의 방향 (ADR 0085)', () => {
     expect(EDGES.some((edge) => edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'app/me/reading/model')).toBe(true);
     // 타입 자리의 import() 도 집는다 — 같은 시험이 그 형태로 lib 의 타입을 부른다
     expect(
-      EDGES.some((edge) => edge.typeOnly && edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'src/lib/reading/match-input-eval'),
+      EDGES.some((edge) => edge.typeOnly && edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'src/lab/reading/match-input-eval'),
     ).toBe(true);
   });
 
   it('src/lib·scripts·e2e 의 import() 대상은 문자열 리터럴이다 — 모르는 대상은 막는다', () => {
     const unknown = EDGES.filter(
-      (edge) => edge.spec === null && (under(edge.file, 'src/lib') || under(edge.file, 'scripts') || under(edge.file, 'e2e')),
+      (edge) => edge.spec === null && (inLibOrLab(edge.file) || under(edge.file, 'scripts') || under(edge.file, 'e2e')),
     );
     expect(unknown.map(say)).toEqual([]);
   });
 
-  it('src/lib 은 app 과 관문을 모른다 — 상대경로·동적 import 포함', () => {
+  it('src/lib · src/lab 은 app 과 관문을 모른다 — 상대경로·동적 import 포함', () => {
     const wrong = EDGES.filter(
-      (edge) => under(edge.file, 'src/lib') && (under(edge.target, 'app') || edge.target === 'proxy'),
+      (edge) => inLibOrLab(edge.file) && (under(edge.target, 'app') || edge.target === 'proxy'),
     );
     expect(wrong.map(say)).toEqual([]);
+  });
+
+  it('실험 · 평가 자리(src/lab)는 시험만 부른다 — 앱 코드와 운영 lib 은 모른다 (ADR 0179)', () => {
+    const wrong = EDGES.filter(
+      (edge) => under(edge.target, 'src/lab') && !under(edge.file, 'src/lab') && !isTestSource(edge.file),
+    );
+    expect(wrong.map(say)).toEqual([]);
+    // 빈 폴더로 통과하지 않는다 — 운영 lib 의 시험과 e2e 가 실험판을 실제로 부른다
+    expect(EDGES.some((edge) => edge.file === 'e2e/signed-in.spec.ts' && edge.target === 'src/lab/reading/variants')).toBe(true);
+    expect(EDGES.some((edge) => under(edge.file, 'src/lab') && under(edge.target, 'src/lib/reading'))).toBe(true);
   });
 
   it('엔진(src/lib/saju)은 다른 도메인 lib 을 모른다', () => {
@@ -195,10 +211,10 @@ describe('층의 방향 (ADR 0085)', () => {
     expect(wrong.map(say)).toEqual([]);
   });
 
-  it('src/lib 은 React·Next·supabase·모델 SDK·실행 환경을 모른다 — 예외는 이름이 말한다', () => {
+  it('src/lib · src/lab 은 React·Next·supabase·모델 SDK·실행 환경을 모른다 — 예외는 이름이 말한다', () => {
     const exempt = (file: string) => file === 'src/lib/local-env.ts' || file.endsWith('.live.test.ts');
     const wrong = EDGES.filter((edge) => {
-      if (!under(edge.file, 'src/lib') || edge.spec === null || edge.target !== null) return false;
+      if (!inLibOrLab(edge.file) || edge.spec === null || edge.target !== null) return false;
       if (APP_ONLY_PACKAGES.test(edge.spec)) return true;
       if (exempt(edge.file)) return false;
       return SUPABASE.test(edge.spec) || isNodeBuiltin(edge.spec);

@@ -17,8 +17,8 @@ import {
   promptVersionOf,
   writesSummaryLast,
 } from '@/src/lib/reading';
-import { measureMarkdown, outputDeviations, pairOutputDeviations, type OutputDeviation } from '@/src/lib/reading/measure';
-import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS, PROMPT_VARIANTS } from '@/src/lib/reading/variants';
+import { measureMarkdown, outputDeviations, pairOutputDeviations, type OutputDeviation } from '@/src/lab/reading/measure';
+import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS, PROMPT_VARIANTS } from '@/src/lab/reading/variants';
 
 /**
  * **진짜로 한 번 부르는 자리** — 평소에는 돌지 않는다.
@@ -585,7 +585,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const { existsSync } = await import('node:fs');
     const { createHash } = await import('node:crypto');
     const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, measureMatchRun, secretsOf } =
-      await import('@/src/lib/reading/match-input-eval');
+      await import('@/src/lab/reading/match-input-eval');
     const { storedChartOf } = await import('@/src/lib/input/stored');
     const { relationSentence, RELATIONS } = await import('@/src/lib/people');
 
@@ -702,7 +702,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const dir = appendTo ?? `${OUTPUT_ROOT}/match-input-${dry ? 'dry-' : ''}${subjects.length === 1 ? `${subjects[0].id}-` : ''}${at}`;
     const hashes = Object.fromEntries([...built].map(([key, { hash }]) => [key, hash]));
 
-    type Line = import('@/src/lib/reading/match-input-eval').MatchRunRecord & {
+    type Line = import('@/src/lab/reading/match-input-eval').MatchRunRecord & {
       baseline: number;
       usage: unknown;
       output: { markdown: string; score: number | null; metaphor: string } | null;

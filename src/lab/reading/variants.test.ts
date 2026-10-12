@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju } from '../saju';
-import { type RelationKind } from '../saju/constants';
-import { ABSORPTION_RULE } from './parts';
-import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
+import { computeSaju } from '@/src/lib/saju';
+import { type RelationKind } from '@/src/lib/saju/constants';
+import { ABSORPTION_RULE } from '@/src/lib/reading/parts';
+import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '@/src/lib/saju/relations';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
@@ -15,8 +15,8 @@ import {
   plainTermsIn,
   readingPromptOf,
   selfSectionCount,
-} from '.';
-import * as entry from '.';
+} from '@/src/lib/reading';
+import * as entry from '@/src/lib/reading';
 import * as measure from './measure';
 import * as variants from './variants';
 import { PROMPT_VARIANTS } from './variants';

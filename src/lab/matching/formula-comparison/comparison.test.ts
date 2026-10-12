@@ -4,11 +4,11 @@ import {
   dayPillarAxisOf,
   needComplementDirectional,
   type NeedTargets,
-} from '../../discovery/compat-axes';
-import { previewScoreOf, scoreSideOf } from '../../discovery';
-import type { ElementSummary } from '../../discovery/element-axes';
-import { pillarOf, type Branch, type Stem } from '../../saju';
-import { ageOnEvaluationDate, scenarioPairs } from '../../saju/population';
+} from '@/src/lib/discovery/compat-axes';
+import { previewScoreOf, scoreSideOf } from '@/src/lib/discovery';
+import type { ElementSummary } from '@/src/lib/discovery/element-axes';
+import { pillarOf, type Branch, type Stem } from '@/src/lib/saju';
+import { ageOnEvaluationDate, scenarioPairs } from '@/src/lib/saju/population';
 import {
   COMPARISON_STRENGTH_WEIGHTS,
   FORMULAS,
@@ -18,7 +18,7 @@ import {
   scenarioPeople,
   scoreOf,
 } from './comparison';
-import { DEFAULT_ELEMENT_WEIGHTS, LEGACY_ELEMENT_WEIGHTS } from '../../saju';
+import { DEFAULT_ELEMENT_WEIGHTS, LEGACY_ELEMENT_WEIGHTS } from '@/src/lib/saju';
 
 /**
  * 비교기의 약속과 **작은 표본의 머리 수** — 수가 움직이면 무엇이 움직였는지 드러난다.

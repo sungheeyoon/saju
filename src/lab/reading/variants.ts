@@ -1,4 +1,4 @@
-import { CONTROL, type PromptAssembly } from './prompt';
+import { CONTROL, type PromptAssembly } from '@/src/lib/reading/prompt';
 
 /**
  * **손으로 돌리는 실험판** — 실제 생성에는 쓰지 않는다.

@@ -63,7 +63,7 @@ export function withoutHour(input: SajuInput): SajuInput {
   return { year, month, day, hour: null, gender };
 }
 
-// ─── 쌍 모집단 — 오프라인 궁합 비교기(`src/lib/matching/formula-comparison`)가 쓴다 ─────────────
+// ─── 쌍 모집단 — 오프라인 궁합 비교기(`src/lab/matching/formula-comparison`)가 쓴다 ─────────────
 
 /**
  * 쌍을 뽑는 **시나리오.** 어느 것도 「그」 모집단이 아니다.

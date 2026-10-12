@@ -6,7 +6,7 @@ import {
   readingEvidenceOf,
   readingPromptOf,
 } from '.';
-import { MATCH_INPUT_VARIANTS } from './variants';
+import { MATCH_INPUT_VARIANTS } from '@/src/lab/reading/variants';
 import { OUT_OF_SCOPE_TERMS, PLAIN_FORBIDDEN_TERMS } from './check';
 import { SAJU_TERMS, termNames } from './vocabulary';
 

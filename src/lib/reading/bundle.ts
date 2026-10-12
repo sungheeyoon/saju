@@ -52,29 +52,6 @@ export function readingBundleValidUntil(paidAt: Date): string {
 export const discountAgainstSingles = (credits: number, price: number): number =>
   Math.floor((1 - price / (credits * SINGLE_PRICE)) * 100);
 
-/** 쓰임이 든 몫 — 무료 · 예외 · 산 묶음 · 몫 밖(셈이 되돌려 준 자리) */
-type CreditShare = 'free' | 'grant' | 'bundle' | 'outside';
-
-/** 돈으로 돌려줄 수 있는 몫인가 — **산 것만.** 무료 · 예외 · 몫 밖은 어떤 경우에도 아니다(G-21 ③) */
-export const shareIsRefundable = (share: CreditShare): boolean => share === 'bundle';
-
-/** 묶음 하나의 쓰임 — 환불 셈의 입력 한 줄에서 */
-type BundleUsage = {
-  readonly credits: number;
-  readonly refundedCredits: number;
-  readonly used: number;
-  readonly reserved: number;
-};
-
-/**
- * 지금 걷을 수 있는 회차와 **풀릴 때까지 기다려야 하는** 회차. 예약 중인 것은 답이 오거나 시도가 끝나야
- * 쓴 것인지 안 쓴 것인지가 정해진다 — 그때까지는 걷지 않는다(G-21 ③).
- */
-export const refundableCredits = (usage: BundleUsage): { refundable: number; waiting: number } => ({
-  refundable: Math.max(0, usage.credits - usage.refundedCredits - usage.used - usage.reserved),
-  waiting: usage.reserved,
-});
-
 /** 파는 묶음 하나 — 목록에 없는 회차 수면 `null`. 주문 금액은 DB 가 정하므로 이 값은 화면이 말할 때만 쓴다 */
 export const readingBundleOf = (credits: number): (typeof READING_BUNDLES)[number] | null =>
   READING_BUNDLES.find((bundle) => bundle.credits === credits) ?? null;

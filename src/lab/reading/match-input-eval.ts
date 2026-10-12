@@ -1,9 +1,9 @@
-import { analyzeCompatibility, computeSaju, type Saju, type SajuInput } from '../saju';
-import type { SharedEvidence } from '../saju/evidence/shared';
+import { analyzeCompatibility, computeSaju, type Saju, type SajuInput } from '@/src/lib/saju';
+import type { SharedEvidence } from '@/src/lib/saju/evidence/shared';
 
-import { checkReading, type BirthSecret } from './check';
-import { readingBody, readingGrounding } from './display';
-import { FALLBACK_NAMES } from './prompt';
+import { checkReading, type BirthSecret } from '@/src/lib/reading/check';
+import { readingBody, readingGrounding } from '@/src/lib/reading/display';
+import { FALLBACK_NAMES } from '@/src/lib/reading/prompt';
 
 /**
  * **인연 궁합 입력 두 판을 견주는 자** — 모델을 부르지 않는 절반이다(ADR 0067).

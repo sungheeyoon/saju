@@ -3,14 +3,14 @@ import {
   needComplementDirectional,
   type NeedComplementParams,
   type NeedTargets,
-} from '../../discovery/compat-axes';
-import type { ElementSummary } from '../../discovery/element-axes';
-import { elementDistributionOf, pillarOf, type Branch, type Stem } from '../../saju';
+} from '@/src/lib/discovery/compat-axes';
+import type { ElementSummary } from '@/src/lib/discovery/element-axes';
+import { elementDistributionOf, pillarOf, type Branch, type Stem } from '@/src/lib/saju';
 import {
   COMPAT_EXTERNAL_CASES,
   type CasePillars,
   type ExternalCompatCase,
-} from '../../saju/analysis/validation/compatExternalCases';
+} from '@/src/lib/saju/analysis/validation/compatExternalCases';
 import { targetsFor, type ComparisonStrength } from './comparison';
 import { auc, bootstrapAucInterval, mean } from './stats';
 

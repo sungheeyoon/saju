@@ -1,4 +1,4 @@
-import { mulberry32 } from '../../saju/population';
+import { mulberry32 } from '@/src/lib/saju/population';
 
 /**
  * 비교기의 통계 — 평균 · 표준편차 · 분위 · 순위 상관 · 상위 겹침 · 동점률 · AUC · 부트스트랩 구간. 의존 없이 여기
