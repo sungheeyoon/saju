@@ -19,7 +19,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
-import { CEILING_STEP, MAX_SLACK, ON_DEMAND_SECTION, READ_BUDGET, TABLE_COLUMNS, grouped, linksOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
+import { ON_DEMAND_SECTION, TABLE_COLUMNS, linksOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -1326,50 +1326,15 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
   });
 
   /**
-   * **읽기량 예상치**(ADR 0145 · 0147 · 0162) — 고정은 그대로, 동적 · 묶음은 후보의 최댓값이라 보수적 예상치다. 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
-   * 고정 · 동적 · 합 · 천장을 찍는다. 읽기량 = 고정(역할 문서와 가리킨 파일 · 「절」만 가리켰으면 그 절, 지금 크기) + 동적 라우트(디렉터리를
-   * 가리키는 Markdown 링크)마다 그 디렉터리 후보 가운데 가장 큰 것. 「닿을 때 여는 것」은 세지 않는다.
-   *
-   * **천장은 여유를 둔 눈금이다**(ADR 0147) — `CEILING_STEP` 의 배수, 합이 넘으면 붉고 `MAX_SLACK` 넘게 남아도 붉다(줄였으면 내린다).
-   * 천장을 바꾸면 ADR 에 `| 역할 | … | 천장 |` 줄을 남긴다 — 그 줄이 없으면 붉다. 파일 이름 한 글자로 붉어지지 않는다.
-   *
-   * **ADR 본문은 영역마다 달라 세지 않는다** — 「그 영역의 ADR — 색인에서 번호만」은 색인(`docs/adr/README.md`)만 센다. 「먼저
-   * 읽는 것」이 번호로 부른 ADR 만 고정으로 든다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 세지 않는다.
-   *
-   * **선택 묶음**(2026-10-05 덧) — 「서로 다른 자리의 파일 중 하나를 골라 읽는다」는 머리 줄 `- 하나를 고른다 — <묶음 이름>` 과 그
-   * 아래 두 칸 들여 쓴 선택지 줄로 적고, 선택지마다 파일 합 가운데 최댓값을 센다(고정과 같은 크기 규칙, 묶음 밖에도 적힌 파일은
-   * 고정 쪽에서 한 번만). 꼴이 틀린 묶음은 셈이 던진다. 선택지 안의 디렉터리 링크는 그 선택지의 동적 라우트다 — 선택지의 값에 후보
-   * 최댓값(지금 크기)이 더해지고, 선택지마다 라우트 목록도 잠근다(색인 뒤의 주제 파일이 0 바이트가 되지 않게, 같은 덧 둘째).
-   *
-   * 붉어지는 것은 역할 문서가 더 많이 · 더 큰 파일을 가리키거나, 제 몸이 자라거나, 동적 라우트의 후보(PRD · 용어집의 영역 파일)가
-   * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로, 묶음을 평범한 줄로 되돌리거나 선택지를
-   * 줄이면 묶음이 잠근 것과 달라 붉어진다.
+   * **읽기량 예상치는 보고다**(ADR 0176) — `npm run read-budget` 이 찍고 CI 를 붉히지 않는다. 천장 · 여유 · ADR 의 천장 줄 · 잠근
+   * 라우트와 묶음 목록은 걷었다. 여기서 잰 것은 가리킴이 닿는지뿐이다 — 셈은 없는 「절」 · 앵커와 꼴이 틀린 선택 묶음에서 던지고,
+   * 디렉터리 링크(동적 라우트)는 고를 후보가 있는 폴더를 가리켜야 한다. 정의와 셈은 `scripts/read-budget.mjs` 한 곳이다.
    */
-  it('역할마다 읽기량 예상치(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)가 천장 이하이고, 천장은 ADR 줄이 있는 눈금이며 여유가 너무 크지 않고, 라우트와 묶음이 잠근 그대로다 (ADR 0145 · 0147)', () => {
-    expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
-    const budgets = roles.map((role) => readBudgetOf(role, ROOT));
-    const over = budgets.filter((budget) => budget.total > READ_BUDGET[budget.role].bytes).map((budget) => `${budget.role}: ${budget.total} > ${READ_BUDGET[budget.role].bytes}`);
-    expect(over).toEqual([]);
-    // 천장은 눈금이고, 줄인 만큼 내린다 — 남는 여유에 새 원본이 숨지 않게
-    const loose = budgets.filter((budget) => READ_BUDGET[budget.role].bytes - budget.total > MAX_SLACK).map((budget) => `${budget.role}: ${READ_BUDGET[budget.role].bytes} - ${budget.total} > ${MAX_SLACK}`);
-    expect(loose).toEqual([]);
-    for (const role of roles) expect(READ_BUDGET[role].bytes % CEILING_STEP, role).toBe(0);
-    // 천장을 정한 ADR 줄이 있다 — `| 역할 | … | 천장 |`, 천장이 마지막 칸
-    const adrLines = readdirSync(join(ROOT, 'docs/adr'))
-      .filter((name) => /^\d{4}-.+\.md$/.test(name))
-      .flatMap((name) => readFileSync(join(ROOT, 'docs/adr', name), 'utf8').split('\n'));
+  it('역할마다 읽기량의 셈이 끝까지 돈다 — 가리킨 절 · 앵커가 있고, 선택 묶음의 꼴이 맞고, 디렉터리 링크에 고를 후보가 있다 (ADR 0176)', () => {
     for (const role of roles) {
-      const row = adrLines.find((line) => line.startsWith(`| ${role} |`) && line.trimEnd().endsWith(`| ${grouped(READ_BUDGET[role].bytes)} |`));
-      expect(row, `${role} 천장 ${grouped(READ_BUDGET[role].bytes)} 을 정한 ADR 줄`).toBeDefined();
-    }
-    for (const budget of budgets) {
-      expect(budget.routes.map((route) => route.dir), budget.role).toEqual(READ_BUDGET[budget.role].routes);
+      const budget = readBudgetOf(role, ROOT);
       // 후보가 없는 라우트는 고를 것이 없다 — 빈 폴더나 고정으로 이미 다 읽는 폴더를 가리키고 있다
-      for (const route of budget.routes) expect(route.candidates.length, `${budget.role} ${route.dir}`).toBeGreaterThan(0);
-      expect(
-        budget.choices.map((group) => ({ name: group.name, options: group.options.map((option) => ({ name: option.name, routes: option.routes.map((route) => route.dir) })) })),
-        budget.role,
-      ).toEqual(READ_BUDGET[budget.role].choices);
+      for (const route of budget.routes) expect(route.candidates.length, `${role} ${route.dir}`).toBeGreaterThan(0);
     }
   });
 
@@ -1746,19 +1711,6 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
     expect(files.filter((name) => !readme.includes(`| \`${name}\` |`))).toEqual([]);
     const listed = [...readme.matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)].map((match) => match[1]);
     expect(listed.filter((name) => !existsSync(join(dir, name)))).toEqual([]);
-  });
-
-  /**
-   * **「최근」은 여덟 줄까지다**(ADR 0147 「2026-10-08 덧」). 조율자가 먼저 읽는 것은 이 절뿐이라, 자라면 노트 수와 함께 읽기량이
-   * 늘어 라운드 노트 PR 이 천장을 넘는다. 넘치면 가장 오래된 줄을 「차례」로 옮긴다. 절이 없으면 읽기량 셈이 이 절을 못 찾는다.
-   */
-  it('세션 기록의 「최근」은 여덟 줄까지다', () => {
-    const readme = readFileSync(join(ROOT, 'docs/notes/README.md'), 'utf8');
-    const recent = /\n## 최근[^\n]*\n([\s\S]*?)\n## /.exec(readme)?.[1];
-    expect(recent, '「최근」 절').toBeDefined();
-    const rows = [...(recent ?? '').matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)];
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows.length).toBeLessThanOrEqual(8);
   });
 });
 

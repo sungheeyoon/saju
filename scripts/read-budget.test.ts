@@ -1,7 +1,6 @@
 /**
  * 읽기량의 셈(`scripts/read-budget.mjs`, ADR 0145 · 0147)을 작은 가짜 저장소로 잰다 — 절만 센다 · 「닿을 때 여는 것」은 안
- * 센다 · 선택지는 고정이 센 바이트를 다시 세지 않는다 · 천장은 눈금의 배수다. 진짜 역할 문서의 값과 천장은
- * `scripts/code-rules.test.ts` 가 잰다.
+ * 센다 · 선택지는 고정이 센 바이트를 다시 세지 않는다. 이 수에는 천장이 없다 — 보고다(ADR 0176).
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,7 +8,7 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CEILING_STEP, HEADROOM, MAX_SLACK, ceilingFor, readBudgetOf } from './read-budget.mjs';
+import { readBudgetOf } from './read-budget.mjs';
 
 /** 제목 둘 — 「가」 절은 400 바이트 남짓, 「나」 절은 그보다 크다 */
 const SOURCE = ['# 원본', '', '## 가 절', '', 'ㄱ'.repeat(130), '', '## 나 절', '', 'ㄴ'.repeat(600), ''].join('\n');
@@ -93,23 +92,5 @@ describe('읽기량 — 선택지는 고정이 센 바이트를 다시 세지 �
     expect(one?.files[0].inFixed).toBe(true);
     expect(one?.bytes).toBe(Buffer.byteLength(SOURCE) - AT(SOURCE, '## 가 절'));
     expect(budget.total).toBe(budget.fixedBytes + budget.choiceBytes);
-  });
-});
-
-describe('천장 — 눈금의 배수이고 정할 때 여유가 눈금 하나 이상 남으며, 붉어지는 여유는 그 위로 눈금 둘이다 (ADR 0147 · 0162)', () => {
-  it('예상치에 여유의 바닥(눈금 하나)을 더해 올린 배수다', () => {
-    expect(HEADROOM).toBe(CEILING_STEP);
-    expect(ceilingFor(61_055)).toBe(70_000);
-    expect(ceilingFor(64_999)).toBe(70_000);
-    expect(ceilingFor(65_000)).toBe(70_000);
-    expect(ceilingFor(65_001)).toBe(75_000);
-    for (const total of [1, 49_999, 91_703, 123_456]) {
-      const ceiling = ceilingFor(total);
-      expect(ceiling % CEILING_STEP, String(total)).toBe(0);
-      expect(ceiling - total, String(total)).toBeGreaterThanOrEqual(HEADROOM);
-      expect(ceiling - total, String(total)).toBeLessThan(HEADROOM + CEILING_STEP);
-      // 막 정한 천장은 붉지 않고, 눈금 하나만큼 줄어도 붉지 않다
-      expect(ceiling - total, String(total)).toBeLessThanOrEqual(MAX_SLACK - CEILING_STEP);
-    }
   });
 });

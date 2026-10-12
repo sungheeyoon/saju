@@ -36,8 +36,10 @@
 도구가 아니라 이 문장이 든다.
 
 **`gh pr merge --auto` 는 등급 2 다** — gate 가 필수 검사라 초록까지 기다린다(2026-09-22 부터,
-ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 있어야 든다 — 여러 세션이 나란히
-머지해도 main 에 드는 상태는 그 main 위에서 gate 를 지난 것이다.
+ADR 0082). 보호 규칙의 strict 는 껐다(운영자 승인 2026-10-12 — 2026-09-23 부터 켜져 있었다) — 가지가 최신 main 을
+품지 않아도 gate 가 초록이면 든다. 그래서 나란히 든 두 PR 이 합쳐서야 깨질 수 있고, 그것은 main 의 전체 검증과
+`ci-main-red` 이슈가 잡는다(`docs/agents/delegation/working.md` 「시작하기 전에 — 붉은 main 이 먼저」). 병렬 라운드는 머지 전에
+`npm run merge:sim` 으로 먼저 합쳐 본다(`docs/agents/delegation/coordinator.md` 「조율자 세션」).
 **main 은 PR 로만 — 관리자까지(2026-09-28, ADR 0121).** 보호 규칙의 `enforce_admins` 를 켰다 — 운영자 · 조율자 ·
 에이전트 누구의 커밋도 main 에 직접 들지 않고 PR 의 `gate` 를 지나야 든다. 운영자와 에이전트가 같은 GitHub 계정을
 써서 GitHub 가 둘을 못 가르고, `.claude/settings.json` 은 Claude Code 만 읽으며 `deny` 는 우회된 적이 있어(아래 「잠그지
