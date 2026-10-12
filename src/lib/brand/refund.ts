@@ -30,7 +30,7 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
               bullets(
                 '산 풀이권의 유효기간은 산 날부터 5년이에요. 지나면 남은 유료 풀이권은 사라져요.',
                 '안 쓴 유료 풀이권은 유효기간 안이면 언제든 돌려드려요. 산 지 7일이 지나도 똑같이, 수수료 없이요.',
-                '돌려드리는 돈은 낸 돈 × 안 쓴 횟수 ÷ 산 횟수예요.',
+                '돌려드리는 돈은 낸 돈 × 안 쓴 장수 ÷ 산 장수예요.',
                 '이미 받아 본 풀이는 마음이 바뀌었다는 이유로는 돌려드리지 않아요. 풀이가 안 만들어졌거나 안내와 다르면 다시 만들어 드리거나 돌려드려요.',
                 '처음 받는 무료 풀이권은 받은 날부터 1년이 지나면 사라지고, 돈으로 바꿔 드리지 않아요. 이 정책의 시행일 전에 받은 무료 풀이권은 시행일부터 1년이에요.',
               ),
@@ -40,17 +40,17 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
             title: '얼마를 돌려받나요',
             blocks: [
               para(
-                '묶음마다 실제로 낸 돈 × 안 쓴 유료 횟수 ÷ 그 묶음의 유료 횟수예요. 쓴 횟수를 1회권 값으로 다시 계산하지 않고, 수수료도 떼지 않아요.',
+                '묶음마다 실제로 낸 돈 × 안 쓴 유료 장수 ÷ 그 묶음의 유료 장수예요. 쓴 풀이권을 1장 묶음 값으로 다시 계산하지 않고, 수수료도 떼지 않아요.',
               ),
               {
                 kind: 'table',
                 table: table(
                   ['이런 경우', '돌려드리는 돈'],
-                  [`20회권(${won(bundlePrice(20))})에서 3회 썼어요`, won(refundOf(20, 3))],
-                  [`20회권(${won(bundlePrice(20))})에서 12회 썼어요`, won(refundOf(20, 12))],
-                  [`5회권(${won(bundlePrice(5))})에서 1회 썼어요`, won(refundOf(5, 1))],
-                  [`3회권(${won(bundlePrice(3))})에서 1회 썼어요`, won(refundOf(3, 1))],
-                  [`1회권(${won(bundlePrice(1))})을 안 썼어요`, won(refundOf(1, 0))],
+                  [`20장 묶음(${won(bundlePrice(20))})에서 3장 썼어요`, won(refundOf(20, 3))],
+                  [`20장 묶음(${won(bundlePrice(20))})에서 12장 썼어요`, won(refundOf(20, 12))],
+                  [`5장 묶음(${won(bundlePrice(5))})에서 1장 썼어요`, won(refundOf(5, 1))],
+                  [`3장 묶음(${won(bundlePrice(3))})에서 1장 썼어요`, won(refundOf(3, 1))],
+                  [`1장 묶음(${won(bundlePrice(1))})을 안 썼어요`, won(refundOf(1, 0))],
                 ),
               },
               para('여러 번 나눠 돌려받아도, 묶음을 다 돌려받으면 합계가 낸 돈과 같아요(원 아래는 버려요).'),
@@ -79,7 +79,7 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
             title: '이럴 땐 꼭 돌려드려요',
             blocks: [
               bullets(
-                '풀이가 만들어지지 않았거나 안내와 다르게 나왔을 때 — 다시 만들어 드리거나 그 횟수를 돌려드려요. 만들다 실패한 풀이는 애초에 풀이권을 쓰지 않아요.',
+                '풀이가 만들어지지 않았거나 안내와 다르게 나왔을 때 — 다시 만들어 드리거나 그 풀이권을 돌려드려요. 만들다 실패한 풀이는 애초에 풀이권을 쓰지 않아요.',
                 '받은 날부터 3개월 안, 다르다는 걸 안 날부터 30일 안에는 쓴 것까지 돌려받을 수 있어요(전자상거래법 제17조③).',
               ),
             ],
