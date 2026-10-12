@@ -2,8 +2,8 @@ import { storedChartOf } from '@/src/lib/input/stored';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import type { supabaseOnServer } from '../../../auth/server-client';
-import { dbFailure } from '../../../db-error';
 import { UUID } from '../../../uuid';
+import { myEdge } from '../../home/circle';
 import { storedInputsOf } from '../../person-input';
 
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
@@ -54,14 +54,7 @@ export type SavedPerson = { readonly personId: string; readonly localLabel: stri
 export async function savedPersonOf(supabase: ServerClient, personId: string): Promise<SavedPerson | null> {
   if (!UUID.test(personId)) return null;
 
-  /* 정책이 자기 것만 내주므로 `user_id` 를 적지 않는다(ADR 0004) */
-  const { data, error } = await supabase
-    .from('user_person_access')
-    .select('person_id, local_label')
-    .eq('person_id', personId)
-    .maybeSingle();
-  if (error) throw dbFailure(error, 'user_person_access.reading_subject');
-  if (data === null) return null;
-
-  return { personId: data.person_id, localLabel: data.local_label };
+  /* 읽는 것은 「내 사람」 문이다 — 정책이 자기 엣지만 내준다(ADR 0004) */
+  const edge = await myEdge(supabase, personId);
+  return edge === null ? null : { personId: edge.personId, localLabel: edge.label };
 }

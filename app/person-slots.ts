@@ -1,3 +1,4 @@
+import type { RpcRow } from '@/src/lib/db';
 import type { PersonSlots } from '@/src/lib/people';
 
 /**
@@ -6,10 +7,10 @@ import type { PersonSlots } from '@/src/lib/people';
  * selfPerson 은 빠진다. 목록을 이미 들고 있는 화면이 그 목록을 거를 때 쓴다 — 세는
  * 일 자체는 DB 가 한다(`my_person_slots`).
  */
-export const managedEdges = <T extends { person_id: string }>(
+export const managedEdges = <T extends { personId: string }>(
   edges: readonly T[] | null | undefined,
   selfPersonId: string | null | undefined,
-): T[] => (edges ?? []).filter((edge) => edge.person_id !== selfPersonId);
+): T[] => (edges ?? []).filter((edge) => edge.personId !== selfPersonId);
 
 /**
  * `my_person_slots` 가 내주는 한 줄을 화면이 쓰는 값으로.
@@ -23,17 +24,13 @@ export const managedEdges = <T extends { person_id: string }>(
  *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「자리를 다 채웠다」고 거짓을 말한다.
  */
 export function personSlotsFrom(
-  data: unknown,
+  data: readonly RpcRow<'my_person_slots'>[] | null,
   error: unknown | null,
 ): PersonSlots | null {
   if (error) return null;
 
-  const one = (Array.isArray(data) ? data[0] : data) as
-    | { person_limit: number; used: number; remaining: number }
-    | undefined
-    | null;
+  /* 칸 이름은 생성 타입이 든다 — `person_limit` 이 바뀌면 컴파일러가 여기를 가리킨다 */
+  const one = data?.[0];
 
-  return one == null
-    ? null
-    : { limit: one.person_limit, used: one.used, remaining: one.remaining };
+  return one === undefined ? null : { limit: one.person_limit, used: one.used, remaining: one.remaining };
 }

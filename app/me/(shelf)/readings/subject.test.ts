@@ -14,7 +14,7 @@ type Answer = { data: unknown; error: unknown };
 
 const answering = (answer: Answer) => {
   const from = vi.fn(() => {
-    const link = { select: () => link, eq: () => link, maybeSingle: async () => answer };
+    const link = { select: () => link, order: async () => answer };
     return link;
   });
   return { client: { from } as never, from };
@@ -24,13 +24,13 @@ const ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
 describe('글 화면의 저장한 사람', () => {
   it('내 목록에 있으면 사람 id 와 부르는 이름이다', async () => {
-    const { client } = answering({ data: { person_id: ID, local_label: '엄마' }, error: null });
+    const { client } = answering({ data: [{ person_id: ID, local_label: '엄마', note: null, listed: true }], error: null });
 
     expect(await savedPersonOf(client, ID)).toEqual({ personId: ID, localLabel: '엄마' });
   });
 
   it('없으면 null 이다', async () => {
-    const { client } = answering({ data: null, error: null });
+    const { client } = answering({ data: [], error: null });
 
     expect(await savedPersonOf(client, ID)).toBeNull();
   });

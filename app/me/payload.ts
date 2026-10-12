@@ -1,8 +1,8 @@
 import type { Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
-import { dbFailure } from '../db-error';
 import { storedChartOf } from '@/src/lib/input/stored';
+import { myEdge } from './home/circle';
 import { storedInputOf } from './person-input';
 import { UUID } from '../uuid';
 
@@ -76,16 +76,14 @@ export async function payloadForViewer(personId: string): Promise<PersonView | n
    * 정책이 자기 것만 내주므로 `user_id` 를 적지 않는다. 적으면 판정하는 자리가
    * 둘이 되고, 둘은 언젠가 어긋난다(ADR 0004).
    */
-  const [person, { data: edge, error: edgeError }] = await Promise.all([
-    storedInputOf(supabase, personId),
-    supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
-  ]);
+  /*
+    엣지는 「내 사람」 문(`myEdge`)이 읽는다 — 궁합 화면이 이 문을 두 사람에 부르는데 엣지 읽기는 한 번이다.
+    못 읽은 것은 「없는 사람」이 아니다 — 입력을 못 읽을 때(`storedInputOf`)와 같이 던진다(ADR 0078).
+  */
+  const [person, edge] = await Promise.all([storedInputOf(supabase, personId), myEdge(supabase, personId)]);
+  if (person === null || edge === null) return null;
 
-  /* 못 읽은 것은 「없는 사람」이 아니다 — 입력을 못 읽을 때(`storedInputOf`)와 같이 던진다(ADR 0078) */
-  if (edgeError) throw dbFailure(edgeError, 'user_person_access.payload');
-  if (person === null || !edge) return null;
-
-  const stood = storedChartOf(person.input, edge.local_label);
+  const stood = storedChartOf(person.input, edge.label);
   if (!stood.ok) return { kind: 'unreadable-input', message: stood.message };
 
   return {

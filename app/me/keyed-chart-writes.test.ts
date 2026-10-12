@@ -30,7 +30,7 @@ type Answer = { data: unknown; error: unknown };
 
 /** 사슬을 어디서 끊든 그 표의 답 하나가 온다 — `summary.test.ts` 와 같은 가짜 */
 const chain = (answer: Answer) => {
-  const link = { select: () => link, eq: () => link, maybeSingle: async () => answer };
+  const link = { select: () => link, eq: () => link, order: async () => answer, maybeSingle: async () => answer };
   return link;
 };
 
@@ -58,7 +58,7 @@ const storing = (stored = STORED) =>
         {
           app_user: OK({ self_person_id: stored.id }),
           person: OK(stored),
-          user_person_access: OK({ local_label: '나' }),
+          user_person_access: OK([{ person_id: stored.id, local_label: '나', note: null, listed: false }]),
         }[table] ?? OK(null),
       ),
   } as never);

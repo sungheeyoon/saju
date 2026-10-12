@@ -9,9 +9,8 @@ import { storedInputsOf } from '../me/person-input';
 import { supabaseOnServer } from '../auth/server-client';
 import { signedInUser } from '../auth/signed-in';
 import { redirectToSignIn } from '../auth/sign-in-redirect';
-import { dbFailure } from '../db-error';
 import { CompatPicker } from '../compat-picker';
-import { myCircle } from '../me/home/circle';
+import { myCircle, myPeople } from '../me/home/circle';
 import { myReadings } from '../me/reading/current';
 import { TYPE_SECTION } from '../ui/surfaces';
 import { CompatSummary } from './archive';
@@ -38,26 +37,19 @@ export default async function CompatPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const [{ state }, { data: edges, error: edgesError }, readings] = await Promise.all([
+  const [{ state }, mine, readings] = await Promise.all([
     readAccount(supabase),
     /*
-      정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
+      엣지는 「내 사람」 문이 읽는다 — 고를 사람이 이 화면의 본체라 못 읽으면 던진다(ADR 0078). 아래 관계 지도(`myCircle`)가
+      같은 문을 부르지만 읽기는 한 번이다.
       **목록에 선 사람만 고를 수 있다**(`listed`): 궁합만 보려고 만든 사람은 사용자가
       이름을 관리하지 않으므로 고르는 자리에 서면 「저건 누구지」가 된다.
     */
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    supabase
-      .from('user_person_access')
-      .select('person_id, local_label')
-      .eq('listed', true)
-      .order('created_at', { ascending: true }),
+    myPeople(supabase),
     /* 지도의 선 · 카드의 점수 · 궁합풀이 한 줄이 같은 목록을 읽는다 — 한 번 읽어 나눠 준다 */
     myReadings(),
   ]);
-
-  /* 고를 사람이 이 화면의 본체다 — 못 읽은 것을 「저장한 사람이 없다」로 세우지 않는다(ADR 0078) */
-  if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
-  const listed = edges ?? [];
+  const listed = mine.listed;
 
   /**
    * **고를 사람마다 그 사람의 일간 오행 하나만** 접어 넘긴다 — 고르는 칸의 줄과 두 원이 그 사람의 상징을 든다.
@@ -65,7 +57,7 @@ export default async function CompatPage() {
    * 못 읽은 사람은 `null`(물음표 원)이다 — 없는 오행을 지어내지 않는다.
    */
   const selfPersonId = selfPersonIdOf(state);
-  const listedIds = listed.map((edge) => edge.person_id as string);
+  const listedIds = listed.map((edge) => edge.personId);
 
   /*
     **관계 지도가 읽을 것도 이 물결에 함께 읽는다**(2026-09-30) — 엣지 · 자리 수(`myCircle`)와 내 입력 · 저장한 사람의 입력이다.
@@ -94,11 +86,11 @@ export default async function CompatPage() {
   };
 
   const people = listed.map((edge) => ({
-    personId: edge.person_id as string,
-    label: edge.local_label as string,
-    isSelfPerson: edge.person_id === selfPersonIdOf(state),
-    element: elementOf(edge.person_id as string, edge.local_label as string),
-    stem: stemOf(edge.person_id as string, edge.local_label as string),
+    personId: edge.personId,
+    label: edge.label,
+    isSelfPerson: edge.personId === selfPersonId,
+    element: elementOf(edge.personId, edge.label),
+    stem: stemOf(edge.personId, edge.label),
   }));
 
   return (
