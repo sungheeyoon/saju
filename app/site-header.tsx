@@ -364,8 +364,13 @@ function Credits({ available }: { available: number }) {
         className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border after:absolute after:inset-x-0 after:-inset-y-1 hover:ring-border-strong active:scale-95"
       >
         <Icon name="ticket" className="size-4" />
-        <span aria-hidden="true" className="sm:hidden">{available}</span>
-        <span aria-hidden="true" className="hidden sm:inline">{label}</span>
+        {/*
+          글자 상자는 그림과 같은 가운데에 서지만 **잉크는 위로 떠 있다** — 숫자는 내림이 없어 글꼴의 기준선 위에만 서고, 12px 에서
+          숫자 잉크의 가운데가 그림보다 1.37px, 「풀이권 N개」는 0.62px 위였다(390 · 1280, 0 · 7 · 84 · 123, 4배 그림의 잉크 줄로 잼).
+          그만큼 내린다 — `text-box-trim` 은 Firefox 가 아직 안 받는다
+        */}
+        <span aria-hidden="true" className="translate-y-[1.375px] sm:hidden">{available}</span>
+        <span aria-hidden="true" className="hidden translate-y-[0.625px] sm:inline">{label}</span>
       </button>
       {notice}
     </>
