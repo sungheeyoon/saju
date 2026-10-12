@@ -32,7 +32,7 @@ import { callModel, type ReasoningEffort } from './model';
  * ADR 0131 의 720칸 공용 표를 사람마다 짧은 모델 생성으로 바꾸는 설계를 2026-10-03 에 합의했다
  * (`docs/notes/2026-10-03-taste-run-experiment.md`). ADR 은 아직 없다 — 순서는 「이 시험의 짝 견본 → 사람의 짝 검토 →
  * ADR(0131 대체)」이다. 운영 경로 · DB 는 이 파일을 모르고, 이 파일도 DB 에 쓰지 않는다. 결과는 `.taste-run-live/<시각>/`
- * 에만 떨군다(`.gitignore`). `taste.live.test.ts` · `call.live.test.ts` 와 같은 잠금이다 — 켜는 값이 없으면 아무것도 안 부른다.
+ * 에만 떨군다(`.gitignore`). `call.live.test.ts` 와 같은 잠금이다 — 켜는 값이 없으면 아무것도 안 부른다.
  *
  * ## 돌리는 법
  *

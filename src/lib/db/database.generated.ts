@@ -2179,30 +2179,6 @@ export type Database = {
         }
         Relationships: []
       }
-      taste_passage: {
-        Row: {
-          body: string
-          checked: boolean
-          key: string
-          made_at: string
-          model: string
-        }
-        Insert: {
-          body: string
-          checked?: boolean
-          key: string
-          made_at?: string
-          model: string
-        }
-        Update: {
-          body?: string
-          checked?: boolean
-          key?: string
-          made_at?: string
-          model?: string
-        }
-        Relationships: []
-      }
       taste_rate_event: {
         Row: {
           at: string
@@ -4006,7 +3982,6 @@ export type Database = {
       taste_is_hex64: { Args: { p_value: string }; Returns: boolean }
       taste_is_version: { Args: { p_value: string }; Returns: boolean }
       taste_keep_for: { Args: never; Returns: string }
-      taste_passage: { Args: { p_key: string }; Returns: string }
       taste_session_view: {
         Args: { p_browser_hmac: string; p_session_id: string }
         Returns: {
