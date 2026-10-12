@@ -117,7 +117,7 @@ describe('인연 요청이 풀이권으로 막힌 거절', () => {
     vi.mocked(supabaseOnServer).mockResolvedValue({ rpc: async () => ({ data: null, error }) } as never);
 
   it('풀이권이 없어 막혔으면 문장과 함께 outOfCredits 를 단다', async () => {
-    const message = '풀이권이 없어 요청할 수 없습니다. 요청 한 건이 풀이권 한 번을 잡고, 동의가 나면 그 한 번으로 궁합 풀이가 만들어집니다.';
+    const message = '풀이권이 없어 요청할 수 없습니다. 요청 한 건이 풀이권 한 장을 잡고, 동의가 나면 그 한 장으로 궁합 풀이가 만들어집니다.';
     refusing({ code: '23514', message });
 
     expect(await requestMatch('c-1')).toEqual({ ok: false, message, outOfCredits: true });
