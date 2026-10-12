@@ -6,7 +6,7 @@ import { STEM_INFO, type Element } from '@/src/lib/saju';
 import { currentReading, improvementConsented, lastReadingRun, readingCredits, type CurrentReading } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './target';
-import type { TasteCarryView } from './taste-carry';
+import type { TasteCarryView } from '../../taste/taste-carry';
 import { CARD } from '../../ui/surfaces';
 
 /**
@@ -68,7 +68,7 @@ export async function ReadingSection({
    * `null` 은 「읽었고 글이 없다」이고, 안 넘기면 여기서 읽는다.
    */
   reading?: CurrentReading | null;
-  /** 가입 전에 읽던 로그인 전 사주 문단 — 내 사주풀이만 넘긴다(`taste-carry.ts`, ADR 0143) */
+  /** 가입 전에 읽던 로그인 전 사주 문단 — 내 사주풀이만 넘긴다(`app/taste/taste-carry.ts`, ADR 0143) */
   carry?: TasteCarryView | null;
 }) {
   /*

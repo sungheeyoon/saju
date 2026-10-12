@@ -11,7 +11,7 @@ import { useSessionKnown, useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { FAILURE_TEXT } from './ui/failure-line';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
-import { Taste } from './taste';
+import { Taste } from './taste/taste';
 import {
   DEFAULT_QUERY,
   missingAnswer,
@@ -36,7 +36,7 @@ import { CARD, PAPER_BOTTOM } from './ui/surfaces';
  * 명식 계산도 조립도 브라우저에서 한다 — 그것이 이 화면이 치르는 값이다.
  *
  * **로그인하지 않은 사람의 입력만은 서버로 간다**(ADR 0143) — 결과의 잠긴 목차 첫 절에 서는 로그인 전 사주 문단을 서버가 쓰므로, 그
- * 문단(`taste.tsx`)이 서버 액션으로 입력을 보낸다. 서버는 그것으로 명식을 다시 계산할 뿐 저장하지 않는다. 회원의 입력은
+ * 문단(`taste/taste.tsx`)이 서버 액션으로 입력을 보낸다. 서버는 그것으로 명식을 다시 계산할 뿐 저장하지 않는다. 회원의 입력은
  * 안 간다 — 세션을 알기 전에는 그 문단을 안 세우고(`useSessionKnown`), 서버도 로그인한 요청이면 닫는다.
  *
  * ## 누구의 사주를 넣고 있나
@@ -114,7 +114,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
 
   /**
-   * **방금 제출했나** — 로그인 전 결과가 선 뒤 그 머리로 데려갈지 정한다(`taste.tsx`). 한 번 물으면 지워진다 — 링크 ·
+   * **방금 제출했나** — 로그인 전 결과가 선 뒤 그 머리로 데려갈지 정한다(`taste/taste.tsx`). 한 번 물으면 지워진다 — 링크 ·
    * 뒤로가기 · 궁합 입구를 다녀와 다시 선 결과는 제출이 아니라 움직이지 않는다.
    */
   const arriving = useRef(false);
@@ -197,7 +197,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
         {/*
           **사주와 사주풀이를 가르던 한 줄은 걷었다.** 「로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는
           로그인 후 받을 수 있어요.」가 폼 아래 서 있었다. 이제 로그인하지 않은 사람에게는 결과의 잠긴 목차(첫 절에 로그인 전 사주 문단)와
-          로그인 단추가 그 일을 한다(`taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
+          로그인 단추가 그 일을 한다(`taste/taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
         */}
         {dirty && (
           <p className="text-sm text-secondary">
@@ -267,7 +267,7 @@ function CalculatorResult({
     return <SajuView {...model} afterChart={query !== null ? <SavePersonForReading query={query} /> : null} />;
   }
   /*
-    **세션을 알기 전에는 로그인 전 결과를 안 세운다.** 그 결과는 서서 곧바로 입력을 서버로 보낸다(`taste.tsx`) — 모르는
+    **세션을 알기 전에는 로그인 전 결과를 안 세운다.** 그 결과는 서서 곧바로 입력을 서버로 보낸다(`taste/taste.tsx`) — 모르는
     동안 세우면 회원의 입력이 로그인 전 사주 문단의 예약과 모델 호출로 한 번 간다. 그동안 이 자리는 빈다(폼은 그대로 서 있다).
   */
   if (!sessionKnown) return null;

@@ -29,14 +29,14 @@ import {
 import type { Saju } from '@/src/lib/saju';
 
 import type { Reserved, TasteFinish } from './keyed-taste';
-import type { TasteClaim } from './me/keyed-taste-claims';
-import type { ModelCall } from './me/reading/generator';
+import type { TasteClaim } from './keyed-taste-claims';
+import type { ModelCall } from '../me/reading/generator';
 import type { Visitor } from './taste-visitor';
 
 /**
  * **로그인 전 사주 문단 한 번** — 받은 입력에서 근거와 지문을 서버가 짓고, 예약하고, 필요하면 모델을 부르고, 결과를
- * 적는다(ADR 0143). 서버 액션(`app/actions.ts` 의 `requestTaste`)이 진짜 손잡이를 넣어 부르고, 시험이 가짜를 넣어 부른다
- * (`app/taste-run.test.ts`).
+ * 적는다(ADR 0143). 서버 액션(`app/taste/actions.ts` 의 `requestTaste`)이 진짜 손잡이를 넣어 부르고, 시험이 가짜를 넣어 부른다
+ * (`app/taste/taste-run.test.ts`).
  *
  * ## 무엇이 어디로 가나
  *
@@ -317,7 +317,7 @@ export type TasteClaimHands = {
  * - 지문이 `null` 이면 `retryable` — 이 액션은 내 사주를 **저장한 직후**에만 불리므로, 내 사주가 없다는 답은 계정 읽기가 그
  *   순간 실패했다는 뜻이다
  * - `not_ready`(세션에 아직 글이 없다)는 `terminal` — 이 사람은 끊긴 물음을 본 적이 없다. 글이 선 세션만 가입 단추가 id 를
- *   싣고(`app/taste.tsx`), 실패 · 한도의 가입 경로는 id 를 안 싣는다. 이 갈래에 다시 시도를 세우면 영영 안 설 글을 기다린다
+ *   싣고(`app/taste/taste.tsx`), 실패 · 한도의 가입 경로는 id 를 안 싣는다. 이 갈래에 다시 시도를 세우면 영영 안 설 글을 기다린다
  * - 던진 것은 모두 `retryable` — 무엇이 터졌는지 모르면 답이 안 난 것이다
  *
  * `retryable` 이면 귀속 표를 건드리지 않는다 — 앞서 붙은 표가 있으면 그대로 두고, 다시 부르면 DB 가 멱등으로 답한다.

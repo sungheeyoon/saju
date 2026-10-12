@@ -2,18 +2,18 @@ import { selfPersonIdOf } from '@/src/lib/account';
 import { storedChartOf } from '@/src/lib/input/stored';
 import type { TasteRunCarry } from '@/src/lib/reading/continuation';
 
-import { supabaseOnServer } from '../../auth/server-client';
-import { claimTasteSession, tasteContinuationOfRun, type TasteClaim } from '../keyed-taste-claims';
-import { tasteFingerprintOfSaju } from '../../taste-run';
-import { browserHmacNow, claimedTasteSessionId } from '../../taste-visitor';
-import { readAccount } from '../account';
-import { storedInputOf } from '../person-input';
-import type { CurrentReading } from './current';
+import { supabaseOnServer } from '../auth/server-client';
+import { claimTasteSession, tasteContinuationOfRun, type TasteClaim } from './keyed-taste-claims';
+import { tasteFingerprintOfSaju } from './taste-run';
+import { browserHmacNow, claimedTasteSessionId } from './taste-visitor';
+import { readAccount } from '../me/account';
+import { storedInputOf } from '../me/person-input';
+import type { CurrentReading } from '../me/reading/current';
 
 /**
  * **가입 뒤 자기 풀이가 맛보기를 잇는 자리** — 「아까 보던 내용」을 무엇으로 세우고, 누름이 어느 세션을 잇는가(ADR 0143 의 2 · 4).
  *
- * 귀속은 「이 사주가 내 사주 맞나요?」가 했다(`claimTaste`, `app/actions.ts`). 그때 선 표(`TASTE_CLAIM_COOKIE`)가 「다음 누름은
+ * 귀속은 「이 사주가 내 사주 맞나요?」가 했다(`claimTaste`, `app/taste/actions.ts`). 그때 선 표(`TASTE_CLAIM_COOKIE`)가 「다음 누름은
  * 이 세션을 잇는다」이고, 여기서 그 표를 DB 에 다시 맞춰 본다 — **지금 저장된 내 사주**로 지문을 다시 재서. 입력을 그 사이에
  * 고쳤으면 DB 가 버림(`discarded`)으로 답하고 이어쓰기는 없다.
  *
@@ -31,7 +31,7 @@ import type { CurrentReading } from './current';
 export type TasteCarryView = { readonly preview: string; readonly state: 'next' | 'running' | 'shown' };
 
 /**
- * 지금 저장된 내 사주의 근거 지문 — 못 읽으면 `null`. 귀속(`claimTaste`, `app/actions.ts`)과 이 파일의 다시 맞추기가 같은
+ * 지금 저장된 내 사주의 근거 지문 — 못 읽으면 `null`. 귀속(`claimTaste`, `app/taste/actions.ts`)과 이 파일의 다시 맞추기가 같은
  * 길로 잰다 — 클라이언트가 들고 온 입력이 아니라 서버에 저장된 입력이다.
  */
 export async function selfTasteFingerprint(): Promise<string | null> {

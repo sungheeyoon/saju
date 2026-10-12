@@ -1,11 +1,11 @@
 /**
  * **로그인 전 사주 문단 한 번의 방문** — 서버가 DB 의 갈래를 화면의 상태로 옮기는 순수한 절반(ADR 0143).
  *
- * 서버(`app/taste-run.ts`)는 예약(`reserve_taste`) · 읽기(`taste_session_view`) · 모델 결과를 받고, 화면(`app/taste.tsx`)은
+ * 서버(`app/taste/taste-run.ts`)는 예약(`reserve_taste`) · 읽기(`taste_session_view`) · 모델 결과를 받고, 화면(`app/taste/taste.tsx`)은
  * 다섯 상태만 안다 — 글이 섰다 · 기다린다 · 실패 · 시간 초과 · 한도. **내부 갈래 이름과 한도 숫자는 화면으로 안 간다** —
  * `limited_ip` 와 `limited_global` 은 화면에서 같은 「한도」다. 어느 한도인지 알려 주면 그것이 곧 비켜 가는 법이 된다.
  *
- * 날짜 키와 IP 의 모양도 여기서 정한다 — 서버의 HMAC 모듈(`app/taste-visitor.ts`)이 부른다. 여기는 DB 도 Node 도 모른다.
+ * 날짜 키와 IP 의 모양도 여기서 정한다 — 서버의 HMAC 모듈(`app/taste/taste-visitor.ts`)이 부른다. 여기는 DB 도 Node 도 모른다.
  */
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ export type TasteAnswer =
 export const TASTE_CLOSED: TasteAnswer = { state: 'failed', retry: false };
 
 /**
- * 잠긴 목차 첫 절의 모양 넷 — 화면(`app/taste.tsx`)이 답 하나로 고른다(운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」).
+ * 잠긴 목차 첫 절의 모양 넷 — 화면(`app/taste/taste.tsx`)이 답 하나로 고른다(운영자 결정 2026-10-10, ADR 0143 「2026-10-10 덧」).
  *
  * - `writing` — 답이 아직 없거나 같은 입력을 누가 쓰고 있다. 막대 넷 위에 「첫 문단 작성 중…」
  * - `ready` — 글이 섰다
@@ -165,6 +165,22 @@ export type TasteClaimResult = (typeof TASTE_CLAIM_RESULTS)[number];
  * `^[a-z0-9-]{1,64}$` 로 맞춘다.
  */
 export const TASTE_LINK_FAILED = 'taste-link-failed';
+
+/**
+ * `wrong_run` 으로 닫은 시도의 `failure_detail` — 운영자가 그 시도를 세는 글자다(`docs/ops/runbook/ai.md` 「로그인 전 사주 문단」).
+ * 사람 · 본문은 안 싣는다.
+ */
+export const TASTE_WRONG_RUN_DETAIL = 'wrong_run — 연 시도가 이 회원의 자기 풀이가 아니라는 답';
+
+/**
+ * `wrong_run` 을 운영자에게 알리는 이름 — 서버 오류 알림 문(`report_request_error`, `app/request-error.ts`)을 그대로 쓴다. 그 문이
+ * 앱이 부를 수 있는 유일한 알림 길이고(`notify_ops` 는 열쇠에도 닫혀 있다), 종류가 `request-error:action:/taste/wrong-run` 으로
+ * 갈려 하루 한 줄이다. 라우트 파일의 무늬가 아니라 이 갈래의 이름이다 — 무늬 검사(`/` 로 시작하는 짧은 경로)는 지난다.
+ */
+export const TASTE_WRONG_RUN_ALERT = '/taste/wrong-run';
+
+/** 이어진 맛보기의 스냅숏을 못 읽어 보내지 않고 닫은 시도의 실패 코드 */
+export const TASTE_CARRY_UNREAD = 'taste-carry-unread';
 
 /** 회수가 세는 단계 — 이어 쓴 풀이가 섰다. 브라우저가 없는 길(webhook · 크론)이라 옛 `count_taste_step` 이 센다 */
 export type TasteStep = 'reading_succeeded';

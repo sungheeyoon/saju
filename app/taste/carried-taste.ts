@@ -1,6 +1,6 @@
 import type { TasteClaimResult } from '@/src/lib/reading/taste-visit';
 
-import { TASTE_ARRIVAL_KEY, TASTE_SESSION_KEY } from './reading-draft';
+import { TASTE_ARRIVAL_KEY, TASTE_SESSION_KEY } from '../reading-draft';
 
 /**
  * **탭이 들고 온 로그인 전 사주 문단을 붙이는 브라우저 쪽 한 걸음**(ADR 0143 「덧」) — 「이 사주가 내 사주 맞나요?」가 내 사주를

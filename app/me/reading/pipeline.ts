@@ -22,12 +22,17 @@ import { failReadingJob } from './fail-job';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
-import { claimedTaste } from './taste-carry';
-import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../keyed-taste-claims';
-import { forgetTasteClaim } from '../../taste-visitor';
+import { claimedTaste } from '../../taste/taste-carry';
+import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../../taste/keyed-taste-claims';
+import { forgetTasteClaim } from '../../taste/taste-visitor';
 import { reportRequestError } from '../../request-error';
 import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
-import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
+import {
+  TASTE_CARRY_UNREAD,
+  TASTE_LINK_FAILED,
+  TASTE_WRONG_RUN_ALERT,
+  TASTE_WRONG_RUN_DETAIL,
+} from '@/src/lib/reading/taste-visit';
 import { rpcArgs } from '@/src/lib/db';
 import { refusedForCredits, type OutOfCreditsRefusal } from '../credits/refusal';
 
@@ -434,23 +439,6 @@ async function linkCarry(
       return { kind: 'plain' };
   }
 }
-
-/**
- * `wrong_run` 으로 닫은 시도의 `failure_detail` — 운영자가 그 시도를 세는 글자다(`docs/ops/runbook/ai.md` 「로그인 전 사주 문단」).
- * 사람 · 본문은 안 싣는다.
- */
-export const TASTE_WRONG_RUN_DETAIL = 'wrong_run — 연 시도가 이 회원의 자기 풀이가 아니라는 답';
-
-/**
- * `wrong_run` 을 운영자에게 알리는 이름 — 서버 오류 알림 문(`report_request_error`, `app/request-error.ts`)을 그대로 쓴다. 그 문이
- * 앱이 부를 수 있는 유일한 알림 길이고(`notify_ops` 는 열쇠에도 닫혀 있다), 종류가 `request-error:action:/taste/wrong-run` 으로
- * 갈려 하루 한 줄이다. 라우트 파일의 무늬가 아니라 이 갈래의 이름이다 — 무늬 검사(`/` 로 시작하는 짧은 경로)는 지난다.
- */
-export const TASTE_WRONG_RUN_ALERT = '/taste/wrong-run';
-
-/** 이어진 맛보기의 스냅숏을 못 읽어 보내지 않고 닫은 시도의 실패 코드 */
-export const TASTE_CARRY_UNREAD = 'taste-carry-unread';
-
 
 /**
  * 연 시도를 **보내지 않고** 실패로 닫는다 — 기존 실패 닫기 문(`fail_reading_job`, 열쇠)이다. 시도는 `running` 일 때만 닫히고

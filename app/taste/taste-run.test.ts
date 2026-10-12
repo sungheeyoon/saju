@@ -6,7 +6,7 @@ import { HAND_SAMPLE } from '@/src/lib/reading/taste-run-sample';
 import type { TasteSessionView } from '@/src/lib/reading/taste-visit';
 
 import type { Reserved, TasteFinish } from './keyed-taste';
-import type { TasteClaim } from './me/keyed-taste-claims';
+import type { TasteClaim } from './keyed-taste-claims';
 import {
   TASTE_INTERNAL_ERROR,
   claimTasteWith,

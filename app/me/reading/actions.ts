@@ -10,7 +10,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
-import { forgetTasteClaim } from '../../taste-visitor';
+import { forgetTasteClaim } from '../../taste/taste-visitor';
 
 /**
  * **사용자가 누른 그 순간에만 도는 문.**
@@ -60,7 +60,7 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
  * 실패한 내 사주풀이 화면의 탈출구(`panel.tsx`).
  *
  * **DB 의 귀속된 세션은 건드리지 않는다.** 누름이 세션을 찾는 길은 이 표 하나다(`pipeline.ts` 의 `pressCarry` 는 표가 없으면
- * 보통 풀이로 간다). 화면의 「아까 보던 내용」도 표가 없으면 그 글을 만든 시도에 이어진 것만 보고(`taste-carry.ts`), 탭의 id 는
+ * 보통 풀이로 간다). 화면의 「아까 보던 내용」도 표가 없으면 그 글을 만든 시도에 이어진 것만 보고(`app/taste/taste-carry.ts`), 탭의 id 는
  * 붙은 뒤에 지워졌다 — 표를 걷으면 그 세션으로 돌아오는 길이 없다. 남은 세션은 붙이고 누르지 않은 세션과 같은 모양이라(회원과
  * 함께 지워진다, `claimed_by` 의 cascade) 버리는 문을 새로 열지 않는다(마이그레이션 없음).
  * 사용자가 고르는 일이라 던지지 않는다 — 쿠키를 걷는 데는 DB 가 없다.

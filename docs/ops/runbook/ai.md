@@ -200,7 +200,7 @@ Preview 가지). 대시보드라면 Settings → Environment Variables 에서 Pr
 누름이 다시 잇는다(ADR 0143 「덧」). 순간 장애(문이 답하지 않음 · 귀속 표를 다시 못 맞춤 · `run_taken`)면 다음 누름이 지나간다.
 **`wrong_run`** 은 다르다 — 방금 `self` 로 연 시도가 그 회원의 자기 풀이가 아니라는 답이라 정상에서는 날 수 없다. 앱이 그
 시도를 같은 코드로 닫고 **서버 오류 알림 문으로 운영자에게 알린다** — 종류 `request-error:action:/taste/wrong-run`, 하루 한 줄
-(`app/me/reading/pipeline.ts` 의 `TASTE_WRONG_RUN_ALERT`, Production 에서만). 그 알림을 받으면 수와 날짜만 본다:
+(`src/lib/reading/taste-visit.ts` 의 `TASTE_WRONG_RUN_ALERT`, Production 에서만). 그 알림을 받으면 수와 날짜만 본다:
 
 ```bash
 npm run db:remote -- --purpose "이어쓰기가 막힌 시도 수" \

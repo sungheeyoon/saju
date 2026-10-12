@@ -10,7 +10,7 @@ import {
   takeTasteArrival,
   type TabStorage,
 } from './carried-taste';
-import { TASTE_ARRIVAL_KEY, TASTE_SESSION_KEY } from './reading-draft';
+import { TASTE_ARRIVAL_KEY, TASTE_SESSION_KEY } from '../reading-draft';
 
 /**
  * **세션 id 는 답이 났을 때만 지운다**(ADR 0143 「덧」). 앞서는 귀속을 부르기 전에 id 를 지우고 실패를 삼켜, 순간 장애 하나에

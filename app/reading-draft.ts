@@ -4,7 +4,7 @@ export const READING_DRAFT_KEY = 'saju:reading-draft';
 /**
  * 같은 탭에서 가입을 다녀오는 동안 **로그인 전 사주 문단의 세션 id** 를 들고 있는 자리(ADR 0143) — 불투명한 id 하나뿐이다.
  * 문단 원문 · 물음 · 근거는 브라우저가 들고 가지 않는다. 「이 사주가 내 사주 맞나요?」가 저장한 뒤 이 id 로 세션을 붙이고
- * (`claimTaste`) **답이 났을 때만** 지운다 — 답이 안 났으면(`retryable`) 남겨 두고 다시 시도한다(`app/carried-taste.ts`).
+ * (`claimTaste`) **답이 났을 때만** 지운다 — 답이 안 났으면(`retryable`) 남겨 두고 다시 시도한다(`app/taste/carried-taste.ts`).
  * id 하나로는 아무것도 못 읽는다 — 서버가 쿠키의 HMAC 과 다시 잰 지문을 함께 맞춘다.
  */
 export const TASTE_SESSION_KEY = 'saju:taste-session';

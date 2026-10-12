@@ -125,12 +125,12 @@ export const KEY_HOLDERS = [
   "app/api/openai/webhook/route.ts",
   "app/api/portone/webhook/route.ts",
   "app/api/push/dispatch/route.ts",
-  "app/keyed-taste.ts",
   "app/me/keyed-chart-writes.ts",
-  "app/me/keyed-taste-claims.ts",
   "app/me/reading/collect.ts",
   "app/me/reading/pipeline.ts",
   "app/request-error.ts",
+  "app/taste/keyed-taste-claims.ts",
+  "app/taste/keyed-taste.ts",
 ];
 
 const NO_KEYED_CLIENT = [
