@@ -455,7 +455,7 @@ export function ReadingPanel({
 
     const decision = afterPress(outcome, preview);
     apply(decision, dispatch);
-    if (decision.opensCredits) buy.offer(0, 'reading');
+    if (decision.opensCredits) buy.offer(0);
   };
 
   /**
@@ -500,7 +500,7 @@ export function ReadingPanel({
     만들기 요청이 나가지 않는다
   */
   const press = () => {
-    if (chrome.buysCredits) buy.offer(0, 'reading');
+    if (chrome.buysCredits) buy.offer(0);
     else setAsking(true);
   };
 

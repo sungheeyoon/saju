@@ -132,7 +132,7 @@ export function MatchingExperience({
       } finally {
         setCheckingCredits(false);
       }
-      if (spent) buy.offer(0, 'request');
+      if (spent) buy.offer(0);
       else setAsking(true);
     })();
   }
@@ -225,7 +225,7 @@ export function MatchingExperience({
         const result = await requestMatch(sending.candidateUserId);
         announceIfMoved(result);
         /* 잔액을 본 뒤 그 사이 다른 탭에서 마지막 풀이권을 썼다 — 오류 줄 대신 풀이권 창(ADR 0171 「덧」) */
-        if (!result.ok && 'outOfCredits' in result) { announceCreditsMoved(); buy.offer(0, 'request'); return; }
+        if (!result.ok && 'outOfCredits' in result) { announceCreditsMoved(); buy.offer(0); return; }
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
