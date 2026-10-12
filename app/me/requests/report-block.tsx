@@ -12,12 +12,12 @@ import {
 import { BLOCK_NOTE } from '@/src/lib/consent';
 
 import type { SaveResult } from '../../save-result';
-import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON, ICON_BUTTON_GHOST } from '../../ui/buttons';
+import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
 import { ConfirmDialog, openConfirmDialog, pressedOutside } from '../../ui/confirm-dialog';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon } from '../../ui/icons';
 import { useLeaveGuard } from '../../ui/leave-guard';
-import { CONFIRM_ROW, DIALOG } from '../../ui/surfaces';
+import { CONFIRM_ROW, DIALOG, MENU_PANEL } from '../../ui/surfaces';
 import { blockUser, reportUser } from './actions';
 import { announceRequestsToAnswerMoved } from './unread-signal';
 import { actionAnswer } from '../../ui/action-answer';
@@ -30,10 +30,6 @@ import { FailureLine } from '../../ui/failure-line';
  * 셋이 같은 모양을 쓰도록 대화방의 「⋯」를 여기로 옮겼다. 신고는 사람에게 건다(`report_user`) — 대화방만 메시지를 골라
  * 근거를 붙일 수 있고, 그것도 고르지 않아도 된다(C1).
  */
-
-/** 사진 위의 단추 — 카드의 ⓘ 와 같은 반투명 검정 동그라미. 사진이 희어도 읽힌다 */
-const ON_PHOTO_ICON =
-  'grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm';
 
 /** 신고 칸 — 초점 테는 전역 초점 테두리와 같은 섞음(accent 55%, `globals.css`) */
 const FIELD =
@@ -68,11 +64,11 @@ export function ReportBlockMenu({
     <details ref={menu} className={`${className || 'relative'} shrink-0`}>
       <summary
         aria-label="신고 · 차단"
-        className={`${look === 'photo' ? ON_PHOTO_ICON : ICON_BUTTON_GHOST} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+        className={`${look === 'photo' ? ICON_BUTTON_ON_PHOTO : ICON_BUTTON_GHOST} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
         <Icon name="more" />
       </summary>
-      <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+      <div className={`${MENU_PANEL} absolute right-0 top-12 z-20 flex w-48 flex-col p-1.5`}>
         <button
           type="button"
           className={`${item} text-foreground`}

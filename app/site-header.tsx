@@ -26,7 +26,7 @@ import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/bu
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
-import { BADGE } from './ui/surfaces';
+import { BADGE, MENU_PANEL } from './ui/surfaces';
 import { FailureLine } from './ui/failure-line';
 
 /**
@@ -493,7 +493,7 @@ function SettingsMenu({
         **주소는 자르지 않는다** — 첫 줄은 「어느 계정으로 들어와 있나」를 말하는 자리라 끝이 잘리면 그 말을 못 한다
         (2026-10-09 화면 갤러리 감사, 「…@example.c…」). 판을 조금 넓히고 넘치는 주소는 다음 줄로 꺾는다.
       */}
-      <div className="absolute right-0 top-13 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-[1.25rem] bg-surface p-2 shadow-float ring-1 ring-border">
+      <div className={`${MENU_PANEL} absolute right-0 top-13 z-50 w-72 max-w-[calc(100vw-2rem)] p-2`}>
         {email && <p className="break-all border-b border-border px-3 pb-2 pt-1 text-[13px] leading-5 text-muted">{email}</p>}
         <ul className="mt-1 flex flex-col">
           {links.map((link) => (

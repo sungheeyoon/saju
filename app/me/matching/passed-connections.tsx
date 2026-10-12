@@ -10,7 +10,7 @@ import { Icon } from '../../ui/icons';
 import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 import { PASSED_LIMIT } from './deck-state';
-import { DetailSheet, openSheet } from './today-card';
+import { DetailSheet, openSheet } from '../../ui/sheet';
 
 /*
   **지나친 인연 — 「오늘의 인연」 옆의 두 번째 보기.**

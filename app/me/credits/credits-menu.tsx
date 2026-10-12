@@ -13,7 +13,7 @@ import {
 } from '@/src/lib/reading/notes';
 
 import { BUTTON_PRIMARY } from '../../ui/buttons';
-import { TYPE_META } from '../../ui/surfaces';
+import { MENU_PANEL, TYPE_META } from '../../ui/surfaces';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { saleIsOpenNow } from './asked-on-press';
 import { CREDITS_PATH, saleShapeOf } from './buy-path';
@@ -65,7 +65,7 @@ export function CreditsMenu({ available, label, children, className }: {
         {children}
       </summary>
       {/* 랜드마크(`section` + 이름)로 세우지 않는다 — 설정 판처럼 여는 단추(`summary`)의 이름이 이 판의 이름이다 */}
-      <div className="fixed right-4 top-15.5 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-[1.25rem] bg-surface p-5 shadow-float ring-1 ring-border sm:absolute sm:right-0 sm:top-12">
+      <div className={`${MENU_PANEL} fixed right-4 top-15.5 z-50 w-72 max-w-[calc(100vw-2rem)] p-5 sm:absolute sm:right-0 sm:top-12`}>
         <p className={TYPE_META}>{CREDITS_AVAILABLE_LABEL}</p>
         <p className="mt-2 flex items-baseline gap-1.5 text-[2rem] font-bold leading-none tabular-nums text-foreground">
           {available}<span className="text-[17px] font-semibold">개</span>

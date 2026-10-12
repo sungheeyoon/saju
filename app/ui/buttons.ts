@@ -79,3 +79,11 @@ const SEGMENT_SHAPE = 'min-h-11 rounded-lg px-3 text-sm disabled:cursor-not-allo
 export const SEGMENT = `${SEGMENT_SHAPE} font-medium text-secondary hover:text-foreground`;
 
 export const SEGMENT_ON = `${SEGMENT_SHAPE} bg-surface font-semibold text-foreground shadow-soft`;
+
+/**
+ * 사진 위의 동그란 아이콘 단추 44px — 반투명 검정 면 · 흰 그림 · 흐린 뒤판. 사진이 희어도 읽힌다. 오늘의 인연 카드의 ⓘ 와
+ * 신고 · 차단 「⋯」(`app/me/requests/report-block.tsx` 의 `look="photo"`)가 한 벌이다. 사진 넘기기 화살(`app/me/matching/card-photos.tsx`)은
+ * 면이 한 단 옅고(`bg-black/45`) 누름 · 넘김 모양이 따로라 이것을 안 쓴다. 이름은 `aria-label` 이 든다
+ */
+export const ICON_BUTTON_ON_PHOTO =
+  'grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm';

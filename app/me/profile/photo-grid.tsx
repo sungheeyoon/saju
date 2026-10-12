@@ -33,6 +33,7 @@ import { addPhoto, movePhoto, removePhoto, replacePhoto, setPhotoFocus } from '.
 import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
 import type { MyPhoto } from './photos';
 import { FailureLine } from '../../ui/failure-line';
+import { MENU_PANEL } from '../../ui/surfaces';
 
 /** 길게 누름 — 이만큼 손가락이 머물면 사진이 들린다 */
 const LIFT_AFTER_MS = 350;
@@ -942,7 +943,7 @@ function PhotoMenu({
     <details ref={menu} className="group relative h-full w-full">
       <summary {...summary}>{children}</summary>
       <div
-        className={`absolute z-40 flex w-44 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border ${align}`}
+        className={`${MENU_PANEL} absolute z-40 flex w-44 flex-col p-1.5 ${align}`}
       >
         {items.map((item) => (
           <button
