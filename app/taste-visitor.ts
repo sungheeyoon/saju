@@ -4,7 +4,10 @@ import { createHmac, randomBytes } from 'node:crypto';
 
 import { cookies, headers } from 'next/headers';
 
-import { ipSubjectOf, seoulDateOf } from '@/src/lib/reading/taste-visit';
+import { ipSubjectOf } from '@/src/lib/reading/taste-visit';
+import { seoulDateOf } from '@/src/lib/reading/seoul-date';
+
+import { UUID } from './uuid';
 
 /**
  * **로그인 전 방문자를 가리키는 두 이름 — 브라우저 묶음과 IP 의 HMAC**(ADR 0143 의 4 · 6).
@@ -57,7 +60,10 @@ const hmacHex = (key: string | Buffer, value: string): string => createHmac('sha
 /** 브라우저 HMAC — 쿠키 원문을 안정 비밀로 */
 export const browserHmacOf = (secret: string, cookie: string): string => hmacHex(secret, cookie);
 
-/** 그날의 IP 키 — 서울 날짜마다 바뀐다 */
+/**
+ * 그날의 IP 키 — 서울 날짜마다 바뀐다. DB 의 IP 하루 한도(`taste_day_start()`)가 서울 자정에 새로 세므로 키도 같은 자정에
+ * 바뀌어야 한다 — 어긋나면 자정 앞뒤 아홉 시간 동안 같은 IP 가 두 이름으로 센다.
+ */
 export const ipDayKeyOf = (secret: string, at: Date): Buffer =>
   createHmac('sha256', secret).update(`taste-ip:${seoulDateOf(at)}`).digest();
 
@@ -121,8 +127,6 @@ export async function browserHmacNow(): Promise<string | null> {
   const cookie = (await cookies()).get(TASTE_BROWSER_COOKIE)?.value ?? '';
   return COOKIE_SHAPE.test(cookie) ? browserHmacOf(secrets.browser, cookie) : null;
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** 귀속 표가 든 세션 id — 없거나 모양이 아니면 `null` */
 export async function claimedTasteSessionId(): Promise<string | null> {

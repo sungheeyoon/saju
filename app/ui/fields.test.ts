@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
+
+import { filesUnder } from './source-files';
 
 /**
  * **입력 칸의 글자는 16px 이상이다.** iOS Safari 는 글자가 16px 보다 작은 입력 칸(input · textarea · select)에 초점이
@@ -17,13 +18,8 @@ import { describe, expect, it } from 'vitest';
 
 const MIN_PX = 16;
 
-function screens(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) return screens(path);
-    return path.endsWith('.tsx') && !path.endsWith('.test.tsx') ? [path] : [];
-  });
-}
+const screens = (dir: string): string[] =>
+  filesUnder(dir).filter((path) => path.endsWith('.tsx') && !path.endsWith('.test.tsx'));
 
 /** `<input` 부터 여는 태그의 끝(중괄호 밖의 `>`)까지 — `=>` 는 중괄호 안에 있어 끝으로 안 친다 */
 function openingTags(source: string): { tag: string; line: number }[] {

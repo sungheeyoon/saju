@@ -1,11 +1,13 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import { config } from '@/proxy';
+
+import { asPosix, filesUnder } from '../ui/source-files';
 
 /**
  * **`signedInUser` 는 관문(`proxy.ts`)의 matcher 안에서만 돈다** — 두 파일이 나눠 든 계약을 잰다.
@@ -31,17 +33,10 @@ import { config } from '@/proxy';
 const ROOT = resolve(__dirname, '../..');
 const SIGNED_IN = 'app/auth/signed-in.ts';
 
-const posix = (file: string) => relative(ROOT, file).split(sep).join('/');
+const posix = (file: string) => asPosix(file, ROOT);
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry.startsWith('.')) continue;
-    const path = join(dir, entry);
-    if (statSync(path).isDirectory()) walk(path, out);
-    else if (/\.(tsx?|mjs|js)$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(path);
-  }
-  return out;
-}
+const walk = (dir: string): string[] =>
+  filesUnder(dir).filter((path) => /\.(tsx?|mjs|js)$/.test(path) && !/\.test\.tsx?$/.test(path));
 
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.js', '.mjs'];
 

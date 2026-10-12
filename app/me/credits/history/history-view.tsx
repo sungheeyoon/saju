@@ -2,10 +2,8 @@ import Link from 'next/link';
 
 import { BUTTON_TERTIARY } from '../../../ui/buttons';
 import { CARD, COLUMN, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../../ui/surfaces';
+import { won } from '../won';
 import type { PaidOrder } from './orders';
-
-/** 원 단위 가격 — 「4,900원」 */
-const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
 
 function OrderCard({ order }: { order: PaidOrder }) {
   const rows: (readonly [string, string])[] = [

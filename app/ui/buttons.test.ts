@@ -1,17 +1,11 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
 import { ICON_BUTTON, ICON_BUTTON_ACTIVE } from './buttons';
+import { filesUnder } from './source-files';
 
-function screens(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) return screens(path);
-    return path.endsWith('.tsx') ? [path] : [];
-  });
-}
+const screens = (dir: string): string[] => filesUnder(dir).filter((path) => path.endsWith('.tsx'));
 
 describe('아이콘 단추의 색', () => {
   /**

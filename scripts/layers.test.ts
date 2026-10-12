@@ -597,3 +597,28 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
     expect(exported.flatMap(({ name, params }) => params.filter((param) => /user|actor|account/i.test(param)).map((param) => `${name}(${param})`))).toEqual([]);
   });
 });
+
+/**
+ * **모델 SDK 는 이름으로 든 자리에만 있다**(ADR 0047). 모델을 부르는 자리가 늘면 토큰이 나가는 길이 늘고, 그 길은 풀이의
+ * 기록 · 검사를 안 지난다. 린트(`eslint.config.mjs` 의 `MODEL_HOLDERS`)가 편집기에서 같은 목록을 알려 준다 — 둘이 같은
+ * 목록인지도 여기서 잰다. `src/lib` 은 위 「층의 방향」이 0 으로 잠근다.
+ */
+describe('모델 SDK 를 부르는 자리 (ADR 0047)', () => {
+  const MODEL_SDK = /^(ai|openai)(\/|$)|^@ai-sdk\//;
+  const MODEL_HOLDERS = ['app/me/reading/model.ts'];
+  const running = (file: string) => !/\.test\.ts$/.test(file);
+
+  it('모델 SDK 를 부르는 파일은 목록 그대로다 — 시험 파일 밖에서', () => {
+    const holders = [
+      ...new Set(EDGES.filter((edge) => edge.spec !== null && MODEL_SDK.test(edge.spec) && running(edge.file)).map((edge) => edge.file)),
+    ];
+    expect(holders.sort()).toEqual([...MODEL_HOLDERS].sort());
+  });
+
+  it('린트의 목록(MODEL_HOLDERS)이 이 목록과 같다', () => {
+    const config = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
+    const listed = /export const MODEL_HOLDERS = \[([^\]]*)\]/.exec(config)?.[1] ?? '';
+    const names = [...listed.matchAll(/"([^"]+)"/g)].map((found) => found[1]);
+    expect(names.sort()).toEqual([...MODEL_HOLDERS].sort());
+  });
+});

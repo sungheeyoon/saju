@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
+
+import { asPosix, filesUnder } from './ui/source-files';
 
 /**
  * **영어 원문이 사용자 화면에 서는 길이 있는가** (#67).
@@ -81,18 +82,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/api/portone/webhook/settle.ts': '결제 알림 — 사람이 보는 화면이 없고, 까닭은 답이 아니라 기록에만 간다(G-23 ⑥)',
 };
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (entry === 'node_modules' || entry.startsWith('.')) return [];
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-
-    return CODE.test(entry) ? [path] : [];
-  });
-}
-
-/** 저장소 어디서든 같은 이름으로 부르게 — 윈도우의 `\` 가 비교를 조용히 깨뜨린다 */
-const asPosix = (path: string) => relative(process.cwd(), path).split(sep).join('/');
+const sourceFiles = (dir: string): string[] => filesUnder(dir).filter((path) => CODE.test(path));
 
 describe('DB 거절은 한 문을 지난다', () => {
   const files = ROOTS.flatMap((root) => sourceFiles(root)).map((path) => ({

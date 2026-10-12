@@ -15,6 +15,7 @@ import { keyedClient } from '../../keyed-client';
 import { countTasteStep } from '../../keyed-taste';
 import type { StoredInput } from '@/src/lib/input/stored';
 
+import { failReadingJob } from './fail-job';
 import type { ModelUsage } from './generator';
 import { retrieveBackgroundReading } from './model';
 import { rpcArgs } from '@/src/lib/db';
@@ -119,14 +120,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     /** 쓴 토큰 — **실패에도 나간 돈이 있다**(ADR 0039). 모르면 `null` 이고 안 적는다 */
     usage: ModelUsage | null = null,
   ): Promise<CollectOutcome> => {
-    /* 못 닫아도 기한이 지나면 복구기가 닫는다 — 그래도 조용히 넘기지 않고 기록에 남긴다(ADR 0078) */
-    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
-      p_run_id: job.run_id,
-      p_failure_code: code,
-      p_failure_detail: detail,
-      p_usage: usage,
-    });
-    if (notClosed) console.error('collect: fail_reading_job', notClosed.code, notClosed.message);
+    await failReadingJob(keyed, 'collect', { runId: job.run_id, code, detail, usage });
     return { done: 'failed', code };
   };
 

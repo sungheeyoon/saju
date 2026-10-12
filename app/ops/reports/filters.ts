@@ -1,4 +1,5 @@
 import { REPORT_REASONS, warningRefOf, type ReportReason } from '@/src/lib/account';
+import { UUID } from '../../uuid';
 import { EVIDENCE_LABEL, REVIEW_LABEL, WARNING_LABEL, reasonLabel } from './labels';
 
 /**
@@ -107,8 +108,6 @@ export const isFiltered = (filters: ReportFilters): boolean =>
  * 운영자가 아닌 사람에게 「없는 화면」(404) 대신 「읽지 못했다」가 서고, 그 차이가 곧 「여기 뭔가
  * 있다」는 신호다. 모양이 아니면 없는 신고와 같은 답을 한다.
  */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export const isReportId = (value: string): boolean => UUID.test(value);
 
 /**

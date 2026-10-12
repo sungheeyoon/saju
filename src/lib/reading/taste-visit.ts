@@ -173,15 +173,6 @@ export type TasteStep = 'reading_succeeded';
 // 날짜 키와 IP 의 모양
 // ---------------------------------------------------------------------------
 
-const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-/**
- * 서울 날짜(`YYYY-MM-DD`) — IP HMAC 의 날짜별 키가 이 값으로 바뀐다. DB 의 IP 하루 한도(`taste_day_start()`)가 서울 자정에
- * 새로 세므로 키도 같은 자정에 바뀌어야 한다 — 어긋나면 자정 앞뒤 아홉 시간 동안 같은 IP 가 두 이름으로 센다. 한국은 일광
- * 절약 시간이 없어 아홉 시간을 더하면 된다.
- */
-export const seoulDateOf = (at: Date): string => new Date(at.getTime() + SEOUL_OFFSET_MS).toISOString().slice(0, 10);
-
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
 /** IPv6 를 여덟 칸으로 편다 — 모양이 아니면 `null` */

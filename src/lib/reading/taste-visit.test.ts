@@ -7,7 +7,6 @@ import {
   answerOfView,
   ipSubjectOf,
   isReserveOutcome,
-  seoulDateOf,
   tasteFirstSectionOf,
 } from './taste-visit';
 
@@ -57,17 +56,6 @@ describe('세션 읽기 → 화면 상태', () => {
     expect(answerOfView(null, id)).toEqual({ state: 'failed', retry: true });
     expect(answerOfView({ state: 'claimed', retryable: false, preview: null }, id)).toEqual({ state: 'failed', retry: true });
     expect(answerOfView({ state: 'succeeded', retryable: false, preview: '  ' }, id)).toEqual({ state: 'failed', retry: true });
-  });
-});
-
-describe('서울 날짜 — IP 키가 바뀌는 자정', () => {
-  it('UTC 14:59:59 는 그날, 15:00 은 서울의 다음 날이다', () => {
-    expect(seoulDateOf(new Date('2026-10-03T14:59:59.999Z'))).toBe('2026-10-03');
-    expect(seoulDateOf(new Date('2026-10-03T15:00:00.000Z'))).toBe('2026-10-04');
-  });
-
-  it('UTC 자정은 서울로는 이미 아홉 시 — 날이 바뀌지 않는다', () => {
-    expect(seoulDateOf(new Date('2026-10-04T00:00:00.000Z'))).toBe('2026-10-04');
   });
 });
 
