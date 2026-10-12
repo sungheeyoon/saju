@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  bundleMark,
+  readingBundleOf,
+  bundleOrderName,
   discountAgainstSingles,
   READING_BUNDLES,
   refundableCredits,
@@ -34,6 +37,25 @@ describe('풀이권 묶음', () => {
   it('많이 사는 묶음일수록 한 회가 싸다', () => {
     const perCredit = READING_BUNDLES.map((b) => b.price / b.credits);
     expect([...perCredit].sort((a, b) => b - a)).toEqual(perCredit);
+  });
+});
+
+describe('상품 화면의 판단', () => {
+  it('목록에 있는 회차만 묶음이다 — 그 밖의 수는 팔지 않는다', () => {
+    expect(readingBundleOf(3)).toEqual({ credits: 3, price: 12900 });
+    expect([0, 2, 4, 10, 21].map(readingBundleOf)).toEqual([null, null, null, null, null]);
+  });
+
+  it('추천은 5회, 최대 할인은 20회에 하나씩만 선다', () => {
+    expect(READING_BUNDLES.map((b) => bundleMark(b.credits))).toEqual([null, null, '추천', '최대 할인']);
+  });
+
+  it('상품 이름은 회차를 말하고 시험 표식 · 0원이 없다 — 카드사 심사가 반려하는 꼴', () => {
+    for (const b of READING_BUNDLES) {
+      expect(bundleOrderName(b.credits)).toBe(`풀이권 ${b.credits}회`);
+      expect(bundleOrderName(b.credits)).not.toMatch(/test/i);
+      expect(b.price).toBeGreaterThan(0);
+    }
   });
 });
 

@@ -35,21 +35,33 @@ const supabaseSocket = supabaseUrl.replace(/^http(s?):\/\//, 'ws$1://');
  * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다. Supabase 의 Realtime 소켓(같은 호스트의
  * `wss:`)은 운영에서도 연다 — 화면이 스스로 갱신되는 채널이다(ADR 0155).
  */
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  `connect-src 'self' ${supabaseUrl} ${supabaseSocket}${isDev ? ' ws: wss:' : ''}`.replace(/\s+/g, ' ').trimEnd(),
-  /* 웹 푸시의 서비스 워커(`/sw.js`)는 제 출처의 파일만 — 다른 출처 · blob 워커는 없다(ADR 0156) */
-  "worker-src 'self'",
-  "frame-src 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join('; ');
+const policyWith = (open: { script: string; img: string; connect: string; frame: string; form: string }) =>
+  [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}${open.script}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' data: blob:${open.img}`,
+    "font-src 'self' data:",
+    `connect-src 'self' ${supabaseUrl} ${supabaseSocket}${isDev ? ' ws: wss:' : ''}${open.connect}`.replace(/\s+/g, ' ').trimEnd(),
+    /* 웹 푸시의 서비스 워커(`/sw.js`)는 제 출처의 파일만 — 다른 출처 · blob 워커는 없다(ADR 0156) */
+    "worker-src 'self'",
+    `frame-src ${open.frame}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    `form-action 'self'${open.form}`,
+    "frame-ancestors 'none'",
+  ].join('; ');
+
+const contentSecurityPolicy = policyWith({ script: '', img: '', connect: '', frame: "'none'", form: '' });
+
+/**
+ * **풀이권 상품 화면(`/me/credits`)만 결제창에 열린다**(G-21, ADR 0171).
+ *
+ * PortOne 브라우저 SDK(`https://cdn.portone.io`)는 PG 의 결제 모듈을 이 문서에 다시 싣고, 결제창은 PG 의 틀(iframe) · 창으로
+ * 선다. PG 를 아직 안 정해(G-21) 어느 출처인지 미리 적을 수 없다 — 그래서 이 화면에서만 `https:` 를 연다. 다른 화면의 정책은
+ * 그대로다. PG 가 정해지면 그 PG 의 출처로 좁힌다(G-23 ②).
+ */
+const checkoutPolicy = policyWith({ script: ' https:', img: ' https:', connect: ' https:', frame: 'https:', form: ' https:' });
 
 const nextConfig: NextConfig = {
   // The in-app preview reaches the dev server through IPv4 loopback.
@@ -88,6 +100,11 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
         ],
+      },
+      /* 같은 머리의 뒤 줄이 앞 줄을 덮는다 — 상품 화면과 결제 뒤 화면만 넓힌 정책을 받는다(위 `checkoutPolicy`) */
+      {
+        source: '/me/credits/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: checkoutPolicy }],
       },
       /**
        * **서비스 워커는 늘 새로 받는다** — 낡은 워커가 캐시에 남으면 고친 알림 처리가 기기에 안 닿는다(ADR 0156). 종류를

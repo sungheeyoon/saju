@@ -1776,6 +1776,32 @@ export type Database = {
           },
         ]
       }
+      reading_sale_reviewer: {
+        Row: {
+          added_at: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_sale_reviewer_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading_share: {
         Row: {
           body: string
@@ -3195,6 +3221,15 @@ export type Database = {
           used: number
         }[]
       }
+      my_reading_order: {
+        Args: { p_order_id: string }
+        Returns: {
+          amount: number
+          bundle_credits: number
+          status: string
+        }[]
+      }
+      my_reading_sale_is_open: { Args: never; Returns: boolean }
       my_readings: {
         Args: never
         Returns: {
@@ -3623,6 +3658,7 @@ export type Database = {
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
       reading_sale_is_open: { Args: never; Returns: boolean }
+      reading_sale_is_open_for: { Args: { p_user: string }; Returns: boolean }
       reading_scope: {
         Args: {
           p_kind: string

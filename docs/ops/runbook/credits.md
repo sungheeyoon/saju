@@ -136,8 +136,37 @@ update retention.reading_payment set hold_reason = null, held_at = null where or
 다시 보낸다. 까닭은 답에 안 싣고 Vercel 로그의 `portone webhook` 줄에만 남는다.
 
 **켜는 날**(가맹 · 샌드박스 뒤, 사람) — ① Vercel **Production** 에 위 셋을 넣고 재배포 ② PortOne 콘솔 → 웹훅에 `https://<도메인>/api/portone/webhook`
-을 넣는다(버전 V2) ③ 샌드박스 채널로 1회권 하나를 결제하고 묶음이 선 것을 본다 — 판매 스위치는 운영에서 켜지 않는다(로컬 스택 + 터널이나
-별도 프로젝트에서) ④ 콘솔의 테스트
+을 넣는다(버전 V2) ③ 샌드박스 채널로 1회권 하나를 결제하고 묶음이 선 것을 본다 — 판매 스위치는 운영에서 켜지 않는다. 운영에서 밟을 때는 아래
+「심사 계정」에 제 계정을 넣고 `/me/credits` 에서 결제한다 ④ 콘솔의 테스트
 호출이 200 인지 본다. 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 — 결제 전 고지 · 철회
 기준(G-25) · 탈퇴 판의 남은 수량(G-25 ⑦) · 환불 셈 화면이 먼저 선다. **샌드박스에서 볼 것** — 알림 본문과 결제 조회의 모양이
 문서대로인가, 환불 번호를 주문 사이에 겹쳐 쓰는가(`20261015090000`), 거래 번호로 `transactionId` 와 `pgTxId` 중 무엇을 남길까.
+
+#### 심사 계정 — 카드사 심사 때만 결제창이 선다 (G-21, ADR 0171)
+
+**판매는 닫힌 채다.** `reading_sale_reviewer` 에 든 계정만 `/me/credits` 에서 「결제하기」가 서고 주문이 열린다 — 다른 계정은 가격과 결제 전
+고지만 보고 「풀이권 판매 준비 중이에요.」를 본다. 결제 단추는 Vercel **Production** 에 `PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY`(PortOne 콘솔 →
+결제 연동 → 연동 정보의 상점 아이디 · 채널 키 — 비밀이 아니다)가 둘 다 있어야 선다. 결제가 끝나 묶음이 서는 것은 위 「결제 알림」의
+웹훅이 하므로 그 셋도 함께 넣는다. 메뉴는 없다 — 심사 계정에게 `https://<도메인>/me/credits` 주소를 건넨다.
+
+1. **계정을 만든다** — 심사 담당이 구글로 로그인하고 가입(테스트 코드 · 닉네임 · 안내 확인)을 마친다. 코드는 `docs/ops/runbook/signup.md` 「초대」대로 따로 낸다
+2. **넣는다 — break-glass**(이메일로 계정을 찾는다, `docs/ops/runbook/access.md`). 대장에 먼저 적고 운영 SQL Editor 에서:
+
+```sql
+-- 메모에 누구 · 왜 · 언제를 — 걷을 때 이 메모로 찾는다
+insert into public.reading_sale_reviewer (user_id, note)
+select id, '<카드사> 심사 <YYYY-MM>' from auth.users where email = '<심사 계정 이메일>';
+```
+
+3. **본다** — 그 계정으로 `/me/credits` 에 「4,900원 결제하기」가 서는지, 다른 계정에는 안 서는지. 몇 계정이 들었는지는 개인을 안 가리킨다:
+
+```bash
+npm run db:remote -- --purpose "심사 계정 수" "select count(*), min(added_at) from public.reading_sale_reviewer"
+```
+
+4. **심사가 끝나면 걷는다** — 걷지 않으면 그 계정은 판매가 닫힌 동안에도 계속 산다. 심사 결제로 선 묶음은 PG 콘솔에서 돌려준 뒤 위
+   「수동 환불」 차례로 적는다(사유 `other`)
+
+```sql
+delete from public.reading_sale_reviewer where note = '<카드사> 심사 <YYYY-MM>';
+```
