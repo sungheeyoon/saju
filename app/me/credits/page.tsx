@@ -1,4 +1,4 @@
-import { refundRequestLine } from '@/src/lib/brand/refund';
+import { checkoutRefundLine } from '@/src/lib/brand/refund';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
@@ -16,7 +16,7 @@ export const metadata = {
 };
 
 /**
- * 풀이권 상품 화면 — 묶음 넷 · 결제 전 고지 · 「결제하기」 (G-21, ADR 0171).
+ * 풀이권 상품 화면 — 묶음 넷 · 동의 체크 · 「결제하기」 · 유의사항 (G-21, ADR 0171 · 0175).
  *
  * **판매는 닫혀 있다.** 결제 단추는 판매가 이 사람에게 열렸을 때(지금은 카드사 심사 계정만 — `reading_sale_reviewer`)와
  * 결제창 값(`PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY`)이 있는 배포에서만 선다. 둘 중 하나라도 아니면 결제창 값을 화면에
@@ -45,7 +45,7 @@ export default async function CreditsPage() {
 
       {!sale.ok && <FailureLine retry>결제할 수 있는지 확인하지 못했어요. {sale.reason}</FailureLine>}
 
-      <Checkout checkout={checkout} refundLine={refundRequestLine(currentBusinessInfo())} />
+      <Checkout checkout={checkout} refundLine={checkoutRefundLine(currentBusinessInfo())} />
     </main>
   );
 }

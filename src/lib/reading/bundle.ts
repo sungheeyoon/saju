@@ -20,7 +20,7 @@ export const READING_BUNDLES = [
 const SINGLE_PRICE = READING_BUNDLES[0].price;
 
 /**
- * 산 풀이권의 유효기간(년) — 구매일로부터. 상품 화면의 구매 전 확인사항이 이 값을 말한다(운영자 결정 2026-10-12, G-21).
+ * 산 풀이권의 유효기간(년) — 구매일로부터. 상품 화면의 유의사항(ADR 0175)이 이 값을 말한다(운영자 결정 2026-10-12, G-21).
  * 만료를 DB 가 걷는 일은 아직 없다 — 첫 판매 뒤 5년 안에 선다.
  */
 export const READING_BUNDLE_VALID_YEARS = 5;

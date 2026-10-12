@@ -11,11 +11,10 @@ import {
   READING_BUNDLES,
 } from '@/src/lib/reading/bundle';
 
-import { POLICY_LINKS } from '../../site-links';
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { FailureLine } from '../../ui/failure-line';
-import { CARD, TYPE_META, TYPE_NAME } from '../../ui/surfaces';
+import { TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { openReadingOrder } from './actions';
 import type { PortoneCheckout } from './payment';
 import { loadPortOne } from './portone-sdk';
@@ -24,15 +23,12 @@ import { loadPortOne } from './portone-sdk';
 const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
 
 /**
- * 결제 전 고지가 가리키는 글 셋 — 주소와 이름은 바닥글과 같은 `POLICY_LINKS`(`app/site-links.ts`, 화면은 #669 · ADR 0172)다.
- * 환불정책만 이 자리의 확정 글자 「환불정책 보기」로 선다(`docs/product/copy-ledger/settings.md`).
- */
-const CHECKOUT_LABELS: Partial<Record<(typeof POLICY_LINKS)[number]['href'], string>> = { '/refund': '환불정책 보기' };
-
-/**
- * **풀이권 고르기 · 결제 전 고지 · 「결제하기」** (G-21, ADR 0171).
+ * **풀이권 고르기 · 동의 체크 · 「결제하기」 · 유의사항** (G-21, ADR 0171 · 0175).
  *
- * 묶음 넷과 고지는 누구에게나 선다. 고지의 환불 신청 줄(`refundLine`)은 서버가 사업자 이메일로 지어 넘긴다(ADR 0174).
+ * 리디 충전 화면의 꼴이다(ADR 0175) — 묶음 목록 → 동의 체크(필수) → 결제 단추 → 그 아래 작은 글씨 유의사항 다섯 줄과
+ * 「자세히 알아보기」(`/refund`). 고른 묶음의 값은 단추 글자(「N원 결제하기」)가 들어 따로 요약 줄을 세우지 않는다. 이용약관 ·
+ * 처리방침은 바닥글이 든다. 묶음과 유의사항은 누구에게나 선다. 유의사항의 환불 신청 줄(`refundLine`)은 서버가 사업자 이메일로
+ * 지어 넘긴다(`checkoutRefundLine`).
  * 결제 단추는 서버가 결제창 값(`checkout`)을 넘긴 사람 — 판매가 열린 사람(지금은 카드사 심사 계정)이고 상점 번호 · 채널 키가 있는 배포 — 에게만 선다. 누르면 주문을 먼저 열고(금액은 DB 의 가격표), 그 주문 번호로 결제창을
  * 띄운다. 결제가 됐는지는 이 화면이 정하지 않는다 — 웹훅이 PortOne 에서 다시 받아 승인한 주문을 결제 뒤 화면이 읽는다.
  */
@@ -127,46 +123,20 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
         })}
       </fieldset>
 
-      <section aria-labelledby={`${agreeId}-title`} className={`${CARD} flex flex-col gap-4`}>
-        <h2 id={`${agreeId}-title`} className={TYPE_NAME}>
-          구매 전 확인사항
-        </h2>
-        <ul className="flex flex-col gap-2 text-[15px] leading-7 text-secondary">
-          <li>
-            <strong className="font-semibold text-foreground">
-              풀이권 {chosen.credits}회 · {won(chosen.price)}
-            </strong>{' '}
-            (부가세 포함)
-          </li>
-          <li>풀이권 1개로 사주풀이나 궁합풀이 한 편을 받아요.</li>
-          <li>유효기간: 구매일로부터 {READING_BUNDLE_VALID_YEARS}년</li>
-          <li>사기 전에 무료 풀이권으로 한 편을 먼저 받아 볼 수 있어요.</li>
-          <li>미사용 유료 풀이권은 수수료 없이 환불을 신청할 수 있어요.</li>
-          <li>{refundLine}</li>
-          <li>정상적으로 제공된 풀이는 단순 변심으로 환불되지 않아요.</li>
-          <li>풀이가 제공되지 않거나 안내한 내용과 다르면 재제공 또는 환불을 요청할 수 있어요.</li>
-        </ul>
-        <p className="flex flex-wrap gap-x-4">
-          {POLICY_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className={BUTTON_TERTIARY}>
-              {CHECKOUT_LABELS[link.href] ?? link.label}
-            </Link>
-          ))}
-        </p>
-
+      <div className="flex flex-col gap-3">
         {checkout === null ? (
           <p className={TYPE_META}>풀이권 판매 준비 중이에요.</p>
         ) : (
           <>
-            <label htmlFor={agreeId} className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-foreground">
+            <label htmlFor={agreeId} className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[14px] leading-6 text-foreground">
               <input
                 id={agreeId}
                 type="checkbox"
                 checked={agreed}
                 onChange={(event) => setAgreed(event.target.checked)}
-                className="size-5 shrink-0 accent-[var(--accent)]"
+                className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
               />
-              위 내용과 환불정책을 확인했으며 결제에 동의합니다.
+              상품, 가격, 할인 정보, 유의 사항 등을 확인하였으며 구매에 동의합니다. (필수)
             </label>
             <button type="button" onClick={pay} disabled={paying} className={BUTTON_PRIMARY}>
               {paying ? '결제창 여는 중…' : `${won(chosen.price)} 결제하기`}
@@ -174,7 +144,24 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
             {failure !== null && <FailureLine>{failure}</FailureLine>}
           </>
         )}
-      </section>
+
+        <ul aria-label="유의사항" className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-[12px] leading-[1.125rem] text-secondary">
+          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 회차 비율에 따라 수수료 없이 환불합니다.</li>
+          <li>{refundLine}</li>
+          <li>
+            정상적으로 제공된 풀이는 단순 변심으로 환불되지 않습니다. 풀이가 제공되지 않거나 표시·광고 또는 계약 내용과
+            다르게 제공된 경우에는 관계 법령에 따라 재제공 또는 환불을 요청할 수 있습니다.
+          </li>
+          <li>구매 전 무료 풀이권으로 풀이 한 편을 먼저 받아 볼 수 있습니다.</li>
+          <li>
+            유료 풀이권은 구매일로부터 {READING_BUNDLE_VALID_YEARS}년, 무료로 받은 풀이권은 받은 날로부터 1년이 지나면
+            소멸됩니다.
+          </li>
+        </ul>
+        <Link href="/refund" className={`${BUTTON_TERTIARY} self-start text-[12px] font-medium text-secondary`}>
+          자세히 알아보기
+        </Link>
+      </div>
     </>
   );
 }

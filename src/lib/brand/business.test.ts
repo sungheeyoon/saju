@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type RawBusinessInfo, businessInfoFrom, businessInfoLines, contactPlace } from './business';
 import type { LegalDocument } from './legal-text';
-import { refundPolicyFor, refundRequestLine } from './refund';
+import { checkoutRefundLine, refundPolicyFor, refundRequestLine } from './refund';
 import { termsFor } from './terms';
 
 /** 시험용 값 — 실제 사업자 값이 아니다(저장소에 실제 값을 적지 않는다, ADR 0151) */
@@ -126,7 +126,7 @@ describe('사업자 정보 묶음의 자리', () => {
   });
 });
 
-describe('환불 신청 한 줄 — 결제 화면 · 결제 내역 (ADR 0174)', () => {
+describe('환불 신청 한 줄 — 결제 내역 (ADR 0174)', () => {
   it('이메일이 있으면 그 주소로, 없으면 고객센터로 신청한다고 말한다 — 빈칸 표지는 없다', () => {
     expect(refundRequestLine(businessInfoFrom(FULL))).toBe(
       '환불은 이메일(help@example.com)로 신청하면 3영업일 안에 결제한 수단으로 돌려드려요.',
@@ -135,5 +135,17 @@ describe('환불 신청 한 줄 — 결제 화면 · 결제 내역 (ADR 0174)', 
       '환불은 고객센터로 신청하면 3영업일 안에 결제한 수단으로 돌려드려요.',
     );
     expect(refundRequestLine(businessInfoFrom({ email: '［고객 문의 이메일 — 기입］' }))).not.toMatch(LEAK);
+  });
+});
+
+describe('결제 화면 유의사항의 환불 신청 줄 (ADR 0175)', () => {
+  it('이메일이 있으면 그 주소로, 없으면 고객센터로 — 빈칸 표지는 없다', () => {
+    expect(checkoutRefundLine(businessInfoFrom(FULL))).toBe(
+      '환불은 이메일(help@example.com)로 신청할 수 있으며, 3영업일 이내에 결제한 수단으로 환불합니다.',
+    );
+    expect(checkoutRefundLine(businessInfoFrom({ phone: '070-0000-1234' }))).toBe(
+      '환불은 고객센터로 신청할 수 있으며, 3영업일 이내에 결제한 수단으로 환불합니다.',
+    );
+    expect(checkoutRefundLine(businessInfoFrom({ email: '［고객 문의 이메일 — 기입］' }))).not.toMatch(LEAK);
   });
 });
