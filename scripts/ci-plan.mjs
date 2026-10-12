@@ -167,17 +167,19 @@
  * - 관문이 부르는 파일(`gateReach`)
  * - 입구도 시험도 못 찾는 고아, 찾은 입구의 주소에 닿는 시험이 0
  *
- * 잰 값(2026-10-12): 전부 113 → 78, 「주소 없음」 65 → 30. 남은 30 개는 위 공용 위험 · 관문이 부르는 파일이다.
+ * 잰 값(2026-10-12): 전부 113 → 91, 「주소 없음」 65 → 42. 남은 42 개는 위 공용 위험 · 관문이 부르는 파일이다.
  *
- * **타입만 들이는 import 는 서버 도달로 안 센다**(`valueImportsOf`) — `import type …` · 이름이 모두 `type` 인 `import { type X }` ·
- * `export type … from` 은 빌드에서 지워진다. #649 의 `room-compat.ts` 는 `import type { SupabaseClient }` 하나로 전부였다. 거꾸로 가는
- * 그래프는 타입 import 도 길로 센다 — 넓게 잡을수록 차선이 늘 뿐 줄지 않는다.
+ * **타입만 들이는 import 도 서버 도달로 센다.** `import type { SupabaseClient }` 만 든 파일 대부분은 주입받은 클라이언트로 실제
+ * DB 를 부른다(`app/me/credits/sale.ts` 같은 것) — 그것을 빼면 e2e 없는 `core` 로 떨어진다(#682 독립 검토). 대신 그런 파일도 위처럼
+ * 쓰는 입구의 차선으로 좁혀진다(#649 의 `room-compat.ts`). 거꾸로 가는 그래프도 타입 import 를 길로 센다 — 넓게 잡을수록 차선이 늘 뿐
+ * 줄지 않는다. 입구에서도 멈추지 않고 위로 더 따라간다 — 다른 page 가 입구를 다시 내보내면(`export { default } from '../a/page'`)
+ * 그 page 의 주소도 든다.
  *
  * ## 문구만 바뀐 PR 은 빌드를 건너뛴다 (ADR 0178, 운영자 2026-10-12)
  *
  * 운영 베타의 PR 에서 코드가 아래 「문구만 바뀐 파일」로 좁혀진 파일뿐이고 나머지가 정책이면 계획이 `build=false` 를 낸다 — `core` 는
  * 단위 · 타입 · 린트만 돌고, 바뀐 글자를 찾는 시험의 차선은 그대로다. 빌드를 `core` 에 넣은 까닭(#219 의 `icon.tsx`)은 이름 · 모양의
- * 실패라 문구 한 줄로 안 생긴다. 그 밖의 코드 · 라벨 · 공개 출시 · main 푸시 · 일정은 빌드가 돈다. 워크플로는 `!= 'false'` 로 읽어
+ * 실패라 문구 한 줄로 안 생긴다. 메타데이터 파일(`icon` · `opengraph-image` … — 빌드 때 그림을 그린다) · 그 밖의 코드 · 라벨 · 공개 출시 · main 푸시 · 일정은 빌드가 돈다. 워크플로는 `!= 'false'` 로 읽어
  * 값이 비면 돈다. job · `gate` 는 그대로다.
  *
  * ## 주석만 바뀐 코드 파일은 정책으로 센다 (ADR 0153)
@@ -396,45 +398,11 @@ function sourceFromDisk(file) {
   }
 }
 
-/** `import … from` · `export … from` 의 이름 칸과 모듈 — 칸에 따옴표 · 세미콜론 · 괄호가 없다 */
-const FROM_CLAUSE = /\b(?:import|export)\s+([^'";()]*?)\s*\bfrom\s*['"]([^'"]+)['"]/g;
-
-/**
- * 타입만 들이는 칸인가 — `type X` · `type { X }` · `type * as X`, 또는 중괄호 속 이름이 모두 `type …` 인 `{ type X, type Y }`.
- * 기본 이름(`X, { type Y }`) · `* as X` · 빈 중괄호가 섞이면 값이다. `import type from '…'`(이름이 `type` 인 기본 값)도 값이다
- */
-function typeOnlyClause(clause) {
-  const text = clause.trim();
-  if (/^type\s+\S/.test(text)) return true;
-  const braces = /^\{([^}]*)\}$/.exec(text);
-  if (!braces) return false;
-  const names = braces[1].split(',').map((one) => one.trim()).filter((one) => one !== '');
-  return names.length > 0 && names.every((one) => /^type\s+\S/.test(one));
-}
-
-/**
- * 실행 때 불러오는 모듈 — `importsOf` 에서 타입만 들이는 문(`import type …` · 이름이 모두 `type` 인 `import { type X }`)만으로
- * 들인 모듈을 뺀다. 같은 모듈을 값으로도 들이면 남는다. 타입은 빌드에서 지워지므로 `import type { SupabaseClient }` 만으로는
- * 서버에 닿지 않는다(#649 의 `room-compat.ts`, ADR 0178)
- *
- * @param {string} source
- * @returns {string[]}
- */
-export function valueImportsOf(source) {
-  const typeOnly = new Set();
-  const valued = new Set();
-  for (const [, clause, name] of source.matchAll(FROM_CLAUSE)) {
-    if (typeOnlyClause(clause)) typeOnly.add(name);
-    else valued.add(name);
-  }
-  return importsOf(source).filter((name) => valued.has(name) || !typeOnly.has(name));
-}
-
-/** `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈을 **값으로** 부르는가 */
+/** `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈을 부르는가 — 타입만 들여도 센다(주입받은 클라이언트로 DB 를 부른다) */
 function reachesServer(file, sourceOf = sourceFromDisk) {
   if (!/^app\/.+\.tsx?$/.test(file)) return false;
   const source = sourceOf(file);
-  return source !== null && valueImportsOf(source).some((name) => SERVER_REACHING.test(name));
+  return source !== null && importsOf(source).some((name) => SERVER_REACHING.test(name));
 }
 
 /** 저장소 안의 import(`./` · `../` · `@/`)를 파일로 푼다 — 패키지이거나 못 읽으면 `null` */
@@ -559,10 +527,8 @@ export function entriesReaching(file, sourceOf = sourceFromDisk, changed = [file
       const risk = SHARED_RISK.find(([, hits]) => hits(importer));
       if (risk) return { entries: [...entries], tests: [...tests], risk: { name: risk[0], via: importer } };
       if (METADATA.test(importer)) return { entries: [...entries], tests: [...tests], risk: { name: '메타데이터', via: importer } };
-      if (routeOf(importer)) {
-        entries.add(importer);
-        continue;
-      }
+      // 입구에서도 위로 더 간다 — 다른 page 가 이 입구를 다시 내보내면 그 주소도 이 파일을 그린다
+      if (routeOf(importer)) entries.add(importer);
       queue.push(importer);
     }
   }
@@ -1588,8 +1554,10 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
   const judged = rest.filter((file) => !narrowed.has(file));
   const decided = notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
-  // 코드가 문구만 바뀐 PR 은 빌드를 건너뛴다(위 「문구만 바뀐 PR 은 빌드를 건너뛴다」, ADR 0178)
-  const copyOnlyPr = narrowed.size > 0 && judged.every(isPolicy) && decided.tier !== 'full';
+  // 코드가 문구만 바뀐 PR 은 빌드를 건너뛴다(위 「문구만 바뀐 PR 은 빌드를 건너뛴다」, ADR 0178). 메타데이터 파일(`icon` ·
+  // `opengraph-image` …)은 빌드 때 그림을 그리므로 문구만이어도 빌드가 돈다
+  const copyOnlyPr =
+    narrowed.size > 0 && [...narrowed.keys()].every((file) => !METADATA.test(file)) && judged.every(isPolicy) && decided.tier !== 'full';
   return copyOnlyPr ? { ...decided, skipBuild: true, reason: `${decided.reason} — 문구만이라 빌드는 건너뛴다` } : decided;
 }
 

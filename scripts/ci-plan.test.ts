@@ -49,7 +49,6 @@ import {
   summaryOf,
   testsImportingCopy,
   testsNamingLiterally,
-  valueImportsOf,
 } from './ci-plan.mjs';
 import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
 
@@ -325,8 +324,8 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
   it('가르는 것은 이름이 아니라 import 다 — 새 파일도 · 지운 파일은 안 건다 · 시험 파일은 안 건다', () => {
     const fake = (source: string | null) => () => source;
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import { supabaseOnServer } from '../auth/server-client';") }).tier).toBe('full');
-    // 타입만 들이는 import 는 서버에 닿지 않는다(ADR 0178)
-    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import type { SupabaseClient } from '@supabase/supabase-js';") }).tier).toBe('core');
+    // 타입만 들여도 서버 도달이다 — 주입받은 클라이언트로 DB 를 부른다(#682 독립 검토). 입구가 없는 고아라 전부
+    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import type { SupabaseClient } from '@supabase/supabase-js';") }).tier).toBe('full');
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import 'server-only';") }).tier).toBe('full');
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("export { x } from '../../keyed-client';") }).tier).toBe('full');
     expect(planFor({ files: ['app/me/pure.ts'], stage: '운영 베타', sourceOf: fake("import { chartOf } from '@/src/lib/input/chart';") }).tier).toBe('core');
@@ -363,31 +362,55 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
 
 /**
  * **입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로 간다**(운영자 2026-10-12, ADR 0178). 전에는 주소를 못 뽑아 전부였다 —
- * `app/` 의 시험 아닌 파일 377 개 중 113 개가 전부였고 그중 65 개가 「주소 없음」이었다(#649 · #650 · #651 · #657 · #673).
+ * `app/` 의 시험 아닌 파일 388 개 중 113 개가 전부였고 그중 65 개가 「주소 없음」이었다(#649 · #650 · #651 · #657 · #673).
  */
 describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 따라 입구의 차선만 (ADR 0178)', () => {
   const disk = (file: string) => (existsSync(resolve(ROOT, file)) && statSync(resolve(ROOT, file)).isFile() ? readFileSync(resolve(ROOT, file), 'utf8') : null);
 
-  it('타입만 들이는 import 는 값이 아니다 — import type · 이름이 모두 type 인 중괄호, 값이 섞이면 값이다', () => {
-    expect(valueImportsOf("import type { SupabaseClient } from '@supabase/supabase-js';")).toEqual([]);
-    expect(valueImportsOf("import { type SupabaseClient, type X } from '@supabase/supabase-js';")).toEqual([]);
-    expect(valueImportsOf("export type { X } from './keyed-client';")).toEqual([]);
-    expect(valueImportsOf("import {\n  type A,\n  type B,\n} from 'server-only';")).toEqual([]);
-    expect(valueImportsOf("import { createClient, type SupabaseClient } from '@supabase/supabase-js';")).toEqual(['@supabase/supabase-js']);
-    expect(valueImportsOf("import Client, { type X } from '@supabase/ssr';")).toEqual(['@supabase/ssr']);
-    expect(valueImportsOf("import * as ns from 'next/headers';")).toEqual(['next/headers']);
-    expect(valueImportsOf("import type from 'next/cache';")).toEqual(['next/cache']);
-    expect(valueImportsOf("import 'server-only';")).toEqual(['server-only']);
-    expect(valueImportsOf("const m = await import('next/headers');")).toEqual(['next/headers']);
-    // 같은 모듈을 타입으로도 값으로도 들이면 값이다
-    expect(valueImportsOf("import type { A } from 'next/server';\nimport { NextResponse } from 'next/server';")).toEqual(['next/server', 'next/server']);
+  /**
+   * 타입만 들이는 import 도 서버 도달이다(#682 독립 검토) — `import type { SupabaseClient }` 만 든 파일이 주입받은 클라이언트로
+   * `client.rpc` 를 부른다. 그것을 빼면 e2e 없는 core 로 떨어졌다. 그런 파일도 쓰는 입구의 차선이나 전부로 간다
+   */
+  it('타입만 들이고 주입받은 클라이언트로 DB 를 부르는 파일은 서버 파일이다 — 입구의 차선이나 전부로, core 하나로 떨어지지 않는다', () => {
+    const sale = 'app/me/credits/sale.ts';
+    expect(readFileSync(resolve(ROOT, sale), 'utf8')).toMatch(/import type \{[^}]*SupabaseClient[^}]*\} from '@supabase\/supabase-js'/);
+    expect(isSurface(sale)).toBe(true);
+    expect(beta([sale]).tier).toBe('full');
+
+    const room = 'app/me/chat/[matchId]/room-compat.ts';
+    expect(readFileSync(resolve(ROOT, room), 'utf8')).toMatch(/import type \{[^}]*\} from '@supabase\/supabase-js'/);
+    expect(isSurface(room)).toBe(true);
+    expect(beta([room]).tier).toBe('narrow');
+
+    // 같은 꼴의 새 파일 — page 가 부르면 그 주소의 차선, 아무도 안 부르면 전부
+    const door = 'app/me/people/typed-door.ts';
+    const page = 'app/me/people/page.tsx';
+    const source = "import type { SupabaseClient } from '@supabase/supabase-js';\nexport const read = (client: SupabaseClient) => client.rpc('x');\n";
+    const used = (file: string) => (file === door ? source : file === page ? `import { read } from './typed-door';\n${disk(page)}` : disk(file));
+    const plan = planFor({ files: [door], stage: '운영 베타', sourceOf: used });
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes).toEqual(beta([page]).authedLanes);
+    const alone = (file: string) => (file === door ? source : disk(file));
+    expect(planFor({ files: [door], stage: '운영 베타', sourceOf: alone }).lanes).toEqual(FULL);
   });
 
-  it('#649 의 room-compat.ts — 타입만 들여 서버 파일이 아니라 core 다', () => {
-    const file = 'app/me/chat/[matchId]/room-compat.ts';
-    expect(readFileSync(resolve(ROOT, file), 'utf8')).toMatch(/import type \{[^}]*\} from '@supabase\/supabase-js'/);
-    expect(isSurface(file)).toBe(false);
-    expect(beta([file]).tier).toBe('core');
+  it('입구를 다시 내보내는 page 의 주소도 든다 — 입구에서 멈추지 않고 위로 더 따라간다', () => {
+    const door = 'app/me/people/new-door.ts';
+    const first = 'app/me/(shelf)/readings/compat/page.tsx';
+    const second = 'app/me/people/page.tsx';
+    const sourceOf = (file: string) => {
+      if (file === door) return "import 'server-only';\nexport const x = 1;\n";
+      if (file === first) return `import { x } from '../../../people/new-door';\n${disk(first)}`;
+      if (file === second) return "export { default } from '../(shelf)/readings/compat/page';\n";
+      return disk(file);
+    };
+    const reach = entriesReaching(door, sourceOf, [door]);
+    expect(reach.risk).toBeNull();
+    expect(reach.entries).toEqual([first, second].sort());
+    const plan = planFor({ files: [door], stage: '운영 베타', sourceOf });
+    // 둘째 page(/me/people)의 차선 — match 가 든다. 첫째(/me/readings/compat)만이면 signed-in 둘뿐이다
+    expect(beta([first]).authedLanes).not.toContain('match:desktop');
+    expect(plan.authedLanes).toContain('match:desktop');
   });
 
   it('app/me/match/screen.tsx — 그것을 쓰는 page 의 주소에 닿는 차선만, 전부가 아니다', () => {
@@ -1946,6 +1969,15 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     // 정책만이면 core 가 없으니 빌드도 없다
     expect(beta(['docs/prd.md']).build).toBe(false);
     expect(beta(['src/lib/matching/pool.ts']).build).toBe(true);
+  });
+
+  it('메타데이터 파일(icon · opengraph-image …)은 문구만 바뀌어도 빌드가 돈다 — 빌드 때 그림을 그린다(#682 독립 검토)', () => {
+    const image = "export default function Image() {\n  return <div style={{ display: 'flex' }}>사주 궁합</div>;\n}\n";
+    for (const file of ['app/opengraph-image.tsx', 'app/icon.tsx', 'app/apple-icon.tsx', 'app/share/[id]/twitter-image.tsx']) {
+      const plan = planOf(file, image, image.replace('사주 궁합', '사주 보기'));
+      expect(plan.reason, file).toContain('문구만 바뀐 파일은 core 로 셌다');
+      expect(plan.build, file).toBe(true);
+    }
   });
 });
 

@@ -12,23 +12,24 @@ ADR 0119 추기(2026-09-28 「서버에 닿는 `app/` 파일도 입구다」)와
 - **입구가 아닌 서버 파일은 import 를 거꾸로 따라간다.** 운영 베타의 PR 에서 서버에 닿는 `app/` 파일인데 `page` 등 입구가 아니면,
   전에는 주소를 못 뽑아 전부였다(`app/` 의 시험 아닌 파일 388 개 중 113 개가 전부, 그중 「주소 없음」 65 개). 이제 그 파일을 (간접으로라도)
   import 하는 입구와 그것을 직접 부르는 시험(`e2e/*.spec.ts` · `scripts/check-*.mjs`)을 모아, 그 입구의 주소에 닿는 차선만 돈다
-  (`entriesReaching`). 고친 뒤 전부는 78 개, 「주소 없음」은 30 개다.
+  (`entriesReaching`). 고친 뒤 전부는 91 개, 「주소 없음」은 42 개다. 입구에서도 멈추지 않고 위로 더 따라간다 — 다른 page 가 입구를 다시
+  내보내면(`export { default } from '../a/page'`) 그 주소도 든다.
 - **안전 문턱은 그대로다**(ADR 0119). 거꾸로 가는 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · e2e 기반 · 시험 도구 ·
   Next 공용 경계)이나 메타데이터 파일이 서면 그 파일은 그 자리의 것이라 전부다. 관문이 부르는 파일 · 입구를 하나도 못 찾은 고아 ·
   찾은 입구의 주소에 닿는 시험이 0 인 것도 전부다. `layout` · `route.ts` · 서버 액션 · 관문 · 인증 · `supabase/**` 자체는 전처럼 전부다.
-- **타입만 들이는 import 는 서버 도달로 세지 않는다.** `import type …` · 이름이 모두 `type` 인 `import { type X }` · `export type … from` 은
-  빌드에서 지워진다(`valueImportsOf`). 같은 모듈을 값으로도 들이면 센다. 거꾸로 가는 그래프는 타입 import 도 길로 센다 — 넓게 잡을수록
-  차선이 늘 뿐 줄지 않는다.
 - **코드가 화면 문구만 바뀐 PR 은 `core` 에서 빌드를 뺀다.** ADR 0159 의 파서가 「문구만」으로 좁힌 파일과 정책 파일뿐인 PR 이면 계획이
   `build=false` 를 내고 `core` 는 단위 · 타입 · 린트만 돈다. 바뀐 글자를 찾는 시험의 차선은 그대로다. 빌드를 `core` 에 넣은 까닭(#219,
   `app/**/icon.tsx` 의 이름 · 모양 실패)은 문구 한 줄로 생기지 않는다. 목표는 문구 한 줄 PR 이 1분대에 끝나는 것이다. 문구 밖의 코드가 하나라도
-  섞이거나 · `full-ci` 라벨 · 공개 출시 · main 푸시 · 일정이면 빌드가 돈다. 워크플로는 `build != 'false'` 로 읽어 값이 비면 돈다.
+  섞이거나 · 메타데이터 파일(`icon` · `opengraph-image` · `apple-icon` · `twitter-image` — 빌드 때 그림을 그린다) · `full-ci` 라벨 · 공개 출시 · main 푸시 · 일정이면 빌드가 돈다. 워크플로는 `build != 'false'` 로 읽어 값이 비면 돈다.
   `gate` 와 job 구조는 그대로다.
 - **branch protection 의 strict 를 껐다**(조율자가 2026-10-12 에 `strict: false`, 필수 검사 `gate` 그대로). 가지가 최신 main 을 품지 않아도
   `gate` 가 초록이면 든다. 합친 뒤의 깨짐은 머지 뒤 main 의 전체 검증과 `ci-main-red` 가 잡는다(ADR 0097).
 
 ## 고르지 않은 것
 
+- **타입만 들이는 import 를 서버 도달에서 빼기** — `import type { SupabaseClient }` 만 든 `app/` 파일 19 개(`app/me/credits/sale.ts` ·
+  `app/me/account.ts` · `app/live/channel.ts` …)가 주입받은 클라이언트로 실제 DB 를 부른다. 빼면 e2e 없는 `core` 로 떨어진다(#682 독립 검토).
+  그런 파일도 거꾸로 따라가기로 그 입구의 차선으로 좁혀진다(`room-compat.ts`).
 - **layout 이 부르는 파일을 그 layout 아래 주소로 좁히기** — layout 자체가 공용 위험(ADR 0119)이라 그 몫도 같은 문턱에 둔다.
   `app/me/requests/inbox.ts` 는 `/me/readings` 의 layout 과 요청 액션이 불러 여전히 전부다.
 - **문구 PR 에서 빌드를 Vercel 배포 빌드에 맡기고 아무 신호도 안 두기** — 빌드는 main 푸시의 전체와 배포 빌드가 여전히 돈다.
