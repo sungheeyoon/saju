@@ -1,7 +1,7 @@
 /**
  * **읽기량 예상치** — 역할 문서(`docs/roles/`)를 받은 에이전트가 손대기 전에 읽게 되는 바이트의 **보수적 예상치**(ADR 0145 · 0147 ·
- * 0162). `npm run read-budget` 이 역할마다 표로 찍고, `scripts/code-rules.test.ts` 가 같은 함수로 상한을 잰다 — 셈이 두 벌이 되지
- * 않게 계산은 여기 한 곳이다.
+ * 0162). `npm run read-budget` 이 역할마다 표로 찍는다 — 셈의 규칙을 재는 시험(`scripts/read-budget.test.ts` · `scripts/code-rules.test.ts`)도
+ * 같은 함수를 부른다. 계산은 여기 한 곳이다.
  *
  * 예상치 = **고정** + **동적** + **선택 묶음**. 크기는 모두 **지금 크기**다(ADR 0147). 고정은 모든 일이 읽는 바이트 그대로지만, 동적
  * 라우트와 선택 묶음은 일마다 고르는 파일이라 셈은 **후보 가운데 가장 큰 것**을 더한다 — 실제로 한 일이 읽는 양은 이 수 이하다.
@@ -26,11 +26,10 @@
  * - **세지 않는 것** — ADR 본문 가운데 「그 영역의 ADR — 색인에서 번호만」처럼 영역마다 달라지는 것(색인 `docs/adr/README.md` 만
  *   센다), 「닿을 때 여는 것」, 백틱 디렉터리.
  *
- * **상한(`READ_BUDGET` 의 `bytes`)은 여유를 둔 천장이다**(ADR 0147 · 0162). `CEILING_STEP` 의 배수이고, 정할 때는 그때의
- * 예상치에서 `HEADROOM` 이상 남는 가장 작은 배수를 고른다(`ceilingFor`). 예상치가 천장을 넘으면 붉고(파일 하나 · 큰 절 하나가
- * 늘었다), 천장이 예상치보다 `MAX_SLACK` 넘게 남아도 붉다(줄였으면 내린다 — 남는 여유에 새 원본이 숨지 않게). 천장을 바꾸면 ADR 에 `| 역할 | … | 천장 |` 줄을
- * 남긴다 — 시험이 그 줄을 찾는다. 라우트 목록과 선택 묶음(이름 · 선택지 이름의 차례 · 선택지마다 라우트)도 같은 표가 든다 — 동적
- * 링크를 파일 하나로 바꿔치거나, 묶음을 평범한 줄로 되돌리거나, 선택지를 줄이면 잠근 목록과 달라 붉어진다.
+ * **이 수는 보고다 — CI 를 붉히지 않는다**(ADR 0177). 천장 · 여유 · 역할마다 잠근 라우트와 묶음 목록은 걷었다. 붉은 것은 역할 문서
+ * 자신의 한 화면(바이트)과 가리킨 파일 · 절 · 앵커가 실제로 있는지뿐이다(`scripts/code-rules.test.ts` 「역할 문서」) — 이 셈도 없는
+ * 절을 만나면 던진다. 역할 문서의 가리킴을 바꾸면 이 표의 전후를 PR 의 「잰 값」에 적는다(`docs/agents/delegation/done.md`
+ * 「읽기량 예상치는 보고다」).
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -42,81 +41,6 @@ export const ROLES_DIR = 'docs/roles';
 export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식', '끝날 때 고치는 것'];
 /** 일이 그 자리에 닿을 때만 여는 원본의 칸 — 세지 않는다. 줄마다 `- <언제> → [원본](경로)` 이다(ADR 0147) */
 export const ON_DEMAND_SECTION = '닿을 때 여는 것';
-/** 천장의 눈금 — 천장은 이 수의 배수다. 파일 이름 한 글자 · 역할 문서 한 줄은 눈금 하나를 못 넘는다 */
-export const CEILING_STEP = 5000;
-/**
- * 천장을 정할 때 예상치 위에 남기는 여유의 바닥 — 눈금 하나. PRD · 대장의 한 문단이나 ADR 추기 하나(1–3 천 바이트)가 천장을 넘기지
- * 않게(ADR 0162 — 2,500 의 바닥에서 ui 가 15 바이트를 남기고 막혔다)
- */
-export const HEADROOM = CEILING_STEP;
-/** 천장이 예상치보다 이만큼 넘게 남으면 붉다 — 줄인 PR 이 천장도 내린다. 여유의 바닥(`HEADROOM`) 위로 눈금 둘 */
-export const MAX_SLACK = HEADROOM + 2 * CEILING_STEP;
-
-/**
- * 역할마다 천장(바이트)과 동적 라우트(저장소 뿌리에서의 디렉터리, `/` 로 끝남)와 선택 묶음(이름 · 선택지 이름의 차례 ·
- * 선택지마다 그 안의 동적 라우트).
- *
- * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: { name: string, routes: string[] }[] }[] }>}
- */
-export const READ_BUDGET = {
-  coordinator: { bytes: 75000, routes: [], choices: [] },
-  db: { bytes: 90000, routes: [], choices: [] },
-  docs: { bytes: 70000, routes: [], choices: [] },
-  feature: { bytes: 100000, routes: ['docs/product/prd/'], choices: [] },
-  ops: { bytes: 60000, routes: [], choices: [] },
-  reading: {
-    bytes: 90000,
-    routes: [],
-    choices: [
-      {
-        name: '고칠 자리(둘에 걸치면 둘 다)',
-        options: [
-          { name: '엔진', routes: [] },
-          { name: '글 · 프롬프트', routes: [] },
-          { name: '풀이 화면 · 흐름', routes: [] },
-        ],
-      },
-    ],
-  },
-  reviewer: {
-    bytes: 95000,
-    routes: [],
-    choices: [
-      {
-        name: '받은 관점의 원본',
-        options: [
-          { name: '코드 규칙', routes: ['docs/agents/code-rules/'] },
-          { name: '아키텍트', routes: [] },
-          { name: '시험', routes: ['docs/agents/test-map/'] },
-          { name: '보안', routes: [] },
-          { name: 'DB', routes: [] },
-          { name: '프런트', routes: ['docs/product/copy-ledger/', 'docs/product/prd/screens/'] },
-          { name: '문서', routes: ['docs/product/prd/'] },
-          { name: 'SRE', routes: ['docs/ops/runbook/'] },
-        ],
-      },
-    ],
-  },
-  ui: {
-    bytes: 85000,
-    routes: [],
-    choices: [
-      {
-        name: '고칠 화면의 무리(둘에 걸치면 둘 다)',
-        options: [
-          { name: '첫 화면 · 사주 보기', routes: [] },
-          { name: '로그인 · 가입 · 안내 화면', routes: [] },
-          { name: '홈 · 저장한 사람 · 풀이', routes: [] },
-          { name: '궁합', routes: [] },
-          { name: '인연 · 채팅 · 소식', routes: [] },
-          { name: '설정 · 프로필 · 설문', routes: [] },
-          { name: '결제 · 풀이권', routes: [] },
-          { name: '운영 화면 · 작업대', routes: [] },
-        ],
-      },
-    ],
-  },
-};
 
 /** 백틱 안에서 파일로 세는 경로 — 뿌리의 `GLOSSARY.md` 같은 문서와 저장소 안의 경로. 바로 뒤의 `「절」` 들은 그 파일의 절이다 */
 const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
@@ -440,34 +364,26 @@ export function readBudgetOf(role, root = ROOT) {
   return { role, fixed, routes, choices, fixedBytes, dynamicBytes, choiceBytes, total: fixedBytes + dynamicBytes + choiceBytes };
 }
 
-/**
- * 예상치에 맞는 천장 — `HEADROOM` 이상 남는 가장 작은 `CEILING_STEP` 의 배수. 천장을 다시 정할 때 이 값을 쓴다.
- *
- * @param {number} total
- */
-export const ceilingFor = (total) => Math.ceil((total + HEADROOM) / CEILING_STEP) * CEILING_STEP;
-
 /** @param {number} n */
 export const grouped = (n) => n.toLocaleString('en-US');
 
 /** 표의 칸 — 시험은 「예상치」 칸을 이름으로 찾는다. 예상치는 고정 + 동적의 최댓값 + 묶음의 최댓값이다(실제 읽는 양은 이 이하) */
-export const TABLE_COLUMNS = ['역할', '고정', '동적', '묶음', '예상치', '천장', '여유', '동적 라우트 → 가장 큰 후보', '선택 묶음 → 선택지마다 합(굵게가 최댓값)'];
+export const TABLE_COLUMNS = ['역할', '고정', '동적', '묶음', '예상치', '동적 라우트 → 가장 큰 후보', '선택 묶음 → 선택지마다 합(굵게가 최댓값)'];
 
 /** 표 위에 서는 한 줄 — 이 수가 무엇인지 */
 export const TABLE_NOTE =
-  '읽기량 예상치(보수적) — 고정은 모든 일이 읽는 바이트 그대로, 동적 · 묶음은 일마다 고르는 후보 가운데 가장 큰 것이다. 실제로 한 일이 읽는 양은 예상치 이하다(ADR 0162).';
+  '읽기량 예상치(보수적) — 고정은 모든 일이 읽는 바이트 그대로, 동적 · 묶음은 일마다 고르는 후보 가운데 가장 큰 것이다. 실제로 한 일이 읽는 양은 예상치 이하다(ADR 0162). 문턱이 없는 보고다 — CI 를 붉히지 않는다(ADR 0177).';
 
 /**
- * 역할마다 고정 · 동적 · 묶음 · 예상치 · 천장의 표(Markdown).
+ * 역할마다 고정 · 동적 · 묶음 · 예상치의 표(Markdown).
  *
  * @param {string} [root]
  * @returns {string}
  */
 export function tableOf(root = ROOT) {
-  const lines = [`| ${TABLE_COLUMNS.join(' | ')} |`, '| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |'];
+  const lines = [`| ${TABLE_COLUMNS.join(' | ')} |`, '| --- | ---: | ---: | ---: | ---: | --- | --- |'];
   for (const role of rolesOf(root)) {
     const budget = readBudgetOf(role, root);
-    const limit = READ_BUDGET[role]?.bytes;
     const routes = budget.routes.map((route) => `\`${route.dir}\` → ${route.max ? `\`${route.max.file}\` ${grouped(route.max.bytes)}` : '없음'}`).join(' · ');
     const choices = budget.choices
       .map((group) => {
@@ -480,7 +396,7 @@ export function tableOf(root = ROOT) {
       })
       .join(' / ');
     lines.push(
-      `| ${role} | ${grouped(budget.fixedBytes)} | ${grouped(budget.dynamicBytes)} | ${grouped(budget.choiceBytes)} | ${grouped(budget.total)} | ${limit === undefined ? '—' : grouped(limit)} | ${limit === undefined ? '—' : grouped(limit - budget.total)} | ${routes || '—'} | ${choices || '—'} |`,
+      `| ${role} | ${grouped(budget.fixedBytes)} | ${grouped(budget.dynamicBytes)} | ${grouped(budget.choiceBytes)} | ${grouped(budget.total)} | ${routes || '—'} | ${choices || '—'} |`,
     );
   }
   return lines.join('\n');
