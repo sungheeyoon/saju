@@ -16,7 +16,7 @@ export const metadata = {
  * 이용약관 — **로그인 없이 열린다**(`proxy.ts` 의 matcher 밖, 약관 제4조①).
  *
  * 게시는 판매 개시가 아니다(운영자 결정 2026-10-07, `docs/legal/README.md`) — 판매 스위치와 가입 동의 흐름은 G-20 · G-21 · G-25 가 든다.
- * 글자는 `src/lib/brand/terms.ts`, 사업자 빈칸은 환경변수(`app/business-info.ts`, ADR 0171)에서 온다.
+ * 글자는 `src/lib/brand/terms.ts`, 사업자 빈칸은 환경변수(`app/business-info.ts`, ADR 0172)에서 온다.
  */
 export default function TermsPage() {
   const terms = termsFor(currentBusinessInfo(), siteUrl().origin);

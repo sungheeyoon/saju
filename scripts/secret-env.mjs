@@ -98,7 +98,7 @@ export const CONFIG_ENV = [
    */
   'WEB_PUSH_EXTRA_HOSTS',
   /**
-   * 사업자 정보 아홉 — 바닥글 · 이용약관 · 환불정책이 든다(`app/business-info.ts`, ADR 0171). 비밀이 아니지만 **저장소에 값을
+   * 사업자 정보 아홉 — 바닥글 · 이용약관 · 환불정책이 든다(`app/business-info.ts`, ADR 0172). 비밀이 아니지만 **저장소에 값을
    * 적지 않는다**(저장소가 공개, ADR 0151). 비면 그 줄이 화면에 안 선다
    */
   'BUSINESS_TRADE_NAME',

@@ -5,7 +5,7 @@ import type { LegalBlock, LegalDocument, LegalSection, LegalTable } from '@/src/
 import { CARD, TYPE_NAME } from './ui/surfaces';
 
 /**
- * 이용약관 · 환불정책의 몸 — `LegalDocument` 를 그리기만 한다(ADR 0171). 글자는 `src/lib/brand/terms.ts` · `refund.ts` 에 있다.
+ * 이용약관 · 환불정책의 몸 — `LegalDocument` 를 그리기만 한다(ADR 0172). 글자는 `src/lib/brand/terms.ts` · `refund.ts` 에 있다.
  *
  * 읽는 모양은 처리방침(`app/privacy/page.tsx`)의 것이다 — 카드 · 둥근 제목 · 15px 본문. 장이 있는 글(약관)은 장마다 카드 한 장이고
  * 조는 그 안의 작은 제목이다 — 조마다 카드면 서른 장이 넘는다. 장이 없는 글(환불정책)은 절마다 카드 한 장이다.

@@ -1,7 +1,7 @@
 import { type BusinessInfo, businessInfoFrom } from '@/src/lib/brand/business';
 
 /**
- * **사업자 정보를 환경변수에서 읽는 자리는 여기 하나다**(운영자 결정 2026-10-12, ADR 0171).
+ * **사업자 정보를 환경변수에서 읽는 자리는 여기 하나다**(운영자 결정 2026-10-12, ADR 0172).
  *
  * 값은 저장소에 적지 않는다 — 저장소가 공개이고 사업장 주소가 아직 운영자의 집이다(ADR 0151 「정한 것」 2). 비밀이 아니라
  * 설정이라 `scripts/secret-env.mjs` 의 `CONFIG_ENV` 에 선다. `NEXT_PUBLIC_` 이 아니므로 서버에서만 읽힌다 — 바닥글(클라이언트)은

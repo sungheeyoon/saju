@@ -17,7 +17,7 @@ export const metadata = {
  * 환불정책 — **로그인 없이 열린다**(`proxy.ts` 의 matcher 밖). 약관 제12조 ~ 제17조의2 를 쉬운 말로 옮긴 글이라 새 규칙을 만들지
  * 않는다 — 끝 줄이 약관(`/terms`)을 가리킨다.
  *
- * 게시는 판매 개시가 아니다(운영자 결정 2026-10-07). 글자는 `src/lib/brand/refund.ts`, 사업자 빈칸은 환경변수(ADR 0171)에서 온다.
+ * 게시는 판매 개시가 아니다(운영자 결정 2026-10-07). 글자는 `src/lib/brand/refund.ts`, 사업자 빈칸은 환경변수(ADR 0172)에서 온다.
  */
 export default function RefundPage() {
   const policy = refundPolicyFor(currentBusinessInfo());

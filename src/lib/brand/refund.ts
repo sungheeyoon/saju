@@ -2,7 +2,7 @@ import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, type LegalSection, bullets, para, table } from './legal-text';
 
 /**
- * **환불정책 — 공개 주소 `/refund` 에 서는 글**(운영자 결정 2026-10-07 게시 · 2026-10-12 사업자 값은 환경변수, ADR 0171).
+ * **환불정책 — 공개 주소 `/refund` 에 서는 글**(운영자 결정 2026-10-07 게시 · 2026-10-12 사업자 값은 환경변수, ADR 0172).
  *
  * 원본은 `docs/legal/refund-policy.md` 의 「만날지도 환불정책」이고, 그 글은 약관 제12조 ~ 제17조의2 를 쉬운 말로 옮긴 것이다 —
  * 새 규칙을 만들지 않는다. 사업자 빈칸은 `BusinessInfo` 에서 채우고, 값이 없으면 그 말을 빼거나 「판매자 정보의 연락처」로 가리킨다.

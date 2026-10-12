@@ -3,7 +3,7 @@ import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, bullets, numbered, para, table } from './legal-text';
 
 /**
- * **이용약관 — 공개 주소 `/terms` 에 서는 글**(운영자 결정 2026-10-07 게시 · 2026-10-12 사업자 값은 환경변수, ADR 0171).
+ * **이용약관 — 공개 주소 `/terms` 에 서는 글**(운영자 결정 2026-10-07 게시 · 2026-10-12 사업자 값은 환경변수, ADR 0172).
  *
  * 원본은 `docs/legal/terms-draft.md` 의 「만날지도 이용약관」이다. 옮길 때 지킨 셋:
  *

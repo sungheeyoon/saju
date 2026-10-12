@@ -41,7 +41,7 @@ const textsOf = (document: LegalDocument): string[] =>
 /** 초안의 빈칸 · 검토 표지 · 비어 새는 값 — 화면에 나가면 안 되는 꼴 */
 const LEAK = /［|］|기입|변호사 검토|표준 제\d|운영자 결정|undefined|null/;
 
-describe('사업자 정보 — 환경변수에서 고른다 (ADR 0171)', () => {
+describe('사업자 정보 — 환경변수에서 고른다 (ADR 0172)', () => {
   it('비면 모든 줄이 null 이고 줄이 하나도 안 선다', () => {
     const info = businessInfoFrom({});
     expect(Object.values(info).every((value) => value === null)).toBe(true);
