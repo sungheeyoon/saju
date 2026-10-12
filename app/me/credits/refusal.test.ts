@@ -9,16 +9,33 @@ const MIGRATIONS = resolve(__dirname, '../../../supabase/migrations');
 
 describe('refusedForCredits', () => {
   it('풀이를 여는 문이 잔액으로 막은 거절을 알아본다', () => {
-    expect(refusedForCredits({ code: '23514', message: '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.' })).toBe(true);
+    expect(refusedForCredits({ code: '23514', message: '풀이권을 다 쓰셨습니다. 테스트 기간에는 5회까지 만들 수 있어요.' })).toBe(true);
   });
 
   it('인연 요청이 잔액으로 막힌 거절을 알아본다', () => {
     expect(
       refusedForCredits({
         code: '23514',
+        message: '풀이권이 없어 요청할 수 없습니다. 요청 한 건이 풀이권 한 장을 잡고, 동의가 나면 그 한 장으로 궁합 풀이가 만들어집니다.',
+      }),
+    ).toBe(true);
+  });
+
+  /**
+   * 꼬리는 바뀌어도 앞머리는 그대로다 — 「번」→「회」 · 「한 번」→「한 장」(`20261209090000`)이 운영 DB 에 오르기 전후로
+   * 어느 앱이 떠 있어도 풀이권 창이 열린다. 앞머리에 수를 세는 말을 넣으면 그 배포 순서가 다시 생긴다.
+   */
+  it('옛 꼬리의 문장도 알아본다 — 마이그레이션과 앱 배포의 순서가 상관없다', () => {
+    expect(refusedForCredits({ code: '23514', message: '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.' })).toBe(true);
+    expect(
+      refusedForCredits({
+        code: '23514',
         message: '풀이권이 없어 요청할 수 없습니다. 요청 한 건이 풀이권 한 번을 잡고, 동의가 나면 그 한 번으로 궁합 풀이가 만들어집니다.',
       }),
     ).toBe(true);
+    for (const lead of OUT_OF_CREDITS_REFUSALS) {
+      expect(lead, lead).not.toMatch(/[번회개장]/);
+    }
   });
 
   it('같은 코드의 다른 거절은 풀이권 창이 아니다 — 보낸 요청이 잡은 몫은 거두거나 기다릴 일이다', () => {

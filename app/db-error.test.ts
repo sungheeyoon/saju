@@ -5,12 +5,12 @@ import { answerOfThrown, dbFailure, recordDbFailure, userFacingDbMessage } from 
 describe('userFacingDbMessage', () => {
   it('DB 가 우리말로 쓴 거절은 그대로 옮긴다', () => {
     const message = userFacingDbMessage(
-      { message: '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.', code: 'P0001' },
+      { message: '풀이권을 다 쓰셨습니다. 테스트 기간에는 5회까지 만들 수 있어요.', code: 'P0001' },
       'start_reading_run',
       '대신 쓸 말',
     );
 
-    expect(message).toBe('풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.');
+    expect(message).toBe('풀이권을 다 쓰셨습니다. 테스트 기간에는 5회까지 만들 수 있어요.');
   });
 
   it('우리가 안 쓴 오류는 사용자에게 안 보내고 기록에 남긴다', () => {
@@ -79,7 +79,7 @@ describe('userFacingDbMessage', () => {
    * 하나도 없었다 — 그 사실이 깨지면 여기가 먼저 빨개진다.
    */
   it.each([
-    '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.',
+    '풀이권을 다 쓰셨습니다. 테스트 기간에는 5회까지 만들 수 있어요.',
     'JPG · PNG · WebP 사진만 올릴 수 있어요. 다른 사진을 골라 주세요.',
     '등록할 수 있는 사람은 20명까지입니다.',
     '보낸 인연 요청이 풀이권을 잡고 있어요. 요청을 거두거나 상대의 답을 기다려 주세요.',
