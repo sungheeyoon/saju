@@ -14,13 +14,19 @@ export const metadata = {
   description: '풀이권 결제가 어떻게 됐는지 알려 드립니다.',
 };
 
-/** 결제 뒤 화면의 갈래 넷 — 제목 · 한 줄 · 단추. 산 회차는 주문이 든다 */
-type Outcome = { title: string; line: (credits: number) => string; wait?: boolean; again?: boolean };
+/** 결제 뒤 화면의 갈래 넷 — 제목 · 한 줄 · 단추. 산 회차는 주문이 든다. 완료면 결제 내역으로 가는 단추가 함께 선다(ADR 0174) */
+type Outcome = {
+  title: string;
+  line: (credits: number) => string;
+  wait?: boolean;
+  again?: boolean;
+  history?: boolean;
+};
 
 const OUTCOMES: Record<PaymentOutcome, Outcome> = {
   failed: { title: '결제를 마치지 못했어요', line: () => '다시 시도해 주세요.', again: true },
   missing: { title: '주문을 찾지 못했어요', line: () => '풀이권을 다시 골라 주세요.', again: true },
-  paid: { title: '결제가 완료됐어요', line: (credits) => `풀이권 ${credits}회가 추가됐어요.` },
+  paid: { title: '결제가 완료됐어요', line: (credits) => `풀이권 ${credits}회가 추가됐어요.`, history: true },
   waiting: { title: '결제를 확인하고 있어요', line: () => '잠시만 기다려 주세요.', wait: true },
 };
 
@@ -56,6 +62,11 @@ export default async function CreditsDonePage({
           ) : (
             <Link href="/me" className={outcome.wait ? BUTTON_SECONDARY : BUTTON_PRIMARY}>
               홈으로
+            </Link>
+          )}
+          {outcome.history && (
+            <Link href="/me/credits/history" className={BUTTON_SECONDARY}>
+              결제 내역 보기
             </Link>
           )}
         </div>

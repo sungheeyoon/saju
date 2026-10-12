@@ -124,3 +124,15 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
 
 /** 환불정책 끝의 한 줄 — 화면이 「이용약관」 글자에 `/terms` 링크를 건다 */
 export const REFUND_TERMS_POINTER = { before: '자세한 내용은 ', link: '이용약관', after: '의 제12조 ~ 제17조의2 를 따라요.' } as const;
+
+/**
+ * **환불을 어디로 어떻게 신청하나 — 결제 화면 · 결제 내역이 같은 한 줄을 싣는다**(G-21, ADR 0174).
+ *
+ * 전자상거래법 제13조②5 는 계약 전에 청약철회의 기한 · 방법 · 효과를 알리라고 한다 — 기한은 결제 화면의 유효기간 줄이, 효과는
+ * 미사용분 · 사용분 줄이 말하고, 이 줄이 **방법**을 말한다. 내용은 위 「어떻게 신청하나요」와 같다(이메일로 · 3영업일 안에 ·
+ * 결제한 수단으로). 이메일이 비면 주소 없이 「고객센터로」다 — 빈칸 표지를 내지 않는다.
+ */
+export function refundRequestLine(info: BusinessInfo): string {
+  const where = info.email ? `이메일(${info.email})로` : '고객센터로';
+  return `환불은 ${where} 신청하면 3영업일 안에 결제한 수단으로 돌려드려요.`;
+}
