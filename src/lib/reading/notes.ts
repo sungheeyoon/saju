@@ -246,7 +246,6 @@ export const REQUEST_RESERVES_NOTE =
  * 판매가 열린 계정은 「풀이권 구매」 · 「닫기」, 닫힌 계정은 한 줄과 「확인」 하나다. 알림을 보낼 수단이 없어 「판매가
  * 열리면 알려 드릴게요」는 약속하지 않는다.
  */
-export const creditsHeldTitle = (available: number): string => `보유 풀이권 ${available}개`;
 export const BUY_CREDITS_LABEL = '풀이권 구매';
 export const CREDITS_DIALOG_CLOSE = '닫기';
 export const SALE_CLOSED_NOTE = '지금은 비공개 베타라 풀이권을 구매할 수 없어요.';
