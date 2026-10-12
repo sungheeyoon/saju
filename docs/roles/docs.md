@@ -19,7 +19,7 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - [결정 점검표](../agents/delegation/decisions.md) — 문서를 코드에 맞추다 정책이 바뀌면 결정
 - [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도 · 버그 · 문서 노후 · 결정 미반영 가르기
 - [나란히 맡길 때](../agents/delegation/parallel.md) — 중앙 문서는 제 줄만 · 머지는 하나씩 · `union`
-- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules/locks.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크는 ADR 0145, 읽기량은 붉지 않는 보고(ADR 0176)
+- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules/locks.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크는 ADR 0145, 읽기량은 붉지 않는 보고(ADR 0177)
 - [Writing an ADR](../agents/domain.md#writing-an-adr) — 색인 줄과 후속 결정 줄
 
 ## 하지 않는 것 · 묻는 것
@@ -41,5 +41,5 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 
 - 경로가 옮겨지면 → [경로가 옮겨지면](../agents/delegation/notes.md#경로가-옮겨지면--고치는-것과-두는-것) — 고칠 문서와 그날의 기록으로 둘 것(ADR 0090)
 - 새 노트를 쓰거나 코드가 이렇게 된 사정을 거슬러 가면 → [노트의 차례](../notes/README.md)
-- 역할 문서를 고치면 → [읽기량의 셈](../../scripts/read-budget.mjs) 머리말 — 무엇을 세나(백틱 파일 · 링크 · 「절」)와 안 세나(백틱 디렉터리 · 이 칸). `npm run read-budget -- <역할>` 은 파일 표만 찍고, 역할마다 합계(예상치)는 인자 없이(`npm run read-budget`) 나온다 — 보고이고 문턱은 없다(ADR 0176)
+- 역할 문서를 고치면 → [읽기량의 셈](../../scripts/read-budget.mjs) 머리말 — 무엇을 세나(백틱 파일 · 링크 · 「절」)와 안 세나(백틱 디렉터리 · 이 칸). `npm run read-budget -- <역할>` 은 파일 표만 찍고, 역할마다 합계(예상치)는 인자 없이(`npm run read-budget`) 나온다 — 보고이고 문턱은 없다(ADR 0177)
 - 운영자가 밟는 행정 절차(예: 통신판매업 신고)의 상태를 적으면 → [비어 있는 것](../legal/README.md#비어-있는-것--검토와-따로-채운다) — 그 절차가 채울 빈칸 곁에 둔다(#516)

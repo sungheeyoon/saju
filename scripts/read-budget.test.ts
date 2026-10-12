@@ -1,6 +1,6 @@
 /**
  * 읽기량의 셈(`scripts/read-budget.mjs`, ADR 0145 · 0147)을 작은 가짜 저장소로 잰다 — 절만 센다 · 「닿을 때 여는 것」은 안
- * 센다 · 선택지는 고정이 센 바이트를 다시 세지 않는다. 이 수에는 천장이 없다 — 보고다(ADR 0176).
+ * 센다 · 선택지는 고정이 센 바이트를 다시 세지 않는다. 이 수에는 천장이 없다 — 보고다(ADR 0177).
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
