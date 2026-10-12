@@ -1,6 +1,9 @@
+import { refundRequestLine } from '@/src/lib/brand/refund';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
+import { currentBusinessInfo } from '../../business-info';
 import { FailureLine } from '../../ui/failure-line';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { Checkout } from './checkout';
@@ -42,7 +45,7 @@ export default async function CreditsPage() {
 
       {!sale.ok && <FailureLine retry>결제할 수 있는지 확인하지 못했어요. {sale.reason}</FailureLine>}
 
-      <Checkout checkout={checkout} />
+      <Checkout checkout={checkout} refundLine={refundRequestLine(currentBusinessInfo())} />
     </main>
   );
 }

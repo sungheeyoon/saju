@@ -158,7 +158,8 @@ insert into public.reading_sale_reviewer (user_id, note)
 select id, '<카드사> 심사 <YYYY-MM>' from auth.users where email = '<심사 계정 이메일>';
 ```
 
-3. **본다** — 그 계정으로 `/me/credits` 에 「4,900원 결제하기」가 서는지, 다른 계정에는 안 서는지. 몇 계정이 들었는지는 개인을 안 가리킨다:
+3. **본다** — 그 계정으로 `/me/credits` 에 「4,900원 결제하기」가 서는지, 다른 계정에는 안 서는지. 결제가 승인되면 결과 화면의 「결제 내역 보기」
+   (`/me/credits/history`, ADR 0174)에 그 주문 번호(`rdo_…`) · 남은 회차가 서는지 — 환불을 신청하는 사람이 알려 주는 번호가 이것이다. 몇 계정이 들었는지는 개인을 안 가리킨다:
 
 ```bash
 npm run db:remote -- --purpose "심사 계정 수" "select count(*), min(added_at) from public.reading_sale_reviewer"

@@ -32,11 +32,11 @@ const CHECKOUT_LABELS: Partial<Record<(typeof POLICY_LINKS)[number]['href'], str
 /**
  * **풀이권 고르기 · 결제 전 고지 · 「결제하기」** (G-21, ADR 0171).
  *
- * 묶음 넷과 고지는 누구에게나 선다. 결제 단추는 서버가 결제창 값(`checkout`)을 넘긴 사람 — 판매가 열린 사람(지금은 카드사 심사
- * 계정)이고 상점 번호 · 채널 키가 있는 배포 — 에게만 선다. 누르면 주문을 먼저 열고(금액은 DB 의 가격표), 그 주문 번호로 결제창을
+ * 묶음 넷과 고지는 누구에게나 선다. 고지의 환불 신청 줄(`refundLine`)은 서버가 사업자 이메일로 지어 넘긴다(ADR 0174).
+ * 결제 단추는 서버가 결제창 값(`checkout`)을 넘긴 사람 — 판매가 열린 사람(지금은 카드사 심사 계정)이고 상점 번호 · 채널 키가 있는 배포 — 에게만 선다. 누르면 주문을 먼저 열고(금액은 DB 의 가격표), 그 주문 번호로 결제창을
  * 띄운다. 결제가 됐는지는 이 화면이 정하지 않는다 — 웹훅이 PortOne 에서 다시 받아 승인한 주문을 결제 뒤 화면이 읽는다.
  */
-export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
+export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout | null; refundLine: string }) {
   const router = useRouter();
   const [credits, setCredits] = useState<number>(READING_BUNDLES[0].credits);
   const [agreed, setAgreed] = useState(false);
@@ -142,6 +142,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
           <li>유효기간: 구매일로부터 {READING_BUNDLE_VALID_YEARS}년</li>
           <li>사기 전에 무료 풀이권으로 한 편을 먼저 받아 볼 수 있어요.</li>
           <li>미사용 유료 풀이권은 수수료 없이 환불을 신청할 수 있어요.</li>
+          <li>{refundLine}</li>
           <li>정상적으로 제공된 풀이는 단순 변심으로 환불되지 않아요.</li>
           <li>풀이가 제공되지 않거나 안내한 내용과 다르면 재제공 또는 환불을 요청할 수 있어요.</li>
         </ul>
@@ -165,7 +166,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
                 onChange={(event) => setAgreed(event.target.checked)}
                 className="size-5 shrink-0 accent-[var(--accent)]"
               />
-              구매 조건과 환불정책을 확인했어요.
+              위 내용과 환불정책을 확인했으며 결제에 동의합니다.
             </label>
             <button type="button" onClick={pay} disabled={paying} className={BUTTON_PRIMARY}>
               {paying ? '결제창 여는 중…' : `${won(chosen.price)} 결제하기`}

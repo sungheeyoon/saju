@@ -3229,6 +3229,18 @@ export type Database = {
           status: string
         }[]
       }
+      my_reading_orders: {
+        Args: never
+        Returns: {
+          amount: number
+          bundle_credits: number
+          paid_at: string
+          provider_order_id: string
+          refunded_amount: number
+          remaining: number
+          status: string
+        }[]
+      }
       my_reading_sale_is_open: { Args: never; Returns: boolean }
       my_readings: {
         Args: never

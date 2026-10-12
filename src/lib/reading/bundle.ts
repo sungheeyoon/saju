@@ -25,6 +25,23 @@ const SINGLE_PRICE = READING_BUNDLES[0].price;
  */
 export const READING_BUNDLE_VALID_YEARS = 5;
 
+const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 묶음의 유효기간이 끝나는 날(서울 날짜, `YYYY-MM-DD`) — 산 날부터 `READING_BUNDLE_VALID_YEARS` 년(ADR 0173).
+ *
+ * 민법 제157조 · 제160조의 셈이다: 산 날은 안 세고 다음 날부터 세므로, 끝나는 날은 **5년 뒤 같은 날**이다(2026-10-12 → 2031-10-12).
+ * 그 해에 같은 날이 없으면(2월 29일) 그 달의 끝날이다. 결제 내역 화면이 이 날을 말한다 — DB 는 아직 만료를 걷지 않는다.
+ */
+export function readingBundleValidUntil(paidAt: Date): string {
+  const seoul = new Date(paidAt.getTime() + SEOUL_OFFSET_MS);
+  const year = seoul.getUTCFullYear() + READING_BUNDLE_VALID_YEARS;
+  const month = seoul.getUTCMonth();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const day = Math.min(seoul.getUTCDate(), lastDay);
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
+
 /**
  * 1회권을 같은 횟수만큼 살 때와 견준 할인율(%) — **정수 내림**(운영자 결정 2026-09-24, G-21). 실제 값은
  * 12.2 · 18.8 · 39.8 이고 표시는 12 · 18 · 39 다. 반올림(12 · 19 · 40)은 5회 · 20회에서 표시가 실제보다 커서
