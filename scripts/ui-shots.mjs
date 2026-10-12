@@ -136,6 +136,8 @@ const PLAN = [
       { id: 'auth-compat', at: '/auth?next=/compat', name: '로그인 — 궁합에서 온 사람' },
       { id: 'auth-denied', at: '/auth/denied', name: '로그인하지 못했습니다' },
       { id: 'privacy', at: '/privacy', name: '개인정보 처리방침' },
+      { id: 'terms', at: '/terms', name: '이용약관' },
+      { id: 'refund', at: '/refund', name: '환불정책' },
       { id: 'about', at: '/about', name: '서비스 소개' },
       { id: 'help', at: '/help', name: '도움말' },
       { id: 'not-found', at: '/no-such-page', name: '없는 주소' },

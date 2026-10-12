@@ -102,6 +102,19 @@ export const CONFIG_ENV = [
    * 알려진 푸시 서비스 넷만 받는다(`app/me/push/hosts.ts`, ADR 0156)
    */
   'WEB_PUSH_EXTRA_HOSTS',
+  /**
+   * 사업자 정보 아홉 — 바닥글 · 이용약관 · 환불정책이 든다(`app/business-info.ts`, ADR 0172). 비밀이 아니지만 **저장소에 값을
+   * 적지 않는다**(저장소가 공개, ADR 0151). 비면 그 줄이 화면에 안 선다
+   */
+  'BUSINESS_TRADE_NAME',
+  'BUSINESS_REPRESENTATIVE',
+  'BUSINESS_REGISTRATION_NUMBER',
+  'BUSINESS_ADDRESS',
+  'BUSINESS_PHONE',
+  'BUSINESS_EMAIL',
+  'BUSINESS_MAIL_ORDER_NUMBER',
+  'BUSINESS_HOSTING_PROVIDER',
+  'BUSINESS_DISCLOSURE_URL',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */

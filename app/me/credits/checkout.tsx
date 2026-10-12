@@ -11,6 +11,7 @@ import {
   READING_BUNDLES,
 } from '@/src/lib/reading/bundle';
 
+import { POLICY_LINKS } from '../../site-links';
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { FailureLine } from '../../ui/failure-line';
@@ -23,13 +24,10 @@ import { loadPortOne } from './portone-sdk';
 const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
 
 /**
- * 결제 전 고지가 가리키는 글 셋. 이용약관 · 환불정책 화면은 바닥글 일(#666)이 세운다 — 주소는 그 일과 맞춘다.
+ * 결제 전 고지가 가리키는 글 셋 — 주소와 이름은 바닥글과 같은 `POLICY_LINKS`(`app/site-links.ts`, 화면은 #669 · ADR 0172)다.
+ * 환불정책만 이 자리의 확정 글자 「환불정책 보기」로 선다(`docs/product/copy-ledger/settings.md`).
  */
-const POLICY_LINKS = [
-  { href: '/terms', label: '이용약관' },
-  { href: '/refund', label: '환불정책 보기' },
-  { href: '/privacy', label: '처리방침' },
-] as const;
+const CHECKOUT_LABELS: Partial<Record<(typeof POLICY_LINKS)[number]['href'], string>> = { '/refund': '환불정책 보기' };
 
 /**
  * **풀이권 고르기 · 결제 전 고지 · 「결제하기」** (G-21, ADR 0171).
@@ -150,7 +148,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
         <p className="flex flex-wrap gap-x-4">
           {POLICY_LINKS.map((link) => (
             <Link key={link.href} href={link.href} className={BUTTON_TERTIARY}>
-              {link.label}
+              {CHECKOUT_LABELS[link.href] ?? link.label}
             </Link>
           ))}
         </p>
