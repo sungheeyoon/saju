@@ -1,4 +1,5 @@
 import { SERVICE_NAME } from '.';
+import { bundlePrice, bundlePriceRows, exactDiscounts, refundOf, won } from './bundle-prices';
 import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, bullets, numbered, para, table } from './legal-text';
 
@@ -185,12 +186,9 @@ export function termsFor(info: BusinessInfo, site: string): LegalDocument {
                   text: '회사는 풀이권을 다음 네 묶음으로 팝니다. 가격은 부가가치세를 포함합니다.',
                   table: table(
                     ['묶음', '가격', '1회당', '1회권 대비 할인'],
-                    ['1회', '4,900원', '4,900원', '—'],
-                    ['3회', '12,900원', '4,300원', '12%'],
-                    ['5회', '19,900원', '3,980원', '18%'],
-                    ['20회', '59,000원', '2,950원', '39%'],
+                    ...bundlePriceRows(),
                   ),
-                  after: '할인율은 1회권을 같은 횟수만큼 살 때와 견준 값을 정수로 내린 것입니다(실제 12.2 · 18.8 · 39.8%).',
+                  after: `할인율은 1회권을 같은 횟수만큼 살 때와 견준 값을 정수로 내린 것입니다(실제 ${exactDiscounts()}%).`,
                 },
                 '유료 풀이권의 유효기간은 그 묶음을 산 날부터 5년입니다. 유효기간이 지나면 그 묶음의 쓰지 않은 유료 풀이권은 소멸하며 환불 대상이 아닙니다. 서비스를 끝낼 때의 정산은 제17조의2 가 정합니다.',
                 '결제수단은 국내 신용카드 · 체크카드이며, 회사는 결제수단에 따라 수수료를 더 받지 않습니다.',
@@ -248,11 +246,11 @@ export function termsFor(info: BusinessInfo, site: string): LegalDocument {
                   text: '환불 금액은 묶음마다 「실제 결제한 금액 × 돌려받을 쓰지 않은 유료 회차 ÷ 그 묶음의 유료 회차」입니다. 쓴 회차를 1회권 가격으로 다시 셈하지 않고, 수수료 · 위약금을 떼지 않습니다. 7일 안의 철회(제15조)와 금액이 같습니다.',
                   table: table(
                     ['경우', '돌려드리는 금액'],
-                    ['20회(59,000원)에서 3회 씀', '50,150원'],
-                    ['20회(59,000원)에서 12회 씀', '23,600원'],
-                    ['5회(19,900원)에서 1회 씀', '15,920원'],
-                    ['3회(12,900원)에서 1회 씀', '8,600원'],
-                    ['1회(4,900원)를 쓰지 않음', '4,900원'],
+                    [`20회(${won(bundlePrice(20))})에서 3회 씀`, won(refundOf(20, 3))],
+                    [`20회(${won(bundlePrice(20))})에서 12회 씀`, won(refundOf(20, 12))],
+                    [`5회(${won(bundlePrice(5))})에서 1회 씀`, won(refundOf(5, 1))],
+                    [`3회(${won(bundlePrice(3))})에서 1회 씀`, won(refundOf(3, 1))],
+                    [`1회(${won(bundlePrice(1))})를 쓰지 않음`, won(refundOf(1, 0))],
                   ),
                 },
                 '같은 묶음을 여러 번 나누어 돌려받으면, 「결제한 금액 × 지금까지 돌려받은 회차의 합 ÷ 그 묶음의 유료 회차」에서 원 미만을 버린 값에서 이미 돌려드린 금액을 뺀 만큼을 돌려드립니다. 묶음을 모두 돌려받으면 합계가 결제한 금액과 같습니다.',
