@@ -242,7 +242,7 @@ export const REQUEST_RESERVES_NOTE =
   '요청을 보내면 풀이권 1회가 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
 
 /**
- * 풀이권 창 — 머리글의 풀이권 칸 · 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)이 여는 창 하나(운영자 결정 2026-10-12, 대장 credits-04).
+ * 풀이권 구매 안내 — 머리글은 펼침 메뉴, 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)은 부족 창이다(운영자 결정 2026-10-12, 대장 credits-06).
  * 판매가 열린 계정은 「풀이권 구매」 · 「닫기」, 닫힌 계정은 한 줄과 「확인」 하나다. 알림을 보낼 수단이 없어 「판매가
  * 열리면 알려 드릴게요」는 약속하지 않는다.
  */
@@ -251,11 +251,9 @@ export const BUY_CREDITS_LABEL = '풀이권 구매';
 export const CREDITS_DIALOG_CLOSE = '닫기';
 export const SALE_CLOSED_NOTE = '지금은 비공개 베타라 풀이권을 구매할 수 없어요.';
 export const SALE_CLOSED_OK = '확인';
-/**
- * 만들려다(풀이 · 궁합풀이 · 인연 요청) 0개로 연 창에만 서는 필요 수량 — 머리글 칸으로 연 창에는 안 선다(네이버웹툰의 「부족 수량」 꼴,
- * 운영자 2026-10-12). 풀이 한 편 · 요청 한 건이 각각 1개다(ADR 0038).
- */
-export const CREDITS_NEEDED_NOTE = {
-  reading: '풀이 한 편을 받으려면 풀이권 1개가 필요해요.',
-  request: '인연 요청 하나에 풀이권 1개가 필요해요.',
-} as const;
+/** 상단 펼침 메뉴 · 부족 창의 B안 문구(운영자 승인 2026-10-12, 대장 credits-06). */
+export const CREDITS_USAGE_NOTE = '사주풀이와 궁합풀이에 사용할 수 있어요.';
+export const CREDITS_USAGE_RATE = '풀이 1회당 풀이권 1개';
+export const CREDITS_SHORTAGE_TITLE = '풀이권이 부족해요';
+export const CREDITS_AVAILABLE_LABEL = '보유 풀이권';
+export const CREDITS_REQUIRED_LABEL = '필요 풀이권';

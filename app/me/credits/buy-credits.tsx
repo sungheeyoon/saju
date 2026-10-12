@@ -5,7 +5,9 @@ import { useRef, useState, type ReactNode } from 'react';
 
 import {
   BUY_CREDITS_LABEL,
-  CREDITS_NEEDED_NOTE,
+  CREDITS_SHORTAGE_TITLE,
+  CREDITS_AVAILABLE_LABEL,
+  CREDITS_REQUIRED_LABEL,
   CREDITS_DIALOG_CLOSE,
   creditsHeldTitle,
   SALE_CLOSED_NOTE,
@@ -17,20 +19,8 @@ import { Icon } from '../../ui/icons';
 import { saleIsOpenNow } from './asked-on-press';
 import { CREDITS_PATH, saleShapeOf } from './buy-path';
 
-/**
- * **풀이권 창 한 벌** — 머리글의 풀이권 칸과 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)이 같이 연다(운영자 결정 2026-10-12,
- * ADR 0171 「덧」). 누르면 곧장 옮기지 않고 창 하나가 선다 — 제목은 보유 수(「보유 풀이권 N개」).
- *
- * - 판매가 이 계정에게 열렸으면(지금은 카드사 심사 계정) 「풀이권 구매」(→ `/me/credits`) · 「닫기」. 결제 내역 링크는 두지 않는다(ADR 0171 「덧」).
- * - 닫혔으면 한 줄(「지금은 비공개 베타라 …」)과 「확인」 하나(ADR 0166 「덧」).
- *
- * 판매 열림은 **누를 때** 묻는다(`my_reading_sale_is_open()`, `sale.ts`) — 머리글은 모든 화면에 서므로 그릴 때 물으면 화면마다 문
- * 하나가 더 불린다. 만들려다(`need`) 연 창에는 제목 아래 필요 수량 한 줄이 선다 — 머리글 칸으로 연 창에는 없다. 못 물었으면 열린 꼴이다(`saleShapeOf`). `/me/credits` 를 주소로 연 사람은 그 화면이 제 판정을 한다.
- *
- * `notice` 는 부르는 쪽이 제 자리에 그린다 — 창은 `<dialog>` 라 어디에 서도 화면 가운데에 뜬다.
- */
-/** 무엇을 하려다 창을 열었나 — 머리글 칸이면 없음(필요 수량 줄이 안 선다) */
-export type CreditsNeed = keyof typeof CREDITS_NEEDED_NOTE;
+/** 풀이 · 궁합풀이 · 인연 요청에 풀이권이 부족하면 보유 수와 필요 수를 함께 보여준다(B안, 운영자 2026-10-12). */
+export type CreditsNeed = 'reading' | 'request';
 
 export function useBuyCredits(): {
   offer: (available: number, need?: CreditsNeed) => void;
@@ -72,7 +62,7 @@ export function useBuyCredits(): {
           <Icon name="ticket" className="size-5" />
         </span>
       }
-      title={creditsHeldTitle(shown?.available ?? 0)}
+      title={shown?.need == null ? creditsHeldTitle(shown?.available ?? 0) : CREDITS_SHORTAGE_TITLE}
       confirmLabel={open ? BUY_CREDITS_LABEL : SALE_CLOSED_OK}
       onConfirm={() => {
         close();
@@ -83,7 +73,12 @@ export function useBuyCredits(): {
     >
       {shown?.need == null && open ? undefined : (
         <>
-          {shown?.need != null && <p>{CREDITS_NEEDED_NOTE[shown.need]}</p>}
+          {shown?.need != null && (
+            <dl className="space-y-2">
+              <div className="flex justify-between gap-4"><dt>{CREDITS_AVAILABLE_LABEL}</dt><dd className="font-semibold tabular-nums">{shown.available}개</dd></div>
+              <div className="flex justify-between gap-4"><dt>{CREDITS_REQUIRED_LABEL}</dt><dd className="font-semibold tabular-nums">1개</dd></div>
+            </dl>
+          )}
           {!open && <p>{SALE_CLOSED_NOTE}</p>}
         </>
       )}
