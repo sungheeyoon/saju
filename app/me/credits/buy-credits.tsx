@@ -1,13 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type ReactNode } from 'react';
 
 import {
   BUY_CREDITS_LABEL,
   CREDITS_DIALOG_CLOSE,
-  CREDITS_HISTORY_LABEL,
   creditsHeldTitle,
   SALE_CLOSED_NOTE,
   SALE_CLOSED_OK,
@@ -16,13 +14,13 @@ import {
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { saleIsOpenNow } from './asked-on-press';
-import { CREDITS_HISTORY_PATH, CREDITS_PATH, saleShapeOf } from './buy-path';
+import { CREDITS_PATH, saleShapeOf } from './buy-path';
 
 /**
  * **풀이권 창 한 벌** — 머리글의 풀이권 칸과 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)이 같이 연다(운영자 결정 2026-10-12,
  * ADR 0171 「덧」). 누르면 곧장 옮기지 않고 창 하나가 선다 — 제목은 보유 수(「보유 풀이권 N개」).
  *
- * - 판매가 이 계정에게 열렸으면(지금은 카드사 심사 계정) 「풀이권 구매」(→ `/me/credits`) · 「닫기」, 본문에 결제 내역 링크.
+ * - 판매가 이 계정에게 열렸으면(지금은 카드사 심사 계정) 「풀이권 구매」(→ `/me/credits`) · 「닫기」. 결제 내역 링크는 두지 않는다(ADR 0171 「덧」).
  * - 닫혔으면 한 줄(「지금은 비공개 베타라 …」)과 「확인」 하나(ADR 0166 「덧」).
  *
  * 판매 열림은 **누를 때** 묻는다(`my_reading_sale_is_open()`, `sale.ts`) — 머리글은 모든 화면에 서므로 그릴 때 물으면 화면마다 문
@@ -75,19 +73,7 @@ export function useBuyCredits(): { offer: (available: number) => void; checking:
       firstFocus="confirm"
       cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
     >
-      {open ? (
-        <p>
-          <Link
-            href={CREDITS_HISTORY_PATH}
-            onClick={close}
-            className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4"
-          >
-            {CREDITS_HISTORY_LABEL}
-          </Link>
-        </p>
-      ) : (
-        <p>{SALE_CLOSED_NOTE}</p>
-      )}
+      {open ? undefined : <p>{SALE_CLOSED_NOTE}</p>}
     </ConfirmDialog>
   );
 

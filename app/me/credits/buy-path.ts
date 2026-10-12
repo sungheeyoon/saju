@@ -2,8 +2,6 @@ import type { SkippableRead } from '../../db-error';
 
 /** 풀이권 상품 화면 — 풀이권 창의 「풀이권 구매」가 판매가 열린 계정을 보내는 자리 */
 export const CREDITS_PATH = '/me/credits';
-/** 결제 내역 — 판매가 열린 계정의 풀이권 창에만 링크가 선다 */
-export const CREDITS_HISTORY_PATH = '/me/credits/history';
 
 /**
  * **풀이권 창이 어느 꼴로 서나** — 판매가 이 계정에게 닫혔으면 한 줄과 「확인」, 아니면 「풀이권 구매」 · 「닫기」(ADR 0171 「덧」).
