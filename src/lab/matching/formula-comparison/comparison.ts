@@ -1,4 +1,4 @@
-import { DISCOVERY_V1, legacyPreviewScoreOf } from '../../discovery';
+import { DISCOVERY_V1, legacyPreviewScoreOf } from '@/src/lib/discovery';
 import {
   dayPillarAxisOf,
   needComplementDirectional,
@@ -6,12 +6,12 @@ import {
   needSupplyOf,
   needTargetsOf,
   type NeedTargets,
-} from '../../discovery/compat-axes';
+} from '@/src/lib/discovery/compat-axes';
 import {
   combinedCountBalanceOf,
   mutualDeficitComplementOf,
   type ElementSummary,
-} from '../../discovery/element-axes';
+} from '@/src/lib/discovery/element-axes';
 import {
   DEFAULT_ELEMENT_WEIGHTS,
   LEGACY_ELEMENT_WEIGHTS,
@@ -21,8 +21,8 @@ import {
   type ElementWeights,
   type Pillars,
   type SajuInput,
-} from '../../saju';
-import { scenarioDraw, scenarioPairs, withoutHour, type PairScenario } from '../../saju/population';
+} from '@/src/lib/saju';
+import { scenarioDraw, scenarioPairs, withoutHour, type PairScenario } from '@/src/lib/saju/population';
 import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats';
 
 /**

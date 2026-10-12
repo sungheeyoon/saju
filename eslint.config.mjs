@@ -34,6 +34,8 @@ const NO_UNKNOWN_DYNAMIC_IMPORT = {
 const PATH_ZONES = [
   { target: "./src/lib", from: "./app", message: "src/lib 은 app 을 모른다 — 방향이 거꾸로다 (docs/architecture.md)" },
   { target: "./src/lib", from: "./proxy.ts", message: "src/lib 은 관문을 모른다" },
+  { target: "./src/lab", from: "./app", message: "실험 · 평가 자리(src/lab)도 app 을 모른다 (ADR 0179)" },
+  { target: "./src/lab", from: "./proxy.ts", message: "실험 · 평가 자리(src/lab)도 관문을 모른다 (ADR 0179)" },
   {
     target: "./src/lib/saju",
     from: "./src/lib",
@@ -179,7 +181,7 @@ const eslintConfig = defineConfig([
   // 층의 방향 (ADR 0085) — 경로는 파일로 풀어서, 패키지는 이름으로
   // ---------------------------------------------------------------------------
   {
-    files: [`src/lib/**/*.${ANY}`, `scripts/**/*.${ANY}`, `e2e/**/*.${ANY}`],
+    files: [`src/lib/**/*.${ANY}`, `src/lab/**/*.${ANY}`, `scripts/**/*.${ANY}`, `e2e/**/*.${ANY}`],
     plugins: { import: importPlugin },
     settings: { "import/resolver": { typescript: { project: "./tsconfig.json" }, node: true } },
     rules: {
@@ -188,8 +190,8 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    /** 도메인 lib — 실행 환경도, supabase 도, React 도 모른다 */
-    files: [`src/lib/**/*.${CODE}`],
+    /** 도메인 lib 과 실험 · 평가 자리(ADR 0179) — 실행 환경도, supabase 도, React 도 모른다 */
+    files: [`src/lib/**/*.${CODE}`, `src/lab/**/*.${CODE}`],
     ignores: ["src/lib/local-env.ts", "src/lib/**/*.live.test.ts"],
     rules: { "no-restricted-imports": ["error", { patterns: [...APP_ONLY_PACKAGES, ...NO_SUPABASE, ...NO_NODE] }] },
   },

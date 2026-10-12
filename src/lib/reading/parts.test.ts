@@ -15,8 +15,8 @@ import {
   readingEvidenceOf,
   readingPromptOf,
 } from '.';
-import { measureMarkdown, outputDeviations, pairOutputDeviations } from './measure';
-import { MATCH_INPUT_VARIANTS } from './variants';
+import { measureMarkdown, outputDeviations, pairOutputDeviations } from '@/src/lab/reading/measure';
+import { MATCH_INPUT_VARIANTS } from '@/src/lab/reading/variants';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).

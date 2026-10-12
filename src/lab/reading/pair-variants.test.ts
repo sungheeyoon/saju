@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju } from '../saju';
+import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
   READING_POLICY,
   pairSectionTexts,
   readingEvidenceOf,
   readingPromptOf,
-} from '.';
+} from '@/src/lib/reading';
 import { PAIR_VARIANTS, type PairVariant } from './variants';
 
 const VIEWED_AT = new Date('2026-08-26T04:00:00Z');

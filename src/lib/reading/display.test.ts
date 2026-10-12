@@ -17,7 +17,7 @@ import {
   readingBody,
   readingGrounding,
 } from './display';
-import { PROMPT_VARIANTS } from './variants';
+import { PROMPT_VARIANTS } from '@/src/lab/reading/variants';
 
 describe('옛 공유 궁합의 자리 호칭', () => {
   const names = { me: '나', partner: '지영' } as const;

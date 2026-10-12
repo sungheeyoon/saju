@@ -76,8 +76,9 @@
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |
 | `app/ui/` | 공용 부품 — 단추 · 판(`CARD` 포함) · 오행 색(`element-tone`) · 아이콘 · 로고의 모양 상수, 오행 · 천간 그림(`element-symbol` · `stem-symbol`), 두 궤도 지도의 같은 문법(`orbit`), 탭의 뼈대(`skeleton`, ADR 0116), 액션 부름을 받는 래퍼(`action-answer`) · 화면 안 실패 줄(`failure-line`) · 누른 링크 표시(`link-pending`, ADR 0164), 작은 부품, 메뉴 닫기 · 줄인 움직임 같은 작은 훅(G-58). 여러 화면이 부르므로 **화면 층의 바닥**이다 | `src/lib` · `app/ui` 뿐. 문 · 액션 · 클라이언트 · `@supabase` 는 모른다 |
+| `src/lab/` | **실험 · 평가 코드** — 프롬프트 변형 · 출력 재기 · 인연 입력 두 판의 자(`reading/`), 궁합 공식 비교기(`matching/formula-comparison/`). 앱이 안 부르고 시험 · 잠긴 실호출 · e2e 만 쓴다(ADR 0179) | 엔진 · 도메인 lib. 밖으로는 도메인 lib 과 같은 줄이고, **부르는 쪽은 시험(`*.test.ts` · `*.spec.ts` · `e2e/`)뿐**이다 |
 | `scripts/` | 흐름 검사·생성기·UI 훑기. **화면 모듈을 안 부른다** — 주소로 두드린다 | `src/lib` |
-| `e2e/` | Playwright. 같다 | `src/lib` |
+| `e2e/` | Playwright. 같다 | `src/lib` · `src/lab`(실험판이 화면에 안 서는지 재려고 변형 id 를 읽는다) |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
 | `app/me/keyed-chart-writes.ts` | **풀에 오르는 값을 열쇠로 쓰는 자리** — 「사용자 경로에 열쇠를 안 쓴다」의 제한된 예외(G-64, ADR 0136). 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation`)만 부른다. 사람 id 는 세션에서, 값은 저장된 입력에서 서버가 짓는다. 열쇠(`app/keyed-client.ts`)를 부르는 파일은 `eslint.config.mjs` 의 `KEY_HOLDERS` 가 이름으로 들고 `scripts/layers.test.ts` 가 견준다 | 도메인 lib · `summary` · 열쇠 · 세션 |
 | `app/keyed-taste.ts` · `app/me/keyed-taste-claims.ts` | **로그인 전 사주 문단의 문 일곱을 열쇠로 부르는 자리**(ADR 0143) — 로그인 전 쪽 넷(`reserve_taste` · `finish_taste` · `taste_session_view` · `count_taste_step`)은 방문자가 로그인 전이라, 가입한 회원 쪽 셋(`claim_taste_session` · `link_taste_reading_run` · `taste_continuation_of_run`)은 판정이 서버가 다시 잰 지문과 서버만 짓는 HMAC 에 기대서 열쇠에만 열렸다. 지문 · HMAC 은 서버가 짓고(`app/taste-run.ts` · `app/taste-visitor.ts`), 회원 id 는 세션에서 얻는다. 둘로 가른 것은 풀이 회수(webhook · 크론)가 퍼널을 세며 로그인 세션을 읽는 모듈에 닿지 않게다 | 도메인 lib · 열쇠 · 세션(회원 쪽만) |
@@ -101,10 +102,11 @@
 
 | 무엇 | 린트 (`eslint.config.mjs`) | 시험 (`scripts/layers.test.ts`) |
 | --- | --- | --- |
-| `src/lib` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 다섯 형태의 import 전부(정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`), 확장자를 뗀 대상 |
+| `src/lib` · `src/lab` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 다섯 형태의 import 전부(정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`), 확장자를 뗀 대상 |
 | `src/lib/saju` → 다른 lib | 같다 | 같다 |
 | `scripts`·`e2e` → `app` | 같다 | 같다 |
-| `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
+| `src/lib` · `src/lab` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
+| 시험 아닌 파일 → `src/lab` | — | 부르는 쪽이 `src/lab` 자신 · `*.test.ts` · `*.spec.ts` · `e2e/` 뿐인가(ADR 0179) |
 | 문자열이 아닌 `import()` 대상 | `no-restricted-syntax` | 대상을 모르는 import 0건 |
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
 | 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 넷 안에만, 표시 수 = 호출 수 |

@@ -14,7 +14,7 @@ import { countRatioOf, type ElementSummary } from './element-axes';
  * 2026-09-25 조사 아홉 갈래의 종합(`docs/notes/2026-09-25-compat-score-direction.md` 「개정」)이 「가장 무거운
  * 축」으로 든 둘이다. `discovery-v1` 의 두 축(균형 · 개수 보완, `element-axes.ts`)과 같은 0~100 자로 잰다.
  * 여기 적힌 수는 **전부 가설**이고 이름 붙은 매개변수다 — 오프라인 비교기
- * (`src/lib/matching/formula-comparison`)가 같은 모집단에서 나란히 잰 값이 `docs/notes/2026-09-25-compat-formula-comparison.md`
+ * (`src/lab/matching/formula-comparison`)가 같은 모집단에서 나란히 잰 값이 `docs/notes/2026-09-25-compat-formula-comparison.md`
  * 에 있다.
  *
  * DB 도 React 도 모르는 순수 함수다. 필요한 것은 받는 쪽의 **필요 프로필**(`needProfileOf`, 자기 명식에서)과

@@ -13,7 +13,7 @@ import {
   type PromptSlot,
   type ReadingKind,
 } from '.';
-import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS } from './variants';
+import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS } from '@/src/lab/reading/variants';
 
 /**
  * **어느 세대의 지시가 어느 자리에 서는가** — 표가 잠근다.
