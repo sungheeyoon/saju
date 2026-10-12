@@ -28,6 +28,7 @@
 | 로컬 DB 자리 5 에서 `db:start` 가 `LegacyDbConnectError` · `ECONNREFUSED` 로 선다(2026-10-10) | 원인은 확인 전 | 다른 자리(`npm run stack:slot -- --auto`)를 쓴다 |
 | `supabase: command not found` | PATH 에 없다 | `npx supabase` 나 `./node_modules/.bin/supabase` |
 | WSL 에서 `db:start` · `npx supabase status` 가 Docker 에 못 닿는다 | Docker Desktop 이 꺼져 있다 — 또는 명령이 샌드박스 안에서 돈다(2026-10-08) | Docker Desktop 을 켜고, 샌드박스 밖에서 다시 부른다 |
+| `docker` 명령이 아예 없고 `db:start` 가 `LegacyDockerLifecycleInspectError` 로 선다 | 이 WSL 에 Docker 가 없다(Docker Desktop 의 WSL 연동 꺼짐, 2026-10-12) — 로컬에서 pgTAP · `db:types` 를 못 돌린다 | 생성 타입(`src/lib/db/database.generated.ts`)은 손으로 고치고, CI 의 `test:db`(pgTAP)와 `db:types` 재생성 diff 에 기댄다. PR 에 「로컬에서 못 돌렸다 — CI 가 덮었다」를 적는다(#664) |
 | `supabase test db <파일>` 이 헬퍼 함수가 없다고 선다 | 파일 하나만 주면 `00_helpers.sql` 이 안 실린다 | `supabase/tests/00_helpers.sql` 을 앞에 함께 준다 |
 | e2e 가 시간 초과로 끝난 뒤 다음 e2e 가 옛 화면을 받는다 | 남은 dev 서버를 `reuseExistingServer` 가 붙잡는다 | `lsof -ti tcp:3000 \| xargs kill` 뒤 다시 |
 | `npx playwright test e2e/match.spec.ts` 만 붉다 | 그 spec 은 직렬이어야 한다 | `npm run test:e2e:match`(`--workers=1`) |
