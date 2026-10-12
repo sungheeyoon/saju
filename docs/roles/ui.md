@@ -15,6 +15,7 @@
   - 궁합 — `docs/product/prd/screens/compat.md`
   - 인연 · 채팅 · 소식 — `docs/product/prd/screens/matching.md`
   - 설정 · 프로필 · 설문 — `docs/product/prd/screens/settings.md`
+  - 결제 · 풀이권 — `docs/product/prd/screens/credits.md`
   - 운영 화면 · 작업대 — `docs/product/prd/screens/ops.md`
 - `docs/architecture.md` 「새 것을 놓을 때」 — 화면은 그리기만 한다
 - `docs/agents/test-map/what-to-run.md` 「무엇을 고쳤으면 무엇을 돌리나」의 화면 줄

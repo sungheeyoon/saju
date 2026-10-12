@@ -110,6 +110,7 @@ export const READ_BUDGET = {
           { name: '궁합', routes: [] },
           { name: '인연 · 채팅 · 소식', routes: [] },
           { name: '설정 · 프로필 · 설문', routes: [] },
+          { name: '결제 · 풀이권', routes: [] },
           { name: '운영 화면 · 작업대', routes: [] },
         ],
       },
