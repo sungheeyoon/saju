@@ -346,10 +346,10 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
  * 남은 풀이권 칸 — **누르면 풀이권 창이 선다**(남은 수와 관계없이, `useBuyCredits`). 곧장 옮기지 않는다 — 창이 보유 수를 말하고,
  * 판매가 열린 계정에게만 「풀이권 구매」를 세운다.
  *
- * **폰 폭은 표 그림 + 숫자, 넓은 폭은 표 그림 + 「풀이권 N개」**(운영자 결정 2026-10-12 — 운세 앱의 꼴). 남은 수만 센다 — 한도는 사면
- * 늘어나 「몇 번 중」이 뜻을 잃는다(ADR 0106). 0개면 0 이 선다. **색은 이 칸만의 살구빛 알약이다**(`bg-cream` · `text-cream-ink`, 운영자
- * 2026-10-12 — 종 · 톱니의 무채 원으로 바꿨다가 되살렸다). 알약은 36px 이고 누르는 자리는 위아래로 4px 씩 내민 덮개(`after:`)까지 44px 다.
- * 이름은 늘 「풀이권 N개」다(`aria-label`).
+ * **폰 폭(`sm` 미만)은 톱니 · 종과 같은 44px 둥근 아이콘 단추에 표 그림만**, 넓은 폭은 표 그림 + 「풀이권 N개」 알약(운영자 결정 2026-10-12 —
+ * 운세 앱의 꼴). 폰에서 수는 누르면 서는 창의 「보유 풀이권 N개」가 말한다. 남은 수만 센다 — 한도는 사면 늘어나 「몇 번 중」이 뜻을 잃는다
+ * (ADR 0106). **색은 어느 폭이든 이 칸만의 살구빛이다**(`bg-cream` · `text-cream-ink`, 운영자 2026-10-12). 넓은 폭의 알약은 36px 이고 누르는
+ * 자리는 위아래로 4px 씩 내민 덮개(`after:`)까지 44px 다. 이름은 늘 「풀이권 N개」다(`aria-label`).
  */
 function Credits({ available }: { available: number }) {
   const { offer, checking, notice } = useBuyCredits();
@@ -361,15 +361,13 @@ function Credits({ available }: { available: number }) {
         onClick={() => offer(available)}
         aria-busy={checking}
         aria-label={label}
-        className="relative inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border after:absolute after:inset-x-0 after:-inset-y-1 hover:ring-border-strong active:scale-95"
+        className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cream text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-95 sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:px-3 sm:text-[12px] sm:font-semibold sm:tabular-nums sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1"
       >
-        <Icon name="ticket" className="size-4" />
+        <Icon name="ticket" className="size-5 sm:size-4" />
         {/*
-          글자 상자는 그림과 같은 가운데에 서지만 **잉크는 위로 떠 있다** — 숫자는 내림이 없어 글꼴의 기준선 위에만 서고, 12px 에서
-          숫자 잉크의 가운데가 그림보다 1.37px, 「풀이권 N개」는 0.62px 위였다(390 · 1280, 0 · 7 · 84 · 123, 4배 그림의 잉크 줄로 잼).
-          그만큼 내린다 — `text-box-trim` 은 Firefox 가 아직 안 받는다
+          넓은 폭의 글자 상자는 그림과 같은 가운데에 서지만 **잉크는 위로 떠 있다** — 12px 에서 「풀이권 N개」의 잉크 가운데가 그림보다
+          0.62px 위였다(1280, 0 · 7 · 84 · 123, 4배 그림의 잉크 줄로 잼). 그만큼 내린다 — `text-box-trim` 은 Firefox 가 아직 안 받는다
         */}
-        <span aria-hidden="true" className="translate-y-[1.375px] sm:hidden">{available}</span>
         <span aria-hidden="true" className="hidden translate-y-[0.625px] sm:inline">{label}</span>
       </button>
       {notice}

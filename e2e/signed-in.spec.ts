@@ -81,7 +81,7 @@ async function expireSessionCookie(page: Page) {
 /** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
 async function expectReadingCredits(page: Page, label: string) {
   const header = page.getByRole('banner');
-  /* 폰 폭은 그림 + 숫자만 보인다 — 이름(`aria-label`)은 어느 폭이든 「풀이권 N개」다 */
+  /* 폰 폭은 표 그림만 보인다 — 이름(`aria-label`)은 어느 폭이든 「풀이권 N개」다 */
   await expect(header.getByRole('button', { name: label, exact: true })).toBeVisible();
 }
 
