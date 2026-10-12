@@ -1,3 +1,4 @@
+import { bundlePrice, refundOf, won } from './bundle-prices';
 import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, type LegalSection, bullets, para, table } from './legal-text';
 
@@ -45,11 +46,11 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
                 kind: 'table',
                 table: table(
                   ['이런 경우', '돌려드리는 돈'],
-                  ['20회권(59,000원)에서 3회 썼어요', '50,150원'],
-                  ['20회권(59,000원)에서 12회 썼어요', '23,600원'],
-                  ['5회권(19,900원)에서 1회 썼어요', '15,920원'],
-                  ['3회권(12,900원)에서 1회 썼어요', '8,600원'],
-                  ['1회권(4,900원)을 안 썼어요', '4,900원'],
+                  [`20회권(${won(bundlePrice(20))})에서 3회 썼어요`, won(refundOf(20, 3))],
+                  [`20회권(${won(bundlePrice(20))})에서 12회 썼어요`, won(refundOf(20, 12))],
+                  [`5회권(${won(bundlePrice(5))})에서 1회 썼어요`, won(refundOf(5, 1))],
+                  [`3회권(${won(bundlePrice(3))})에서 1회 썼어요`, won(refundOf(3, 1))],
+                  [`1회권(${won(bundlePrice(1))})을 안 썼어요`, won(refundOf(1, 0))],
                 ),
               },
               para('여러 번 나눠 돌려받아도, 묶음을 다 돌려받으면 합계가 낸 돈과 같아요(원 아래는 버려요).'),

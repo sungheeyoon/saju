@@ -20,12 +20,13 @@
 `src/lib`·`scripts`·`e2e`·`app/**/*.ts` 에서 금지다. 읽는 확장자는 `.ts .mts .cts .tsx .js .mjs .cjs`
 로, 린트와 시험이 같은 목록을 든다.
 
-**도메인 lib 끼리 지금 열려 있는 방향은 열둘이다.** `scripts/layers.test.ts` 의 허용 목록과
+**도메인 lib 끼리 지금 열려 있는 방향은 열셋이다.** `scripts/layers.test.ts` 의 허용 목록과
 같은 표이고, 새 방향을 열면 둘을 함께 고친다. 순환은 없다 — `discovery ↔ matching` 이 서로를
 부르던 것을 2026-09-22 에 축 파일(`element-axes`)을 `discovery` 로 옮겨 끊었다.
 
 | 부르는 쪽 | 부르는 것 |
 | --- | --- |
+| `brand` | `reading`(약관 · 환불정책이 묶음 가격을 `READING_BUNDLES` 에서 끼운다, ADR 0176) |
 | `consent` | `discovery` · `presence` · `reading` · `saju` |
 | `discovery` | `saju` |
 | `input` | `saju` · `local-env` |
