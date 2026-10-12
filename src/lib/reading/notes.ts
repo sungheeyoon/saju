@@ -43,7 +43,7 @@ export const readingNoneNote = (noun: string) =>
  * 풀이를 만들기 전 확인 창의 약속 — 쓰이는 것과 실패하면 돌아오는 것. 글자 그대로가 계약이다
  * (`scripts/copy-contracts.test.ts`, #147). 화면(`panel.tsx`)에만 있던 문장을 여기로 옮겼다 — 글자는 같다.
  */
-export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1회가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
+export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1개가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
 
 /**
  * 새로 만들면 지금 것은 사라진다 — **누르는 그때 읽힌다.**
@@ -221,10 +221,10 @@ export const readingCreditsNote = ({
   requested?: number;
 }): string | null => {
   if (reserved > 0) {
-    return '만드는 중인 풀이에 풀이권 1회가 예약되어 있어요. 풀이를 만들지 못하면 돌려드려요.';
+    return '만드는 중인 풀이에 풀이권 1개가 예약되어 있어요. 풀이를 만들지 못하면 돌려드려요.';
   }
   if (requested > 0) {
-    return `보낸 인연 요청 ${requested}건에 풀이권 ${requested}회가 사용 중입니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 복구됩니다.`;
+    return `보낸 인연 요청 ${requested}건에 풀이권 ${requested}개가 사용 중입니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 복구됩니다.`;
   }
   return null;
 };
@@ -239,7 +239,7 @@ export const readingCreditsNote = ({
  * 잃는 것은 동의가 났을 때뿐이고 그때는 글이 남는다.
  */
 export const REQUEST_RESERVES_NOTE =
-  '요청을 보내면 풀이권 1회가 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
+  '요청을 보내면 풀이권 1개가 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.';
 
 /**
  * 풀이권 구매 안내 — 머리글은 펼침 메뉴, 풀이권 0개일 때의 누름(풀이 · 궁합풀이 · 인연 요청)은 부족 창이다(운영자 결정 2026-10-12, 대장 credits-06).

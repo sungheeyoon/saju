@@ -186,7 +186,7 @@ function SaveCard({
               로그인하고 계속하기
             </SignInCarrying>
             <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">
-              로그인하면 이 입력으로 돌아와요. 사주풀이는 저장한 뒤에 받을 수 있고, 풀이권 1회를 써요.
+              로그인하면 이 입력으로 돌아와요. 사주풀이는 저장한 뒤에 받을 수 있고, 풀이권 1개를 써요.
             </p>
           </div>
         </div>
