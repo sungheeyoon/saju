@@ -731,7 +731,7 @@ export function ReadingPanel({
             <Icon name="ticket" className="size-5" />
           </span>
         }
-        title="풀이권 1회를 사용하시겠어요?"
+        title="풀이권 1개를 사용하시겠어요?"
         /* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5). 잃을 글이 없으면 첫 초점도 받기 쪽이다 */
         confirmLabel={reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
         onConfirm={confirmGenerate}

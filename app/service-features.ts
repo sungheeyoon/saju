@@ -18,19 +18,19 @@ export const SERVICE_FEATURES: readonly { icon: IconName; title: string; body: s
     icon: 'reading',
     title: '사주풀이',
     body: '내 사주와 저장한 사람의 사주를 글로 풀어 드려요.',
-    note: '로그인 · 풀이권 1번',
+    note: '로그인 · 풀이권 1개',
   },
   {
     icon: 'taiji',
     title: '궁합',
     body: '두 사람을 골라 궁합 첫 신호를 보고, 궁합풀이를 받아요. 저장하지 않은 사람과도 볼 수 있어요.',
-    note: '첫 신호는 로그인 없이 · 궁합풀이는 로그인 · 풀이권 1번',
+    note: '첫 신호는 로그인 없이 · 궁합풀이는 로그인 · 풀이권 1개',
   },
   {
     icon: 'people',
     title: '인연',
     body: '다른 사람에게 궁합을 요청하고, 서로 동의하면 인연 궁합이 열리고 대화를 나눌 수 있어요.',
-    note: '로그인 · 요청할 때 풀이권 1번 예약',
+    note: '로그인 · 요청할 때 풀이권 1개 예약',
   },
 ];
 

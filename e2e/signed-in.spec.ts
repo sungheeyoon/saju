@@ -507,7 +507,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('button', { name: '사주풀이 받기' }).click();
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText('풀이권 1개가 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
@@ -1047,7 +1047,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 닫힌 `<dialog>` 는 접근성 트리에 없다 — 그래서 이 자리가 「열렸는가」를 잰다 */
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText('풀이권 1개가 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
 
     await asking.getByRole('button', { name: '취소' }).click();
@@ -3692,7 +3692,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await page.unroute('**/*');
     await page.getByRole('button', { name: '다시 시도하기' }).click();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
-    const confirm = page.getByRole('dialog', { name: '풀이권 1회를 사용하시겠어요?' });
+    const confirm = page.getByRole('dialog', { name: '풀이권 1개를 사용하시겠어요?' });
     await expect(confirm).toBeVisible();
     await expect(page.locator('section[aria-labelledby="carry-heading"]')).toContainText('새벽빛이 들기 전에');
     expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
@@ -3799,7 +3799,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await page.unroute('**/*');
     await page.reload();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
-    const confirm = page.getByRole('dialog', { name: '풀이권 1회를 사용하시겠어요?' });
+    const confirm = page.getByRole('dialog', { name: '풀이권 1개를 사용하시겠어요?' });
     await expect(confirm).toBeVisible();
     const carry = page.getByRole('region', { name: '아까 보던 내용' });
     await expect(carry).toContainText('한낮 가까이에');
