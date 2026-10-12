@@ -56,12 +56,12 @@ export function SettingsCard({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex flex-col gap-1 px-1">
-        <h2 className="text-[15px] font-bold leading-6 text-foreground">{title}</h2>
+        <h2 className="text-body font-bold leading-6 text-foreground">{title}</h2>
         {description !== undefined && (
-          <p className="text-[13px] leading-5 text-secondary">{description}</p>
+          <p className="text-small leading-5 text-secondary">{description}</p>
         )}
       </div>
-      <div className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface px-4 py-1 sm:px-5 [&>[role=alert]]:pb-4">
+      <div className="flex flex-col overflow-hidden rounded-tile border border-border bg-surface px-4 py-1 sm:px-5 [&>[role=alert]]:pb-4">
         {children}
       </div>
     </section>
@@ -88,9 +88,9 @@ export function SettingsRow({
   return (
     <div className={SETTINGS_ROW}>
       <div className="flex min-w-0 flex-col gap-1 sm:flex-1">
-        {label !== undefined && <p className="text-[15px] font-semibold leading-6">{label}</p>}
+        {label !== undefined && <p className="text-body font-semibold leading-6">{label}</p>}
         {help !== undefined && <p className="text-sm leading-6 text-secondary">{help}</p>}
-        {note !== undefined && <p className="text-[13px] leading-5 text-muted">{note}</p>}
+        {note !== undefined && <p className="text-small leading-5 text-muted">{note}</p>}
       </div>
       {children !== undefined && (
         <div className="flex flex-wrap items-center justify-end gap-3 sm:shrink-0">
@@ -126,10 +126,10 @@ export function SettingsLinkRow({
     >
       {leading}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[15px] font-semibold leading-6">{label}</span>
-        {help !== undefined && <span className="text-[13px] leading-5 text-secondary">{help}</span>}
+        <span className="truncate text-body font-semibold leading-6">{label}</span>
+        {help !== undefined && <span className="text-small leading-5 text-secondary">{help}</span>}
       </span>
-      {trailing !== undefined && <span className="shrink-0 text-[13px] font-semibold text-secondary">{trailing}</span>}
+      {trailing !== undefined && <span className="shrink-0 text-small font-semibold text-secondary">{trailing}</span>}
       <span aria-hidden="true" className="text-muted">
         <Icon name="chevron" className="size-4" />
       </span>

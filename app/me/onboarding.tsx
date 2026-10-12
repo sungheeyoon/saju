@@ -53,7 +53,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
       </span>
       <header className="flex flex-col gap-2 max-sm:px-3">
         <h2 className={TYPE_TITLE}>내 사주 등록</h2>
-        <p className="max-w-prose text-[15px] leading-6 text-secondary">
+        <p className="max-w-prose text-body leading-6 text-secondary">
           <strong className="font-semibold text-foreground">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
         </p>
       </header>
@@ -65,7 +65,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
+        {missing !== null && <span className="text-small text-secondary">{missing}</span>}
       </div>
 
       {failure !== null && <FailureLine className="max-sm:px-3">저장하지 못했어요. {failure}</FailureLine>}

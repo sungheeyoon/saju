@@ -29,7 +29,7 @@ import { FAILURE_TEXT, FailureLine } from '../ui/failure-line';
 
 /** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[16px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft aria-invalid:border-danger';
+  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-field outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft aria-invalid:border-danger';
 
 /**
  * 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다). 초점 테는 전역 초점 테두리와
@@ -38,7 +38,7 @@ const FIELD =
 const BOX =
   'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
-const LABEL = 'text-[15px] font-semibold';
+const LABEL = 'text-body font-semibold';
 
 /** 눌렀을 때 코드 칸이 비어 있으면 — 닉네임은 `missingNickname` 이 제 말을 든다 */
 const CODE_MISSING = '테스트 코드를 입력해 주세요.';
@@ -218,7 +218,7 @@ export function SignupForm({
               {failure?.message}
             </p>
           )}
-          <p className="text-[13px] leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
+          <p className="text-small leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
         </div>
       )}
 
@@ -282,21 +282,21 @@ export function SignupForm({
             </p>
           )}
 
-          <p className="text-[13px] leading-5 text-muted">
+          <p className="text-small leading-5 text-muted">
             앱에서는 이 닉네임으로 불려요. 프로필 사진과 소개는 가입한 뒤에 추가할 수
             있어요.
           </p>
         </div>
       )}
 
-      <div className="rounded-[1.25rem] bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
+      <div className="rounded-row bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
         <div className="flex flex-wrap items-center justify-between gap-x-3">
-          <h2 id="signup-notice" className="text-[15px] font-bold">
+          <h2 id="signup-notice" className="text-body font-bold">
             가입 전에 확인해 주세요
           </h2>
           <Link
             href="/privacy"
-            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-foreground underline decoration-border-strong decoration-2 underline-offset-[6px] hover:decoration-foreground"
+            className="inline-flex min-h-11 items-center text-small font-semibold text-foreground underline decoration-border-strong decoration-2 underline-offset-[6px] hover:decoration-foreground"
           >
             개인정보 처리방침
           </Link>
@@ -338,7 +338,7 @@ export function SignupForm({
       */}
       <fieldset className="flex flex-col gap-3">
         <legend className={`float-left w-full ${LABEL}`}>선택 항목</legend>
-        <p className="text-[13px] leading-5 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
+        <p className="text-small leading-5 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
 
         {OPTIONAL_CONSENTS.map((one) => (
           <label key={one.key} htmlFor={`consent-${one.key}`} className={BOX}>
@@ -355,7 +355,7 @@ export function SignupForm({
               <span className="block text-sm font-semibold">{one.label}</span>
               <span className="mt-1 block text-sm leading-6 text-secondary">{one.detail}</span>
               {/* 끄면 어떻게 되는지는 **켜기 전에도** 읽힌다 — 세 화면이 같은 줄을 쓴다 */}
-              <span className="mt-1 block text-[13px] leading-5 text-muted">{one.erasure}</span>
+              <span className="mt-1 block text-small leading-5 text-muted">{one.erasure}</span>
             </span>
           </label>
         ))}

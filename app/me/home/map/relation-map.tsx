@@ -95,13 +95,13 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   };
 
   return (
-    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] bg-cream">
+    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-paper bg-cream">
       <header className="flex items-baseline justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
         <h2 id="home-orbit" className="font-rounded text-[1.375rem] leading-8 text-foreground">
           관계 지도
         </h2>
         {!empty && (
-          <p className="shrink-0 text-[13px] font-semibold text-secondary">
+          <p className="shrink-0 text-small font-semibold text-secondary">
             저장한 사람 <span className="tabular-nums text-foreground">{model.people.length}</span>명
           </p>
         )}
@@ -394,7 +394,7 @@ function Me({ self, meeting }: { self: MapModel['self']; meeting: string | null 
       </span>
       <span
         aria-hidden="true"
-        className="mt-[0.8cqw] rounded-full bg-[var(--ink)] px-1.5 text-[11px] font-bold leading-4 text-[var(--tile)]"
+        className="mt-[0.8cqw] rounded-full bg-[var(--ink)] px-1.5 text-tag font-bold leading-4 text-[var(--tile)]"
       >
         나
       </span>
@@ -502,13 +502,13 @@ function Seat({
           className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'}`}
           style={{ boxShadow: ORBIT_RING.tag }}
         >
-          <span className="font-rounded text-[15px]">{person.label}</span>
-          {score !== null && <span className="ml-1.5 text-[13px] font-bold tabular-nums text-[var(--ink)]">{score}</span>}
+          <span className="font-rounded text-body">{person.label}</span>
+          {score !== null && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{score}</span>}
         </span>
       ) : (
         <span
           aria-hidden="true"
-          className={`${ORBIT_LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-[12px] font-semibold text-secondary sm:max-w-[6rem] sm:text-[13px] ${
+          className={`${ORBIT_LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-fine font-semibold text-secondary sm:max-w-[6rem] sm:text-small ${
             above ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}
         >
@@ -534,7 +534,7 @@ function AddSeat({ href }: { href: string }) {
       >
         <Icon name="plus" />
       </span>
-      <span className={`${ORBIT_LABEL_PAD} absolute bottom-full mb-1 whitespace-nowrap text-[13px] font-semibold text-foreground`}>
+      <span className={`${ORBIT_LABEL_PAD} absolute bottom-full mb-1 whitespace-nowrap text-small font-semibold text-foreground`}>
         사람 추가
       </span>
     </Link>
@@ -544,12 +544,12 @@ function AddSeat({ href }: { href: string }) {
 function Legend({ empty }: { empty: boolean }) {
   if (empty) {
     return (
-      <p className="px-5 pb-5 text-[13px] leading-5 text-secondary sm:px-6">사람을 저장하면 그 사람의 기운 쪽 궤도에 앉아요</p>
+      <p className="px-5 pb-5 text-small leading-5 text-secondary sm:px-6">사람을 저장하면 그 사람의 기운 쪽 궤도에 앉아요</p>
     );
   }
   return (
     <div className="flex flex-col gap-2 px-5 pb-5 pt-1 sm:px-6">
-      <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium text-secondary">
+      <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-fine font-medium text-secondary">
         <li className={`${elementScope('木')} flex items-center gap-1.5`}>
           <ThreadMark />
           나와 본 궁합
@@ -565,7 +565,7 @@ function Legend({ empty }: { empty: boolean }) {
 }
 
 const LINK_CHIP =
-  'inline-flex min-h-11 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-[13px] font-semibold text-foreground hover:border-border-strong active:scale-[0.96]';
+  'inline-flex min-h-11 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-small font-semibold text-foreground hover:border-border-strong active:scale-[0.96]';
 
 /**
  * 누른 사람의 카드 — **짧게.** 지도가 비운 아래 자리에 서서 그림의 움직임을 가리지 않는다(운영자 2026-09-27).
@@ -577,7 +577,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
   return (
     <article
       aria-labelledby="home-orbit-card-name"
-      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-[1.25rem] bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
+      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-row bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
     >
       <div className="flex items-center gap-2.5">
         <span
@@ -596,14 +596,14 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
             {person.label}
           </h3>
           {/* 그림 이름 하나만 — 일간 · 한자 · 메모는 걷었다(운영자 2026-09-26) */}
-          <p className="truncate text-[12px] leading-4 text-secondary">{person.day?.picture}</p>
+          <p className="truncate text-fine leading-4 text-secondary">{person.day?.picture}</p>
         </div>
         {person.unreadable === null && compat.seen && compat.score !== null && (
           <p className="shrink-0 text-right">
-            <span className="block text-[11px] font-semibold leading-4 text-secondary">나와의 궁합</span>
-            <span className="font-rounded text-[1.5rem] leading-7 tabular-nums text-[var(--ink)]">
+            <span className="block text-tag font-semibold leading-4 text-secondary">나와의 궁합</span>
+            <span className="font-rounded text-section leading-7 tabular-nums text-[var(--ink)]">
               {compat.score}
-              <span className="ml-0.5 text-[12px] text-secondary">점</span>
+              <span className="ml-0.5 text-fine text-secondary">점</span>
             </span>
           </p>
         )}
@@ -618,7 +618,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
       </div>
 
       {person.unreadable !== null ? (
-        <p className="text-[14px] leading-6 text-secondary">{person.unreadable}</p>
+        <p className="text-note leading-6 text-secondary">{person.unreadable}</p>
       ) : (
         <>
           <p className="line-clamp-2 font-rounded text-[1rem] leading-snug text-foreground">

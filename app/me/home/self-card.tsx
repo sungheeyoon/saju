@@ -73,7 +73,7 @@ export function SelfCard({
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[2rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-paper bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
@@ -85,7 +85,7 @@ export function SelfCard({
             카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
           */}
           <DayMasterChip stem={saju.pillars.dayMaster} />
-          <h2 className="mt-1 break-all font-rounded text-[1.75rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+          <h2 className="mt-1 break-all font-rounded text-title leading-[1.15] tracking-[-0.02em] text-foreground sm:text-figure">
             {label}
           </h2>
         </div>
@@ -130,7 +130,7 @@ export function SelfCard({
             <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
             {reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}
             {reading !== null && !reading.fromCurrentChart && (
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-tag">{READING_STALE_LABEL}</span>
             )}
           </Link>
           <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} whitespace-nowrap px-3 sm:px-5`}>
@@ -150,7 +150,7 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
   const { counts, glyphCount } = saju.analysis.elements;
   return (
     <div className={`relative flex flex-col gap-2 sm:gap-3 ${compact ? 'max-sm:hidden' : ''}`}>
-      <p className="text-[13px] font-semibold text-secondary">오행 분포</p>
+      <p className="text-small font-semibold text-secondary">오행 분포</p>
       <ul aria-label="오행 분포" className="grid grid-cols-5 gap-1.5 sm:gap-3">
         {ELEMENTS.map((element) => {
           const count = counts[element];
@@ -162,15 +162,15 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
               }`}
             >
               <ElementSymbol element={element} className="size-7 sm:size-10" />
-              <span className="text-[12px] font-medium text-secondary sm:text-[14px]">{ELEMENT_PICTURE_KO[element]}</span>
-              <span className={`text-[1.5rem] font-bold leading-none tabular-nums sm:text-[2rem] ${count === 0 ? 'text-secondary' : 'text-[var(--ink)]'}`}>
+              <span className="text-fine font-medium text-secondary sm:text-note">{ELEMENT_PICTURE_KO[element]}</span>
+              <span className={`text-section font-bold leading-none tabular-nums sm:text-headline ${count === 0 ? 'text-secondary' : 'text-[var(--ink)]'}`}>
                 {count}
               </span>
             </li>
           );
         })}
       </ul>
-      {glyphCount !== 8 && <p className="text-[12px] text-secondary">출생 시각을 몰라 시주는 빼고 봤어요</p>}
+      {glyphCount !== 8 && <p className="text-fine text-secondary">출생 시각을 몰라 시주는 빼고 봤어요</p>}
     </div>
   );
 }
@@ -197,12 +197,12 @@ function BirthLine({ query, saved }: { query: Query; saved: boolean }) {
   ] as const;
 
   return (
-    <section className="relative -mt-2 sm:mt-0 sm:rounded-[1.25rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
+    <section className="relative -mt-2 sm:mt-0 sm:rounded-row sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
       {/*
         저장 전 카드(로그인 전 결과 · 사주 이어 보기, `personId === null`)에는 저장된 것이 없다 — 방금 입력한 값이다(ADR 0157).
       */}
-      <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">{saved ? '저장된 출생 정보' : '입력한 출생 정보'}</h3>
-      <dl className="flex flex-wrap gap-x-1.5 text-[13px] leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-[14px] sm:leading-6">
+      <h3 className="sr-only text-small font-semibold text-secondary sm:not-sr-only">{saved ? '저장된 출생 정보' : '입력한 출생 정보'}</h3>
+      <dl className="flex flex-wrap gap-x-1.5 text-small leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-note sm:leading-6">
         {rows.map(([term, value], at) => (
           <div key={term} className={at === 0 || at === 2 ? 'contents' : 'hidden sm:contents'}>
             <dt className="sr-only text-secondary sm:not-sr-only">{term}</dt>

@@ -62,7 +62,7 @@ export function ConsentControls({
         return (
           <SettingsRow key={one.key} label={one.label} help={one.detail} note={one.erasure}>
             {/* 지금 값은 글자로 선다 — 점의 색만으로 켜짐을 말하지 않는다 */}
-            <span className={`${ROW_STATUS} inline-flex items-center gap-1.5 text-[13px] font-semibold text-secondary`}>
+            <span className={`${ROW_STATUS} inline-flex items-center gap-1.5 text-small font-semibold text-secondary`}>
               <span
                 aria-hidden="true"
                 className={`size-2 rounded-full ${on ? 'bg-foreground' : 'border border-border-strong'}`}

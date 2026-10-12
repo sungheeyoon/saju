@@ -120,15 +120,15 @@ export function EditInputForm({
 
   return (
     <section
-      className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-5"
+      className="flex flex-col gap-4 rounded-tile border border-border bg-surface p-4 text-foreground shadow-card sm:p-5"
     >
       <header className="flex flex-col gap-1">
         <h2 className={TYPE_NAME}>수정하기</h2>
-        <p className="text-[15px] leading-6 text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
+        <p className="text-body leading-6 text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
       </header>
 
       {!editableName && (
-        <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-[15px]">
+        <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-body">
           <span className="text-secondary">닉네임</span>{' '}
           <strong className="font-semibold">{current.name}</strong>
           <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 보여요.</p>

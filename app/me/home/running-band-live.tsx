@@ -63,13 +63,13 @@ export function RunningBandLive({ initial }: { initial: readonly RunningLine[] }
         <Link
           key={line.key}
           href={line.href}
-          className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-foreground hover:border-border-strong active:scale-[0.99]"
+          className="flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-foreground hover:border-border-strong active:scale-[0.99]"
         >
           <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-cream text-cream-ink">
             <Icon name="spark" className="size-[18px] animate-pulse motion-reduce:animate-none" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-[15px] font-semibold">
+            <span className="truncate text-body font-semibold">
               {line.name} {READING_MAKING}
             </span>
             <span className={`${TYPE_META} truncate`}>{line.stage}</span>

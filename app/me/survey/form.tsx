@@ -58,17 +58,17 @@ import { FailureLine } from '../../ui/failure-line';
  * 여기서도 하는 것은, 화면에 안 보이는 값이 요청에 실려 나가지 않게 하기 위해서다.
  */
 /** 문항 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+const PANEL = 'flex flex-col gap-3 rounded-tile border border-border bg-surface p-5 sm:p-6';
 
 /** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 시스템 서체다 */
-const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
+const ASK = 'block text-lead font-bold leading-7 text-foreground';
 
 /**
  * 고르는 줄 — 줄 전체가 누를 자리(48px)이고, 고르면 먹색 테와 크림 면이 선다. 상자 자체도 남아
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
 const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
+  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-body leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -128,7 +128,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   if (!open) {
     return (
-      <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
+      <section className="flex flex-col gap-4 rounded-tile border border-border bg-surface p-5 sm:p-6">
         <div className="flex flex-col gap-1">
           <h2 className={TYPE_SECTION}>{SURVEY_COPY.thanks}</h2>
           <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.editable}</p>
@@ -162,7 +162,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="px-1 text-[13px] leading-5 text-secondary">{SURVEY_COPY.autosave}</p>
+      <p className="px-1 text-small leading-5 text-secondary">{SURVEY_COPY.autosave}</p>
 
       <Picks
         step={step(1)}
@@ -241,11 +241,11 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         <section className={PANEL}>
           <Step>{step(5)}</Step>
           <p className={ASK}>{PRICE_STEM}</p>
-          <p className="text-[13px] leading-5 text-secondary">{PRICE_NOTE}</p>
+          <p className="text-small leading-5 text-secondary">{PRICE_NOTE}</p>
           {asked.map((subject) => (
             <fieldset key={subject} className="flex flex-col gap-2 border-t border-border pt-4">
               <legend className="contents">
-                <span className="block text-[15px] font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
+                <span className="block text-body font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
               </legend>
               {PRICE_OPTIONS.map((option) => (
                 <label key={option} className={CHOICE}>
@@ -296,7 +296,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
       </section>
 
       <section className="flex flex-col gap-3 px-1">
-        <p className="text-[13px] leading-5 text-muted">{SURVEY_COPY.drafting}</p>
+        <p className="text-small leading-5 text-muted">{SURVEY_COPY.drafting}</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <button
             type="button"
@@ -327,14 +327,14 @@ function DraftMark({ state }: { state: 'idle' | 'saving' | 'saved' | 'failed' })
 
   if (state === 'failed') {
     return (
-      <span role="status" className="text-[13px] font-semibold text-danger">
+      <span role="status" className="text-small font-semibold text-danger">
         {SURVEY_COPY.draftFailed} 답을 다시 고치면 한 번 더 저장해 볼게요.
       </span>
     );
   }
 
   return (
-    <span role="status" className="text-[13px] text-muted">
+    <span role="status" className="text-small text-muted">
       {state === 'saving' ? '임시 저장하는 중…' : SURVEY_COPY.draftSaved}
     </span>
   );
@@ -343,7 +343,7 @@ function DraftMark({ state }: { state: 'idle' | 'saving' | 'saved' | 'failed' })
 /** 카드 머리의 차례 표지 — 「3/7」. 물음을 읽는 화면 읽기에는 숫자 셈이 군말이라 감춘다 */
 function Step({ children }: { children: string }) {
   return (
-    <span aria-hidden="true" className="text-[13px] font-semibold tabular-nums leading-5 text-muted">
+    <span aria-hidden="true" className="text-small font-semibold tabular-nums leading-5 text-muted">
       {children}
     </span>
   );
@@ -380,10 +380,10 @@ function Picks<T extends string>({
     <fieldset className={nested ? 'flex flex-col gap-3 border-t border-border pt-4' : PANEL}>
       <legend className="contents">
         {step !== undefined && <Step>{step}</Step>}
-        <span className={nested ? 'block text-[15px] font-bold leading-6' : ASK}>{question}</span>
+        <span className={nested ? 'block text-body font-bold leading-6' : ASK}>{question}</span>
       </legend>
-      <p className="text-[13px] text-muted">{hint}</p>
-      {note !== undefined && <p className="text-[13px] leading-5 text-secondary">{note}</p>}
+      <p className="text-small text-muted">{hint}</p>
+      {note !== undefined && <p className="text-small leading-5 text-secondary">{note}</p>}
       <div className="flex flex-col gap-2">
         {options.map((option) => (
           <label key={option} className={CHOICE}>
@@ -416,10 +416,10 @@ function Writing({
 }) {
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
-      <label className="text-[15px] font-semibold leading-6" htmlFor={`writing-${limit}`}>
+      <label className="text-body font-semibold leading-6" htmlFor={`writing-${limit}`}>
         {label}
       </label>
-      <p className="text-[13px] text-muted">
+      <p className="text-small text-muted">
         {SURVEY_COPY.optional} · 최대 {limit}자
       </p>
       <textarea
@@ -428,7 +428,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[16px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-field leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
       />
     </div>
   );

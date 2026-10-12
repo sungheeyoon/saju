@@ -187,7 +187,7 @@ export function ReportButton({ userId }: { userId: string }) {
         보낸 뒤에는 **무엇이 일어나는지**를 말한다. 「신고했습니다」로 끝내면 상대에게
         무슨 일이 났는지 모른 채 기다리게 된다 — 아무 일도 나지 않는 것이 답이다. 그 자리는 늘 있고 보낸 그때 글이 든다.
       */}
-      <span role="status" className="text-[13px] text-secondary empty:hidden">
+      <span role="status" className="text-small text-secondary empty:hidden">
         {done ? REPORT_DONE : ''}
       </span>
       {!done && !asking && (
@@ -197,7 +197,7 @@ export function ReportButton({ userId }: { userId: string }) {
       )}
       {!done && asking && (
         <span className="flex w-full flex-col gap-3 py-2">
-          <span className="text-[13px] leading-5 text-secondary">{REPORT_NOTE}</span>
+          <span className="text-small leading-5 text-secondary">{REPORT_NOTE}</span>
           <ReportForm
             send={(reason, detail) => actionAnswer(reportUser(userId, reason, detail))}
             onDone={() => {
@@ -255,7 +255,7 @@ export function BlockedCount({ count }: { count: number }) {
   if (count === 0) return null;
 
   return (
-    <p className="px-1 text-[13px] leading-5 text-muted">
+    <p className="px-1 text-small leading-5 text-muted">
       차단한 사람 {count}명. 누구인지는 여기 적지 않고, 차단은 되돌리지 않습니다.
     </p>
   );

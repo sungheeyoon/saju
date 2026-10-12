@@ -230,7 +230,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       ref={frame}
       aria-label={room.heading}
       data-chat-room
-      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-[1.75rem] md:ring-1 md:ring-border lg:rounded-[2rem]`}
+      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-card md:ring-1 md:ring-border lg:rounded-paper`}
     >
       <header className="flex items-center gap-2 border-b border-border px-2.5 py-2.5 sm:gap-3 sm:px-4">
         <Link href="/me/chat" aria-label="대화방 목록" className={`${ICON_BUTTON_GHOST} lg:hidden`}>
@@ -248,7 +248,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           </span>
           <div className="min-w-0 flex-1">
             {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
-            <h1 className="truncate font-rounded text-[1.25rem] leading-7 text-foreground">
+            <h1 className="truncate font-rounded text-heading leading-7 text-foreground">
               {partner !== null ? (
                 <button
                   type="button"
@@ -313,7 +313,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           )}
           {days.map((day) => (
             <div key={day.key} className="flex flex-col gap-1">
-              <p className="mb-2 self-center rounded-full bg-surface-soft px-3 py-1 text-[12px] font-medium text-secondary">
+              <p className="mb-2 self-center rounded-full bg-surface-soft px-3 py-1 text-fine font-medium text-secondary">
                 {day.label}
               </p>
               <ol className="flex flex-col gap-1">
@@ -358,7 +358,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
 
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
         {reported && slot.kind === 'compose' && (
-          <p role="status" className="rounded-[1rem] bg-surface-soft px-4 py-2.5 text-[13px] text-secondary">
+          <p role="status" className="rounded-[1rem] bg-surface-soft px-4 py-2.5 text-small text-secondary">
             {REPORT_DONE}
           </p>
         )}
@@ -378,7 +378,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           />
         ) : closed ? (
           /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD 「앱 내 채팅」) */
-          <p role="status" className="flex items-center gap-2.5 rounded-[1.25rem] bg-surface-soft px-4 py-3 text-[14px] text-secondary">
+          <p role="status" className="flex items-center gap-2.5 rounded-row bg-surface-soft px-4 py-3 text-note text-secondary">
             <Icon name="lock" className="size-4" />
             {room.notice}
           </p>
@@ -426,7 +426,7 @@ function Activity({ band }: { band: ActivityBand }) {
   /* 점은 꾸밈이다 — 뜻은 곁의 글자가 든다(색만으로 말하지 않는다) */
   const dot = band === 'now' ? 'bg-success' : band === 'day' ? 'bg-success/40' : 'ring-1 ring-border-strong';
   return (
-    <p className="flex items-center gap-1.5 text-[12px] font-medium text-secondary">
+    <p className="flex items-center gap-1.5 text-fine font-medium text-secondary">
       <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${dot}`} />
       {activityText(band)}
     </p>
@@ -450,8 +450,8 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
   */
   const hello = quiet && room.partnerUserId !== null && room.notice === null && (
     <div className="flex max-w-sm flex-col gap-1 text-center">
-      <p className="text-[15px] font-semibold leading-6 text-foreground">{ROOM_FIRST_HELLO}</p>
-      <p className="text-[13px] leading-5 text-secondary">{ROOM_SAFETY_NOTE}</p>
+      <p className="text-body font-semibold leading-6 text-foreground">{ROOM_FIRST_HELLO}</p>
+      <p className="text-small leading-5 text-secondary">{ROOM_SAFETY_NOTE}</p>
     </div>
   );
   /*
@@ -485,7 +485,7 @@ function RoomStart({ room, quiet }: { room: RoomView; quiet: boolean }) {
 function StartSide({ label, stem }: { label: string; stem: Stem }) {
   const info = STEM_INFO[stem];
   return (
-    <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-4`}>
+    <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-tile bg-[var(--tile)] p-4`}>
       <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
@@ -561,7 +561,7 @@ function BubbleRow({
         ))}
       <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
         <p
-          className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-[1.25rem] px-4 py-2.5 text-[15px] leading-[1.55] ${
+          className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55] ${
             chosen ? 'outline-[3px] outline-offset-2 outline-danger' : ''
           }`}
         >
@@ -584,7 +584,7 @@ function BubbleRow({
         ) : (
           bubble.last &&
           sending !== 'sending' && (
-            <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-[12px] tabular-nums text-secondary">
+            <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-fine tabular-nums text-secondary">
               {bubble.time}
             </time>
           )
@@ -645,7 +645,7 @@ function BubbleBody({ body }: { body: string }) {
  */
 function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onDrop: (() => void) | null }) {
   const { menu, close } = useDetailsMenu();
-  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
+  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
   return (
     <details ref={menu} className="relative shrink-0 self-end">
       <summary

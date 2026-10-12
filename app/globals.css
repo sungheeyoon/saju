@@ -179,6 +179,33 @@
   --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
+
+  /*
+    **글자 크기의 단** — 화면은 `text-small` 처럼 부르고 `text-[13px]` 로 다시 적지 않는다(ADR 0109 추기, 2026-10-12,
+    잠금 `app/ui/scale.test.ts`). 값은 화면에 이미 서 있던 것 그대로라 모양은 안 바뀌었다 — 작은 단은 px, 제목 단은 rem
+    이던 것을 단위째 옮겼다. 줄 높이는 싣지 않는다(`text-sm` 과 달리 `leading-*` 를 따로 적는다). 12px 아래는 딱지뿐이다.
+  */
+  --text-tag: 11px;
+  --text-fine: 12px;
+  --text-small: 13px;
+  --text-note: 14px;
+  --text-body: 15px;
+  --text-field: 16px;
+  --text-lead: 17px;
+  --text-heading: 1.25rem;
+  --text-section: 1.5rem;
+  --text-title: 1.75rem;
+  --text-headline: 2rem;
+  --text-figure: 2.5rem;
+
+  /*
+    **모서리의 단** — 큰 판(종이) 2rem · 카드 1.75rem · 타일 1.5rem · 줄 카드와 띄움 판 1.25rem(`app/ui/surfaces.ts` 머리).
+    화면은 `rounded-card` · `rounded-t-paper` 처럼 부른다. 단추의 알약(`rounded-full`)과 Tailwind 의 작은 단은 그대로다.
+  */
+  --radius-paper: 2rem;
+  --radius-card: 1.75rem;
+  --radius-tile: 1.5rem;
+  --radius-row: 1.25rem;
 }
 
 /*

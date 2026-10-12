@@ -51,12 +51,12 @@ export function PersonTile({
 
   if (!person.chart.ok) {
     return (
-      <li id={anchor} className={`${elementScope(null)} ${TARGET} relative flex flex-col gap-3 rounded-[1.5rem] bg-[var(--tile)] p-3.5 sm:p-4`}>
+      <li id={anchor} className={`${elementScope(null)} ${TARGET} relative flex flex-col gap-3 rounded-tile bg-[var(--tile)] p-3.5 sm:p-4`}>
         <span className="grid size-7 place-items-center self-start rounded-full bg-[color-mix(in_srgb,var(--surface)_70%,transparent)]">
           <ElementSymbol element={null} className="size-5" />
         </span>
         <Name href={detailHref} label={person.label} />
-        <p className="text-[13px] leading-5 text-secondary">{person.chart.message}</p>
+        <p className="text-small leading-5 text-secondary">{person.chart.message}</p>
         <div className="relative z-10 mt-auto">
           <Link href={detailHref} className={`${BUTTON_ON_TILE} w-full`}>
             자세히
@@ -73,7 +73,7 @@ export function PersonTile({
   return (
     <li
       id={anchor}
-      className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-3.5 sm:p-4`}
+      className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-tile bg-[var(--tile)] p-3.5 sm:p-4`}
     >
       <StemSymbol stem={dayMaster} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
 
@@ -81,10 +81,10 @@ export function PersonTile({
 
       <div className="min-w-0">
         <Name href={detailHref} label={person.label} />
-        {note !== '' && <p className="mt-0.5 truncate text-[12px] text-secondary">{note}</p>}
+        {note !== '' && <p className="mt-0.5 truncate text-fine text-secondary">{note}</p>}
       </div>
 
-      <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
+      <p className="line-clamp-2 min-h-10 text-small leading-5">
         {/* 만드는 중이면 「풀이 없음」이 아니다 — 같은 타일의 단추가 그 일을 말하는 동안 이 줄이 반대말을 하지 않는다 */}
         {reading === null ? (
           <span className="text-secondary">{making ? SELF_READING_MAKING : '풀이 없음'}</span>
@@ -132,7 +132,7 @@ function Name({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]`}
+      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-tile after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]`}
     >
       {label}
     </Link>

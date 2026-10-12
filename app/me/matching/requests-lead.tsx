@@ -93,7 +93,7 @@ export function PastRequestList({ past, guide }: { past: PastRequests; guide: bo
     <div id="requests-log" className="flex flex-col gap-5">
       {sent.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h3 className="text-[15px] font-bold text-secondary">보낸 요청</h3>
+          <h3 className="text-body font-bold text-secondary">보낸 요청</h3>
           <ul className="flex flex-col gap-2">
             {sent.map((request) => (
               <li key={request.requestId} className={`${ROW_CARD} flex flex-col gap-2`}>
@@ -147,17 +147,17 @@ function ConsentGuide() {
       <ol className="flex flex-col gap-4 border-t border-border py-4">
         {CONSENT_FLOW_STEPS.map((step, index) => (
           <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-3">
-            <span className="grid size-7 place-items-center rounded-full bg-cream text-[13px] font-bold text-cream-ink">
+            <span className="grid size-7 place-items-center rounded-full bg-cream text-small font-bold text-cream-ink">
               {index + 1}
             </span>
             <div>
               <p className="text-sm font-semibold">{step.title}</p>
-              <p className="mt-1 text-[13px] leading-5 text-secondary">{step.body}</p>
+              <p className="mt-1 text-small leading-5 text-secondary">{step.body}</p>
             </div>
           </li>
         ))}
       </ol>
-      <p className="border-t border-border py-4 text-[13px] leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
+      <p className="border-t border-border py-4 text-small leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
     </details>
   );
 }
@@ -171,7 +171,7 @@ function ConsentGuide() {
 function DecidedRequests({ requests }: { requests: readonly DecidedRequest[] }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-[15px] font-bold text-secondary">끝난 요청</h3>
+      <h3 className="text-body font-bold text-secondary">끝난 요청</h3>
       <ul className="flex flex-col divide-y divide-border text-sm">
         {requests.map((request) => (
           <li key={request.requestId}>
@@ -202,12 +202,12 @@ function DecidedLine({ request }: { request: DecidedRequest }) {
     <span className="flex flex-col gap-1">
       <span className="flex flex-wrap items-center gap-2">
         <strong className="font-semibold group-hover:underline">{request.nickname}</strong>
-        <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-medium text-secondary">
+        <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-fine font-medium text-secondary">
           {REQUEST_STATUS_TEXT[request.status].label}
         </span>
         <span className={`ml-auto ${TYPE_META}`}>{when(request.decidedAt ?? request.createdAt)}</span>
       </span>
-      <span className="text-[13px] leading-5 text-secondary">
+      <span className="text-small leading-5 text-secondary">
         {request.direction === 'sent'
           ? REQUEST_STATUS_TEXT[request.status].sent
           : REQUEST_STATUS_TEXT[request.status].received}
@@ -253,7 +253,7 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
 
 function InfoChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-xl bg-surface-sunken px-3 py-1.5 text-[13px] font-medium leading-5 text-secondary">
+    <span className="rounded-xl bg-surface-sunken px-3 py-1.5 text-small font-medium leading-5 text-secondary">
       {children}
     </span>
   );

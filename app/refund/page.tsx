@@ -23,16 +23,16 @@ export default function RefundPage() {
   const policy = refundPolicyFor(currentBusinessInfo());
   return (
     <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-8 sm:py-12">
-      <header className="mb-2 rounded-[2rem] bg-cream px-6 py-7 sm:px-8">
-        <p className="text-[13px] font-semibold text-cream-ink">환불정책</p>
+      <header className="mb-2 rounded-paper bg-cream px-6 py-7 sm:px-8">
+        <p className="text-small font-semibold text-cream-ink">환불정책</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>{SERVICE_NAME} 환불정책</h1>
         {policy.effectiveDate ? (
-          <p className="mt-2 text-[15px] leading-7 text-secondary">시행일 {policy.effectiveDate}</p>
+          <p className="mt-2 text-body leading-7 text-secondary">시행일 {policy.effectiveDate}</p>
         ) : null}
       </header>
 
       <LegalBody document={policy}>
-        <p className="px-1 text-[13px] leading-6 text-secondary">
+        <p className="px-1 text-small leading-6 text-secondary">
           {REFUND_TERMS_POINTER.before}
           <Link href="/terms" className="font-semibold text-foreground underline underline-offset-2">
             {REFUND_TERMS_POINTER.link}

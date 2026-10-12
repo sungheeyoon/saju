@@ -87,10 +87,10 @@ export function Taste({
       <LockedOutline outline={outline} draft={draft} />
 
       <details id="saju-detail" data-fold="" className="group/detail scroll-mt-24">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.5rem] border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-tile border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
             <span className={TYPE_NAME}>사주 자세히 보기</span>
-            <span className="mt-0.5 block text-[13px] leading-5 text-secondary">여덟 글자 · 신살 · 오행 · 용신 · 관계 · 운</span>
+            <span className="mt-0.5 block text-small leading-5 text-secondary">여덟 글자 · 신살 · 오행 · 용신 · 관계 · 운</span>
           </span>
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open/detail:rotate-180">
             <Icon name="chevron" className="size-4 rotate-90" />
@@ -220,7 +220,7 @@ function LockedOutline({ outline, draft }: { outline: readonly string[]; draft: 
           const locked = index > 0 || first === 'retry' || first === 'closed';
           return (
             <li key={title}>
-              <p className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+              <p className="flex items-center gap-2 text-body font-semibold text-foreground">
                 <span className="tabular-nums text-secondary">{index + 1}.</span>
                 <span className="min-w-0 flex-1">{title}</span>
                 {locked && <Icon name="lock" className="size-4 shrink-0 text-muted" />}
@@ -260,11 +260,11 @@ function FirstSection({ first, preview, onRetry }: { first: TasteFirstSection; p
     return (
       <div className="mt-2 flex flex-col gap-3">
         {paragraphs.map((paragraph, at) => (
-          <p key={at} className={`${motion.rise} text-[15px] leading-7 text-foreground`} style={{ animationDelay: `${at * RISE_STEP_S}s` }}>
+          <p key={at} className={`${motion.rise} text-body leading-7 text-foreground`} style={{ animationDelay: `${at * RISE_STEP_S}s` }}>
             {paragraph}
           </p>
         ))}
-        <p className={`${motion.rise} text-[13px] leading-5 text-secondary`} style={{ animationDelay: `${paragraphs.length * RISE_STEP_S}s` }}>
+        <p className={`${motion.rise} text-small leading-5 text-secondary`} style={{ animationDelay: `${paragraphs.length * RISE_STEP_S}s` }}>
           가입하면 이 물음의 답부터 전체 사주풀이가 이어져요.
         </p>
       </div>
@@ -274,7 +274,7 @@ function FirstSection({ first, preview, onRetry }: { first: TasteFirstSection; p
   if (first === 'writing') {
     return (
       <div className="mt-2">
-        <p role="status" className="flex items-center gap-1.5 text-[13px] font-medium leading-5 text-cream-ink">
+        <p role="status" className="flex items-center gap-1.5 text-small font-medium leading-5 text-cream-ink">
           <Icon name="spark" className="size-3.5 animate-pulse motion-reduce:animate-none" />
           {TASTE_WRITING_SUBJECT} {READING_OUTLINE_STATE.writing}
         </p>
@@ -293,10 +293,10 @@ function FirstSection({ first, preview, onRetry }: { first: TasteFirstSection; p
   return (
     <div>
       {BLURRED_LINES}
-      <p role="status" className="mt-3 flex flex-wrap items-center gap-x-2 text-[13px] leading-5 text-secondary">
+      <p role="status" className="mt-3 flex flex-wrap items-center gap-x-2 text-small leading-5 text-secondary">
         <span>{first === 'retry' ? TASTE_FAILED_NOTE : TASTE_CLOSED_NOTE}</span>
         {first === 'retry' && (
-          <button type="button" onClick={onRetry} className={`${BUTTON_TERTIARY} text-[13px]`}>
+          <button type="button" onClick={onRetry} className={`${BUTTON_TERTIARY} text-small`}>
             {TASTE_RETRY_LABEL}
           </button>
         )}

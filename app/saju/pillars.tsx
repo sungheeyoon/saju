@@ -186,7 +186,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className={TYPE_SECTION}>사주팔자</h2>
         <p
-          className={`${ELEMENT_TONE[STEM_INFO[pillars.dayMaster].element].scope} inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--tile)] py-1 pl-1.5 pr-3 text-[13px] font-semibold text-[var(--ink)]`}
+          className={`${ELEMENT_TONE[STEM_INFO[pillars.dayMaster].element].scope} inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--tile)] py-1 pl-1.5 pr-3 text-small font-semibold text-[var(--ink)]`}
         >
           <span className="grid size-7 place-items-center rounded-full bg-surface">
             <ElementSymbol element={STEM_INFO[pillars.dayMaster].element} className="size-5" />
@@ -201,7 +201,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
         <ul
           aria-label="사주를 바꾼 입력 안내"
-          className="mt-4 flex flex-col gap-1.5 rounded-2xl border border-warning/25 bg-warning-wash px-4 py-3 text-[13px] leading-5 text-secondary sm:mx-auto sm:max-w-3xl"
+          className="mt-4 flex flex-col gap-1.5 rounded-2xl border border-warning/25 bg-warning-wash px-4 py-3 text-small leading-5 text-secondary sm:mx-auto sm:max-w-3xl"
         >
           {pillars.meta.sajuYear !== saju.meta.inputTime.year && (
             <li>
@@ -228,8 +228,8 @@ export function PillarChart({ saju }: { saju: Saju }) {
         <div className="grid grid-cols-2 gap-2 pb-2 pt-2 sm:grid-cols-4">
           {PILLAR_COLUMNS.map(({ key, label }) => (
             <div key={key} className="rounded-2xl bg-surface-soft p-3">
-              <p className="text-[13px] font-semibold text-foreground">{label} · {PALACE[key].period}</p>
-              <p className="mt-1 text-[13px] leading-5 text-secondary">{PALACE[key].meaning}</p>
+              <p className="text-small font-semibold text-foreground">{label} · {PALACE[key].period}</p>
+              <p className="mt-1 text-small leading-5 text-secondary">{PALACE[key].meaning}</p>
             </div>
           ))}
         </div>
@@ -394,7 +394,7 @@ function PillarGlyph({
         {dayMaster ? '나' : tenGod ? TEN_GOD_KO[tenGod] : glyph === null ? '—' : ''}
       </span>
       <span
-        className={`glyph text-[2.5rem] font-bold leading-none tracking-normal sm:text-[3.75rem] ${
+        className={`glyph text-figure font-bold leading-none tracking-normal sm:text-[3.75rem] ${
           glyph === null ? 'text-muted' : 'text-[var(--ink)]'
         }`}
       >
@@ -430,7 +430,7 @@ function DetailPanel({
 }) {
   return (
     <div>
-      <p className="mb-3 text-[13px] leading-5 text-secondary">{note}</p>
+      <p className="mb-3 text-small leading-5 text-secondary">{note}</p>
       {children}
     </div>
   );
@@ -447,7 +447,7 @@ function PillarValueGrid({
       {PILLAR_COLUMNS.map(({ key, label }) => {
         const value = values(key);
         return (
-          <div key={key} className={`min-w-0 rounded-xl px-0.5 py-2 text-xs sm:px-2 sm:text-[13px] ${key === 'day' ? 'bg-cream text-foreground ring-1 ring-border-strong' : 'bg-surface-soft text-secondary'}`}>
+          <div key={key} className={`min-w-0 rounded-xl px-0.5 py-2 text-xs sm:px-2 sm:text-small ${key === 'day' ? 'bg-cream text-foreground ring-1 ring-border-strong' : 'bg-surface-soft text-secondary'}`}>
             <p className="mb-1 text-xs font-semibold text-secondary">{label}</p>
             {value ?? <span className="opacity-40">·</span>}
           </div>

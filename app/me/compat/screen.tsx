@@ -130,7 +130,7 @@ export async function CompatScreen({ params, frame }: { params: CompatQuery; fra
           <Icon name="back" className="size-4" />
           궁합 보러 가기
         </Link>
-        <p className="text-[13px] font-semibold text-secondary">궁합</p>
+        <p className="text-small font-semibold text-secondary">궁합</p>
         <Title frame={frame}>궁합을 볼 수 없습니다</Title>
       </header>
 
@@ -177,7 +177,7 @@ async function ResultPage({
         <div className="flex items-center gap-4">
           <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-secondary">궁합</p>
+            <p className="text-small font-semibold text-secondary">궁합</p>
             <Title frame={frame}>
               {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
             </Title>
@@ -308,7 +308,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
 
   if (outcome.kind === 'same') {
     return (
-      <p role="alert" className={`${CARD} text-[15px] leading-6`}>
+      <p role="alert" className={`${CARD} text-body leading-6`}>
         같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
@@ -317,7 +317,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'unreadable') {
     return (
       <section className={`${CARD} flex flex-col gap-2`}>
-        <p className="text-[15px]">{outcome.message}</p>
+        <p className="text-body">{outcome.message}</p>
         <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
       </section>
     );

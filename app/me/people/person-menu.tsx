@@ -73,7 +73,7 @@ export function PersonActions({
           <Icon name="manage" className="size-4.5" />
         </summary>
 
-        <div className="absolute right-0 top-13 z-40 w-56 rounded-[1.25rem] border border-border bg-surface p-1.5 shadow-float">
+        <div className="absolute right-0 top-13 z-40 w-56 rounded-row border border-border bg-surface p-1.5 shadow-float">
           {current !== null && (
             <MenuItem icon="pencil" onClick={() => choose('edit-input')}>
               출생 정보 수정
@@ -113,7 +113,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-[15px] font-semibold hover:bg-surface-sunken ${
+      className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
         tone === 'danger' ? 'text-danger' : 'text-foreground'
       }`}
     >

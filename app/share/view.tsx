@@ -68,7 +68,7 @@ export async function SharedReadingView({
         다 읽은 자리의 초대 판 하나이고, 가입에 코드가 든다는 말이 그 곁에 함께 선다.
       */}
       <header className="flex min-w-0 flex-col gap-1.5">
-          <p className="text-[13px] font-semibold text-cream-ink">{eyebrow}</p>
+          <p className="text-small font-semibold text-cream-ink">{eyebrow}</p>
           {/*
             **누구 것인지가 제목이다.**
 
@@ -84,12 +84,12 @@ export async function SharedReadingView({
       </header>
 
       {(metaphor !== null || score !== null) && (
-        <section className="grid overflow-hidden rounded-[2rem] bg-cream sm:grid-cols-[minmax(0,1fr)_auto]">
+        <section className="grid overflow-hidden rounded-paper bg-cream sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-w-0 gap-3 px-5 py-7 sm:px-8 sm:py-9">
             {metaphor !== null && (
               <>
                 <Icon name="quote" className="mt-1 size-6 text-cream-ink" />
-                <p className="max-w-2xl text-pretty font-rounded text-[1.5rem] leading-[1.45] tracking-[-0.01em] text-foreground sm:text-[1.75rem]">
+                <p className="max-w-2xl text-pretty font-rounded text-section leading-[1.45] tracking-[-0.01em] text-foreground sm:text-title">
                   {metaphor}
                 </p>
               </>
@@ -97,14 +97,14 @@ export async function SharedReadingView({
           </div>
           {/* 궁합에서는 **점수가 그 글의 일부다.** 빼면 받은 사람이 다른 글을 본다 */}
           {score !== null && (
-            <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-[1.5rem] bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
-              <p className="flex items-center gap-1 text-[13px] font-semibold text-[var(--ink)]">
+            <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-tile bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
+              <p className="flex items-center gap-1 text-small font-semibold text-[var(--ink)]">
                 <Icon name="taiji" className="size-4" />
                 궁합풀이 점수
               </p>
               <p className="mt-1 flex items-baseline justify-center gap-1">
-                <span className="text-[2.5rem] font-bold leading-none tabular-nums text-foreground">{score}</span>
-                <span className="text-[13px] font-semibold text-secondary">/ 100</span>
+                <span className="text-figure font-bold leading-none tabular-nums text-foreground">{score}</span>
+                <span className="text-small font-semibold text-secondary">/ 100</span>
               </p>
             </div>
           )}
@@ -123,17 +123,17 @@ export async function SharedReadingView({
         **가입은 아직 코드로만 열린다**(ADR 0042) — 누르고 나서 알게 하면, 그 사람은
         읽은 글이 좋아서 눌렀다가 막힌 문을 만난다.
       */}
-      <section className="flex flex-col gap-3 rounded-[2rem] bg-cream px-5 py-7 sm:px-8">
+      <section className="flex flex-col gap-3 rounded-paper bg-cream px-5 py-7 sm:px-8">
         <span className="grid size-14 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-9" />
         </span>
         <h2 className={TYPE_SECTION}>{invitation.heading}</h2>
-        <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
+        <p className="text-body leading-7 text-secondary">{invitation.note}</p>
         <div className="mt-1">
           <StartButton />
         </div>
         {/* 베타가 끝나 가입에서 코드를 빼면 이 줄을 지운다 — 서비스 소개와 같은 상수다 */}
-        <p className="text-[13px] leading-5 text-secondary">{BETA_SIGNUP_CODE_NOTE}</p>
+        <p className="text-small leading-5 text-secondary">{BETA_SIGNUP_CODE_NOTE}</p>
       </section>
     </main>
   );

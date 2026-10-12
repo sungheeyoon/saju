@@ -64,8 +64,8 @@ export default async function PersonSajuPage({
   if (view.kind === 'unreadable-input') {
     return (
       <main className={`app-shell flex ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
-        <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
-          <p className="text-[15px]">{view.message}</p>
+        <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-5 sm:p-6">
+          <p className="text-body">{view.message}</p>
           <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
         </section>
       </main>
@@ -93,7 +93,7 @@ export default async function PersonSajuPage({
         **머리는 그 사람의 일간 색을 입는다** — 목록의 타일을 눌러 들어온 사람이 같은 색의 판을 다시 만난다.
         색 혼자 말하지 않게 일간 딱지(상징 · 글자 · 오행 이름)가 함께 선다.
       */}
-      <header className={`${elementScope(element)} relative overflow-hidden rounded-[2rem] bg-[var(--tile)] p-5 sm:p-8`}>
+      <header className={`${elementScope(element)} relative overflow-hidden rounded-paper bg-[var(--tile)] p-5 sm:p-8`}>
         <StemSymbol
           stem={person.saju.pillars.dayMaster}
           className="pointer-events-none absolute -right-8 -top-8 size-44 opacity-[0.14] sm:size-56"
@@ -105,9 +105,9 @@ export default async function PersonSajuPage({
           </Link>
 
           <div className="flex flex-col gap-2">
-            <p className="text-[13px] font-semibold text-[var(--ink)]">{mine ? '내 사주' : '저장한 사람'}</p>
+            <p className="text-small font-semibold text-[var(--ink)]">{mine ? '내 사주' : '저장한 사람'}</p>
             <h1 className={TYPE_TITLE}>{person.name}의 사주</h1>
-            <p className="text-[15px] leading-6 text-secondary">사주와 운의 흐름을 자세히 확인하세요.</p>
+            <p className="text-body leading-6 text-secondary">사주와 운의 흐름을 자세히 확인하세요.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

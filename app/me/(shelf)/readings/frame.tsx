@@ -269,15 +269,15 @@ function NextCard({ book }: { book: NextBook }) {
   return (
     <Link
       href={place.from === null ? book.href : withCameFrom(book.href, place.from, place.shelfKind)}
-      className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-[1.5rem] border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
+      className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-tile border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--tile)]">
         <FaceSymbol stem={book.stem} className="size-7" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[12px] font-semibold text-secondary">다음 풀이</span>
-        <span className="truncate text-[15px] font-semibold text-foreground">{book.title}</span>
-        {book.metaphor !== null && <span className="truncate text-[13px] text-secondary">{book.metaphor}</span>}
+        <span className="text-fine font-semibold text-secondary">다음 풀이</span>
+        <span className="truncate text-body font-semibold text-foreground">{book.title}</span>
+        {book.metaphor !== null && <span className="truncate text-small text-secondary">{book.metaphor}</span>}
       </span>
       <Icon name="arrow" className="size-5 shrink-0 text-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
@@ -324,7 +324,7 @@ function ShelfHead({
                     replace
                     scroll={false}
                     aria-current={on ? 'page' : undefined}
-                    className={`flex min-h-9 items-center rounded-full px-3.5 text-[14px] font-semibold transition-colors ${
+                    className={`flex min-h-9 items-center rounded-full px-3.5 text-note font-semibold transition-colors ${
                       on ? 'bg-foreground text-background' : 'bg-surface text-secondary ring-1 ring-border hover:text-foreground'
                     }`}
                   >
@@ -356,13 +356,13 @@ function ShelfHead({
               aria-describedby={`${base}-found`}
               value={find.typed}
               onChange={(event) => find.setTyped(event.target.value)}
-              className="h-11 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[16px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+              className="h-11 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-field placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
             />
           </div>
           <p
             id={`${base}-found`}
             role="status"
-            className={find.found.kind === 'idle' ? 'sr-only' : 'px-2 text-[13px] text-secondary'}
+            className={find.found.kind === 'idle' ? 'sr-only' : 'px-2 text-small text-secondary'}
           >
             {find.found.kind === 'none' ? NO_MATCH : find.found.kind === 'some' ? `검색 결과 ${find.found.count}권` : ''}
           </p>

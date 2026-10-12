@@ -120,7 +120,7 @@ export function ConfirmDialog({
       <h2 id={titleId} className={lead === undefined ? TYPE_NAME : `mt-4 ${TYPE_NAME}`}>
         {title}
       </h2>
-      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-[15px] leading-6 text-secondary">{children}</div>}
+      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary">{children}</div>}
       {failure !== null && failure !== undefined && (
         <FailureLine className="mt-3">{failure}</FailureLine>
       )}

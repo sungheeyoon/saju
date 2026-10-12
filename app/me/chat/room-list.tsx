@@ -79,9 +79,9 @@ export function RoomListPanel({ titleLevel, children }: { titleLevel: 'h1' | 'h2
   return (
     <section
       aria-label="대화방 목록"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-[2rem] lg:bg-surface lg:ring-1 lg:ring-border"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-paper lg:bg-surface lg:ring-1 lg:ring-border"
     >
-      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-[1.5rem]`}>{CHAT_TAB_LABEL}</Title>
+      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-section`}>{CHAT_TAB_LABEL}</Title>
       {children}
     </section>
   );
@@ -104,7 +104,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
       href={`/me/chat/${room.matchId}`}
       aria-current={active ? 'page' : undefined}
       /* 지금 열린 방은 그 사람의 파스텔이 깔린다 — 목록의 사진 고리와 같은 색이라 어느 방인지 색으로도 이어진다 */
-      className={`${elementScope(tone)} relative flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
+      className={`${elementScope(tone)} relative flex min-h-[4.5rem] items-center gap-3 rounded-row px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
         active ? (tone === null ? 'bg-surface-soft' : 'bg-[var(--tile)]') : 'hover:bg-surface-soft'
       }`}
     >
@@ -113,11 +113,11 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={`truncate font-rounded text-[17px] leading-6 ${closed ? 'text-secondary' : 'text-foreground'}`}>
+          <span className={`truncate font-rounded text-lead leading-6 ${closed ? 'text-secondary' : 'text-foreground'}`}>
             {name}
           </span>
           <span
-            className={`shrink-0 text-[12px] tabular-nums ${unread > 0 ? 'font-semibold text-foreground' : 'text-secondary'}`}
+            className={`shrink-0 text-fine tabular-nums ${unread > 0 ? 'font-semibold text-foreground' : 'text-secondary'}`}
           >
             {messageTimeLabel(at)}
           </span>
@@ -125,7 +125,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
         <span className="flex items-center gap-2">
           {closed && <Icon name="lock" className="size-3.5 text-secondary" />}
           <span
-            className={`min-w-0 flex-1 truncate text-[14px] leading-5 ${
+            className={`min-w-0 flex-1 truncate text-note leading-5 ${
               unread > 0 && !closed ? 'font-semibold text-foreground' : 'text-secondary'
             }`}
           >
@@ -141,7 +141,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
         </span>
       </span>
       {/* 방 화면은 뼈대(`loading.tsx`)가 없어 다 그려질 때까지 여기 머문다 — 누르면 줄의 테가 선다 */}
-      <LinkPending className={`${LINK_PENDING_RING} rounded-[1.25rem]`} />
+      <LinkPending className={`${LINK_PENDING_RING} rounded-row`} />
     </Link>
   );
 }

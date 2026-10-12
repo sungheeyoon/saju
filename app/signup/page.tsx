@@ -128,13 +128,13 @@ export default async function SignupPage({ searchParams }: {
       */}
       <header className={`flex flex-col gap-3 ${PAPER}`}>
         <Logo className="size-11" />
-        <p className="text-[13px] font-semibold text-cream-ink">
+        <p className="text-small font-semibold text-cream-ink">
           {again ? '한 번 더 확인해 주세요' : '가입하기'}
         </p>
         <h1 className={TYPE_TITLE}>
           {again ? '개인정보 처리방침이 바뀌었습니다' : '테스트 코드와 닉네임을 입력해 주세요'}
         </h1>
-        <p className="text-[15px] leading-7 text-cream-ink">
+        <p className="text-body leading-7 text-cream-ink">
           {again
             ? NOTICE_AGAIN_NOTE
             : '초대받은 분만 이용할 수 있는 비공개 베타예요. 가입에 필요한 정보만 간단히 확인해 주세요.'}
@@ -150,7 +150,7 @@ export default async function SignupPage({ searchParams }: {
         */
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
-        <section className="rounded-[1.5rem] border border-border bg-surface p-5 sm:p-7">
+        <section className="rounded-tile border border-border bg-surface p-5 sm:p-7">
           <SignupForm
             returnTo={returnTo}
             needsCode={account.signed_up_at === null}

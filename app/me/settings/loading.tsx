@@ -53,7 +53,7 @@ export default function SettingsLoading() {
             <Bone className="h-6 w-28 rounded-full" />
             {group.description && <Bone className="h-5 w-full rounded-full" />}
           </div>
-          <div className="flex flex-col rounded-[1.5rem] border border-border bg-surface px-4 py-1 sm:px-5">
+          <div className="flex flex-col rounded-tile border border-border bg-surface px-4 py-1 sm:px-5">
             {group.link && (
               <div className="flex min-h-14 items-center gap-3 py-3">
                 <Bone className="size-11 shrink-0 rounded-full" />

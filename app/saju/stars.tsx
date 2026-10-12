@@ -93,7 +93,7 @@ export function StarTable({ saju }: { saju: Saju }) {
     >
 
       {stars.length === 0 ? (
-        <div className="rounded-[1.25rem] bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
+        <div className="rounded-row bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
           걸린 신살이 없습니다
         </div>
       ) : (
@@ -104,7 +104,7 @@ export function StarTable({ saju }: { saju: Saju }) {
               <section
                 key={key}
                 aria-label={`${label}에 걸린 신살`}
-                className={`min-w-0 rounded-[1.25rem] border p-3 ${
+                className={`min-w-0 rounded-row border p-3 ${
                   key === 'day' ? 'border-border-strong bg-cream' : 'border-transparent bg-surface-soft'
                 }`}
               >
@@ -116,7 +116,7 @@ export function StarTable({ saju }: { saju: Saju }) {
                 </div>
 
                 {found.length === 0 ? (
-                  <p className="py-3 text-center text-[13px] text-secondary">걸린 항목 없음</p>
+                  <p className="py-3 text-center text-small text-secondary">걸린 항목 없음</p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {found.map(({ star, hit }) => (

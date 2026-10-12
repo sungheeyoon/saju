@@ -79,7 +79,7 @@ export function PairTaste() {
         {(['a', 'b'] as const).map((side) => (
           <fieldset key={side} aria-label={side === 'a' ? '나' : '상대'} className="flex min-w-0 flex-col">
             {/* 구역 머리 — 판 위 작은 회색 글자. 판 안 이름표와 같은 선 · 같은 굵기다 */}
-            <legend className="mb-2 px-4 text-[13px] font-semibold text-secondary sm:px-6">{side === 'a' ? '나' : '상대'}</legend>
+            <legend className="mb-2 px-4 text-small font-semibold text-secondary sm:px-6">{side === 'a' ? '나' : '상대'}</legend>
             <BirthFields
               value={forms[side]}
               onChange={(next) => setForms((current) => ({ ...current, [side]: next }))}
@@ -134,7 +134,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
                   <span className="grid size-16 place-items-center rounded-full bg-[var(--tile)]">
                     <StemSymbol stem={stem} className="size-10" />
                   </span>
-                  <span className="text-[13px] text-secondary">
+                  <span className="text-small text-secondary">
                     {names[side]} · {STEM_PICTURE[stem]}
                   </span>
                 </span>
@@ -142,8 +142,8 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
             );
           })}
         </div>
-        <p className="max-w-md text-[15px] leading-7 text-foreground">{taste.line}</p>
-        <p className="flex items-center gap-2 text-[13px] text-secondary">
+        <p className="max-w-md text-body leading-7 text-foreground">{taste.line}</p>
+        <p className="flex items-center gap-2 text-small text-secondary">
           <span aria-hidden className="rounded-full bg-surface-sunken px-3 py-1 font-rounded text-xl text-muted blur-[4px]">
             00
           </span>
@@ -158,7 +158,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
         </h2>
         <ol className="mt-3 flex flex-col gap-3">
           {PAIR_COVERS.map((title, index) => (
-            <li key={title} className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+            <li key={title} className="flex items-center gap-2 text-body font-semibold text-foreground">
               <span className="tabular-nums text-secondary">{index + 1}.</span>
               <span className="min-w-0 flex-1">{title}</span>
               <Icon name="lock" className="size-4 shrink-0 text-muted" />
