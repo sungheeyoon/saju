@@ -28,6 +28,7 @@ import { reportRequestError } from '../../request-error';
 import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
 import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 import { rpcArgs } from '@/src/lib/db';
+import { refusedForCredits, type OutOfCreditsRefusal } from '../credits/refusal';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -111,7 +112,7 @@ export const READING_CHART_NAMES = ['첫 번째 분', '두 번째 분'] as const
 async function openRun(
   target: ReadingTarget,
   requestKey: string | undefined,
-): Promise<{ ok: true; started: StartedRun | null } | { ok: false; message: string }> {
+): Promise<{ ok: true; started: StartedRun | null } | { ok: false; message: string } | OutOfCreditsRefusal> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('start_reading_run', rpcArgs<'start_reading_run'>({
@@ -129,10 +130,9 @@ async function openRun(
    * 스키마의 속만 말한다(`userFacingDbMessage`).
    */
   if (error) {
-    return {
-      ok: false,
-      message: userFacingDbMessage(error, 'start_reading_run', READING_UNEXPECTED_NOTE),
-    };
+    const message = userFacingDbMessage(error, 'start_reading_run', READING_UNEXPECTED_NOTE);
+    /* 잔액을 본 뒤 다른 탭에서 마지막 풀이권을 썼다 — 화면은 오류 줄 대신 풀이권 창을 연다(ADR 0171 「덧」) */
+    return refusedForCredits(error) ? { ok: false, message, outOfCredits: true } : { ok: false, message };
   }
 
   // 0행은 「같은 요청이 이미 돌았다」다. 모델을 부르지 않는다.
@@ -493,7 +493,9 @@ export type ReadingStart =
   | { ok: true; started: true }
   /** 이미 도는 시도가 있다. 아무것도 새로 열지 않았다 */
   | { ok: true; started: false }
-  | { ok: false; message: string };
+  | { ok: false; message: string }
+  /** 풀이권이 없어 막혔다 — 화면은 풀이권 창을 연다 */
+  | OutOfCreditsRefusal;
 
 /**
  * **응답을 먼저 보내고 만드는 일은 뒤에 돈다.**

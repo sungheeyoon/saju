@@ -404,6 +404,9 @@ export function ReadingPanel({
     };
   }, [phase, target]);
 
+  /* 풀이권 창 — 0개일 때의 누름과, 누른 뒤 서버가 풀이권이 없어 막은 때(ADR 0171 「덧」) */
+  const buy = useBuyCredits();
+
   const generate = async () => {
     dispatch({ type: 'press' });
     setPressed(true);
@@ -443,12 +446,16 @@ export function ReadingPanel({
       */
       outcome = result.ok
         ? { kind: 'opened', started: result.started }
-        : { kind: 'refused', message: result.message };
+        : 'outOfCredits' in result
+          ? { kind: 'out-of-credits' }
+          : { kind: 'refused', message: result.message };
     } catch {
       outcome = { kind: 'threw' };
     }
 
-    apply(afterPress(outcome, preview), dispatch);
+    const decision = afterPress(outcome, preview);
+    apply(decision, dispatch);
+    if (decision.opensCredits) buy.offer(0, 'reading');
   };
 
   /**
@@ -467,7 +474,6 @@ export function ReadingPanel({
    */
   const [asking, setAsking] = useState(false);
 
-  const buy = useBuyCredits();
 
   const confirmGenerate = () => {
     setAsking(false);
@@ -494,7 +500,7 @@ export function ReadingPanel({
     만들기 요청이 나가지 않는다
   */
   const press = () => {
-    if (chrome.buysCredits) buy.offer(0);
+    if (chrome.buysCredits) buy.offer(0, 'reading');
     else setAsking(true);
   };
 

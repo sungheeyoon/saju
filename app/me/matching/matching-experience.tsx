@@ -19,7 +19,7 @@ import { ROW_CARD, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { outOfCreditsNow } from '../credits/asked-on-press';
 import { useBuyCredits } from '../credits/buy-credits';
-import { announceIfMoved } from '../reading/credits-signal';
+import { announceCreditsMoved, announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
@@ -132,7 +132,7 @@ export function MatchingExperience({
       } finally {
         setCheckingCredits(false);
       }
-      if (spent) buy.offer(0);
+      if (spent) buy.offer(0, 'request');
       else setAsking(true);
     })();
   }
@@ -224,6 +224,8 @@ export function MatchingExperience({
       try {
         const result = await requestMatch(sending.candidateUserId);
         announceIfMoved(result);
+        /* 잔액을 본 뒤 그 사이 다른 탭에서 마지막 풀이권을 썼다 — 오류 줄 대신 풀이권 창(ADR 0171 「덧」) */
+        if (!result.ok && 'outOfCredits' in result) { announceCreditsMoved(); buy.offer(0, 'request'); return; }
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {

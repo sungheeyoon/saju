@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from 'react';
 
 import {
   BUY_CREDITS_LABEL,
+  CREDITS_NEEDED_NOTE,
   CREDITS_DIALOG_CLOSE,
   creditsHeldTitle,
   SALE_CLOSED_NOTE,
@@ -24,17 +25,24 @@ import { CREDITS_PATH, saleShapeOf } from './buy-path';
  * - 닫혔으면 한 줄(「지금은 비공개 베타라 …」)과 「확인」 하나(ADR 0166 「덧」).
  *
  * 판매 열림은 **누를 때** 묻는다(`my_reading_sale_is_open()`, `sale.ts`) — 머리글은 모든 화면에 서므로 그릴 때 물으면 화면마다 문
- * 하나가 더 불린다. 못 물었으면 열린 꼴이다(`saleShapeOf`). `/me/credits` 를 주소로 연 사람은 그 화면이 제 판정을 한다.
+ * 하나가 더 불린다. 만들려다(`need`) 연 창에는 제목 아래 필요 수량 한 줄이 선다 — 머리글 칸으로 연 창에는 없다. 못 물었으면 열린 꼴이다(`saleShapeOf`). `/me/credits` 를 주소로 연 사람은 그 화면이 제 판정을 한다.
  *
  * `notice` 는 부르는 쪽이 제 자리에 그린다 — 창은 `<dialog>` 라 어디에 서도 화면 가운데에 뜬다.
  */
-export function useBuyCredits(): { offer: (available: number) => void; checking: boolean; notice: ReactNode } {
+/** 무엇을 하려다 창을 열었나 — 머리글 칸이면 없음(필요 수량 줄이 안 선다) */
+export type CreditsNeed = keyof typeof CREDITS_NEEDED_NOTE;
+
+export function useBuyCredits(): {
+  offer: (available: number, need?: CreditsNeed) => void;
+  checking: boolean;
+  notice: ReactNode;
+} {
   const router = useRouter();
   const [checking, setChecking] = useState(false);
-  const [shown, setShown] = useState<{ available: number; shape: 'closed' | 'open' } | null>(null);
+  const [shown, setShown] = useState<{ available: number; shape: 'closed' | 'open'; need: CreditsNeed | null } | null>(null);
   const asking = useRef(false);
 
-  const offer = (available: number) => {
+  const offer = (available: number, need?: CreditsNeed) => {
     if (asking.current) return;
     asking.current = true;
     setChecking(true);
@@ -48,7 +56,7 @@ export function useBuyCredits(): { offer: (available: number) => void; checking:
         asking.current = false;
         setChecking(false);
       }
-      setShown({ available, shape });
+      setShown({ available, shape, need: need ?? null });
     })();
   };
 
@@ -73,7 +81,12 @@ export function useBuyCredits(): { offer: (available: number) => void; checking:
       firstFocus="confirm"
       cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
     >
-      {open ? undefined : <p>{SALE_CLOSED_NOTE}</p>}
+      {shown?.need == null && open ? undefined : (
+        <>
+          {shown?.need != null && <p>{CREDITS_NEEDED_NOTE[shown.need]}</p>}
+          {!open && <p>{SALE_CLOSED_NOTE}</p>}
+        </>
+      )}
     </ConfirmDialog>
   );
 

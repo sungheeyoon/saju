@@ -9,6 +9,7 @@ import { selfElementSummary } from '../summary';
 import { setParticipation } from '../keyed-chart-writes';
 import { PREFER_GENDERS, type PreferGender } from '@/src/lib/discovery';
 import { userFacingDbMessage } from '../../db-error';
+import { refusedForCredits, type OutOfCreditsRefusal } from '../credits/refusal';
 
 /**
  * 만나볼 상대의 조건을 저장한다.
@@ -145,14 +146,18 @@ export async function restorePassed(candidateUserId: string) {
  * 사람이 모두 같은 말을 받는다 — 갈라서 말하면 「저 사람이 이 서비스를 쓰나」를 묻는
  * 문이 된다. 그 판정은 DB 안에 있고 여기서 다시 하지 않는다.
  */
-export async function requestMatch(candidateUserId: string): Promise<SaveResult> {
+export async function requestMatch(candidateUserId: string): Promise<SaveResult | OutOfCreditsRefusal> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('request_match', {
     p_candidate_user_id: candidateUserId,
   });
 
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'request_match') };
+  if (error) {
+    const message = userFacingDbMessage(error, 'request_match');
+    /* 잔액을 본 뒤 다른 탭에서 마지막 풀이권을 썼다 — 화면은 오류 줄 대신 풀이권 창을 연다(ADR 0171 「덧」) */
+    return refusedForCredits(error) ? { ok: false, message, outOfCredits: true } : { ok: false, message };
+  }
 
   refresh('match-requested');
   /* pending 요청이 잔액을 잡는다(ADR 0038) — 헤더가 든 수가 낡았다 */

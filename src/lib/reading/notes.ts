@@ -251,3 +251,11 @@ export const BUY_CREDITS_LABEL = '풀이권 구매';
 export const CREDITS_DIALOG_CLOSE = '닫기';
 export const SALE_CLOSED_NOTE = '지금은 비공개 베타라 풀이권을 구매할 수 없어요.';
 export const SALE_CLOSED_OK = '확인';
+/**
+ * 만들려다(풀이 · 궁합풀이 · 인연 요청) 0개로 연 창에만 서는 필요 수량 — 머리글 칸으로 연 창에는 안 선다(네이버웹툰의 「부족 수량」 꼴,
+ * 운영자 2026-10-12). 풀이 한 편 · 요청 한 건이 각각 1개다(ADR 0038).
+ */
+export const CREDITS_NEEDED_NOTE = {
+  reading: '풀이 한 편을 받으려면 풀이권 1개가 필요해요.',
+  request: '인연 요청 하나에 풀이권 1개가 필요해요.',
+} as const;
