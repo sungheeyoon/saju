@@ -10,14 +10,14 @@ import { TASTE_WAIT, tasteFirstSectionOf, type TasteAnswer, type TasteFirstSecti
 import type { Saju } from '@/src/lib/saju';
 
 import { noteTasteStep, readTaste, requestTaste } from './actions';
-import { SelfCard } from './me/home/self-card';
-import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from './reading-draft';
-import { SignInCarrying } from './sign-in-carrying';
+import { SelfCard } from '../me/home/self-card';
+import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from '../reading-draft';
+import { SignInCarrying } from '../sign-in-carrying';
 import motion from './taste.module.css';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from './ui/buttons';
-import { Icon } from './ui/icons';
-import { reducedMotion } from './ui/motion';
-import { CARD, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
+import { Icon } from '../ui/icons';
+import { reducedMotion } from '../ui/motion';
+import { CARD, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
 /**
  * 로그인 전 결과의 첫머리 — **내 사주 카드와 잠긴 목차**(흐름 시안 g 의 2~3단계, ADR 0131 의 6 · 7 · ADR 0143).

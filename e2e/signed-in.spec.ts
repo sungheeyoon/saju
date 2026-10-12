@@ -30,7 +30,7 @@ import { expectTargets, focusedOutline } from './target';
 import { writeSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 
-/** 한 사람 명식의 자기 풀이 근거 — 서버가 맛보기 지문을 재는 그 길(`app/taste-run.ts`)과 같다 */
+/** 한 사람 명식의 자기 풀이 근거 — 서버가 맛보기 지문을 재는 그 길(`app/taste/taste-run.ts`)과 같다 */
 const readingEvidenceOfSelf = (saju: Saju) => {
   const built = readingEvidenceOf('self', { a: saju }, new Date());
   if (built.kind !== 'self') throw new Error('한 사람의 근거가 아니다');
@@ -1294,7 +1294,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
   /**
    * **회원의 입력은 로그인 전 사주 문단으로 가지 않는다**(ADR 0143). 계산기는 세션을 알기 전에도 붙는데, 그동안 현관 쪽
-   * 결과(`taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
+   * 결과(`app/taste/taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
    * 화면은 세션을 모르는 동안 그 결과를 안 세우고, 서버(`requestTaste`)도 로그인한 사람이면 닫는다 — 여기서는 앞쪽을 잰다.
    */
   test('회원이 생일이 실린 `/` 주소로 와도 로그인 전 사주 문단을 서버에 묻지 않고 /saju 로 옮긴다', async ({ page, signedIn }) => {

@@ -49,7 +49,7 @@ export const SECRET_ENV = [
   'PORTONE_WEBHOOK_SECRET',
   'PORTONE_API_SECRET',
   /**
-   * 로그인 전 사주 문단의 HMAC 비밀 둘(ADR 0143, `app/taste-visitor.ts`) — 브라우저 묶음 쿠키의 안정 비밀과 IP 날짜별 키의
+   * 로그인 전 사주 문단의 HMAC 비밀 둘(ADR 0143, `app/taste/taste-visitor.ts`) — 브라우저 묶음 쿠키의 안정 비밀과 IP 날짜별 키의
    * 뿌리. 없으면 그 문단이 닫힌다
    */
   'TASTE_BROWSER_SECRET',

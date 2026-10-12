@@ -15,7 +15,7 @@ import type { Database } from '@/src/lib/db';
  * (`app/api/cron/audit-export/route.ts`) · 웹 푸시 배달 문(`app/api/push/dispatch/route.ts`, ADR 0156) · OpenAI webhook · 결제 webhook
  * (`app/api/openai/webhook/route.ts` · `app/api/portone/webhook/route.ts`), 그리고 **사용자 경로의 제한된 예외 하나** —
  * 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`app/me/keyed-chart-writes.ts`, G-64 · ADR 0136), 그리고 로그인 전
- * 사주 문단의 문 일곱(로그인 전 쪽 넷 `app/keyed-taste.ts` · 가입한 회원 쪽 셋 `app/me/keyed-taste-claims.ts`, ADR 0143 —
+ * 사주 문단의 문 일곱(로그인 전 쪽 넷 `app/taste/keyed-taste.ts` · 가입한 회원 쪽 셋 `app/taste/keyed-taste-claims.ts`, ADR 0143 —
  * 방문자는 로그인 전이고, 지문 · HMAC 은 서버만 짓는다).
  * 그 목록은 `eslint.config.mjs` 의 `KEY_HOLDERS` 와 `scripts/layers.test.ts` 가 함께 든다 — 새 자리는 둘을 고친다.
  *

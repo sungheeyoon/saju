@@ -15,7 +15,7 @@ import { keyedClient } from '../keyed-client';
  * 회원 id 다. 로그인 문으로 열면 지문을 제가 고른 값으로 넣어 「확정 입력으로 다시 잰 지문과 같다」를 건너뛴다 — 그래서 지문 ·
  * 브라우저 HMAC 은 서버가 짓고, 회원 id 는 **세션에서 얻는다**(인자로 받지 않는다, ADR 0136 의 꼴). 쿠키의 JWT 서명을 이 서버가
  * 확인한 `signedInUser` 의 id 다. 판정(정지 · 베타 종료 · 가입 미완 · 남의 세션)은 DB 가 한다. 이 셋만 부르고 열쇠 클라이언트를
- * 밖으로 내주지 않는다. 로그인 전 쪽 문 넷은 `app/keyed-taste.ts` 가 든다.
+ * 밖으로 내주지 않는다. 로그인 전 쪽 문 넷은 `app/taste/keyed-taste.ts` 가 든다.
  */
 
 type Keyed = ReturnType<typeof keyedClient>;

@@ -38,7 +38,7 @@ import { markAndAnnounce, newsKeyOf, readNewsWhenSeen } from './news-read';
 import { announceNotificationsUnreadMoved } from '../requests/unread-signal';
 import { when } from '../requests/when';
 import flow from './flow.module.css';
-import { skipCarriedTaste, takeTasteArrival } from '../../carried-taste';
+import { skipCarriedTaste, takeTasteArrival } from '../../taste/carried-taste';
 import {
   afterAsking,
   afterPress,
@@ -54,7 +54,7 @@ import {
   type RunAnswer,
 } from './reading-state';
 import type { ReadingTarget } from './target';
-import type { TasteCarryView } from './taste-carry';
+import type { TasteCarryView } from '../../taste/taste-carry';
 import { useBuyCredits } from '../credits/buy-credits';
 import { outOfCredits } from '../credits/buy-path';
 

@@ -393,9 +393,9 @@ describe('브라우저로 가는 그래프', () => {
     // 열쇠와 그것을 드는 풀의 쓰기(G-64, ADR 0136) — `server-only` 가 빌드를 세우지만, 길을 보여 주는 것은 여기다
     'app/keyed-client.ts',
     'app/me/keyed-chart-writes.ts',
-    // 로그인 전 사주 문단의 문 일곱(ADR 0143) — 화면이 부르는 것은 서버 액션(`app/actions.ts`)이다
-    'app/keyed-taste.ts',
-    'app/me/keyed-taste-claims.ts',
+    // 로그인 전 사주 문단의 문 일곱(ADR 0143) — 화면이 부르는 것은 서버 액션(`app/taste/actions.ts`)이다
+    'app/taste/keyed-taste.ts',
+    'app/taste/keyed-taste-claims.ts',
   ]);
 
   const directivesOf = (file: string): string[] => {
@@ -466,7 +466,7 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   const POOL_MODULE = 'app/me/keyed-chart-writes.ts';
   /** 로그인 전 사주 문단의 문 아홉 — 로그인 전 쪽 여섯(검사 기록 하나 포함, ADR 0163)과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
   const TASTE_MODULES: Readonly<Record<string, ReadonlySet<string>>> = {
-    'app/keyed-taste.ts': new Set([
+    'app/taste/keyed-taste.ts': new Set([
       'reserve_taste',
       'finish_taste',
       'note_taste_checks',
@@ -474,7 +474,7 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
       'count_taste_step',
       'count_taste_step_once',
     ]),
-    'app/me/keyed-taste-claims.ts': new Set(['claim_taste_session', 'link_taste_reading_run', 'taste_continuation_of_run']),
+    'app/taste/keyed-taste-claims.ts': new Set(['claim_taste_session', 'link_taste_reading_run', 'taste_continuation_of_run']),
   };
   const POOL_DOORS = new Set([
     'create_self_person',
@@ -620,5 +620,80 @@ describe('모델 SDK 를 부르는 자리 (ADR 0047)', () => {
     const listed = /export const MODEL_HOLDERS = \[([^\]]*)\]/.exec(config)?.[1] ?? '';
     const names = [...listed.matchAll(/"([^"]+)"/g)].map((found) => found[1]);
     expect(names.sort()).toEqual([...MODEL_HOLDERS].sort());
+  });
+});
+
+/**
+ * **로그인 전 사주 문단은 `app/taste/` 한 폴더에 산다**(ADR 0143). 받기 · 쿠키와 HMAC · 열쇠 문 · 가입 뒤 귀속 · 탭에 들고 가는
+ * 세션 · 화면이 한자리다. 폴더 밖이 부르는 이름은 아래 입구뿐이다 — 내 사주풀이의 누름 · 회수가 잇기 · 퍼널 세기에 닿는 자리와
+ * 첫 화면 · 사주 이어 보기가 그리는 자리다. 새 이름이 밖으로 나가면 여기를 고치고 왜 밖이 알아야 하는지 적는다. `page` 가 없는
+ * 폴더라 주소가 아니다 — Next 는 `page` · `route` 가 선 폴더만 주소로 연다.
+ */
+describe('로그인 전 사주 문단의 입구 (ADR 0143)', () => {
+  const TASTE = 'app/taste';
+  const ENTRIES: Readonly<Record<string, readonly string[]>> = {
+    /** 사주 이어 보기의 저장 뒤 귀속(`save-for-reading.tsx`) */
+    'app/taste/actions': ['claimTaste'],
+    /** 첫 화면 · `/saju` 의 결과 칸(`saju-calculator.tsx`) */
+    'app/taste/taste': ['Taste'],
+    /** 가입 왕복이 탭에 들고 가는 세션 — 사주 이어 보기 · 내 사주풀이 · 대화 초안의 저장소 꼴 */
+    'app/taste/carried-taste': ['TabStorage', 'carriesTaste', 'claimCarriedTaste', 'dropCarriedTaste', 'skipCarriedTaste', 'takeTasteArrival'],
+    /** 내 사주풀이의 「아까 보던 내용」과 누름이 잇는 세션 */
+    'app/taste/taste-carry': ['TasteCarryView', 'claimedTaste', 'tasteCarryOfPage'],
+    /** 회수가 세는 퍼널 단계(`collect.ts`) */
+    'app/taste/keyed-taste': ['countTasteStep'],
+    /** 누름이 시도에 세션을 잇는 문(`pipeline.ts`) */
+    'app/taste/keyed-taste-claims': ['TasteLinkAnswer', 'linkTasteReadingRun', 'tasteContinuationOfRun'],
+    /** 다시 이을 것이 없을 때 귀속 표를 걷는다 */
+    'app/taste/taste-visitor': ['forgetTasteClaim'],
+  };
+  const running = (file: string) => !/\.test\.tsx?$/.test(file);
+
+  /** 폴더 밖 파일이 `app/taste` 에서 부르는 이름 — `대상 → 이름들`. 이름을 못 읽는 꼴(`*` · `export … from` · `import()`)은 `*` */
+  function namesFromOutside(): Map<string, Set<string>> {
+    const out = new Map<string, Set<string>>();
+    const add = (target: string, name: string) => out.set(target, (out.get(target) ?? new Set<string>()).add(name));
+    for (const file of SOURCE_FILES) {
+      const rel = relPath(file);
+      if (under(rel, TASTE) || !running(rel)) continue;
+      const targetOf = (node: ts.Node | undefined): string | null => {
+        const spec = literalOf(node);
+        if (spec === null) return null;
+        const raw = spec.startsWith('@/') ? spec.slice(2) : spec.startsWith('.') ? relPath(resolve(dirname(file), spec)) : null;
+        const target = raw === null ? null : raw.replace(SOURCE_EXTENSION_AT_END, '');
+        return target !== null && under(target, TASTE) ? target : null;
+      };
+      const visit = (node: ts.Node) => {
+        if (ts.isImportDeclaration(node)) {
+          const target = targetOf(node.moduleSpecifier);
+          const clause = node.importClause;
+          const named = clause?.namedBindings;
+          if (target !== null && clause?.name) add(target, 'default');
+          if (target !== null && named && ts.isNamedImports(named)) {
+            for (const element of named.elements) add(target, (element.propertyName ?? element.name).text);
+          } else if (target !== null && (named || clause === undefined)) add(target, '*');
+        } else if (ts.isExportDeclaration(node)) {
+          const target = targetOf(node.moduleSpecifier);
+          if (target !== null) add(target, '*');
+        } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+          const target = targetOf(node.arguments[0]);
+          if (target !== null) add(target, '*');
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(parse(file));
+    }
+    return out;
+  }
+
+  it('폴더 밖이 부르는 이름은 입구 목록 그대로다 — 시험 파일 밖에서', () => {
+    const found = Object.fromEntries([...namesFromOutside()].map(([target, names]) => [target, [...names].sort()]));
+    const listed = Object.fromEntries(Object.entries(ENTRIES).map(([target, names]) => [target, [...names].sort()]));
+    expect(found).toEqual(listed);
+  });
+
+  it('폴더에 주소가 없다 — `page` · `route` · `layout` 이 안 선다', () => {
+    const entries = readdirSync(join(ROOT, TASTE)).filter((name) => /^(page|route|layout|default|template)\.(t|j)sx?$/.test(name));
+    expect(entries).toEqual([]);
   });
 });

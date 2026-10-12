@@ -9,19 +9,19 @@ import {
   type TasteSessionStep,
 } from '@/src/lib/reading/taste-visit';
 
-import { supabaseOnServer } from './auth/server-client';
-import { signedInUser } from './auth/signed-in';
+import { supabaseOnServer } from '../auth/server-client';
+import { signedInUser } from '../auth/signed-in';
 import { countTasteStepOnce, finishTaste, noteTasteChecks, reserveTaste, tasteSessionView } from './keyed-taste';
-import { claimTasteSession } from './me/keyed-taste-claims';
-import { callModel } from './me/reading/model';
-import { selfTasteFingerprint } from './me/reading/taste-carry';
+import { claimTasteSession } from './keyed-taste-claims';
+import { callModel } from '../me/reading/model';
+import { selfTasteFingerprint } from './taste-carry';
 import { claimTasteWith, serveTaste, viewTaste } from './taste-run';
 import { browserHmacNow, forgetTasteClaim, markTasteClaimed, tasteSecrets, tasteVisitor } from './taste-visitor';
 
 /**
  * **첫 화면(`/`)의 누름 — 로그인 전 사주 문단을 받고, 가입한 뒤 그 문단을 내 것으로 붙인다**(ADR 0143).
  *
- * 판단은 여기 없다 — 받기는 `app/taste-run.ts`, DB 는 `app/keyed-taste.ts`, 쿠키 · HMAC 은 `app/taste-visitor.ts` 가 한다.
+ * 판단은 여기 없다 — 받기는 `app/taste/taste-run.ts`, DB 는 `app/taste/keyed-taste.ts`, 쿠키 · HMAC 은 `app/taste/taste-visitor.ts` 가 한다.
  * 여기는 진짜 손잡이를 넣어 부를 뿐이다. **던지지 않는다** — 화면은 값으로 받는다.
  */
 
@@ -83,7 +83,7 @@ async function countOnce(step: TasteSessionStep, sessionId: string, known?: stri
  * 지문은 **방금 서버에 저장된 내 사주**로 다시 잰다(`selfTasteFingerprint` — 자기 풀이가 귀속을 다시 맞출 때와 같은 길) —
  * 클라이언트는 세션 id 만 보낸다. 다르면 DB 가 그 세션을 버린다(`discarded`). 붙었으면 「다음 누름은 이 세션을 잇는다」는
  * 표를 쿠키로 세운다(`TASTE_CLAIM_COOKIE`). 답은 세 갈래(`TasteClaimResult`)이고 까닭은 안 싣는다 — 갈래의 근거는
- * `claimTasteWith`(`app/taste-run.ts`)가 든다.
+ * `claimTasteWith`(`app/taste/taste-run.ts`)가 든다.
  *
  * 가입 완료(`signup_completed`)는 **그 세션을 들고 돌아온 것**이다 — 귀속 결과가 `TASTE_RETURNED_CLAIMS` 중 하나면 센다.
  * 세션당 한 번은 DB 가 지킨다 — 귀속 표 쿠키를 지우고 다시 와도 다시 안 센다.

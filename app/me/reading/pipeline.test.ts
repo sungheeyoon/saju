@@ -52,12 +52,12 @@ const claimed = vi.fn();
 const link = vi.fn();
 const continuationOfRun = vi.fn();
 const forgot = vi.fn();
-vi.mock('./taste-carry', () => ({ claimedTaste: () => claimed() }));
-vi.mock('../keyed-taste-claims', () => ({
+vi.mock('../../taste/taste-carry', () => ({ claimedTaste: () => claimed() }));
+vi.mock('../../taste/keyed-taste-claims', () => ({
   linkTasteReadingRun: (...args: unknown[]) => link(...args),
   tasteContinuationOfRun: (...args: unknown[]) => continuationOfRun(...args),
 }));
-vi.mock('../../taste-visitor', () => ({ forgetTasteClaim: async () => forgot() }));
+vi.mock('../../taste/taste-visitor', () => ({ forgetTasteClaim: async () => forgot() }));
 /** 운영 알림 — 서버 오류 알림 문을 그대로 쓴다(`wrong_run`) */
 const alerted = vi.fn();
 vi.mock('../../request-error', () => ({ reportRequestError: async (...args: unknown[]) => alerted(...args) }));
@@ -69,8 +69,8 @@ vi.mock('./model', async () => ({
 }));
 
 const { GENERATION } = await import('./generation');
-const { TASTE_WRONG_RUN_ALERT, TASTE_WRONG_RUN_DETAIL, beginReading, sendAcceptedMatchReading } = await import('./pipeline');
-const { TASTE_LINK_FAILED } = await import('@/src/lib/reading/taste-visit');
+const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
+const { TASTE_LINK_FAILED, TASTE_WRONG_RUN_ALERT, TASTE_WRONG_RUN_DETAIL } = await import('@/src/lib/reading/taste-visit');
 const { baselineIn } = await import('@/src/lib/reading');
 
 /**

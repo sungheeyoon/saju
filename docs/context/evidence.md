@@ -46,7 +46,7 @@ _Avoid_: 리딩
 같은 것을 세 낱말로 부르면 알림 한 줄과 화면 제목이 서로 다른 기능처럼 읽힌다(ADR 0026).
 _Avoid_: 해석, 리포트, 상세 궁합 리포트
 
-**로그인 전 결과** — `app/taste.tsx` · `app/pair-taste.tsx` : 로그인하지 않은 사람이 첫 화면에서
+**로그인 전 결과** — `app/taste/taste.tsx` · `app/pair-taste.tsx` : 로그인하지 않은 사람이 첫 화면에서
 생일을 넣고 받는 결과의 첫머리. **풀이**가 아니다 — 풀이권을 안 쓰고, 그 아래에 본 풀이의 잠긴
 목차와 로그인이 선다(ADR 0131 · 0143). 둘로 갈린다.
 - **로그인 전 사주 문단** — `taste_session` · `taste_artifact` 표 · `src/lib/reading/taste-run.ts` : 한

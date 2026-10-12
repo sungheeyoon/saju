@@ -23,7 +23,7 @@ import { asPosix, filesUnder } from './ui/source-files';
  *
  * - **속성으로 받은 액션** — 서버 화면이 액션을 넘기고(`onSave={…}`) 클라이언트가 그 속성을 부르면 이름이 끊긴다. 지금 그런
  *   자리(`ReportForm` 의 `send`)는 손으로 감쌌다.
- * - **인자로 받은 액션** — `app/carried-taste.ts` 처럼 액션을 인자로 받아 부르는 모듈은 이름이 끊긴다. 지금 그 모듈은 `try` 로 받는다.
+ * - **인자로 받은 액션** — `app/taste/carried-taste.ts` 처럼 액션을 인자로 받아 부르는 모듈은 이름이 끊긴다. 지금 그 모듈은 `try` 로 받는다.
  * - `'use client'` 가 없는데 클라이언트 묶음에 드는 파일(클라이언트 파일이 부르는 모듈)은 안 훑는다.
  */
 

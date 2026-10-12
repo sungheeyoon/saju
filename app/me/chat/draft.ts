@@ -1,4 +1,4 @@
-import type { TabStorage } from '../../carried-taste';
+import type { TabStorage } from '../../taste/carried-taste';
 
 /**
  * **쓰던 글은 방마다 탭에 남는다** — 신고 · 차단 판이 입력 자리를 차지했다 돌아와도, 다른 방에 갔다 와도 칸에 그대로다
