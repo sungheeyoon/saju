@@ -2,6 +2,7 @@ import 'server-only';
 
 import { keyedClient } from '@/app/keyed-client';
 import { rpcArgs } from '@/src/lib/db';
+import { seoulDateOf } from '@/src/lib/reading/seoul-date';
 
 /**
  * **서버가 던진 오류를 운영자에게 알린다** — `instrumentation.ts` 의 `onRequestError` 가 부른다(`20261108090000`).
@@ -31,10 +32,6 @@ export const REPORT_TIMEOUT_MS = 1500;
 /** 이 인스턴스가 오늘 이미 보낸 (자리 · 라우트 · 날짜) — 날이 바뀌면 옛 날짜의 것을 비운다 */
 const sent = new Set<string>();
 let sentDay = '';
-
-function seoulDay(now: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(now);
-}
 
 /** 시험이 인스턴스를 새로 띄운 것처럼 쓴다 */
 export function forgetSentReports(): void {
@@ -70,7 +67,7 @@ export async function reportRequestError(
 ): Promise<void> {
   if (vercelEnv !== 'production' || !ROUTE_TYPES.has(routeType)) return;
 
-  const day = seoulDay(now);
+  const day = seoulDateOf(now);
   if (day !== sentDay) {
     sent.clear();
     sentDay = day;

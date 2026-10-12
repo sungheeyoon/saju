@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
+
+import { asPosix, filesUnder } from './ui/source-files';
 
 /**
  * **화면 안 실패 줄은 `FailureLine` 하나다**(`app/ui/failure-line.tsx`, ADR 0164 「덧」).
@@ -22,16 +23,8 @@ const KEPT: Readonly<Record<string, { count: number; why: string }>> = {
   'app/me/chat/composer.tsx': { count: 1, why: '채팅 작업이 맡은 파일 — 옮길 자리(ADR 0164 「덧」)' },
 };
 
-function tsxFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (entry === 'node_modules' || entry.startsWith('.')) return [];
-    if (statSync(path).isDirectory()) return tsxFiles(path);
-    return entry.endsWith('.tsx') && !entry.endsWith('.test.tsx') ? [path] : [];
-  });
-}
-
-const asPosix = (path: string) => relative(process.cwd(), path).split(sep).join('/');
+const tsxFiles = (dir: string): string[] =>
+  filesUnder(dir).filter((path) => path.endsWith('.tsx') && !path.endsWith('.test.tsx'));
 
 function alertsByFile(): Record<string, number> {
   const found: Record<string, number> = {};

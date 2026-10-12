@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
+
+import { asPosix, filesUnder } from './ui/source-files';
 
 /**
  * **안내 판본을 직접 견주는 자리가 있는가**(ADR 0095, G-05).
@@ -24,16 +25,9 @@ const COMPARED = new RegExp(String.raw`${VERSION}\s*[!=]==|[!=]==\s*[\w.?]*${VER
 /** 견주어도 되는 곳 — 판정 그 자체 */
 const ALLOWED = new Set(['src/lib/consent/notice.ts']);
 
-function sourceFiles(path: string): string[] {
-  if (!statSync(path).isDirectory()) return [path];
-  return readdirSync(path).flatMap((entry) =>
-    entry === 'node_modules' || entry.startsWith('.') ? [] : sourceFiles(join(path, entry)),
-  );
-}
-
-const files = ROOTS.flatMap(sourceFiles)
+const files = ROOTS.flatMap(filesUnder)
   .filter((path) => CODE.test(path) && !path.endsWith('.test.ts'))
-  .map((path) => relative('.', path).split(sep).join('/'));
+  .map((path) => asPosix(path));
 
 describe('안내 판본을 견주는 자리', () => {
   it('판본을 직접 견주는 자리는 `noticeAckHolds` 하나뿐이다', () => {

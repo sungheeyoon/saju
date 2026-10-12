@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
+
+import { asPosix, filesUnder } from './ui/source-files';
 
 /**
  * **서버 액션은 던지지 않는다 — 값으로 답한다** (ADR 0078).
@@ -41,20 +42,9 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = 'app';
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (entry === 'node_modules' || entry.startsWith('.')) return [];
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-
-    return /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) ? [path] : [];
-  });
-}
-
-/** 저장소 어디서든 같은 이름으로 부르게 — 윈도우의 `\` 가 비교를 조용히 깨뜨린다 */
-const asPosix = (path: string) => relative(process.cwd(), path).split(sep).join('/');
-
-const sources = sourceFiles(ROOT).map((path) => {
+const sources = filesUnder(ROOT)
+  .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path))
+  .map((path) => {
   const text = readFileSync(path, 'utf8');
   const kind = path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   return { path: asPosix(path), text, source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind) };

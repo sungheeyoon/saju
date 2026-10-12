@@ -18,9 +18,7 @@ import { TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { openReadingOrder } from './actions';
 import type { PortoneCheckout } from './payment';
 import { loadPortOne } from './portone-sdk';
-
-/** 원 단위 가격 — 「4,900원」 */
-const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
+import { won } from './won';
 
 /**
  * **풀이권 고르기 · 동의 체크 · 「결제하기」 · 유의사항** (G-21, ADR 0171 · 0175).

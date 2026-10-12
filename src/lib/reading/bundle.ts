@@ -9,6 +9,8 @@
  * 이 표는 화면이 할인율을 말할 때 쓴다(판매가 열리는 날, G-21).
  */
 
+import { seoulWallClock } from './seoul-date';
+
 /** 파는 묶음 넷 — 회차 수와 가격(원, 부가세 포함) */
 export const READING_BUNDLES = [
   { credits: 1, price: 4900 },
@@ -25,8 +27,6 @@ const SINGLE_PRICE = READING_BUNDLES[0].price;
  */
 export const READING_BUNDLE_VALID_YEARS = 5;
 
-const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
-
 /**
  * 묶음의 유효기간이 끝나는 날(서울 날짜, `YYYY-MM-DD`) — 산 날부터 `READING_BUNDLE_VALID_YEARS` 년(ADR 0173).
  *
@@ -34,7 +34,7 @@ const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
  * 그 해에 같은 날이 없으면(2월 29일) 그 달의 끝날이다. 결제 내역 화면이 이 날을 말한다 — DB 는 아직 만료를 걷지 않는다.
  */
 export function readingBundleValidUntil(paidAt: Date): string {
-  const seoul = new Date(paidAt.getTime() + SEOUL_OFFSET_MS);
+  const seoul = seoulWallClock(paidAt);
   const year = seoul.getUTCFullYear() + READING_BUNDLE_VALID_YEARS;
   const month = seoul.getUTCMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();

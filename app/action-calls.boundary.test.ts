@@ -1,8 +1,10 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, sep } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
+
+import { asPosix, filesUnder } from './ui/source-files';
 
 /**
  * **화면이 서버 액션을 부르는 자리는 그 부름이 던져도 받는다** — `actionAnswer(…)` 로 감싸거나, `catch` 가 있는 `try` 안이거나,
@@ -27,16 +29,8 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = 'app';
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (entry === 'node_modules' || entry.startsWith('.')) return [];
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-    return /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) ? [path] : [];
-  });
-}
-
-const asPosix = (path: string) => relative(process.cwd(), path).split(sep).join('/');
+const sourceFiles = (dir: string): string[] =>
+  filesUnder(dir).filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path));
 
 const parse = (path: string) => {
   const text = readFileSync(path, 'utf8');

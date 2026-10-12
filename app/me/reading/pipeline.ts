@@ -18,6 +18,7 @@ import { recordDbFailure, userFacingDbMessage } from '../../db-error';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import { readingInputOf } from './generator';
+import { failReadingJob } from './fail-job';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
@@ -164,17 +165,9 @@ async function submitFrozen(
 ): Promise<void> {
   const { kind } = job;
 
-  const close = async (code: string, detail: string): Promise<void> => {
-    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
-      p_run_id: job.run_id,
-      p_failure_code: code,
-      p_failure_detail: detail,
-      /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
-      p_usage: null,
-    });
-    /* 못 닫아도 기한이 지나면 복구기가 닫는다 — 그래도 조용히 넘기지 않고 기록에 남긴다(ADR 0078) */
-    if (notClosed) console.error('submit: fail_reading_job', notClosed.code, notClosed.message);
-  };
+  /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
+  const close = (code: string, detail: string): Promise<void> =>
+    failReadingJob(keyed, 'submit', { runId: job.run_id, code, detail, usage: null });
 
   /**
    * 얼린 입력을 세운다 — **`person` 행이 아니라 값이다**(ADR 0071).
@@ -339,13 +332,7 @@ async function sendRun(runId: string, continuation: TasteRunCarry | null = null)
 
   const { data, error } = await keyed.rpc('take_reading_job', { p_run_id: runId });
   if (error) {
-    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
-      p_run_id: runId,
-      p_failure_code: 'unexpected',
-      p_failure_detail: error.message,
-      p_usage: null,
-    });
-    if (notClosed) console.error('send: fail_reading_job', notClosed.code, notClosed.message);
+    await failReadingJob(keyed, 'send', { runId, code: 'unexpected', detail: error.message, usage: null });
     return;
   }
 
@@ -478,13 +465,7 @@ async function closeUnsent(runId: string, code: string, detail: string): Promise
     console.error('close: 열쇠 없음', failure instanceof NoKeyError ? failure.message : failure);
     return;
   }
-  const { error } = await keyed.rpc('fail_reading_job', {
-    p_run_id: runId,
-    p_failure_code: code,
-    p_failure_detail: detail,
-    p_usage: null,
-  });
-  if (error) console.error('close: fail_reading_job', error.code, error.message);
+  await failReadingJob(keyed, 'close', { runId, code, detail, usage: null });
 }
 
 /** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */

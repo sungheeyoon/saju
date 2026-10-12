@@ -138,6 +138,17 @@ const NO_KEYED_CLIENT = [
   },
 ];
 
+/**
+ * **모델 SDK 를 부르는 자리도 이름으로 든다**(ADR 0047) — 모델을 부르는 유일한 자리다. 새 자리는 이 목록과
+ * `scripts/layers.test.ts` 의 목록을 함께 고친다(시험이 둘을 견준다). 시험 파일은 가짜로 바꿔 끼우므로 뺀다.
+ */
+export const MODEL_HOLDERS = ["app/me/reading/model.ts"];
+
+/** 앞의 `/` 로 앵커한다 — 안 하면 `app/api/openai/…` 같은 경로의 한 칸도 걸린다(`NO_NODE` 의 머리말) */
+const NO_MODEL_SDK = [
+  { group: ["/ai", "/openai", "@ai-sdk/*"], message: "모델은 app/me/reading/model.ts 만 부른다 — eslint.config.mjs 의 MODEL_HOLDERS (ADR 0047)" },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -202,9 +213,20 @@ const eslintConfig = defineConfig([
   },
 
   {
-    /** 열쇠 클라이언트는 목록의 자리만 부른다 — 화면도 문도 액션도 */
+    /**
+     * 열쇠 클라이언트와 모델 SDK 는 목록의 자리만 부른다 — 화면도 문도 액션도. 한 파일에 같은 규칙을 두 블록이 걸면 뒤가
+     * 앞을 덮으므로, 목록의 자리마다 나머지 하나만 거는 블록으로 가른다.
+     */
     files: [`app/**/*.${ANY}`, "proxy.ts"],
-    ignores: [...KEY_HOLDERS, "app/keyed-client.ts", "**/*.test.ts"],
+    ignores: [...KEY_HOLDERS, "app/keyed-client.ts", ...MODEL_HOLDERS, "**/*.test.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: [...NO_KEYED_CLIENT, ...NO_MODEL_SDK] }] },
+  },
+  {
+    files: [...KEY_HOLDERS, "app/keyed-client.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: NO_MODEL_SDK }] },
+  },
+  {
+    files: MODEL_HOLDERS,
     rules: { "no-restricted-imports": ["error", { patterns: NO_KEYED_CLIENT }] },
   },
 
