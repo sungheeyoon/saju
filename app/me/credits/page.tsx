@@ -1,4 +1,5 @@
 import { checkoutRefundLine } from '@/src/lib/brand/refund';
+import { CREDITS_USAGE_NOTE } from '@/src/lib/reading/notes';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
@@ -41,7 +42,7 @@ export default async function CreditsPage() {
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       <header className="flex flex-col gap-1">
         <h1 className={TYPE_TITLE}>풀이권 구매</h1>
-        <p className={TYPE_META}>사주풀이와 궁합풀이를 받을 때 써요.</p>
+        <p className={TYPE_META}>{CREDITS_USAGE_NOTE}</p>
       </header>
 
       {!sale.ok && <FailureLine retry>결제할 수 있는지 확인하지 못했어요. {sale.reason}</FailureLine>}

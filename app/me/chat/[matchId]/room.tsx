@@ -25,7 +25,7 @@ import { BUTTON_SECONDARY_SMALL, ICON_BUTTON_GHOST } from '../../../ui/buttons';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { useDetailsMenu } from '../../../ui/details-menu';
-import { TYPE_NAME } from '../../../ui/surfaces';
+import { MENU_PANEL, TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { PartnerSheet, partnerSheetName, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
 import { DayMasterChip } from '../../people/chart-bits';
@@ -654,7 +654,7 @@ function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onD
       >
         <Icon name="alert" className="size-[22px]" />
       </summary>
-      <div className="absolute bottom-12 right-0 z-20 flex w-40 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+      <div className={`${MENU_PANEL} absolute bottom-12 right-0 z-20 flex w-40 flex-col p-1.5`}>
         {onRetry !== null && (
           <button
             type="button"

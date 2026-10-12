@@ -7,7 +7,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { Avatar } from './avatar';
 import { CardPhotos } from './matching/card-photos';
-import { closeSheet, DetailSheet, openSheet } from './matching/today-card';
+import { closeSheet, DetailSheet, openSheet } from '../ui/sheet';
 import { TYPE_SECTION } from '../ui/surfaces';
 
 /**

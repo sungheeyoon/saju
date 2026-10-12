@@ -3,7 +3,7 @@
 import { useRef, type ReactNode } from 'react';
 
 import { Icon } from '../../ui/icons';
-import { DetailSheet, openSheet } from './today-card';
+import { DetailSheet, openSheet } from '../../ui/sheet';
 
 /**
  * 인연 탭 맨 위의 **「받은 요청 N」 띠 한 줄**(운영자 답 2026-09-29 u2, 시안 u).

@@ -105,3 +105,11 @@ credits-04의 상단 구매 창과 필요 수량 문장을 대체한다. 상단�
 
 근거는 오!사주(https://saju.orijima.com/)의 사용 단위 표시와 네이버웹툰 공식 도움말
 (https://help.naver.com/service/5635/contents/8499?lang=ko&osType=ANDROID)의 부족 수량 확인 후 구매 구조다. 문장은 우리 서비스에 맞춰 작성했다.
+
+## credits-07 확정 문구 — 결제 화면 제목 아래 한 줄은 사용처 상수다 (운영자 결정 2026-10-12, 시스템 점검 라운드 후속)
+
+`/me/credits`. 대장에 없던 글자를 credits-06 의 사용처 상수(`CREDITS_USAGE_NOTE`)로 맞췄다 — 풀이권 창과 같은 한 줄이다.
+
+| 자리 | 이전 | 확정 |
+| --- | --- | --- |
+| 결제 화면 제목 아래 `app/me/credits/page.tsx` | 사주풀이와 궁합풀이를 받을 때 써요. | 사주풀이와 궁합풀이에 사용할 수 있어요. |
