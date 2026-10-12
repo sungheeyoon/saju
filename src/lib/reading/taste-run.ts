@@ -7,7 +7,7 @@ import { plainTermsIn, type CheckFinding } from './check';
 /**
  * **개인별 맛보기(tasteRun)** — 근거 줄이기 · 지문 · 프롬프트 · 출력 모양 · 규칙 검사.
  *
- * ADR 0131 의 720칸 공용 표(`taste-maker.ts`)를 대신하는 설계다(ADR 0143). 실호출 짝 견본으로 재 보려고 섰고
+ * ADR 0131 의 720칸 공용 표를 대신하는 설계다(ADR 0143 — 옛 표 · 만들기 스크립트는 G-69 가 걷었다). 실호출 짝 견본으로 재 보려고 섰고
  * (`docs/notes/2026-10-03-taste-run-experiment.md`), 이제 로그인 전 첫 화면의 서버(`app/taste-run.ts`)가 이것으로 근거를
  * 줄이고 · 지문을 짓고 · 프롬프트를 짓고 · 결과를 검사한다. 여기는 모델도 DB 도 모른다.
  *

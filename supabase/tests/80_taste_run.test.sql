@@ -97,15 +97,15 @@ select is(
    where n.nspname in ('public', 'retention')
      and (p.proname like '%taste%')
      and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))),
-  array['taste_passage']::text[],
-  '익명 · 로그인한 사람이 부를 수 있는 맛보기 문은 옛 공용 표의 문 하나뿐이다 — 새 문은 하나도 안 열렸다');
+  null,
+  '익명 · 로그인한 사람이 부를 수 있는 맛보기 문은 하나도 없다 — 옛 공용 표의 문은 `20261206090000` 이 걷었다(G-69)');
 
 select is(
   (select array_agg(p.proname::text order by p.proname::text)
    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname in ('public', 'retention') and p.proname like '%taste%'
      and p.proname not in ('reserve_taste', 'finish_taste', 'taste_session_view', 'claim_taste_session',
-                           'link_taste_reading_run', 'taste_continuation_of_run', 'count_taste_step', 'taste_passage',
+                           'link_taste_reading_run', 'taste_continuation_of_run', 'count_taste_step',
                            'count_taste_step_once', 'note_taste_checks')
      and has_function_privilege('service_role', p.oid, 'EXECUTE')),
   null,

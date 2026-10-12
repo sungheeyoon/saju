@@ -1,6 +1,6 @@
 -- 로그인한 사람에게 열린 문 — **`authenticated` 가 부를 수 있는 public 함수의 집합을 이름과 인자까지 고정한다**
 --
--- `33_function_shape` 는 로그인 안 한 사람(`anon`)의 문 셋을 집합으로 잠갔다. 로그인한 사람의 문은 잠근 자리가 없었다 —
+-- `33_function_shape` 는 로그인 안 한 사람(`anon`)의 문(지금 둘)을 집합으로 잠갔다. 로그인한 사람의 문은 잠근 자리가 없었다 —
 -- 새 함수에 `grant execute ... to authenticated` 가 붙거나, 열쇠에만 열어야 할 문(ADR 0136 의 넷)이 되쓰기 중에 다시
 -- 사용자에게 열려도 붉어지는 시험이 없었다(2026-09-28 밤샘 감사 「안 고친 것 — 시험」).
 --
@@ -105,7 +105,6 @@ select set_eq(
            ('share_my_reading(p_body text, p_metaphor text, p_kind text, p_person_a uuid, p_person_b uuid)'),
            ('shared_reading(p_token text)'),
            ('start_reading_run(p_kind text, p_idempotency_key text, p_person_a uuid, p_person_b uuid, p_match_id uuid, p_model text, p_prompt_version text)'),
-           ('taste_passage(p_key text)'),
            ('touch_activity()'),
            ('unread_chat_count()'),
            ('unread_notifications()')$$,
