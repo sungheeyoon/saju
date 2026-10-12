@@ -28,7 +28,8 @@
 | `scripts/check-*.mjs` | `core` + `flow` |
 | 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 전부 |
 | Next 메타데이터(`app/**/icon.*` · `opengraph-image.*` · `sitemap.*` …) | `core` + `anon` |
-| 서버에 닿는 `app/` 파일 · 관문이 import 하는 `app/` 파일(ADR 0119 추기) — 주소를 못 뽑는다 | 전부 |
+| 관문이 import 하는 `app/` 파일(ADR 0119 추기) | 전부 |
+| 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 이면 전부 |
 | 알려진 `core` 자리 — `src/**` · 입구가 아닌 `app/**` · `scripts/**` · `.github/**` · `public/**` · 뿌리 설정(`ROOT_CONFIGS`) | `core` |
 | **그 밖 — 모르는 파일** | 전부(베타에서도) |
 
@@ -37,6 +38,10 @@
 2026-10-01 에 추적 파일 1,139 개를 한 파일씩 넣으니 옛 `fast` 489 개 중 486 개가 그대로 `core` 였고(`app/global-error.tsx` ·
 `instrumentation.ts` 는 전부로, `app/icon.svg` 는 `core` + `anon` 으로), 옛 전부 382 개 중 61 개가 좁혀졌다. **남는 구멍** — 주소를
 문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 붉음은 머지 뒤 main 의 전체가 잡는다.
+2026-10-12 에 입구가 아닌 서버 파일을 거꾸로 따라가게 하자 `app/` 의 시험 아닌 파일 388 개 중 전부로 가는 것이 113 → 91 개,
+그중 「주소 없음」이 65 → 42 개가 됐다(ADR 0178). 남은 42 개는 layout · 서버 액션 · `route.ts` · 관문 · `instrumentation.ts` 가 부르는
+파일이다 — 예: `app/me/requests/inbox.ts` 는 `/me/readings` 의 layout 과 요청 액션이 부른다. `app/me/match/screen.tsx` 는 그것을 쓰는
+page 의 주소로 `match` · `chat` · `anon` · `flow` 만, `room-compat.ts` 는 `chat` · `live` · `push` · `flow` 만이다.
 
 **문구 변경의 머지와 배포**(운영자 2026-10-09, ADR 0159) — 사용자가 확인한 문구 변경은 필요한 PR 검사가 통과하면 재승인 없이
 squash-merge 하고 배포한다. 동작 변경이 없다고 판별된 경우 main 전체 CI 완료는 배포의 대기 조건으로 두지 않는다. 문서만 변경한
@@ -68,6 +73,10 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 비밀 이름이나 그 빌드의 비밀 값이 있으면 빌드가 선다. CI 는 빌드가 드는 차선 `core` 에서(머지 전 · 머지 뒤 main 모두),
 **Vercel 은 배포 빌드마다 진짜 값을 들고** 돈다. 새 차선은 없다. `core` 에 빌드를 넣은 까닭은 `next build` 만 잡는 실패다 —
 `app/**/icon.tsx` 는 파비콘 라우트로 읽혀 빌드가 섰는데 단위 · 타입 · 린트는 초록이라 Production 이 두 시간 멈췄다(#219).
+**코드가 화면 문구만 바뀐 PR 은 빌드를 건너뛴다**(운영자 2026-10-12, ADR 0178) — 위 표의 「문구만 바뀐 파일」로 좁혀진 파일과 정책
+파일뿐이면 계획의 `build` 가 `false` 라 `core` 가 단위 · 타입 · 린트만 돈다(바뀐 글자를 찾는 시험의 차선은 그대로). #219 같은 이름 ·
+모양 실패는 문구 한 줄로 안 생긴다. 메타데이터 파일(`icon` · `opengraph-image` …)은 빌드 때 그림을 그리므로 문구만이어도 빌드가 돈다. 문구 밖의 코드가 하나라도 섞이거나 · 라벨 · 공개 출시 · main 푸시 · 일정이면 빌드가 돈다.
+`build` 가 비면(계획 실패) 돈다 — 워크플로는 `!= 'false'` 로 읽는다. 배포 빌드는 Vercel 이 늘 돈다.
 
 **공개 출시 뒤 — 머지 전에 전체를 잰다**
 
@@ -87,7 +96,10 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 `authed-test-results-<차선>`(콜론을 `-` 로, 예: `authed-test-results-signed-in-mobile`). 안에는 시도마다의 `error-context.md` 와
 첫 재시도의 `trace.zip` 이 있다 — `gh run download <run id> -n <이름>` 뒤 `npx playwright show-trace <…>/trace.zip`. 리포터가
 `github` 하나라 `playwright-report/` 는 없다. 스택을 내리는 `db:stop` 단계는 없다 — hosted runner 는 job 마다 버려진다.
-`full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
+`full-ci` 라벨은 더할 수만 있다. 일정과 손으로 켠 실행은 계획을 안 보고 전부 돈다. `main` 푸시는 계획을 본다 — 푸시 전
+SHA 부터의 변경이 정책 · 주석만이고 앞 실행이 초록이면 `policy` 만, 그 밖은 전부다(ADR 0154, 위 표의 둘째 줄 · `verify.yml` 의
+`concurrency` 머리말).
 **main 푸시는 최신 하나만 끝까지 돈다** — 새 푸시가 앞 실행을 끊는다(#161 이 #143 의 「커밋마다 제 그룹」을
-되돌렸다). 끊긴 실행은 실패가 아니다. 하루 한 번의 일정은 제 그룹이라 안 끊긴다. 보호 규칙은 strict 라 PR 은
-최신 main 을 품어야 든다(`BEHIND` 면 `gh pr update-branch`).
+되돌렸다). 끊긴 실행은 실패가 아니다. 하루 한 번의 일정은 제 그룹이라 안 끊긴다. **보호 규칙의 strict 는 껐다**(2026-10-12,
+ADR 0178) — 필수 검사는 `gate` 그대로이고, 가지가 최신 main 을 품지 않아도 `gate` 가 초록이면 든다. 합친 뒤의 깨짐은 머지 뒤
+main 의 전체와 `ci-main-red` 가 잡는다.

@@ -6,7 +6,7 @@
 
 **`main` 에 머지해도 배포되지 않는다**(ADR 0110). `vercel.json` 의 `git.deploymentEnabled: false` 가 가지 · `main` 의 푸시로
 생기는 배포를 전부 끈다. 운영(주소는 `docs/ops/runbook/domain.md` 맨 위)에는 **기능 묶음이 끝났을 때
-`main` 의 정확한 SHA 를 손으로 한 번** 올린다(아래 「묶음 배포」). 화면 확인은 로컬 e2e 와 스크린샷으로 하고, 밖에서 열어 볼
+`main` 의 정확한 SHA 를 손으로 한 번** 올린다(아래 「묶음 배포」). 화면 확인은 스크린샷으로 하고(e2e 는 CI 가 고른다), 밖에서 열어 볼
 주소가 꼭 필요할 때만 Preview 를 손으로 하나 만든다(`vercel deploy`, `--prod` 없이).
 
 **손으로 만든 배포도 앱이 바뀐 커밋만 빌드한다**(2026-09-24 운영자 결정 — Git 배포를 끈 뒤에도 남겨 둔다). `vercel.json` 의 `ignoreCommand` 가

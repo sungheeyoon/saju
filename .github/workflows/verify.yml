@@ -52,6 +52,7 @@ jobs:
       authed_lanes: ${{ steps.plan.outputs.authed_lanes }}
       flow: ${{ steps.plan.outputs.flow }}
       audit: ${{ steps.plan.outputs.audit }}
+      build: ${{ steps.plan.outputs.build }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -143,7 +144,10 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run lint
+      # 코드가 화면 문구만 바뀐 PR 은 빌드를 건너뛴다 — #219 의 `icon.tsx` 같은 이름 · 모양 실패는 문구 한 줄로 안 생긴다(ADR 0178).
+      # 계획의 `build` 가 `false` 일 때만 건너뛴다 — 값이 비면(계획 실패) 돈다. job 은 그대로 서고 `gate` 도 그대로다.
       - run: npm run build
+        if: needs.plan.outputs.build != 'false'
 
   # ---------------------------------------------------------------------------
   # 익명 e2e — **살아 있는 Supabase 없이** 잰다

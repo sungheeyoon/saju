@@ -31,6 +31,7 @@ import {
   copyLanesOf,
   copyOnlyChanged,
   deployRangeOf,
+  entriesReaching,
   syntaxOf,
   importsOf,
   isSurface,
@@ -122,6 +123,8 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     };
     expect(runsOf('core')).toEqual(['npm ci', ...CORE_STEPS]);
     expect(CORE_STEPS).toContain('npm run build');
+    // 빌드는 계획의 `build` 가 `false` 일 때만 건너뛴다 — 값이 비면 돈다(문구만 바뀐 PR, ADR 0178)
+    expect(yml).toMatch(/^ {6}- run: npm run build\n {8}if: needs\.plan\.outputs\.build != 'false'$/m);
     expect(runsOf('anon')).toEqual(['npm ci', 'npx playwright install --with-deps chromium', 'npm run test:e2e']);
   });
 
@@ -266,19 +269,21 @@ const filesUnder = (dir: string): string[] =>
 const isTestFile = (file: string) => /\.test\.tsx?$/.test(file);
 
 describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구다 (2026-09-28, ADR 0119 추기)', () => {
-  it('감사가 짚은 서버 문 — 이름이 입구가 아니어도 DB · service-role · 공개 client 를 부르면 전부다', () => {
+  it('감사가 짚은 서버 문 — 이름이 입구가 아니어도 DB · service-role · 공개 client 를 부르면 입구다. 액션 · route · 관문이 부르면 전부, 아니면 쓰는 입구의 차선(ADR 0178)', () => {
     for (const file of [
       'app/me/reading/pipeline.ts',
       'app/me/same-chart.ts',
       'app/me/candidates.ts',
-      'app/me/chat/rooms.ts',
       'app/keyed-client.ts',
-      'app/ops/reports/read.ts',
-      'app/share/public-client.ts',
       'app/me/photo/photo-response.ts',
       'app/beta-schedule.ts',
     ]) {
+      expect(isSurface(file), file).toBe(true);
       expect(beta([file]).lanes, file).toEqual(FULL);
+    }
+    for (const file of ['app/me/chat/rooms.ts', 'app/ops/reports/read.ts', 'app/share/public-client.ts']) {
+      expect(isSurface(file), file).toBe(true);
+      expect(beta([file]).tier, file).toBe('narrow');
     }
   });
 
@@ -319,6 +324,7 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
   it('가르는 것은 이름이 아니라 import 다 — 새 파일도 · 지운 파일은 안 건다 · 시험 파일은 안 건다', () => {
     const fake = (source: string | null) => () => source;
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import { supabaseOnServer } from '../auth/server-client';") }).tier).toBe('full');
+    // 타입만 들여도 서버 도달이다 — 주입받은 클라이언트로 DB 를 부른다(#682 독립 검토). 입구가 없는 고아라 전부
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import type { SupabaseClient } from '@supabase/supabase-js';") }).tier).toBe('full');
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import 'server-only';") }).tier).toBe('full');
     expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("export { x } from '../../keyed-client';") }).tier).toBe('full');
@@ -354,6 +360,120 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
   });
 });
 
+/**
+ * **입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로 간다**(운영자 2026-10-12, ADR 0178). 전에는 주소를 못 뽑아 전부였다 —
+ * `app/` 의 시험 아닌 파일 388 개 중 113 개가 전부였고 그중 65 개가 「주소 없음」이었다(#649 · #650 · #651 · #657 · #673).
+ */
+describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 따라 입구의 차선만 (ADR 0178)', () => {
+  const disk = (file: string) => (existsSync(resolve(ROOT, file)) && statSync(resolve(ROOT, file)).isFile() ? readFileSync(resolve(ROOT, file), 'utf8') : null);
+
+  /**
+   * 타입만 들이는 import 도 서버 도달이다(#682 독립 검토) — `import type { SupabaseClient }` 만 든 파일이 주입받은 클라이언트로
+   * `client.rpc` 를 부른다. 그것을 빼면 e2e 없는 core 로 떨어졌다. 그런 파일도 쓰는 입구의 차선이나 전부로 간다
+   */
+  it('타입만 들이고 주입받은 클라이언트로 DB 를 부르는 파일은 서버 파일이다 — 입구의 차선이나 전부로, core 하나로 떨어지지 않는다', () => {
+    const sale = 'app/me/credits/sale.ts';
+    expect(readFileSync(resolve(ROOT, sale), 'utf8')).toMatch(/import type \{[^}]*SupabaseClient[^}]*\} from '@supabase\/supabase-js'/);
+    expect(isSurface(sale)).toBe(true);
+    expect(beta([sale]).tier).toBe('full');
+
+    const room = 'app/me/chat/[matchId]/room-compat.ts';
+    expect(readFileSync(resolve(ROOT, room), 'utf8')).toMatch(/import type \{[^}]*\} from '@supabase\/supabase-js'/);
+    expect(isSurface(room)).toBe(true);
+    expect(beta([room]).tier).toBe('narrow');
+
+    // 같은 꼴의 새 파일 — page 가 부르면 그 주소의 차선, 아무도 안 부르면 전부
+    const door = 'app/me/people/typed-door.ts';
+    const page = 'app/me/people/page.tsx';
+    const source = "import type { SupabaseClient } from '@supabase/supabase-js';\nexport const read = (client: SupabaseClient) => client.rpc('x');\n";
+    const used = (file: string) => (file === door ? source : file === page ? `import { read } from './typed-door';\n${disk(page)}` : disk(file));
+    const plan = planFor({ files: [door], stage: '운영 베타', sourceOf: used });
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes).toEqual(beta([page]).authedLanes);
+    const alone = (file: string) => (file === door ? source : disk(file));
+    expect(planFor({ files: [door], stage: '운영 베타', sourceOf: alone }).lanes).toEqual(FULL);
+  });
+
+  it('입구를 다시 내보내는 page 의 주소도 든다 — 입구에서 멈추지 않고 위로 더 따라간다', () => {
+    const door = 'app/me/people/new-door.ts';
+    const first = 'app/me/(shelf)/readings/compat/page.tsx';
+    const second = 'app/me/people/page.tsx';
+    const sourceOf = (file: string) => {
+      if (file === door) return "import 'server-only';\nexport const x = 1;\n";
+      if (file === first) return `import { x } from '../../../people/new-door';\n${disk(first)}`;
+      if (file === second) return "export { default } from '../(shelf)/readings/compat/page';\n";
+      return disk(file);
+    };
+    const reach = entriesReaching(door, sourceOf, [door]);
+    expect(reach.risk).toBeNull();
+    expect(reach.entries).toEqual([first, second].sort());
+    const plan = planFor({ files: [door], stage: '운영 베타', sourceOf });
+    // 둘째 page(/me/people)의 차선 — match 가 든다. 첫째(/me/readings/compat)만이면 signed-in 둘뿐이다
+    expect(beta([first]).authedLanes).not.toContain('match:desktop');
+    expect(plan.authedLanes).toContain('match:desktop');
+  });
+
+  it('app/me/match/screen.tsx — 그것을 쓰는 page 의 주소에 닿는 차선만, 전부가 아니다', () => {
+    const file = 'app/me/match/screen.tsx';
+    expect(isSurface(file)).toBe(true);
+    expect(routeOf(file)).toBeNull();
+    const reach = entriesReaching(file);
+    expect(reach.risk).toBeNull();
+    expect(reach.entries.length).toBeGreaterThan(0);
+    expect(reach.entries.every((entry) => routeOf(entry) !== null)).toBe(true);
+    const plan = beta([file]);
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes.length).toBeLessThan(AUTHED_LANES.length);
+    expect(plan.authedLanes).toContain('match:desktop');
+    expect(plan.authedLanes).not.toContain('notice');
+  });
+
+  it('app/me/requests/inbox.ts — layout · 서버 액션이 부르면 그 자리라 여전히 전부다(안전 문턱은 그대로, ADR 0119)', () => {
+    const file = 'app/me/requests/inbox.ts';
+    const reach = entriesReaching(file);
+    expect(['layout', '서버 액션']).toContain(reach.risk?.name);
+    const plan = beta([file]);
+    expect(plan.lanes).toEqual(FULL);
+    expect(plan.cause).toBe('주소 없음');
+    expect(plan.reason).toMatch(/\((?:layout|서버 액션)\)가 부른다/);
+  });
+
+  it('입구를 하나도 못 찾는 고아 서버 파일은 전부다 · 관문이 부르면 전부다', () => {
+    const orphan = 'app/me/orphan-door.ts';
+    const sourceOf = (file: string) => (file === orphan ? "import 'server-only';\nexport const x = 1;\n" : disk(file));
+    const plan = planFor({ files: [orphan], stage: '운영 베타', sourceOf });
+    expect(plan.lanes).toEqual(FULL);
+    expect(plan.cause).toBe('주소 없음');
+    expect(plan.reason).toContain('입구를 못 찾는다');
+    expect(beta(['app/beta-schedule.ts']).reason).toContain('관문이 부른다');
+  });
+
+  it('같은 PR 에서 새 page 가 새 서버 파일을 부르면 그 page 의 주소로 간다 — page 의 시험이 없으면 전부', () => {
+    const door = 'app/me/people/new-door.ts';
+    const page = 'app/me/people/page.tsx';
+    const pageSource = `import { x } from './new-door';\n${disk(page)}`;
+    const sourceOf = (file: string) => (file === door ? "import 'server-only';\nexport const x = 1;\n" : file === page ? pageSource : disk(file));
+    const plan = planFor({ files: [door], stage: '운영 베타', sourceOf });
+    const pagePlan = beta([page]);
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes).toEqual(pagePlan.authedLanes);
+    expect(plan.lanes).toEqual(pagePlan.lanes);
+    const lonely = 'app/me/nowhere-yet/page.tsx';
+    const lonelyOf = (file: string) => (file === door ? "import 'server-only';\n" : file === lonely ? "import { x } from '../people/new-door';\n" : disk(file));
+    expect(planFor({ files: [door, lonely], stage: '운영 베타', sourceOf: lonelyOf }).cause).toBe('닿는 시험 없음');
+  });
+
+  it('실측 — app/ 의 시험 아닌 파일 중 「주소 없음」으로 전부가 되는 파일은 공용 위험 · 관문 · 고아 까닭뿐이다', () => {
+    const files = filesUnder(resolve(ROOT, 'app'))
+      .map((file) => relative(ROOT, file))
+      .filter((file) => !isTestFile(file));
+    const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
+    for (const plan of noAddress) expect(plan.reason).toMatch(/가 부른다$|관문이 부른다$|입구를 못 찾는다$/);
+    // 옛 규칙의 65 개에서 줄었다 — 다시 넓어지면 이 수를 보고 까닭을 적는다
+    expect(noAddress.length).toBeLessThan(65);
+  });
+});
+
 describe('CI 계획 — ci-plan.mjs 의 차선과 verify.yml 이 짝을 이룬다', () => {
   /**
    * 한쪽에서 이름이 바뀌면 그 job 은 `if` 가 영원히 거짓이라 늘 skipped 이고, `gate` 는 skipped 를 통과로 세 초록이다 —
@@ -377,7 +497,7 @@ describe('CI 계획 — ci-plan.mjs 의 차선과 verify.yml 이 짝을 이룬�
     const pairs = [...block.matchAll(/^ {6}([\w-]+): \$\{\{ steps\.plan\.outputs\.([\w-]+) \}\}$/gm)].map((one) => [one[1], one[2]]);
     expect(pairs.length).toBe(block.trim().split('\n').length);
     for (const [key, value] of pairs) expect(value, key).toBe(key);
-    expect(pairs.map(([key]) => key).sort()).toEqual([...lanes, 'authed_lanes'].sort());
+    expect(pairs.map(([key]) => key).sort()).toEqual([...lanes, 'authed_lanes', 'build'].sort());
   });
 
   it('차선마다 같은 이름의 job 이 있고 그 job 은 제 출력 하나로만 켜진다', () => {
@@ -388,7 +508,7 @@ describe('CI 계획 — ci-plan.mjs 의 차선과 verify.yml 이 짝을 이룬�
       expect(job, lane).toMatch(new RegExp(`^ {4}if: needs\\.plan\\.outputs\\.${lane} == 'true'$`, 'm'));
     }
     const read = [...yml.matchAll(/needs\.plan\.outputs\.([\w-]+)/g)].map((one) => one[1]);
-    expect(read.filter((name) => !lanes.includes(name) && name !== 'authed_lanes')).toEqual([]);
+    expect(read.filter((name) => !lanes.includes(name) && name !== 'authed_lanes' && name !== 'build')).toEqual([]);
   });
 
   /**
@@ -643,6 +763,7 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
   });
 
   it('입구인데 주소를 못 뽑거나 닿는 시험이 없으면 전부다', () => {
+    // 서버 액션(`app/me/discovery/actions.ts`)이 부르는 서버 파일은 그 액션의 자리라 전부다
     expect(beta(['app/me/candidates.ts']).cause).toBe('주소 없음');
     expect(beta(['app/me/nowhere-yet/page.tsx']).cause).toBe('닿는 시험 없음');
   });
@@ -1813,6 +1934,50 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       baseSourceOf: () => screen,
     });
     expect(plan.tier).toBe('full');
+    expect(plan.build).toBe(true);
+  });
+
+  /**
+   * **코드가 문구만 바뀐 PR 은 `core` 에서 빌드를 뺀다**(운영자 2026-10-12, ADR 0178). 빌드를 core 에 넣은 까닭(#219)은
+   * `app/**\/icon.tsx` 의 이름 · 모양 실패였고 문구 한 줄로는 안 생긴다. 단위 · 타입 · 린트와 바뀐 글자를 찾는 시험의 차선은 남는다.
+   * 문구 밖의 코드가 하나라도 섞이면 · 라벨 · 공개 출시 · main 푸시 · 일정은 빌드가 돈다
+   */
+  it('문구만 바뀐 PR 은 빌드를 건너뛴다 — 문서가 섞여도, 그 밖의 코드 · 라벨 · 공개 출시 · 푸시면 빌드가 돈다', () => {
+    const changed = edit('하나가 뜹니다.', '하나가 떠요.');
+    const copyPr = planOf('app/me/matching/request-card.tsx', CARD, changed);
+    expect(copyPr.lanes.core).toBe(true);
+    expect(copyPr.build).toBe(false);
+    expect(copyPr.reason).toContain('빌드는 건너뛴다');
+    expect(summaryOf(copyPr, ['app/me/matching/request-card.tsx'])).toContain('`core` 의 빌드 | 건너뛴다');
+    expect(planOf('app/me/matching/request-card.tsx', CARD, changed, ['docs/product/copy-ledger.md']).build).toBe(false);
+    // 문구 밖의 코드가 섞이면 — 새 파일(base 없음)은 문구로 안 센다
+    expect(planOf('app/me/matching/request-card.tsx', CARD, changed, ['src/lib/matching/pool.ts']).build).toBe(true);
+    expect(planOf('app/me/matching/request-card.tsx', CARD, changed, ['proxy.ts']).build).toBe(true);
+    // 문구가 아니면 — 속성 값
+    expect(planOf('app/me/matching/request-card.tsx', CARD, edit('mt-2', 'mt-3')).build).toBe(true);
+    expect(planOf('app/me/matching/request-card.tsx', CARD, changed, [], '공개 출시').build).toBe(true);
+    const labelled = planFor({
+      files: ['app/me/matching/request-card.tsx'],
+      labels: [FULL_LABEL],
+      stage: '운영 베타',
+      ts,
+      mentions: [],
+      sourceOf: () => changed,
+      baseSourceOf: () => CARD,
+    });
+    expect(labelled.build).toBe(true);
+    // 정책만이면 core 가 없으니 빌드도 없다
+    expect(beta(['docs/prd.md']).build).toBe(false);
+    expect(beta(['src/lib/matching/pool.ts']).build).toBe(true);
+  });
+
+  it('메타데이터 파일(icon · opengraph-image …)은 문구만 바뀌어도 빌드가 돈다 — 빌드 때 그림을 그린다(#682 독립 검토)', () => {
+    const image = "export default function Image() {\n  return <div style={{ display: 'flex' }}>사주 궁합</div>;\n}\n";
+    for (const file of ['app/opengraph-image.tsx', 'app/icon.tsx', 'app/apple-icon.tsx', 'app/share/[id]/twitter-image.tsx']) {
+      const plan = planOf(file, image, image.replace('사주 궁합', '사주 보기'));
+      expect(plan.reason, file).toContain('문구만 바뀐 파일은 core 로 셌다');
+      expect(plan.build, file).toBe(true);
+    }
   });
 });
 

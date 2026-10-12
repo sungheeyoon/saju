@@ -134,7 +134,8 @@
  * 4. 파일마다 — 시험 파일 · 입구가 아닌 파일은 `core` 만. `e2e/*.spec.ts` 는 그 spec 의 차선(차선 스크립트가 부르면 그
  *    차선, 아닌데 `AUTHED` · `NOTICE` 무늬면 전부, 그 밖은 `anon`). `scripts/check-*.mjs` 는 `flow`. 메타데이터 파일은
  *    `anon`. 화면의 입구(`page` · `loading` · `error` · `not-found` · `template` · `default`)는 **주소로** 닿는 시험을 찾고,
- *    그 시험의 차선을 켠다. 주소를 못 뽑는 입구(서버에 닿는 `.ts` · 관문이 부르는 파일)나 닿는 시험이 0 이면 전부
+ *    그 시험의 차선을 켠다. 닿는 시험이 0 이면 전부. 관문이 부르는 파일은 전부. 주소가 없는 서버 파일은 그것을 쓰는 입구의 주소로 간다
+ *    (아래 「입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로」)
  * 5. 좁힌 계획에도 `core` 는 늘 선다
  *
  * **주소 대응은 소스에서 뽑는다** — 손으로 적은 「이 경로는 저 차선」이 없다. 입구 파일의 주소는 경로에서(`(group)` ·
@@ -150,6 +151,36 @@
  *
  * 남는 구멍: 시험이 주소를 문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 자리의 붉음은 전처럼
  * 머지 뒤 main 의 전체가 잡는다.
+ *
+ * ## 입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로 (ADR 0178, 운영자 2026-10-12)
+ *
+ * 서버에 닿는 `app/` 파일이 입구가 아니면 주소를 못 뽑아 전부였다 — `app/` 의 시험 아닌 파일 388 개 중 113 개가 전부, 그중 「주소 없음」
+ * 65 개. UI 만 바꾼 #649 · #650 · #651 · #657 · #673 이 머지 전에 e2e 전부(7~9.5분)를 탔다. 이제 **import 를 거꾸로 따라** 그 파일을
+ * (간접으로라도) 쓰는 입구(`page` · `loading` · …)와 그것을 직접 부르는 시험(`e2e/*.spec.ts` · `scripts/check-*.mjs`)을 모아, 그 입구의
+ * 주소에 닿는 차선만 켠다(`entriesReaching`). 훑는 자리는 디스크의 `app` · `src` · `e2e` · `scripts` 와 뿌리의 코드, 그리고 이 PR 이 바꾼
+ * 파일이다 — 계획 job 이 HEAD 를 받아 두므로 같은 PR 의 새 page 도 든다. 단위 시험(`*.test.ts`)은 길로 안 센다.
+ *
+ * 안전 문턱(ADR 0119)은 그대로다 — 다음은 전부다:
+ *
+ * - 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · e2e 기반 · 시험 도구 · Next 공용 경계)이나 메타데이터 파일이
+ *   선다. 그 파일은 그 자리의 몫이라 주소 하나로 셀 수 없다(`app/me/requests/inbox.ts` 는 layout 과 요청 액션이 부른다)
+ * - 관문이 부르는 파일(`gateReach`)
+ * - 입구도 시험도 못 찾는 고아, 찾은 입구의 주소에 닿는 시험이 0
+ *
+ * 잰 값(2026-10-12): 전부 113 → 91, 「주소 없음」 65 → 42. 남은 42 개는 위 공용 위험 · 관문이 부르는 파일이다.
+ *
+ * **타입만 들이는 import 도 서버 도달로 센다.** `import type { SupabaseClient }` 만 든 파일 대부분은 주입받은 클라이언트로 실제
+ * DB 를 부른다(`app/me/credits/sale.ts` 같은 것) — 그것을 빼면 e2e 없는 `core` 로 떨어진다(#682 독립 검토). 대신 그런 파일도 위처럼
+ * 쓰는 입구의 차선으로 좁혀진다(#649 의 `room-compat.ts`). 거꾸로 가는 그래프도 타입 import 를 길로 센다 — 넓게 잡을수록 차선이 늘 뿐
+ * 줄지 않는다. 입구에서도 멈추지 않고 위로 더 따라간다 — 다른 page 가 입구를 다시 내보내면(`export { default } from '../a/page'`)
+ * 그 page 의 주소도 든다.
+ *
+ * ## 문구만 바뀐 PR 은 빌드를 건너뛴다 (ADR 0178, 운영자 2026-10-12)
+ *
+ * 운영 베타의 PR 에서 코드가 아래 「문구만 바뀐 파일」로 좁혀진 파일뿐이고 나머지가 정책이면 계획이 `build=false` 를 낸다 — `core` 는
+ * 단위 · 타입 · 린트만 돌고, 바뀐 글자를 찾는 시험의 차선은 그대로다. 빌드를 `core` 에 넣은 까닭(#219 의 `icon.tsx`)은 이름 · 모양의
+ * 실패라 문구 한 줄로 안 생긴다. 메타데이터 파일(`icon` · `opengraph-image` … — 빌드 때 그림을 그린다) · 그 밖의 코드 · 라벨 · 공개 출시 · main 푸시 · 일정은 빌드가 돈다. 워크플로는 `!= 'false'` 로 읽어
+ * 값이 비면 돈다. job · `gate` 는 그대로다.
  *
  * ## 주석만 바뀐 코드 파일은 정책으로 센다 (ADR 0153)
  *
@@ -367,7 +398,7 @@ function sourceFromDisk(file) {
   }
 }
 
-/** `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈을 부르는가 */
+/** `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈을 부르는가 — 타입만 들여도 센다(주입받은 클라이언트로 DB 를 부른다) */
 function reachesServer(file, sourceOf = sourceFromDisk) {
   if (!/^app\/.+\.tsx?$/.test(file)) return false;
   const source = sourceOf(file);
@@ -380,6 +411,8 @@ function resolveImport(name, from, sourceOf) {
   if (name.startsWith('@/')) base = name.slice(2);
   else if (name.startsWith('.')) base = posix.normalize(posix.join(posix.dirname(from), name));
   else return null;
+  // 저장소 밖으로 나가는 길은 저장소 파일이 아니다 — 무엇이든 읽어 주는 가짜 `sourceOf` 에서 `../` 가 끝없이 길어지지 않게
+  if (base === '..' || base.startsWith('../') || posix.isAbsolute(base)) return null;
   for (const tail of ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx']) {
     if (sourceOf(base + tail) !== null) return base + tail;
   }
@@ -404,6 +437,102 @@ function gateReach(sourceOf = sourceFromDisk) {
   }
   gateReachOf.set(sourceOf, seen);
   return seen;
+}
+
+/** 거꾸로 따라갈 때 훑는 자리 — 앱 · 도메인 lib · 시험 · 도구 · 뿌리의 코드. 위층이 아래층을 부르는 길을 놓치지 않게 넓게 잡는다 */
+const IMPORTER_ROOTS = ['app', 'src', 'e2e', 'scripts'];
+const IMPORTER_FILE = /\.(?:tsx?|mjs|js)$/;
+let importerFilesCache = null;
+/** 디스크의 코드 파일 — 계획 job 은 PR 의 HEAD 를 받아 두므로 새 입구도 여기 든다. `node_modules` · 숨김 폴더는 안 든다 */
+function importerFiles() {
+  if (importerFilesCache) return importerFilesCache;
+  const found = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(new URL(`../${dir}`, import.meta.url), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(path);
+      else if (IMPORTER_FILE.test(entry.name)) found.push(path);
+    }
+  };
+  for (const root of IMPORTER_ROOTS) walk(root);
+  try {
+    for (const name of readdirSync(new URL('../', import.meta.url))) if (/\.(?:tsx?|mjs)$/.test(name)) found.push(name);
+  } catch {
+    // 뿌리를 못 읽으면 위 자리만 훑는다
+  }
+  importerFilesCache = found;
+  return found;
+}
+
+/**
+ * 파일마다 그것을 import 하는 파일들 — `sourceOf` 하나마다 한 번 짓는다. 디스크의 파일과 이 PR 이 바꾼 파일을 훑고,
+ * 타입만 들이는 문도 길로 센다(넓게 잡을수록 차선이 늘 뿐 줄지 않는다)
+ */
+const importersOf = new WeakMap();
+function importerGraph(sourceOf, changed) {
+  const cached = importersOf.get(sourceOf);
+  if (cached && changed.every((file) => cached.scanned.has(file))) return cached.importers;
+  const memo = new Map();
+  const read = (file) => {
+    if (!memo.has(file)) memo.set(file, sourceOf(file));
+    return memo.get(file);
+  };
+  const importers = new Map();
+  const scanned = new Set([...importerFiles(), ...changed]);
+  for (const file of scanned) {
+    const source = read(file);
+    if (source === null) continue;
+    for (const name of importsOf(source)) {
+      const target = resolveImport(name, file, read);
+      if (target === null || target === file) continue;
+      if (!importers.has(target)) importers.set(target, new Set());
+      importers.get(target).add(file);
+    }
+  }
+  importersOf.set(sourceOf, { importers, scanned });
+  return importers;
+}
+
+/**
+ * 입구가 아닌 서버 파일이 닿는 화면 — import 를 거꾸로 따라가 그 파일을 (간접으로라도) 쓰는 입구(`page` · `loading` · …)와
+ * 그것을 직접 부르는 시험(`e2e/*.spec.ts` · `scripts/check-*.mjs`)을 모은다(위 「입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로」).
+ * 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …)이나 메타데이터 파일이 서면 그 자리가 곧 이
+ * 파일의 자리라 `risk` 로 돌려준다. 단위 시험(`*.test.ts`)은 길로 안 센다 — `core` 가 잰다
+ *
+ * @returns {{ entries: string[], tests: string[], risk: { name: string, via: string } | null }}
+ */
+export function entriesReaching(file, sourceOf = sourceFromDisk, changed = [file]) {
+  const importers = importerGraph(sourceOf, changed);
+  const entries = new Set();
+  const tests = new Set();
+  const seen = new Set([file]);
+  const queue = [file];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    for (const importer of importers.get(current) ?? []) {
+      if (seen.has(importer)) continue;
+      seen.add(importer);
+      if (isTestFile(importer)) continue;
+      if (isSpec(importer) || isFlowCheck(importer)) {
+        tests.add(importer);
+        continue;
+      }
+      const risk = SHARED_RISK.find(([, hits]) => hits(importer));
+      if (risk) return { entries: [...entries], tests: [...tests], risk: { name: risk[0], via: importer } };
+      if (METADATA.test(importer)) return { entries: [...entries], tests: [...tests], risk: { name: '메타데이터', via: importer } };
+      // 입구에서도 위로 더 간다 — 다른 page 가 이 입구를 다시 내보내면 그 주소도 이 파일을 그린다
+      if (routeOf(importer)) entries.add(importer);
+      queue.push(importer);
+    }
+  }
+  return { entries: [...entries].sort(), tests: [...tests].sort(), risk: null };
 }
 
 /** 시험 파일(`*.test.ts`)은 제 결과만 바꾼다 — `app/auth/signed-in.test.ts` 하나로 전부를 돌지 않는다 */
@@ -1379,7 +1508,7 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
  * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null, mentions?: readonly (readonly [string, string])[] | null }} input
- * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
+ * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[], build: boolean }}
  */
 export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null, mentions = null }) {
   const decided =
@@ -1391,6 +1520,7 @@ export function planFor({ files, labels = [], event = 'pull_request', stage = nu
     cause: decided.cause ?? null,
     lanes: { ...lanes, audit: audits({ files, labels, event, tier: decided.tier }) },
     authedLanes,
+    build: lanes.core && decided.skipBuild !== true,
   };
 }
 
@@ -1423,7 +1553,12 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   const { copy: copyOnly } = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts, mentions: tests });
   const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
   const judged = rest.filter((file) => !narrowed.has(file));
-  return notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
+  const decided = notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
+  // 코드가 문구만 바뀐 PR 은 빌드를 건너뛴다(위 「문구만 바뀐 PR 은 빌드를 건너뛴다」, ADR 0178). 메타데이터 파일(`icon` ·
+  // `opengraph-image` …)은 빌드 때 그림을 그리므로 문구만이어도 빌드가 돈다
+  const copyOnlyPr =
+    narrowed.size > 0 && [...narrowed.keys()].every((file) => !METADATA.test(file)) && judged.every(isPolicy) && decided.tier !== 'full';
+  return copyOnlyPr ? { ...decided, skipBuild: true, reason: `${decided.reason} — 문구만이라 빌드는 건너뛴다` } : decided;
 }
 
 /** 계획이 돌리는 차선 — 전부면 `null`(가장 넓다) */
@@ -1704,9 +1839,27 @@ function decideBeta(changed, stage, sourceOf) {
       continue;
     } else if (isSurface(file, sourceOf)) {
       const route = routeOf(file);
-      if (!route) return full('주소 없음', `${stage} — \`${file}\` 은 입구인데 주소를 못 뽑는다`);
-      tests = testsReaching(route);
-      if (tests.length === 0) return full('닿는 시험 없음', `${stage} — \`${file}\` 의 주소에 닿는 시험이 없다`);
+      if (route) {
+        tests = testsReaching(route);
+        if (tests.length === 0) return full('닿는 시험 없음', `${stage} — \`${file}\` 의 주소에 닿는 시험이 없다`);
+      } else {
+        // 입구가 아닌 서버 파일 — 그것을 쓰는 입구의 주소로 간다(위 「입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로」)
+        if (gateReach(sourceOf).has(file)) return full('주소 없음', `${stage} — \`${file}\` 은 관문이 부른다`);
+        const reach = entriesReaching(file, sourceOf, changed);
+        if (reach.risk) {
+          return full('주소 없음', `${stage} — \`${file}\` 을 \`${reach.risk.via}\`(${reach.risk.name})가 부른다`);
+        }
+        if (reach.entries.length === 0 && reach.tests.length === 0) {
+          return full('주소 없음', `${stage} — \`${file}\` 을 쓰는 입구를 못 찾는다`);
+        }
+        const reached = new Set(reach.tests);
+        for (const entry of reach.entries) {
+          const found = testsReaching(routeOf(entry));
+          if (found.length === 0) return full('닿는 시험 없음', `${stage} — \`${file}\` 을 쓰는 \`${entry}\` 의 주소에 닿는 시험이 없다`);
+          for (const test of found) reached.add(test);
+        }
+        tests = [...reached].sort();
+      }
     } else if (isKnownCore(file)) continue;
     else return full('미분류', `${stage} — \`${file}\` 은 알려진 자리가 아니다`);
 
@@ -1734,6 +1887,7 @@ export function summaryOf(plan, files) {
     '| 차선 | |',
     '|---|---|',
     lanes,
+    ...(plan.lanes.core && plan.build === false ? ['| `core` 의 빌드 | 건너뛴다(문구만) |'] : []),
     '',
   ].join('\n');
 }
@@ -1818,6 +1972,7 @@ async function main() {
         `tier=${plan.tier}`,
         ...Object.entries(plan.lanes).map(([lane, on]) => `${lane}=${on}`),
         `authed_lanes=${JSON.stringify(plan.authedLanes)}`,
+        `build=${plan.build}`,
         '',
       ].join('\n'),
     );
