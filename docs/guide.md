@@ -132,7 +132,7 @@ flowchart LR
 화면을 고쳤다고 e2e 를 일괄로 돌리지는 않아요. 그건 PR 의 CI 가 바뀐 주소에 닿는 시험만 골라 돌리고, 머지 뒤 main 에서 전부를
 돌려 잡아요. 예외 넷(e2e · 흐름 시험 자체를 고쳤을 때 · 새 잠금을 세웠을 때 · 마이그레이션 · 프롬프트 본문)만 로컬에서 더 돌려요.
 
-문서만 고쳤으면 `npx vitest run scripts/` 를 돌려요. 역할 문서나 그것이 가리키는 문서를 고쳤으면 `npm run read-budget` 도요.
+문서만 고쳤으면 `npx vitest run scripts/` 를 돌려요. 역할 문서의 가리킴을 바꿨으면 `npm run read-budget` 의 전후를 PR 에 적어요 — 보고이고 문턱은 없어요.
 
 ## 5. 병렬 · 조율 · 권한을 쉬운 말로
 
@@ -227,7 +227,7 @@ flowchart LR
 | **역할 문서** | 역할마다 한 장짜리 길잡이(`docs/roles/`). 칸이 「먼저 읽는 것 · 이 저장소의 방식 · 하지 않는 것 · 끝날 때 고치는 것」이에요 | [ADR 0140](adr/0140-each-role-reads-its-page-first-and-closes-by-fixing-the-docs.md) |
 | **길잡이 (Router)** | 규칙을 다시 쓰지 않고 원본의 절을 링크로 가리키는 문서. 역할 문서가 그래요 | [ADR 0145](adr/0145-role-documents-route-to-sources-and-do-not-restate-them.md) |
 | **색인 · 주제 파일 · 영역 파일** | 큰 문서를 쪼갠 모양. 색인은 차례 표만 들고, 내용은 그 아래 주제 · 영역별 파일에 있어요. 고칠 자리의 파일만 열어요 | 각 색인 문서 (`docs/prd.md`, `GLOSSARY.md` 등) |
-| **읽기량 예상치** | 역할을 받은 에이전트가 손대기 전에 읽는 바이트의 보수적 예상치. 모든 일이 읽는 것은 그대로, 일마다 고르는 것은 가장 큰 후보로 세요. 역할마다 천장이 잠겨 있어요 | [ADR 0162](adr/0162-a-role-reads-the-common-rules-and-the-files-of-the-task-and-the-read-budget-is-a-conservative-estimate.md), `scripts/read-budget.mjs` |
+| **읽기량 예상치** | 역할을 받은 에이전트가 손대기 전에 읽는 바이트의 보수적 예상치. 모든 일이 읽는 것은 그대로, 일마다 고르는 것은 가장 큰 후보로 세요. 문턱이 없는 보고라 CI 를 붉히지 않아요 | [ADR 0177](adr/0177-the-read-budget-is-a-report-and-ci-checks-only-the-role-page-and-what-it-points-to.md), `scripts/read-budget.mjs` |
 | **PRD** | 제품 요구사항 문서. 제품이 **지금** 무엇을 하는지 적어요 | [`docs/prd.md`](prd.md) |
 | **§ (예: PRD §7.0)** | PRD 의 절 번호. 「GLOSSARY §8」처럼 용어집 절에도 써요 | [`docs/prd.md`](prd.md) |
 | **선다 · 없다 · 다르다** | PRD 줄마다 붙는 상태 표시 셋 — 있고 확인됨 · 정했지만 아직 없음 · 코드와 문서가 어긋났던 자리 | [`docs/prd.md`](prd.md) |
@@ -359,7 +359,7 @@ flowchart LR
 | **옛 자리** | 규칙이 생기기 전부터 화면 안에서 DB 를 부르던 호출. 목록으로 잠가 두고 줄이기만 해요 | [`docs/architecture.md`](architecture.md) |
 | **지문** | 시험이 옛 자리 · 탈출구를 알아보는 표시(`파일 :: 호출`). 목록에 없는 새 것이 생기면 실패해요 | [`docs/architecture.md`](architecture.md) |
 | **탈출구** | 타입 검사 · 린트를 우회하는 코드(이중 캐스트 · `!` · `eslint-disable` 등). 지문으로 잠겨 줄어들기만 해요 | [탈출구](agents/code-rules/escapes.md) |
-| **예산** | 탈출구 · 옛 자리 · 읽기량처럼 「이 수를 넘으면 안 된다」고 잠근 상한 | [탈출구](agents/code-rules/escapes.md) |
+| **예산** | 탈출구 · 옛 자리처럼 「이 수를 넘으면 안 된다」고 잠근 상한 | [탈출구](agents/code-rules/escapes.md) |
 | **생성 타입** | DB 모양에서 자동으로 만든 타입 파일(`database.generated.ts`) | [`docs/architecture.md`](architecture.md) |
 | **문장 층 · 근거** | 풀이 글이 무엇까지 말해도 되는지 정한 층(`docs/text/`) · AI 에 넘기는 사주 계산 근거 한 벌 | [`docs/text/`](text/), [`docs/context/evidence.md`](context/evidence.md) |
 | **해요체 기본** | 화면 문구의 기본 말투 | [ADR 0135](adr/0135-the-screen-speaks-haeyo-by-default.md) |

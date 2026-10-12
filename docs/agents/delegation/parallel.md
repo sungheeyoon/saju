@@ -13,7 +13,7 @@
 | **기계 메모리** | WSL · 노트북의 메모리 하나 — `next build` 와 e2e 셋이 겹치면 스왑까지 찬다(2026-10-08) | `npm run build` · `npm run test:e2e*` · `npm run test:flow` 는 `scripts/heavy.mjs` 가 기계 전체에서 하나씩 들인다. `npx playwright` · `npx next build` 를 바로 부르면 이 잠금을 안 지난다 |
 | **원격 DB** | 운영 DB 하나 — `npm run db:push` · `npm run db:remote` | 격리가 없다. 잠금이 한 번에 하나로 세우지만, 마이그레이션이 드는 두 이슈는 **순차**다 — 번호 순서가 곧 적용 순서다 |
 | **마이그레이션 사슬** | `supabase/migrations/` 의 시각 순서 · `src/lib/db/database.generated.ts` | 한 에이전트가 넓히기 → 앱 → 좁히기를 끝까지 쥔다(ADR 0071). 두 사슬은 **순차** |
-| **중앙 문서** | `docs/product/gaps.md` · `docs/product/prd-changelog.md` · `docs/prd.md` · `docs/product/prd/` · `docs/agents/delegation.md` · `docs/agents/delegation/` · `GLOSSARY.md` · `docs/context/` | 각 PR 은 **제가 바꾼 줄만** 고친다. 나란히 돌려도 되지만 **머지는 하나씩** — strict 가 뒤 PR 을 `BEHIND` 로 세운다. changelog 는 끝에 덧붙이므로 늘 같은 자리에서 부딪혀 `merge=union` 을 걸었다(`.gitattributes`). **union 은 끝에 덧붙이는 PR 에만 믿는다** — 이미 있는 기록을 고치는 두 PR 은 상반된 문장이 조용히 둘 다 남으므로 **순차**(#155) |
+| **중앙 문서** | `docs/product/gaps.md` · `docs/product/prd-changelog.md` · `docs/prd.md` · `docs/product/prd/` · `docs/agents/delegation.md` · `docs/agents/delegation/` · `GLOSSARY.md` · `docs/context/` | 각 PR 은 **제가 바꾼 줄만** 고친다. 나란히 돌려도 되지만 **머지는 하나씩** — 하나가 들면 같은 자리를 고친 뒤 PR 이 충돌(`DIRTY`)이 되고, 충돌한 PR 에는 CI 가 돌지 않는다(`docs/agents/delegation/coordinator.md` 「조율자 세션」의 「CI 기다림」 줄). strict 는 껐다(2026-10-12) — `BEHIND` 로는 막히지 않는다. changelog 는 끝에 덧붙이므로 늘 같은 자리에서 부딪혀 `merge=union` 을 걸었다(`.gitattributes`). **union 은 끝에 덧붙이는 PR 에만 믿는다** — 이미 있는 기록을 고치는 두 PR 은 상반된 문장이 조용히 둘 다 남으므로 **순차**(#155) |
 | **잠금 시험** | `scripts/code-rules.test.ts` · `scripts/layers.test.ts` · `eslint.config.mjs` | 같은 파일을 두 PR 이 고치면 **순차** |
 | **CI** | `.github/workflows/verify.yml` · `scripts/ci-plan.mjs` | **순차** |
 | **e2e 기반** | `e2e/session.ts` · `playwright.config.ts` | 한 에이전트가 쥔다. spec 파일은 나눠도 된다 |
@@ -24,7 +24,7 @@
 **한 에이전트는 하나의 충돌 영역을 끝까지 쥔다.** 「이슈 1~10 은 A, 11~20 은 B」처럼 번호로 가르지 않는다 —
 번호는 공유 자원을 모른다. 영역(마이그레이션 사슬 하나, CI, e2e 기반)으로 가르고, 영역 안의 이슈는 차례로 한다.
 **조율자는 머지 순서와 충돌 해결만 쥔다.** 중앙 문서를 대신 고치지 않는다 — 코드 PR 과 그 뜻이 갈라진다.
-`BEHIND` 는 `gh pr update-branch <n>` 으로, 충돌이면 가지에서 `git merge origin/main` 으로 푼다(`union` 은
+충돌이면 가지에서 `git merge origin/main` 으로 푼다(`union` 은
 로컬 병합에서만 걸린다). **main 을 합친 뒤 changelog 의 diff 를 본다** — `union` 은 양쪽 줄을 다 남기므로, 같은 PR 이 고친 자기 줄의
 옛 판도 새 판 곁에 남는다(2026-10-10 #586 · #589 가 옛 판을 하나씩 남겼다).
 
