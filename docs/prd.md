@@ -29,6 +29,7 @@
 | `docs/product/prd/screens/compat.md` | — | 화면 표(궁합 보기 · 궁합 결과) · §3.1 궁합 보기 쪽 — 회원 궁합 선택 · 두 걸음 |
 | `docs/product/prd/screens/matching.md` | — | 화면 표(매칭 · 인연 기록 · 채팅 · 소식 · 인연 궁합 결과) |
 | `docs/product/prd/screens/settings.md` | — | 화면 표(프로필 · 계정 관리 · 서비스 설문) |
+| `docs/product/prd/screens/credits.md` | — | 화면 표(풀이권 구매 · 결제 뒤 · 결제 내역) |
 | `docs/product/prd/screens/ops.md` | — | 화면 표(검산 · 설문 요약 · 신고 열람 · 2단계 인증) |
 | `docs/product/prd/reading.md` | 「4. 풀이」 | §4.1–4.8 대상 · 풀이 화면 · 사람 · 같은 명식 · 두 사람의 궁합 · 풀이 평가 · 서비스 설문 · 링크 공유 |
 | `docs/product/prd/account.md` | 「5. 계정」 | §5.0–5.3 들어오는 문 · 이름과 얼굴 · 닉네임 · 계정이 멈추는 자리 |

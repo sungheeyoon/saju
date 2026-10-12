@@ -15,7 +15,7 @@
    글자 「N원 결제하기」가 든다. 같은 사실을 세 번 적지 않는다(`docs/context/copy.md` 「한 사실에는 한 표기」).
 3. **링크는 「자세히 알아보기」 하나(`/refund`)** — 이용약관 · 처리방침은 모든 화면의 바닥글이 든다(ADR 0172).
 4. **문구** — 동의 체크 「상품, 가격, 할인 정보, 유의 사항 등을 확인하였으며 구매에 동의합니다. (필수)」, 유의사항 다섯 줄(대장
-   settings-04). 환불 신청 줄은 `checkoutRefundLine`(`src/lib/brand/refund.ts`) — 이메일이 비면 #671 과 같이 「고객센터로」. 유료
+   credits-03). 환불 신청 줄은 `checkoutRefundLine`(`src/lib/brand/refund.ts`) — 이메일이 비면 #671 과 같이 「고객센터로」. 유료
    5년은 `READING_BUNDLE_VALID_YEARS` 에서 읽는다. 금전 고지라 합니다체다(`docs/context/copy.md` §8).
 5. **미성년자 줄은 넣지 않는다** — 판매를 여는 날 만 19세 이상 본인확인이 같이 켜진다(ADR 0101).
 
