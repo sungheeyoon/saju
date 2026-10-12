@@ -20,7 +20,8 @@ export const metadata = {
  *
  * **판매는 닫혀 있다.** 결제 단추는 판매가 이 사람에게 열렸을 때(지금은 카드사 심사 계정만 — `reading_sale_reviewer`)와
  * 결제창 값(`PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY`)이 있는 배포에서만 선다. 둘 중 하나라도 아니면 결제창 값을 화면에
- * 넘기지 않는다. 이 화면으로 오는 메뉴는 아직 없다 — 심사 계정에게는 주소를 건넨다.
+ * 넘기지 않는다. 풀이권 창(`useBuyCredits`)은 판매가 열린 계정에게만 이리 오는 단추를 세운다 — 주소로 연 사람은 누구나
+ * 이 화면을 보고, 판매가 닫혔으면 「풀이권 판매 준비 중이에요.」가 선다.
  */
 export default async function CreditsPage() {
   const supabase = await supabaseOnServer();

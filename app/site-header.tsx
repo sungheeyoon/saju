@@ -14,6 +14,7 @@ import { supabaseInBrowser } from './auth/browser-client';
 import { lightOf, placeOf, resultKindOf } from './came-from';
 import { useBrowserSession } from './auth/browser-session';
 import { useSignOut } from './auth/sign-out';
+import { useBuyCredits } from './me/credits/buy-credits';
 import { readUnreadChat } from './me/chat/unread';
 import { CHAT_UNREAD_MOVED } from './me/chat/unread-signal';
 import { readReadingCredits } from './me/reading/credits';
@@ -139,7 +140,7 @@ export function SiteHeader() {
   const memberNavigation = !shared && !operator && (protectedPath || session === 'in');
   const live = memberNavigation && !ended;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
-  const creditsLabel = useReadingCredits(session === 'in' && !ended && !operator);
+  const creditsLeft = useReadingCredits(session === 'in' && !ended && !operator);
   /**
    * **수는 세션을 확인한 뒤에만 묻는다**(G-78). 회원 화면 주소에서는 세션을 알기 전에도 회원 머리글이 자리를 잡는데(`live`),
    * 그 자리가 묻기까지 하면 로그인하지 않은 사람이 로그인으로 옮겨지기 전에 세 문을 비회원으로 불러 401 · `42501` 이 콘솔에
@@ -225,7 +226,7 @@ export function SiteHeader() {
                 **세션을 확인한 뒤에만 세운다.** 풀이권은 이 글의 성질이 아니라 **계정의 성질**이라 계정이
                 사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.
               */}
-              {creditsLabel !== null && <Credits label={creditsLabel} />}
+              {creditsLeft !== null && <Credits available={creditsLeft} />}
               {live && (
                 <WithCameFrom
                   render={(from) => (
@@ -264,8 +265,8 @@ export function SiteHeader() {
  *
  * 「—」이나 「불러오는 중」을 세우면 사용자가 있지도 않은 숫자를 세어 보게 된다.
  */
-function useReadingCredits(enabled: boolean): string | null {
-  const [label, setLabel] = useState<string | null>(null);
+function useReadingCredits(enabled: boolean): number | null {
+  const [available, setAvailable] = useState<number | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -276,14 +277,7 @@ function useReadingCredits(enabled: boolean): string | null {
       const credits = await readReadingCredits(supabaseInBrowser());
       if (!watching) return;
 
-      setLabel(
-        credits.ok && credits.value !== null
-          ? readingCreditsLabel({
-              limit: credits.value.limit,
-              available: credits.value.available,
-            })
-          : null,
-      );
+      setAvailable(credits.ok && credits.value !== null ? credits.value.available : null);
     };
 
     void read();
@@ -295,7 +289,7 @@ function useReadingCredits(enabled: boolean): string | null {
     };
   }, [enabled]);
 
-  return enabled ? label : null;
+  return enabled ? available : null;
 }
 
 /**
@@ -348,12 +342,32 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
   );
 }
 
-function Credits({ label }: { label: string }) {
+/**
+ * 남은 풀이권 칸 — **누르면 풀이권 창이 선다**(남은 수와 관계없이, `useBuyCredits`). 곧장 옮기지 않는다 — 창이 보유 수를 말하고,
+ * 판매가 열린 계정에게만 「풀이권 구매」를 세운다.
+ *
+ * **폰 폭은 표 그림 + 숫자, 넓은 폭은 표 그림 + 「풀이권 N개」**(운영자 결정 2026-10-12 — 운세 앱의 꼴). 남은 수만 센다 — 한도는 사면
+ * 늘어나 「몇 번 중」이 뜻을 잃는다(ADR 0106). 0개면 0 이 선다. 판 · 테 · 높이(44px) · 그림 크기는 옆의 종 · 톱니(`ICON_BUTTON`)와
+ * 같은 한 벌이고 칸 전체가 누름 자리다. 이름은 늘 「풀이권 N개」다(`aria-label`).
+ */
+function Credits({ available }: { available: number }) {
+  const { offer, checking, notice } = useBuyCredits();
+  const label = readingCreditsLabel({ available });
   return (
-    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border">
-      <Icon name="ticket" className="hidden size-4 md:block" />
-      <span>{label}</span>
-    </span>
+    <>
+      <button
+        type="button"
+        onClick={() => offer(available)}
+        aria-busy={checking}
+        aria-label={label}
+        className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-surface px-3 text-[14px] font-semibold tabular-nums text-foreground ring-1 ring-border hover:ring-border-strong active:scale-95"
+      >
+        <Icon name="ticket" />
+        <span aria-hidden="true" className="sm:hidden">{available}</span>
+        <span aria-hidden="true" className="hidden sm:inline">{label}</span>
+      </button>
+      {notice}
+    </>
   );
 }
 

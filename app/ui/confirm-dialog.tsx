@@ -45,6 +45,8 @@ export function pressedOutside(event: MouseEvent<HTMLDialogElement>): boolean {
  * - Esc · 바깥 누름 · 「취소」는 같은 일(닫기)이다. 보내는 동안(`busy`)은 셋 다 안 닫는다.
  *
  * 열림은 부르는 쪽의 값(`open`)이 정하고, 창이 닫히면(어느 길로든) `onClose` 를 부른다 — 부르는 쪽은 거기서 값을 내린다.
+ *
+ * **고르는 것이 없는 고지는 단추가 하나다**(`cancelLabel={null}`, ADR 0166 「덧」) — 「취소」 없이 실행 단추 하나가 첫 초점을 받는다.
  */
 export function ConfirmDialog({
   open,
@@ -76,7 +78,8 @@ export function ConfirmDialog({
   /** 실행이 거절됐을 때의 한 줄 — 창은 열린 채 선다 */
   failure?: ReactNode;
   firstFocus?: 'cancel' | 'confirm';
-  cancelLabel?: string;
+  /** `null` 이면 「취소」를 안 세운다 — 고를 것이 없는 고지 */
+  cancelLabel?: string | null;
   /** 판에 덧붙이는 것 — 오행 색(`elementScope`) · 자리 */
   className?: string;
 }) {
@@ -127,10 +130,11 @@ export function ConfirmDialog({
           onClick={onConfirm}
           disabled={busy}
           className={danger ? BUTTON_DANGER : BUTTON_PRIMARY}
-          {...(firstFocus === 'confirm' ? CONFIRM_FIRST_FOCUS : {})}
+          {...(firstFocus === 'confirm' || cancelLabel === null ? CONFIRM_FIRST_FOCUS : {})}
         >
           {confirmLabel}
         </button>
+        {cancelLabel !== null && (
         <button
           type="button"
           onClick={() => dialog.current?.close()}
@@ -140,6 +144,7 @@ export function ConfirmDialog({
         >
           {cancelLabel}
         </button>
+        )}
       </div>
     </dialog>
   );

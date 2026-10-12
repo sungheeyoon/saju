@@ -17,6 +17,8 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
 import { ROW_CARD, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
+import { outOfCreditsNow } from '../credits/asked-on-press';
+import { useBuyCredits } from '../credits/buy-credits';
 import { announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
@@ -110,6 +112,30 @@ export function MatchingExperience({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 요청 확인 창이 열렸나 */
   const [asking, setAsking] = useState(false);
+  const buy = useBuyCredits();
+  const [checkingCredits, setCheckingCredits] = useState(false);
+
+  /**
+   * 하트 — **풀이권이 0개면 요청 확인 창 대신 풀이권 창이다**(`useBuyCredits`). 요청 한 건이 풀이권 한 번을 잡으므로(ADR 0038) 0개인
+   * 사람의 요청은 DB 가 거절한다 — 그 거절을 받으러 확인 창을 지나게 하지 않는다. 잔액은 누를 때 머리글과 같은 문으로 묻는다 —
+   * 화면을 그릴 때 묻지 않는다. 못 물었으면 확인 창이고 DB 가 판정한다.
+   */
+  function askToRequest() {
+    if (checkingCredits) return;
+    setCheckingCredits(true);
+    void (async () => {
+      let spent = false;
+      try {
+        spent = await outOfCreditsNow();
+      } catch {
+        /* 부름이 던졌다(망) — 확인 창으로 간다. 요청을 보내면 DB 가 판정한다 */
+      } finally {
+        setCheckingCredits(false);
+      }
+      if (spent) buy.offer(0);
+      else setAsking(true);
+    })();
+  }
   const sheet = useRef<HTMLDialogElement>(null);
   const profile = deck.remaining[0];
 
@@ -407,7 +433,7 @@ export function MatchingExperience({
               actions={{
                 undo,
                 pass,
-                request: () => setAsking(true),
+                request: askToRequest,
                 canUndo: !!hidden && !working && exit !== 'right',
                 busy: !!exit || working,
               }}
@@ -505,6 +531,7 @@ export function MatchingExperience({
           <p>{REQUEST_OPENS_CHAT_NOTE}</p>
         </ConfirmDialog>
       )}
+      {buy.notice}
     </main>
   );
 }

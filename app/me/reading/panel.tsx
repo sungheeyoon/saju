@@ -54,6 +54,8 @@ import {
 } from './reading-state';
 import type { ReadingTarget } from './target';
 import type { TasteCarryView } from './taste-carry';
+import { useBuyCredits } from '../credits/buy-credits';
+import { outOfCredits } from '../credits/buy-path';
 
 /**
  * **글 둘레에 무엇이 서는가.**
@@ -69,6 +71,11 @@ import type { TasteCarryView } from './taste-carry';
 type PanelChrome = {
   /** 만드는 버튼이 닫혀 있는가 */
   readonly makeDisabled: boolean;
+  /**
+   * 풀이권이 0개라 **만드는 버튼이 풀이권 창을 여는가**(`outOfCredits`) — 누르면 확인 창 · 만들기 대신 `useBuyCredits` 의 창이다.
+   * 만들기 요청은 나가지 않는다.
+   */
+  readonly buysCredits: boolean;
   /** 만드는 버튼이 아예 안 서는가 */
   readonly hideMake: boolean;
   /** 그 버튼이 칸 안이 아니라 머리에 서는가 */
@@ -100,11 +107,11 @@ export function panelChrome({
   consented: boolean;
 }): PanelChrome {
   /*
-    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼을
-    닫지 않는다 — 그 사람이 누르면 DB 가 「끝나면 다시 눌러 주세요」로 답하고, 그것이
-    이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
+    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼이 만들기 그대로다 — 그 사람이 누르면 DB 가
+    「끝나면 다시 눌러 주세요」로 답하고, 그것이 이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
+    다 썼으면 버튼은 닫히지 않고 누르면 풀이권 창(「보유 풀이권 0개」)이 열린다 — 닫힌 단추는 누른 사람에게 아무 말도 안 했다.
   */
-  const spent = credits !== null && credits.available === 0 && credits.reserved === 0;
+  const spent = outOfCredits(credits);
 
   /**
    * **누를 것이 있는가.**
@@ -118,7 +125,8 @@ export function panelChrome({
   const hideMake = loading || (automatic && reading !== null);
 
   return {
-    makeDisabled: loading || spent,
+    makeDisabled: loading,
+    buysCredits: spent && !loading,
     hideMake,
 
     /**
@@ -459,10 +467,7 @@ export function ReadingPanel({
    */
   const [asking, setAsking] = useState(false);
 
-  /* 글이 있으면 첫 초점은 「취소」다 — 아래 창이 정한다(`ConfirmDialog` 의 `firstFocus`, B5) */
-  const press = () => {
-    setAsking(true);
-  };
+  const buy = useBuyCredits();
 
   const confirmGenerate = () => {
     setAsking(false);
@@ -484,6 +489,15 @@ export function ReadingPanel({
     consented,
   });
 
+  /*
+    글이 있으면 첫 초점은 「취소」다 — 아래 창이 정한다(`ConfirmDialog` 의 `firstFocus`, B5). 풀이권이 0개면 확인 창 대신 풀이권 창이다 —
+    만들기 요청이 나가지 않는다
+  */
+  const press = () => {
+    if (chrome.buysCredits) buy.offer(0);
+    else setAsking(true);
+  };
+
   /**
    * **로그인 전 사주 문단을 막 붙이고 도착했으면 확인창을 스스로 연다**(ADR 0143 「덧」) — 뒤에는 「아까 보던 내용」이 그대로
    * 보인다. 여는 것까지이고 누름은 사용자가 한다. 「막 도착했다」는 탭의 한 번짜리 표(`takeTasteArrival`)로 판단한다 — 귀속
@@ -499,12 +513,12 @@ export function ReadingPanel({
       arrived,
       carry,
       loading: phase === 'loading',
-      makeDisabled: chrome.makeDisabled,
+      makeDisabled: chrome.makeDisabled || chrome.buysCredits,
       hideMake: chrome.hideMake,
     });
     /* 탭의 표(밖의 저장소)를 읽은 답을 다음 차례에 싣는다 — 그리는 도중에 창을 여는 값을 바꾸지 않는다 */
     if (opens) queueMicrotask(() => setAsking(true));
-  }, [target.kind, carry, phase, chrome.makeDisabled, chrome.hideMake]);
+  }, [target.kind, carry, phase, chrome.makeDisabled, chrome.buysCredits, chrome.hideMake]);
 
   /**
    * 만드는 버튼 — **두 자리에 같은 버튼이 선다.**
@@ -518,6 +532,7 @@ export function ReadingPanel({
       type="button"
       onClick={press}
       disabled={chrome.makeDisabled}
+      aria-busy={chrome.buysCredits ? buy.checking : undefined}
       className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} ${
         shape === 'pill' ? 'w-full whitespace-nowrap px-3 sm:w-auto sm:px-5' : 'w-full shrink-0 sm:w-auto'
       }`}
@@ -720,6 +735,7 @@ export function ReadingPanel({
         {reading !== null && <p className="font-medium text-danger">{READING_REPLACES_NOTE}</p>}
       </ConfirmDialog>
       )}
+      {buy.notice}
     </>
   );
 }
