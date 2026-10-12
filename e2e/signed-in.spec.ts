@@ -82,7 +82,7 @@ async function expireSessionCookie(page: Page) {
 async function expectReadingCredits(page: Page, label: string) {
   const header = page.getByRole('banner');
   /* 폰 폭은 표 그림만 보인다 — 이름(`aria-label`)은 어느 폭이든 「풀이권 N개」다 */
-  await expect(header.getByRole('button', { name: label, exact: true })).toBeVisible();
+  await expect(header.getByLabel(label, { exact: true })).toBeVisible();
 }
 
 /**
@@ -142,7 +142,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const banner = page.getByRole('banner');
     await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAttribute('href', '/me/requests');
 
-    const mobileCredit = banner.getByRole('button', { name: '풀이권 5개', exact: true });
+    /* 풀이권 칸은 설정처럼 펼치는 메뉴(`summary`)라 단추 역할이 아니다 — 설정 메뉴처럼 이름(`aria-label`)으로 찾는다 */
+    const mobileCredit = banner.getByLabel('풀이권 5개', { exact: true });
     const settingsMenu = page.getByLabel('설정 메뉴');
     await expect(mobileCredit).toBeVisible();
     const creditBox = await mobileCredit.boundingBox();
