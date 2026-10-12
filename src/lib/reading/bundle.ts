@@ -20,6 +20,12 @@ export const READING_BUNDLES = [
 const SINGLE_PRICE = READING_BUNDLES[0].price;
 
 /**
+ * 산 풀이권의 유효기간(년) — 구매일로부터. 상품 화면의 구매 전 확인사항이 이 값을 말한다(운영자 결정 2026-10-12, G-21).
+ * 만료를 DB 가 걷는 일은 아직 없다 — 첫 판매 뒤 5년 안에 선다.
+ */
+export const READING_BUNDLE_VALID_YEARS = 5;
+
+/**
  * 1회권을 같은 횟수만큼 살 때와 견준 할인율(%) — **정수 내림**(운영자 결정 2026-09-24, G-21). 실제 값은
  * 12.2 · 18.8 · 39.8 이고 표시는 12 · 18 · 39 다. 반올림(12 · 19 · 40)은 5회 · 20회에서 표시가 실제보다 커서
  * 걷었다 — 할인 표시는 실제보다 크게 말하지 않는다. 가격은 그대로다. 상품 화면 · 결제 전 고지 · 문서가
@@ -50,3 +56,19 @@ export const refundableCredits = (usage: BundleUsage): { refundable: number; wai
   refundable: Math.max(0, usage.credits - usage.refundedCredits - usage.used - usage.reserved),
   waiting: usage.reserved,
 });
+
+/** 파는 묶음 하나 — 목록에 없는 회차 수면 `null`. 주문 금액은 DB 가 정하므로 이 값은 화면이 말할 때만 쓴다 */
+export const readingBundleOf = (credits: number): (typeof READING_BUNDLES)[number] | null =>
+  READING_BUNDLES.find((bundle) => bundle.credits === credits) ?? null;
+
+/**
+ * 묶음에 다는 표시 — 5회는 추천, 20회는 최대 할인(§7.0 표, G-21). 둘은 까닭이 달라 하나씩만 단다.
+ */
+export const bundleMark = (credits: number): '추천' | '최대 할인' | null =>
+  credits === 5 ? '추천' : credits === 20 ? '최대 할인' : null;
+
+/**
+ * 결제창 · 카드 명세에 서는 상품 이름. 카드사 심사는 상품 이름에 「TEST」가 들면 반려하므로 시험 표식을 싣지 않는다
+ * (PortOne 필수 구축요건). PG 이름도 싣지 않는다 — PG 는 아직 안 정했다(G-21).
+ */
+export const bundleOrderName = (credits: number): string => `풀이권 ${credits}회`;

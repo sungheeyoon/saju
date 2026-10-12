@@ -90,6 +90,11 @@ export const CONFIG_ENV = [
   'AUDIT_EXPORT_ROLE_ARN',
   /** PortOne 의 상점 번호 — 비밀이 아니다(브라우저의 결제 창도 든다). 없으면 결제 알림은 503 이다 */
   'PORTONE_STORE_ID',
+  /**
+   * PortOne 의 채널 키 — 비밀이 아니다(브라우저의 결제 창이 싣는다). 어느 PG 로 가는지를 이 값이 정한다. 상점 번호와 함께
+   * 있어야 풀이권 상품 화면에 결제 단추가 선다 — 그것도 판매가 열린 사람에게만(`app/me/credits/`, ADR 0171)
+   */
+  'PORTONE_CHANNEL_KEY',
   /** VAPID 의 주체(`mailto:` · `https:`) — 없으면 배포의 https 주소를 쓴다(`app/api/push/dispatch/send.ts`) */
   'WEB_PUSH_SUBJECT',
   /**
