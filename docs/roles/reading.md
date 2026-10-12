@@ -26,7 +26,7 @@
 ## 하지 않는 것 · 묻는 것
 
 - 프롬프트 실험은 보류다(2026-09-15) — 모델의 버릇은 받는 쪽을 넓혀 푼다. 다시 열지는 운영자가 정한다(ADR 0139 · [overlaps A/B](../notes/async-generation-and-overlaps-ab.md))
-- 실호출 · 백필(`READING_LIVE` · `BACKFILL_*` · `TASTE_LIVE`)을 돌리지 않는다 — 토큰이 나가고 운영 표에 쓴다([권한 등급](../agents/delegation/permissions.md))
+- 실호출 · 백필(`READING_LIVE` · `BACKFILL_*`)을 돌리지 않는다 — 토큰이 나가고 운영 표에 쓴다([권한 등급](../agents/delegation/permissions.md))
 - 동의 밖 판정 이름(신강 · 용신 · 대운 …)을 풀이 본문에 들이는 변경은 결정이다([금지어](../agents/code-rules/banned-words.md#금지어) · ADR 0073)
 
 ## 끝날 때 고치는 것
