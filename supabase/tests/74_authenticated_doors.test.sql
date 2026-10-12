@@ -10,7 +10,7 @@
 -- 목록에서도 지운다.
 --
 -- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개였고, `clear_my_photo` 를 걷어 83 개, `photo_of` 를 걷어 82 개,
--- `set_my_photo` 를 걷어 81 개다. 2026-10-09 에 홈의 「만드는 중」(`my_running_readings`, ADR 0157)이, 2026-10-11 에 사진을 그 자리에서 바꾸는 문(`replace_my_photo`, `20261202090000`)이, 사진의 보일 자리를 정하는 문(`set_my_photo_focus`, `20261203090000`)이 하나씩 더했다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서 불리는 판정(`chat_room_readable` ·
+-- `set_my_photo` 를 걷어 81 개다. 2026-10-09 에 홈의 「만드는 중」(`my_running_readings`, ADR 0157)이, 2026-10-11 에 사진을 그 자리에서 바꾸는 문(`replace_my_photo`, `20261202090000`)이, 사진의 보일 자리를 정하는 문(`set_my_photo_focus`, `20261203090000`)이 하나씩 더했다. 2026-10-12 에 풀이권 상품 화면의 문 둘(`my_reading_sale_is_open` · `my_reading_order`, `20261207090000`, ADR 0171)이 더했다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서 불리는 판정(`chat_room_readable` ·
 -- `discovery_shown_to_me` · `set_person_listed`), 모양 검사(`is_*` · `reject_bad_chart`). 걷을지는 이 파일이 아니라
 -- 마이그레이션이 정한다 — 옛 사진 문 셋은 `clear_my_photo` 를 `20261110090000` 이, `photo_of` 를 `20261112090000` 이,
 -- `set_my_photo` 를 `20261115090000` 이 걷었다.
@@ -58,6 +58,8 @@ select set_eq(
            ('my_reading(p_kind text, p_person_a uuid, p_person_b uuid, p_match_id uuid)'),
            ('my_reading_artifacts(p_kind text, p_person_a uuid, p_person_b uuid, p_match_id uuid)'),
            ('my_reading_credits()'),
+           ('my_reading_order(p_order_id uuid)'),
+           ('my_reading_sale_is_open()'),
            ('my_readings()'),
            ('my_running_readings()'),
            ('my_service_survey()'),

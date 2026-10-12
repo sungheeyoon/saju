@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 
-import { bundleMark, discountAgainstSingles, READING_BUNDLES } from '@/src/lib/reading/bundle';
+import {
+  bundleMark,
+  discountAgainstSingles,
+  READING_BUNDLE_VALID_YEARS,
+  READING_BUNDLES,
+} from '@/src/lib/reading/bundle';
 
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
@@ -22,7 +27,7 @@ const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
  */
 const POLICY_LINKS = [
   { href: '/terms', label: '이용약관' },
-  { href: '/refund', label: '환불정책' },
+  { href: '/refund', label: '환불정책 보기' },
   { href: '/privacy', label: '처리방침' },
 ] as const;
 
@@ -126,7 +131,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
 
       <section aria-labelledby={`${agreeId}-title`} className={`${CARD} flex flex-col gap-4`}>
         <h2 id={`${agreeId}-title`} className={TYPE_NAME}>
-          결제 전에 확인해 주세요
+          구매 전 확인사항
         </h2>
         <ul className="flex flex-col gap-2 text-[15px] leading-7 text-secondary">
           <li>
@@ -136,8 +141,11 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
             (부가세 포함)
           </li>
           <li>풀이권 1개로 사주풀이나 궁합풀이 한 편을 받아요.</li>
-          <li>결제하면 바로 더해지고, 기한 없이 써요.</li>
-          <li>안 쓴 풀이권은 언제든 돌려드려요. 이미 받은 풀이는 돌려드리지 않아요.</li>
+          <li>유효기간: 구매일로부터 {READING_BUNDLE_VALID_YEARS}년</li>
+          <li>사기 전에 무료 풀이권으로 한 편을 먼저 받아 볼 수 있어요.</li>
+          <li>미사용 유료 풀이권은 수수료 없이 환불을 신청할 수 있어요.</li>
+          <li>정상적으로 제공된 풀이는 단순 변심으로 환불되지 않아요.</li>
+          <li>풀이가 제공되지 않거나 안내한 내용과 다르면 재제공 또는 환불을 요청할 수 있어요.</li>
         </ul>
         <p className="flex flex-wrap gap-x-4">
           {POLICY_LINKS.map((link) => (
@@ -148,7 +156,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
         </p>
 
         {checkout === null ? (
-          <p className={TYPE_META}>아직 판매 전이에요.</p>
+          <p className={TYPE_META}>풀이권 판매 준비 중이에요.</p>
         ) : (
           <>
             <label htmlFor={agreeId} className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-foreground">
@@ -159,7 +167,7 @@ export function Checkout({ checkout }: { checkout: PortoneCheckout | null }) {
                 onChange={(event) => setAgreed(event.target.checked)}
                 className="size-5 shrink-0 accent-[var(--accent)]"
               />
-              위 내용을 확인했어요
+              구매 조건과 환불정책을 확인했어요.
             </label>
             <button type="button" onClick={pay} disabled={paying} className={BUTTON_PRIMARY}>
               {paying ? '결제창 여는 중…' : `${won(chosen.price)} 결제하기`}

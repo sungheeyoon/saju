@@ -8,7 +8,7 @@ import { portoneCheckoutOf } from './payment';
 import { mySaleIsOpen } from './sale';
 
 export const metadata = {
-  title: '풀이권',
+  title: '풀이권 구매',
   description: '풀이권 묶음과 가격, 결제 전에 확인할 것을 적어 둡니다.',
 };
 
@@ -36,7 +36,7 @@ export default async function CreditsPage() {
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
       <header className="flex flex-col gap-1">
-        <h1 className={TYPE_TITLE}>풀이권</h1>
+        <h1 className={TYPE_TITLE}>풀이권 구매</h1>
         <p className={TYPE_META}>사주풀이와 궁합풀이를 받을 때 써요.</p>
       </header>
 

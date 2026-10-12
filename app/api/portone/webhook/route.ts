@@ -11,8 +11,8 @@ import { settleWebhook, type Approval } from './settle';
  * 풀이 생성의 webhook(`../../openai/webhook/route.ts`)처럼 로그인 관문 밖에 서고, 자격은 서명이 든다. 판단은
  * `settle.ts` 가 하고 여기는 비밀을 읽고 · DB 와 PortOne 에 닿는 손을 넘기고 · 답을 HTTP 로 옮긴다.
  *
- * **판매가 닫혀 있는 동안에는 아무것도 못 세운다** — 주문은 `open_reading_order` 로만 서고 그 문은
- * `reading_sale_is_open()` 이 false 인 동안 던진다. 켜는 값 셋(`PORTONE_WEBHOOK_SECRET` · `PORTONE_API_SECRET` ·
+ * **판매가 닫혀 있는 동안에는 카드사 심사 계정의 주문만 세운다** — 주문은 `open_reading_order` 로만 서고 그 문은
+ * 판매가 이 사람에게 열렸을 때(`reading_sale_is_open_for` — 스위치는 꺼져 있고 심사 표에 든 계정만, ADR 0171)만 연다. 켜는 값 셋(`PORTONE_WEBHOOK_SECRET` · `PORTONE_API_SECRET` ·
  * `PORTONE_STORE_ID`)이 없으면 503 이다. PortOne 콘솔에 이 주소를 넣는 날의 걸음은 `docs/ops/runbook/credits.md` 「결제 알림」.
  *
  * 승인은 서버 열쇠(`service_role`)로 부른다 — `approve_reading_order` 는 그 역할에만 열렸다.
