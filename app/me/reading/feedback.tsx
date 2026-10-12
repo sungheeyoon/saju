@@ -66,8 +66,8 @@ export function ReadingFeedback({
 
   if (answer !== null && !open) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[1.5rem] bg-cream px-5 py-3">
-        <p className="text-[15px] text-cream-ink">{FEEDBACK_THANKS}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-tile bg-cream px-5 py-3">
+        <p className="text-body text-cream-ink">{FEEDBACK_THANKS}</p>
         <button type="button" onClick={() => setOpen(true)} className={BUTTON_TERTIARY}>
           답 고치기
         </button>
@@ -118,11 +118,11 @@ export function ReadingFeedback({
         event.preventDefault();
         if (!saving) send();
       }}
-      className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card"
+      className="overflow-hidden rounded-card border border-border bg-surface shadow-card"
     >
       <header className="px-5 pt-6 sm:px-7">
         <p className={TYPE_NAME}>이 풀이는 어떠셨어요?</p>
-        <p className="mt-1 text-[13px] leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
+        <p className="mt-1 text-small leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
       </header>
 
       <div className="flex flex-col gap-7 px-5 py-5 sm:px-7 sm:py-6">
@@ -143,7 +143,7 @@ export function ReadingFeedback({
 
         <div className="flex flex-col gap-6 border-t border-border pt-6">
           <fieldset>
-            <legend className="float-left mb-4 w-full text-[15px] font-semibold">분량은 어땠나요?</legend>
+            <legend className="float-left mb-4 w-full text-body font-semibold">분량은 어땠나요?</legend>
             <div className="grid grid-cols-3 gap-2 clear-both">
               {FELT_LENGTHS.map((choice) => (
                 <Chip
@@ -161,9 +161,9 @@ export function ReadingFeedback({
           </fieldset>
 
           <fieldset className="border-t border-border pt-6">
-            <legend className="float-left mb-4 w-full text-[15px] font-semibold">
+            <legend className="float-left mb-4 w-full text-body font-semibold">
               아쉬운 점이 있다면요?
-              <span className="ml-1.5 text-[13px] font-medium text-secondary">중복 선택 가능</span>
+              <span className="ml-1.5 text-small font-medium text-secondary">중복 선택 가능</span>
             </legend>
             <div className="flex flex-wrap gap-2 clear-both">
               {ISSUE_TAGS.map((tag) => (
@@ -191,19 +191,19 @@ export function ReadingFeedback({
           이미 동의했고, 이 칸만 따로 잠글 일이 없다.
         */}
         <div className="flex flex-col gap-2 border-t border-border pt-6">
-          <label htmlFor={`comment-${runId}`} className="text-[15px] font-semibold">
+          <label htmlFor={`comment-${runId}`} className="text-body font-semibold">
             {FEEDBACK_COMMENT.label}
           </label>
-          <p className="text-[13px] leading-5 text-secondary">{FEEDBACK_COMMENT.hint}</p>
+          <p className="text-small leading-5 text-secondary">{FEEDBACK_COMMENT.hint}</p>
           <textarea
             id={`comment-${runId}`}
             value={comment}
             onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
             maxLength={FEEDBACK_COMMENT.limit}
             rows={3}
-            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[16px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
+            className="mt-1.5 rounded-row border border-border bg-surface px-4 py-3 text-field leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           />
-          <p className="text-right text-[12px] tabular-nums text-secondary">
+          <p className="text-right text-fine tabular-nums text-secondary">
             {comment.length} / {FEEDBACK_COMMENT.limit}자
           </p>
         </div>
@@ -218,7 +218,7 @@ export function ReadingFeedback({
             없어 왜 안 눌리는지 몰랐다. 다 고르면 말은 걷힌다. 확정(대장 26, 운영자 2026-10-10)
           */}
           {!ready && (
-            <p id={`feedback-locked-${runId}`} className="text-[13px] leading-5 text-secondary">
+            <p id={`feedback-locked-${runId}`} className="text-small leading-5 text-secondary">
               필수 질문 3개에 답하면 보낼 수 있어요.
             </p>
           )}
@@ -257,8 +257,8 @@ function Scale({
       **이제 그 폭은 바깥이 정한다** — 설문 전체가 본문과 같은 열(`READING_COLUMN`, 36rem)에 서므로 눈금은 칸을
       채운다. 눈금만 `max-w-md` 로 따로 묶여 있을 때는 칸의 오른쪽이 비었다(화면 갤러리 감사 2026-10-09).
     */
-    <fieldset className="rounded-[1.25rem] bg-surface-soft p-4">
-      <legend className="float-left mb-4 w-full text-[15px] font-semibold">{question.label}</legend>
+    <fieldset className="rounded-row bg-surface-soft p-4">
+      <legend className="float-left mb-4 w-full text-body font-semibold">{question.label}</legend>
       <div className="grid grid-cols-5 gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (
           <Chip
@@ -281,7 +281,7 @@ function Scale({
           </Chip>
         ))}
       </div>
-      <div className="mt-1.5 flex justify-between text-[12px] text-secondary">
+      <div className="mt-1.5 flex justify-between text-fine text-secondary">
         <span>{question.low}</span>
         <span>{question.high}</span>
       </div>
@@ -315,7 +315,7 @@ function Chip({
   return (
     <label
       htmlFor={id}
-      className={`relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border px-3.5 py-2 text-center text-[14px] active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+      className={`relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border px-3.5 py-2 text-center text-note active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
         picked
           ? 'border-accent bg-accent font-semibold text-on-accent'
           : 'border-border bg-surface text-foreground hover:border-border-strong'

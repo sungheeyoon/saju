@@ -22,11 +22,11 @@ export default function TermsPage() {
   const terms = termsFor(currentBusinessInfo(), siteUrl().origin);
   return (
     <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-8 sm:py-12">
-      <header className="mb-2 rounded-[2rem] bg-cream px-6 py-7 sm:px-8">
-        <p className="text-[13px] font-semibold text-cream-ink">이용약관</p>
+      <header className="mb-2 rounded-paper bg-cream px-6 py-7 sm:px-8">
+        <p className="text-small font-semibold text-cream-ink">이용약관</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>{SERVICE_NAME} 이용약관</h1>
         {terms.effectiveDate ? (
-          <p className="mt-2 text-[15px] leading-7 text-secondary">시행일 {terms.effectiveDate}</p>
+          <p className="mt-2 text-body leading-7 text-secondary">시행일 {terms.effectiveDate}</p>
         ) : null}
       </header>
 

@@ -27,12 +27,12 @@ import { FailureLine } from '../../ui/failure-line';
 
 /** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
 const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[16px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-field outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+const PANEL = 'flex flex-col gap-5 rounded-tile border border-border bg-surface p-5 sm:p-6';
 
-const LABEL = 'text-[13px] font-semibold text-secondary';
+const LABEL = 'text-small font-semibold text-secondary';
 
 /** 닉네임을 이만큼 안 고치면 쓸 수 있는지 스스로 묻는다 — 한 글자마다 묻지 않는다 */
 const NICKNAME_CHECK_AFTER_MS = 500;
@@ -241,7 +241,7 @@ export function ProfileForm({
             className={`${FIELD} py-3 leading-6`}
           />
           {/* 쓴 글자 수 — 칸이 상한에서 글자를 더 안 받으므로 그 까닭이 여기 보인다 */}
-          <p id="intro-count" className="self-end text-[13px] leading-5 tabular-nums text-secondary">
+          <p id="intro-count" className="self-end text-small leading-5 tabular-nums text-secondary">
             {profile.intro.length}/{INTRO_MAX}
           </p>
         </div>

@@ -37,19 +37,19 @@ export function NoticeScreen({
 }) {
   return (
     <main className="app-shell grid w-full flex-1 place-items-center py-12 sm:py-20">
-      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] bg-cream p-6 sm:p-10">
+      <section className="flex w-full max-w-lg flex-col gap-6 rounded-paper bg-cream p-6 sm:p-10">
         <header className="flex flex-col gap-2">
           <span className="grid size-16 place-items-center rounded-full bg-surface shadow-card">
             <Logo className="size-10" />
           </span>
           <h1 className={`mt-3 text-balance ${TYPE_TITLE}`}>{title}</h1>
           {description !== undefined && (
-            <div className="flex flex-col gap-3 text-[15px] leading-7 text-secondary">{description}</div>
+            <div className="flex flex-col gap-3 text-body leading-7 text-secondary">{description}</div>
           )}
         </header>
         {children}
         {actions !== undefined && <div className="flex flex-col gap-2 sm:flex-row">{actions}</div>}
-        {note !== undefined && <div className="flex flex-col gap-1 text-[13px] leading-5 text-secondary">{note}</div>}
+        {note !== undefined && <div className="flex flex-col gap-1 text-small leading-5 text-secondary">{note}</div>}
       </section>
     </main>
   );

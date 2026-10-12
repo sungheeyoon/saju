@@ -314,10 +314,10 @@ export function MatchingExperience({
   const detailsOf = (card: DeckCard) => (
     <>
       <div className="flex flex-col gap-1">
-        <p className="font-rounded text-[1.25rem] leading-snug text-[var(--ink)]">{card.verdict}</p>
-        <p className="max-w-prose text-[14px] leading-6 text-foreground">{card.reason}</p>
+        <p className="font-rounded text-heading leading-snug text-[var(--ink)]">{card.verdict}</p>
+        <p className="max-w-prose text-note leading-6 text-foreground">{card.reason}</p>
       </div>
-      <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border">
+      <div className="flex flex-col gap-2 rounded-tile bg-surface p-4 ring-1 ring-border">
         <SupplyBody card={card} explorationNote={explorationNote} />
       </div>
     </>
@@ -347,7 +347,7 @@ export function MatchingExperience({
           <button
             type="button"
             onClick={() => setView(view === 'today' ? 'passed' : 'today')}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[13px] font-semibold text-foreground ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-small font-semibold text-foreground ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
           >
             {view === 'today' ? <Icon name="undo" className="size-4" /> : <Icon name="heart" className="size-4" />}
             {view === 'today' ? '지나친 인연' : '오늘의 인연'}
@@ -369,7 +369,7 @@ export function MatchingExperience({
       */}
       {view === 'today' && profile !== undefined && (
         <div className="-mt-4 hidden max-w-3xl flex-col gap-1 lg:flex">
-          <p className="text-[12px] leading-5 text-secondary">{DISCOVERY_TEASER}</p>
+          <p className="text-fine leading-5 text-secondary">{DISCOVERY_TEASER}</p>
           {notice !== null && <p className={TYPE_META}>{notice}</p>}
         </div>
       )}
@@ -449,12 +449,12 @@ export function MatchingExperience({
             자리에만 선다.
           */}
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
-            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-[2rem] bg-cream">
+            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-paper bg-cream">
               <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
                 <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
                   내 궤도로 다가오는 인연
                 </h2>
-                <p className="shrink-0 text-[13px] font-semibold text-secondary">
+                <p className="shrink-0 text-small font-semibold text-secondary">
                   나와 맞는 오늘의 인연 <span className="tabular-nums text-foreground">{counter}</span>
                 </p>
               </div>
@@ -486,10 +486,10 @@ export function MatchingExperience({
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
             {details}
             {letter}
-            <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
+            <div className="overflow-hidden rounded-card bg-cream px-2 pt-3">
               <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[28rem]" />
             </div>
-            <p className="text-[12px] leading-5 text-secondary">{DISCOVERY_TEASER}</p>
+            <p className="text-fine leading-5 text-secondary">{DISCOVERY_TEASER}</p>
             {notice !== null && <p className={TYPE_META}>{notice}</p>}
           </div>
         </DetailSheet>
@@ -508,7 +508,7 @@ export function MatchingExperience({
           className={elementScope(supplyOf(profile))}
           lead={
             <div className="flex items-center gap-3">
-              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-[1.5rem] ring-2 ring-[var(--tile)]">
+              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-section ring-2 ring-[var(--tile)]">
                 <CandidatePhoto card={profile} />
               </span>
               <span className="grid size-10 place-items-center rounded-full bg-[var(--tile)]">
@@ -548,7 +548,7 @@ function todayLabel(): string {
 function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
   return (
     <>
-      <p className="text-[13px] font-bold text-foreground">이 사람이 채워 주는 기운</p>
+      <p className="text-small font-bold text-foreground">이 사람이 채워 주는 기운</p>
       {card.highlights.length > 0 ? (
         <ul className="flex flex-col gap-2.5">
           {card.highlights.map((highlight) => (
@@ -556,11 +556,11 @@ function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote
           ))}
         </ul>
       ) : (
-        <p className="text-[14px] leading-6 text-foreground">{card.reason}</p>
+        <p className="text-note leading-6 text-foreground">{card.reason}</p>
       )}
-      <p className="text-[13px] leading-5 text-secondary">{card.balanceLabel}</p>
+      <p className="text-small leading-5 text-secondary">{card.balanceLabel}</p>
       {card.exploration && explorationNote !== null && (
-        <p className="flex gap-1.5 border-t border-border pt-3 text-[12px] leading-5 text-secondary">
+        <p className="flex gap-1.5 border-t border-border pt-3 text-fine leading-5 text-secondary">
           <Icon name="spark" className="mt-0.5 size-3.5 shrink-0 text-foreground" />
           {explorationNote}
         </p>
@@ -578,7 +578,7 @@ function Supply({ element, text }: { element: string; text: string }) {
       </span>
       <span className="flex min-w-0 flex-col">
         {known !== null && <span className="font-rounded text-[1.125rem] leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
-        <span className="text-[14px] leading-5 text-foreground">{text}</span>
+        <span className="text-note leading-5 text-foreground">{text}</span>
       </span>
     </li>
   );
@@ -590,14 +590,14 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] ${
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-body font-semibold active:scale-[0.97] ${
         on ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
       }`}
     >
       <Icon name={icon} className="size-[18px]" />
       {label}
       <span
-        className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums ${
+        className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-tag font-bold tabular-nums ${
           on ? 'bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)]' : 'bg-surface-soft text-foreground'
         }`}
       >
@@ -634,7 +634,7 @@ function Feedback({
   return (
     <>
       {undo !== null && (
-        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-[1.25rem] bg-surface px-4 py-1 text-[14px] font-medium text-foreground ring-1 ring-border">
+        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-row bg-surface px-4 py-1 text-note font-medium text-foreground ring-1 ring-border">
           <span className="py-2">지나친 인연에 보관했어요</span>
           <button type="button" onClick={undo} disabled={working} className={BUTTON_TERTIARY}>
             실행 취소
@@ -660,7 +660,7 @@ function Feedback({
         role="status"
         className={
           flash !== '' && flash === announcement
-            ? 'self-center rounded-full bg-surface px-3 py-1.5 text-center text-[13px] font-medium text-foreground ring-1 ring-border'
+            ? 'self-center rounded-full bg-surface px-3 py-1.5 text-center text-small font-medium text-foreground ring-1 ring-border'
             : 'sr-only'
         }
       >
@@ -683,21 +683,21 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
     내용은 그 높이의 가운데 선다. 폰은 판의 내용이 이미 카드 자리를 거의 채운다.
   */
   return (
-    <section className="grid items-center gap-6 rounded-[2rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10 lg:min-h-[37rem]">
+    <section className="grid items-center gap-6 rounded-paper bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10 lg:min-h-[37rem]">
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
-          <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-[2rem]">
+          <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-headline">
             {DISCOVERY_EMPTY.title}
           </h2>
-          <p className="max-w-prose text-[15px] leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
+          <p className="max-w-prose text-body leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
         </div>
         <nav aria-label="바로가기" className="grid w-full gap-2 sm:grid-cols-2">
           {MEANWHILE.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
+              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
                 <Icon name={link.icon} />

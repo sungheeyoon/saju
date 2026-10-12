@@ -1,8 +1,9 @@
 /**
  * **판의 모양과 글자의 단** — 부드러움(5차)의 카드 · 타일 · 제목을 한 자리에서 든다.
  *
- * 모서리는 큰 판 32px · 카드 28px(`CARD`) · 타일 24px · 줄 카드 20px ·
- * 단추는 알약. 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
+ * 모서리는 큰 판 32px(`rounded-paper`) · 카드 28px(`rounded-card`) · 타일 24px(`rounded-tile`) · 줄 카드 20px(`rounded-row`) ·
+ * 단추는 알약. 글자 크기도 단이다(`text-small` 13px · `text-body` 15px …) — 토큰은 `app/globals.css` 의 `@theme inline`,
+ * 잠금은 `app/ui/scale.test.ts`(ADR 0109 추기 2026-10-12). 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
  */
 
 /**
@@ -26,17 +27,17 @@ export const COLUMN_READING = 'max-w-[40rem]';
  * 갈렸다 — 한 화면에 두 벌이 서면 어느 쪽이 이 앱의 카드인지 사용자가 정하게 된다. `app/card.ts` 에 따로 살다가
  * 공용 판이 모인 이 파일로 왔다(2026-09-26).
  */
-export const CARD = 'rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-6';
+export const CARD = 'rounded-card border border-border bg-surface p-5 shadow-card sm:p-6';
 
 /**
  * 카드의 **테만** — 모서리 · 가는 테 · 흰 면. 속을 띠로 나눠 띠마다 제 여백을 두는 판이 쓴다(궁합 고르는 판 — 위 띠는
  * 두 칸, 아래 띠는 사이 · 단추). 띠의 면이 모서리 밖으로 새지 않게 `overflow-hidden` 을 함께 단다. 그림자가 없는 것은
  * 운영자가 승인한 모양 그대로다(#543, 2026-10-08) — `CARD` 와 같은 모서리 · 테를 갈라 적지 않으려고 둔다.
  */
-export const CARD_FRAME = 'overflow-hidden rounded-[1.75rem] border border-border bg-surface';
+export const CARD_FRAME = 'overflow-hidden rounded-card border border-border bg-surface';
 
 /** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나 */
-export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
+export const PAPER = 'rounded-paper bg-cream p-6 sm:p-8';
 
 /**
  * 크림 종이 한 장을 **위아래 두 토막으로** — 로그인 전 첫 화면이 쓴다(입력 폼 시안 n, ADR 0132).
@@ -45,25 +46,25 @@ export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
  * `pair-taste.tsx`)은 서로 다른 부품이고 결과는 폼 **밖** 아래에 선다. 한 부품으로 싸면 결과까지 종이 위에 올라간다.
  * 그래서 머리는 위 모서리만, 폼은 아래 모서리만 둥글고, 폼 쪽 자리가 둘 사이의 틈만큼 올라붙는다.
  */
-export const PAPER_TOP = 'rounded-t-[2rem] bg-cream';
+export const PAPER_TOP = 'rounded-t-paper bg-cream';
 
-export const PAPER_BOTTOM = 'rounded-b-[2rem] bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
+export const PAPER_BOTTOM = 'rounded-b-paper bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
 
 /**
  * 오행 타일 — `ELEMENT_TONE[x].scope`(또는 `elementScope`)와 함께 단다. 면이 그 오행의 파스텔이 되고 안의
  * `BUTTON_ON_TILE` · `ElementSymbol` 이 같은 색을 따른다.
  */
-export const TILE = 'rounded-[1.5rem] bg-[var(--tile)] p-4 text-foreground';
+export const TILE = 'rounded-tile bg-[var(--tile)] p-4 text-foreground';
 
 /**
  * 띄움 메뉴 판 — 단추 아래(위)에 떠서 고를 줄을 드는 흰 판(설정 톱니 · 풀이권 · 대화방 「⋯」 · 신고 · 차단 · 사진 한 장의 메뉴).
  * 테는 `ring` 이라 판의 폭을 먹지 않는다. 안쪽 여백 · 폭 · 자리는 판마다 달라 쓰는 자리가 붙인다. 저장한 사람의 관리 메뉴
  * (`app/me/people/person-menu.tsx`)는 테가 `border` 라 폭 안쪽이 2px 좁고 같은 판이 아니다 — 맞추면 모양이 바뀐다
  */
-export const MENU_PANEL = 'rounded-[1.25rem] bg-surface shadow-float ring-1 ring-border';
+export const MENU_PANEL = 'rounded-row bg-surface shadow-float ring-1 ring-border';
 
 /** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄) */
-export const ROW_CARD = 'rounded-[1.25rem] border border-border bg-surface px-4 py-3';
+export const ROW_CARD = 'rounded-row border border-border bg-surface px-4 py-3';
 
 /**
  * 선 줄 — 판 없이 위아래 가는 선 사이에 서는 한 줄. 카드와 카드 사이에 끼는 요약 한 줄(궁합 탭의 「궁합풀이」)이 쓴다 —
@@ -72,7 +73,7 @@ export const ROW_CARD = 'rounded-[1.25rem] border border-border bg-surface px-4 
 export const ROW_LINE = 'rounded-xl border-y border-border px-2 py-4';
 
 /** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록) */
-export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border-strong p-6';
+export const EMPTY_SLOT = 'rounded-tile border-2 border-dashed border-border-strong p-6';
 
 /*
   **글자의 단.** 둥근 서체(`font-rounded`, 고운돋움)는 제목 단에만 쓴다 — 굵기가 400 하나뿐이라 작은
@@ -81,23 +82,23 @@ export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border
 */
 
 /** 표시 — 화면의 첫 한 줄(인사 · 빈 상태의 큰 말) */
-export const TYPE_DISPLAY = 'font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]';
+export const TYPE_DISPLAY = 'font-rounded text-title leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]';
 
 /** 제목 — 화면 제목(`h1`) */
-export const TYPE_TITLE = 'font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]';
+export const TYPE_TITLE = 'font-rounded text-title leading-[1.3] tracking-[-0.02em] text-foreground sm:text-headline';
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
-export const TYPE_SECTION = 'font-rounded text-[1.5rem] leading-8 text-foreground';
+export const TYPE_SECTION = 'font-rounded text-section leading-8 text-foreground';
 
 /** 이름 — 사람 · 카드 머리 */
 export const TYPE_NAME = 'font-rounded text-[1.3rem] leading-7 text-foreground';
 
 /** 보조 — 날짜 · 메모 · 설명 아래 줄 */
-export const TYPE_META = 'text-[13px] font-medium leading-5 text-secondary';
+export const TYPE_META = 'text-small font-medium leading-5 text-secondary';
 
 /** 딱지 — 안 읽은 수 · 짧은 상태 표시. 12px 아래가 허락되는 유일한 자리 */
 export const BADGE =
-  'inline-grid h-5 min-w-5 place-items-center rounded-full bg-badge px-1 text-[11px] font-bold leading-none tabular-nums text-on-badge';
+  'inline-grid h-5 min-w-5 place-items-center rounded-full bg-badge px-1 text-tag font-bold leading-none tabular-nums text-on-badge';
 
 /*
   **여러 화면이 같은 글자로 적던 모양.** 2026-09-25 에 재어 보니 아래 셋은 화면마다 한 글자도 다르지 않게
@@ -109,7 +110,7 @@ export const BADGE =
  * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
  */
 export const DIALOG =
-  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
+  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-card border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
 
 /**
  * 묻는 자리의 단추 줄 — 누르는 쪽(실행)을 먼저 적고 「취소」를 뒤에 적는다. 넓으면 실행이 오른쪽, 좁은 화면에서는 위아래로 서며
@@ -121,7 +122,7 @@ export const CONFIRM_ROW = 'flex flex-col gap-2 sm:flex-row-reverse';
 export const DIALOG_ACTIONS = `mt-6 ${CONFIRM_ROW}`;
 
 /** 「수정 전」 딱지 — 출생 정보를 고치기 전에 만든 풀이. 11px 딱지 단이다 */
-export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning';
+export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-tag font-semibold text-warning';
 
 /** 펼침 줄 — 명식 화면 안 `<details>` 의 `<summary>`. 누를 자리 44px, 기본 삼각표는 숨긴다 */
 export const DISCLOSURE_SUMMARY =

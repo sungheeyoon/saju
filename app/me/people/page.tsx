@@ -136,10 +136,10 @@ export default async function PeoplePage() {
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 sm:flex-nowrap sm:items-start sm:gap-4">
         <div className="flex flex-col gap-1.5 max-sm:contents">
           <h1 className={TYPE_TITLE}>저장한 사람</h1>
-          <p className="text-[15px] leading-6 text-secondary max-sm:order-last max-sm:basis-full">
+          <p className="text-body leading-6 text-secondary max-sm:order-last max-sm:basis-full">
             가족이나 친구의 출생 정보를 저장하고 관리하세요.
             {slots !== null && (
-              <span className="ml-2 whitespace-nowrap text-[13px] font-semibold tabular-nums">
+              <span className="ml-2 whitespace-nowrap text-small font-semibold tabular-nums">
                 {slots.used}/{slots.limit}명
               </span>
             )}
@@ -180,7 +180,7 @@ function PeopleList({
 }) {
   if (people.length === 0) {
     return (
-      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
+      <p className={`${EMPTY_SLOT} text-body leading-6 text-secondary`}>
         아직 저장한 사람이 없어요. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
       </p>
     );
@@ -279,7 +279,7 @@ function PersonCard({
   return (
     <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
       {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.5rem]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-tile">
         {person.chart.ok && (
           <StemSymbol stem={person.chart.saju.pillars.dayMaster} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
         )}
@@ -299,19 +299,19 @@ function PersonCard({
         <h2 className={`${TYPE_NAME} truncate`}>
           <Link
             href={`/me/people/${person.personId}`}
-            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
+            className="after:absolute after:inset-0 after:rounded-tile after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           >
             {person.label}
             {/* 사람 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누르면 카드 테가 선다(`LinkPending`) */}
-            <LinkPending className={`${LINK_PENDING_RING} rounded-[1.5rem]`} />
+            <LinkPending className={`${LINK_PENDING_RING} rounded-tile`} />
           </Link>
         </h2>
         {person.chart.ok && <BirthLines query={person.chart.query} />}
       </div>
 
       {note !== '' && (
-        <p className="rounded-2xl bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-3 py-2 text-[13px] leading-5 text-foreground">
-          <span className="mr-1.5 text-[12px] font-semibold text-[var(--ink)]">메모</span>
+        <p className="rounded-2xl bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-3 py-2 text-small leading-5 text-foreground">
+          <span className="mr-1.5 text-fine font-semibold text-[var(--ink)]">메모</span>
           {note}
         </p>
       )}
@@ -320,7 +320,7 @@ function PersonCard({
         <>
           <PillarStrip pillars={person.chart.saju.pillars} name={person.label} />
           {/* 한 줄 평은 늘 두 줄 높이 — 없거나 짧아도 칸을 비워 둬서 타일끼리 단추 줄이 맞는다. 넘치면 … */}
-          <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
+          <p className="line-clamp-2 min-h-10 text-small leading-5">
             {reading !== null && (
               <>
                 {!reading.fromCurrentChart && <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}

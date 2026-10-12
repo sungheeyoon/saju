@@ -95,7 +95,7 @@ function SavedPeople({
         <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
           저장한 사람
           {slots !== null && (
-            <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">
+            <span className="font-sans text-small font-semibold tabular-nums text-secondary">
               {slots.used}/{slots.limit}명
             </span>
           )}
@@ -111,7 +111,7 @@ function SavedPeople({
 
       {people.length === 0 ? (
         <div className={`${EMPTY_SLOT} flex flex-col items-start gap-4`}>
-          <p className="text-[15px] leading-6 text-secondary">가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
+          <p className="text-body leading-6 text-secondary">가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
           <Link href="/me/people" className={BUTTON_PRIMARY}>
             <Icon name="plus" className="size-[18px]" />
             사람 추가
@@ -125,7 +125,7 @@ function SavedPeople({
           {!full && <AddTile slots={slots} />}
         </ul>
       )}
-      {slots !== null && full && <p className="text-[13px] text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
+      {slots !== null && full && <p className="text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
     </section>
   );
 }
@@ -136,14 +136,14 @@ function AddTile({ slots }: { slots: PersonSlots | null }) {
     <li>
       <Link
         href="/me/people"
-        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
+        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-tile border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
       >
         <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
           <Icon name="plus" />
         </span>
-        <span className="text-[15px] font-semibold">사람 추가</span>
+        <span className="text-body font-semibold">사람 추가</span>
         {slots !== null && (
-          <span className="text-[13px] tabular-nums text-secondary">
+          <span className="text-small tabular-nums text-secondary">
             {slots.used}/{slots.limit}명
           </span>
         )}

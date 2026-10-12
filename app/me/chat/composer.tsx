@@ -68,7 +68,7 @@ export function Composer({ matchId, onSend, said }: { matchId: string; onSend: (
       }}
     >
       {/* 둥근 알약 하나 — 칸과 보내기가 한 몸이라 엄지가 닿는 자리에 둘이 함께 선다 */}
-      <div className="flex items-end gap-2 rounded-[1.75rem] bg-surface-soft p-1.5 pl-4 ring-1 ring-border focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
+      <div className="flex items-end gap-2 rounded-card bg-surface-soft p-1.5 pl-4 ring-1 ring-border focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
         <label className="flex min-w-0 flex-1">
           <span className="sr-only">메시지</span>
           <textarea
@@ -84,13 +84,13 @@ export function Composer({ matchId, onSend, said }: { matchId: string; onSend: (
             placeholder={CHAT_INPUT_PLACEHOLDER}
             maxLength={CHAT_POLICY.maxLength}
             rows={1}
-            className="field-sizing-content max-h-36 min-h-11 w-full resize-none bg-transparent py-2.5 text-[16px] leading-6 text-foreground outline-none placeholder:text-secondary"
+            className="field-sizing-content max-h-36 min-h-11 w-full resize-none bg-transparent py-2.5 text-field leading-6 text-foreground outline-none placeholder:text-secondary"
           />
         </label>
         <button
           type="submit"
           aria-label={CHAT_SEND_LABEL}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-[15px] font-semibold text-on-accent hover:bg-accent-strong active:scale-95 disabled:opacity-55 sm:px-4"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-body font-semibold text-on-accent hover:bg-accent-strong active:scale-95 disabled:opacity-55 sm:px-4"
         >
           <Icon name="send" className="size-[18px]" />
           <span aria-hidden="true" className="hidden sm:inline">
@@ -99,7 +99,7 @@ export function Composer({ matchId, onSend, said }: { matchId: string; onSend: (
         </button>
       </div>
       {(body.length >= COUNT_FROM || failure !== null) && (
-        <p className="flex items-start justify-between gap-3 px-4 text-[13px]">
+        <p className="flex items-start justify-between gap-3 px-4 text-small">
           {failure !== null ? (
             <span role="alert" className="text-danger">
               {failure}

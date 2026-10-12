@@ -147,9 +147,9 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
           {stood === null ? (
             <FailureLine retry>내 사주를 불러오지 못했어요.</FailureLine>
           ) : !stood.ok ? (
-            <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
+            <section className="flex flex-col gap-2 rounded-paper border border-border bg-surface p-5 sm:p-6">
               <p className="text-sm">{stood.message}</p>
-              <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
+              <p className="text-small text-muted">{UNREADABLE_INPUT_NOTE}</p>
             </section>
           ) : (
             <SelfCard
@@ -189,7 +189,7 @@ function OtherSaju() {
   return (
     <Link
       href={SAJU_PATH}
-      className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
+      className="flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-water-soft text-water">
         <Icon name="search" className="size-[18px]" />

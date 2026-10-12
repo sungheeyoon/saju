@@ -311,7 +311,7 @@ export function ApproachMap({
             />
             {mine !== null && !compact && (
               <span
-                className={`${ORBIT_LABEL_PAD} absolute top-full whitespace-nowrap text-[12px] font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5' : 'mt-1'}`}
+                className={`${ORBIT_LABEL_PAD} absolute top-full whitespace-nowrap text-fine font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5' : 'mt-1'}`}
               >
                 {ELEMENT_PICTURE_KO[element]} {mine.count}
               </span>
@@ -386,7 +386,7 @@ export function ApproachMap({
             )}
             {!arc && !now && status === 'waiting' && (
               <span
-                className={`${ORBIT_LABEL_PAD} pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${
+                className={`${ORBIT_LABEL_PAD} pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-fine font-semibold text-secondary ${
                   above ? 'bottom-full mb-1' : 'top-full mt-1'
                 }`}
               >
@@ -395,8 +395,8 @@ export function ApproachMap({
             )}
             {!arc && (now || status === 'kept') && (
               <span className={`${ORBIT_NAME_TAG} pointer-events-none ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`} style={{ boxShadow: ORBIT_RING.tag }}>
-                <span className="font-rounded text-[15px]">{card.nickname}</span>
-                {now && <span className="ml-1.5 text-[13px] font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>}
+                <span className="font-rounded text-body">{card.nickname}</span>
+                {now && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>}
               </span>
             )}
           </span>
@@ -407,7 +407,7 @@ export function ApproachMap({
       {overflow > 0 && (
         <span
           key={overflow}
-          className={`${motion.count} pointer-events-none absolute right-[2%] top-[2%] rounded-full bg-[color-mix(in_srgb,var(--cream)_90%,transparent)] px-2 text-[12px] font-bold leading-6 tabular-nums text-secondary ring-1 ring-[color-mix(in_srgb,var(--foreground)_14%,transparent)]`}
+          className={`${motion.count} pointer-events-none absolute right-[2%] top-[2%] rounded-full bg-[color-mix(in_srgb,var(--cream)_90%,transparent)] px-2 text-fine font-bold leading-6 tabular-nums text-secondary ring-1 ring-[color-mix(in_srgb,var(--foreground)_14%,transparent)]`}
         >
           +{overflow}
         </span>
@@ -464,10 +464,10 @@ function PickedCard({ card, now }: { card: DeckCard; now: boolean }) {
       >
         <CandidatePhoto card={card} />
       </span>
-      <span className="font-rounded min-w-0 truncate text-[15px] text-foreground">{card.nickname}</span>
-      <span className="text-[13px] font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>
+      <span className="font-rounded min-w-0 truncate text-body text-foreground">{card.nickname}</span>
+      <span className="text-small font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>
       {supply !== null && (
-        <span className="ml-auto flex shrink-0 items-center gap-1 text-[12px] font-semibold text-secondary">
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-fine font-semibold text-secondary">
           <ElementSymbol element={supply} className="size-4" />
           {ELEMENT_PICTURE_KO[supply]}
         </span>
@@ -496,7 +496,7 @@ function Me({ me, arc, small, ripple }: { me: MeMark | null; arc: boolean; small
         <span
           className={`${place} pointer-events-none absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-dashed border-[color-mix(in_srgb,var(--foreground)_30%,transparent)] bg-[var(--surface)]`}
         >
-          <span className={`font-rounded ${arc ? '-translate-y-3 text-[15px]' : 'text-[17px]'} text-secondary`}>나</span>
+          <span className={`font-rounded ${arc ? '-translate-y-3 text-body' : 'text-lead'} text-secondary`}>나</span>
         </span>
       </>
     );
@@ -514,7 +514,7 @@ function Me({ me, arc, small, ripple }: { me: MeMark | null; arc: boolean; small
         {/* 홈의 관계 지도와 같은 얼굴 — 천간 그림 아래 「나」. 작은 궤도(빈 날)에서도 선다 */}
         {!arc && (
           <span
-            className={`rounded-full bg-[var(--ink)] px-1.5 font-bold text-[var(--tile)] ${small ? 'mt-0.5 text-[10px] leading-[14px]' : 'mt-1 text-[11px] leading-4'}`}
+            className={`rounded-full bg-[var(--ink)] px-1.5 font-bold text-[var(--tile)] ${small ? 'mt-0.5 text-[10px] leading-[14px]' : 'mt-1 text-tag leading-4'}`}
           >
             나
           </span>
@@ -590,7 +590,7 @@ function Spark() {
 /** 지도 아래 범례 — 그림의 네 가지를 말로 */
 export function Legend({ className = '' }: { className?: string }) {
   return (
-    <ul className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium text-secondary ${className}`}>
+    <ul className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-fine font-medium text-secondary ${className}`}>
       <li className={`${elementScope('土')} flex items-center gap-1.5`}>
         <span aria-hidden="true" className="inline-block size-3.5 rounded-full bg-[var(--tile)] ring-1 ring-[color-mix(in_srgb,var(--ink)_30%,transparent)]" />
         오행 분포

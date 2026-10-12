@@ -132,14 +132,14 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
               aria-describedby={statusId}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
-              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[16px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-field placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
             />
           </div>
           {/*
             결과는 **늘 마운트된 칸**이 말한다 — 새로 붙은 live 영역은 화면낭독기가 흘려보내는 일이 있다.
             안 쳤으면 비어 있다.
           */}
-          <p id={statusId} role="status" className={status.kind === 'idle' ? 'sr-only' : 'px-2 text-[13px] text-secondary'}>
+          <p id={statusId} role="status" className={status.kind === 'idle' ? 'sr-only' : 'px-2 text-small text-secondary'}>
             {status.kind === 'none' ? NO_MATCH : status.kind === 'some' ? `검색 결과 ${status.count}명` : ''}
           </p>
         </div>
@@ -161,7 +161,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
               key={one.personId}
               hidden={!shown.has(one.personId)}
               data-panel-open={opened.includes(one.personId) || undefined}
-              className="min-w-0 rounded-[1.5rem] data-[panel-open]:outline-[3px] data-[panel-open]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] data-[panel-open]:outline-solid"
+              className="min-w-0 rounded-tile data-[panel-open]:outline-[3px] data-[panel-open]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] data-[panel-open]:outline-solid"
             >
               {one.card}
             </li>,

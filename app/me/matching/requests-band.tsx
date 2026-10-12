@@ -27,11 +27,11 @@ export function RequestsBand({ count, names, children }: { count: number; names:
         type="button"
         aria-haspopup="dialog"
         onClick={() => openSheet(sheet.current)}
-        className="flex min-h-12 w-full shrink-0 items-center gap-3 rounded-[1.25rem] bg-accent px-4 py-2 text-left text-on-accent active:scale-[0.99]"
+        className="flex min-h-12 w-full shrink-0 items-center gap-3 rounded-row bg-accent px-4 py-2 text-left text-on-accent active:scale-[0.99]"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold leading-5">받은 요청 {count}</span>
-          <span className="block truncate text-[13px] leading-[18px] opacity-90">{names} — 수락하면 채팅방이 열려요</span>
+          <span className="block text-body font-bold leading-5">받은 요청 {count}</span>
+          <span className="block truncate text-small leading-[18px] opacity-90">{names} — 수락하면 채팅방이 열려요</span>
         </span>
         <Icon name="chevron" className="size-4 shrink-0" />
       </button>

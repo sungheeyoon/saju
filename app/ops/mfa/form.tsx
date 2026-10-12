@@ -91,7 +91,7 @@ export function SecondFactorForm({ enrolled, next }: { enrolled: boolean; next: 
           }}
         >
           {enrolled && <p className="text-sm text-secondary">{COPY.challengeNote}</p>}
-          <label htmlFor="second-factor-code" className="text-[15px] font-semibold">
+          <label htmlFor="second-factor-code" className="text-body font-semibold">
             {COPY.codeLabel}
           </label>
           <div className="flex flex-wrap items-center gap-3">

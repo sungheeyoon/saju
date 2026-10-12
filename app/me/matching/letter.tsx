@@ -17,14 +17,14 @@ export function Letter({ nickname, intro }: { nickname: string; intro: string | 
   const [open, setOpen] = useState(false);
   const long = intro !== null && intro.length > LETTER_FOLD_AT;
   return (
-    <figure className="flex flex-col gap-2 rounded-[1.5rem] bg-surface px-5 py-4 ring-1 ring-border">
+    <figure className="flex flex-col gap-2 rounded-tile bg-surface px-5 py-4 ring-1 ring-border">
       {intro !== null ? (
         <blockquote className={`font-rounded text-[1rem] leading-7 text-foreground ${long && !open ? 'line-clamp-3' : ''}`}>
           <Icon name="quote" className="mr-1.5 inline size-4 -translate-y-0.5 text-cream-ink" />
           {intro}
         </blockquote>
       ) : (
-        <p className="text-[14px] font-medium text-secondary">자기소개 없음</p>
+        <p className="text-note font-medium text-secondary">자기소개 없음</p>
       )}
       {/* 서명은 소개에 붙는다 — 소개가 없으면 「자기소개 없음」 아래에 이름만 남아 아무 말도 서명하지 않았다(화면 감사 2026-10-09) */}
       {intro !== null && (

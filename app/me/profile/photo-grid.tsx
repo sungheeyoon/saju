@@ -733,13 +733,13 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
               />
             )}
             {covering !== null && covering.next === null && (
-              <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
+              <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-small font-semibold text-surface">
                 저장 중…
               </span>
             )}
             {position === 1 && (
               /* 대표 딱지 — 화면 읽기에는 첫 칸 무리의 이름(「대표 사진」)이 말한다 */
-              <span className="absolute left-2 top-2 rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-soft">
+              <span className="absolute left-2 top-2 rounded-full bg-surface px-2 py-0.5 text-tag font-semibold text-foreground shadow-soft">
                 대표
               </span>
             )}
@@ -754,7 +754,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
         >
           <span
             aria-hidden="true"
-            className="grid size-7 place-items-center rounded-full bg-foreground text-[15px] leading-none text-surface ring-2 ring-surface"
+            className="grid size-7 place-items-center rounded-full bg-foreground text-body leading-none text-surface ring-2 ring-surface"
           >
             ×
           </span>
@@ -771,7 +771,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       style={{ backgroundImage: `url(${upload.url})`, backgroundPosition: focusPosition(upload.focus) }}
     >
       {!upload.done && (
-        <span className="absolute inset-0 grid place-items-center bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-[13px] font-semibold text-surface">
+        <span className="absolute inset-0 grid place-items-center bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-small font-semibold text-surface">
           저장 중…
         </span>
       )}
@@ -795,7 +795,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       >
         <span className={bare ? 'flex flex-col items-center gap-1' : undefined}>
           <span aria-hidden="true">+</span>
-          {bare && <span className="text-[15px] text-secondary">{PHOTO_ADD}</span>}
+          {bare && <span className="text-body text-secondary">{PHOTO_ADD}</span>}
         </span>
         {first && (
           <>
@@ -829,9 +829,9 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   const status = undoable !== null ? '사진을 지웠어요' : done.note !== '' ? done.note : sending ? '사진 저장 중…' : '';
 
   return (
-    <section className="flex flex-col gap-4 rounded-[2rem] bg-cream px-4 py-5 sm:px-6 sm:py-6">
+    <section className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
       {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
-      <p className="text-[13px] font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
       {/* 「사진 변경」의 기기 사진 창 — 한 장만. 메뉴의 누름이 연다 */}
       <input
         ref={replaceInput}
@@ -863,10 +863,10 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
       */}
       <div
         className={`flex flex-wrap items-center justify-between gap-x-4 ${
-          undoable !== null ? 'rounded-[1.25rem] bg-surface px-4 py-1 ring-1 ring-border' : ''
+          undoable !== null ? 'rounded-row bg-surface px-4 py-1 ring-1 ring-border' : ''
         }`}
       >
-        <DoneNote className={`text-[14px] font-medium leading-5 text-foreground ${undoable !== null ? 'py-2' : ''}`}>
+        <DoneNote className={`text-note font-medium leading-5 text-foreground ${undoable !== null ? 'py-2' : ''}`}>
           {status}
           {overflowed && status !== '' && ' · '}
           {overflowed && PHOTO_LIMIT_NOTE}
@@ -879,7 +879,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
         )}
       </div>
 
-      <p className="text-[13px] leading-5 text-cream-ink">{PHOTO_NOTE}</p>
+      <p className="text-small leading-5 text-cream-ink">{PHOTO_NOTE}</p>
       <PhotoFramer
         open={framing !== null}
         src={framing?.src ?? null}
@@ -953,7 +953,7 @@ function PhotoMenu({
               close();
               item.run();
             }}
-            className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-[15px] font-semibold hover:bg-surface-sunken ${
+            className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
               item.tone === 'danger' ? 'text-danger' : 'text-foreground'
             }`}
           >

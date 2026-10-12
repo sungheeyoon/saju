@@ -40,7 +40,7 @@ export function MatchIndexCard({
           아무 뜻이 없다(ADR 0026). 값은 `preview` 에 그대로 실려
           있으므로 되짚을 때는 자료에서 읽는다.
         */}
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-[13px] font-semibold text-cream-ink">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-small font-semibold text-cream-ink">
           <Icon name="taiji" className="size-4" />
           궁합 베타
         </span>
@@ -50,9 +50,9 @@ export function MatchIndexCard({
           「검증 중인 판정은 지표에서 제외」가 그대로 선다 — 새 판은 필요한 기운(억부)을 쓰므로 그 말이 거짓이 된다.
         */}
         {preview.policy === null ? (
-          <span className="text-[13px] text-secondary">검증 중인 판정은 지표에서 제외</span>
+          <span className="text-small text-secondary">검증 중인 판정은 지표에서 제외</span>
         ) : (
-          <span className="rounded-full border border-border px-3 py-1 text-[13px] font-semibold text-secondary">
+          <span className="rounded-full border border-border px-3 py-1 text-small font-semibold text-secondary">
             {POLICY_BADGE[preview.policy]}
           </span>
         )}
@@ -63,12 +63,12 @@ export function MatchIndexCard({
           수 하나가 크게 서되 **「베타 탐색 지표」라는 이름이 늘 곁에 붙는다** — 정답처럼 읽히지 않게.
           크림 원은 홈 · 지도의 「나와 궁합 ♥78」과 같은 말투다.
         */}
-        <div className="flex flex-col items-center gap-1 rounded-[1.75rem] bg-cream px-5 py-6 text-center">
-          <p className="text-[13px] font-semibold text-cream-ink">
+        <div className="flex flex-col items-center gap-1 rounded-card bg-cream px-5 py-6 text-center">
+          <p className="text-small font-semibold text-cream-ink">
             {names.a} × {names.b}
           </p>
           <p className="font-rounded text-[3.5rem] leading-none tabular-nums text-foreground">{preview.index}</p>
-          <p className="text-[13px] text-cream-ink">100점 만점 베타 탐색 지표</p>
+          <p className="text-small text-cream-ink">100점 만점 베타 탐색 지표</p>
         </div>
 
         <div className="flex flex-col gap-5">
@@ -80,12 +80,12 @@ export function MatchIndexCard({
                   (운영자 확정 문구 #6). 까닭은 적지 않는다.
                 */}
                 <span className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[15px] font-semibold">{dimension.label}</span>
-                  <span className="text-[13px] text-secondary tabular-nums">
+                  <span className="text-body font-semibold">{dimension.label}</span>
+                  <span className="text-small text-secondary tabular-nums">
                     점수 반영 {Math.round(dimension.weight * 100)}%
                   </span>
                 </span>
-                <span className="text-[15px] font-semibold tabular-nums">{dimension.score}</span>
+                <span className="text-body font-semibold tabular-nums">{dimension.score}</span>
               </div>
               {/*
                 막대는 값을 다시 읽는 그림일 뿐이다. 옆의 숫자가 원본이고, 폭은
@@ -97,7 +97,7 @@ export function MatchIndexCard({
                   style={{ width: `${dimension.score}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-[13px] leading-5 text-secondary">{dimension.description}</p>
+              <p className="mt-1.5 text-small leading-5 text-secondary">{dimension.description}</p>
             </div>
           ))}
         </div>
@@ -117,7 +117,7 @@ export function ScoringNote() {
     운영자 확정 문구 #8(2026-09-25). **판본 이름(`v2`)을 쓰지 않는다** — 내부 이름은 사용자에게 뜻이 없다(ADR 0026).
   */
   return (
-    <p className="text-[13px] leading-5 text-secondary">
+    <p className="text-small leading-5 text-secondary">
       이 점수는 명리 자료에서 자주 다루는 기준을 조합한 베타 참고값입니다. 실제 관계의 결과를 예측하거나 두 사람의
       좋고 나쁨을 판정하지 않습니다.
     </p>

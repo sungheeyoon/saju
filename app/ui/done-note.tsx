@@ -37,7 +37,7 @@ export function useDoneNote(): { note: string; say: (text: string) => void; clea
  */
 export function DoneNote({
   children,
-  className = 'text-[13px] leading-5 text-secondary',
+  className = 'text-small leading-5 text-secondary',
 }: {
   children: ReactNode;
   /** 글자 모양 — 상자의 한 줄 높이(`min-h-5`)는 늘 붙는다 */

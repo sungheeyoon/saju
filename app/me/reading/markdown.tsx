@@ -173,13 +173,13 @@ export function Markdown({ source }: { source: string }) {
         return block.depth <= 2 ? (
           <h3
             key={key}
-            className={`flex items-center gap-2.5 font-rounded text-[1.5rem] leading-[1.35] text-foreground ${at === 0 ? '' : 'mt-8'}`}
+            className={`flex items-center gap-2.5 font-rounded text-section leading-[1.35] text-foreground ${at === 0 ? '' : 'mt-8'}`}
           >
             <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
             <span>{inline(block.text, key)}</span>
           </h3>
         ) : (
-          <h4 key={key} className={`text-[17px] font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
+          <h4 key={key} className={`text-lead font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
             {inline(block.text, key)}
           </h4>
         );
@@ -187,7 +187,7 @@ export function Markdown({ source }: { source: string }) {
   });
 
   return (
-    <div className={`${READING_COLUMN} flex flex-col gap-5 text-[17px] leading-[1.85] text-foreground/90 [&_strong]:text-foreground`}>
+    <div className={`${READING_COLUMN} flex flex-col gap-5 text-lead leading-[1.85] text-foreground/90 [&_strong]:text-foreground`}>
       {blocks}
     </div>
   );

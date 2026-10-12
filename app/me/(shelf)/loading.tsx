@@ -35,7 +35,7 @@ export default function ReadingsLoading() {
             </div>
           ))}
         </div>
-        <div className="hidden min-h-80 flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-6 lg:flex">
+        <div className="hidden min-h-80 flex-col gap-4 rounded-card border border-border bg-surface p-6 lg:flex">
           <Bone className="h-9 w-56 rounded-full" />
           <Bone className="h-5 w-full rounded-full" />
           <Bone className="h-5 w-5/6 rounded-full" />

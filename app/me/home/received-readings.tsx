@@ -52,7 +52,7 @@ export function ReceivedReadings({
         <h2 id="home-readings" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
           내가 받은 사주풀이
           {singles.length > 0 && (
-            <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">{singles.length}개</span>
+            <span className="font-sans text-small font-semibold tabular-nums text-secondary">{singles.length}개</span>
           )}
         </h2>
         <Link href={withShelfKind('/me/readings', 'saju')} className={BUTTON_TERTIARY}>

@@ -557,7 +557,7 @@ export function ReadingPanel({
   const stale = reading !== null && target.kind !== 'match' && !reading.fromCurrentChart;
 
   const makeBlock = chrome.hideMake ? null : (
-    <div className="flex flex-col gap-3 rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6">
+    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface px-5 py-5 sm:px-6">
       {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
       {ask}
       {/*
@@ -568,8 +568,8 @@ export function ReadingPanel({
         <div className="flex flex-col gap-1">
           {reading === null && (
             <>
-              <p className="text-[17px] font-semibold text-foreground">사주를 바탕으로 {noun}를 받아 보세요</p>
-              <p className="text-[13px] leading-5 text-secondary">{readingNoneNote(noun)}</p>
+              <p className="text-lead font-semibold text-foreground">사주를 바탕으로 {noun}를 받아 보세요</p>
+              <p className="text-small leading-5 text-secondary">{readingNoneNote(noun)}</p>
             </>
           )}
         </div>
@@ -580,7 +580,7 @@ export function ReadingPanel({
         */}
         {makeButton('block', 'primary')}
       </div>
-      {creditsNote !== null && <p className="text-[13px] leading-5 text-secondary">{creditsNote}</p>}
+      {creditsNote !== null && <p className="text-small leading-5 text-secondary">{creditsNote}</p>}
     </div>
   );
 
@@ -601,7 +601,7 @@ export function ReadingPanel({
   const alert = failure === null ? null : (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
-      className={`flex gap-2.5 rounded-[1.25rem] px-4 py-3.5 text-[14px] leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
+      className={`flex gap-2.5 rounded-row px-4 py-3.5 text-note leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
     >
       <Icon name="alert" className="mt-0.5 size-5" />
       <div className="min-w-0">
@@ -663,7 +663,7 @@ export function ReadingPanel({
         {/* 다음 글에 대한 말은 그 버튼 아래다 — 사이 물음과 풀이권 이야기 */}
         {chrome.makeInHeader && ask}
         {chrome.makeInHeader && creditsNote !== null && (
-          <p className="text-[13px] leading-5 text-secondary">{creditsNote}</p>
+          <p className="text-small leading-5 text-secondary">{creditsNote}</p>
         )}
       </header>
       )}
@@ -753,13 +753,13 @@ export function ReadingPanel({
 function CarryCard({ preview }: { preview: string }) {
   const paragraphs = preview.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph !== '');
   return (
-    <section aria-labelledby="carry-heading" className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6">
-      <h3 id="carry-heading" className="text-[13px] font-semibold text-secondary">
+    <section aria-labelledby="carry-heading" className="rounded-card border border-border bg-surface px-5 py-5 sm:px-6">
+      <h3 id="carry-heading" className="text-small font-semibold text-secondary">
         아까 보던 내용
       </h3>
       <div className="mt-2 flex flex-col gap-3">
         {paragraphs.map((paragraph, at) => (
-          <p key={at} className="text-[15px] leading-7 text-foreground">
+          <p key={at} className="text-body leading-7 text-foreground">
             {paragraph}
           </p>
         ))}
@@ -780,7 +780,7 @@ function CarryCard({ preview }: { preview: string }) {
  */
 function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
   return (
-    <div role="status" aria-live="polite" className="rounded-[1.75rem] bg-cream p-5 sm:p-7">
+    <div role="status" aria-live="polite" className="rounded-card bg-cream p-5 sm:p-7">
       {/*
         **띠 · 목차 · 안내가 한 열이다.** 띠만 카드 폭을 다 쓰고 목차는 36rem 에서 멈춰, 넓은 화면에서 띠가 목차보다
         길게 뻗었다(화면 갤러리 감사 2026-10-09). 열의 폭은 본문과 같다 — 기다린 자리에 글이 그 폭으로 선다.
@@ -791,15 +791,15 @@ function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
             <Icon name="spark" className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
-            <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
+            <p className="text-lead font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
+            <p className="text-small leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
           </div>
         </div>
         {/*
           **얼마나 걸리고 떠나도 되는지가 머리 바로 아래다**(2026-10-10 화면 점검 B11). 목차 열 줄 아래에 두었더니 폰에서는
           내려가야 보였다 — 기다리는 사람에게 가장 쓸모 있는 말이다.
         */}
-        <p className="mt-3 text-[13px] leading-5 text-cream-ink">
+        <p className="mt-3 text-small leading-5 text-cream-ink">
           {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
         </p>
         <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
@@ -813,7 +813,7 @@ function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
           {rows.map((row, at) => (
             <li
               key={`${at}-${row.label}`}
-              className="flex items-center justify-between gap-3 rounded-[1.25rem] bg-surface px-4 py-3 text-[14px]"
+              className="flex items-center justify-between gap-3 rounded-row bg-surface px-4 py-3 text-note"
             >
               <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
               <OutlineMark state={row.state} />
@@ -829,14 +829,14 @@ function OutlineMark({ state }: { state: OutlineRow['state'] }) {
   switch (state) {
     case 'done':
       return (
-        <span className="shrink-0 rounded-full bg-wood-soft px-2 py-0.5 text-[12px] font-semibold text-wood">
+        <span className="shrink-0 rounded-full bg-wood-soft px-2 py-0.5 text-fine font-semibold text-wood">
           {READING_OUTLINE_STATE.done}
         </span>
       );
     case 'writing':
     case 'reviewing':
       return (
-        <span className="shrink-0 animate-pulse text-[12px] font-semibold text-fire motion-reduce:animate-none">
+        <span className="shrink-0 animate-pulse text-fine font-semibold text-fire motion-reduce:animate-none">
           {READING_OUTLINE_STATE[state]}
         </span>
       );
@@ -879,7 +879,7 @@ function Result({
   const meta = (
     <>
       {isMock && (
-        <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
+        <span className="rounded-full bg-warning-wash px-2.5 py-1 text-tag font-semibold text-warning">
           예시 결과
         </span>
       )}
@@ -900,7 +900,7 @@ function Result({
       */}
       {reading.score !== null || reading.metaphor !== null ? (
         <figure
-          className={`${elementScope(firstTone)} relative overflow-hidden rounded-[2rem] px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
+          className={`${elementScope(firstTone)} relative overflow-hidden rounded-paper px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
         >
           {/* 한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징 */}
@@ -916,28 +916,28 @@ function Result({
               <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
                 “
               </span>
-              <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-[1.75rem] leading-[1.4] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+              <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-title leading-[1.4] tracking-[-0.02em] text-foreground sm:text-figure">
                 {reading.metaphor}
               </blockquote>
             </>
           ) : (
-            <p className="relative text-[13px] font-semibold text-secondary">풀이 결과</p>
+            <p className="relative text-small font-semibold text-secondary">풀이 결과</p>
           )}
           <figcaption className="relative mt-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] pt-4">
-            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-secondary">{meta}</span>
+            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-small text-secondary">{meta}</span>
             {reading.score !== null && (
               <span className="flex flex-col items-end">
-                <span className="text-[13px] font-semibold text-secondary">궁합풀이 점수</span>
+                <span className="text-small font-semibold text-secondary">궁합풀이 점수</span>
                 <span className="flex items-baseline gap-1">
-                  <span className="text-[2.5rem] font-bold leading-none tabular-nums text-foreground">{reading.score}</span>
-                  <span className="text-[13px] font-semibold text-secondary">/ 100</span>
+                  <span className="text-figure font-bold leading-none tabular-nums text-foreground">{reading.score}</span>
+                  <span className="text-small font-semibold text-secondary">/ 100</span>
                 </span>
               </span>
             )}
           </figcaption>
         </figure>
       ) : (
-        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-secondary">{meta}</p>
+        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-small text-secondary">{meta}</p>
       )}
       {/*
         **늘 참인 사실은 여기 안 적는다.** 여기 서는 것은 **실제로 갈리는** 한 줄뿐이다 — 지금과 다른
@@ -945,7 +945,7 @@ function Result({
         말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「수정 전」 낱말이 함께 선다.
       */}
       {target.kind !== 'match' && !reading.fromCurrentChart && (
-        <p className="flex gap-2.5 rounded-[1.25rem] bg-warning-wash px-4 py-3.5 text-[14px] leading-6 text-foreground">
+        <p className="flex gap-2.5 rounded-row bg-warning-wash px-4 py-3.5 text-note leading-6 text-foreground">
           <Icon name="alert" className="mt-0.5 size-5 text-warning" />
           <span>
             <span className="mr-1.5 font-semibold text-warning">{READING_STALE_LABEL}</span>
@@ -957,7 +957,7 @@ function Result({
       <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
         {target.kind === 'match' && (
           <header className={READING_COLUMN}>
-            <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
+            <p className="text-small font-semibold text-secondary">두 사람의 풀이</p>
             <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
           </header>
         )}

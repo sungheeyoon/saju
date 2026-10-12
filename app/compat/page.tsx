@@ -107,10 +107,10 @@ export default async function CompatPage() {
         <h2 id="compat-new" tabIndex={-1} className={`${TYPE_SECTION} outline-none`}>
           궁합 새로 보기
         </h2>
-        <Suspense fallback={<div className="h-72 rounded-[2rem] bg-cream" />}>
+        <Suspense fallback={<div className="h-72 rounded-paper bg-cream" />}>
           <CompatPicker people={people} />
         </Suspense>
-        <p className="text-[13px] leading-6 text-secondary">
+        <p className="text-small leading-6 text-secondary">
           직접 입력한 사람은 <strong className="font-semibold text-foreground">저장한 사람에 추가되지 않아요.</strong>
         </p>
       </section>
