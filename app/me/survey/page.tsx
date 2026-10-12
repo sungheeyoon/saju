@@ -60,12 +60,12 @@ export default async function SurveyPage() {
       */}
       <header className={`flex flex-col gap-2 ${PAPER}`}>
         <h1 className={TYPE_TITLE}>{SURVEY_COPY.title}</h1>
-        <p className="text-[15px] leading-7 text-cream-ink">{SURVEY_COPY.intro}</p>
-        <p className="text-[13px] leading-5 text-cream-ink">{SURVEY_COPY.editable}</p>
+        <p className="text-body leading-7 text-cream-ink">{SURVEY_COPY.intro}</p>
+        <p className="text-small leading-5 text-cream-ink">{SURVEY_COPY.editable}</p>
       </header>
 
       {context === null ? (
-        <FailureLine retry className="rounded-[1.5rem] border border-border bg-surface p-5">
+        <FailureLine retry className="rounded-tile border border-border bg-surface p-5">
           설문을 불러오지 못했어요.
         </FailureLine>
       ) : context.consented ? (
@@ -76,7 +76,7 @@ export default async function SurveyPage() {
           헤더는 브라우저에서 세션만 읽는다. 그 값을 물으려고 문을 하나 더 여는 대신,
           화면이 이유를 말하고 그 자리에서 켜게 한다.
         */
-        <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
+        <section className="flex flex-col gap-4 rounded-tile border border-border bg-surface p-5 sm:p-6">
           <div className="flex flex-col gap-1">
             <h2 className={TYPE_SECTION}>먼저 동의가 필요합니다</h2>
             <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.consentNeeded}</p>

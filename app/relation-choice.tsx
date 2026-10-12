@@ -45,7 +45,7 @@ export function RelationChoice({
     <fieldset>
       {/* `float-left w-full` — 안 두면 legend 가 테두리 선을 끊고 그 위에 걸터앉는다 */}
       <legend className={`float-left w-full ${TYPE_NAME}`}>두 분은 무슨 사이인가요?</legend>
-      <p className="mt-1.5 text-[13px] leading-5 text-secondary">
+      <p className="mt-1.5 text-small leading-5 text-secondary">
         사이에 따라 읽어 드릴 방향이 달라져요. 가족에게 할 말과 연인에게 할 말이 다르기
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
@@ -78,7 +78,7 @@ export function RelationChoice({
                   className="peer absolute inset-x-0 -inset-y-px cursor-pointer appearance-none opacity-0"
                 />
                 <span
-                  className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+                  className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-note ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
                     picked
                       ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
                       : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'

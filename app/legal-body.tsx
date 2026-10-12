@@ -38,13 +38,13 @@ export function LegalBody({ document, children }: { document: LegalDocument; chi
 function Clause({ section }: { section: LegalSection }) {
   return (
     <div className="flex flex-col gap-2">
-      {section.title ? <h3 className="text-[15px] font-semibold text-foreground">{section.title}</h3> : null}
+      {section.title ? <h3 className="text-body font-semibold text-foreground">{section.title}</h3> : null}
       <Blocks blocks={section.blocks} />
     </div>
   );
 }
 
-const TEXT = 'text-[15px] leading-7 text-secondary';
+const TEXT = 'text-body leading-7 text-secondary';
 
 function Blocks({ blocks }: { blocks: readonly LegalBlock[] }) {
   return blocks.map((block, index) => {
@@ -96,7 +96,7 @@ function Bullets({ items, className = '' }: { items: readonly string[]; classNam
 function Table({ table, className = '' }: { table: LegalTable; className?: string }) {
   return (
     <div className={`overflow-x-auto ${className}`}>
-      <table className="w-full min-w-[18rem] border-collapse text-left text-[14px] leading-6">
+      <table className="w-full min-w-[18rem] border-collapse text-left text-note leading-6">
         <thead>
           <tr className="border-b border-border-strong">
             {table.head.map((cell, index) => (

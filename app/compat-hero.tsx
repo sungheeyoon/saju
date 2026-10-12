@@ -9,9 +9,9 @@ import { TYPE_TITLE } from './ui/surfaces';
 export function CompatHero() {
   return (
     <header className="flex min-w-0 flex-col gap-2">
-      <p className="text-[13px] font-semibold text-secondary">궁합</p>
+      <p className="text-small font-semibold text-secondary">궁합</p>
       <h1 className={TYPE_TITLE}>두 사람의 궁합을 살펴봅니다.</h1>
-      <div className="flex max-w-prose flex-col gap-1 text-[15px] leading-6 text-secondary">
+      <div className="flex max-w-prose flex-col gap-1 text-body leading-6 text-secondary">
         <p>두 사람의 사주를 바탕으로 서로에게 생기는 관계와 오행의 보완을 봐요.</p>
         <p>
           좋고 나쁨을 단순한 숫자로 보여 주기보다,<br />

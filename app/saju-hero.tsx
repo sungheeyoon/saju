@@ -32,7 +32,7 @@ export function SajuHero({ calculator }: { calculator: ReactNode }) {
     <>
       <section id="calculator" className="scroll-mt-24">
         <div className="mb-5">
-          <p className="text-[13px] font-semibold text-cream-ink">직접 입력</p>
+          <p className="text-small font-semibold text-cream-ink">직접 입력</p>
           <h2 className={`mt-1 ${TYPE_SECTION}`}>출생 정보를 입력해 주세요</h2>
           <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.</p>
         </div>
@@ -43,7 +43,7 @@ export function SajuHero({ calculator }: { calculator: ReactNode }) {
         {session === 'in' ? (
           <SignedInProvider value={session}>{calculator}</SignedInProvider>
         ) : (
-          <Bone className="h-[34rem] rounded-[1.75rem]" />
+          <Bone className="h-[34rem] rounded-card" />
         )}
       </section>
     </>

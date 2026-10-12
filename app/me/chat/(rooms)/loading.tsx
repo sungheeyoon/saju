@@ -12,7 +12,7 @@ export default function ChatLoading() {
   return (
     <SkeletonMain name="chat" className="app-shell flex w-full flex-1 flex-col py-6 sm:py-12 lg:py-8">
       <div className="grid min-w-0 flex-1 gap-5 lg:h-[calc(100dvh-8rem)] lg:min-h-[32rem] lg:flex-none lg:grid-cols-[21rem_minmax(0,1fr)]">
-        <div className="flex min-h-0 min-w-0 flex-col lg:rounded-[2rem] lg:bg-surface lg:ring-1 lg:ring-border">
+        <div className="flex min-h-0 min-w-0 flex-col lg:rounded-paper lg:bg-surface lg:ring-1 lg:ring-border">
           <div className="pb-4 lg:px-6 lg:pb-2 lg:pt-5">
             <Bone className="h-[2.275rem] w-24 rounded-full sm:h-[2.6rem] lg:h-[1.95rem]" />
           </div>
@@ -28,7 +28,7 @@ export default function ChatLoading() {
             ))}
           </div>
         </div>
-        <div className="hidden rounded-[2rem] bg-surface ring-1 ring-border lg:block" />
+        <div className="hidden rounded-paper bg-surface ring-1 ring-border lg:block" />
       </div>
     </SkeletonMain>
   );

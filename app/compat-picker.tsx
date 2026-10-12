@@ -296,7 +296,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         {question === null && reason !== null && (
           <p
             id="compat-locked-reason"
-            className={`mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] leading-5 ${
+            className={`mt-2 flex items-center justify-end gap-1.5 text-right text-small leading-5 ${
               reasonIsError ? 'font-medium text-danger' : 'text-secondary'
             }`}
           >

@@ -58,7 +58,7 @@ export function CopyLinkButton() {
         {state === 'copied' ? '복사했습니다' : '결과 링크 복사'}
       </button>
       {state !== 'idle' && (
-        <span className="text-[13px] text-secondary">
+        <span className="text-small text-secondary">
           {state === 'failed'
             ? '링크를 복사하지 못했어요. 주소창의 주소를 직접 복사해 주세요.'
             : '링크에 입력한 출생 정보가 담겨 있습니다 — 받은 사람은 볼 수 있습니다.'}

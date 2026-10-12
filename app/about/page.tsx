@@ -39,7 +39,7 @@ export default function AboutPage() {
         <p className={TYPE_META}>{SERVICE_TAGLINE}</p>
         <h1 className={TYPE_TITLE}>{SERVICE_NAME_TOPIC} 이런 곳이에요</h1>
         {/* 운영자가 고른 두 문장(2026-10-09) — 넓은 화면은 문장마다 줄을 나누고, 폰은 폭대로 흐른다 */}
-        <p className="text-[15px] leading-7 text-cream-ink">
+        <p className="text-body leading-7 text-cream-ink">
           내 사주를 읽고, 궁금한 사람과의 궁합을 살펴보세요.{' '}
           <br className="max-sm:hidden" />
           새로운 인연에게 궁합을 요청하고, 서로 동의하면 대화를 시작할 수 있어요.
@@ -57,7 +57,7 @@ export default function AboutPage() {
                 <Icon name={feature.icon} />
               </span>
               <h3 className={TYPE_NAME}>{feature.title}</h3>
-              <p className="text-[15px] leading-6 text-secondary">{feature.body}</p>
+              <p className="text-body leading-6 text-secondary">{feature.body}</p>
               <p className={TYPE_META}>{feature.note}</p>
             </li>
           ))}
@@ -70,12 +70,12 @@ export default function AboutPage() {
         </h2>
         <ol className="flex flex-col gap-2">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex gap-4 rounded-[1.25rem] border border-border bg-surface px-4 py-4">
+            <li key={step.title} className="flex gap-4 rounded-row border border-border bg-surface px-4 py-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-sm font-bold text-on-accent tabular-nums">
                 {index + 1}
               </span>
               <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] font-semibold text-foreground">{step.title}</span>
+                <span className="text-body font-semibold text-foreground">{step.title}</span>
                 <span className="text-sm leading-6 text-secondary">{step.body}</span>
               </span>
             </li>

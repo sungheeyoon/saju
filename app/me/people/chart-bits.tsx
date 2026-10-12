@@ -22,7 +22,7 @@ export function DayMasterChip({ stem, className = '' }: { stem: Stem; className?
 
   return (
     <span
-      className={`${elementScope(element)} inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] py-1 pl-1 pr-2.5 text-[12px] font-semibold text-[var(--ink)] ${className}`}
+      className={`${elementScope(element)} inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] py-1 pl-1 pr-2.5 text-fine font-semibold text-[var(--ink)] ${className}`}
     >
       <span className="sr-only">일간 {STEM_PICTURE[stem]}</span>
       <StemSymbol stem={stem} className="size-5" />
@@ -64,7 +64,7 @@ export function PillarStrip({
               key === 'day' ? 'ring-2 ring-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : ''
             }`}
           >
-            <span className="text-[11px] font-semibold tracking-[0.04em] text-secondary">{label}</span>
+            <span className="text-tag font-semibold tracking-[0.04em] text-secondary">{label}</span>
             {pillar === null ? (
               <span className={`glyph ${glyph} leading-tight text-secondary`}>
                 <span aria-hidden="true">··</span>

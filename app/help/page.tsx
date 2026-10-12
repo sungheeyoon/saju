@@ -129,7 +129,7 @@ export default function HelpPage() {
       <OpenHashed />
       <header className="flex flex-col gap-2">
         <h1 className={TYPE_TITLE}>자주 묻는 질문</h1>
-        <p className="text-[15px] leading-7 text-secondary">궁금한 물음을 누르면 답이 펼쳐져요.</p>
+        <p className="text-body leading-7 text-secondary">궁금한 물음을 누르면 답이 펼쳐져요.</p>
       </header>
 
       {/* 묶음으로 바로 가는 줄 — 긴 목록에서 「풀이권」만 찾는 사람이 끝까지 내리지 않게 */}
@@ -155,13 +155,13 @@ export default function HelpPage() {
             {group.items.map((item) => (
               <li key={item.id} id={item.id} className="scroll-mt-24">
                 <details className="group py-1">
-                  <summary className={`${DISCLOSURE_SUMMARY} py-2 text-[15px] font-semibold`}>
+                  <summary className={`${DISCLOSURE_SUMMARY} py-2 text-body font-semibold`}>
                     {item.q}
                     <Icon name="chevron" className="size-4 shrink-0 text-secondary transition-transform group-open:rotate-90" />
                   </summary>
                   <div className="flex flex-col gap-2 pb-3">
                     {item.a.map((line) => (
-                      <p key={line} className="text-[15px] leading-7 text-secondary">
+                      <p key={line} className="text-body leading-7 text-secondary">
                         {line}
                       </p>
                     ))}

@@ -28,8 +28,8 @@ export default function MatchHistoryLoading() {
         <Bone className="h-8 w-28 rounded-full" />
         <div className="flex flex-col gap-2">
           <Bone className="h-[1.375rem] w-20 rounded-full" />
-          <Bone className="h-24 w-full rounded-[1.25rem]" />
-          <Bone className="h-24 w-full rounded-[1.25rem]" />
+          <Bone className="h-24 w-full rounded-row" />
+          <Bone className="h-24 w-full rounded-row" />
         </div>
       </div>
     </SkeletonMain>

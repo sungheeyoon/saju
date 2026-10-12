@@ -93,7 +93,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           return (
             <label
               key={bundle.credits}
-              className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-[1.25rem] border px-4 py-3 ${
+              className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-row border px-4 py-3 ${
                 on ? 'border-accent bg-surface ring-2 ring-accent' : 'border-border bg-surface hover:border-border-strong'
               }`}
             >
@@ -109,14 +109,14 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
                 <span className="flex flex-wrap items-center gap-2">
                   <span className={TYPE_NAME}>{bundleOrderName(bundle.credits)}</span>
                   {mark !== null && (
-                    <span className="rounded-full bg-cream px-2 py-0.5 text-[12px] font-semibold text-cream-ink">
+                    <span className="rounded-full bg-cream px-2 py-0.5 text-fine font-semibold text-cream-ink">
                       {mark}
                     </span>
                   )}
                 </span>
                 {discount > 0 && <span className={TYPE_META}>1장 대비 {discount}% 할인</span>}
               </span>
-              <span className="text-[15px] font-semibold tabular-nums text-foreground">{won(bundle.price)}</span>
+              <span className="text-body font-semibold tabular-nums text-foreground">{won(bundle.price)}</span>
             </label>
           );
         })}
@@ -127,7 +127,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           <p className={TYPE_META}>풀이권 판매 준비 중이에요.</p>
         ) : (
           <>
-            <label htmlFor={agreeId} className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[14px] leading-6 text-foreground">
+            <label htmlFor={agreeId} className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-note leading-6 text-foreground">
               <input
                 id={agreeId}
                 type="checkbox"
@@ -144,8 +144,8 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           </>
         )}
 
-        <ul aria-label="유의사항" className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-[12px] leading-[1.125rem] text-secondary">
-          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 장수 비율에 따라 수수료 없이 환불합니다.</li>
+        <ul aria-label="유의사항" className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-fine leading-[1.125rem] text-secondary">
+          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 풀이권 비율에 따라 수수료 없이 환불합니다.</li>
           <li>{refundLine}</li>
           <li>
             정상적으로 제공된 풀이는 단순 변심으로 환불되지 않습니다. 풀이가 제공되지 않거나 표시·광고 또는 계약 내용과
@@ -158,7 +158,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
             시행일)로부터 1년이 지나면 소멸됩니다.
           </li>
         </ul>
-        <Link href="/refund" className={`${BUTTON_TERTIARY} self-start text-[12px] font-medium text-secondary`}>
+        <Link href="/refund" className={`${BUTTON_TERTIARY} self-start text-fine font-medium text-secondary`}>
           자세히 알아보기
         </Link>
       </div>

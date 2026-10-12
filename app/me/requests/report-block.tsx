@@ -33,7 +33,7 @@ import { FailureLine } from '../../ui/failure-line';
 
 /** 신고 칸 — 초점 테는 전역 초점 테두리와 같은 섞음(accent 55%, `globals.css`) */
 const FIELD =
-  'rounded-xl bg-surface px-3 text-[16px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
+  'rounded-xl bg-surface px-3 text-field text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 /** 「⋯」가 서는 판 — 흰 판 위(`plain`)인가 사진 위(`photo`)인가 */
 export type MenuLook = 'plain' | 'photo';
@@ -58,7 +58,7 @@ export function ReportBlockMenu({
   className?: string;
 }) {
   const { menu, close } = useDetailsMenu();
-  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
+  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
 
   return (
     <details ref={menu} className={`${className || 'relative'} shrink-0`}>
@@ -152,7 +152,7 @@ export function ReportForm({
       className="flex flex-col gap-3"
     >
       <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-secondary">신고 사유</span>
+        <span className="text-small font-semibold text-secondary">신고 사유</span>
         <select
           value={reason}
           onChange={(event) => setReason(event.target.value as ReportReason)}
@@ -166,7 +166,7 @@ export function ReportForm({
         </select>
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-secondary">덧붙일 말 (선택)</span>
+        <span className="text-small font-semibold text-secondary">덧붙일 말 (선택)</span>
         <textarea
           value={detail}
           onChange={(event) => setDetail(event.target.value.slice(0, REPORT_DETAIL_MAX))}
@@ -234,12 +234,12 @@ export function BlockConfirm({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-[1.5rem] bg-danger-wash p-4 ring-1 ring-danger/30">
-      <p className="flex items-center gap-2 text-[15px] font-bold text-danger">
+    <div className="flex flex-col gap-3 rounded-tile bg-danger-wash p-4 ring-1 ring-danger/30">
+      <p className="flex items-center gap-2 text-body font-bold text-danger">
         <Icon name="block" className="size-[18px]" />
         차단
       </p>
-      <p className="text-[14px] leading-6 text-foreground">{BLOCK_NOTE}</p>
+      <p className="text-note leading-6 text-foreground">{BLOCK_NOTE}</p>
       {failure !== null && <FailureLine>{failure}</FailureLine>}
       <div className={CONFIRM_ROW}>
         <button type="button" onClick={block} disabled={working} className={BUTTON_DANGER}>
@@ -370,7 +370,7 @@ export function ReportDialog({
     >
       <div key={round} className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <h2 id={titleId} className="flex items-center gap-2 pt-2.5 text-[15px] font-bold text-foreground">
+          <h2 id={titleId} className="flex items-center gap-2 pt-2.5 text-body font-bold text-foreground">
             <Icon name="flag" className="size-[18px] text-danger" />
             {nickname} 님 신고
           </h2>
@@ -379,7 +379,7 @@ export function ReportDialog({
           </button>
         </div>
         {/* 접수 문장의 자리는 늘 있다 — 보낸 그때 글만 들어와 읽힌다 */}
-        <p role="status" className="text-[14px] leading-6 text-secondary empty:hidden">
+        <p role="status" className="text-note leading-6 text-secondary empty:hidden">
           {reported ? REPORT_DONE : ''}
         </p>
         {reported ? (
@@ -395,7 +395,7 @@ export function ReportDialog({
           </div>
         ) : (
           <>
-            <p className="text-[13px] leading-5 text-secondary">{REPORT_NOTE}</p>
+            <p className="text-small leading-5 text-secondary">{REPORT_NOTE}</p>
             <ReportForm
               send={(reason, detail) => actionAnswer(reportUser(userId, reason, detail))}
               onDone={() => setReported(true)}

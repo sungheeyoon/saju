@@ -12,7 +12,7 @@ import { COLUMN } from '../../ui/surfaces';
 export default function SurveyLoading() {
   return (
     <SkeletonMain name="survey" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
-      <div className="flex flex-col gap-2 rounded-[2rem] bg-cream p-6 sm:p-8">
+      <div className="flex flex-col gap-2 rounded-paper bg-cream p-6 sm:p-8">
         <Bone className="h-[2.275rem] w-56 max-w-full rounded-full sm:h-[2.6rem]" />
         <div className="flex flex-col gap-2 py-1">
           <Bone className="h-5 w-full rounded-full" />
@@ -24,7 +24,7 @@ export default function SurveyLoading() {
       </div>
       <div className="flex flex-col gap-5">
         {[0, 1].map((panel) => (
-          <div key={panel} className="flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
+          <div key={panel} className="flex flex-col gap-3 rounded-tile border border-border bg-surface p-5 sm:p-6">
             <Bone className="h-7 w-64 max-w-full rounded-full" />
             <Bone className="h-5 w-28 rounded-full" />
             <div className="flex flex-col gap-2">

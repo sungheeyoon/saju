@@ -32,7 +32,7 @@ export function SegmentedNav({
           key={one.href}
           href={one.href}
           aria-current={one.current ? 'page' : undefined}
-          className={`flex min-h-11 flex-1 items-center justify-center rounded-full px-5 text-[15px] font-semibold transition-colors active:scale-[0.97] ${
+          className={`flex min-h-11 flex-1 items-center justify-center rounded-full px-5 text-body font-semibold transition-colors active:scale-[0.97] ${
             one.current ? 'bg-accent text-on-accent' : 'text-secondary hover:text-foreground'
           }`}
         >

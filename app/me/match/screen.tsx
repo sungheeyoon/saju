@@ -150,7 +150,7 @@ export async function MatchScreen({
           갈래로 닫혔는지는 서버 로그가 든다.
         */
         <section className={EMPTY_SLOT}>
-          <p className="text-[15px] leading-7 text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
+          <p className="text-body leading-7 text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
         </section>
       )}
     </Frame>

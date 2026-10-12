@@ -59,26 +59,26 @@ export function PassedConnections({
   return (
     <section aria-labelledby="passed-title" className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h2 id="passed-title" ref={heading} tabIndex={-1} className="font-rounded flex items-baseline gap-2 text-[1.5rem] leading-8 text-foreground outline-none">
+        <h2 id="passed-title" ref={heading} tabIndex={-1} className="font-rounded flex items-baseline gap-2 text-section leading-8 text-foreground outline-none">
           지나친 인연
-          {cards.length > 0 && <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">{cards.length} / {PASSED_LIMIT}</span>}
+          {cards.length > 0 && <span className="font-sans text-small font-semibold tabular-nums text-secondary">{cards.length} / {PASSED_LIMIT}</span>}
         </h2>
-        {cards.length > 0 && <p className="text-[15px] text-secondary">잠깐 지나쳤어도, 다시 궁금해질 수 있으니까요.</p>}
+        {cards.length > 0 && <p className="text-body text-secondary">잠깐 지나쳤어도, 다시 궁금해질 수 있으니까요.</p>}
       </div>
 
       {map !== null && (
-        <div className="w-full overflow-hidden rounded-[2rem] bg-cream px-2 pt-4 lg:max-w-xl">
+        <div className="w-full overflow-hidden rounded-paper bg-cream px-2 pt-4 lg:max-w-xl">
           <div className="mx-auto max-w-[28rem]">{map}</div>
         </div>
       )}
 
       {cards.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-[1.75rem] border-2 border-dashed border-border-strong p-6">
+        <div className="flex flex-col items-start gap-3 rounded-card border-2 border-dashed border-border-strong p-6">
           <span className="grid size-12 place-items-center rounded-full bg-cream text-cream-ink">
             <Icon name="undo" />
           </span>
-          <h3 className="font-rounded text-[1.25rem] text-foreground">지나친 인연이 여기에 모여요</h3>
-          <p className="text-[15px] leading-6 text-secondary">다시 궁금해진 사람을 살펴보고, 한 번 더 알아갈 수 있는 자리예요.</p>
+          <h3 className="font-rounded text-heading text-foreground">지나친 인연이 여기에 모여요</h3>
+          <p className="text-body leading-6 text-secondary">다시 궁금해진 사람을 살펴보고, 한 번 더 알아갈 수 있는 자리예요.</p>
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
@@ -91,7 +91,7 @@ export function PassedConnections({
                   setLooking(card);
                   if (looking?.candidateUserId === card.candidateUserId) openSheet(sheet.current);
                 }}
-                className="flex size-full flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface text-left shadow-card hover:border-border-strong active:scale-[0.98]"
+                className="flex size-full flex-col overflow-hidden rounded-tile border border-border bg-surface text-left shadow-card hover:border-border-strong active:scale-[0.98]"
               >
                 <span className="relative block aspect-square text-[3rem]">
                   <CandidatePhoto card={card} />
@@ -101,10 +101,10 @@ export function PassedConnections({
                 </span>
                 <span className="flex flex-1 flex-col gap-2 p-3">
                   <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-                    <span className="font-rounded truncate text-[1.25rem] text-foreground">{card.nickname}</span>
-                    <span className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
+                    <span className="font-rounded truncate text-heading text-foreground">{card.nickname}</span>
+                    <span className="shrink-0 text-small font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
                   </span>
-                  <span className="line-clamp-2 text-[13px] leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>
+                  <span className="line-clamp-2 text-small leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>
                 </span>
               </button>
             </li>
@@ -119,7 +119,7 @@ export function PassedConnections({
           오늘의 인연 계속 보기
           <Icon name="arrow" className="size-4" />
         </button>
-        <p className="text-[12px] leading-5 text-secondary">
+        <p className="text-fine leading-5 text-secondary">
           최근 {PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.
         </p>
       </div>

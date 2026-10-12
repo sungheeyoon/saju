@@ -197,7 +197,7 @@ export function SiteHeader() {
                           <Link
                             href={tab.href}
                             aria-current={active ? 'page' : undefined}
-                            className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
+                            className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-body font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
                               active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
                             }`}
                           >
@@ -349,7 +349,7 @@ function Credits({ available }: { available: number }) {
     <CreditsMenu
       available={available}
       label={label}
-      className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cream text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-95 sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:px-3 sm:text-[12px] sm:font-semibold sm:tabular-nums sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1"
+      className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cream text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-95 sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:px-3 sm:text-fine sm:font-semibold sm:tabular-nums sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1"
     >
       <Icon name="ticket" className="size-5 sm:size-4" />
       <span aria-hidden="true" className="hidden translate-y-[0.625px] sm:inline">{label}</span>
@@ -400,7 +400,7 @@ function Dock({
       aria-label="모바일 내 메뉴"
       className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-card bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
         {MEMBER_TABS.map((tab) => {
           const active = isNavigationActive(pathname, tab.href, from);
           return (
@@ -408,7 +408,7 @@ function Dock({
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] text-[12px] font-semibold active:scale-95 ${
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-row text-fine font-semibold active:scale-95 ${
                   active ? 'text-foreground' : 'text-secondary hover:text-foreground'
                 }`}
               >
@@ -494,7 +494,7 @@ function SettingsMenu({
         (2026-10-09 화면 갤러리 감사, 「…@example.c…」). 판을 조금 넓히고 넘치는 주소는 다음 줄로 꺾는다.
       */}
       <div className={`${MENU_PANEL} absolute right-0 top-13 z-50 w-72 max-w-[calc(100vw-2rem)] p-2`}>
-        {email && <p className="break-all border-b border-border px-3 pb-2 pt-1 text-[13px] leading-5 text-muted">{email}</p>}
+        {email && <p className="break-all border-b border-border px-3 pb-2 pt-1 text-small leading-5 text-muted">{email}</p>}
         <ul className="mt-1 flex flex-col">
           {links.map((link) => (
             <li key={link.href}>
@@ -502,7 +502,7 @@ function SettingsMenu({
                 href={link.href}
                 onClick={close}
                 aria-current={pathname === link.href ? 'page' : undefined}
-                className="flex min-h-11 items-center rounded-xl px-3 text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
+                className="flex min-h-11 items-center rounded-xl px-3 text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
               >
                 {link.label}
               </Link>
@@ -513,7 +513,7 @@ function SettingsMenu({
           type="button"
           onClick={signOut}
           disabled={leaving}
-          className="mt-1 flex min-h-11 w-full items-center rounded-xl border-t border-border px-3 text-left text-[15px] text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
+          className="mt-1 flex min-h-11 w-full items-center rounded-xl border-t border-border px-3 text-left text-body text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
         >
           {leaving ? '로그아웃하는 중…' : '로그아웃'}
         </button>

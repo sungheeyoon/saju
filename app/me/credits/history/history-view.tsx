@@ -18,9 +18,9 @@ function OrderCard({ order }: { order: PaidOrder }) {
     <li className={`${CARD} flex flex-col gap-3`}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className={TYPE_NAME}>{order.product}</h2>
-        <span className="rounded-full bg-cream px-2 py-0.5 text-[12px] font-semibold text-cream-ink">{order.status}</span>
+        <span className="rounded-full bg-cream px-2 py-0.5 text-fine font-semibold text-cream-ink">{order.status}</span>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[15px] leading-6">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-body leading-6">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">
             <dt className="text-secondary">{label}</dt>
@@ -56,8 +56,8 @@ export function HistoryView({ orders, refundLine }: { orders: readonly PaidOrder
         <h2 id="refund-how" className={TYPE_NAME}>
           환불 신청
         </h2>
-        <p className="text-[15px] leading-7 text-secondary">{refundLine}</p>
-        <p className="text-[15px] leading-7 text-secondary">주문 번호를 함께 알려 주세요.</p>
+        <p className="text-body leading-7 text-secondary">{refundLine}</p>
+        <p className="text-body leading-7 text-secondary">주문 번호를 함께 알려 주세요.</p>
         <p>
           <Link href="/refund" className={BUTTON_TERTIARY}>
             환불정책 보기

@@ -33,9 +33,9 @@ export function ReportPanel({
   onBlock?: () => void;
 }) {
   return (
-    <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-[1.5rem] bg-surface-soft p-4 ring-1 ring-border">
+    <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-tile bg-surface-soft p-4 ring-1 ring-border">
       <div className="flex items-start justify-between gap-3">
-        <p className="flex items-center gap-2 pt-2.5 text-[15px] font-bold text-foreground">
+        <p className="flex items-center gap-2 pt-2.5 text-body font-bold text-foreground">
           <Icon name="flag" className="size-[18px] text-danger" />
           {messageId === null ? '신고할 메시지를 골라 주세요' : '메시지 신고'}
         </p>
@@ -44,7 +44,7 @@ export function ReportPanel({
           <Icon name="close" className="size-[18px]" />
         </button>
       </div>
-      <p className="text-[13px] leading-5 text-secondary">{REPORT_NOTE}</p>
+      <p className="text-small leading-5 text-secondary">{REPORT_NOTE}</p>
       <ReportForm
         send={(reason, detail) =>
           messageId === null ? reportUser(partnerUserId, reason, detail) : reportChatMessage(messageId, reason, detail)

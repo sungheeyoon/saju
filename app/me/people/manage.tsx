@@ -141,7 +141,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       이 자리에서만 덮는다 — `max-sm:` 은 변형이라 상수의 `p-6` 뒤에 서고, `sm` 부터는 상수 그대로다.
     */
     return (
-      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary max-sm:py-4`}>
+      <p className={`${EMPTY_SLOT} text-body leading-6 text-secondary max-sm:py-4`}>
         저장할 수 있는 {slots?.limit}명을 다 채웠어요. 목록에서 한 명을 빼면 다시 추가할 수
         있습니다.
       </p>
@@ -172,11 +172,11 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
         if (question === null && !saving) save();
       }}
       noValidate
-      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-7"
+      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-7"
     >
       <header className="flex flex-col gap-1.5">
         <h2 className={TYPE_SECTION}>사람 추가</h2>
-        <p className="text-[15px] leading-6 text-secondary">
+        <p className="text-body leading-6 text-secondary">
           부를 이름은 <strong className="font-medium">나만 봐요.</strong> 같은 사람도 부르는
           사람마다 이름이 다를 수 있어서, 이 이름은 내 목록에만 붙어요.
           {remaining !== null && remaining <= 5 && ` 앞으로 ${remaining}명 더 저장할 수 있어요.`}
@@ -250,7 +250,7 @@ function NoteField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+      <span className="text-small font-semibold text-secondary">메모 (선택)</span>
       {/*
         **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
         그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
@@ -262,7 +262,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-[16px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className="rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-field leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
       />
     </label>
   );
@@ -319,7 +319,7 @@ export function NoteEditor({
         event.preventDefault();
         if (changed && !saving) save();
       }}
-      className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card"
+      className="flex flex-col gap-3 rounded-row bg-surface p-4 shadow-card"
     >
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">

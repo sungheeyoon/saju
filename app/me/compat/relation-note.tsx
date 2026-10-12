@@ -14,7 +14,7 @@ import { RELATION_LABEL, type Relation } from '@/src/lib/people';
  */
 export function RelationNote({ readWith, next }: { readWith: Relation | null; next: Relation }) {
   return (
-    <p className="text-[13px] leading-5 text-secondary">
+    <p className="text-small leading-5 text-secondary">
       {readWith !== null && readWith !== next && (
         <>
           지금 글과 점수는{' '}

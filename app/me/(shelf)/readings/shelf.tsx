@@ -62,7 +62,7 @@ export function Shelf({ title, description, children }: { title: string; descrip
     <section className={`flex flex-col gap-4 ${FOUND_NONE_HIDES}`}>
       <div>
         <h2 className={TYPE_SECTION}>{title}</h2>
-        <p className="mt-0.5 text-[13px] leading-5 text-secondary">{description}</p>
+        <p className="mt-0.5 text-small leading-5 text-secondary">{description}</p>
       </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">{children}</ul>
     </section>
@@ -91,14 +91,14 @@ export function SingleCover({ book, row = false, from }: { book: Book; row?: boo
 
       <span className="relative flex min-w-0 flex-col gap-1">
         <SubjectTag subject={subject} />
-        <span className={`truncate font-semibold text-foreground ${row ? 'text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{book.title}</span>
+        <span className={`truncate font-semibold text-foreground ${row ? 'text-note sm:text-body' : 'text-body'}`}>{book.title}</span>
       </span>
 
       <Metaphor text={book.metaphor} lines={row ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-4'} small={row} />
 
       <span className="relative flex flex-wrap items-center gap-1.5">
         {book.stale && <StaleChip />}
-        <time dateTime={book.dateTime} className={`tabular-nums text-secondary ${row ? 'whitespace-nowrap text-[11px] sm:text-[12px]' : 'text-[12px]'}`}>
+        <time dateTime={book.dateTime} className={`tabular-nums text-secondary ${row ? 'whitespace-nowrap text-tag sm:text-fine' : 'text-fine'}`}>
           {book.date}
         </time>
       </span>
@@ -141,19 +141,19 @@ export function PairCover({
         </span>
         {book.score !== null && (
           <span className="flex items-baseline gap-0.5 text-foreground">
-            <span className="text-[1.75rem] font-bold leading-none tabular-nums">{book.score}</span>
-            <span className="text-[12px] font-semibold text-secondary">점</span>
+            <span className="text-title font-bold leading-none tabular-nums">{book.score}</span>
+            <span className="text-fine font-semibold text-secondary">점</span>
           </span>
         )}
       </span>
 
       <span className="relative flex min-w-0 flex-col items-start gap-1">
         {source !== undefined && (
-          <span className="rounded-full bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-secondary">
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-2 py-0.5 text-tag font-semibold text-secondary">
             {source}
           </span>
         )}
-        <span className="max-w-full truncate text-[15px] font-semibold text-foreground">{book.title}</span>
+        <span className="max-w-full truncate text-body font-semibold text-foreground">{book.title}</span>
       </span>
 
       <Metaphor text={book.metaphor} lines="line-clamp-3" />
@@ -161,7 +161,7 @@ export function PairCover({
       <span className="relative flex items-center justify-between gap-2">
         <span className="flex flex-wrap items-center gap-1.5">
           {book.stale && <StaleChip />}
-          <time dateTime={book.dateTime} className="text-[12px] tabular-nums text-secondary">
+          <time dateTime={book.dateTime} className="text-fine tabular-nums text-secondary">
             {book.date}
           </time>
         </span>
@@ -215,7 +215,7 @@ export function BlankBook({
           <ElementSymbol element={element} className="size-7" />
         </span>
         {/* 홈의 한 줄 셋(`row`)은 폰에서 표지 폭이 110px 남짓이라 「사주풀이 받기」가 두 줄로 접혔다 — 그 자리만 14px 한 줄이다 */}
-        <span className={`font-semibold text-foreground ${row ? 'whitespace-nowrap text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{label}</span>
+        <span className={`font-semibold text-foreground ${row ? 'whitespace-nowrap text-note sm:text-body' : 'text-body'}`}>{label}</span>
       </CoverLink>
     </ShelfItem>
   );
@@ -236,7 +236,7 @@ export function MakingCover({ href, name, from }: { href: string; name: string; 
         <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface text-cream-ink">
           <Icon name="spark" className="size-4" />
         </span>
-        <span className="mt-2 line-clamp-2 text-[15px] font-semibold text-foreground">{name}</span>
+        <span className="mt-2 line-clamp-2 text-body font-semibold text-foreground">{name}</span>
       </span>
       <span className="relative mt-auto flex flex-col gap-2">
         <span
@@ -245,7 +245,7 @@ export function MakingCover({ href, name, from }: { href: string; name: string; 
         >
           <span className={`${flow.flow} block h-full rounded-full`} />
         </span>
-        <span className="text-[13px] font-semibold text-cream-ink">{READING_MAKING}</span>
+        <span className="text-small font-semibold text-cream-ink">{READING_MAKING}</span>
       </span>
     </CoverLink>
   );
@@ -273,7 +273,7 @@ export function MakingShelf({
       {titled && (
         <div>
           <h2 className={TYPE_SECTION}>인연 궁합</h2>
-          <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의해 두 사람이 함께 보는 궁합풀이예요.</p>
+          <p className="mt-0.5 text-small leading-5 text-secondary">서로 동의해 두 사람이 함께 보는 궁합풀이예요.</p>
         </div>
       )}
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -284,16 +284,16 @@ export function MakingShelf({
               {/* 보관함 옆 칸에 펼친 편지에도 테가 선다 — 표지와 같은 링크(`CoverLink`)다 */}
               <CoverLink
                 href={hrefOf(match.matchId)}
-                className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
+                className="group flex h-full flex-col gap-4 rounded-card bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 <span className="flex items-center gap-3.5">
                   <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} focus={match.photoFocus} size={56} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[17px] font-semibold text-foreground">
+                    <span className="block truncate text-lead font-semibold text-foreground">
                       {match.nickname} 님과의 궁합풀이
                     </span>
                     {supplied !== null && (
-                      <span className="mt-0.5 flex items-center gap-1 text-[13px] text-cream-ink">
+                      <span className="mt-0.5 flex items-center gap-1 text-small text-cream-ink">
                         <ElementSymbol element={supplied} className="size-4" />
                         <span className="truncate">{match.balanceLabel}</span>
                       </span>
@@ -308,7 +308,7 @@ export function MakingShelf({
                   >
                     <span className={`${flow.flow} block h-full rounded-full`} />
                   </span>
-                  <span className="text-[13px] font-semibold text-cream-ink">궁합풀이 만드는 중…</span>
+                  <span className="text-small font-semibold text-cream-ink">궁합풀이 만드는 중…</span>
                 </span>
 
                 <span className={`${BUTTON_SECONDARY_SMALL} self-start`}>
@@ -346,7 +346,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
     <section className={`${PAPER} flex flex-col gap-6`}>
       <div className="flex flex-col gap-2">
         <h2 className={TYPE_SECTION}>아직 만든 풀이가 없어요</h2>
-        <p className="text-[15px] leading-7 text-secondary">
+        <p className="text-body leading-7 text-secondary">
           내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
         </p>
       </div>
@@ -362,7 +362,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
               <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-[var(--ink)] sm:size-12">
                 <Icon name={slot.icon} className="size-5 sm:size-6" />
               </span>
-              <span className="text-[15px] font-semibold leading-5 text-foreground">{slot.label}</span>
+              <span className="text-body font-semibold leading-5 text-foreground">{slot.label}</span>
               <Icon name="chevron" className="ml-auto size-4 shrink-0 text-secondary sm:hidden" />
             </Link>
           </li>
@@ -384,10 +384,10 @@ function Spine({ background }: { background: string }) {
 function Metaphor({ text, lines, small = false }: { text: string | null; lines: string; small?: boolean }) {
   return (
     <span
-      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-[14px] leading-[1.35] sm:text-[1.0625rem] sm:leading-[1.5]' : 'text-[1.0625rem] leading-[1.5]'}`}
+      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-note leading-[1.35] sm:text-[1.0625rem] sm:leading-[1.5]' : 'text-[1.0625rem] leading-[1.5]'}`}
     >
       {text === null ? (
-        <span className="font-sans text-[13px] text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>
+        <span className="font-sans text-small text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>
       ) : (
         <>
           <span aria-hidden="true">“</span>
@@ -403,7 +403,7 @@ function Metaphor({ text, lines, small = false }: { text: string | null; lines: 
 export function SubjectTag({ subject }: { subject: DayMaster | null }) {
   if (subject === null) return null;
   return (
-    <span className={`${elementScope(subject.element)} flex items-center gap-1 text-[12px] font-semibold text-[var(--ink)]`}>
+    <span className={`${elementScope(subject.element)} flex items-center gap-1 text-fine font-semibold text-[var(--ink)]`}>
       <StemSymbol stem={subject.stem} className="size-4" />
       <span>{STEM_PICTURE[subject.stem as Stem]}</span>
     </span>
@@ -421,7 +421,7 @@ function StaleChip() {
 export function EmptyReader() {
   return (
     <div className={`${EMPTY_SLOT} grid min-h-80 place-items-center p-8 text-center`}>
-      <p className="text-[15px] leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐져요.</p>
+      <p className="text-body leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐져요.</p>
     </div>
   );
 }

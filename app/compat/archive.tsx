@@ -40,13 +40,13 @@ export function CompatSummary({ readings }: { readings: readonly ReadingEntry[] 
       className={`${ROW_LINE} flex w-full items-center gap-3 text-left hover:bg-surface-soft active:scale-[0.99]`}
     >
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+        <span className="flex items-center gap-2 text-body font-semibold text-foreground">
           궁합풀이
-          <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-bold tabular-nums text-secondary">
+          <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-surface-sunken px-2 py-0.5 text-fine font-bold tabular-nums text-secondary">
             {summary.count}
           </span>
         </span>
-        <span className="block truncate text-[13px] text-secondary">최근 {pairOf(summary.latest)}</span>
+        <span className="block truncate text-small text-secondary">최근 {pairOf(summary.latest)}</span>
       </span>
       <Icon name="arrow" className="size-4 shrink-0 text-muted" />
     </Link>

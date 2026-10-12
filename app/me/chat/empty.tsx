@@ -16,11 +16,11 @@ import { TYPE_DISPLAY } from '../../ui/surfaces';
  */
 export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
   return (
-    <section className="flex flex-col items-center gap-6 rounded-[2rem] bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
+    <section className="flex flex-col items-center gap-6 rounded-paper bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
       <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem] lg:hidden" />
       <div className="flex max-w-md flex-col gap-2">
         <h2 className={`${TYPE_DISPLAY} lg:text-[1.3rem] lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
-        <p className="text-[15px] leading-6 text-secondary lg:text-[14px] lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
+        <p className="text-body leading-6 text-secondary lg:text-note lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
       </div>
       {hasSelf ? (
         <Link href="/me/matching" className={BUTTON_PRIMARY}>
@@ -40,9 +40,9 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
 /** 넓은 화면에서 아직 방을 안 고른 오른쪽 칸 — 그림과 한 줄. 방이 하나도 없으면(`empty`) 그림만 선다 — 할 말은 왼쪽 판이 든다 */
 export function NoRoomChosen({ empty = false }: { empty?: boolean }) {
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-surface px-6 text-center ring-1 ring-border">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-paper bg-surface px-6 text-center ring-1 ring-border">
       <ChatIllustration className={`h-auto opacity-80 ${empty ? 'w-[16rem]' : 'w-[11rem]'}`} />
-      {!empty && <p className="text-[15px] text-secondary">채팅방을 선택하면 여기에 대화가 표시돼요.</p>}
+      {!empty && <p className="text-body text-secondary">채팅방을 선택하면 여기에 대화가 표시돼요.</p>}
     </section>
   );
 }

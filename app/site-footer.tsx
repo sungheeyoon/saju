@@ -33,7 +33,7 @@ export function SiteFooter({ business }: { business: BusinessInfo }) {
             <Link
               href={link.href}
               aria-current={pathname === link.href ? 'page' : undefined}
-              className="inline-flex min-h-11 items-center text-[13px] font-semibold text-secondary hover:text-foreground aria-[current=page]:text-foreground"
+              className="inline-flex min-h-11 items-center text-small font-semibold text-secondary hover:text-foreground aria-[current=page]:text-foreground"
             >
               {link.label}
             </Link>
@@ -58,8 +58,8 @@ export function SiteFooter({ business }: { business: BusinessInfo }) {
     <footer className="mt-auto border-t border-border">
       <div className="app-shell flex flex-col gap-4 pt-8 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
-          <p className="font-rounded text-[17px] text-foreground">{SERVICE_NAME}</p>
-          <p className="text-[13px] leading-5 text-secondary">{SERVICE_TAGLINE} · 비공개 베타</p>
+          <p className="font-rounded text-lead text-foreground">{SERVICE_NAME}</p>
+          <p className="text-small leading-5 text-secondary">{SERVICE_TAGLINE} · 비공개 베타</p>
         </div>
         {nav}
       </div>
@@ -88,7 +88,7 @@ function BusinessLines({ business, className = '' }: { business: BusinessInfo; c
   if (lines.length === 0 && disclosure === null) return null;
 
   return (
-    <div className={`flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12px] leading-5 text-secondary ${className}`}>
+    <div className={`flex flex-wrap items-baseline gap-x-4 gap-y-1 text-fine leading-5 text-secondary ${className}`}>
       <dl aria-label="사업자 정보" className="contents">
         {lines.map((line) => (
           <div key={line.key} className="flex flex-wrap gap-x-1.5">

@@ -239,7 +239,7 @@ export function ElementChart({ saju }: { saju: Saju }) {
                     <ElementSymbol element={element} className="size-5" />
                   </span>
                   <span className={`glyph text-base font-bold ${ELEMENT_TONE[element].text}`}>{element}</span>
-                  <span className={`text-[13px] font-semibold ${ELEMENT_TONE[element].text}`}>{ELEMENT_KO[element]}</span>
+                  <span className={`text-small font-semibold ${ELEMENT_TONE[element].text}`}>{ELEMENT_KO[element]}</span>
                 </span>
                 {element === strongest && <span className="ml-1.5 text-xs text-muted">최강</span>}
               </td>

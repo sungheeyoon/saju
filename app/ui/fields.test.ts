@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { filesUnder } from './source-files';
+import { filesUnder, lengthPx, scaleTokens } from './source-files';
 
 /**
  * **입력 칸의 글자는 16px 이상이다.** iOS Safari 는 글자가 16px 보다 작은 입력 칸(input · textarea · select)에 초점이
@@ -41,10 +41,18 @@ function openingTags(source: string): { tag: string; line: number }[] {
   return found;
 }
 
+/** 이 앱의 글자 크기 토큰(`text-field` → 16) — `app/globals.css` 의 `@theme inline` 에서 읽는다 */
+const TOKEN_PX: Record<string, number> = Object.fromEntries(
+  Object.entries(scaleTokens().text).flatMap(([name, value]) => {
+    const px = lengthPx(value);
+    return px === null ? [] : [[`text-${name}`, px]];
+  }),
+);
+
 /** 클래스 한 낱의 글자 크기(px). 크기가 아니면 null — `text-secondary` 같은 색은 크기가 아니다 */
 function sizeOf(token: string): number | null {
   const bare = token.split(':').at(-1) ?? token;
-  const named: Record<string, number> = { 'text-xs': 12, 'text-sm': 14, 'text-base': 16, 'text-lg': 18, 'text-xl': 20 };
+  const named: Record<string, number> = { 'text-xs': 12, 'text-sm': 14, 'text-base': 16, 'text-lg': 18, 'text-xl': 20, ...TOKEN_PX };
   if (bare in named) return named[bare];
   const px = /^text-\[(\d+(?:\.\d+)?)px\]$/.exec(bare);
   if (px) return Number(px[1]);

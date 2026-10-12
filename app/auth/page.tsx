@@ -58,7 +58,7 @@ export default async function SignInPage({
       */}
       <ul className="flex flex-col gap-2.5" aria-label="로그인하면">
         {UNLOCKS.map(({ icon, text }) => (
-          <li key={text} className="flex items-center gap-3 text-[15px] leading-6 text-foreground">
+          <li key={text} className="flex items-center gap-3 text-body leading-6 text-foreground">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-cream-ink shadow-card">
               <Icon name={icon} className="size-[18px]" />
             </span>
