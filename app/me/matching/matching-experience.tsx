@@ -1,47 +1,33 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
-import { SAJU_PATH } from '@/src/lib/consent';
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
-import { DISCOVERY_EMPTY, DISCOVERY_TEASER } from '@/src/lib/discovery/copy';
+import { DISCOVERY_TEASER } from '@/src/lib/discovery/copy';
 import { REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/matching/copy';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
-import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
-import { ROW_CARD, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
-import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
-import { outOfCreditsNow } from '../credits/asked-on-press';
-import { useBuyCredits } from '../credits/buy-credits';
-import { announceCreditsMoved, announceIfMoved } from '../reading/credits-signal';
+import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { CandidatePhoto } from './candidate-photo';
-import { elementOf, supplyOf, type DeckCard } from './deck-card';
-import { deckReducer, PASSED_LIMIT } from './deck-state';
+import { supplyOf, type DeckCard } from './deck-card';
 import type { MeMark } from './me-mark';
-import { reducedMotion } from '../../ui/motion';
-import { ApproachMap, Legend, QuietOrbit, type MapStatus } from './orbit-map';
+import { ApproachMap, Legend } from './orbit-map';
 import { PassedConnections } from './passed-connections';
 import { ReportBlock } from '../requests/report-block';
 import { DeckButtons, DeckDots, TodayCard } from './today-card';
 import { DetailSheet, openSheet } from '../../ui/sheet';
-import { FailureLine } from '../../ui/failure-line';
-import { HISTORY_HREF } from './history-href';
 import { Letter } from './letter';
+import { useDeck } from './use-deck';
+import { Feedback } from './deck-feedback';
+import { EmptyDeck } from './empty-deck';
+import { SupplyBody } from './supply-body';
 
 
-// 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
-const CHOICE_HOLD_MS = 100;
-const CARD_EXIT_MS = 360;
-const FLASH_MS = 2000;
 const EMPTY_CARDS: readonly DeckCard[] = [];
-/** 요청 부름이 던졌다 — 서버가 받았는지 모른다. 보낸 요청은 인연 기록에 서므로 줄이 그리로 가는 링크를 단다(G-103) */
-const REQUEST_UNSURE = '요청이 갔는지 확인하지 못했어요. 인연 기록에서 확인해 주세요.';
 
 type View = 'today' | 'passed';
 
@@ -55,9 +41,7 @@ type View = 'today' | 'passed';
   고지는 ⓘ 시트가 든다. **넓은 화면은 두 열이다** — 왼쪽에 같은 카드, 오른쪽에 「내 궤도로 다가오는 인연」 지도와 폰의
   시트가 들던 것을 펼쳐 둔다. 참고 점수 고지는 넓은 화면에서는 목록 머리 한 줄이다.
 
-  동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate` — 카드는 누르는 순간 떠나고 서버가 못 받으면 돌아온다),
-  요청은 확인 창을 지나야 나가며(`requestMatch` — 서버가 받은 뒤에 떠난다),
-  되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`).
+  동작은 옛 덱 그대로다 — 덱의 상태와 누름(넘기기 · 요청 · 되돌리기 · 차단)은 `useDeck` 이 들고, 여기는 그리기만 한다.
 
   **덱은 여섯 자리이고 떠나면 채워진다**(ADR 0115). 넘기거나 요청하면 응답이 실어 온 새 목록에 채운 사람이 뒤에
   붙어 오고, `sync` 가 그 사람을 덱 뒤에 합친다 — 덱을 통째로 다시 세우지 않는다. 새로고침 단추는 없다.
@@ -83,209 +67,18 @@ export function MatchingExperience({
   notice: string | null;
   explorationNote: string | null;
 }) {
-  const [deck, dispatch] = useReducer(deckReducer, {
-    remaining: cards, passed: passedFromServer.slice(0, PASSED_LIMIT), history: [], seen: [],
-  });
-  /*
-    **순번은 덱 안의 자리다** — 덱은 떠난 만큼 채워지므로 「지금까지 본 수 / 전체」가 끝없이 자란다. 지금 사람이 첫
-    자리(`01`)이고 덱에 선 사람이 전체다.
-  */
-  const total = deck.remaining.length;
-  const passed = deck.passed;
-  const hidden = deck.history[0] ?? null;
-  const busy = useRef(false);
+  const {
+    profile, next, remaining, passed, hidden, total, counter, exit, leaving, announcement, flash, failure, working,
+    asking, setAsking, buy, mapCards, statusOf, askToRequest, pass, send, restoreCard, undo, blocked: leaveBlocked,
+  } = useDeck({ cards, passedFromServer });
   const [view, setView] = useState<View>('today');
-  const [exit, setExit] = useState<'left' | 'right' | null>(null);
-  const [leaving, setLeaving] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
-  /**
-   * 눈에 잠깐 서는 한 줄 — 되돌려 온 일 · 요청을 보낸 일. **2초 뒤 걷힌다**(운영자 2026-09-25). 넘긴 일은 눈에 안 띄운다 —
-   * 카드가 빠지는 것이 이미 말하고, 되돌릴 길은 카드 아래 ↶ 다. 보조기기에는 `announcement` 가 늘 읽힌다.
-   */
-  const [flash, setFlash] = useState('');
-  useEffect(() => {
-    if (flash === '') return;
-    const clear = setTimeout(() => setFlash(''), FLASH_MS);
-    return () => clearTimeout(clear);
-  }, [flash]);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** 요청 확인 창이 열렸나 */
-  const [asking, setAsking] = useState(false);
-  const buy = useBuyCredits();
-  const [checkingCredits, setCheckingCredits] = useState(false);
-
-  /**
-   * 하트 — **풀이권이 0개면 요청 확인 창 대신 풀이권 창이다**(`useBuyCredits`). 요청 한 건이 풀이권 한 번을 잡으므로(ADR 0038) 0개인
-   * 사람의 요청은 DB 가 거절한다 — 그 거절을 받으러 확인 창을 지나게 하지 않는다. 잔액은 누를 때 머리글과 같은 문으로 묻는다 —
-   * 화면을 그릴 때 묻지 않는다. 못 물었으면 확인 창이고 DB 가 판정한다.
-   */
-  function askToRequest() {
-    if (checkingCredits) return;
-    setCheckingCredits(true);
-    void (async () => {
-      let spent = false;
-      try {
-        spent = await outOfCreditsNow();
-      } catch {
-        /* 부름이 던졌다(망) — 확인 창으로 간다. 요청을 보내면 DB 가 판정한다 */
-      } finally {
-        setCheckingCredits(false);
-      }
-      if (spent) buy.offer(0);
-      else setAsking(true);
-    })();
-  }
   const sheet = useRef<HTMLDialogElement>(null);
-  const profile = deck.remaining[0];
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-  const received = useRef({ cards, passed: passedFromServer });
-  useEffect(() => {
-    // 재검증 응답은 이동이 끝난 뒤 합친다. 같은 스냅샷의 숨김 해제도 새 카드로 반영한다.
-    if (working || exit || busy.current) return;
-    if (received.current.cards === cards && received.current.passed === passedFromServer) return;
-    received.current = { cards, passed: passedFromServer };
-    dispatch({ type: 'sync', cards, passed: passedFromServer });
-  }, [cards, passedFromServer, working, exit]);
-
-  /**
-   * 카드를 화면에서 떠나보낸다 — 움직임과 알림만 맡는다. 서버에 적는 일은 부르는 쪽이 맡는다 — 요청은 `requestMatch` 가
-   * 끝난 뒤에 부르고, 지나침은 `passCandidate` 를 보내며 함께 부른다(`pass`)
-   */
-  function leave(direction: 'left' | 'right', said: string, id: string) {
-    setExit(direction);
-    if (direction === 'right') setFlash(said);
-    const reduced = reducedMotion();
-    setAnnouncement(said);
-    timer.current = setTimeout(() => {
-      setLeaving(true);
-      timer.current = setTimeout(() => {
-        dispatch({ type: 'leave', id });
-        timer.current = null;
-        setExit(null);
-        setLeaving(false);
-      }, reduced ? 0 : CARD_EXIT_MS);
-    }, reduced ? 0 : CHOICE_HOLD_MS);
-  }
-
-  /** 예약된 이동을 물린다 — 되돌릴 때 이 타이머가 살아 있으면 복원 직후 또 넘어간다 */
-  function cancelLeave() {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    setExit(null);
-    setLeaving(false);
-  }
-
-  /**
-   * **지나침은 누르는 순간 카드를 넘긴다**(ADR 0115 「2026-10-08 덧」, 운영자 2026-10-08). 서버가 받기를 기다리면 저장과 후보를
-   * 다시 그리는 왕복이 끝나야 카드가 움직였다. 서버가 못 받으면 `unpass` 로 그 사람을 맨 앞에 되세우고 실패를 알린다 —
-   * 아직 돌던 이동 타이머도 걷는다(`cancelLeave`). 그러지 않으면 되세운 카드가 타이머에 다시 떠난다.
-   *
-   * **저장이 끝날 때까지 다음 누름은 막는다** — 또 지나치기 · 되돌리기(`restoreCard`) · 다시 만나보기 · 요청 모두
-   * (`busy`, 단추는 `working`). Next 는 서버 액션을 차례로 보내니 순서는 서버에서 지켜지지만, 되돌릴 화면이 꼬인다:
-   * 아직 확인 안 된 지나침 위에 되돌리기가 얹히면 그 지나침이 실패했을 때 되돌리기는 보관함에 없는 사람을 꺼내러 가고,
-   * 지나침이 둘 겹치면 앞의 것이 실패했을 때 뒤의 사람과 차례를 다시 맞춰야 한다. 막으면 실패가 되돌릴 것은 늘 한 사람
-   * 몫(`unpass`)이다. 카드가 떠나는 데 0.46초가 들어 연달아 누르는 빠르기는 어차피 그만큼에 묶인다.
-   */
-  function pass() {
-    if (exit || busy.current || !profile) return;
-    const passing = profile;
-    setFailure(null);
-    busy.current = true;
-    /* 꽉 찬 보관함에서는 지나침이 끝 사람을 밀어낸다 — 실패하면 그 사람까지 되세우게 지나치기 전 목록을 든다 */
-    const before = { passed: deck.passed, history: deck.history };
-    dispatch({ type: 'pass', card: passing });
-    leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
-    const putBack = (message: string) => {
-      cancelLeave();
-      dispatch({ type: 'unpass', card: passing, before });
-      setAnnouncement('');
-      setFailure(message);
-    };
-    startWorking(async () => {
-      try {
-        const result = await passCandidate(passing.candidateUserId);
-        if (!result.ok) putBack(result.message);
-      } catch {
-        putBack('지나친 인연으로 옮기지 못했어요. 잠시 뒤 다시 시도해 주세요.');
-      } finally { busy.current = false; }
-    });
-  }
-
-  /** 하트와 오른쪽 스와이프 모두 확인 창을 거친 뒤에 요청한다. */
-  function send() {
-    if (!profile || busy.current || exit) return;
-    const sending = profile;
-    const finish = () => leave('right', `${sending.nickname} 님에게 상세 궁합을 요청했어요.`, sending.candidateUserId);
-    setFailure(null);
-    busy.current = true;
-    startWorking(async () => {
-      try {
-        const result = await requestMatch(sending.candidateUserId);
-        announceIfMoved(result);
-        /* 잔액을 본 뒤 그 사이 다른 탭에서 마지막 풀이권을 썼다 — 오류 줄 대신 풀이권 창(ADR 0171 「덧」) */
-        if (!result.ok && 'outOfCredits' in result) { announceCreditsMoved(); buy.offer(0); return; }
-        if (!result.ok) { setFailure(result.message); return; }
-        finish();
-      } catch {
-        setFailure(REQUEST_UNSURE);
-      } finally { busy.current = false; }
-    });
-  }
-
-  /** 보관함과 실행 취소가 같은 복원 경로를 사용한다. 실패하면 이력도 그대로 둔다. */
-  async function restoreCard(back: DeckCard): Promise<string | null> {
-    if (busy.current || exit === 'right') return '앞의 작업을 처리하고 있어요. 잠시 뒤 다시 눌러 주세요.';
-    busy.current = true;
-    setFailure(null);
-    let message: string | null = null;
-    await new Promise<void>((resolve) => startWorking(async () => {
-      try {
-        const result = await restorePassed(back.candidateUserId);
-        if (!result.ok) { message = result.message; setFailure(message); return; }
-        cancelLeave();
-        dispatch({ type: 'restore', card: result.card, passed: result.passed });
-        setAnnouncement(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
-        setFlash(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
-      } catch {
-        message = '카드를 되돌리지 못했어요. 잠시 뒤 다시 시도해 주세요.';
-        setFailure(message);
-      } finally { busy.current = false; resolve(); }
-    }));
-    return message;
-  }
-
-  function undo() {
-    if (hidden) void restoreCard(hidden);
-  }
-
-  /**
-   * 카드의 「⋯」로 차단했다 — 그 사람을 덱에서 뺀다(`leave` 는 `seen` 에도 적어 뒤에 오는 서버 목록이 다시 세우지 않는다).
-   * 서버도 차단한 사람을 후보에서 거르고 응답이 이 화면을 다시 그리지만, 그때까지 그 얼굴이 서 있으면 안 된다.
-   */
+  /** 차단했다 — 열려 있던 ⓘ 시트를 닫고 덱에서 뺀다 */
   function blocked(card: DeckCard) {
     sheet.current?.close();
-    dispatch({ type: 'leave', id: card.candidateUserId });
-    const said = `${card.nickname} 님을 차단했어요.`;
-    setAnnouncement(said);
-    setFlash(said);
+    leaveBlocked(card);
   }
-
-  /*
-    **지도는 덱과 같은 상태를 읽는다.** 오늘 받은 사람에 되돌려 온 사람을 더한 것이 궤도 위의 사람이고,
-    떠나는 중인 카드는 이미 떠난 쪽으로 움직인다.
-  */
-  const mapCards = [...cards, ...deck.remaining.filter((card) => !cards.some((one) => one.candidateUserId === card.candidateUserId))];
-  const statusOf = (card: DeckCard): MapStatus => {
-    if (card.candidateUserId === profile?.candidateUserId) {
-      return exit === 'left' ? 'passed' : exit === 'right' ? 'requested' : 'current';
-    }
-    if (deck.remaining.some((one) => one.candidateUserId === card.candidateUserId)) return 'waiting';
-    return passed.some((one) => one.candidateUserId === card.candidateUserId) ? 'passed' : 'requested';
-  };
-  const counter = `${String(Math.min(1, total)).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
 
   /** 되돌릴 한 줄 · 실패 · 방금 한 일 — 한 화면에 한 자리에만 선다 */
   const feedback = (
@@ -352,13 +145,13 @@ export function MatchingExperience({
             {view === 'today' ? <Icon name="undo" className="size-4" /> : <Icon name="heart" className="size-4" />}
             {view === 'today' ? '지나친 인연' : '오늘의 인연'}
             <span className="tabular-nums text-secondary">
-              {view === 'today' ? passed.length : deck.remaining.length}
+              {view === 'today' ? passed.length : remaining.length}
               <span className="sr-only">명</span>
             </span>
           </button>
         </div>
         <div role="group" aria-label="보기" className="hidden grid-cols-2 gap-1 rounded-full bg-surface p-1 ring-1 ring-border sm:grid">
-          <ViewButton on={view === 'today'} onClick={() => setView('today')} icon="heart" label="오늘의 인연" count={deck.remaining.length} />
+          <ViewButton on={view === 'today'} onClick={() => setView('today')} icon="heart" label="오늘의 인연" count={remaining.length} />
           <ViewButton on={view === 'passed'} onClick={() => setView('passed')} icon="undo" label="지나친 인연" count={passed.length} />
         </div>
       </header>
@@ -425,7 +218,7 @@ export function MatchingExperience({
           >
             <TodayCard
               profile={profile}
-              next={deck.remaining[1]}
+              next={next}
               exit={exit}
               leaving={leaving}
               feedback={cardFeedback}
@@ -544,46 +337,6 @@ function todayLabel(): string {
   return new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'Asia/Seoul' });
 }
 
-/** 채워 주는 기운 — 상징 + 이름 + 문장. 색 혼자 말하지 않고, 색은 상징의 동그라미에만 둔다 */
-function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
-  return (
-    <>
-      <p className="text-small font-bold text-foreground">이 사람이 채워 주는 기운</p>
-      {card.highlights.length > 0 ? (
-        <ul className="flex flex-col gap-2.5">
-          {card.highlights.map((highlight) => (
-            <Supply key={highlight.element} element={highlight.element} text={highlight.text} />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-note leading-6 text-foreground">{card.reason}</p>
-      )}
-      <p className="text-small leading-5 text-secondary">{card.balanceLabel}</p>
-      {card.exploration && explorationNote !== null && (
-        <p className="flex gap-1.5 border-t border-border pt-3 text-fine leading-5 text-secondary">
-          <Icon name="spark" className="mt-0.5 size-3.5 shrink-0 text-foreground" />
-          {explorationNote}
-        </p>
-      )}
-    </>
-  );
-}
-
-function Supply({ element, text }: { element: string; text: string }) {
-  const known = elementOf(element);
-  return (
-    <li className={`${elementScope(known)} flex items-center gap-3`}>
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] ring-1 ring-[color-mix(in_srgb,var(--ink)_20%,transparent)]">
-        <ElementSymbol element={known} className="size-6" />
-      </span>
-      <span className="flex min-w-0 flex-col">
-        {known !== null && <span className="font-rounded text-[1.125rem] leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
-        <span className="text-note leading-5 text-foreground">{text}</span>
-      </span>
-    </li>
-  );
-}
-
 function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick: () => void; icon: IconName; label: string; count: number }) {
   return (
     <button
@@ -607,113 +360,3 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
     </button>
   );
 }
-
-/**
- * 누른 뒤의 한 줄 — 되돌릴 길(덱이 빈 뒤 · 지나친 인연), 실패, 방금 한 일(2초). 확인 창을 띄우지 않고 둔 다음에 알린다.
- * 한 화면에 한 자리에만 선다(카드 위 · 빈 날 · 지나친 인연).
- */
-function Feedback({
-  onCard = false,
-  undo,
-  working,
-  failure,
-  announcement,
-  flash,
-}: {
-  /**
-   * 사진 · 큰 첫 글자 위에 뜨는 자리 — 실패 줄을 줄 카드(`ROW_CARD`) 상자에 담는다. 맨 글자로 서면 배경 글자와 겹쳐 안 읽혔다
-   * (운영자 시안 선택 2026-10-11). 그림자는 카드 위 자리가 단다. 공용 `FailureLine` 은 상자 없이 그대로다
-   */
-  onCard?: boolean;
-  undo: (() => void) | null;
-  working: boolean;
-  failure: string | null;
-  announcement: string;
-  flash: string;
-}) {
-  return (
-    <>
-      {undo !== null && (
-        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-row bg-surface px-4 py-1 text-note font-medium text-foreground ring-1 ring-border">
-          <span className="py-2">지나친 인연에 보관했어요</span>
-          <button type="button" onClick={undo} disabled={working} className={BUTTON_TERTIARY}>
-            실행 취소
-          </button>
-        </p>
-      )}
-      {failure !== null && (
-        <FailureLine
-          className={onCard ? ROW_CARD : ''}
-          action={
-            failure === REQUEST_UNSURE ? (
-              <Link href={HISTORY_HREF} className={BUTTON_TERTIARY}>
-                인연 기록 보기
-              </Link>
-            ) : undefined
-          }
-        >
-          {failure}
-        </FailureLine>
-      )}
-      {/* 한 줄이 둘을 한다 — 보조기기에는 늘 읽히고, 눈에는 잠깐(`flash`)만 선다 */}
-      <p
-        role="status"
-        className={
-          flash !== '' && flash === announcement
-            ? 'self-center rounded-full bg-surface px-3 py-1.5 text-center text-small font-medium text-foreground ring-1 ring-border'
-            : 'sr-only'
-        }
-      >
-        {announcement}
-      </p>
-    </>
-  );
-}
-
-/**
- * 소개할 사람이 없다 — 아무도 다가오지 않는 작은 궤도.
- *
- * 덱은 떠난 만큼 채워지므로(ADR 0115) 비는 것은 **풀에 더 올 사람이 없을 때뿐**이다. 「다 만났다」와 새로고침 단추는
- * 걷었다 — 기다려서 받을 새 목록이 따로 없다.
- */
-function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
-  /*
-    **넓은 화면에서는 카드 한 장 높이를 지킨다**(화면 점검 2026-10-09 C9) — 카드(4:5)와 단추 줄을 합친 약 37rem 이다. 뼈대
-    (`loading.tsx`)는 카드 모양이라, 판이 300px 로 접히면 불러오는 순간 화면이 반으로 줄었다. 사람이 적은 베타에서는 빈 쪽이 흔하다.
-    내용은 그 높이의 가운데 선다. 폰은 판의 내용이 이미 카드 자리를 거의 채운다.
-  */
-  return (
-    <section className="grid items-center gap-6 rounded-paper bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10 lg:min-h-[37rem]">
-      <QuietOrbit me={me} />
-      <div className="flex min-w-0 flex-col items-start gap-5">
-        <div className="flex flex-col gap-2">
-          <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-headline">
-            {DISCOVERY_EMPTY.title}
-          </h2>
-          <p className="max-w-prose text-body leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
-        </div>
-        <nav aria-label="바로가기" className="grid w-full gap-2 sm:grid-cols-2">
-          {MEANWHILE.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
-            >
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
-                <Icon name={link.icon} />
-              </span>
-              <span className="min-w-0 flex-1">{link.label}</span>
-              <Icon name="arrow" className="size-4 text-secondary group-hover:translate-x-0.5" />
-            </Link>
-          ))}
-        </nav>
-        <div className="flex w-full flex-col gap-2">{feedback}</div>
-      </div>
-    </section>
-  );
-}
-
-const MEANWHILE: readonly { href: string; label: string; icon: IconName; element: Element }[] = [
-  { href: SAJU_PATH, label: '다른 사람 사주 보기', icon: 'search', element: '水' },
-  { href: '/compat', label: '궁합 보러 가기', icon: 'taiji', element: '火' },
-];
