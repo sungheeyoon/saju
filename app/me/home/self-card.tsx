@@ -91,7 +91,7 @@ export function SelfCard({
         </div>
         {reading?.metaphor != null && (
           /* 줄인 판은 폰에서 한 줄로 자른다 — 두 줄로 꺾이면 아래 저장한 사람 머리가 첫 화면 밖으로 나간다 */
-          <p className={`font-rounded text-[1.0625rem] leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}>
+          <p className={`font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}>
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
             {reading.metaphor}

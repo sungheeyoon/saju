@@ -93,7 +93,7 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
   return (
     <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
       {/* 제목 아래 설명 줄은 걷었다(운영자 2026-10-09) — 제목만 서고, 탭과의 틈은 위 여백(pt-5 · sm:pt-9)과 맞춘다 */}
-      <h1 className="px-1 font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-headline">
+      <h1 className="px-1 font-rounded text-section leading-[1.3] tracking-[-0.02em] text-foreground sm:text-headline">
         나는 어떤 사람일까?
       </h1>
       <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 sm:mt-6 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
@@ -108,7 +108,7 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
             tabIndex={entry === id ? 0 : -1}
             onClick={() => onEntry(id)}
             onKeyDown={onKeyDown}
-            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[0.75rem] px-2 text-body font-semibold active:scale-[0.98] ${
+            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-body font-semibold active:scale-[0.98] ${
               entry === id ? 'bg-surface text-foreground shadow-card' : 'text-secondary'
             }`}
           >
