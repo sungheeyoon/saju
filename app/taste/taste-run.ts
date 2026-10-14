@@ -32,6 +32,7 @@ import type { Reserved, TasteFinish } from './keyed-taste';
 import type { TasteClaim } from './keyed-taste-claims';
 import type { ModelCall } from '../me/reading/generator';
 import type { Visitor } from './taste-visitor';
+import { LOWERCASE_UUID } from '../uuid';
 
 /**
  * **로그인 전 사주 문단 한 번** — 받은 입력에서 근거와 지문을 서버가 짓고, 예약하고, 필요하면 모델을 부르고, 결과를
@@ -279,14 +280,12 @@ export async function viewTaste(
   sessionId: string,
   hands: Pick<TasteHands, 'view'> & { browserHmac: () => Promise<string | null> },
 ): Promise<TasteAnswer> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(sessionId)) return TASTE_CLOSED;
+  if (!LOWERCASE_UUID.test(sessionId)) return TASTE_CLOSED;
   const browserHmac = await hands.browserHmac();
   if (browserHmac === null) return TASTE_CLOSED;
   const view = await hands.view(sessionId, browserHmac);
   return view.ok ? answerOfView(view.value, sessionId) : TASTE_CLOSED;
 }
-
-const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** 귀속의 손잡이 — 서버 액션(`claimTaste`)이 진짜를, 시험이 가짜를 넣는다 */
 export type TasteClaimHands = {
@@ -328,7 +327,7 @@ export async function claimTasteWith(sessionId: string, hands: TasteClaimHands):
     return 'terminal';
   };
 
-  if (typeof sessionId !== 'string' || !SESSION_ID.test(sessionId)) return terminal();
+  if (typeof sessionId !== 'string' || !LOWERCASE_UUID.test(sessionId)) return terminal();
   if (!hands.secretsReady()) return terminal();
 
   let browserHmac: string | null;
