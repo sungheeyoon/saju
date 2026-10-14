@@ -1,5 +1,7 @@
 'use client';
 
+import { SIGN_OUT_PENDING } from '@/src/lib/account/copy';
+
 import { useSignOut } from '../auth/sign-out';
 import { FailureLine } from '../ui/failure-line';
 
@@ -20,7 +22,7 @@ export function SignOutLink() {
         onClick={signOut}
         className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] hover:text-foreground hover:decoration-foreground disabled:opacity-55"
       >
-        {leaving ? '로그아웃하는 중…' : '다른 계정으로 로그인하기'}
+        {leaving ? SIGN_OUT_PENDING : '다른 계정으로 로그인하기'}
       </button>
       {failure && (
         <FailureLine className="px-1">{failure}</FailureLine>

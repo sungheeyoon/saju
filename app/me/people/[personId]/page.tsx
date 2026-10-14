@@ -14,12 +14,13 @@ import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
 import { elementScope } from '../../../ui/element-tone';
-import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../../ui/buttons';
+import { BUTTON_ON_TILE_FACE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
 import { DayMasterChip } from '../chart-bits';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { compatHrefFor } from '../compat-href';
+import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 
 export const metadata = {
   title: '사주 상세',
@@ -119,9 +120,9 @@ export default async function PersonSajuPage({
               여기다. 궁합의 첫 걸음(`/compat`)이 **이 사람이 앉은 채** 열린다 — 내 사주가 있으면
               나 × 이 사람으로 두 칸이 다 찬다(`compatHrefFor`, 주소에는 person id 만).
             */}
-            <Link href={compatHrefFor(selfPersonId, person.personId)} className={`${BUTTON_ON_TILE} px-4`}>
+            <Link href={compatHrefFor(selfPersonId, person.personId)} className={`${BUTTON_ON_TILE_FACE} px-4`}>
               <Icon name="taiji" className="size-4" />
-              궁합 보러 가기
+              {COMPAT_ENTRY_LABEL}
             </Link>
           </div>
         </div>

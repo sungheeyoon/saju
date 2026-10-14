@@ -22,3 +22,9 @@ export const SELF_READING_MAKING = `풀이 ${READING_MAKING}`;
  * 운영자 결정 2026-10-09.
  */
 export const TILE_READING_MAKING = '풀이 중…';
+
+/**
+ * 다 만든 풀이에 비유 한 줄이 없을 때 그 자리에 서는 말 — 홈의 저장한 사람 타일 · 저장한 사람 목록의 카드 · 사주풀이 책장의
+ * 표지가 같이 쓴다. 아무것도 import 하지 않는 이 파일에 둔다(위 머리말 — 타일은 브라우저에서도 그려진다)
+ */
+export const READING_CONTINUE_NOTE = '만들어 둔 풀이를 이어서 읽어보세요';

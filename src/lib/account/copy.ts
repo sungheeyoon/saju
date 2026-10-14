@@ -24,3 +24,6 @@ export const BETA_SIGNUP_CODE_NOTE =
  * 계정 관리 맨 위 「나」 줄 끝(사진이 없을 때만)이 같은 글자를 쓴다. 사진은 선택이라 권유 화면 · 알림은 없다(대장 47).
  */
 export const PHOTO_ADD = '사진 추가';
+
+/** 로그아웃을 누른 뒤 끝날 때까지 그 단추 · 링크 자리의 글자 — 머리글의 계정 메뉴 · 계정 관리 · 가입 화면의 다른 계정 링크가 같이 쓴다 */
+export const SIGN_OUT_PENDING = '로그아웃하는 중…';

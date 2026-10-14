@@ -11,7 +11,8 @@ import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
-import { READING_MAKING } from '../../home/making';
+import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
+import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
@@ -340,7 +341,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
       ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const, icon: 'reading' as const }
       : { href: '/me', label: '내 사주 등록하기', element: '木' as const, icon: 'reading' as const },
     { href: '/me/people', label: '저장한 사람 보기', element: '土' as const, icon: 'people' as const },
-    { href: '/compat', label: '궁합 보러 가기', element: '火' as const, icon: 'taiji' as const },
+    { href: '/compat', label: COMPAT_ENTRY_LABEL, element: '火' as const, icon: 'taiji' as const },
   ];
   return (
     <section className={`${PAPER} flex flex-col gap-6`}>
@@ -387,7 +388,7 @@ function Metaphor({ text, lines, small = false }: { text: string | null; lines: 
       className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-note leading-[1.35] sm:text-lead sm:leading-[1.5]' : 'text-lead leading-[1.5]'}`}
     >
       {text === null ? (
-        <span className="font-sans text-small text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>
+        <span className="font-sans text-small text-secondary">{READING_CONTINUE_NOTE}</span>
       ) : (
         <>
           <span aria-hidden="true">“</span>

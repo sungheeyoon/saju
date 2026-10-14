@@ -13,7 +13,7 @@ import {
 } from '@/src/lib/reading/bundle';
 
 import { actionAnswer } from '../../ui/action-answer';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY_FACE } from '../../ui/buttons';
 import { FailureLine } from '../../ui/failure-line';
 import { TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { openReadingOrder } from './actions';
@@ -158,7 +158,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
             시행일)로부터 1년이 지나면 소멸됩니다.
           </li>
         </ul>
-        <Link href="/refund" className={`${BUTTON_TERTIARY} self-start text-fine font-medium text-secondary`}>
+        <Link href="/refund" className={`${BUTTON_TERTIARY_FACE} self-start text-fine font-medium text-secondary`}>
           자세히 알아보기
         </Link>
       </div>
