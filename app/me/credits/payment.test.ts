@@ -41,7 +41,7 @@ describe('결제 뒤 화면의 갈래 (G-21, ADR 0171)', () => {
   });
 
   it('승인된 주문은 환불이 섞였어도 결제를 마친 것이다', () => {
-    for (const status of ['approved', 'partially_refunded', 'refunded']) {
+    for (const status of ['approved', 'partially_refunded', 'refunded'] as const) {
       expect(paymentOutcomeOf(back, { status })).toBe('paid');
     }
   });

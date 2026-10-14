@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  READING_ALREADY_RUNNING_NOTE,
-  READING_FAILED_NOTE,
-  READING_FIRST_FAILED_NOTE,
-  READING_UNEXPECTED_NOTE,
-} from '@/src/lib/reading';
+import { type LastRun, READING_ALREADY_RUNNING_NOTE, READING_FAILED_NOTE, READING_FIRST_FAILED_NOTE, READING_UNEXPECTED_NOTE } from '@/src/lib/reading';
 
 import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 
-import type { CurrentReading, LastRun } from './current';
+import type { CurrentReading } from './current';
 import {
   afterAsking,
   afterPress,

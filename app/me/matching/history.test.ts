@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { FOCUS_CENTER } from '@/src/lib/profile';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import type { InboxMatch, InboxRequest } from '../requests/inbox';
 import { acceptedMatchOf, historySummary, makingMatches, matchBooks, pastRequests } from './history';
 

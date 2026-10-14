@@ -1,8 +1,7 @@
-import { READING_KINDS } from '@/src/lib/reading';
+import { READING_KINDS, type RunProgress } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import type { RunProgress } from '../reading/current';
 import type { ReadingTarget } from '../reading/target';
 
 /**

@@ -6,7 +6,7 @@ import { TYPE_SECTION } from '../../ui/surfaces';
 import { bookOf } from '../(shelf)/readings/book';
 import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 import { BlankBook, SingleCover } from '../(shelf)/readings/shelf';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 

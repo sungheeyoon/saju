@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { rpcArgs, type Database } from '@/src/lib/db';
 
 import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
+import { orderStatusOf, type OrderStatus } from './order-status';
 
 /**
  * **풀이권 상품 화면이 읽는 문 둘** (G-21, ADR 0171).
@@ -23,7 +24,8 @@ export async function mySaleIsOpen(client: SupabaseClient<Database>): Promise<Sk
   return read(data === true);
 }
 
-export type MyOrder = { readonly status: string; readonly credits: number; readonly amount: number };
+/** `status` 는 모르는 값이면 `null` 이다(`orderStatusOf`) */
+export type MyOrder = { readonly status: OrderStatus | null; readonly credits: number; readonly amount: number };
 
 /**
  * 내 주문 하나 — 결제 뒤 화면의 본체.
@@ -35,5 +37,5 @@ export async function myOrder(client: SupabaseClient<Database>, orderId: string)
   const { data, error } = await client.rpc('my_reading_order', rpcArgs<'my_reading_order'>({ p_order_id: orderId }));
   if (error) throw dbFailure(error, 'my_reading_order');
   const row = (data ?? [])[0];
-  return row === undefined ? null : { status: row.status, credits: row.bundle_credits, amount: row.amount };
+  return row === undefined ? null : { status: orderStatusOf(row.status), credits: row.bundle_credits, amount: row.amount };
 }

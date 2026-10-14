@@ -1,7 +1,6 @@
-import { READING_NOUN } from '@/src/lib/reading';
+import { READING_NOUN, type ReadingEntry } from '@/src/lib/reading';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
-import type { ReadingEntry } from '../../reading/current';
 import { readingDate, readingHref, readingTitle } from '../../reading/line';
 import type { DayMaster } from './subject';
 

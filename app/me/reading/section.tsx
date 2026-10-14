@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { isSolo, selfSectionTitlesOf } from '@/src/lib/reading';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
-import { currentReading, improvementConsented, lastReadingRun, readingCredits, type CurrentReading } from './current';
+import { supabaseOnServer } from '../../auth/server-client';
+import { readReadingCredits } from '../credits/remaining';
+import { currentReading, improvementConsented, lastReadingRun, type CurrentReading } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './target';
 import type { TasteCarryView } from '../../taste/taste-carry';
@@ -79,7 +81,7 @@ export async function ReadingSection({
   const [reading, run, credits, consented] = await Promise.all([
     preloaded === undefined ? currentReading(target) : preloaded,
     lastReadingRun(target),
-    readingCredits(),
+    supabaseOnServer().then(readReadingCredits),
     improvementConsented(),
   ]);
 

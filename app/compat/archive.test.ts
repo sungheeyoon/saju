@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReadingEntry } from '../me/reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { COMPAT_SHELF_HREF, compatSummary, pairOf } from './archive';
 
 /**

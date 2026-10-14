@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { announceIfMoved } from '../reading/credits-signal';
+import { announceIfMoved } from '../credits/credits-signal';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from './unread-signal';

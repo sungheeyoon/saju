@@ -1,6 +1,4 @@
 import { createHmac, randomUUID } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -185,19 +183,10 @@ describe('결제 알림의 문 (G-23 ⑥)', () => {
 });
 
 describe('가맹점 주문 번호 (G-23 ⑥)', () => {
+  /** DB 가 실제로 그 모양으로 짓는지는 pgTAP `93_my_reading_orders` 가 `open_reading_order` 를 불러 잰다 */
   it("주문 id 는 open_reading_order 의 'rdo_' || replace(id, '-', '') 를 거꾸로 푼 것이다", () => {
     const id = randomUUID();
     expect(orderIdOf(`rdo_${id.replaceAll('-', '')}`)).toBe(id);
-  });
-
-  it('주문 번호를 짓는 마지막 정의가 그 모양을 쓴다 — DB 가 모양을 바꾸면 여기가 붉다', () => {
-    const dir = resolve(__dirname, '../../../../supabase/migrations');
-    const last = readdirSync(dir)
-      .filter((file) => readFileSync(join(dir, file), 'utf8').includes('function public.open_reading_order('))
-      .sort()
-      .at(-1);
-    expect(last).toBeDefined();
-    expect(readFileSync(join(dir, last ?? ''), 'utf8')).toContain("'rdo_' || replace(g.id::text, '-', '')");
   });
 
   it('그 모양이 아니면 우리 주문이 아니다', () => {

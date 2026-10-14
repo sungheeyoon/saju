@@ -12,7 +12,8 @@ import { PAPER, TYPE_DISPLAY, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfa
 import { MakingShelf, PairCover } from '../../(shelf)/readings/shelf';
 import { readAccount } from '../../account';
 import { AccountNotice } from '../../account-notice';
-import { myReadings, type ReadingEntry } from '../../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
+import { myReadings } from '../../reading/current';
 import { matchesForViewer, requestsForViewer, type InboxMatch, type Requests } from '../../requests/inbox';
 import { makingMatches, matchBooks, pastRequests } from '../history';
 import { COUNT_CHIP } from '../history-row';

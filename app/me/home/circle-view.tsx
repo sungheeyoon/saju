@@ -6,7 +6,7 @@ import type { PersonSlots } from '@/src/lib/people';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_SECTION } from '../../ui/surfaces';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import type { Circle } from './circle';
 import { compatHrefOf, pairWithSelf, readingOf, type HomePerson } from './map/model';
 import { PersonTile } from './person-tile';

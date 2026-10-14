@@ -3,13 +3,15 @@
 import type { ReactNode } from 'react';
 
 import { READING_REPLACES_NOTE, readingNoneNote, READING_USES_TICKET_NOTE } from '@/src/lib/reading/notes';
+import type { RunProgress } from '@/src/lib/reading';
 import type { Element } from '@/src/lib/saju';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { TYPE_NAME } from '../../ui/surfaces';
-import type { CurrentReading, ReadingCredits, RunProgress } from './current';
+import type { ReadingCredits } from '../credits/remaining';
+import type { CurrentReading } from './current';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { READING_COLUMN } from './markdown';

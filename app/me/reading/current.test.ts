@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readUnreadNotifications } from '../requests/unread';
-import { myReadings, readingCredits } from './current';
+import { myReadings } from './current';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
@@ -74,32 +74,8 @@ describe('표지의 일간', () => {
   });
 });
 
+/** 풀이권(부속 정보)의 같은 갈래는 `app/me/credits/remaining.test.ts` 가 잰다 */
 describe('부속 정보는 값으로 말한다', () => {
-  it('풀이권을 못 읽으면 던지지 않고 못 읽었다고 답한다', async () => {
-    answering(BROKEN);
-
-    const credits = await readingCredits();
-
-    expect(credits.ok).toBe(false);
-  });
-
-  /** 화면은 이 자리만 생략한다 — 그러려면 까닭이 값으로 와야 한다 */
-  it('못 읽은 까닭이 사용자 문장으로 실린다', async () => {
-    answering(BROKEN);
-
-    const credits = await readingCredits();
-
-    expect(credits.ok === false && credits.reason).toBe(
-      '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
-    );
-  });
-
-  it('문이 성공했고 행이 없으면 「읽었고 값이 없다」다', async () => {
-    answering({ data: [], error: null });
-
-    expect(await readingCredits()).toEqual({ ok: true, value: null });
-  });
-
   /**
    * **0 과 「모른다」는 다른 값이다.**
    *

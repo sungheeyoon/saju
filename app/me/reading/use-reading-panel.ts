@@ -2,11 +2,11 @@
 
 import { useEffect, useReducer, useRef, useState, useTransition } from 'react';
 
+import type { RunProgress } from '@/src/lib/reading';
 import { READING_NOUN, readingCreditsNote } from '@/src/lib/reading/notes';
 
 import { generateReading, markReadingReadyRead, readingRunState, skipTasteCarry } from './actions';
-import { announceCreditsMoved } from './credits-signal';
-import type { CurrentReading, ReadingCredits, RunProgress } from './current';
+import type { CurrentReading } from './current';
 import { progressSoFar } from './outline';
 import { panelChrome } from './panel-chrome';
 import { watchRun, type PageVisibility } from './watch-run';
@@ -30,6 +30,8 @@ import {
 import type { ReadingTarget } from './target';
 import type { TasteCarryView } from '../../taste/taste-carry';
 import { useBuyCredits } from '../credits/buy-credits';
+import { announceCreditsMoved } from '../credits/credits-signal';
+import type { ReadingCredits } from '../credits/remaining';
 
 /** 이 탭이 보이는가 — 지켜보는 고리(`watchRun`)가 숨긴 탭에서 쉬게 */
 const documentVisibility: PageVisibility = {
