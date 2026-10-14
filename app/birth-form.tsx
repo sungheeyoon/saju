@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   CALENDARS,
@@ -14,21 +14,29 @@ import {
   type LateNightRule,
 } from '@/src/lib/saju';
 
-import { dateRefusal, solarDateOf } from '@/src/lib/input/chart';
+import { dateRefusal } from '@/src/lib/input/chart';
 import {
   DEFAULT_QUERY,
   HOUR_UNKNOWN_CHOICE,
   NAME_MAX,
   TIME_BASES,
   TIME_BASIS,
-  birthYearRangeOf,
-  dateEntryRefusal,
   type DatePart,
   type Query,
 } from '@/src/lib/input/query';
 
 import { Icon } from './ui/icons';
 import styles from './birth-form.module.css';
+import { ChoiceField, DigitsField, SelectField, cx } from './birth-choices';
+import {
+  convertedLine,
+  dateOfParts,
+  digitOutOfRange,
+  limitsOf,
+  splitDate,
+  splitTime,
+  timeOfParts,
+} from './birth-entry';
 
 /**
  * 생년월일시 입력 한 벌.
@@ -55,7 +63,7 @@ import styles from './birth-form.module.css';
 
 /**
  * 폼은 **칸 모양 한 벌**이고 이 폼을 쓰는 화면이 전부 같은 칸이다(ADR 0132 덧). 치수는 `birth-form.module.css` 머리에
- * 한 벌로 적혀 있다.
+ * 한 벌로 적혀 있다. 칸 모양 셋은 `birth-choices.tsx`, 숫자가 날짜 · 시각이 되는 규칙은 `birth-entry.ts` 에 산다.
  *
  * - **고르는 칸**(성별 · 달력 · 출생 시각)은 선택지가 펼침 없이 다 보인다 — 처음 오는 사람이 눌러 펼쳐 봐야 무엇을 고르는지
  *   아는 것보다 낫다(`ChoiceField`).
@@ -64,260 +72,6 @@ import styles from './birth-form.module.css';
  */
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
-
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
-type Option<T extends string> = { value: T; label: string; hint?: string };
-
-/** 여러 클래스를 잇는다 — 빈 것은 뺀다 */
-const cx = (...names: (string | false | undefined)[]) => names.filter(Boolean).join(' ');
-
-/**
- * 고르는 칸 — **선택지가 다 보이는 진짜 라디오 묶음**이다.
- *
- * 단추에 `role="radio"` 를 달면 화살표 이동과 한 번에 하나라는 규칙을 우리가 다시 짜야 한다 — 라디오는 브라우저가 그것을
- * 이미 안다. 라디오는 보이지 않게 칸 전체를 덮고(눌리는 것도 초점을 받는 것도 라디오다), 초점 고리는 칸이 대신 두른다.
- *
- * 이름표의 자리는 셋이다 — 칸 위(성별), 눈에는 안 보이고 낭독기만 읽음(달력 — 날짜 바로 밑이라 다시 세우지 않는다),
- * 왼쪽 이름표 단(출생 시각).
- */
-function ChoiceField<T extends string>({
-  label,
-  name = label,
-  options,
-  value,
-  onPick,
-  labelAt = 'above',
-  groupStart = false,
-}: {
-  label: string;
-  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
-  name?: string;
-  options: readonly Option<T>[];
-  /** 빈 문자열이면 아직 안 골랐다 — 켜진 선택지가 없다 */
-  value: T | '';
-  onPick: (value: T) => void;
-  labelAt?: 'above' | 'hidden' | 'rail';
-  /** 묶음이 새로 시작하는 자리인가 — 위를 20px 띄운다 */
-  groupStart?: boolean;
-}) {
-  const id = useId();
-  const current = options.find((option) => option.value === value);
-
-  return (
-    <fieldset
-      className={cx(
-        styles.choice,
-        labelAt === 'hidden' && styles.attached,
-        labelAt === 'rail' && styles.railed,
-        groupStart && styles.groupStart,
-      )}
-    >
-      <legend className={styles.label}>{label}</legend>
-      <div role="radiogroup" aria-label={name} className={styles.options}>
-        {options.map((option) => (
-          <label key={option.value} className={styles.option}>
-            <input
-              type="radio"
-              name={id}
-              aria-label={option.label}
-              checked={option.value === value}
-              onChange={() => onPick(option.value)}
-            />
-            <span>{option.label}</span>
-          </label>
-        ))}
-      </div>
-      {current?.hint && <p className={styles.choiceHint}>{current.hint}</p>}
-    </fieldset>
-  );
-}
-
-/**
- * 펼치는 칸 — 누르면 그 자리에서 아래로 목록이 펼쳐지고, 고른 항목에 체크(✓), 고르면 접힌다.
- *
- * 칸은 `button` + `aria-expanded` 이고(이름은 「칸 이름 + 지금 값」), 펼친 목록은 고르는 칸과 같은 **진짜 라디오 묶음**이다.
- * 꺾쇠는 닫힘 아래 · 열림 위.
- *
- * **손으로 고르면 접히고 키보드로 옮기면 안 접힌다.** 화살표는 고르면서 옮기므로, 옮길 때마다 접으면 두 번째 항목에
- * 닿을 수 없다. 키보드로는 Enter 로 접는다 — 접히면 초점은 칸으로 돌아간다.
- */
-function SelectField<T extends string>({
-  label,
-  name = label,
-  options,
-  value,
-  open,
-  onToggle,
-  onPick,
-  disabled = false,
-}: {
-  label: string;
-  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「자시」 → 「자시 규칙」) */
-  name?: string;
-  options: readonly Option<T>[];
-  value: T;
-  open: boolean;
-  onToggle: () => void;
-  onPick: (value: T) => void;
-  disabled?: boolean;
-}) {
-  const id = useId();
-  const toggle = useRef<HTMLButtonElement>(null);
-  const current = options.find((option) => option.value === value);
-
-  const close = () => {
-    onToggle();
-    toggle.current?.focus();
-  };
-
-  return (
-    <div className={styles.select}>
-      <button
-        ref={toggle}
-        type="button"
-        aria-expanded={open}
-        aria-controls={id}
-        disabled={disabled}
-        onClick={onToggle}
-        className={styles.selectButton}
-      >
-        <span className={styles.rail}>{label}</span>
-        <span className={styles.selectBox}>
-          <span className={styles.selectValue}>{current?.label ?? '–'}</span>
-          <Icon name="chevron" className={`${styles.chevron} ${open ? '-rotate-90' : 'rotate-90'}`} />
-        </span>
-      </button>
-
-      {open && (
-        <div id={id} role="radiogroup" aria-label={name} className={styles.menu}>
-          {options.map((option) => {
-            const checked = option.value === value;
-            return (
-              <label key={option.value} className={styles.menuItem}>
-                <input
-                  type="radio"
-                  name={id}
-                  aria-label={option.label}
-                  checked={checked}
-                  onChange={() => onPick(option.value)}
-                  onClick={(event) => {
-                    // 손(마우스 · 터치)의 누름만 `detail` 이 1 이상이다 — 화살표로 옮긴 것은 0 이라 안 접는다
-                    if (event.detail > 0) close();
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') return;
-                    event.preventDefault();
-                    onPick(option.value);
-                    close();
-                  }}
-                />
-                <span className={checked ? styles.menuChecked : undefined}>{option.label}</span>
-                {option.hint && <span className={styles.menuHint}>{option.hint}</span>}
-                <span className={styles.menuCheck}>{checked && <Icon name="check" className="size-4 stroke-3" />}</span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * 숫자 칸 한 줄 — 이름표 아래(생년월일)나 왼쪽 이름표 단 옆(시각)에 칸들이 폭을 나눠 선다.
- */
-function DigitsField({
-  label,
-  hint,
-  rail = false,
-  groupStart = false,
-  children,
-}: {
-  label: string;
-  /** 이름표의 덧말(「24시간」) */
-  hint?: string;
-  /** 이름표가 왼쪽 이름표 단에 서는가 */
-  rail?: boolean;
-  groupStart?: boolean;
-  children: React.ReactNode;
-}) {
-  const id = useId();
-  return (
-    <div role="group" aria-labelledby={id} className={cx(styles.digits, rail && styles.railed, groupStart && styles.groupStart)}>
-      <span id={id} className={styles.label}>
-        {label}
-        {hint && <span className={styles.labelHint}>{hint}</span>}
-      </span>
-      <div className={styles.digitInputs}>{children}</div>
-    </div>
-  );
-}
-
-/**
- * 음력 입력 아래에 적을 한 줄 — 바뀐 양력이거나, 못 바꾼 이유다.
- *
- * 못 바꾼 이유를 「변환할 수 없습니다」로 뭉개지 않는다. 표 밖·없는 윤달·없는 날은
- * 사용자가 할 일이 서로 다르다 — 그 말은 칸을 붉히는 것과 같은 `dateRefusal` 이 짓는다.
- */
-function convertedLine(value: Query): { ok: boolean; text: string } | null {
-  if (value.calendar === 'solar' || value.date === '') return null;
-
-  /*
-    받지 않기로 한 해 · 없는 달은 **변환해 볼 것도 없다.**
-
-    음력 표는 2100년까지 덮지만 태어난 해로는 그보다 좁게 받는다. 두 범위가 다르므로
-    범위 밖의 해에서는 두 문장이 동시에 설 수 있다 — 「음력 1912~2100년만 변환합니다」와
-    「1912~2030년에 태어난 분만 계산할 수 있어요」. 나란히 두면 사용자는 자기가 무엇을 어겼는지
-    고르게 된다. 거절의 이유는 하나여야 하고, 그 하나는 버튼 곁의 문장이다(`dateEntryRefusal`).
-  */
-  if (dateEntryRefusal(value) !== null) return null;
-
-  const refused = dateRefusal(value);
-  if (refused !== null) return { ok: false, text: refused.message };
-
-  const { year, month, day } = solarDateOf(value);
-  return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산해요` };
-}
-
-/** 네 자리로 다 적힌 해인가 — 타이핑 중인 「19」로는 달 길이를 셀 수 없다 */
-const isFullYear = (year: string) => /^\d{4}$/.test(year);
-
-/**
- * 달력이 정하는 날짜의 한계.
- *
- * 해의 범위는 여기서 정하지 않는다 — `birthYearRangeOf` 가 든다. 폼이 자기 범위를
- * 따로 적으면 **받는 칸과 거절하는 자리가 갈린다.**
- *
- * 일수는 양력만 실제 달 길이를 안다. 음력은 그 달이 29일인지 30일인지가 표
- * 안에 있고 윤달까지 걸려서, 여기서는 상한 30까지만 열고 **없는 날은 변환이
- * 이유를 붙여 거절한다**(`convertedLine`). 폼이 표를 흉내 내면 판정하는 자리가
- * 둘이 된다.
- */
-function limitsOf(calendar: Calendar, year: string, month: string) {
-  const years = birthYearRangeOf(calendar);
-
-  const maxDay =
-    calendar === 'solar' && isFullYear(year) && month !== ''
-      ? new Date(Number(year), Number(month), 0).getDate()
-      : calendar === 'solar'
-        ? 31
-        : 30;
-
-  return { years, maxDay };
-}
-
-/**
- * 세 칸의 숫자를 날짜 한 벌로 — **다 적혔으면 범위를 따지지 않고 낸다.**
- *
- * 해가 네 자리이고 달 · 날이 비어 있지 않으면 날짜다. 「1990-02-30」도 그대로 낸다 — 거절은 무엇이 틀렸는지 말하는
- * 한 자리(`dateEntryRefusal`)의 일이고, 여기서 빈 값으로 삼키면 다 적은 사람이 「생년월일을 입력해 주세요」를 듣는다.
- * 달력은 보지 않는다 — 그래서 달력을 바꿔도 날짜가 그대로고 칸의 숫자도 그대로 선다.
- */
-export function dateOfParts(parts: { year: string; month: string; day: string }): string {
-  if (!isFullYear(parts.year) || parts.month === '' || parts.day === '') return '';
-  return `${parts.year}-${pad2(Number(parts.month))}-${pad2(Number(parts.day))}`;
-}
 
 /**
  * 고칠 칸으로 데려간다 — 붉어진 칸, 없으면 아직 빈 칸. 데려갔으면 `true`.
@@ -371,13 +125,8 @@ function NumberField({
   /** 날짜 한 벌이 이 칸에서 거절됐는가 — 칸 범위 안이어도 없는 날(음력 29일까지인 달의 30일)이 있다 */
   refused?: boolean;
 }) {
-  /**
-   * 다 적힌 값만 판정한다. 「1」을 치는 도중에 「1~12 아님」이라고 붉히면, 사용자는
-   * 12월을 적으려다 자기가 틀렸다는 말을 먼저 듣는다. 자릿수가 덜 찬 것은 아직
-   * 틀린 것이 아니라 **덜 적은 것**이다.
-   */
-  const settled = value !== '' && (value.length === digits || Number(value) * 10 > max);
-  const outOfRange = settled && (Number(value) < min || Number(value) > max);
+  /** 다 적힌 값만 판정한다 — 덜 적은 것은 아직 틀린 것이 아니다(`digitOutOfRange`) */
+  const outOfRange = digitOutOfRange(value, digits, min, max);
 
   return (
     <label className={styles.digit}>
@@ -398,10 +147,6 @@ function NumberField({
     </label>
   );
 }
-
-/** 다 적힌 숫자가 범위 안인가 — 반쪽인 값은 아직 날짜가 아니다 */
-const within = (value: string, min: number, max: number) =>
-  value !== '' && Number(value) >= min && Number(value) <= max;
 
 /**
  * 년·월·일 세 칸 — **전부 적는 칸이다.**
@@ -497,16 +242,6 @@ function DateFields({
   );
 }
 
-function splitDate(date: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  return match ? { year: match[1], month: match[2], day: match[3] } : { year: '', month: '', day: '' };
-}
-
-function splitTime(time: string) {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  return match ? { hour: match[1], minute: match[2] } : { hour: '', minute: '' };
-}
-
 /**
  * 출생시각 — **24시간으로만 묻는다.**
  *
@@ -532,16 +267,10 @@ function TimeFields({ value, onChange }: { value: Query; onChange: (next: Query)
     lastEmitted.current = value.time;
   }, [value.time]);
 
-  /** 두 칸이 다 제 범위 안이어야 시각이 된다 — 「25:70」을 실어 보내지 않는다 */
-  const timeOf = (from: typeof parts) =>
-    within(from.hour, 0, 23) && within(from.minute, 0, 59)
-      ? `${pad2(Number(from.hour))}:${pad2(Number(from.minute))}`
-      : '';
-
   const update = (key: keyof typeof parts, next: string) => {
     const changed = { ...parts, [key]: next };
     setParts(changed);
-    const time = timeOf(changed);
+    const time = timeOfParts(changed);
     lastEmitted.current = time;
     onChange({ ...value, hourKnown: true, time });
   };
@@ -553,7 +282,7 @@ function TimeFields({ value, onChange }: { value: Query; onChange: (next: Query)
       onChange({ ...value, hourKnown: false, time: '' });
       return;
     }
-    const time = timeOf(parts);
+    const time = timeOfParts(parts);
     lastEmitted.current = time;
     onChange({ ...value, hourKnown: true, time });
   };

@@ -244,7 +244,7 @@ export function MatchingExperience({
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
             <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-paper bg-cream">
               <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
-                <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
+                <h2 id="matching-map" className="font-rounded text-section leading-8 text-foreground">
                   내 궤도로 다가오는 인연
                 </h2>
                 <p className="shrink-0 text-small font-semibold text-secondary">

@@ -51,7 +51,7 @@ export function PillarStrip({
   name: string;
   size?: 'md' | 'lg';
 }) {
-  const glyph = size === 'lg' ? 'text-[1.4rem]' : 'text-[1.15rem]';
+  const glyph = size === 'lg' ? 'text-section' : 'text-lead';
 
   return (
     <div role="group" aria-label={`${name}의 네 기둥`} className="grid grid-cols-4 gap-1.5">

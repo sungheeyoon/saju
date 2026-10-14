@@ -91,7 +91,7 @@ export const TYPE_TITLE = 'font-rounded text-title leading-[1.3] tracking-[-0.02
 export const TYPE_SECTION = 'font-rounded text-section leading-8 text-foreground';
 
 /** 이름 — 사람 · 카드 머리 */
-export const TYPE_NAME = 'font-rounded text-[1.3rem] leading-7 text-foreground';
+export const TYPE_NAME = 'font-rounded text-heading leading-7 text-foreground';
 
 /** 보조 — 날짜 · 메모 · 설명 아래 줄 */
 export const TYPE_META = 'text-small font-medium leading-5 text-secondary';

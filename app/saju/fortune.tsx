@@ -196,8 +196,8 @@ function FortuneCell({
       }`}
     >
       <span className="text-xs text-muted">{TEN_GOD_KO[entry.tenGods.stem]}</span>
-      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
-      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
+      <span className={`glyph text-title font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
+      <span className={`glyph text-title font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
       <span className="text-xs text-muted">{TEN_GOD_KO[entry.tenGods.branch]}</span>
       <span className="mt-1 text-xs text-secondary">{TWELVE_STAGE_KO[entry.stage]}</span>
       {showSpirits && (

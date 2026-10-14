@@ -27,7 +27,7 @@ export function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode })
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
-          <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-headline">
+          <h2 className="font-rounded text-section leading-[1.35] text-foreground sm:text-headline">
             {DISCOVERY_EMPTY.title}
           </h2>
           <p className="max-w-prose text-body leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
