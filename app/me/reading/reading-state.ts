@@ -7,8 +7,7 @@ import {
 import { isScored } from '@/src/lib/reading/policy';
 import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 
-import type { LastRun } from '@/src/lib/reading';
-import type { CurrentReading } from './current';
+import type { CurrentReading, LastRun } from '@/src/lib/reading';
 import type { ReadingTarget } from './target';
 
 /**

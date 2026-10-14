@@ -9,7 +9,7 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { TYPE_SECTION } from '../../ui/surfaces';
-import type { CurrentReading } from './current';
+import type { CurrentReading } from '@/src/lib/reading';
 import { coverFace, readingMinutes } from './essay';
 import { Markdown, READING_COLUMN } from './markdown';
 import type { ReadingTarget } from './target';

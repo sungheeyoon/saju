@@ -2,7 +2,8 @@
 
 import { sharePath, type ShareKind } from '../../share/path';
 import { supabaseOnServer } from '../../auth/server-client';
-import { currentReading, type CurrentReading } from './current';
+import type { CurrentReading } from '@/src/lib/reading';
+import { currentReading } from './current';
 import { isShareable, shareTargetArgs, type ReadingTarget } from './target';
 import { answerOfThrown, userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';

@@ -8,7 +8,7 @@ import { tasteFingerprintOfSaju } from './taste-run';
 import { browserHmacNow, claimedTasteSessionId } from './taste-visitor';
 import { readAccount } from '../me/account';
 import { storedInputOf } from '../me/person-input';
-import type { CurrentReading } from '../me/reading/current';
+import type { CurrentReading } from '@/src/lib/reading';
 
 /**
  * **가입 뒤 자기 풀이가 맛보기를 잇는 자리** — 「아까 보던 내용」을 무엇으로 세우고, 누름이 어느 세션을 잇는가(ADR 0143 의 2 · 4).

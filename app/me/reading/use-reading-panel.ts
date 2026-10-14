@@ -2,11 +2,10 @@
 
 import { useEffect, useReducer, useRef, useState, useTransition } from 'react';
 
-import type { RunProgress } from '@/src/lib/reading';
+import type { CurrentReading, RunProgress } from '@/src/lib/reading';
 import { READING_NOUN, readingCreditsNote } from '@/src/lib/reading/notes';
 
 import { generateReading, markReadingReadyRead, readingRunState, skipTasteCarry } from './actions';
-import type { CurrentReading } from './current';
 import { progressSoFar } from './outline';
 import { panelChrome } from './panel-chrome';
 import { watchRun, type PageVisibility } from './watch-run';
