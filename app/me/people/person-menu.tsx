@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom';
 
 import type { Query } from '@/src/lib/input/query';
 
-import { ICON_BUTTON } from '../../ui/buttons';
+import { ICON_BUTTON_QUIET } from '../../ui/buttons';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon, type IconName } from '../../ui/icons';
+import { MENU_PANEL } from '../../ui/surfaces';
 import { EditInputForm } from '../edit-input';
 import { usePanelSlot } from './finder';
 import { NoteEditor, RemoveConfirm } from './manage';
@@ -67,13 +68,13 @@ export function PersonActions({
     <>
       <details ref={menu} className="absolute right-3 top-3 z-20 sm:right-4 sm:top-4">
         <summary
-          className={`${ICON_BUTTON} list-none text-secondary hover:text-foreground [&::-webkit-details-marker]:hidden`}
+          className={`${ICON_BUTTON_QUIET} list-none [&::-webkit-details-marker]:hidden`}
           aria-label={`${label} 관리`}
         >
           <Icon name="manage" className="size-4.5" />
         </summary>
 
-        <div className="absolute right-0 top-13 z-40 w-56 rounded-row border border-border bg-surface p-1.5 shadow-float">
+        <div className={`${MENU_PANEL} absolute right-0 top-13 z-40 w-56 p-1.5`}>
           {current !== null && (
             <MenuItem icon="pencil" onClick={() => choose('edit-input')}>
               출생 정보 수정

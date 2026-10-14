@@ -1,5 +1,7 @@
 'use client';
 
+import { SIGN_OUT_PENDING } from '@/src/lib/account/copy';
+
 import { useSignOut } from '../../auth/sign-out';
 import { SETTINGS_QUIET, SettingsRow } from './card';
 import { FailureLine } from '../../ui/failure-line';
@@ -15,7 +17,7 @@ export function SignOutRow({ email }: { email: string | undefined }) {
   return (
     <SettingsRow help={email}>
       <button type="button" onClick={signOut} disabled={leaving} className={SETTINGS_QUIET}>
-        {leaving ? '로그아웃하는 중…' : '로그아웃'}
+        {leaving ? SIGN_OUT_PENDING : '로그아웃'}
       </button>
       {failure !== null && (
         <FailureLine className="w-full">{failure}</FailureLine>

@@ -12,7 +12,7 @@ import {
 import { BLOCK_NOTE } from '@/src/lib/consent';
 
 import type { SaveResult } from '../../save-result';
-import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
+import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, BUTTON_TERTIARY_DANGER, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
 import { ConfirmDialog, openConfirmDialog, pressedOutside } from '../../ui/confirm-dialog';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon } from '../../ui/icons';
@@ -185,7 +185,7 @@ export function ReportForm({
           </button>
         )}
         {onBlock !== undefined && (
-          <button type="button" onClick={onBlock} disabled={working} className={`${BUTTON_TERTIARY} text-danger`}>
+          <button type="button" onClick={onBlock} disabled={working} className={BUTTON_TERTIARY_DANGER}>
             차단으로 넘어가기
           </button>
         )}
@@ -388,7 +388,7 @@ export function ReportDialog({
               닫기
             </button>
             {onBlock !== undefined && (
-              <button type="button" onClick={onBlock} className={`${BUTTON_TERTIARY} text-danger`}>
+              <button type="button" onClick={onBlock} className={BUTTON_TERTIARY_DANGER}>
                 차단으로 넘어가기
               </button>
             )}

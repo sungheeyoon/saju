@@ -5,6 +5,7 @@ import { SAJU_PATH } from '@/src/lib/consent';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
 import type { Element } from '@/src/lib/saju';
 
+import { COMPAT_ENTRY_LABEL } from '../../service-features';
 import { elementScope } from '../../ui/element-tone';
 import { Icon, type IconName } from '../../ui/icons';
 import type { MeMark } from './me-mark';
@@ -55,5 +56,5 @@ export function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode })
 
 const MEANWHILE: readonly { href: string; label: string; icon: IconName; element: Element }[] = [
   { href: SAJU_PATH, label: '다른 사람 사주 보기', icon: 'search', element: '水' },
-  { href: '/compat', label: '궁합 보러 가기', icon: 'taiji', element: '火' },
+  { href: '/compat', label: COMPAT_ENTRY_LABEL, icon: 'taiji', element: '火' },
 ];

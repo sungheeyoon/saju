@@ -13,6 +13,7 @@ import { runningReadings } from '../../home/running';
 import { runningName } from '../../home/running-line';
 import { readingHrefOf } from '../../reading/target';
 import { withCameFrom } from '../../../came-from';
+import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import { bookOf, shelfNamesOf } from './book';
 import { ReadingsFrame, ShelfItem, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
@@ -165,7 +166,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       </Shelf>
     );
   };
-  const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" wide />;
+  const toCompat = <BlankBook href="/compat" element="火" label={COMPAT_ENTRY_LABEL} wide />;
   const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && (
     <MakingShelf matches={making} hrefOf={(matchId) => withCameFrom(`/me/match/${matchId}`, 'shelf', shelfKind)} />
   );

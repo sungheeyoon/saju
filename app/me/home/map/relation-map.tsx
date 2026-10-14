@@ -25,6 +25,7 @@ import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import { CompatFillLink } from '../../../compat-fill-link';
+import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import { BUTTON_PRIMARY_SMALL, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { ElementSymbol } from '../../../ui/element-symbol';
@@ -630,7 +631,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
             {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
             <CompatFillLink href={compat.href} className={BUTTON_PRIMARY_SMALL}>
               <Icon name={compat.seen ? 'reading' : 'taiji'} className="size-4" />
-              {compat.seen ? '궁합풀이 보기' : '궁합 보러 가기'}
+              {compat.seen ? '궁합풀이 보기' : COMPAT_ENTRY_LABEL}
             </CompatFillLink>
             <Link href={person.detailHref} className={BUTTON_TERTIARY}>
               {person.label} 사주 보기

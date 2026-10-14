@@ -28,6 +28,7 @@ import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { backOf, placeOf, type Back } from '../../came-from';
+import { COMPAT_ENTRY_LABEL } from '../../service-features';
 
 /** 주소가 드는 값 — Next 의 `searchParams` 는 같은 이름이 둘이면 배열을 준다 */
 export type CompatQuery = {
@@ -128,7 +129,7 @@ export async function CompatScreen({ params, frame }: { params: CompatQuery; fra
       <header className="flex flex-col gap-3">
         <Link href="/compat" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
           <Icon name="back" className="size-4" />
-          궁합 보러 가기
+          {COMPAT_ENTRY_LABEL}
         </Link>
         <p className="text-small font-semibold text-secondary">궁합</p>
         <Title frame={frame}>궁합을 볼 수 없습니다</Title>

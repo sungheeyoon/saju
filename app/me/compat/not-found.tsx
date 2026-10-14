@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { NoticeScreen } from '../../ui/notice-screen';
+import { COMPAT_ENTRY_LABEL } from '../../service-features';
 
 /**
  * **없는 사람과 못 보는 사람이 도착하는 같은 자리.**
@@ -28,7 +29,7 @@ export default function PersonNotFound() {
       actions={
         <>
           <Link href="/compat" className={BUTTON_PRIMARY}>
-            궁합 보러 가기
+            {COMPAT_ENTRY_LABEL}
           </Link>
           <Link href="/me/people" className={BUTTON_SECONDARY}>
             저장한 사람

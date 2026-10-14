@@ -57,9 +57,9 @@ export const PAPER_BOTTOM = 'rounded-b-paper bg-cream px-3 pb-5 sm:px-10 sm:pb-9
 export const TILE = 'rounded-tile bg-[var(--tile)] p-4 text-foreground';
 
 /**
- * 띄움 메뉴 판 — 단추 아래(위)에 떠서 고를 줄을 드는 흰 판(설정 톱니 · 풀이권 · 대화방 「⋯」 · 신고 · 차단 · 사진 한 장의 메뉴).
- * 테는 `ring` 이라 판의 폭을 먹지 않는다. 안쪽 여백 · 폭 · 자리는 판마다 달라 쓰는 자리가 붙인다. 저장한 사람의 관리 메뉴
- * (`app/me/people/person-menu.tsx`)는 테가 `border` 라 폭 안쪽이 2px 좁고 같은 판이 아니다 — 맞추면 모양이 바뀐다
+ * 띄움 메뉴 판 — 단추 아래(위)에 떠서 고를 줄을 드는 흰 판(설정 톱니 · 풀이권 · 대화방 「⋯」 · 신고 · 차단 · 사진 한 장의 메뉴 ·
+ * 저장한 사람의 관리 메뉴). 테는 `ring` 이라 판의 폭을 먹지 않는다. 안쪽 여백 · 폭 · 자리는 판마다 달라 쓰는 자리가 붙인다.
+ * 관리 메뉴(`app/me/people/person-menu.tsx`)만 테가 `border` 였는데 운영자가 맞추라고 했다(2026-10-14, G-109)
  */
 export const MENU_PANEL = 'rounded-row bg-surface shadow-float ring-1 ring-border';
 

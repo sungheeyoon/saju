@@ -21,15 +21,15 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL_FACE } from '../ui/buttons';
 import { completeSignup } from './actions';
 import type { SignupField } from './refusal';
 import { actionAnswer } from '../ui/action-answer';
+import { FIELD as FIELD_BASE } from '../ui/fields';
 import { FAILURE_TEXT, FailureLine } from '../ui/failure-line';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-field outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft aria-invalid:border-danger';
+/** 입력 칸 — 프로필 화면과 같은 칸(`app/ui/fields.ts`)에, 거절된 칸은 테가 붉다 */
+const FIELD = `${FIELD_BASE} aria-invalid:border-danger`;
 
 /**
  * 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다). 초점 테는 전역 초점 테두리와
@@ -255,7 +255,7 @@ export function SignupForm({
               onClick={check}
               disabled={checking}
               aria-disabled={missing !== null || undefined}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 shrink-0 px-4`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>

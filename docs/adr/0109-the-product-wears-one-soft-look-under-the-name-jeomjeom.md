@@ -166,3 +166,16 @@ sans-serif`)을 `--font-sans` · `--font-rounded` 의 대체 · `body` · `.glyp
   숫자 강조 · 장식 · 큰 디스플레이(2.75 · 3 · 3.5 · 3.75 · 5 · 9rem), 둘레를 따르는 `em`, 로고(ADR 0149 의 그림과 함께 정한다),
   첫 화면 탭 묶음의 0.9rem, 등이 각진 책 표지의 네 귀 따로 모서리. 파일마다 몇 번인지까지 재고, 목록 밖의 임의 글자 크기 ·
   모서리는 붉다. 새 값이 정말 단 밖이어야 하면 까닭과 함께 목록에 더하고, 이름 붙일 만큼 되풀이되면 단을 더한다.
+
+## 추기 — 단추 뒤에 덧붙이는 속성은 면에서 뺀다 (2026-10-14, G-109)
+
+단추 상수 뒤에 이어 붙인 클래스를 빌드된 CSS 로 재니, 상수가 이미 세운 속성을 덧붙인 자리에서 이기는 쪽을 CSS 의 차례가 정했다 —
+「차단으로 넘어가기」의 `text-danger` 가 `text-foreground` 에, 내 사주 카드의 폰 `px-3` 이 `px-5` 에, 결제 화면 작은 링크의 `font-medium` 이
+`font-semibold` 에 졌다. **자리마다 바꾸는 속성은 면(`BUTTON_PRIMARY_FACE` · `BUTTON_SECONDARY_FACE` · `BUTTON_TERTIARY_FACE` ·
+`BUTTON_ON_TILE_FACE` · `ICON_BUTTON_ON_PHOTO_FACE`)에서 빼고 쓰는 자리가 한 번만 적거나, 변형 상수(`BUTTON_TERTIARY_DANGER` ·
+`ICON_BUTTON_QUIET`)를 쓴다.** 잠금은 `app/ui/buttons.test.ts` — 화면 소스를 문법 나무로 읽어(`app/ui/class-names.ts`) 상수 뒤에 같은
+속성을 덧붙이면 붉다. 중요 표시(`px-3!`)와 변형(`sm:`)은 뜻한 대로 이기므로 세지 않는다.
+
+위 「띄움 판 · 사진 위 단추」 추기가 묶지 않은 둘은 운영자 답(2026-10-14 「맞춘다」)으로 묶었다 — 저장한 사람 관리 메뉴의 판은
+`MENU_PANEL`(테 `border` → `ring`, 폭 안쪽 2px 넓어짐), 사진 넘기기 화살의 면은 `ICON_BUTTON_ON_PHOTO_FACE`(검정 45% → 50%).
+글을 받는 칸 한 벌은 `app/ui/fields.ts` 의 `FIELD` 다(가입 · 프로필).
