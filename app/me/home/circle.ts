@@ -4,7 +4,7 @@ import type { PersonSlots } from '@/src/lib/people';
 
 import type { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
-import { managedEdges, personSlotsFrom } from '../../person-slots';
+import { managedEdges, readPersonSlots } from '../../person-slots';
 
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
@@ -106,15 +106,10 @@ export async function myEdge(supabase: ServerClient, personId: string): Promise<
  */
 export async function myPeople(supabase: ServerClient): Promise<MyPeople> {
   const held = thisRender();
-  held.slots ??= readSlots(supabase);
+  /* 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
+  held.slots ??= readPersonSlots(supabase);
   const [edges, slots] = await Promise.all([myEdges(supabase), held.slots]);
   return { edges, listed: edges.filter((edge) => edge.listed), slots };
-}
-
-async function readSlots(supabase: ServerClient): Promise<PersonSlots | null> {
-  /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const { data, error } = await supabase.rpc('my_person_slots');
-  return personSlotsFrom(data, error);
 }
 
 /**

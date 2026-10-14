@@ -1,4 +1,6 @@
-import type { RpcRow } from '@/src/lib/db';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+import type { Database, RpcRow } from '@/src/lib/db';
 import type { PersonSlots } from '@/src/lib/people';
 
 /**
@@ -13,17 +15,24 @@ export const managedEdges = <T extends { personId: string }>(
 ): T[] => (edges ?? []).filter((edge) => edge.personId !== selfPersonId);
 
 /**
- * `my_person_slots` 가 내주는 한 줄을 화면이 쓰는 값으로.
+ * **저장 자리 수를 읽는 문** — 홈의 「내 사람」(`app/me/home/circle.ts`, 서버)과 사주 이어 보기(`app/save-for-reading.tsx`, 브라우저)가 부른다.
  *
- * **부르는 일은 여기서 하지 않는다.** 서버 화면은 서버 클라이언트로, 브라우저 화면은
- * 브라우저 클라이언트로 부른다 — 둘을 한 모듈이 들고 있으면 서버 전용 코드가 클라이언트
- * 묶음으로 딸려 들어간다. 여기 남는 것은 **모양을 옮기는 일 하나**이고, 그것이 두 자리에
- * 있으면 필드 이름이 바뀌는 날 한쪽만 고쳐진다.
+ * 클라이언트를 **받기만** 한다 — 서버 화면은 서버 클라이언트를, 브라우저 화면은 브라우저 클라이언트를 넣는다. 클라이언트를 이 모듈이
+ * 들면 서버 전용 코드가 클라이언트 묶음으로 딸려 들어간다(`self-person-state.ts` 와 같은 결). 브라우저 화면이 `.rpc` 를 직접 부르던 옛 자리는
+ * 2026-10-14 에 여기로 옮겼다(G-109).
+ */
+export async function readPersonSlots(supabase: SupabaseClient<Database>): Promise<PersonSlots | null> {
+  const { data, error } = await supabase.rpc('my_person_slots');
+  return personSlotsFrom(data, error);
+}
+
+/**
+ * `my_person_slots` 가 내주는 한 줄을 화면이 쓰는 값으로 — 모양을 옮기는 일은 여기 한 자리라, 필드 이름이 바뀌는 날 한쪽만 고쳐지지 않는다.
  *
  * @returns 못 읽었으면 `null` — **0 으로 눕히지 않는다.** 0 은 「다 찼다」이고, 그렇게
  *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「자리를 다 채웠다」고 거짓을 말한다.
  */
-export function personSlotsFrom(
+function personSlotsFrom(
   data: readonly RpcRow<'my_person_slots'>[] | null,
   error: unknown | null,
 ): PersonSlots | null {

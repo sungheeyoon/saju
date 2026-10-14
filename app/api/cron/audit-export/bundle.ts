@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { seoulDateOf } from '@/src/lib/reading/seoul-date';
+
 /**
  * 운영자 접속기록 **한 묶음을 파일 하나로** 짓는다 — 매일 S3 로 나가는 모양 (G-23 ⑩, ADR 0105).
  *
@@ -60,17 +62,8 @@ export type Bundle = {
 
 const pad = (id: number) => String(id).padStart(12, '0');
 
-/** 서울 날짜 — `YYYY/MM/DD`. 서버는 UTC 라 시간대를 적지 않으면 자정 무렵 줄이 전날로 간다 */
-function seoulDay(iso: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date(iso));
-  const part = (type: string) => parts.find((one) => one.type === type)?.value ?? '00';
-  return `${part('year')}/${part('month')}/${part('day')}`;
-}
+/** 서울 날짜 — `YYYY/MM/DD`. 서버는 UTC 라 시간대를 적지 않으면 자정 무렵 줄이 전날로 간다. 날짜는 `seoulDateOf` 한 자리가 짓는다 */
+const seoulDay = (iso: string): string => seoulDateOf(new Date(iso)).replaceAll('-', '/');
 
 /** 칸의 차례를 고정한다 — DB 가 칸을 더해도 파일의 모양은 여기서만 바뀐다 */
 const lineOf = (line: AccessLine): string =>
