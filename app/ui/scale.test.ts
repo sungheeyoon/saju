@@ -29,7 +29,7 @@ const OUTSIDE_SCALE: { at: string; value: string; n?: number; why: string }[] = 
   { at: 'app/me/matching/passed-connections.tsx', value: '3rem', why: '지난 인연 칸의 첫 글자(장식)' },
   { at: 'app/match-index.tsx', value: '3.5rem', why: '궁합 지수 숫자 강조' },
   { at: 'app/saju/pillars.tsx', value: '3.75rem', why: '사주 기둥 글자의 넓은 폭(큰 디스플레이)' },
-  { at: 'app/me/reading/panel.tsx', value: '5rem', why: '비유 앞 큰 따옴표(장식)' },
+  { at: 'app/me/reading/reading-result.tsx', value: '5rem', why: '비유 앞 큰 따옴표(장식)' },
   { at: 'app/me/reading/markdown.tsx', value: '0.9em', why: '풀이 글 안의 코드 — 둘레 글자를 따른다' },
   { at: 'app/ui/logo.tsx', value: '1.3rem', why: '로고의 이름 — 브랜드 그림과 함께 정한다(ADR 0149)' },
   { at: 'app/home-hero.tsx', value: '0.9rem', why: '첫 화면 탭 묶음 — 안의 칸(rounded-xl)을 p-0.5 만큼 감싼다. 같은 값의 기본 단이 없다' },
