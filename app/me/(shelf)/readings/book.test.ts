@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReadingEntry } from '../../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { bookOf } from './book';
 import type { DayMaster } from './subject';
 

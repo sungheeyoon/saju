@@ -11,7 +11,7 @@ import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';

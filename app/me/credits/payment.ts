@@ -1,4 +1,5 @@
 import { orderIdOf } from '../../api/portone/webhook/settle';
+import { orderIsPaid, type OrderStatus } from './order-status';
 
 /**
  * **결제창을 여는 값과 결제창에서 돌아온 값의 판단** (G-21, ADR 0171).
@@ -46,17 +47,16 @@ export function paymentReturnOf(params: Record<string, string | string[] | undef
   return orderId ? { kind: 'order', orderId } : { kind: 'unknown' };
 }
 
-/** 주문 상태 가운데 돈이 들어와 묶음이 선 것 — 환불이 섞였어도 결제는 끝났다 */
-export const orderIsPaid = (status: string): boolean =>
-  status === 'approved' || status === 'partially_refunded' || status === 'refunded';
-
 /**
  * 결제 뒤 화면의 갈래 — 결제창의 답과 주문의 상태를 함께 본다. 결제창이 성공을 말해도 주문이 대기면 아직 `waiting` 이고,
  * 결제창이 실패를 말하면 주문을 읽지 않는다. 취소로 닫힌 주문은 실패다.
  */
 export type PaymentOutcome = 'failed' | 'missing' | 'paid' | 'waiting';
 
-export function paymentOutcomeOf(returned: PaymentReturn, order: { readonly status: string } | null): PaymentOutcome {
+export function paymentOutcomeOf(
+  returned: PaymentReturn,
+  order: { readonly status: OrderStatus | null } | null,
+): PaymentOutcome {
   if (returned.kind === 'failed') return 'failed';
   if (order === null) return 'missing';
   if (orderIsPaid(order.status)) return 'paid';

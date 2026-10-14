@@ -13,7 +13,7 @@ import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';

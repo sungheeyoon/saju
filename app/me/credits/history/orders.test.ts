@@ -38,4 +38,9 @@ describe('결제 내역 한 줄 (G-21, ADR 0174)', () => {
     expect(paidOrderOf({ ...ROW, status: 'approved', refunded_amount: 0 }).status).toBe('결제 완료');
     expect(paidOrderOf({ ...ROW, status: 'refunded', refunded_amount: 12900, remaining: 0 }).status).toBe('전액 환불');
   });
+
+  it('묶음이 선 셋이 아닌 상태는 결제 완료로 읽는다 — 이 문에는 묶음이 선 주문만 온다', () => {
+    expect(paidOrderOf({ ...ROW, status: 'pending' }).status).toBe('결제 완료');
+    expect(paidOrderOf({ ...ROW, status: 'unheard_of' }).status).toBe('결제 완료');
+  });
 });

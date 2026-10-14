@@ -1,7 +1,7 @@
 import { STEM_INFO, type Element, type Saju } from '@/src/lib/saju';
 
 import { STEM_PICTURE } from '../../../ui/stem-symbol';
-import type { ReadingEntry } from '../../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { readingHref } from '../../reading/line';
 
 /*

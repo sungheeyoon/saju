@@ -4,7 +4,7 @@ import type { Circle } from '../me/home/circle';
 import { circlePeopleOf } from '../me/home/circle-view';
 import { mapModelOf } from '../me/home/map/model';
 import { RelationMap } from '../me/home/map/relation-map';
-import type { ReadingEntry } from '../me/reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { compatTabMap } from './map-links';
 
 /**

@@ -1,6 +1,6 @@
 import { READING_REVIEW_LABEL, readingStoryLabel } from '@/src/lib/reading/notes';
 
-import type { RunProgress } from './current';
+import type { RunProgress } from '@/src/lib/reading';
 
 /**
  * **기다리는 화면의 목차** — 줄마다 서버가 적은 진행 그대로(ADR 0127).

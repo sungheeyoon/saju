@@ -11,7 +11,7 @@ vi.mock('./pipeline', () => ({ beginReading: vi.fn() }));
 vi.mock('../../taste/taste-visitor', () => ({ forgetTasteClaim: vi.fn(async () => {}) }));
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
-import type { LastRun } from './current';
+import type { LastRun } from '@/src/lib/reading';
 import { lastReadingRun } from './current';
 import { markReadingReadyRead, readingRunState } from './actions';
 import { supabaseOnServer } from '../../auth/server-client';

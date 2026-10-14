@@ -163,5 +163,7 @@ export {
   type ReadingCheckCode,
 } from './check';
 export { sectionCounter, type SectionCount } from './progress';
+export type { ReadingEntry } from './entry';
+export { RUN_STATUSES, type LastRun, type RunProgress } from './run';
 export { positionSlips } from './position-check';
 export { groundingTiers, type GroundingTierReport } from './grounding-tiers';

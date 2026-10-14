@@ -1,4 +1,4 @@
-import type { ReadingEntry } from './current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { readingHrefOf, type ReadingTarget } from './target';
 
 /**

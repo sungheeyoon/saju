@@ -5,7 +5,7 @@ import { useEffect, useReducer, useRef, useState, useTransition } from 'react';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { outOfCreditsNow } from '../credits/asked-on-press';
 import { useBuyCredits } from '../credits/buy-credits';
-import { announceCreditsMoved, announceIfMoved } from '../reading/credits-signal';
+import { announceCreditsMoved, announceIfMoved } from '../credits/credits-signal';
 import { reducedMotion } from '../../ui/motion';
 import type { DeckCard } from './deck-card';
 import { deckReducer, PASSED_LIMIT } from './deck-state';

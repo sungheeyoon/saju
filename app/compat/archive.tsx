@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { Icon } from '../ui/icons';
 import { ROW_LINE } from '../ui/surfaces';
-import type { ReadingEntry } from '../me/reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 
 /**
  * 궁합풀이 전부 — 풀이 보관함의 궁합풀이 칸. 목록은 홈 탭 소속이고, `from=compat` 이 그 목록에서 연 결과의 ← 를 궁합 탭으로

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CurrentReading, ReadingCredits } from './current';
+import type { ReadingCredits } from '../credits/remaining';
+import type { CurrentReading } from './current';
 import { panelChrome } from './panel-chrome';
 
 const reading = (over: Partial<CurrentReading> = {}): CurrentReading => ({

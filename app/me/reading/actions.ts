@@ -1,10 +1,10 @@
 'use server';
 
-import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading';
+import { FEEDBACK_UNEXPECTED_NOTE, type LastRun } from '@/src/lib/reading';
 
 import { beginReading, type ReadingStart } from './pipeline';
 import { readingPathsOf, type ReadingTarget } from './target';
-import { lastReadingRun, type LastRun } from './current';
+import { lastReadingRun } from './current';
 import { refreshPaths } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';

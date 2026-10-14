@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CHAT_UNREAD_MOVED } from '../me/chat/unread-signal';
-import { READING_CREDITS_MOVED } from '../me/reading/credits-signal';
+import { READING_CREDITS_MOVED } from '../me/credits/credits-signal';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from '../me/requests/unread-signal';
 import { ALL_SIGNALS, liveChangeOf, redrawsOn, redrawsOnResync, signalsOf } from './changes';
 

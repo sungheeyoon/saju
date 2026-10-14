@@ -4,7 +4,7 @@ import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 
 import { STEM_PICTURE } from '../../../ui/stem-symbol';
-import type { ReadingEntry } from '../../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { compatHrefOf, linksOf, mapModelOf, pairWithSelf, readingOf, type HomePerson } from './model';
 
 const entry = (over: Partial<ReadingEntry>): ReadingEntry => ({

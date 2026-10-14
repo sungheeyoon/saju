@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReadingEntry } from './current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import { readingDate, readingHref, readingTitle } from './line';
 
 /**

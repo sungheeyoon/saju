@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { selfSectionTitlesOf } from '@/src/lib/reading';
+import { type RunProgress, selfSectionTitlesOf } from '@/src/lib/reading';
 
 import { progressSoFar, readingOutline } from './outline';
-import type { RunProgress } from './current';
 
 /** 서버가 넘기는 절 이름 — 자기 풀이 · 다른 사람 풀이 */
 const SOLO = selfSectionTitlesOf();

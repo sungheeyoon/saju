@@ -5,6 +5,7 @@ import { bundleOrderName, readingBundleValidUntil } from '@/src/lib/reading/bund
 
 import { dbFailure } from '../../../db-error';
 import { when } from '../../requests/when';
+import { orderIsPaid, orderStatusOf, type PaidOrderStatus } from '../order-status';
 
 /**
  * **결제 내역이 읽는 문** (G-21, ADR 0174) — 산 사람이 제 주문을 다시 본다.
@@ -28,10 +29,16 @@ export type PaidOrder = {
   readonly remaining: number;
 };
 
-const STATUS: Record<string, PaidOrder['status']> = {
+const STATUS: Record<PaidOrderStatus, PaidOrder['status']> = {
   approved: '결제 완료',
   partially_refunded: '부분 환불',
   refunded: '전액 환불',
+};
+
+/** 묶음이 선 셋은 제 이름으로, 그 밖의 값은 결제 완료로 */
+const paidStatusOf = (value: string): PaidOrder['status'] => {
+  const status = orderStatusOf(value);
+  return orderIsPaid(status) ? STATUS[status] : '결제 완료';
 };
 
 /** `2031-10-12` → 「2031년 10월 12일」 */
@@ -50,7 +57,7 @@ export function paidOrderOf(row: Row): PaidOrder {
     product: bundleOrderName(row.bundle_credits),
     amount: row.amount,
     refundedAmount: row.refunded_amount,
-    status: STATUS[row.status] ?? '결제 완료',
+    status: paidStatusOf(row.status),
     paidAt: when(row.paid_at),
     validUntil: koreanDate(readingBundleValidUntil(new Date(row.paid_at))),
     remaining: Math.max(0, row.remaining),

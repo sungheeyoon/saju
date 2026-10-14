@@ -1,7 +1,7 @@
 import { withCameFrom } from '../../came-from';
 import type { SkippableRead } from '../../db-error';
 import { bookOf, type Book } from '../(shelf)/readings/book';
-import type { ReadingEntry } from '../reading/current';
+import type { ReadingEntry } from '@/src/lib/reading';
 import type { InboxMatch, InboxRequest, Requests } from '../requests/inbox';
 
 /**
