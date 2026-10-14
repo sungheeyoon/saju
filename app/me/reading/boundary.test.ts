@@ -116,7 +116,7 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * 바뀌는 날 손으로 적은 숫자는 조용히 거짓이 된다.
    */
   it('기다림 문구를 상한에서 지어 온다', () => {
-    const panel = files.find(({ path }) => path === 'app/me/reading/panel.tsx');
+    const panel = files.find(({ path }) => path === 'app/me/reading/reading-waiting.tsx');
 
     expect(panel!.text).toContain('readingWaitNote(GENERATION.settings.timeout)');
     expect(panel!.text).not.toContain('보통 1분');
