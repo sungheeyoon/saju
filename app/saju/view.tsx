@@ -31,9 +31,13 @@ import {
 } from './fortune-tabs';
 import {
   ElementChart,
+} from './element-chart';
+import {
   StrengthMeter,
+} from './strength-meter';
+import {
   YongsinCard,
-} from './analysis';
+} from './yongsin-card';
 import {
   TimeCorrections,
   Warnings,
