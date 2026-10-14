@@ -44,15 +44,19 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
    exceeded (100 MB)` 로 멈춘다(`.vercelignore` 가 없다, 2026-09-25). `git worktree add --detach <임시 폴더> <SHA>` 로 그 SHA 만
    꺼내고 `.vercel` 만 복사해 거기서 `vercel deploy --prod --yes` 를 부른다(12MB). 출력이 잘려 실패처럼 보여도 `vercel ls` 를 먼저
    본다 — 이미 올라갔을 수 있고, 다시 부르면 한도를 하나 더 쓴다
-2. **배포 커밋 = 0 의 `head` 인지 본다** — 대시보드의 Source 커밋(또는 `vercel inspect <배포 URL>`)이 그 SHA 여야
-   한다. 다르면 판정하지 않은 코드가 Production 이다 — 1 로 돌아간다
+2. **배포 커밋 = 0 의 `head` 인지 본다** — `vercel api /v13/deployments/<배포 ID 나 배포 URL 의 호스트>` 의
+   `meta.gitCommitSha`(또는 대시보드의 Source 커밋)가 그 SHA 여야 한다. `vercel inspect`(`--format json` 도)에는 커밋 SHA 가
+   없다(CLI 62.2.0, #704). 다르면 판정하지 않은 코드가 Production 이다 — 1 로 돌아간다
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
    운영 주소가 선다
-4. **smoke — 다섯 화면.** 홈(`/`) · 로그인(`/auth`) · 궁합(두 사람을 고르는 칸이 서는 화면) · 사람 목록(`/me/people`) ·
-   운영자 신고 화면(`/ops/reports`). 로그인이 드는 셋은 운영자 계정으로 본다. 각각 제 제목이 서고 500 · 빈 화면 ·
-   브라우저 콘솔의 CSP 위반이 없어야 통과다
+4. **smoke — 다섯 화면.** 각각 제 제목이 서고 500 · 빈 화면 · 브라우저 콘솔의 CSP 위반이 없어야 통과다.
+   - 홈(`/`) · 로그인(`/auth`) — 에이전트가 로그인 없이 headless 로 본다
+   - 궁합 `/compat` 의 두 사람을 고르는 칸 · 사람 목록(`/me/people`) · 운영자 신고 화면(`/ops/reports`) — **로그인 필요 — 운영자.**
+     에이전트는 로그인 없이 닿는 데까지만 본다(`/compat` 의 로그인 안내, 나머지 둘은 `/auth?next=…` 로 넘기는지). 운영 계정의
+     비밀번호 · 세션을 쓰지 않는다 — 로그인한 화면은 이용자 정보를 읽는 자리다([운영 개인정보](../../agents/delegation/permissions.md#권한-등급--무엇을-해도-되고-무엇은-묻는가),
+     ADR 0105)
 5. **적는다** — 배포 SHA · Production URL · Ready 시각(서울) · smoke 다섯의 통과/실패를 그 일의 이슈에(G-24 검증이면
-   `ops-verification` 이슈). 실패가 있으면 「CSP 가 화면을 막을 때」의 1 처럼 앞 배포를 Promote 해 되돌린다.
+   `ops-verification` 이슈). 로그인이 드는 셋과 그 묶음에서 로그인해야 보이는 변경은 「운영자 확인 남음」 목록으로 그 이슈에 둔다(#677 · #704). 실패가 있으면 「CSP 가 화면을 막을 때」의 1 처럼 앞 배포를 Promote 해 되돌린다.
    **Promote 할 앞 배포는 지금 운영 DB 에서 서야 한다** — 좁히기(「규약 넷」의 3)가 지운 문을 부르는 앱은 그 자리가 실패한다.
    2026-10-11 G-96 좁히기(`20261204090000`) 뒤로 `ca4b1924`(#624 · #627 이 든 묶음 배포) 앞의 앱은 채팅 보내기가 실패한다(`PGRST202`) —
    이 바닥이 G-77 좁히기(`20261127090000`)의 `41a91368`(#526, 채팅 읽음)보다 뒤라 그것을 덮는다
