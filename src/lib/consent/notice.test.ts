@@ -222,7 +222,57 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v7');
+  expect(NOTICE_VERSION).toBe('notice-v8');
+});
+
+/**
+ * v8 의 내용 개정 둘 — 첫 화면의 짧은 사주 문단(G-66)과 새 메시지 알림(G-71)이 한 판에 선다(ADR 0180).
+ *
+ * 옛 판은 「사주풀이·궁합풀이를 받지 않으면 OpenAI 로 가는 처리는 일어나지 않는다」고 적었다 — 첫 화면의 문단이 그 밖에서 OpenAI 를
+ * 불렀다. 받는 때 · 기록의 보존 · 쿠키 · 계정에 이어진 예외 · 거부 방법이 다 서야 그 줄이 사실과 맞는다.
+ */
+describe('첫 화면의 짧은 사주 문단과 새 메시지 알림', () => {
+  const sections = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  );
+  const text = sections.flatMap((section) => section.lines).join(' ');
+  const outward = sections.find((section) => section.title === '국외로 나가는 것')?.lines.join(' ') ?? '';
+
+  it('첫 화면의 문단이 OpenAI 로 가는 때와 거부 방법 · 효과를 말한다', () => {
+    expect(outward).toContain('로그인하지 않고 첫 화면에서 사주를 보실 때');
+    expect(text).toContain('첫 화면에서 사주를 보지 않으시면 이 처리는 일어나지 않습니다');
+    expect(text).toContain('넣지 않으셔도 가입과 그 밖의 이용에는 영향이 없습니다');
+    expect(text).not.toContain('사주풀이·궁합풀이를 받지 않고 궁합 요청도 수락되지 않으면');
+  });
+
+  it('OpenAI 로 가는 것에 성별과 시간 앎을 따로 적는다', () => {
+    expect(outward).toContain('성별, 태어난 시각을 아는지 여부');
+    expect(text).not.toContain('여덟 글자와 그 위에서 나온 사실만 보냅니다');
+  });
+
+  it('임시 기록 24시간 · 쿠키 7일 · 계정에 이어진 예외를 말한다', () => {
+    expect(text).toContain('만든 때부터 24시간');
+    expect(text).toContain('쿠키는 7일 뒤 사라지며');
+    expect(text).toContain('계정의 풀이 자료로 남고 탈퇴하실 때 지웁니다');
+  });
+
+  it('알림의 구독 주소와 암호화 열쇠를 운영자가 정한 글자로 말한다', () => {
+    expect(text).toContain(
+      '새 메시지 알림을 켜시면, 이 기기로 알림을 보내는 데 필요한 구독 주소와 암호화 열쇠를 받습니다. 알림을 끄시거나 탈퇴하시면 지웁니다.',
+    );
+  });
+
+  /** 받는 곳의 이름 · 연락처 · 국가와, 켜지 않으면 안 나간다는 거부의 효과까지 */
+  it('푸시 회사 넷을 국외로 나가는 곳에 적고 거부의 효과를 말한다', () => {
+    for (const company of ['Google LLC', 'Mozilla Corporation', 'Microsoft Corporation', 'Apple Inc.']) {
+      expect(outward, company).toContain(`${company}(`);
+    }
+    expect(outward).toContain('알림을 켜지 않거나 계정 관리에서 끄시면');
+    /* `TTL` 은 요청이지 회사의 보유기간이 아니다 — 「1시간 뒤 삭제」로 쓰지 않는다 */
+    expect(outward).toContain('길어야 1시간만 보관하도록 요청합니다');
+    expect(outward).not.toContain('1시간 뒤 삭제');
+  });
 });
 
 /** v6 의 내용 개정 넷 — 한 판본에 다 서야 확인자가 한 번만 불려 온다(#165) */
