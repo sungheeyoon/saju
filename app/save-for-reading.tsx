@@ -25,7 +25,7 @@ import {
   type SameChartQuestion,
 } from './same-chart-ask';
 import { selfPersonState, type SelfPersonState } from './self-person-state';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE } from './ui/buttons';
 import { CARD } from './ui/surfaces';
 import { actionAnswer } from './ui/action-answer';
 import { FailureLine } from './ui/failure-line';
@@ -500,7 +500,7 @@ function SelfConfirm({
                 type="button"
                 onClick={retry}
                 disabled={saving}
-                className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
+                className={`${BUTTON_PRIMARY_FACE} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
               >
                 다시 시도하기
               </button>
@@ -508,7 +508,7 @@ function SelfConfirm({
                 type="button"
                 onClick={skip}
                 disabled={saving}
-                className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
+                className={`${BUTTON_SECONDARY_FACE} flex-1 px-4 sm:flex-none sm:px-5`}
               >
                 전체 풀이만 보기
               </button>
@@ -519,7 +519,7 @@ function SelfConfirm({
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
+                className={`${BUTTON_PRIMARY_FACE} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
               >
                 {saving ? '저장하는 중…' : '내 사주로 저장'}
               </button>
@@ -531,7 +531,7 @@ function SelfConfirm({
                   onSomeoneElse();
                 }}
                 disabled={saving}
-                className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
+                className={`${BUTTON_SECONDARY_FACE} flex-1 px-4 sm:flex-none sm:px-5`}
               >
                 다른 사람의 사주예요
               </button>

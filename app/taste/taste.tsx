@@ -14,7 +14,7 @@ import { SelfCard } from '../me/home/self-card';
 import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from '../reading-draft';
 import { SignInCarrying } from '../sign-in-carrying';
 import motion from './taste.module.css';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY_FACE } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { reducedMotion } from '../ui/motion';
 import { CARD, TYPE_META, TYPE_NAME } from '../ui/surfaces';
@@ -296,7 +296,7 @@ function FirstSection({ first, preview, onRetry }: { first: TasteFirstSection; p
       <p role="status" className="mt-3 flex flex-wrap items-center gap-x-2 text-small leading-5 text-secondary">
         <span>{first === 'retry' ? TASTE_FAILED_NOTE : TASTE_CLOSED_NOTE}</span>
         {first === 'retry' && (
-          <button type="button" onClick={onRetry} className={`${BUTTON_TERTIARY} text-small`}>
+          <button type="button" onClick={onRetry} className={`${BUTTON_TERTIARY_FACE} text-small font-semibold text-foreground`}>
             {TASTE_RETRY_LABEL}
           </button>
         )}
