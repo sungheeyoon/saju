@@ -1,202 +1,25 @@
 'use client';
 
-import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import {
-  READING_LEAVE_SAFE_NOTE,
-  READING_NOUN,
-  READING_OUTLINE_STATE,
-  readingNoneNote,
-  READING_REPLACES_NOTE,
-  READING_STALE_LABEL,
-  READING_STALE_NOTE,
-  READING_USES_TICKET_NOTE,
-  readingCreditsNote,
-  readingWaitNote,
-} from '@/src/lib/reading/notes';
-import { ELEMENTS, type Element } from '@/src/lib/saju';
+import { READING_REPLACES_NOTE, readingNoneNote, READING_USES_TICKET_NOTE } from '@/src/lib/reading/notes';
+import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
-import { ElementSymbol } from '../../ui/element-symbol';
-import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
-import { TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
-import { generateReading, markReadingReadyRead, readingRunState, skipTasteCarry } from './actions';
-import { announceCreditsMoved } from './credits-signal';
-import { GENERATION } from './generation';
+import { TYPE_NAME } from '../../ui/surfaces';
 import type { CurrentReading, ReadingCredits, RunProgress } from './current';
-import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
-import { Markdown, READING_COLUMN } from './markdown';
-import { coverFace, readingMinutes } from './essay';
-import { progressSoFar, readingOutline, type OutlineRow } from './outline';
-import { watchRun, type PageVisibility } from './watch-run';
-import { markAndAnnounce, newsKeyOf, readNewsWhenSeen } from './news-read';
-import { announceNotificationsUnreadMoved } from '../requests/unread-signal';
-import { when } from '../requests/when';
-import flow from './flow.module.css';
-import { skipCarriedTaste, takeTasteArrival } from '../../taste/carried-taste';
-import {
-  afterAsking,
-  afterPress,
-  answerOf,
-  asksOnArrival,
-  offersPlainReading,
-  initialFlow,
-  previewReading,
-  readingFlow,
-  type FlowDecision,
-  type PressOutcome,
-  type ReadingEvent,
-  type RunAnswer,
-} from './reading-state';
+import { READING_COLUMN } from './markdown';
+import { readingOutline } from './outline';
 import type { ReadingTarget } from './target';
 import type { TasteCarryView } from '../../taste/taste-carry';
-import { useBuyCredits } from '../credits/buy-credits';
-import { outOfCredits } from '../credits/buy-path';
-
-/**
- * **글 둘레에 무엇이 서는가.**
- *
- * 결과 칸의 판단 여섯이 여기 모였다. 칸 안에 흩어져 있을 때 이 여섯은 「`.tsx` 라서
- * 시험이 못 닿는다」고 적혀 있었지만, 못 닿게 한 것은 확장자가 아니라 **뽑아내지 않은
- * 순수 함수**였다 — 뽑고 나니 시험이 그냥 부른다(`fitsCalendar` · `isNavigationActive`
- * 가 같은 자리에 먼저 서 있다).
- *
- * 부수효과도 JSX 도 안 든다. 들어오는 것은 이 화면이 이미 아는 값뿐이고, 나가는 것은
- * 「무엇이 서고 무엇이 닫히는가」뿐이다.
- */
-type PanelChrome = {
-  /** 만드는 버튼이 닫혀 있는가 */
-  readonly makeDisabled: boolean;
-  /**
-   * 풀이권이 0개라 **만드는 버튼이 풀이권 창을 여는가**(`outOfCredits`) — 누르면 확인 창 · 만들기 대신 `useBuyCredits` 의 창이다.
-   * 만들기 요청은 나가지 않는다.
-   */
-  readonly buysCredits: boolean;
-  /** 만드는 버튼이 아예 안 서는가 */
-  readonly hideMake: boolean;
-  /** 그 버튼이 칸 안이 아니라 머리에 서는가 */
-  readonly makeInHeader: boolean;
-  readonly makeLabel: string;
-  readonly canShare: boolean;
-  /** 다 읽은 글 아래에 설문이 붙는가 */
-  readonly asksFeedback: boolean;
-};
-
-export function panelChrome({
-  kind,
-  noun,
-  loading,
-  reading,
-  isMock,
-  credits,
-  automatic,
-  consented,
-}: {
-  kind: ReadingTarget['kind'];
-  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」다 */
-  noun: string;
-  loading: boolean;
-  reading: CurrentReading | null;
-  isMock: boolean;
-  credits: ReadingCredits | null;
-  automatic: boolean;
-  consented: boolean;
-}): PanelChrome {
-  /*
-    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼이 만들기 그대로다 — 그 사람이 누르면 DB 가
-    「끝나면 다시 눌러 주세요」로 답하고, 그것이 이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
-    다 썼으면 버튼은 닫히지 않고 누르면 풀이권 창(「보유 풀이권 0장」)이 열린다 — 닫힌 단추는 누른 사람에게 아무 말도 안 했다.
-  */
-  const spent = outOfCredits(credits);
-
-  /**
-   * **누를 것이 있는가.**
-   *
-   * **만드는 동안에는 아무 화면에도 버튼이 없다.** 닫힌 「받는 중…」 버튼과 「아직 받은 풀이가 없어요」 칸이 진행
-   * 카드 위에 남아 있었다(화면 갤러리 감사 2026-10-09) — 기다리는 사람이 볼 것은 진행 카드 하나다.
-   *
-   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도 누를 일이 아니다. 남는 자리는 **아무것도 없는
-   * 자리** 하나이고, 그때만 버튼이 선다.
-   */
-  const hideMake = loading || (automatic && reading !== null);
-
-  return {
-    makeDisabled: loading,
-    buysCredits: spent && !loading,
-    hideMake,
-
-    /**
-     * 글을 읽으러 온 화면에 **이미 글이 있으면** 만드는 버튼은 머리로 올라간다.
-     *
-     * 전에는 글 위에 칸 하나가 통째로 서 있었다 — 권하는 말·안 넘기는 것·버튼. 그런데
-     * 글이 이미 있는 사람에게 그 칸이 하는 말은 버튼 하나뿐이고, 나머지 줄은 **읽을
-     * 이유가 없는 자리**를 차지하고 있었다.
-     */
-    makeInHeader: reading !== null && !hideMake,
-
-    makeLabel: reading === null ? `${noun} 받기` : `${noun} 다시 받기`,
-
-    /**
-     * **공유는 다 된 내 사주풀이에만 붙는다.**
-     *
-     * 없는 글과 지금 만들고 있는 글에는 보낼 것이 없다 — 그 자리에 버튼을 세우면 누른
-     * 사람이 빈 링크를 받는다. 예시 결과에도 안 붙는다. 그것은 모델이 쓴 글이 아니라
-     * 개발용으로 박아 둔 문자열이고, DB 의 문도 저장된 원문에 없는 글은 안 받는다 —
-     * 화면에서 먼저 막지 않으면 사용자는 이유를 모르는 실패를 본다.
-     *
-     * **인연 궁합만 빠진다.** 거기 있는 상대는 실재하는 계정이고, 그 사람이 동의한
-     * 것은 「이 사람에게 내 여덟 글자를 연다」이지 「누구에게든 연다」가 아니다
-     * (ADR 0012). 나머지 셋은 다 **내가 넣은 자료**라 내보낼지 말지를 넣은 사람이 정한다.
-     */
-    canShare: kind !== 'match' && reading !== null && !loading && !isMock,
-
-    /**
-     * **읽고 나서 곧바로 묻는다.** 시점이 값을 정한다 — 다 읽은 직후가 기억이 가장
-     * 선명하고, 여기를 떠난 뒤에 묻는 설문은 「대체로 괜찮았다」를 받는다.
-     *
-     * **예시 결과에는 안 붙는다.** 그 글은 모델이 쓴 것이 아니라 개발용으로 박아 둔
-     * 문자열이라, 그것에 대한 답을 세면 프롬프트 판본별 값이 조용히 오염된다.
-     *
-     * `sourceRunId` 가 없는 글에도 안 붙는다. 이 값이 생기기 전에 저장된 글들이고,
-     * 어느 시도가 만들었는지 지어 넣지 않았다 — 매달 자리가 없으면 안 묻는다.
-     *
-     * 그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
-     * 같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
-     */
-    asksFeedback:
-      consented
-      && !loading
-      && reading !== null
-      && !isMock
-      && reading.sourceRunId !== null,
-  };
-}
-
-/** 이 탭이 보이는가 — 지켜보는 고리(`watchRun`)가 숨긴 탭에서 쉬게 */
-const documentVisibility: PageVisibility = {
-  hidden: () => document.visibilityState === 'hidden',
-  onChange: (listener) => {
-    document.addEventListener('visibilitychange', listener);
-    return () => document.removeEventListener('visibilitychange', listener);
-  },
-};
-
-/**
- * 흐름이 정한 것을 **실제로 한다** — 여기에는 판단이 없다.
- *
- * 무엇을 할지는 `afterPress` · `afterAsking` 이 이미 값으로 답했고, 이 함수가 하는 일은
- * 그 둘을 순서대로 집행하는 것뿐이다. **칸 밖에 두는 까닭**은 지켜보는 고리의 의존성에
- * 들지 않게 하려는 것이다 — 칸 안에서 새로 지어지면 그림마다 고리가 다시 선다.
- */
-function apply(decision: FlowDecision, dispatch: (event: ReadingEvent) => void): void {
-  if (decision.event !== null) dispatch(decision.event);
-  if (decision.announcesCredits) announceCreditsMoved();
-}
+import { CarryCard } from './carry-card';
+import { LoadingState } from './reading-waiting';
+import { Result } from './reading-result';
+import { useReadingPanel } from './use-reading-panel';
 
 export function ReadingPanel({
   target,
@@ -315,217 +138,38 @@ export function ReadingPanel({
    */
   carry?: TasteCarryView | null;
 }) {
-  /** 이 화면에서 만드는 버튼을 눌렀나 — 이어 쓴 글을 새로 받으면 「아까 보던 내용」을 내린다 */
-  const [pressed, setPressed] = useState(false);
-  const showsCarry = carry !== null && !(carry.state === 'shown' && pressed);
-  const [flow, dispatch] = useReducer(
-    readingFlow,
-    { running: initialRunning, failed: initialFailed, hasReading: initialReading !== null },
-    initialFlow,
-  );
-  /**
-   * 서버가 적은 진행 — **물을 때마다 지나온 값에 접는다**(`progressSoFar`, 한 번 앞선 줄은 뒤로 가지 않는다). 흐름
-   * (`readingFlow`)에 안 넣는 것은 이 값이 무엇이 서는지(글 · 빈 칸 · 기다림)를 안 바꾸고 기다리는 칸 안의 줄만 바꾸기 때문이다.
-   */
-  const [progress, setProgress] = useState(initialProgress);
-
-  /**
-   * **기다리기 전에 서 있던 글** — 끝난 뒤 이것과 다른 글이 서야 기다림을 내린다(`ReadingFlow.arriving`). 열 때 도는 시도가
-   * 있었으면 그때의 글, 누르면 누를 때의 글이다. 지금 선 글은 물음의 답이 오는 자리에서 읽으므로 참조로 든다.
-   */
-  const shownKey = newsKeyOf(initialReading);
-  const keyBeforeWait = useRef(shownKey);
-  const keyNow = useRef(shownKey);
-  useEffect(() => {
-    keyNow.current = shownKey;
-    if (shownKey !== keyBeforeWait.current) dispatch({ type: 'arrived' });
-  }, [shownKey]);
-
-  const { phase, failure } = flow;
-  /* 예시 글이 서 있는 것과 `mock !== null` 은 같은 말이다 — 따로 들면 한쪽만 지운다 */
-  const isMock = flow.mock !== null;
-  const reading = flow.mock ?? initialReading;
-
-  /**
-   * **이 글의 완성 소식을 읽음으로 바꾼다**(ADR 0157 「2026-10-10 덧」) — 서버가 준 글이 보일 때 한 번. 예시 글은 서버에
-   * 없는 글이라 안 부른다. 다시 받아 새 글이 서면(만든 시각이 바뀐다) 그 글의 소식도 한 번 — 기다리며 본 사람의 종이 남지 않는다.
-   * 개발 모드의 두 번 도는 effect 와 같은 글의 다시 그림은 열쇠가 막는다.
-   */
-  const newsKey = isMock ? null : newsKeyOf(initialReading);
-  const newsReadingId = isMock ? null : (initialReading?.id ?? null);
-  const newsSentFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (newsKey === null || newsReadingId === null || newsSentFor.current === newsKey) return;
-    return readNewsWhenSeen({
-      visibility: documentVisibility,
-      send: () => {
-        newsSentFor.current = newsKey;
-        void markAndAnnounce(newsReadingId, markReadingReadyRead, announceNotificationsUnreadMoved);
-      },
-    });
-  }, [newsKey, newsReadingId]);
-
-  /**
-   * **도는 시도를 지켜본다.** 끝난 것을 본 그 물음의 응답이 이 화면을 다시 그려 싣는다(`readingRunState` 의 `refreshPaths`).
-   *
-   * 누른 그 화면에서만 도는 것이 아니다. 새로고침하고 돌아오거나 다른 기기에서 열어도
-   * 서버에는 도는 시도가 있으므로(`initialRunning`), 이 고리는 **마운트될 때부터**
-   * 돈다. 만드는 일이 요청에서 떨어져 나온 뒤로 그것이 가능해졌다. 언제 묻는가 — 답이 온 뒤 · 숨긴 탭은 쉼 — 는
-   * `watchRun` 이 든다.
-   */
-  useEffect(() => {
-    if (phase !== 'loading') return;
-
-    let alive = true;
-    const ask = async () => {
-      let answer: RunAnswer;
-      let seen: RunProgress | null | undefined;
-      try {
-        const run = await readingRunState(target);
-        answer = answerOf(run);
-        seen = run?.progress ?? null;
-      } catch {
-        // 한 번 못 물은 것으로 끝났다고 하지 않는다. 다음 물음에서 다시 본다.
-        answer = { kind: 'unreachable' };
-      }
-      /* 떠난 칸에는 아무것도 안 세운다 — 답이 오는 사이에 화면이 바뀔 수 있다 */
-      if (!alive) return;
-
-      /* 못 물었으면 앞서 본 진행을 그대로 둔다 — 한 번 끊긴 것으로 목차를 비우지 않는다 */
-      if (seen !== undefined) setProgress((before) => progressSoFar(before, seen));
-
-      apply(afterAsking(answer, keyNow.current !== keyBeforeWait.current, keyNow.current !== null), dispatch);
-    };
-
-    const stop = watchRun({ ask, visibility: documentVisibility });
-
-    return () => {
-      alive = false;
-      stop();
-    };
-  }, [phase, target]);
-
-  /* 풀이권 창 — 0개일 때의 누름과, 누른 뒤 서버가 풀이권이 없어 막은 때(ADR 0171 「덧」) */
-  const buy = useBuyCredits();
-
-  const generate = async () => {
-    dispatch({ type: 'press' });
-    setPressed(true);
-    /* 새 시도다 — 지난 시도의 진행을 들고 가지 않는다 */
-    setProgress(null);
-    keyBeforeWait.current = keyNow.current;
-
-    /*
-      **예시 글은 누르는 자리에서 짓는다.** 지을 수 있는가는 이 화면이 알고
-      (`allowMockFallback`), 세울 것인가는 흐름이 답한다 — 여기서 `null` 이면 그 갈래가
-      아예 없다는 뜻이고, 그것이 프로덕션에서 실패가 실패로 서는 까닭이다.
-
-      **`NODE_ENV` 를 여기서 한 번 더 묻는 것은 묶음 때문이다.** `allowMockFallback` 은
-      서버가 넘기는 실행 값이라 빌드가 못 접는다 — 이 자리의 상수가 접혀야 예시 글이
-      운영 클라이언트 묶음에서 빠진다(ADR 0080 「값으로 남은 것 넷」 1).
-    */
-    const preview =
-      process.env.NODE_ENV !== 'production' && allowMockFallback
-        ? previewReading(target.kind, new Date())
-        : null;
-
-    let outcome: PressOutcome;
-    try {
-      /*
-        **답을 너무 빨리 돌려주지 않는다.** 누르자마자 제자리로 돌아온 화면은 눌린
-        것으로 안 보인다 — 기다리는 모습이 설 시간을 준다.
-      */
-      const [result] = await Promise.all([
-        generateReading(target, crypto.randomUUID()),
-        new Promise((resolve) => setTimeout(resolve, 900)),
-      ]);
-
-      /*
-        **답이 결과가 아니라 시작 여부다.** 열었으면 기다리는 화면에 그대로 머물고,
-        열지 못했어도(이미 도는 시도가 있다) 기다릴 일인 것은 같다 — 그 시도가 끝나면
-        새 글이 선다. 어느 쪽에 무엇이 서는지는 `afterPress` 가 든다.
-      */
-      outcome = result.ok
-        ? { kind: 'opened', started: result.started }
-        : 'outOfCredits' in result
-          ? { kind: 'out-of-credits' }
-          : { kind: 'refused', message: result.message };
-    } catch {
-      outcome = { kind: 'threw' };
-    }
-
-    const decision = afterPress(outcome, preview);
-    apply(decision, dispatch);
-    if (decision.opensCredits) buy.offer(0);
-  };
-
-  /**
-   * 되돌릴 수 없는 누름 앞의 확인 창 — **경고를 읽는 시점을 누름에 붙인다.**
-   *
-   * 새로 만들면 지금 글과 점수는 사라진다(ADR 0013: 통째로 교체). 그 사실은 한동안
-   * 버튼 옆에 늘 적혀 있었는데, 늘 적혀 있는 문장은 누르려는 사람에게 **읽히지 않는
-   * 시점**에 서 있는 것과 같다. 여기서는 누른 사람만, 누른 그때 읽는다.
-   *
-   * 처음 만드는 때에도 묻는다. 풀이권은 한정된 자원이라, 사라질 글이 없더라도 실제로
-   * 한 번을 쓰기 직전에는 사용자가 그 사실을 확인할 수 있어야 한다. 이미 글이 있으면
-   * 같은 창에서 기존 글과 점수가 교체된다는 사실까지 함께 말한다.
-   *
-   * 상태를 안 든다. `<dialog>` 가 열림·닫힘을 스스로 들고, Esc 와 초점 가둠도 브라우저가
-   * 한다 — 그 셋을 손으로 다시 만들면 세 자리가 더 생긴다.
-   */
-  const [asking, setAsking] = useState(false);
-
-
-  const confirmGenerate = () => {
-    setAsking(false);
-    void generate();
-  };
-
-  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」라고 적는다 */
-  const noun = READING_NOUN[target.kind];
-  const creditsNote = credits === null ? null : readingCreditsNote(credits);
-
-  const chrome = panelChrome({
-    kind: target.kind,
-    noun,
-    loading: phase === 'loading',
+  const {
+    phase,
+    failure,
     reading,
     isMock,
+    progress,
+    noun,
+    creditsNote,
+    chrome,
+    showsCarry,
+    asking,
+    closeAsking,
+    confirmGenerate,
+    generate,
+    press,
+    buy,
+    offersPlain,
+    skipping,
+    skipCarry,
+  } = useReadingPanel({
+    target,
+    initialReading,
+    initialFailed,
+    initialRunning,
+    initialProgress,
+    lastFailureCode,
     credits,
-    automatic,
     consented,
+    allowMockFallback,
+    automatic,
+    carry,
   });
-
-  /*
-    글이 있으면 첫 초점은 「취소」다 — 아래 창이 정한다(`ConfirmDialog` 의 `firstFocus`, B5). 풀이권이 0개면 확인 창 대신 풀이권 창이다 —
-    만들기 요청이 나가지 않는다
-  */
-  const press = () => {
-    if (chrome.buysCredits) buy.offer(0);
-    else setAsking(true);
-  };
-
-  /**
-   * **로그인 전 사주 문단을 막 붙이고 도착했으면 확인창을 스스로 연다**(ADR 0143 「덧」) — 뒤에는 「아까 보던 내용」이 그대로
-   * 보인다. 여는 것까지이고 누름은 사용자가 한다. 「막 도착했다」는 탭의 한 번짜리 표(`takeTasteArrival`)로 판단한다 — 귀속
-   * 표 쿠키는 첫 누름까지 남아 있어서 쿠키로 보면 새로고침 · 뒤로가기마다 다시 열린다. 표는 처음 그릴 때 읽고 곧바로 지우므로
-   * 한 번 닫으면 그 방문에서 다시 안 열린다. 여는가의 판단은 `asksOnArrival` 이 든다.
-   */
-  const arrivalSeen = useRef(false);
-  useEffect(() => {
-    if (arrivalSeen.current || target.kind !== 'self') return;
-    arrivalSeen.current = true;
-    const arrived = takeTasteArrival(() => sessionStorage);
-    const opens = asksOnArrival({
-      arrived,
-      carry,
-      loading: phase === 'loading',
-      makeDisabled: chrome.makeDisabled || chrome.buysCredits,
-      hideMake: chrome.hideMake,
-    });
-    /* 탭의 표(밖의 저장소)를 읽은 답을 다음 차례에 싣는다 — 그리는 도중에 창을 여는 값을 바꾸지 않는다 */
-    if (opens) queueMicrotask(() => setAsking(true));
-  }, [target.kind, carry, phase, chrome.makeDisabled, chrome.buysCredits, chrome.hideMake]);
 
   /**
    * 만드는 버튼 — **두 자리에 같은 버튼이 선다.**
@@ -583,20 +227,6 @@ export function ReadingPanel({
       {creditsNote !== null && <p className="text-small leading-5 text-secondary">{creditsNote}</p>}
     </div>
   );
-
-  /**
-   * **「전체 풀이만 보기」** — 잇기가 막혀 실패한 자리의 탈출구(ADR 0143 「덧」). 귀속 표를 걷고 화면을 다시 읽는다 — 「아까 보던
-   * 내용」이 내려가고 다음 누름은 보통 풀이다. 누르는 것은 풀이권이 아니라 이어 보기를 그만두는 것이라 확인창을 안 연다.
-   */
-  const [skipping, startSkipping] = useTransition();
-  const offersPlain =
-    target.kind === 'self' &&
-    offersPlainReading({ carry: showsCarry ? carry : null, lastFailureCode, loading: phase === 'loading' });
-  const skipCarry = () => {
-    startSkipping(async () => {
-      await skipCarriedTaste(() => sessionStorage, skipTasteCarry);
-    });
-  };
 
   const alert = failure === null ? null : (
     <div
@@ -669,7 +299,7 @@ export function ReadingPanel({
       )}
 
       {/* 맨 위 — 가입 전에 읽던 문단. 검사 전의 새 글은 여기 안 선다: 저장된 그 원문뿐이다 */}
-      {showsCarry && <CarryCard preview={carry.preview} />}
+      {showsCarry && carry !== null && <CarryCard preview={carry.preview} />}
 
       {/*
         **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자 뒤에 있으면 없는
@@ -720,7 +350,7 @@ export function ReadingPanel({
       {chrome.hideMake ? null : (
       <ConfirmDialog
         open={asking}
-        onClose={() => setAsking(false)}
+        onClose={closeAsking}
         /*
           「아까 보던 내용」이 서 있으면 좁은 화면에서는 창을 아래에 붙인다 — 가운데 창은 맨 위의 그 문단을 덮는다. 그 문단을
           보며 그 답을 받을지 정하는 자리다(ADR 0143 「덧」).
@@ -746,232 +376,3 @@ export function ReadingPanel({
     </>
   );
 }
-
-/**
- * 「아까 보던 내용」 — 가입 전에 읽던 로그인 전 사주 문단의 **저장된 원문**(ADR 0143). 모델이 쓴 문단이라 줄 나눔만 살린다.
- */
-function CarryCard({ preview }: { preview: string }) {
-  const paragraphs = preview.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph !== '');
-  return (
-    <section aria-labelledby="carry-heading" className="rounded-card border border-border bg-surface px-5 py-5 sm:px-6">
-      <h3 id="carry-heading" className="text-small font-semibold text-secondary">
-        아까 보던 내용
-      </h3>
-      <div className="mt-2 flex flex-col gap-3">
-        {paragraphs.map((paragraph, at) => (
-          <p key={at} className="text-body leading-7 text-foreground">
-            {paragraph}
-          </p>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/**
- * **멈춘 화면이 아니라는 것을 무엇이 말하는가** — 서버가 적은 진행이다(ADR 0127).
- *
- * 스피너는 서버가 죽어도 계속 돈다. 그래서 오래 걸리는 일에서 스피너는 「살아 있다」를 말하지 못한다. 한동안 여기서
- * 초를 셌다 — 서버가 어느 단계인지 몰랐고, 시간만 보고 단계를 지어 보이면 그건 **꾸며 낸 진행**이기 때문이다.
- *
- * 이제 서버가 안다. 제출한 응답을 따라 읽으며 소제목이 설 때마다 절 번호를 적고(`note_reading_progress`), 이 칸은
- * 그 값으로 목차 줄을 칠한다(`readingOutline`). **시간으로 채우는 자리는 여전히 없다** — 첫 머리가 서기 전에는 아무
- * 줄도 안 움직이고, 흐르는 띠(`flow.module.css`)는 차오르지 않는다. 끝을 모른다는 말은 그대로다.
- */
-function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
-  return (
-    <div role="status" aria-live="polite" className="rounded-card bg-cream p-5 sm:p-7">
-      {/*
-        **띠 · 목차 · 안내가 한 열이다.** 띠만 카드 폭을 다 쓰고 목차는 36rem 에서 멈춰, 넓은 화면에서 띠가 목차보다
-        길게 뻗었다(화면 갤러리 감사 2026-10-09). 열의 폭은 본문과 같다 — 기다린 자리에 글이 그 폭으로 선다.
-      */}
-      <div className={READING_COLUMN}>
-        <div className="flex items-center gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-cream-ink" aria-hidden="true">
-            <Icon name="spark" className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-lead font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
-            <p className="text-small leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
-          </div>
-        </div>
-        {/*
-          **얼마나 걸리고 떠나도 되는지가 머리 바로 아래다**(2026-10-10 화면 점검 B11). 목차 열 줄 아래에 두었더니 폰에서는
-          내려가야 보였다 — 기다리는 사람에게 가장 쓸모 있는 말이다.
-        */}
-        <p className="mt-3 text-small leading-5 text-cream-ink">
-          {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
-        </p>
-        <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
-          <div className={`${flow.flow} h-full rounded-full`} />
-        </div>
-        {/*
-          **줄마다 서버가 적은 상태 하나.** 목록이라 화면 낭독기가 몇 줄 중 몇째인지 읽는다. 기다리는 줄의 말줄임표는
-          읽어 주지 않는다 — 「점점점」이 아홉 번 낭독되면 목차를 들을 수 없다.
-        */}
-        <ol aria-label="풀이 목차" className="mt-5 flex flex-col gap-2">
-          {rows.map((row, at) => (
-            <li
-              key={`${at}-${row.label}`}
-              className="flex items-center justify-between gap-3 rounded-row bg-surface px-4 py-3 text-note"
-            >
-              <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
-              <OutlineMark state={row.state} />
-            </li>
-          ))}
-        </ol>
-      </div>
-    </div>
-  );
-}
-
-function OutlineMark({ state }: { state: OutlineRow['state'] }) {
-  switch (state) {
-    case 'done':
-      return (
-        <span className="shrink-0 rounded-full bg-wood-soft px-2 py-0.5 text-fine font-semibold text-wood">
-          {READING_OUTLINE_STATE.done}
-        </span>
-      );
-    case 'writing':
-    case 'reviewing':
-      return (
-        <span className="shrink-0 animate-pulse text-fine font-semibold text-fire motion-reduce:animate-none">
-          {READING_OUTLINE_STATE[state]}
-        </span>
-      );
-    case 'waiting':
-      return (
-        <span aria-hidden="true" className="shrink-0 text-muted">
-          {READING_OUTLINE_STATE.waiting}
-        </span>
-      );
-  }
-}
-
-function Result({
-  reading,
-  target,
-  isMock,
-  tones,
-  betweenSummaryAndBody,
-  matchNames,
-}: {
-  reading: CurrentReading;
-  target: ReadingTarget;
-  isMock: boolean;
-  tones: readonly (Element | null)[] | undefined;
-  betweenSummaryAndBody?: ReactNode;
-  matchNames?: { readonly me: string; readonly partner: string };
-}) {
-  const body =
-    target.kind === 'match' && matchNames !== undefined
-      ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
-      : reading.output;
-
-  /*
-    **표지의 색은 부르는 화면이 정한다** — 대상의 일간이다. 모르면(부르는 화면이 안 넘기면) 크림 한 장이다:
-    회색 표지는 「못 읽은 명식」의 뜻이라, 몰라서 안 넘긴 자리에 쓰면 거짓말이 된다.
-  */
-  const face = tones === undefined ? null : coverFace(tones);
-  const firstTone = tones?.[0] ?? null;
-
-  const meta = (
-    <>
-      {isMock && (
-        <span className="rounded-full bg-warning-wash px-2.5 py-1 text-tag font-semibold text-warning">
-          예시 결과
-        </span>
-      )}
-      <time dateTime={reading.createdAt} className="tabular-nums">
-        {when(reading.createdAt)} 생성
-      </time>
-      <span aria-hidden="true">·</span>
-      <span>읽는 데 약 {readingMinutes(body)}분</span>
-    </>
-  );
-
-  return (
-    <div className="flex flex-col gap-6">
-      {/*
-        **비유 한 줄이 이 글의 표지다** — 에세이 앱의 표지처럼 가장 크게 세운다(시안 3차 warm). 점수는 표지의
-        오른쪽 아래, 비유가 흐르는 자리를 밀어내지 않는 곳에 선다. 비유는 길이가 들쭉날쭉하다(마흔 자 안팎을
-        시키지만 막는 자리는 120자) — 한 줄을 전제하지 않고 `text-pretty` 로 고르게 나눈다.
-      */}
-      {reading.score !== null || reading.metaphor !== null ? (
-        <figure
-          className={`${elementScope(firstTone)} relative overflow-hidden rounded-paper px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
-          style={face === null ? undefined : { background: face.background }}
-        >
-          {/* 한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징 */}
-          {tones !== undefined && tones.length === 1 && (
-            <FaceSymbol
-              stem={reading.dayMasterA}
-              element={firstTone}
-              className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
-            />
-          )}
-          {reading.metaphor !== null ? (
-            <>
-              <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
-                “
-              </span>
-              <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-title leading-[1.4] tracking-[-0.02em] text-foreground sm:text-figure">
-                {reading.metaphor}
-              </blockquote>
-            </>
-          ) : (
-            <p className="relative text-small font-semibold text-secondary">풀이 결과</p>
-          )}
-          <figcaption className="relative mt-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] pt-4">
-            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-small text-secondary">{meta}</span>
-            {reading.score !== null && (
-              <span className="flex flex-col items-end">
-                <span className="text-small font-semibold text-secondary">궁합풀이 점수</span>
-                <span className="flex items-baseline gap-1">
-                  <span className="text-figure font-bold leading-none tabular-nums text-foreground">{reading.score}</span>
-                  <span className="text-small font-semibold text-secondary">/ 100</span>
-                </span>
-              </span>
-            )}
-          </figcaption>
-        </figure>
-      ) : (
-        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-small text-secondary">{meta}</p>
-      )}
-      {/*
-        **늘 참인 사실은 여기 안 적는다.** 여기 서는 것은 **실제로 갈리는** 한 줄뿐이다 — 지금과 다른
-        명식으로 만든 글. 새로 만들면 지금 것이 사라진다는 경고는 되돌릴 수 없는 누름 **직전**에 필요한
-        말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「수정 전」 낱말이 함께 선다.
-      */}
-      {target.kind !== 'match' && !reading.fromCurrentChart && (
-        <p className="flex gap-2.5 rounded-row bg-warning-wash px-4 py-3.5 text-note leading-6 text-foreground">
-          <Icon name="alert" className="mt-0.5 size-5 text-warning" />
-          <span>
-            <span className="mr-1.5 font-semibold text-warning">{READING_STALE_LABEL}</span>
-            {READING_STALE_NOTE}
-          </span>
-        </p>
-      )}
-      {betweenSummaryAndBody}
-      <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
-        {target.kind === 'match' && (
-          <header className={READING_COLUMN}>
-            <p className="text-small font-semibold text-secondary">두 사람의 풀이</p>
-            <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
-          </header>
-        )}
-        <article id={`reading-${reading.id}`}>
-          <Markdown source={body} />
-        </article>
-        {/* 글의 끝 — 다섯 상징이 마침표 자리에 선다 */}
-        <span aria-hidden="true" className="mt-12 flex justify-center gap-3 opacity-80">
-          {ELEMENTS.map((element) => (
-            <ElementSymbol key={element} element={element} className="size-5" />
-          ))}
-        </span>
-      </div>
-    </div>
-  );
-}
-
