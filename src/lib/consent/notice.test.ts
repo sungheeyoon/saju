@@ -226,12 +226,12 @@ it('안내 판본이 값으로 서 있다', () => {
 });
 
 /**
- * v8 의 내용 개정 둘 — 첫 화면의 짧은 사주 문단(G-66)과 새 메시지 알림(G-71)이 한 판에 선다(ADR 0180).
+ * v8 의 내용 개정 — 첫 화면의 짧은 사주 문단(G-66, ADR 0180).
  *
  * 옛 판은 「사주풀이·궁합풀이를 받지 않으면 OpenAI 로 가는 처리는 일어나지 않는다」고 적었다 — 첫 화면의 문단이 그 밖에서 OpenAI 를
  * 불렀다. 받는 때 · 기록의 보존 · 쿠키 · 계정에 이어진 예외 · 거부 방법이 다 서야 그 줄이 사실과 맞는다.
  */
-describe('첫 화면의 짧은 사주 문단과 새 메시지 알림', () => {
+describe('첫 화면의 짧은 사주 문단', () => {
   const sections = noticeFor(
     { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
     { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
@@ -246,32 +246,36 @@ describe('첫 화면의 짧은 사주 문단과 새 메시지 알림', () => {
     expect(text).not.toContain('사주풀이·궁합풀이를 받지 않고 궁합 요청도 수락되지 않으면');
   });
 
-  it('OpenAI 로 가는 것에 성별과 시간 앎을 따로 적는다', () => {
-    expect(outward).toContain('성별, 태어난 시각을 아는지 여부');
+  /**
+   * **갈래마다 나가는 것이 다르다.** 사주풀이 · 직접 고른 궁합은 해 · 나이 · 성별을 싣고(`REDACTED_PATHS` 에 없다), 첫 화면 문단은
+   * 해 · 나이를 뺀다(`TASTE_DROPPED_PATHS`), 인연 궁합은 고른 칸만 싣는다(`limited-v1` — 성별도 없다).
+   */
+  it('OpenAI 로 가는 분석 정보와 갈래마다 빠지는 것을 적는다', () => {
+    expect(text).toContain('계산된 명식과 태어난 해·나이·성별 등 분석 정보');
+    expect(text).toContain('등록하실 때 붙인 이름과 고르신 사이');
+    expect(text).toContain('인연 궁합풀이에는 태어난 해·나이·성별을 빼고');
+    expect(text).toContain('두 분의 닉네임');
+    expect(text).toContain('첫 화면의 짧은 사주 문단에는 태어난 해·나이를 빼고');
     expect(text).not.toContain('여덟 글자와 그 위에서 나온 사실만 보냅니다');
   });
 
+  /** 역산 문장은 처리방침에 두지 않는다 — 경계까지 검증하지 않았다(ADR 0180) */
+  it('역산을 처리방침에서 말하지 않는다', () => {
+    expect(text).not.toContain('60년');
+    expect(text).not.toContain('하나로 정해');
+  });
+
   it('임시 기록 24시간 · 쿠키 7일 · 계정에 이어진 예외를 말한다', () => {
-    expect(text).toContain('만든 때부터 24시간');
+    expect(text).toContain('만든 때부터 24시간 뒤 지웁니다');
     expect(text).toContain('쿠키는 7일 뒤 사라지며');
-    expect(text).toContain('계정의 풀이 자료로 남고 탈퇴하실 때 지웁니다');
+    expect(text).toContain('계정의 풀이 기록으로 남고 탈퇴하실 때 지웁니다');
   });
 
-  it('알림의 구독 주소와 암호화 열쇠를 운영자가 정한 글자로 말한다', () => {
-    expect(text).toContain(
-      '새 메시지 알림을 켜시면, 이 기기로 알림을 보내는 데 필요한 구독 주소와 암호화 열쇠를 받습니다. 알림을 끄시거나 탈퇴하시면 지웁니다.',
-    );
-  });
-
-  /** 받는 곳의 이름 · 연락처 · 국가와, 켜지 않으면 안 나간다는 거부의 효과까지 */
-  it('푸시 회사 넷을 국외로 나가는 곳에 적고 거부의 효과를 말한다', () => {
-    for (const company of ['Google LLC', 'Mozilla Corporation', 'Microsoft Corporation', 'Apple Inc.']) {
-      expect(outward, company).toContain(`${company}(`);
+  /** 새 메시지 알림은 이 판에 없다 — 회사 표가 찬 뒤 알림을 켜기 전에 따로 올린다(ADR 0180) */
+  it('웹 푸시의 줄을 싣지 않는다', () => {
+    for (const absent of ['구독 주소', '푸시', 'Google LLC', 'Apple Inc.']) {
+      expect(text, absent).not.toContain(absent);
     }
-    expect(outward).toContain('알림을 켜지 않거나 계정 관리에서 끄시면');
-    /* `TTL` 은 요청이지 회사의 보유기간이 아니다 — 「1시간 뒤 삭제」로 쓰지 않는다 */
-    expect(outward).toContain('길어야 1시간만 보관하도록 요청합니다');
-    expect(outward).not.toContain('1시간 뒤 삭제');
   });
 });
 

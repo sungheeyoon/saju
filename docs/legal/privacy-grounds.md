@@ -5,8 +5,9 @@
 > 하고, 묻고 싶을 때 묻는 선택 검토로 남는다(`docs/legal/counsel-request.md` 「B-9」, ADR 0180).
 
 화면의 처리방침 원문은 `src/lib/consent/notice.ts` 의 `noticeFor` · `TRANSFERS` 이고 `/privacy` 가 그대로 그린다. 이 문서는
-**`notice-v8`**(G-66 · G-71 을 묶은 내용 개정, ADR 0180)이 더한 줄을 든다 — 그 앞 판의 줄은 `docs/legal/privacy-v8-draft.md` 「부록 A」가
-출처를 든다. 처리방침 문장을 바꾸는 PR 은 이 문서의 그 줄도 같은 PR 에서 고친다(ADR 0180 의 7).
+**`notice-v8`**(G-66 의 내용 개정, ADR 0180)이 더한 줄을 든다. 새 메시지 알림(G-71)은 그 판에 없다 — 아래 「푸시 회사 넷」은 알림을
+켜기 전에 따로 올릴 판의 재료다 — 그 앞 판의 줄은 `docs/legal/privacy-v8-draft.md` 「부록 A」가
+출처를 든다. 처리방침 문장을 바꾸는 PR 은 이 문서의 그 줄도 같은 PR 에서 고친다(ADR 0180 의 8).
 
 **「확인 전」** 은 공식 문서에서 찾지 못한 값이다 — 지어 쓰지 않았다. 찾은 날 그 칸을 채우고 출처를 단다.
 
@@ -27,10 +28,10 @@
 「국외에서 개인정보 처리위탁이 필요하거나 국외에서 개인정보 보관이 필요한 경우를 의미합니다.」 처리방침에 무엇을 적는지는 그 글에
 없다. https://pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS212&mCode=C040030000&nttId=9830
 
-**다시 확인받기는 법 의무로 적지 않았다.** 내용 개정 때 확인한 사람을 다시 부르는 것(`NOTICE_ACK_FLOOR`, ADR 0095)은 우리
-정책이다 — 제30조 ② 가 요구하는 것은 「공개」다. 그 확인이나 브라우저의 알림 허용을 국외 이전의 동의로 쓰지 않는다(ADR 0180).
+**다시 확인받기가 법 의무인지는 판정하지 않았다 — 다시 확인받는 것은 우리 정책이다.** 내용 개정 때 확인한 사람을 다시 부르는
+것(`NOTICE_ACK_FLOOR`, ADR 0095)을 법이 시킨다고 적지 않는다. 제30조 ② 의 글자는 「공개」다. 그 확인이나 (알림을 켤 때의) 브라우저 알림 허용을 국외 이전의 동의로 쓰지 않는다(ADR 0180).
 
-## 판단 둘 — 무엇을 왜 적나 (운영자 2026-10-15)
+## 판단 셋 — 무엇을 왜 적나 (운영자 2026-10-15)
 
 ### 1. 첫 화면의 짧은 사주 문단은 OpenAI 의 「언제」에 따로 선다
 
@@ -46,13 +47,37 @@
   metadata · 사용자 식별자를 싣지 않는다. 본 풀이 호출은 `background: true` 에 `metadata: { reading_run_id }`(`app/me/reading/model.ts:306`,
   우리 내부 id)다. 그래서 보유기간 칸에 「첫 화면의 짧은 사주 문단은 회수용으로 보관하지 않습니다」를 덧붙였다.
 
-### 2. OpenAI 로 가는 항목에 성별 · 시간 앎을 따로 적는다
+### 2. OpenAI 로 가는 항목 — 정확히, 설명은 짧게 (운영자 2026-10-15)
 
-- 둘은 입력값이라 「여덟 글자에서 나온 사실」로 보기 어렵다. 모델에 가는 자료(`RedactedChartEvidence`)는 `meta` 에서
+처리방침은 필드 이름을 늘어놓지 않고 묶는다 — 「계산된 명식과 태어난 해 · 나이 · 성별 등 분석 정보」. 갈래가 다른 만큼만 갈라 적는다
+(아래 3). 이름 · 사이와 닉네임은 적는다.
+
+- 성별 · 시간 앎은 입력값이라 「여덟 글자에서 나온 사실」로 보기 어렵다. 모델에 가는 자료(`RedactedChartEvidence`)는 `meta` 에서
   `inputTime` · `resolvedTime` · `instant` · `corrections` · `totalCorrectionMinutes` 만 자른다(`src/lib/saju/evidence/redacted.ts:65-69`) —
   `meta.gender` · `meta.hourKnown`(`src/lib/saju/index.ts:147` · `:149`)은 남아 본 풀이와 첫 화면의 문단(`src/lib/reading/taste-run.ts:86`) 모두에 간다.
-- 궁합풀이는 두 사람을 부르는 이름과 고른 사이를 프롬프트에 싣는다(`src/lib/reading/prompt.ts:1322` `namingBlock` · `:1365`
-  `relationOf`, 차려지는 자리 `:1529-1531`). v7 은 이것을 적지 않았다 — 공개 출시판 초안 「부록 A 어긋남 1」이 이미 든 사실이다.
+- **이름은 궁합의 갈래마다 다르다.** 프롬프트는 두 사람을 부르는 이름과 사이를 싣는다(`src/lib/reading/prompt.ts:1322` `namingBlock` ·
+  `:1365` `relationOf`, 차려지는 자리 `:1529-1531`). 그 값은 DB 가 짓는다(`supabase/migrations/20260925090000_the_job_is_frozen_when_the_attempt_opens.sql:186-230`) —
+  인연 궁합(`match`)은 두 사람의 `app_user.nickname`, 사이는 없음(`'relation', null`). 직접 고른 궁합(`private`)은 등록할 때 붙인
+  `user_person_access.local_label` 과 고른 사이(`pair_relation`). 사주풀이(`self` · `person`)는 이름을 프롬프트에 싣지 않는다 — `namingBlock` 은
+  궁합 절에만 선다(`:1487`). v7 은 이것을 적지 않았다 — 공개 출시판 초안 「부록 A 어긋남 1」이 이미 든 사실이다. 「무엇을 받고」에
+  닉네임 · 붙인 이름 줄이 없어 함께 더했다.
+
+### 3. 해 · 나이 · 성별은 갈래마다 다르다 — 처리방침은 빠지는 것만 갈라 적는다 (운영자 2026-10-15, 코드는 그대로)
+
+- **사주풀이 · 직접 고른 궁합풀이** — 잘라 낸 근거(`RedactedEvidence`)를 그대로 보낸다. 자르는 자리(`src/lib/saju/evidence/redacted.ts:31-41`
+  `REDACTED_PATHS`)에 해 `pillars.meta.sajuYear` · 나이 `now.age` · 절입 날짜(`pillars.meta.monthTerm.date` · `nextTerm.date`) · 대운수 ·
+  경계 절기의 날짜가 없다 — 모두 나간다. 해와 나이가 함께 가므로 태어난 날짜와 2시간 범위가 하나로 정해질 것으로 본다 — **검증 전**
+  (절기 · 자정 경계까지 재지 않았다).
+- **첫 화면의 짧은 사주 문단** — 그 자리들을 더 뺀다(`src/lib/reading/taste-run.ts:51-60` `TASTE_DROPPED_PATHS` — `now` · `daeun` ·
+  `sajuYear` · 절입 · 중기 날짜). 성별과 시간 앎은 남는다. 같은 여덟 글자는 60년마다 돌아오고, 그 주기 안에서 날짜와 2시간 범위가
+  정해진다(ADR 0143 의 6).
+- **인연 찾기의 궁합풀이(`limited-v1`, `src/lib/saju/evidence/shared.ts:43`)** — 빼는 것이 아니라 고른 칸만 싣는다(`:88-104`
+  `LIMITED_FIELDS`). 여덟 글자 · 시간 앎 · 두 사주 사이의 관계 · 글자 수로 센 오행 보완 · 두 일간 사이 십성 · 한계 문장. 성별
+  (`meta.gender`) · 해와 절입(`pillars.meta.{sajuYear,monthTerm,nextTerm}`) · 대운 · 지금 운(나이)은 뺀다(`:147-158` `WITHHELD_BOTH`,
+  `:153` 성별). 그래서 첫 화면 문단과 같이 60년 주기 안의 역산이다. 이름은 닉네임이다(위 2).
+- 「60년 주기」는 첫 화면 문단과 인연 궁합에만 참이다. ADR 0143 의 6 · G-66 기록의 「숨기지 않을 사실」은 첫 화면 문단에 대해 쓴 문장이다.
+- **역산 문장은 처리방침에 넣지 않는다**(운영자 2026-10-15) — 「60년마다」도 「하나로 정해진다」도. 법이 요구하는 항목이 아니고 경계까지
+  검증하지 않았다. 위 셋은 근거로만 남는다.
 - **고친 것 하나** — 공개 출시판 초안(`docs/legal/privacy-v8-draft.md`) 4절 표가 「보내지 않는 것」에 성별을 적었다. 위 코드와 어긋나
   「보내는 것」으로 옮겼다(2026-10-15).
 
@@ -60,22 +85,21 @@
 
 | 처리방침의 줄(`src/lib/consent/notice.ts`) | 사실의 출처(코드) | 조문 |
 | --- | --- | --- |
-| 「무엇을 받고」 — 생년월일시 줄: 저장은 내 사주 · 사람 저장 · 궁합 열기 때, 첫 화면 입력은 계산과 문단에만 쓰고 저장 안 함 | 저장은 누름이다 — 「저장하고 계속하기」(`app/save-for-reading.tsx`), 궁합 열기는 두 사람을 대상으로 남긴다(`app/compat-picker.tsx:172` `openPairScreen` → `/me/compat?a=…&b=…`). 첫 화면 입력은 주소 `#` 뒤 모양 그대로(`app/taste/taste.tsx:67`)로 서버에 가고 `sajuOfDraft`(`app/taste/taste-run.ts:107`)가 계산만 한다 — DB 에 원문 칸이 없다(ADR 0143 의 6). 회원의 `/saju` 계산은 브라우저에서 한다(`app/saju-calculator.tsx:266`) | 제30조 ① 1 |
-| 「무엇을 받고」 — 새 메시지 알림의 구독 주소와 암호화 열쇠(운영자 확정 문구 2026-10-10) | 구독은 끄기 · 로그아웃 · 404/410 · 계정의 10개 초과 · 탈퇴 때 지운다(ADR 0156 「보존」) | 제30조 ① 1 · 2 |
-| 「언제까지 두나요」 — 첫 화면 기록 24시간, 5분마다 정리 | 세션 · artifact `expires_at = now() + 24 hours`, 정리는 `status <> 'claimed'` 인 세션 · 만료된 artifact · 24시간 지난 한도 사건(`supabase/migrations/20261118090000_…sql:163` · `:199` · `:1090` · `:1095`), 크론 `taste-sweep` `1-59/5 * * * *`(같은 파일 `:1151`). 「24시간 뒤 즉시」가 아니다 — 정리 주기만큼 늦을 수 있다 | 제30조 ① 2 · 3의2 |
-| 같은 절 — 기록의 항목: 브라우저 · IP 를 알아보는 값(서버 비밀의 HMAC), 사주를 가리키는 요약값, 만든 문단 | `app/taste/taste-visitor.ts:61` `browserHmacOf` · `:71` `ipHmacOf`(날짜별 키), 지문(SHA-256, `src/lib/reading/taste-run.ts` `tasteFingerprintSourceOf`), 세션의 `preview_markdown` 사본(`…sql:191`) | 제30조 ① 1 · 2 |
-| 같은 절 — 가입해 이어 받으면 계정의 풀이 자료로, 탈퇴 때 지움 | `claimed_by … on delete cascade`(`…sql:200`), 단계 표도 세션을 따라 지워진다(`supabase/migrations/20261119090000_…sql:28`) | 제30조 ① 2 |
-| 같은 절 — 쿠키 7일 | `app/taste/taste-visitor.ts:48` `BROWSER_COOKIE_DAYS` · `:51` `CLAIM_COOKIE_DAYS`, `maxAge` `:116` · `:144`. httpOnly | 제30조 ① 7 |
-| 「풀이를 만들 때 밖으로 나가는 것」 — 첫 화면 문단도 OpenAI 가 씀 · 보내는 것에 성별 · 시간 앎 · 궁합의 이름과 사이 | 위 「판단 둘」 | 제30조 ① 1 · 4 |
-| 같은 절 — 여덟 글자로 날짜와 2시간 범위를 거꾸로 찾을 수 있음 | ADR 0143 의 6 「잠그지 않는 사실 둘」 · G-66 기록 「숨기지 않을 사실」 | — (사실의 공개) |
+| 「무엇을 받고」 — 생년월일시 줄: 저장은 내 사주 · 사람 저장 · 궁합 열기 때, 첫 화면 입력은 계산과 문단에만 쓰고 저장 안 함 | 저장은 누름이다 — 「저장하고 계속하기」(`app/save-for-reading.tsx`), 궁합 열기는 두 사람을 대상으로 남긴다(`app/compat-picker.tsx:172` `openPairScreen` → `/me/compat?a=…&b=…`). 첫 화면 입력은 주소 `#` 뒤 모양에서 이름을 뺀 것(`app/taste/taste-draft.ts` `tasteDraftOf`, 운영자 2026-10-15 — 서버가 쓰지 않는 이름을 보내지 않는다)으로 서버에 가고 `sajuOfDraft`(`app/taste/taste-run.ts:107`)가 계산만 한다 — DB 에 원문 칸이 없다(ADR 0143 의 6). 회원의 `/saju` 계산은 브라우저에서 한다(`app/saju-calculator.tsx:266`) | 제30조 ① 1 |
+| 「언제까지 두나요」 — 첫 화면 기록은 만든 때부터 24시간 뒤 지움(처리방침은 정리 주기를 적지 않는다) | 세션 · artifact `expires_at = now() + 24 hours`, 정리는 `status <> 'claimed'` 인 세션 · 만료된 artifact · 24시간 지난 한도 사건(`supabase/migrations/20261118090000_…sql:163` · `:199` · `:1090` · `:1095`), 크론 `taste-sweep` `1-59/5 * * * *`(같은 파일 `:1151`). 「24시간 뒤 즉시」가 아니다 — 정리 주기만큼 늦을 수 있다 | 제30조 ① 2 · 3의2 |
+| 같은 절 — 기록의 항목: 이 브라우저와 접속을 알아보는 값, 계산된 사주를 다시 알아낼 수 있는 값, 만든 문단(구현 — 서버 비밀의 HMAC, 여덟 글자 · 성별 · 시간 앎의 지문 — 은 이 칸에만) | `app/taste/taste-visitor.ts:61` `browserHmacOf` · `:71` `ipHmacOf`(날짜별 키), 지문(SHA-256 — 원문이 여덟 글자 · 성별 · 시간 앎이고 경우의 수가 60⁴ × 2 × 2 남짓이라 대입으로 풀린다, `src/lib/reading/taste-run.ts:132-142` `tasteFingerprintSourceOf`, ADR 0143 의 6), 세션의 `preview_markdown` 사본(`…sql:191`) | 제30조 ① 1 · 2 |
+| 같은 절 — 가입해 이어 받으면 계정의 풀이 기록으로, 탈퇴 때 지움 | `claimed_by … on delete cascade`(`…sql:200`), 단계 표도 세션을 따라 지워진다(`supabase/migrations/20261119090000_…sql:28`) | 제30조 ① 2 |
+| 같은 절 — 쿠키 7일, 첫 화면에서 사주를 볼 때(문단을 받기 전) 놓인다 | 문단 요청이 모델을 부르기 전에 `tasteVisitor` 가 쿠키를 심는다(`app/taste/taste-visitor.ts:103-117`, `app/taste/taste-run.ts` `serveTaste` 의 `hands.visitor()`). `:48` `BROWSER_COOKIE_DAYS` · `:51` `CLAIM_COOKIE_DAYS`, `maxAge` `:116` · `:144`. httpOnly | 제30조 ① 7 |
+| 「풀이를 만들 때 밖으로 나가는 것」 — 첫 화면 문단도 OpenAI 가 씀 · 「계산된 명식과 태어난 해 · 나이 · 성별 등 분석 정보」 · 궁합의 이름과 사이 · 인연 궁합은 해 · 나이 · 성별을 빼고 닉네임 · 첫 화면 문단은 해 · 나이를 뺌 | 위 「판단 셋」의 2 · 3 | 제30조 ① 1 · 4 |
+| 「무엇을 받고」 — 닉네임과 등록할 때 붙인 이름(새 줄) | 위 「판단 셋」의 2 | 제30조 ① 1 |
 | 같은 절 — 첫 화면 문단의 거부 방법과 효과: 넣지 않으면 일어나지 않고, 가입 · 그 밖의 이용에 영향 없음 | 로그인한 사람은 그 문단을 받지 않는다(`app/taste/taste-run.ts:130` `if (await hands.member()) return TASTE_CLOSED`) — 가입 뒤의 길과 무관하다 | 제28조의8 ② 5 꼴 |
-| 「맡겨서 처리하는 곳」 — 알림 전달은 브라우저를 만든 회사의 푸시 서비스 | 받는 푸시 서비스 넷(`src/lib/push/index.ts:197-206`, DB 도 같은 표 `supabase/migrations/20261121090000_…sql:89-92`) | 제30조 ① 4 |
-| 「국외로 나가는 것」 — OpenAI 의 「언제」 · 「목적」 · 「보유기간」 | 위 「판단 둘」. 「회수용 보관 약 10분 · 오·남용 점검 기록 최대 30일」은 v7 의 문장 그대로이고 이 판에서 다시 재지 않았다(출처는 초안 「부록 A」) | 제28조의8 ② 1~4 |
-| 같은 절 — Vercel · Supabase 의 항목에 첫 화면 입력 · 임시 기록 · 구독 | Vercel 함수가 첫 화면 입력을 받아 계산한다(서버 액션), Supabase 가 임시 기록과 구독을 든다 | 제28조의8 ② 1 |
-| 같은 절 — 푸시 회사 넷의 줄 | 아래 「푸시 회사 넷」 | 제28조의8 ② 1~4 |
-| 같은 절 — 거부: 세 곳은 필수, 푸시 넷은 알림을 켤 때만 · 끄면 안 나가고 메시지는 앱 안에서 그대로 | 알림은 기본 꺼짐이고 켜는 것은 사람이다(ADR 0156). 끄는 자리는 계정 관리(`app/me/settings/page.tsx:25`) | 제28조의8 ② 5 |
+| 「국외로 나가는 것」 — OpenAI 의 「언제」 · 「목적」 · 「보유기간」 | 위 「판단 셋」. 「회수용 보관 약 10분 · 오·남용 점검 기록 최대 30일」은 v7 의 문장 그대로이고 이 판에서 다시 재지 않았다(출처는 초안 「부록 A」) | 제28조의8 ② 1~4 |
+| 같은 절 — Vercel · Supabase 의 항목에 첫 화면 입력 · 임시 기록 | Vercel 함수가 첫 화면 입력을 받아 계산한다(서버 액션), Supabase 가 임시 기록을 든다 | 제28조의8 ② 1 |
 
-## 푸시 회사 넷 — 실제로 나가는 것
+## 푸시 회사 넷 — 알림을 켜기 전에 따로 올릴 판의 재료 (`notice-v8` 에 없음)
+
+`notice-v8` 은 이 줄들을 싣지 않는다(운영자 2026-10-15, ADR 0180) — 처리 국가 · 보유기간이 빈 표를 완성된 고지로 올리지 않는다. 아래
+「확인 전」 칸이 차면 알림을 켜기 전에 따로 게시하고(내용 개정 — 그때 전원 다시 확인), 그다음 VAPID 열쇠를 넣는다(G-71).
 
 **나가는 것**(`app/api/push/dispatch/send.ts:127-131` 의 `generateRequestDetails`):
 
@@ -92,6 +116,7 @@
 
 | 칸 | Google — FCM `fcm.googleapis.com` | Mozilla — autopush `*.push.services.mozilla.com` | Microsoft — `*.notify.windows.com` | Apple — `*.push.apple.com` |
 | --- | --- | --- | --- | --- |
+| 어느 기기 · 브라우저 | Chrome, 그리고 안드로이드의 다른 Chromium 브라우저(삼성 인터넷 · Opera 등) — 우리 표의 근거는 `src/lib/push/index.ts:197`. 회사 문서로는 확인 전 | Firefox | **Windows 의 Edge(118 이상)만** — 「Forces Microsoft Edge to use its built-in WNS push client to connect to the Windows Push Notification Service」, 지원 판 「Windows: ≥ 118 · macOS: Not supported · Android: Not supported · iOS: Not supported」 — https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/forcebuiltinpushmessagingclient (ms.date 2026-05-20). 다른 플랫폼의 Edge 가 어느 서비스로 가는지는 확인 전 | Safari, 홈 화면에 추가한 웹 앱(iOS · iPadOS 16.4 이상) |
 | 받는 법인 | Google LLC. 「Google LLC의 privacy team」, 국내대리인 「구글코리아 유한회사」 — https://policies.google.com/privacy/additional?hl=ko&gl=kr | 「Mozilla Corporation」 — https://www.mozilla.org/en-US/privacy/firefox/ | 「Microsoft Corporation」(EEA · 영국 · 스위스는 Microsoft Ireland Operations Limited) — https://www.microsoft.com/ko-kr/privacy/privacystatement | 한국 보충 고지의 이전 표에 「Apple Inc. … 미국」, 근거 「개인정보 보호법 제28조의8 제1항 제3호 (위탁)」 — https://www.apple.com/kr/legal/privacy/kr/ |
 | 연락처 | 「이메일: googlekrsupport@google.com」, 국내대리인 「data-access-requests@google.com」 · 02-722-7778(같은 곳) | 「compliance@mozilla.com」, Data Subject Access Request Portal(같은 곳). 한국 창구 확인 전 | 개인정보 보호 팀 문의 양식(같은 곳). 주소 「One Microsoft Way, Redmond, Washington 98052, USA」. 한국 창구 확인 전(바닥글의 한국마이크로소프트 연락처는 개인정보 창구가 아니다) | 「개인정보 보호 팀 전화번호: +82 02 6712 6700 웹사이트: apple.com/kr/privacy/contact」(같은 곳) |
 | 처리 국가 | FCM 은 「global service」 — 「any of the Google Cloud Platform locations or Google data center locations」(https://firebase.google.com/support/privacy). 한국 고지는 「국외에 소재하는 Google의 데이터 센터」 — **나라 이름은 확인 전** | 「Mozilla (and our servers) are based in the United States.」 | 회사 전체로 「일반적으로 주요 저장소 위치는 사용자의 지역 또는 미국」. **푸시 서비스의 처리 국가는 확인 전** | 「일반적으로 미국의 Apple Inc.에 저장됩니다」 |
@@ -100,13 +125,13 @@
 | 사이트 운영자에게 걸리는 약관 | 확인 전(Firebase 를 쓰지 않고 브라우저 구독 주소로만 보내는 경우의 약관은 문서에 없다) | 확인 전 | 확인 전 | 「You don't need to join the Apple Developer Program to send web push notifications.」 운영자 약관은 확인 전 |
 | 그 회사가 보는 것 | 확인 전 | 저장 칸 「data Payload … headers … ttl … timestamp」, `Topic` 은 「replace previously sent, unreceived subscription updates」 — https://mozilla-services.github.io/autopush-rs/architecture.html · http.html | 확인 전 | TTL · Authorization(VAPID) · Content-Encoding · Topic · Urgency 머리를 읽는다, 페이로드는 서버가 암호화 — Apple 웹 푸시 문서 |
 
-**Microsoft 는 한 칸 더 확인 전이다** — Edge 의 웹 푸시가 `*.notify.windows.com`(WNS)으로 간다는 것을 Microsoft 의 공식 문서에서
-찾지 못했다. Edge 의 웹 푸시 안내(https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/push)는 WNS 를 말하지
-않는다. 그 호스트는 ADR 0156 이 실제 구독 주소를 보고 표에 넣었다(`src/lib/push/index.ts:199`).
+**Microsoft 의 호스트** — Edge 정책 문서가 Windows 의 Edge 가 WNS 로 간다는 것을 말한다(위 표). 호스트 `*.notify.windows.com` 은 ADR 0156
+이 실제 구독 주소를 보고 넣었다(`src/lib/push/index.ts:199`). Edge 의 웹 푸시 안내(https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/push)는
+WNS 를 말하지 않는다. 처리방침에 적을 때는 「Windows 의 Edge」로만 적는다.
 
-**처리방침에 쓴 값** — 위 표에서 확인한 것만이다. 처리 국가는 Google · Microsoft 를 「미국 등 그 회사의 데이터 센터가 있는 국가」로,
-Mozilla · Apple 을 「미국」으로 적었다. 보유기간은 넷 모두 「기기에 전달될 때까지, 길어야 1시간만 보관하도록 요청합니다. 그 밖에
-회사가 남기는 기록은 위 회사의 처리방침을 따릅니다」 — 우리가 아는 것은 요청뿐이라서다.
+**게시할 때 쓸 값의 초안**(2026-10-15 의 #715 첫 판에 넣었다가 뺐다) — 처리 국가는 Google · Microsoft 를 「미국 등 그 회사의 데이터 센터가
+있는 국가」로, Mozilla · Apple 을 「미국」으로. 보유기간은 「기기에 전달될 때까지, 길어야 1시간만 보관하도록 요청합니다」 — 우리가 아는
+것은 요청뿐이다. 이 초안은 빈칸이 남은 채라 운영자가 게시하지 않기로 했다.
 
 ## 참고한 다른 서비스 (2026-10-15 에 열어 봤다 — 근거가 아니라 견줄 거리다)
 
@@ -119,5 +144,5 @@ Mozilla · Apple 을 「미국」으로 적었다. 보유기간은 넷 모두 �
 
 ## 열린 것
 
-- 위 「확인 전」 칸 — 채워지기 전에는 웹 푸시를 켜지 않는다(ADR 0180 의 5 · G-71).
+- 위 「확인 전」 칸 — 채운 뒤 푸시 고지를 따로 게시하고, 그 뒤에 웹 푸시를 켠다(ADR 0180 · G-71).
 - 변호사에게 묻는다면 — `docs/legal/counsel-request.md` 「B-9」(선택 검토).
