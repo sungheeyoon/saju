@@ -11,7 +11,7 @@ import { noRoomToSave, type PersonSlots } from '@/src/lib/people';
 import { supabaseInBrowser } from './auth/browser-client';
 import { savePersonForReading, saveSelfPerson } from './me/actions';
 import { SelfCard } from './me/home/self-card';
-import { personSlotsFrom } from './person-slots';
+import { readPersonSlots } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { claimTaste } from './taste/actions';
 import { carriesTaste, claimCarriedTaste, dropCarriedTaste, skipCarriedTaste } from './taste/carried-taste';
@@ -100,15 +100,11 @@ function useSaveContext(): SaveContext {
         return;
       }
 
-      const [read, self] = await Promise.all([
-        // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-        supabaseInBrowser().rpc('my_person_slots'),
-        selfPersonState(supabaseInBrowser()),
-      ]);
+      const [slots, self] = await Promise.all([readPersonSlots(supabaseInBrowser()), selfPersonState(supabaseInBrowser())]);
       if (alive) {
         setContext({
           state: 'in',
-          slots: personSlotsFrom(read.data, read.error),
+          slots,
           self: self.ok ? self.value : null,
         });
       }

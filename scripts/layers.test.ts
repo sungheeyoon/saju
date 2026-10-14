@@ -45,8 +45,8 @@ const ALLOWED_LIB_EDGES = new Set([
  * 하나를 문으로 옮기면 그 `eslint-disable-next-line` 을 지우고 여기서도 지운다. 여기 없는
  * 호출은 표시가 있어도 빨개진다 — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도.
  */
-const SCREEN_DB_CALLS_STILL_THERE = new Set([
-  "app/save-for-reading.tsx :: supabaseInBrowser().rpc('my_person_slots')",
+const SCREEN_DB_CALLS_STILL_THERE = new Set<string>([
+  // 마지막 하나(`app/save-for-reading.tsx` 의 자리 수 읽기)가 2026-10-14 에 문(`app/person-slots.ts` 의 `readPersonSlots`)으로 갔다(G-109)
 ]);
 const SCREEN_EXCEPTION = 'eslint-disable-next-line no-restricted-syntax';
 /** `.from()` 이름이 겹치는 내장 — `eslint.config.mjs` 의 셀렉터와 같은 목록 */

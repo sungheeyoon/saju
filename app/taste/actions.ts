@@ -17,6 +17,7 @@ import { callModel } from '../me/reading/model';
 import { selfTasteFingerprint } from './taste-carry';
 import { claimTasteWith, serveTaste, viewTaste } from './taste-run';
 import { browserHmacNow, forgetTasteClaim, markTasteClaimed, tasteSecrets, tasteVisitor } from './taste-visitor';
+import { LOWERCASE_UUID } from '../uuid';
 
 /**
  * **첫 화면(`/`)의 누름 — 로그인 전 사주 문단을 받고, 가입한 뒤 그 문단을 내 것으로 붙인다**(ADR 0143).
@@ -24,8 +25,6 @@ import { browserHmacNow, forgetTasteClaim, markTasteClaimed, tasteSecrets, taste
  * 판단은 여기 없다 — 받기는 `app/taste/taste-run.ts`, DB 는 `app/taste/keyed-taste.ts`, 쿠키 · HMAC 은 `app/taste/taste-visitor.ts` 가 한다.
  * 여기는 진짜 손잡이를 넣어 부를 뿐이다. **던지지 않는다** — 화면은 값으로 받는다.
  */
-
-const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** 이 요청이 로그인한 사람의 것인가 — 쿠키의 JWT 서명을 이 서버가 확인한다(`signedInUser`, ADR 0117) */
 const signedIn = async (): Promise<boolean> => (await signedInUser(await supabaseOnServer())) !== null;
@@ -71,7 +70,7 @@ export async function noteTasteStep(step: 'signup_started', sessionId: string): 
 }
 
 async function countOnce(step: TasteSessionStep, sessionId: string, known?: string): Promise<void> {
-  if (!isTasteSessionStep(step) || typeof sessionId !== 'string' || !SESSION_ID.test(sessionId)) return;
+  if (!isTasteSessionStep(step) || typeof sessionId !== 'string' || !LOWERCASE_UUID.test(sessionId)) return;
   const browserHmac = known ?? (await browserHmacNow());
   if (browserHmac === null) return;
   await countTasteStepOnce(sessionId, browserHmac, step);
