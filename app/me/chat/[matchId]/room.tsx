@@ -358,7 +358,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
 
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
         {reported && slot.kind === 'compose' && (
-          <p role="status" className="rounded-[1rem] bg-surface-soft px-4 py-2.5 text-small text-secondary">
+          <p role="status" className="rounded-2xl bg-surface-soft px-4 py-2.5 text-small text-secondary">
             {REPORT_DONE}
           </p>
         )}
@@ -489,7 +489,7 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
       <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
-        <p className="truncate font-rounded text-[1.125rem] leading-6 text-foreground">{label}</p>
+        <p className="truncate font-rounded text-lead leading-6 text-foreground">{label}</p>
       </div>
     </section>
   );

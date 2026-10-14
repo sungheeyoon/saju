@@ -137,7 +137,7 @@ export function TodayCard({
           onClick={onInfo}
           className={`${belowBars ? 'top-8' : 'top-3'} absolute right-16 ${ICON_BUTTON_ON_PHOTO} lg:hidden`}
         >
-          <span aria-hidden="true" className="font-serif text-[1.2rem] font-bold italic">i</span>
+          <span aria-hidden="true" className="font-serif text-heading font-bold italic">i</span>
         </button>
 
         <FaceText card={profile} />
@@ -181,7 +181,7 @@ function FaceText({ card }: { card: DeckCard }) {
           <span className="ml-1 text-small font-semibold text-white/85"> / 100</span>
         </p>
       </div>
-      <p className="font-rounded text-[1.0625rem] leading-snug text-white/95">{card.verdict}</p>
+      <p className="font-rounded text-lead leading-snug text-white/95">{card.verdict}</p>
       <SupplyOnPhoto card={card} />
       {card.intro !== null && <p className="line-clamp-1 text-note leading-5 text-white/85">{card.intro}</p>}
     </div>

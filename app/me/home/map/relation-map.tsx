@@ -97,7 +97,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   return (
     <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-paper bg-cream">
       <header className="flex items-baseline justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
-        <h2 id="home-orbit" className="font-rounded text-[1.375rem] leading-8 text-foreground">
+        <h2 id="home-orbit" className="font-rounded text-section leading-8 text-foreground">
           관계 지도
         </h2>
         {!empty && (
@@ -587,12 +587,12 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           }`}
           style={{ boxShadow: '0 0 0 2px var(--surface), 0 0 0 3.5px var(--mid)' }}
         >
-          <span className={`glyph text-[1.15rem] font-bold leading-none ${person.day === null ? 'text-secondary' : 'text-[var(--ink)]'}`}>
+          <span className={`glyph text-lead font-bold leading-none ${person.day === null ? 'text-secondary' : 'text-[var(--ink)]'}`}>
             {person.day ? <StemSymbol stem={person.day.stem} className="size-[1.15em]" /> : '?'}
           </span>
         </span>
         <div className="min-w-0 flex-1">
-          <h3 id="home-orbit-card-name" className="truncate font-rounded text-[1.0625rem] leading-6 text-foreground">
+          <h3 id="home-orbit-card-name" className="truncate font-rounded text-lead leading-6 text-foreground">
             {person.label}
           </h3>
           {/* 그림 이름 하나만 — 일간 · 한자 · 메모는 걷었다(운영자 2026-09-26) */}
@@ -621,7 +621,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
         <p className="text-note leading-6 text-secondary">{person.unreadable}</p>
       ) : (
         <>
-          <p className="line-clamp-2 font-rounded text-[1rem] leading-snug text-foreground">
+          <p className="line-clamp-2 font-rounded text-field leading-snug text-foreground">
             {compat.seen && !compat.current && <span className={`mr-1.5 align-middle ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
             {compat.seen ? compat.metaphor : <span className="text-[var(--ink)]">아직 둘의 궁합을 보지 않았어요</span>}
           </p>

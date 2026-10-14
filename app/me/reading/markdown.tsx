@@ -163,7 +163,7 @@ export function Markdown({ source }: { source: string }) {
         return (
           <p
             key={key}
-            className={block.lead ? 'text-[1.1875rem] font-medium leading-[1.75] tracking-[-0.01em] text-foreground' : undefined}
+            className={block.lead ? 'text-heading font-medium leading-[1.75] tracking-[-0.01em] text-foreground' : undefined}
           >
             {inline(block.text, key)}
           </p>

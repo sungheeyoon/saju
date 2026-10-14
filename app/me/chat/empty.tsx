@@ -19,7 +19,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
     <section className="flex flex-col items-center gap-6 rounded-paper bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
       <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem] lg:hidden" />
       <div className="flex max-w-md flex-col gap-2">
-        <h2 className={`${TYPE_DISPLAY} lg:text-[1.3rem] lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
+        <h2 className={`${TYPE_DISPLAY} lg:text-heading lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
         <p className="text-body leading-6 text-secondary lg:text-note lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
       </div>
       {hasSelf ? (
