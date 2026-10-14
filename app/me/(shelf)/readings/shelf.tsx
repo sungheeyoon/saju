@@ -384,7 +384,7 @@ function Spine({ background }: { background: string }) {
 function Metaphor({ text, lines, small = false }: { text: string | null; lines: string; small?: boolean }) {
   return (
     <span
-      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-note leading-[1.35] sm:text-[1.0625rem] sm:leading-[1.5]' : 'text-[1.0625rem] leading-[1.5]'}`}
+      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-note leading-[1.35] sm:text-lead sm:leading-[1.5]' : 'text-lead leading-[1.5]'}`}
     >
       {text === null ? (
         <span className="font-sans text-small text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>

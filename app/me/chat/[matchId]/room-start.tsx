@@ -64,7 +64,7 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
       <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
-        <p className="truncate font-rounded text-[1.125rem] leading-6 text-foreground">{label}</p>
+        <p className="truncate font-rounded text-lead leading-6 text-foreground">{label}</p>
       </div>
     </section>
   );

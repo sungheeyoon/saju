@@ -198,7 +198,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
 
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
         {reported && slot.kind === 'compose' && (
-          <p role="status" className="rounded-[1rem] bg-surface-soft px-4 py-2.5 text-small text-secondary">
+          <p role="status" className="rounded-2xl bg-surface-soft px-4 py-2.5 text-small text-secondary">
             {REPORT_DONE}
           </p>
         )}

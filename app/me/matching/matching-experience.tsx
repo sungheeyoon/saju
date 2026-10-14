@@ -451,7 +451,7 @@ export function MatchingExperience({
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
             <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-paper bg-cream">
               <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
-                <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
+                <h2 id="matching-map" className="font-rounded text-section leading-8 text-foreground">
                   내 궤도로 다가오는 인연
                 </h2>
                 <p className="shrink-0 text-small font-semibold text-secondary">
@@ -577,7 +577,7 @@ function Supply({ element, text }: { element: string; text: string }) {
         <ElementSymbol element={known} className="size-6" />
       </span>
       <span className="flex min-w-0 flex-col">
-        {known !== null && <span className="font-rounded text-[1.125rem] leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
+        {known !== null && <span className="font-rounded text-lead leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
         <span className="text-note leading-5 text-foreground">{text}</span>
       </span>
     </li>
@@ -687,7 +687,7 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
-          <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-headline">
+          <h2 className="font-rounded text-section leading-[1.35] text-foreground sm:text-headline">
             {DISCOVERY_EMPTY.title}
           </h2>
           <p className="max-w-prose text-body leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>

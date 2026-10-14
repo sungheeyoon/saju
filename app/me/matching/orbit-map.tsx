@@ -514,7 +514,7 @@ function Me({ me, arc, small, ripple }: { me: MeMark | null; arc: boolean; small
         {/* 홈의 관계 지도와 같은 얼굴 — 천간 그림 아래 「나」. 작은 궤도(빈 날)에서도 선다 */}
         {!arc && (
           <span
-            className={`rounded-full bg-[var(--ink)] px-1.5 font-bold text-[var(--tile)] ${small ? 'mt-0.5 text-[10px] leading-[14px]' : 'mt-1 text-tag leading-4'}`}
+            className={`rounded-full bg-[var(--ink)] px-1.5 font-bold text-[var(--tile)] ${small ? 'mt-0.5 text-tag leading-[14px]' : 'mt-1 text-tag leading-4'}`}
           >
             나
           </span>

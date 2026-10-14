@@ -19,7 +19,7 @@ export function Letter({ nickname, intro }: { nickname: string; intro: string | 
   return (
     <figure className="flex flex-col gap-2 rounded-tile bg-surface px-5 py-4 ring-1 ring-border">
       {intro !== null ? (
-        <blockquote className={`font-rounded text-[1rem] leading-7 text-foreground ${long && !open ? 'line-clamp-3' : ''}`}>
+        <blockquote className={`font-rounded text-field leading-7 text-foreground ${long && !open ? 'line-clamp-3' : ''}`}>
           <Icon name="quote" className="mr-1.5 inline size-4 -translate-y-0.5 text-cream-ink" />
           {intro}
         </blockquote>
@@ -36,7 +36,7 @@ export function Letter({ nickname, intro }: { nickname: string; intro: string | 
           ) : (
             <span />
           )}
-          <figcaption className="font-rounded text-[0.9375rem] text-cream-ink">— {nickname}</figcaption>
+          <figcaption className="font-rounded text-body text-cream-ink">— {nickname}</figcaption>
         </div>
       )}
     </figure>
