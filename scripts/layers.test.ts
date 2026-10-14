@@ -14,15 +14,14 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { builtinModules } from 'node:module';
-import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
-const ROOT = resolve(__dirname, '..');
+import { SOURCE_EXTENSIONS, sourceFilesUnder } from './source-files';
 
-/** 읽는 확장자 — `eslint.config.mjs` 의 glob 과 같은 목록이다. `tsconfig` 가 `.mts` 를 포함한다 */
-export const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+const ROOT = resolve(__dirname, '..');
 
 /** 도메인 lib 사이에 **지금 열려 있는** 방향 — 이것 밖의 방향은 빨개진다. `db` 는 나가는 방향이 없다 */
 const ALLOWED_LIB_EDGES = new Set([
@@ -59,21 +58,11 @@ const NODE = new Set(builtinModules.filter((name) => !name.startsWith('_')));
 const isNodeBuiltin = (spec: string) =>
   spec.startsWith('node:') || NODE.has(spec) || NODE.has(spec.split('/')[0]);
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name.startsWith('.')) continue;
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else if (SOURCE_EXTENSIONS.includes(extname(name)) && !name.endsWith('.d.ts')) out.push(full);
-  }
-  return out;
-}
-
 const SOURCE_FILES = [
-  ...walk(join(ROOT, 'src')),
-  ...walk(join(ROOT, 'app')),
-  ...walk(join(ROOT, 'scripts')),
-  ...walk(join(ROOT, 'e2e')),
+  ...sourceFilesUnder(join(ROOT, 'src')),
+  ...sourceFilesUnder(join(ROOT, 'app')),
+  ...sourceFilesUnder(join(ROOT, 'scripts')),
+  ...sourceFilesUnder(join(ROOT, 'e2e')),
   join(ROOT, 'proxy.ts'),
 ];
 
@@ -306,7 +295,7 @@ describe('src/lib 은 DB 를 부르지 않는다 (ADR 0078·0085)', () => {
    * 예외는 위의 것과 같다 — `*.live.test.ts` 는 운영 DB 를 안다(`docs/architecture.md`).
    */
   it('src/lib 의 호출 인자에 DB 함수 이름이 없다', () => {
-    const found = walk(join(ROOT, 'src/lib')).filter((file) => !file.endsWith('.live.test.ts')).flatMap((file) => {
+    const found = sourceFilesUnder(join(ROOT, 'src/lib')).filter((file) => !file.endsWith('.live.test.ts')).flatMap((file) => {
       const source = parse(file);
       const out: string[] = [];
       const visit = (node: ts.Node) => {
@@ -359,7 +348,7 @@ describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
     return out;
   }
 
-  const screens = walk(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx') || file.endsWith('.jsx'));
+  const screens = sourceFilesUnder(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx') || file.endsWith('.jsx'));
   const calls = screens.flatMap(dbCallsOf);
 
   it('화면 안의 DB 호출은 옛 자리의 지문 안에만 있다 — 줄어들기만 한다', () => {

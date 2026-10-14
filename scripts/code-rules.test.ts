@@ -11,7 +11,7 @@
  * 다른 새 자리가 쓴다.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
@@ -21,24 +21,12 @@ import { SUPPORT_EMAIL } from '../src/lib/account';
 
 import { ON_DEMAND_SECTION, TABLE_COLUMNS, linksOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
+import { SOURCE_EXTENSIONS, filesUnder } from './source-files';
 
 const ROOT = resolve(__dirname, '..');
 const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
 
-/** `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록 */
-const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
-
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name.startsWith('.')) continue;
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else out.push(full);
-  }
-  return out;
-}
-
-const ALL_FILES = [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'scripts')), ...walk(join(ROOT, 'e2e'))];
+const ALL_FILES = ['src', 'app', 'scripts', 'e2e'].flatMap((dir) => filesUnder(join(ROOT, dir)));
 const SOURCE_FILES = [
   ...ALL_FILES.filter((file) => SOURCE_EXTENSIONS.includes(extname(file)) && !file.endsWith('.d.ts')),
   join(ROOT, 'proxy.ts'),
@@ -214,8 +202,8 @@ const ROOT_FILES = readdirSync(ROOT)
 const REFERRING_FILES = [
   ...SOURCE_FILES,
   ...ROOT_FILES.filter((file) => file !== join(ROOT, 'proxy.ts')),
-  ...walk(join(ROOT, 'supabase')).filter((file) => file.endsWith('.sql')),
-  ...walk(join(ROOT, 'docs')).filter((file) => file.endsWith('.md')),
+  ...filesUnder(join(ROOT, 'supabase')).filter((file) => file.endsWith('.sql')),
+  ...filesUnder(join(ROOT, 'docs')).filter((file) => file.endsWith('.md')),
   join(ROOT, 'GLOSSARY.md'),
   join(ROOT, 'CODING_STANDARDS.md'),
   join(ROOT, 'README.md'),
@@ -604,20 +592,20 @@ const ENTRY_DOCS = [
   join(ROOT, 'GLOSSARY.md'),
   join(ROOT, 'CODING_STANDARDS.md'),
   // 용어집은 색인 아래 `docs/context/` 의 영역 파일로 산다
-  ...walk(join(ROOT, 'docs/context')),
+  ...filesUnder(join(ROOT, 'docs/context')),
   join(ROOT, 'docs/product/gaps.md'),
   // 간극 대장의 긴 실행 기록은 줄마다 `docs/product/gaps/records/` 의 파일로 산다
-  ...walk(join(ROOT, 'docs/product/gaps')),
+  ...filesUnder(join(ROOT, 'docs/product/gaps')),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   join(ROOT, 'docs/prd.md'),
   // PRD 는 색인 아래 `docs/product/prd/` 의 제품 영역별 파일로 산다
-  ...walk(join(ROOT, 'docs/product/prd')),
+  ...filesUnder(join(ROOT, 'docs/product/prd')),
   join(ROOT, 'docs/ops/runbook.md'),
   // 운영 절차는 색인 아래 `docs/ops/runbook/` 의 운영 작업별 파일로 산다
-  ...walk(join(ROOT, 'docs/ops/runbook')),
+  ...filesUnder(join(ROOT, 'docs/ops/runbook')),
   // 위임 규약은 색인 아래 `docs/agents/delegation/` 의 주제별 파일로 산다 — 하위 폴더까지 읽는다
-  ...walk(join(ROOT, 'docs/agents')),
+  ...filesUnder(join(ROOT, 'docs/agents')),
   join(ROOT, 'docs/start.md'),
   ...readdirSync(join(ROOT, 'docs/roles')).map((name) => join(ROOT, 'docs/roles', name)),
 ];
@@ -780,17 +768,8 @@ const contextPart = (name: string) => readFileSync(join(ROOT, CONTEXT_DIR, name)
 const contextParts = () => [...contextIndex().matchAll(CONTEXT_ROW)].map((match) => match[1]);
 
 describe('용어집 (GLOSSARY.md 색인 → docs/context/)', () => {
-  it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 영역 파일마다 색인을 가리킨다', () => {
-    const files = readdirSync(join(ROOT, CONTEXT_DIR)).filter((name) => name.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(4);
-    expect([...contextParts()].sort()).toEqual([...files].sort());
-    for (const name of files) expect(contextPart(name), name).toContain(`\`${GLOSSARY_INDEX}\``);
-  });
-
-  it('색인에 정의 · 규칙 문장이 없다 — 절은 「차례」 하나, 용어 머리 줄(`**이름** — …`)과 `_Avoid_` 가 없다', () => {
+  it('색인에 정의 · 규칙 문장이 없다 — 용어 머리 줄(`**이름** — …`)과 `_Avoid_` 가 없다(절이 「차례」 하나인 것은 「색인 → 폴더」)', () => {
     const index = contextIndex();
-    // 색인에 절이 생기면 정의가 두 벌이 된다
-    expect([...index.matchAll(/^#{2,6} (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
     const stray = index
       .split('\n')
       // 굵게 시작하는 줄은 용어 머리 줄이거나 §8 의 규칙 문장이다 — 머리말의 「읽는 법.」 하나만 색인에 선다
@@ -798,17 +777,8 @@ describe('용어집 (GLOSSARY.md 색인 → docs/context/)', () => {
     expect(stray).toEqual([]);
   });
 
-  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 들고, 절 번호 1–10 은 어느 한 파일에 한 번씩 선다', () => {
-    const wrong: string[] = [];
-    const numbers: number[] = [];
-    for (const match of contextIndex().matchAll(CONTEXT_ROW)) {
-      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
-      const heads = [...contextPart(match[1]).matchAll(/^## (.+)$/gm)].map((one) => one[1].replace(/\*\*|`/g, '').trim());
-      const same = named.length === heads.length && named.every((name, i) => heads[i] === name);
-      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
-      for (const head of heads) numbers.push(Number(/^(\d+)\. /.exec(head)?.[1]));
-    }
-    expect(wrong).toEqual([]);
+  it('절 번호 1–10 은 영역 파일 어느 한 곳에 한 번씩 선다(「절」 칸이 절을 다 드는 것은 「색인 → 폴더」)', () => {
+    const numbers = contextParts().flatMap((name) => headsOf(contextPart(name)).map((head) => Number(/^(\d+)\. /.exec(head)?.[1])));
     // 절 하나가 빠지거나 두 파일에 서면 번호가 끊기거나 겹친다
     expect([...numbers].sort((a, b) => a - b)).toEqual(Array.from({ length: 10 }, (_, i) => i + 1));
   });
@@ -831,7 +801,7 @@ const GLOSSARY_CODE = [
     const rel = relPath(file);
     return (rel.startsWith('src/') || rel.startsWith('app/')) && !isTest(rel) && !rel.endsWith('.generated.ts');
   }),
-  ...walk(join(ROOT, 'supabase/migrations')).filter((file) => file.endsWith('.sql')),
+  ...filesUnder(join(ROOT, 'supabase/migrations')).filter((file) => file.endsWith('.sql')),
 ];
 
 /** §9 표의 「코드」 칸 — 백틱 토큰마다 `용어 :: 식별자` */
@@ -910,7 +880,7 @@ const PRD_DIR = 'docs/product/prd';
 const PRD_ROW = /^\| `docs\/product\/prd\/([a-z-]+(?:\/[a-z-]+)?\.md)` \| ([^|]+) \|/gm;
 /** `docs/product/prd/` 아래 `.md` 전부 — 한 칸 아래 폴더(`screens/`)까지, 뿌리에서의 상대 경로가 아니라 PRD 폴더에서의 경로 */
 const prdFiles = () =>
-  walk(join(ROOT, PRD_DIR))
+  filesUnder(join(ROOT, PRD_DIR))
     .filter((file) => file.endsWith('.md'))
     .map((file) => relative(join(ROOT, PRD_DIR), file).split(sep).join('/'));
 const prdIndex = () => readFileSync(join(ROOT, PRD_INDEX), 'utf8');
@@ -920,16 +890,6 @@ const prdParts = () => [...prdIndex().matchAll(PRD_ROW)].map((match) => match[1]
 const prdBody = () => prdParts().map((name) => readFileSync(join(ROOT, PRD_DIR, name), 'utf8')).join('\n');
 
 describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
-  it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 절을 들지 않는다', () => {
-    const index = prdIndex();
-    const files = prdFiles();
-    expect(files.length).toBeGreaterThan(4);
-    expect([...prdParts()].sort()).toEqual([...files].sort());
-    // 색인에 절이 생기면 요구가 두 벌이 된다 — 제목은 문서 이름과 「차례」 하나뿐이고, 번호 붙은 절이 없다
-    expect([...index.matchAll(/^#{2,6} (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
-    for (const name of files) expect(readFileSync(join(ROOT, PRD_DIR, name), 'utf8'), name).toContain(`\`${PRD_INDEX}\``);
-  });
-
   it('색인에 요구 문장이 없다 — 「선다 · 없다 · 다르다」 표시는 그 뜻을 적은 표의 칸에만 선다', () => {
     // 요구 문장은 줄마다 지금 있는가를 함께 적는다(색인 머리말). 표시 표 밖에서 표시가 서면 요구가 색인에 들어온 것이다
     const stray = prdIndex()
@@ -938,17 +898,7 @@ describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
     expect(stray).toEqual([]);
   });
 
-  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 들고, 이은 본체의 절 번호는 0 부터 끊김 없이 선다', () => {
-    const wrong: string[] = [];
-    for (const match of prdIndex().matchAll(PRD_ROW)) {
-      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
-      const heads = [...readFileSync(join(ROOT, PRD_DIR, match[1]), 'utf8').matchAll(/^## (.+)$/gm)].map((one) =>
-        one[1].replace(/\*\*|`/g, '').trim(),
-      );
-      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
-      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
-    }
-    expect(wrong).toEqual([]);
+  it('이은 본체의 절 번호는 0 부터 끊김 없이 선다(「절」 칸이 절을 다 드는 것은 「색인 → 폴더」)', () => {
     // 절 하나가 어느 파일에서도 빠지면 번호가 끊긴다
     const numbers = [...prdBody().matchAll(/^## (\d+)\. /gm)].map((match) => Number(match[1]));
     expect(numbers).toEqual([...Array(10).keys()]);
@@ -1392,49 +1342,6 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
 });
 
 // -----------------------------------------------------------------------------
-// 시험 지도 (docs/agents/test-map.md 색인 → docs/agents/test-map/, ADR 0087)
-// -----------------------------------------------------------------------------
-
-describe('시험 지도 (docs/agents/test-map.md 색인 → docs/agents/test-map/, ADR 0087)', () => {
-  const INDEX = 'docs/agents/test-map.md';
-  const TEST_MAP_DIR = 'docs/agents/test-map';
-  /** 절 묶음 파일 하나 — 표 · 명령 · 차선은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
-  const part = (name: string) => readFileSync(join(ROOT, TEST_MAP_DIR, name), 'utf8');
-
-  it('색인은 절 묶음 파일 전부를 들고 없는 파일을 들지 않으며, 표 · 명령을 들지 않는다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const files = readdirSync(join(ROOT, TEST_MAP_DIR)).filter((name) => name.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(3);
-    const listed = [...index.matchAll(/^\| `docs\/agents\/test-map\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
-    expect([...listed].sort()).toEqual([...files].sort());
-    // 색인에 절이 생기면 표가 두 벌이 된다 — 머리말과 「차례」 하나뿐이고, 명령(코드 블록)도 없다
-    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
-    expect(index).not.toMatch(/^```/m);
-    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
-  });
-
-  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const wrong: string[] = [];
-    let seen = 0;
-    for (const match of index.matchAll(/^\| `docs\/agents\/test-map\/([a-z-]+\.md)` \| ([^|]+) \|/gm)) {
-      seen += 1;
-      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1].replace(/`/g, ''));
-      let inCode = false;
-      const heads: string[] = [];
-      for (const line of part(match[1]).split('\n')) {
-        if (line.startsWith('```')) inCode = !inCode;
-        if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
-      }
-      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
-      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
-    }
-    expect(seen).toBeGreaterThan(3);
-    expect(wrong).toEqual([]);
-  });
-});
-
-// -----------------------------------------------------------------------------
 // 코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/, ADR 0086)
 // -----------------------------------------------------------------------------
 
@@ -1443,25 +1350,13 @@ describe('코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/,
   const RULES_DIR = 'docs/agents/code-rules';
   /** 변경 이유별 파일 하나 — 규칙 · 잰 값 · 표는 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
   const part = (name: string) => readFileSync(join(ROOT, RULES_DIR, name), 'utf8');
-  const ROW = /^\| `docs\/agents\/code-rules\/([a-z-]+\.md)` \| ([^|]+) \|/gm;
-
-  it('색인은 주제 파일 전부를 들고 없는 파일을 들지 않으며, 주제 파일마다 색인을 가리킨다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const files = readdirSync(join(ROOT, RULES_DIR)).filter((name) => name.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(5);
-    const listed = [...index.matchAll(ROW)].map((match) => match[1]);
-    expect([...listed].sort()).toEqual([...files].sort());
-    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
-  });
 
   /**
-   * 색인에 규칙이 다시 서면 두 벌이 되고, 고치는 사람은 한 벌만 고친다. 색인은 머리말과 「차례」 하나 · 표는 차례 표 하나뿐이고,
-   * 주제 파일의 문장(제목과 「색인은 …」 줄 밖의 스무 자 넘는 줄)이 색인에 그대로 있으면 붉다.
+   * 색인에 규칙이 다시 서면 두 벌이 되고, 고치는 사람은 한 벌만 고친다. 표는 차례 표 하나뿐이고, 주제 파일의 문장(제목과
+   * 「색인은 …」 줄 밖의 스무 자 넘는 줄)이 색인에 그대로 있으면 붉다. 절이 「차례」 하나이고 명령이 없는 것은 「색인 → 폴더」가 잰다.
    */
-  it('색인은 머리말과 「차례」만 들고 규칙 문장 · 표 · 명령을 들지 않는다', () => {
+  it('색인은 규칙 문장 · 다른 표를 들지 않는다', () => {
     const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
-    expect(index).not.toMatch(/^```/m);
     const strayRows = index
       .split('\n')
       .filter((line) => line.startsWith('|'))
@@ -1477,26 +1372,6 @@ describe('코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/,
     }
     expect(copied).toEqual([]);
   });
-
-  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const wrong: string[] = [];
-    let seen = 0;
-    for (const match of index.matchAll(ROW)) {
-      seen += 1;
-      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1].replace(/`/g, ''));
-      let inCode = false;
-      const heads: string[] = [];
-      for (const line of part(match[1]).split('\n')) {
-        if (line.startsWith('```')) inCode = !inCode;
-        if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
-      }
-      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
-      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
-    }
-    expect(seen).toBeGreaterThan(5);
-    expect(wrong).toEqual([]);
-  });
 });
 
 // -----------------------------------------------------------------------------
@@ -1504,39 +1379,9 @@ describe('코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/,
 // -----------------------------------------------------------------------------
 
 describe('운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)', () => {
-  const INDEX = 'docs/ops/runbook.md';
   const RUNBOOK_DIR = 'docs/ops/runbook';
   /** 주제 파일 하나 — 운영 작업 하나의 명령 · 전제 · 확인값은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
   const part = (name: string) => readFileSync(join(ROOT, RUNBOOK_DIR, name), 'utf8');
-
-  it('색인은 주제 파일 전부를 들고 없는 파일을 들지 않으며, 명령 · 절을 들지 않는다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const files = readdirSync(join(ROOT, RUNBOOK_DIR)).filter((name) => name.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(5);
-    const listed = [...index.matchAll(/^\| `docs\/ops\/runbook\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
-    expect([...listed].sort()).toEqual([...files].sort());
-    // 색인에 절이 생기면 절차가 두 벌이 된다 — 머리말과 「차례」 하나뿐이고, 명령(코드 블록)도 없다
-    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
-    expect(index).not.toMatch(/^```/m);
-    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
-  });
-
-  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const wrong: string[] = [];
-    for (const match of index.matchAll(/^\| `docs\/ops\/runbook\/([a-z-]+\.md)` \| ([^|]+) \|/gm)) {
-      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
-      let inCode = false;
-      const heads: string[] = [];
-      for (const line of part(match[1]).split('\n')) {
-        if (line.startsWith('```')) inCode = !inCode;
-        if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
-      }
-      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
-      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
-    }
-    expect(wrong).toEqual([]);
-  });
 
   it('절 제목(`##`~`####`)은 운영 절차 전체에서 한 번만 선다 — 뗀 절이 원래 파일에 다시 서면 절차가 두 벌이다', () => {
     const seen = new Map<string, string>();
@@ -1561,7 +1406,6 @@ describe('운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)', () 
 // -----------------------------------------------------------------------------
 
 describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delegation/, ADR 0090)', () => {
-  const INDEX = 'docs/agents/delegation.md';
   const DELEGATION_DIR = 'docs/agents/delegation';
   /** 주제 파일 하나 — 규칙 문장은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
   const part = (name: string) => readFileSync(join(ROOT, DELEGATION_DIR, name), 'utf8');
@@ -1569,17 +1413,6 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
   const settings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.json'), 'utf8')) as {
     permissions?: { ask?: string[]; deny?: string[] };
   };
-
-  it('색인은 주제 파일 전부를 들고 없는 파일을 들지 않으며, 규칙 문장을 들지 않는다', () => {
-    const index = readFileSync(join(ROOT, INDEX), 'utf8');
-    const files = readdirSync(join(ROOT, DELEGATION_DIR)).filter((name) => name.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(5);
-    const listed = [...index.matchAll(/^\| `docs\/agents\/delegation\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
-    expect([...listed].sort()).toEqual([...files].sort());
-    // 색인에 절이 생기면 규칙이 두 벌이 된다 — 머리말과 「차례」 하나뿐이다
-    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
-    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
-  });
 
   /** 권한 표에서 첫 칸이 `**N ` 으로 시작하는 줄의 잠금 칸(넷째)에 적힌 `Bash(…)` 규칙 */
   function lockedRulesOfTier(tier: string): string[] {
@@ -1714,13 +1547,97 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
   });
 });
 
+// -----------------------------------------------------------------------------
+// 색인 → 폴더 — 한 장을 색인과 폴더로 나눈 문서 여섯의 같은 꼴
+// -----------------------------------------------------------------------------
+
+/**
+ * 한 장을 **색인 하나와 폴더**로 나눈 문서(2026-10-05 ~ ). 색인은 머리말과 「차례」 표(`| 파일 | 절 | 무엇을 드나 |`) 하나뿐이고,
+ * 정의 · 요구 · 규칙 · 절차는 폴더의 파일에만 산다 — 색인에 절이나 명령이 생기면 같은 말이 두 벌이 된다. 여섯이 같은 꼴이라
+ * 시험 한 벌이 다 잰다(G-109 — 앞서는 색인마다 한 벌씩, 「절」 칸 시험만 다섯 벌이었다). 색인마다 다른 것(용어집의 절 번호 ·
+ * PRD 의 본체 번호 · 운영 절차의 겹친 제목 …)은 그 색인의 describe 에 남았다.
+ */
+type IndexedFolder = {
+  /** 색인 — 뿌리에서의 경로 */
+  readonly index: string;
+  readonly dir: string;
+  /** 폴더의 파일 — 폴더에서의 경로 */
+  readonly files: () => string[];
+  /** 파일이 이보다 적으면 빈 폴더를 재며 초록인 것이다 */
+  readonly atLeast: number;
+  /** 「절」 칸의 이름이 제목과 **같아야** 하나 — 아니면 제목의 앞머리면 된다(`3. 화면` ↔ `3. 화면 — …`) */
+  readonly exact: boolean;
+};
+
+const mdIn = (dir: string) => () => readdirSync(join(ROOT, dir)).filter((name) => name.endsWith('.md'));
+const INDEXED_FOLDERS: readonly IndexedFolder[] = [
+  { index: GLOSSARY_INDEX, dir: CONTEXT_DIR, files: mdIn(CONTEXT_DIR), atLeast: 5, exact: true },
+  // 화면(§3)은 무리마다 한 칸 아래(`screens/<무리>.md`)다(ADR 0162)
+  { index: PRD_INDEX, dir: PRD_DIR, files: prdFiles, atLeast: 5, exact: false },
+  { index: 'docs/agents/test-map.md', dir: 'docs/agents/test-map', files: mdIn('docs/agents/test-map'), atLeast: 4, exact: false },
+  { index: 'CODING_STANDARDS.md', dir: 'docs/agents/code-rules', files: mdIn('docs/agents/code-rules'), atLeast: 6, exact: false },
+  { index: 'docs/ops/runbook.md', dir: 'docs/ops/runbook', files: mdIn('docs/ops/runbook'), atLeast: 6, exact: false },
+  { index: 'docs/agents/delegation.md', dir: 'docs/agents/delegation', files: mdIn('docs/agents/delegation'), atLeast: 6, exact: false },
+];
+
+/** 색인의 「차례」 줄 — `| \`<폴더>/<파일>.md\` | 「절」 · … | 무엇을 드나 |`. 파일은 한 칸 아래까지 받는다(PRD 의 `screens/`) */
+function indexRows(folder: IndexedFolder): { file: string; cell: string }[] {
+  const dir = folder.dir.replace(/[/.]/g, '\\$&');
+  const row = new RegExp(`^\\| \`${dir}/([a-z-]+(?:/[a-z-]+)?\\.md)\` \\| ([^|]+) \\|`, 'gm');
+  return [...readFileSync(join(ROOT, folder.index), 'utf8').matchAll(row)].map((match) => ({ file: match[1], cell: match[2] }));
+}
+
+/** 파일의 `##` 절 제목 — 코드 블록 안의 줄은 제목이 아니다. 굵게 · 백틱은 걷는다 */
+function headsOf(text: string): string[] {
+  let inCode = false;
+  const heads: string[] = [];
+  for (const line of text.split('\n')) {
+    if (line.startsWith('```')) inCode = !inCode;
+    if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
+  }
+  return heads;
+}
+
+describe('색인 → 폴더 (용어집 · PRD · 시험 지도 · 코드 규칙 · 운영 절차 · 위임 규약)', () => {
+  for (const folder of INDEXED_FOLDERS) {
+    const part = (name: string) => readFileSync(join(ROOT, folder.dir, name), 'utf8');
+
+    it(`${folder.index} — 색인은 폴더의 파일 전부를 들고 없는 파일을 들지 않으며, 파일마다 색인을 가리킨다`, () => {
+      const files = folder.files();
+      expect(files.length).toBeGreaterThanOrEqual(folder.atLeast);
+      expect(indexRows(folder).map((row) => row.file).sort()).toEqual([...files].sort());
+      for (const name of files) expect(part(name), name).toContain(`\`${folder.index}\``);
+    });
+
+    it(`${folder.index} — 색인은 머리말과 「차례」 하나뿐이고 명령(코드 블록)이 없다 — 절이 생기면 같은 말이 두 벌이 된다`, () => {
+      const index = readFileSync(join(ROOT, folder.index), 'utf8');
+      expect([...index.matchAll(/^#{2,6} (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+      expect(index).not.toMatch(/^```/m);
+    });
+
+    it(`${folder.index} — 색인의 「절」 칸은 그 파일의 \`##\` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다`, () => {
+      const rows = indexRows(folder);
+      expect(rows.length).toBeGreaterThanOrEqual(folder.atLeast);
+      const wrong: string[] = [];
+      for (const { file, cell } of rows) {
+        const named = [...cell.matchAll(/「([^」]+)」/g)].map((one) => one[1].replace(/`/g, ''));
+        // PRD 의 화면 무리 줄은 「절」 칸이 `—` 다 — 그 파일에는 `##` 절이 없어야 같다(절 번호는 「무엇을 드나」 칸이 들고 PRD describe 가 잰다)
+        const heads = headsOf(part(file));
+        const same = named.length === heads.length && named.every((name, i) => (folder.exact ? heads[i] === name : heads[i].startsWith(name)));
+        if (!same) wrong.push(`${file}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
+      }
+      expect(wrong).toEqual([]);
+    });
+  }
+});
+
 describe('운영 주소는 한 자리 (docs/ops/runbook/domain.md, ADR 0152)', () => {
   /** 운영 주소를 적어도 되는 곳 — 원본 한 줄과, 그날의 글자로 남는 기록 · 고지한 판 · 흉내 낸 값 */
   const RECORDED = /^(docs\/ops\/runbook\/domain\.md|docs\/(notes|adr|legal)\/|docs\/product\/(prd-changelog\.md|gaps\/records\/)|scripts\/check-share\.mjs$)/;
   const HOSTS = /saju-snowy\.vercel\.app|mannalmap\.com/i;
 
   it('코드 · 위임 규약 · 운영 절차 · 역할 문서는 운영 주소를 글자로 들지 않는다 — 원본을 가리킨다', () => {
-    const docs = ['docs/ops', 'docs/agents', 'docs/roles'].flatMap((dir) => walk(join(ROOT, dir)));
+    const docs = ['docs/ops', 'docs/agents', 'docs/roles'].flatMap((dir) => filesUnder(join(ROOT, dir)));
     const files = [...SOURCE_FILES, ...docs, join(ROOT, 'AGENTS.md'), join(ROOT, 'docs/start.md')]
       .map(relPath)
       .filter((rel) => !isTest(rel) && !RECORDED.test(rel));

@@ -5,9 +5,9 @@
  * 전부 갈래에 있는가, 비밀을 읽는 모듈이 서버 층에 잠겨 있는가, runbook 이 비밀마다 줄을 드는가.
  * 새 비밀이 들어오면 셋 다 빨개진다 — 갈래에 없고, 잠금이 없고, 절차가 없다.
  */
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -20,16 +20,12 @@ import {
   leaksIn,
   secretValuesOf,
 } from './secret-env.mjs';
+import { filesUnder } from './source-files';
 
 const root = resolve(__dirname, '..');
 const read = (path: string) => readFileSync(join(root, path), 'utf8');
 
-const walk = (dir: string): string[] =>
-  readdirSync(join(root, dir)).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (entry === 'node_modules' || entry.startsWith('.')) return [];
-    return statSync(join(root, path)).isDirectory() ? walk(path) : [path];
-  });
+const walk = (dir: string): string[] => filesUnder(join(root, dir)).map((file) => relative(root, file));
 
 /** 앱이 도는 코드 — 시험과 실호출 시험은 뺀다. `local-env.ts` 는 이름이 말하는 예외다(아래) */
 const APP_SOURCES = [...walk('app'), ...walk('src'), 'proxy.ts', 'next.config.ts'].filter(

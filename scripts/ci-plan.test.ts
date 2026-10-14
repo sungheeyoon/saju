@@ -6,7 +6,7 @@
  * 「라벨이 검사를 뺄 수 없는가」다.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
@@ -51,6 +51,7 @@ import {
   testsNamingLiterally,
 } from './ci-plan.mjs';
 import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
+import { filesUnder } from './source-files';
 
 /** 바뀐 글자를 찾는 시험들의 차선 — 정규식은 파서로 가른다 */
 const lanesFor = (copyOnly: Map<string, string[]>, tests: readonly (readonly [string, string])[]) => copyLanesOf(copyOnly, tests, ts);
@@ -223,11 +224,8 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
 
   it("app/ 의 'use server' 파일은 전부 입구로 걸린다 — 이름이 다른 새 액션 파일이 조용히 빠지지 않게", () => {
     const root = resolve(__dirname, '..');
-    const walk = (dir: string): string[] =>
-      readdirSync(dir, { withFileTypes: true }).flatMap((one) =>
-        one.isDirectory() ? walk(join(dir, one.name)) : /\.tsx?$/.test(one.name) ? [join(dir, one.name)] : [],
-      );
-    const servers = walk(resolve(root, 'app'))
+    const servers = filesUnder(resolve(root, 'app'))
+      .filter((file) => /\.tsx?$/.test(file))
       .filter((file) => /^\s*['"]use server['"]/m.test(readFileSync(file, 'utf8').split('\n').slice(0, 20).join('\n')))
       .map((file) => relative(root, file));
     expect(servers.length).toBeGreaterThan(0);
@@ -262,10 +260,8 @@ const reachedFrom = (roots: string[]): Set<string> => {
   }
   return seen;
 };
-const filesUnder = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((one) =>
-    one.isDirectory() ? filesUnder(join(dir, one.name)) : /\.(tsx?|mjs)$/.test(one.name) ? [join(dir, one.name)] : [],
-  );
+/** 시험이 import 를 따라가는 뿌리 — `.ts` · `.tsx` · `.mjs` */
+const codeUnder = (dir: string): string[] => filesUnder(dir).filter((file) => /\.(tsx?|mjs)$/.test(file));
 const isTestFile = (file: string) => /\.test\.tsx?$/.test(file);
 
 describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구다 (2026-09-28, ADR 0119 추기)', () => {
@@ -345,14 +341,14 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
 
   it('e2e · 흐름 검사 · Playwright 가 import 하되 앱은 안 닿는 파일은 전부 입구다 — 새 도우미가 조용히 빠지지 않게', () => {
     const harnessRoots = [
-      ...filesUnder(resolve(ROOT, 'e2e')),
+      ...codeUnder(resolve(ROOT, 'e2e')),
       ...readdirSync(resolve(ROOT, 'scripts'))
         .filter((name) => /^check-[^/]+\.mjs$/.test(name))
         .map((name) => resolve(ROOT, 'scripts', name)),
       ...HARNESS.map((file) => resolve(ROOT, file)),
       resolve(ROOT, 'scripts/run-checks.mjs'),
     ];
-    const appRoots = [...filesUnder(resolve(ROOT, 'app')).filter((file) => !isTestFile(file)), resolve(ROOT, 'proxy.ts')];
+    const appRoots = [...codeUnder(resolve(ROOT, 'app')).filter((file) => !isTestFile(file)), resolve(ROOT, 'proxy.ts')];
     const app = reachedFrom(appRoots);
     const toolOnly = [...reachedFrom(harnessRoots)].filter((file) => !app.has(file)).map((file) => relative(ROOT, file));
     expect(toolOnly).toContain('scripts/checks.mjs');
@@ -464,7 +460,7 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
   });
 
   it('실측 — app/ 의 시험 아닌 파일 중 「주소 없음」으로 전부가 되는 파일은 공용 위험 · 관문 · 고아 까닭뿐이다', () => {
-    const files = filesUnder(resolve(ROOT, 'app'))
+    const files = codeUnder(resolve(ROOT, 'app'))
       .map((file) => relative(ROOT, file))
       .filter((file) => !isTestFile(file));
     const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
@@ -770,10 +766,10 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
 
   it('불변식 — authed 는 authedLanes 가 비지 않았는가이고, 정책 밖의 계획에는 core 가 선다', () => {
     const files = [
-      ...filesUnder(resolve(ROOT, 'app')),
-      ...filesUnder(resolve(ROOT, 'e2e')),
-      ...filesUnder(resolve(ROOT, 'scripts')),
-      ...filesUnder(resolve(ROOT, 'src/lib/consent')),
+      ...codeUnder(resolve(ROOT, 'app')),
+      ...codeUnder(resolve(ROOT, 'e2e')),
+      ...codeUnder(resolve(ROOT, 'scripts')),
+      ...codeUnder(resolve(ROOT, 'src/lib/consent')),
     ].map((file) => relative(ROOT, file));
     expect(files.length).toBeGreaterThan(300);
     for (const file of files) {
@@ -1526,10 +1522,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     const libs = readdirSync(resolve(ROOT, 'src/lib'), { withFileTypes: true }).filter((one) => one.isDirectory());
     const named = libs.map((one) => `src/lib/${one.name}/copy.ts`).filter((file) => existsSync(resolve(ROOT, file)));
     expect([...named].sort()).toEqual([...COPY_FILES].sort());
-    const walk = (dir: string): string[] =>
-      readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
-        entry.isDirectory() ? (entry.name === 'node_modules' ? [] : walk(`${dir}/${entry.name}`)) : /\.(?:tsx?|mjs)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
-      );
+    const walk = (dir: string): string[] => codeUnder(resolve(ROOT, dir)).map((file) => relative(ROOT, file).split(sep).join('/'));
     // 뿌리의 `*.ts` · `*.mjs`(`proxy.ts` · `next.config.ts` · `instrumentation.ts` …)도 훑는다
     const roots = readdirSync(ROOT, { withFileTypes: true })
       .filter((entry) => entry.isFile() && /\.(?:tsx?|mjs)$/.test(entry.name))
@@ -1781,9 +1774,9 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
 
   it('실측 — 저장소의 시험 파일을 파서로 읽어 정규식 리터럴을 다 잡고, 문구 한 줄은 검색이 전부를 불러도 지금 규칙(core)보다 넓어지지 않는다', () => {
     const walk = (dir: string): string[] =>
-      readdirSync(resolve(ROOT, dir), { withFileTypes: true }).flatMap((entry) =>
-        entry.isDirectory() ? walk(`${dir}/${entry.name}`) : /\.(?:ts|mts|mjs|js)$/.test(entry.name) ? [`${dir}/${entry.name}`] : [],
-      );
+      filesUnder(resolve(ROOT, dir))
+        .map((file) => relative(ROOT, file).split(sep).join('/'))
+        .filter((file) => /\.(?:ts|mts|mjs|js)$/.test(file));
     const files = [...walk('e2e'), ...walk('scripts').filter((file) => /^scripts\/check-[^/]+\.mjs$/.test(file))];
     let literals = 0;
     let walked = 0;
