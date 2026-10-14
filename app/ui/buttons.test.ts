@@ -70,16 +70,25 @@ function partsOf(template: ts.TemplateExpression, source: Source, names: Map<str
   return { constants: tokensOf(constants), added };
 }
 
-/**
- * 고칠 수 없어 남긴 자리 — 그 파일을 다른 세션이 쥐고 있었다(2026-10-14). 간극 대장 G-109 기록의 「UI」 줄이 함께 든다.
- * 고치면 이 목록에서 빼고, 비면 목록째 지운다.
- */
-const LEFT_FOR_LATER = new Set([
-  'app/save-for-reading.tsx:px-4',
-  'app/me/reading/share-button.tsx:px-3',
-  'app/me/reading/panel.tsx:px-3',
-  'app/taste/taste.tsx:text-small',
-]);
+/** 이 파일에서 단추 상수 뒤에 그 상수가 이미 세운 속성을 덧붙인 낱 — `줄 — 낱` */
+function overlapsIn(source: Source): string[] {
+  const names = buttonNamesOf(source);
+  if (names.size === 0) return [];
+  return nodesOf(source, ts.isTemplateExpression).flatMap((template) => {
+    const { constants, added } = partsOf(template, source, names);
+    if (constants.length === 0) return [];
+    const taken = new Set(constants.flatMap((token) => propertiesOf(token) ?? []));
+    return added
+      .filter((token) => (propertiesOf(token) ?? []).some((property) => taken.has(property)))
+      .map((token) => `${lineOf(source, template)} — ${token}`);
+  });
+}
+
+/** 글로 지은 화면 한 장 — 시험이 겹침을 실제로 찾는지 보는 데만 쓴다 */
+function sampleOf(text: string): Source {
+  const file = 'app/sample.tsx';
+  return { file, tree: ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX) };
+}
 
 describe('단추 상수 뒤에 덧붙이는 클래스', () => {
   /**
@@ -90,29 +99,17 @@ describe('단추 상수 뒤에 덧붙이는 클래스', () => {
    * 변형 상수(`BUTTON_TERTIARY_DANGER` · `ICON_BUTTON_QUIET`)를 쓴다.
    */
   it('단추 상수 뒤에 그 상수가 이미 세운 속성을 덧붙이지 않는다', () => {
-    const offenders = screens('app').flatMap((path) => {
-      const source = sourceOf(path);
-      const names = buttonNamesOf(source);
-      if (names.size === 0) return [];
-      return nodesOf(source, ts.isTemplateExpression).flatMap((template) => {
-        const { constants, added } = partsOf(template, source, names);
-        if (constants.length === 0) return [];
-        const taken = new Set(constants.flatMap((token) => propertiesOf(token) ?? []));
-        return added
-          .filter((token) => (propertiesOf(token) ?? []).some((property) => taken.has(property)))
-          .filter((token) => !LEFT_FOR_LATER.has(`${asPosix(path)}:${token}`))
-          .map((token) => `${asPosix(path)}:${lineOf(source, template)} — ${token}`);
-      });
-    });
+    const offenders = screens('app').flatMap((path) => overlapsIn(sourceOf(path)).map((found) => `${asPosix(path)}:${found}`));
     expect(offenders).toEqual([]);
   });
 
-  it('덧붙인 클래스를 실제로 찾고 있다 — 남긴 자리는 아직 겹친다', () => {
-    const save = sourceOf('app/save-for-reading.tsx');
-    const found = nodesOf(save, ts.isTemplateExpression).some((template) =>
-      partsOf(template, save, buttonNamesOf(save)).added.includes('px-4'),
-    );
-    expect(found).toBe(true);
+  it('덧붙인 클래스를 실제로 찾는다 — 조건식으로 고른 상수 뒤도, 면 뒤는 세지 않는다', () => {
+    const sample = sampleOf(`import { BUTTON_PRIMARY, BUTTON_PRIMARY_FACE, BUTTON_SECONDARY } from './ui/buttons';
+const a = <button className={\`\${BUTTON_PRIMARY} flex-1 px-4 sm:px-5\`} />;
+const b = (on: boolean) => <button className={\`\${on ? BUTTON_PRIMARY : BUTTON_SECONDARY} \${on ? 'px-3' : 'w-full'}\`} />;
+const c = <button className={\`\${BUTTON_PRIMARY_FACE} px-4 sm:px-5\`} />;
+`);
+    expect(overlapsIn(sample)).toEqual(['2 — px-4', '3 — px-3']);
   });
 
   it('켜진 모양은 흰 면을 들지 않는다', () => {

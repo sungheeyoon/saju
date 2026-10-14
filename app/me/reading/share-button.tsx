@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY_FACE } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
@@ -167,7 +167,7 @@ export function ShareReadingButton({
         type="button"
         onClick={start}
         disabled={phase === 'working'}
-        className={`${BUTTON_SECONDARY} w-full px-3 sm:px-5`}
+        className={`${BUTTON_SECONDARY_FACE} w-full px-3 sm:px-5`}
       >
         <Icon name="link" className="size-[18px]" />
         {/*

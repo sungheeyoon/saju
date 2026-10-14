@@ -6,7 +6,7 @@ import { READING_REPLACES_NOTE, readingNoneNote, READING_USES_TICKET_NOTE } from
 import type { CurrentReading, RunProgress } from '@/src/lib/reading';
 import type { Element } from '@/src/lib/saju';
 
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { TYPE_NAME } from '../../ui/surfaces';
@@ -185,8 +185,8 @@ export function ReadingPanel({
       onClick={press}
       disabled={chrome.makeDisabled}
       aria-busy={chrome.buysCredits ? buy.checking : undefined}
-      className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} ${
-        shape === 'pill' ? 'w-full whitespace-nowrap px-3 sm:w-auto sm:px-5' : 'w-full shrink-0 sm:w-auto'
+      className={`${emphasis === 'primary' ? BUTTON_PRIMARY_FACE : BUTTON_SECONDARY_FACE} ${
+        shape === 'pill' ? 'w-full whitespace-nowrap px-3 sm:w-auto sm:px-5' : 'w-full shrink-0 px-5 sm:w-auto'
       }`}
     >
       <Icon name="spark" className="size-[18px]" />
