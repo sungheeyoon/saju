@@ -15,7 +15,7 @@ import importPlugin from "eslint-plugin-import";
  * `no-restricted-imports` 로 가른다.
  */
 
-/** 읽는 확장자 — `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록. `tsconfig` 가 `.mts` 를 포함한다 */
+/** 읽는 확장자 — `scripts/source-files.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록. `tsconfig` 가 `.mts` 를 포함한다 */
 /** 화면이 아닌 코드 — `allowJs` 라 `.js` 도 Next 가 그대로 컴파일한다. `.jsx` 는 화면이다 */
 const CODE = "{ts,mts,cts,js,mjs,cjs}";
 const SCREEN = "{tsx,jsx}";
