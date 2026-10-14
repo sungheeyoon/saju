@@ -31,7 +31,7 @@
 
 ## 하지 않는 것 · 묻는 것
 
-- 새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다 — PR 까지 만들고 머지하지 않는다. 예외는 `/ops/**` 의 운영자 전용 설명뿐([결정 점검표](../agents/delegation/decisions.md) · [무인 라운드](../agents/delegation/unattended.md))
+- 새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다 — PR 까지 만들고 머지하지 않는다. 예외는 운영자가 글자를 정해 준 문구(머지까지 간다)와 `/ops/**` 의 운영자 전용 설명([결정 점검표](../agents/delegation/decisions.md) · [무인 라운드](../agents/delegation/unattended.md))
 - 남이 띄운 dev 서버(3000)는 죽이기 전에 묻는다 — 그 서버를 재사용한 e2e 는 운영 DB 를 본다([로컬 환경의 함정](../agents/delegation/local-env.md))
 - 운영 배포 · 운영 smoke 는 안 한다 — 머지는 배포가 아니다([권한 등급](../agents/delegation/permissions.md) · [운영 역할](ops.md))
 
