@@ -22,6 +22,7 @@ import {
   scoreSideOf,
   type ScorePolicy,
   type ScoreVersion,
+  type StoredScore,
 } from '../discovery';
 import { combinedCountBalanceOf, mutualDeficitComplementOf } from '../discovery/element-axes';
 
@@ -61,13 +62,6 @@ export type MatchPreview = {
 export type MatchBasis =
   | { version: typeof DISCOVERY_POLICY.version; policy: ScorePolicy; index?: number }
   | { version: typeof DISCOVERY_V1.version; index?: number };
-
-/** 풀이에 적힌 점수의 출처 — 이 열들이 생기기 전 풀이는 셋 다 `null` 이고 그것이 옛 판이다 */
-export type StoredScore = {
-  version: string | null;
-  baseline: number | null;
-  relation: string | null;
-};
 
 /**
  * 지표를 **무슨 판으로** 그릴지 — 풀이가 있으면 그 풀이의 판이다.

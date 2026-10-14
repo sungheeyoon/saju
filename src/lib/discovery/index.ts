@@ -143,6 +143,13 @@ export const DISCOVERY_V1 = {
 /** 점수 판의 이름 — 풀이에 적힌 값을 읽는 자리가 모르는 이름을 옛 판으로 눕힌다 */
 export type ScoreVersion = typeof DISCOVERY_POLICY.version | typeof DISCOVERY_V1.version;
 
+/** 풀이에 적힌 점수의 출처 — 이 열들이 생기기 전 풀이는 셋 다 `null` 이고 그것이 옛 판이다 */
+export type StoredScore = {
+  version: string | null;
+  baseline: number | null;
+  relation: string | null;
+};
+
 /**
  * 한 사람 몫 — 점수가 읽는 셋.
  *

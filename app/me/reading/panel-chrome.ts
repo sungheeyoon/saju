@@ -1,5 +1,5 @@
 import type { ReadingCredits } from '../credits/remaining';
-import type { CurrentReading } from './current';
+import type { CurrentReading } from '@/src/lib/reading';
 import type { ReadingTarget } from './target';
 import { outOfCredits } from '../credits/buy-path';
 

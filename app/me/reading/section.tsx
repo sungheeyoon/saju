@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 
-import { isSolo, selfSectionTitlesOf } from '@/src/lib/reading';
+import { isSolo, selfSectionTitlesOf, type CurrentReading } from '@/src/lib/reading';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readReadingCredits } from '../credits/remaining';
-import { currentReading, improvementConsented, lastReadingRun, type CurrentReading } from './current';
+import { currentReading, improvementConsented, lastReadingRun } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './target';
 import type { TasteCarryView } from '../../taste/taste-carry';

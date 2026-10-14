@@ -1,4 +1,4 @@
-import type { CurrentReading } from './current';
+import type { CurrentReading } from '@/src/lib/reading';
 import type { ReadingNewsRead } from './actions';
 import type { PageVisibility } from './watch-run';
 
