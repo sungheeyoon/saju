@@ -7,7 +7,7 @@ import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { CALENDAR_KO, ELEMENTS, ELEMENT_PICTURE_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
@@ -126,14 +126,14 @@ export function SelfCard({
         <div
           className={`relative grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center ${reading !== null && !reading.fromCurrentChart ? '' : 'min-[380px]:grid-cols-2'}`}
         >
-          <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY} whitespace-nowrap px-3 sm:min-w-52 sm:px-5`}>
+          <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY_FACE} whitespace-nowrap px-3 sm:min-w-52 sm:px-5`}>
             <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
             {reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}
             {reading !== null && !reading.fromCurrentChart && (
               <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-tag">{READING_STALE_LABEL}</span>
             )}
           </Link>
-          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} whitespace-nowrap px-3 sm:px-5`}>
+          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
             사주 자세히 보기
             {/* 이 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누른 것이 보이게(`LinkPending`) */}
             <LinkPending className={LINK_PENDING_SPINNER} />

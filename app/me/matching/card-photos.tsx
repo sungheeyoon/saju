@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 
 import { CandidatePhoto } from './candidate-photo';
 import { photosOf, type DeckCard, type PhotoFace } from './deck-card';
+import { ICON_BUTTON_ON_PHOTO_FACE } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { reducedMotion } from '../../ui/motion';
 
@@ -31,9 +32,8 @@ const BOUNCE_MS = 280;
 /** 이만큼 넘게 가로로 쓸어야 넘긴다 — 누르며 살짝 밀린 손가락은 누름이다 */
 const SWIPE_PX = 40;
 
-/** 사진 위의 화살표 — 카드의 ⓘ 와 같은 반투명 검정 동그라미. 사진이 희어도 읽힌다 */
-const ARROW =
-  'absolute top-1/2 z-[1] hidden size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm hover:bg-black/60 active:scale-95 lg:grid';
+/** 사진 위의 화살표 — 카드의 ⓘ 와 한 벌인 반투명 검정 동그라미(`ICON_BUTTON_ON_PHOTO_FACE`). 넓은 화면에만 선다 */
+const ARROW = `${ICON_BUTTON_ON_PHOTO_FACE} absolute top-1/2 z-[1] hidden -translate-y-1/2 hover:bg-black/60 active:scale-95 lg:grid`;
 
 /** 막대가 서는 카드인가 — 서면 사진 위의 딱지 · ⓘ 가 막대 아래로 내려선다 */
 export const pagesPhotos = (card: PhotoFace | DeckCard): boolean => photosOf(card).length > 1;

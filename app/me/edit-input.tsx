@@ -12,7 +12,7 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { actionAnswer } from '../ui/action-answer';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY, ICON_BUTTON_QUIET } from '../ui/buttons';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { Icon } from '../ui/icons';
 import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
@@ -58,7 +58,7 @@ export function EditInput({
         onClick={() => setOpen((now) => !now)}
         aria-expanded={open}
         aria-label="출생 정보 수정"
-        className={`${ICON_BUTTON} absolute right-4 top-4 text-secondary hover:text-foreground sm:right-5 sm:top-5`}
+        className={`${ICON_BUTTON_QUIET} absolute right-4 top-4 sm:right-5 sm:top-5`}
       >
         <Icon name="pencil" className="size-4.5" />
       </button>

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
-import { filesUnder, lengthPx, scaleTokens } from './source-files';
+import { asPosix, filesUnder, lengthPx, scaleTokens } from './source-files';
+import { attributeOf, lineOf, nodesOf, piecesOf, sourceOf, tokensOf } from './class-names';
 
 /**
  * **입력 칸의 글자는 16px 이상이다.** iOS Safari 는 글자가 16px 보다 작은 입력 칸(input · textarea · select)에 초점이
@@ -12,34 +14,15 @@ import { filesUnder, lengthPx, scaleTokens } from './source-files';
  *
  * 보는 것: `app/**\/*.tsx` 의 `<input>` · `<textarea>` · `<select>` 여는 태그. 고르는 칸(radio · checkbox) · 숨은 칸
  * (hidden · file · `sr-only` · `opacity-0`)은 글자를 받지 않아 뺀다. Tailwind 로 꾸민 칸은 글자 크기를 **적어야** 한다 —
- * 안 적으면 부모의 크기를 물려받아 언제든 16px 아래로 내려간다. 같은 파일의 상수(`const FIELD = '…'`)는 풀어서 본다.
- * CSS 모듈로 꾸민 칸(출생 정보 폼)은 그 모듈의 입력 칸 규칙을 따로 본다.
+ * 안 적으면 부모의 크기를 물려받아 언제든 16px 아래로 내려간다. `className` 은 문법 나무로 읽어(`class-names.ts`) 같은 파일의
+ * 상수 · 들여온 상수(`app/ui/fields.ts` 의 `FIELD`) · 조건식의 두 갈래까지 풀어서 본다. CSS 모듈로 꾸민 칸(출생 정보 폼)은 그 칸이
+ * 실제로 들인 모듈의 입력 칸 규칙을 따로 본다 — 칸을 다른 파일로 떼어도 모듈을 따라간다(G-109).
  */
 
 const MIN_PX = 16;
 
 const screens = (dir: string): string[] =>
   filesUnder(dir).filter((path) => path.endsWith('.tsx') && !path.endsWith('.test.tsx'));
-
-/** `<input` 부터 여는 태그의 끝(중괄호 밖의 `>`)까지 — `=>` 는 중괄호 안에 있어 끝으로 안 친다 */
-function openingTags(source: string): { tag: string; line: number }[] {
-  const found: { tag: string; line: number }[] = [];
-  for (const match of source.matchAll(/<(input|textarea|select)(?=[\s/>])/g)) {
-    let depth = 0;
-    let end = match.index;
-    for (let at = match.index + 1; at < source.length; at += 1) {
-      const char = source[at];
-      if (char === '{') depth += 1;
-      else if (char === '}') depth -= 1;
-      else if (char === '>' && depth === 0) {
-        end = at;
-        break;
-      }
-    }
-    found.push({ tag: source.slice(match.index, end + 1), line: source.slice(0, match.index).split('\n').length });
-  }
-  return found;
-}
 
 /** 이 앱의 글자 크기 토큰(`text-field` → 16) — `app/globals.css` 의 `@theme inline` 에서 읽는다 */
 const TOKEN_PX: Record<string, number> = Object.fromEntries(
@@ -61,33 +44,52 @@ function sizeOf(token: string): number | null {
   return null;
 }
 
-type Verdict = { kind: 'skip' } | { kind: 'module' } | { kind: 'sizes'; sizes: number[] };
+type Verdict = { kind: 'skip' } | { kind: 'module'; modules: string[] } | { kind: 'sizes'; sizes: number[] };
 
-function judge(tag: string, source: string): Verdict {
-  if (/\btype="(radio|checkbox|hidden|file)"/.test(tag)) return { kind: 'skip' };
-  const attr = /\bclassName=(?:"([^"]*)"|\{([\s\S]*?)\}(?=\s+\w+=|\s*\/?>))/.exec(tag);
-  if (attr === null) return { kind: 'module' };
-  const raw = attr[1] ?? attr[2];
-  if (/\bstyles\./.test(raw)) return { kind: 'module' };
-  const expanded = raw.replace(/\$\{(\w+)\}|^(\w+)$/g, (whole, inTemplate: string | undefined, alone: string | undefined) => {
-    const name = inTemplate ?? alone;
-    const constant = new RegExp(`const ${name} =\\s*'([^']*)'`).exec(source);
-    return constant ? constant[1] : whole;
-  });
-  const tokens = expanded.split(/[\s`'"]+/).filter((token) => !token.startsWith('placeholder:'));
+const FIELD_TAGS = new Set(['input', 'textarea', 'select']);
+
+function judge(element: ts.JsxOpeningLikeElement, source: ReturnType<typeof sourceOf>): Verdict {
+  const type = attributeOf(element, 'type');
+  if (type !== undefined && ts.isStringLiteral(type) && ['radio', 'checkbox', 'hidden', 'file'].includes(type.text)) return { kind: 'skip' };
+  const className = attributeOf(element, 'className');
+  if (className === undefined) {
+    // 클래스 없는 칸은 감싼 요소의 CSS 모듈(`.digit input`)이 꾸민다 — 가장 가까운 그런 조상의 모듈을 본다
+    for (let up: ts.Node | undefined = element.parent; up !== undefined; up = up.parent) {
+      if (!ts.isJsxElement(up)) continue;
+      const around = attributeOf(up.openingElement, 'className');
+      const modules = around === undefined ? [] : piecesOf(around, source).modules;
+      if (modules.length > 0) return { kind: 'module', modules: [...new Set(modules)] };
+    }
+    return { kind: 'sizes', sizes: [] };
+  }
+  const pieces = piecesOf(className, source);
+  if (pieces.modules.length > 0) return { kind: 'module', modules: [...new Set(pieces.modules)] };
+  const tokens = tokensOf(pieces.texts).filter((token) => !token.startsWith('placeholder:'));
   if (tokens.includes('sr-only') || tokens.includes('opacity-0')) return { kind: 'skip' };
   return { kind: 'sizes', sizes: tokens.map(sizeOf).filter((size): size is number => size !== null) };
 }
 
 describe('입력 칸의 글자 크기 (iOS 의 초점 확대)', () => {
-  const files = screens('app');
-  const fields = files.flatMap((path) => {
-    const source = readFileSync(path, 'utf8');
-    return openingTags(source).map(({ tag, line }) => ({ at: `${path}:${line}`, verdict: judge(tag, source) }));
+  const fields = screens('app').flatMap((path) => {
+    const source = sourceOf(path);
+    const elements = nodesOf(
+      source,
+      (node): node is ts.JsxOpeningLikeElement =>
+        (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && FIELD_TAGS.has(node.tagName.getText()),
+    );
+    return elements.map((element) => ({ at: `${asPosix(path)}:${lineOf(source, element)}`, verdict: judge(element, source) }));
   });
 
   it('입력 칸을 실제로 찾고 있다', () => {
     expect(fields.filter((field) => field.verdict.kind === 'sizes').length).toBeGreaterThan(10);
+  });
+
+  it('들여온 모양 상수까지 풀어서 본다 — 가입 · 프로필의 칸은 `app/ui/fields.ts` 의 FIELD 다', () => {
+    const at = (prefix: string) => fields.filter((field) => field.at.startsWith(prefix) && field.verdict.kind === 'sizes');
+    for (const prefix of ['app/signup/form.tsx:', 'app/me/profile/form.tsx:']) {
+      expect(at(prefix).length, prefix).toBeGreaterThan(0);
+      expect(at(prefix).every(({ verdict }) => verdict.kind === 'sizes' && verdict.sizes.includes(MIN_PX)), prefix).toBe(true);
+    }
   });
 
   it(`Tailwind 로 꾸민 입력 칸은 글자 크기를 적고, 어느 크기도 ${MIN_PX}px 아래가 아니다`, () => {
@@ -101,11 +103,7 @@ describe('입력 칸의 글자 크기 (iOS 의 초점 확대)', () => {
   });
 
   it(`CSS 모듈로 꾸민 입력 칸의 font-size 는 ${MIN_PX}px 아래가 아니다`, () => {
-    const modules = files
-      .filter((path) =>
-        fields.some(({ at, verdict }) => verdict.kind === 'module' && at.startsWith(`${path}:`)),
-      )
-      .map((path) => path.replace(/\.tsx$/, '.module.css'));
+    const modules = [...new Set(fields.flatMap(({ verdict }) => (verdict.kind === 'module' ? verdict.modules : [])))];
     expect(modules.length).toBeGreaterThan(0);
     const offenders = modules.flatMap((path) => {
       const css = readFileSync(path, 'utf8');
@@ -114,7 +112,7 @@ describe('입력 칸의 글자 크기 (iOS 의 초점 확대)', () => {
           .split(',')
           .some((one) => !one.includes('::placeholder') && /(?<!:has\()\binput\b(?![^(]*\))|Input\b/.test(one));
         const size = /font-size:\s*(\d+(?:\.\d+)?)px/.exec(body);
-        return targets && size && Number(size[1]) < MIN_PX ? [`${path} ${selector.trim()} — ${size[1]}px`] : [];
+        return targets && size && Number(size[1]) < MIN_PX ? [`${asPosix(path)} ${selector.trim()} — ${size[1]}px`] : [];
       });
     });
     expect(offenders).toEqual([]);

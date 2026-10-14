@@ -13,7 +13,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
-import { SELF_READING_MAKING, TILE_READING_MAKING } from './making';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
@@ -93,7 +93,7 @@ export function PersonTile({
             {!reading.fromCurrentChart && (
               <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>
             )}
-            <span className="text-foreground">{reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}</span>
+            <span className="text-foreground">{reading.metaphor ?? READING_CONTINUE_NOTE}</span>
           </>
         )}
       </p>

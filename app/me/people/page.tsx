@@ -18,7 +18,7 @@ import { myReadings } from '../reading/current';
 import { readingHref } from '../reading/line';
 import { runningReadings } from '../home/running';
 import { makingPeopleOf } from '../home/running-line';
-import { SELF_READING_MAKING } from '../home/making';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from '../home/making';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
@@ -26,8 +26,9 @@ import { PeopleFinder } from './finder';
 import { PersonActions } from './person-menu';
 import { DayMasterChip, PillarStrip } from './chart-bits';
 import { compatHrefFor } from './compat-href';
+import { COMPAT_ENTRY_LABEL } from '../../service-features';
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { BUTTON_ON_TILE, BUTTON_ON_TILE_FACE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
@@ -148,7 +149,7 @@ export default async function PeoplePage() {
         </div>
         <Link href="/compat" className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
           <Icon name="taiji" className="size-4" />
-          궁합 보러 가기
+          {COMPAT_ENTRY_LABEL}
         </Link>
       </header>
 
@@ -325,7 +326,7 @@ function PersonCard({
             {reading !== null && (
               <>
                 {!reading.fromCurrentChart && <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
-                {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
+                {reading.metaphor ?? READING_CONTINUE_NOTE}
               </>
             )}
           </p>
@@ -339,7 +340,7 @@ function PersonCard({
             </Link>
             <Link
               href={pair !== null ? readingHref(pair) : compatHrefFor(selfPersonId, person.personId)}
-              className={`${BUTTON_ON_TILE} px-3.5`}
+              className={`${BUTTON_ON_TILE_FACE} px-3.5`}
               aria-label={pair?.score != null ? `나와 궁합 ${pair.score}점` : '나와 궁합'}
             >
               <Icon name="taiji" className="size-4" />

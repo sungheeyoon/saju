@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { SIGN_OUT_PENDING } from '@/src/lib/account/copy';
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
@@ -515,7 +516,7 @@ function SettingsMenu({
           disabled={leaving}
           className="mt-1 flex min-h-11 w-full items-center rounded-xl border-t border-border px-3 text-left text-body text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
         >
-          {leaving ? '로그아웃하는 중…' : '로그아웃'}
+          {leaving ? SIGN_OUT_PENDING : '로그아웃'}
         </button>
         {failure && (
           <FailureLine className="px-3 py-2">{failure}</FailureLine>
