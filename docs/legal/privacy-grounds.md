@@ -27,15 +27,30 @@
 | 우리 개인정보에 적용되는 사실 | 적용 조문 | 공개 자료 · 계약으로 확인한 값 | 정말 부족한 값 |
 | --- | --- | --- | --- |
 | 이용할 때마다 요청 경로 · 계정 id 가 든 로그가 Supabase 의 EU 데이터센터에 저장된다 | 제28조의8 ② 1~5 · 시행령 31 ① 2 | 국가 EU · 기간 1일(무료) · 수령자 Supabase Pte. Ltd. · 연락처 privacy@supabase.com(FAQ · 요금 · 로그 문서) | 없음. (로그에 IP 가 드는지는 항목의 「등」이 덮는다 — 차단 사유 아님) |
-| 우리가 지원을 요청하거나 보안 사고가 나면 Supabase 가 DB 에 접근할 수 있다 | 같음 | 수령자 Supabase, Inc.(미국, FAQ) · 목적 · 조건(FAQ) · 기간 = 계약 기간, 끝나면 30일 뒤 삭제(DPA 11.2 · Schedule 3 「Retention period: The duration of the Agreement」) | 없음. (미국 밖 지원 인력의 국가는 공급업체 내부 운영 — 차단 사유 아님) |
-| 같은 조건에서 Vercel 이 요청 정보에 접근할 수 있다 | 같음 | 수령자 Vercel Inc. · 국가 미국(DPA 13.1 「primary processing facilities are in the United States」) · 기간 = 계약 기간, 끝나면 삭제(DPA 12.1 · Schedule 1 §3) · 연락처 privacy@vercel.com | 없음 |
-| 풀이 · 첫 화면 문단을 만들 때 명식 · 분석 정보 · 이름과 사이가 OpenAI 로 간다 | 같음 | 수령자 OpenAI OpCo, LLC(서비스 약관) · 항목 · 시기 · 목적(코드) · 기간 약 10분 · 최대 30일(API 문서) · 한국 리전은 처리 「No」 | **처리 국가 · 개인정보 연락처** — API 문서가 처리 위치를 정하지 않는다(「No processing constraint」). DPA · 처리방침 · 하위처리자 목록(openai.com/policies/*)은 이 기계에서 403 이다 |
+| 우리가 지원을 요청하거나 보안 사고가 나면 Supabase 가 DB 에 접근할 수 있다 | 같음 | 수령자 Supabase, Inc.(미국, FAQ) · 목적 · 조건(FAQ). 기간 — **사실**: DPA 11.2 「On expiry of the Retention Period, Supabase shall delete all copies of Covered Data」(Retention Period = 계약 만료 뒤 30일) · Schedule 3 「Retention period: The duration of the Agreement, unless earlier deletion is requested by the Customer」. **해석**: 지원 접근 때 본 정보도 이 「Covered Data」에 들어 같은 기한을 따른다고 본다 — 지원 접근만의 보관 기간을 정한 조항은 없다 | 없음. 처리방침은 「접근한 정보의 보관 기간을 따로 정하지 않았습니다. 계약상 … 30일이 지나면 맡긴 정보를 지웁니다」로 사실(조항)만 말한다 |
+| 같은 조건에서 Vercel 이 요청 정보에 접근할 수 있다 | 같음 | 수령자 Vercel Inc. · 국가 미국(DPA 13.1 「primary processing facilities are in the United States」) · 연락처 privacy@vercel.com. 기간 — **사실**: DPA 12.1 「Termination or expiration of the Agreement serves as instruction for Vercel to delete all Customer Data … within a commercially reasonable timeframe.」 **해석**: 지원 접근 때 본 정보도 이 「Customer Data」로 같은 기한을 따른다고 본다 | 없음. 처리방침은 사실(조항)만 말한다 |
+| 풀이 · 첫 화면 문단을 만들 때 명식 · 분석 정보 · 이름과 사이가 OpenAI 로 간다 | 같음 | 수령자 OpenAI OpCo, LLC(서비스 약관 · DPA) · 항목 · 시기 · 목적(코드) · 기간 약 10분 · 최대 30일(API 문서) · 한국 리전은 처리 「No」. **국가 · 연락처 — 2026-10-15 운영자 확인, 이 기계 403**: 공식 하위처리자 목록(https://openai.com/policies/sub-processor-list/)에 개인정보 문의 `privacy@openai.com`, OpenAI OpCo, LLC 의 API 처리 위치 미국, API 인프라 하위처리자는 여러 국가. 계약 법인의 출처로 DPA(https://openai.com/policies/data-processing-addendum/ — 운영자 쪽에서 열림) | 없음. 처리방침은 「미국, 그리고 하위 처리자가 있는 여러 나라 — 목록: …」로 본체와 하위처리자를 가른다(데이터 레지던시 없는 우리 구성). 「미국에서만」이라고 쓰지 않는다 |
 | 첫 화면 기록(서울) · 쿠키 7일 · 계정에 이어진 기록 | 제30조 ① 1 · 2 · 7 | 코드 · 마이그레이션 | 없음 |
 | 안전성 확보 조치 | 시행령 31 ① 3 | 행 단위 접근 정책 · 운영자 권한 · 접속기록 · HTTPS · 저장 암호화 · 비밀키 | 없음 |
 
 **OpenAI 는 일반 처리방침과 API 근거를 섞지 않는다.** 일반 처리방침(https://openai.com/policies/privacy-policy/)은 OpenAI 가 스스로 처리하는 것이고 API
-고객 콘텐츠의 국가 · 기간 · 하위처리자는 고객 약관 · DPA · API 문서가 정한다. 처리방침에 적은 기간(약 10분 · 30일)은 API 문서의 값이다. 개인정보 연락
-창구는 일반 처리방침에 공개돼 있다(조율자) — 이 기계는 열지 못했다.
+고객 콘텐츠의 국가 · 기간 · 하위처리자는 고객 약관 · DPA · API 문서 · 하위처리자 목록이 정한다. 처리방침에 적은 기간(약 10분 · 30일)은 API 문서의 값이고,
+국가와 연락처는 하위처리자 목록의 값이다(운영자 확인).
+
+### 갈래별로 OpenAI 에 가는 묶음 — 판정 없이
+
+여덟 글자가 개인정보인지는 법이 정하지 않았다 — 제2조 1호 나목은 「다른 정보와 쉽게 결합하여 알아볼 수 있는」지를 묻고, 그것은 받는 쪽이 가진 정보와
+함께 가는 값에 달렸다. **묶음마다 판단이 다를 수 있다는 것만 적는다** — 어느 묶음이 개인정보인지 판정하지 않는다.
+
+| 갈래 | 가는 묶음(사람을 가리킬 수 있는 값만) | 함께 가는 것 · 빠지는 것 | 코드 |
+| --- | --- | --- | --- |
+| 첫 화면의 짧은 사주 문단 | 여덟 글자 · 성별 · 시간 앎 | 분석 정보. 해 · 나이 · 절입 날짜 · 대운은 뺀다. 이름 · 계정 없음 | `src/lib/reading/taste-run.ts:51-60` |
+| 인연 궁합풀이 | 두 사람의 여덟 글자 · 닉네임 | 시간 앎 · 두 사주 사이의 관계. 성별 · 해 · 나이는 뺀다 | `src/lib/saju/evidence/shared.ts:88-104` · `:147-158`, 이름은 `20260925090000_…sql:186-230` |
+| 사주풀이 | 여덟 글자 · 해 · 나이 · 성별 | 분석 정보 · 대운수 · 절입 날짜 · 시간 앎. 이름은 싣지 않는다 | `src/lib/saju/evidence/redacted.ts:31-41` |
+| 직접 고른 궁합풀이 | 두 사람의 여덟 글자 · 해 · 나이 · 성별 + 등록할 때 붙인 이름 · 고른 사이 | 위와 같다 | 같은 파일 · `src/lib/reading/prompt.ts:1322` `namingBlock` |
+
+**곧 바뀐다** — 운영자가 「궁합풀이에 이름 · 닉네임을 보내지 않는다」로 정했다(2026-10-15). 그 PR(reading)이 main 에 들기 전까지 이 표와 처리방침의
+이름 · 닉네임 줄은 지금 사실대로 두고, 들고 나면 「이름 · 닉네임은 보내지 않는다」로 맞춘다.
 
 ### 첫 화면 문단 — 주소를 열기만 해도 요청이 나가는가 (코드 경로, 2026-10-15)
 
@@ -74,7 +89,7 @@ Org」) **`plan: free`**(Management API `GET /v1/organizations/{slug}`) — Verc
 | Vercel 함수 · 입력 계산(**실행 위치와 전달 경로를 가른다**) | 함수 실행은 서울 `icn1`(우리 설정). Hobby 는 한 리전(https://vercel.com/docs/functions/configuring-functions/region). 요청은 가까운 PoP 를 거쳐 리전으로 간다(「PoPs terminate TCP and route requests over a private network to the nearest Vercel region」, https://vercel.com/docs/regions) — 위탁 절은 「서버 처리(함수 실행)는 서울 리전」으로만 적는다 | — | 국외에서 접속할 때 라우팅 미들웨어(`proxy.ts`)가 그 가까운 리전에서 돈다(「Vercel deploys Routing Middleware to all regions by default」) — 국외 접속자에게만 해당, 처리방침에 싣지 않음 |
 | Vercel 런타임 로그 | Hobby 1시간(https://vercel.com/docs/logs/runtime 「Hobby: 1 hour of logs」) | DPA 「Vercel's primary processing facilities are in the United States」(https://vercel.com/legal/dpa §13.1)로 보아 미국일 수 있다 | **저장 위치** — 처리방침에 국외로 싣지 않고, 위탁 절에 보관 기간만 적었다 |
 | Vercel 지원 접근 | 조건부 — 「Vercel personnel are prohibited from viewing Customer Content, except when instructed by you」(https://vercel.com/legal/privacy-policy, 2026-06-01). 법인 「Vercel Inc., a Delaware corporation」, 주된 처리 시설 미국(DPA §13.1) | — | — (보관 기간은 계약으로 채움 — DPA 12.1) |
-| OpenAI 모델 호출 | 국외 — 데이터 레지던시를 따로 걸지 않은 프로젝트로 보이고(설정은 운영자 확인), 한국 리전은 처리 「None」. 「OpenAI may also process and temporarily store Customer Content outside of the Region to deliver the services.」 · 보관 「roughly 10 minutes」 · 「up to 30 days」(https://developers.openai.com/api/docs/guides/your-data). 법인 「(a) OpenAI OpCo, LLC for Customers located outside the EEA or Switzerland」(https://cdn.openai.com/osa/openai-services-agreement.pdf v.010126) | 처리 국가는 미국일 것이다(법인 소재지) — **처리방침에 쓰지 않는다** | **처리 국가 — 확인 중.** 법인 소재지로 대신하지 않는다(운영자 2026-10-15). 처리방침의 그 줄은 국가 칸이 빈 채라 게시 전에 채워야 한다. 개인정보 연락처 · 하위 처리자(공식 페이지 403) |
+| OpenAI 모델 호출 | 국외 — 데이터 레지던시를 따로 걸지 않은 프로젝트로 보이고(설정은 운영자 확인), 한국 리전은 처리 「None」. 「OpenAI may also process and temporarily store Customer Content outside of the Region to deliver the services.」 · 보관 「roughly 10 minutes」 · 「up to 30 days」(https://developers.openai.com/api/docs/guides/your-data). 법인 「(a) OpenAI OpCo, LLC for Customers located outside the EEA or Switzerland」(https://cdn.openai.com/osa/openai-services-agreement.pdf v.010126) | — | — **2026-10-15 운영자 확인(이 기계 403)**: 하위처리자 목록에 API 처리 위치 미국 · 하위처리자 여러 국가 · 연락처 `privacy@openai.com`(위 「남은 항목」). 법인 소재지로 대신한 것이 아니다 |
 | AWS S3 | 반출이 꺼져 있다(위 계정 값) — 지금 처리 없음 | — | — |
 
 ### 국외 이전의 근거 — 처리마다 적용 가능성과 조건 (시행령 제31조 ① 2)
@@ -90,7 +105,7 @@ Org」) **`plan: free`**(Management API `GET /v1/organizations/{slug}`) — Verc
 | OpenAI — 회원이 누른 사주풀이 · 궁합풀이, 수락으로 만들어지는 인연 궁합풀이 | 높다 — 가입한 이용자가 누른 생성 요청(수락 포함)의 이행이고, 풀이 생성이 이 서비스의 내용이다 | 생성을 사람이 누르거나 수락할 때만 부른다(`app/me/reading/*` · ADR 0038) | — (처리방침에 ①3 으로 적었다) |
 | OpenAI — 가입 전 첫 화면의 짧은 사주 문단 | **있을 수 있다 — 조건부** | ① **이용자의 요청인가** — 방문자가 생년월일시를 넣고 사주를 보거나, 생년월일시가 든 주소(`#` 뒤, ADR 0007)를 열면 결과가 서고 그때 서버를 부른다(`app/saju-calculator.tsx` 의 `useHashParams` → `app/taste/taste.tsx` 의 `requestTaste`). **남이 보낸 그런 주소를 열기만 해도 부른다** — 그것을 이 방문자의 요청으로 볼지가 조건이다. 처리방침의 거부 줄에 「생년월일시가 담긴 주소를 여시면」을 더했다 ② **그 요청을 이행하는 데 국외 처리위탁이 필요한가** — 문단은 모델이 사람마다 쓴다(ADR 0143 의 1). 국내에서 같은 생성을 하는 수단은 지금 없다 ③ **무료 문단이 계약 체결 과정의 일부인가** — 문단은 본 풀이의 잠긴 목차 첫 절에 서고, 가입하면 그 문단이 멈춘 물음에서 첫 풀이가 잇는다(ADR 0143 · 「2026-10-09 덧」). 가입 전 방문자의 상당수는 가입하지 않는다 — 「체결하는 과정」으로 볼지가 갈린다 | 가입하지 않는 방문자에게도 「체결 과정」이 서는가. 무료 체험이 그 과정에 드는가(B-9) |
 | Supabase — 로그(EU) | **있을 수 있다 — 조건부** | 서비스 운영 · 보안에 필요한 위탁인가 — FAQ 는 범위를 「Telemetry, logs, and service metadata … to operate and secure the platform」으로 적는다. 우리가 고른 데이터베이스 서비스를 쓰는 한 따로 끌 수 없다(무료 요금제). 담기는 것은 요청 경로 · 계정 id 등이고 저장 내용은 아니다 | 이용자의 요청에 따른 조치의 이행에 「필요」한가 — 운영 · 보안을 계약 이행의 일부로 볼지 |
-| Supabase · Vercel — 지원 접근 | **있을 수 있다 — 조건부** | 범위와 목적이 좁은가 — Supabase 「only when you request help or when we detect and respond to security incidents」 · 「Support staff can access only projects relevant to your request, and we log all access」, Vercel 「prohibited from viewing Customer Content, except when instructed by you」 | 우리(처리자)가 요청한 지원 · 사고 대응을 계약 이행에 필요한 위탁으로 볼지. 보유기간이 공개되지 않았다(아래 「확인 중」) |
+| Supabase · Vercel — 지원 접근 | **있을 수 있다 — 조건부** | 범위와 목적이 좁은가 — Supabase 「only when you request help or when we detect and respond to security incidents」 · 「Support staff can access only projects relevant to your request, and we log all access」, Vercel 「prohibited from viewing Customer Content, except when instructed by you」 | 우리(처리자)가 요청한 지원 · 사고 대응을 계약 이행에 필요한 위탁으로 볼지. 지원 접근만의 보유기간을 정한 조항은 없다 — 계약 종료 뒤 삭제 조항만 있다(위 「남은 항목」의 사실 / 해석) |
 
 처리방침에는 회원의 풀이 생성에만 ①3 을 적었다. 나머지 셋은 위 조건을 사실로 채운 뒤 운영자가 정한다 — 보고에 올렸다.
 
@@ -109,9 +124,9 @@ v7 의 「세 곳 모두 … 반드시 필요해, 거부하시면 서비스를 �
 | 항목 | Supabase Pte. Ltd.(로그) | Supabase, Inc.(지원) | Vercel Inc.(지원) | OpenAI OpCo, LLC | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | ② 1 항목 | 이용 기록(경로 · 계정 id) | 접근되는 DB 정보 | 접근되는 요청 정보 | 명식 · 분석 정보 · 이름과 사이(갈래별) | 채움 |
-| ② 2 국가 · 시기 · 방법 | 「유럽연합(EU)의 데이터센터」 · 이용할 때마다 | 「미국」 · 그 경우에만 | 「미국」 · 그 경우에만 | **국가 칸 비움(확인 중)** · 누를 때 · 수락 때 · 첫 화면 | Supabase · Vercel 채움. **OpenAI 처리 국가 확인 중 — 게시 전에 채운다** |
-| ② 3 명칭 · 연락처 | privacy@supabase.com | privacy@supabase.com | privacy@vercel.com · 우편 | 링크만 | **OpenAI 연락처 빠짐**(403) |
-| ② 4 목적 · 보유기간 | 운영 · 보안 · 1일 | 지원 · 보안 · 계약 기간(끝나면 30일 뒤 삭제, DPA 11.2) | 지원 · 보안 · 계약 기간(끝나면 삭제, DPA 12.1) | 생성 · 약 10분 · 30일 | 채움 |
+| ② 2 국가 · 시기 · 방법 | 「유럽연합(EU)의 데이터센터」 · 이용할 때마다 | 「미국」 · 그 경우에만 | 「미국」 · 그 경우에만 | 「미국, 그리고 하위 처리자가 있는 여러 나라」 · 누를 때 · 수락 때 · 첫 화면 | 채움(OpenAI 는 운영자 확인) |
+| ② 3 명칭 · 연락처 | privacy@supabase.com | privacy@supabase.com | privacy@vercel.com · 우편 | privacy@openai.com | 채움 |
+| ② 4 목적 · 보유기간 | 운영 · 보안 · 1일 | 지원 · 보안 · 계약 조항(끝나면 30일 뒤 삭제) — 지원 접근에 따로 정한 기간은 없다고 적음 | 지원 · 보안 · 계약 조항(끝나면 삭제) — 같은 꼴 | 생성 · 약 10분 · 30일 | 채움(지원 접근 둘은 조항의 사실만, 해석은 근거 문서) |
 | ② 5 거부 | 따로 거부 불가 · 탈퇴 | 같음 | 같음 | 거부 가능 · 효과 | 채움(처리마다 갈랐다) |
 | 시행령 31 ① 2 국외 이전의 근거 | 없음 | 없음 | 없음 | 회원 풀이만 ①3 | **로그 · 지원 접근 · 첫 화면의 근거 빠짐**(단정 못 함) |
 
@@ -304,19 +319,7 @@ WNS 를 말하지 않는다. 처리방침에 적을 때는 「Windows 의 Edge�
 - 위 「확인 전」 칸 — 채운 뒤 푸시 고지를 따로 게시하고, 그 뒤에 웹 푸시를 켠다(ADR 0180 · G-71).
 - 변호사에게 묻는다면 — `docs/legal/counsel-request.md` 「B-9」(선택 검토).
 
-## 회사에 물을 것 — 좁힌 문의 (2026-10-15, 아직 보내지 않았다)
+## 회사에 물을 것 — 없음 (2026-10-15)
 
-필수 고지사항을 공개 자료 · 계약으로 끝내 확인하지 못한 것만 남겼다. 나머지 문안(Supabase · Vercel 의 지원 인력 국가 · 로그 IP · Realtime 노드 · 하위
-처리자 목록)은 걷었다 — 공개 자료 · 계약으로 채웠거나 차단 사유가 아니다.
-
-**먼저 — 운영자가 브라우저로 연다.** 403 은 이 기계의 요청에만 걸린다. https://openai.com/policies/data-processing-addendum/ ·
-https://openai.com/policies/sub-processor-list/ · https://openai.com/policies/privacy-policy/ 에 아래 두 값이 있으면 문의하지 않는다.
-
-**OpenAI(API 지원 창구)** — 위 세 문서에도 없을 때만.
-
-> We use the API under the Services Agreement with OpenAI OpCo, LLC (project without data residency). For our privacy policy under Korea's Personal
-> Information Protection Act: (1) in which country or countries is API content from such a project processed and stored? (2) what privacy contact
-> (email or postal address) should we list for OpenAI OpCo, LLC?
-
-- (1) 처리 국가 — 문의 없이는 못 푼다: API 문서가 「No processing constraint」로 위치를 정하지 않고, 법인 소재지는 처리 국가가 아니다.
-- (2) 연락처 — 문의 없이는 못 푼다: 공개된 자리(일반 처리방침)를 이 기계가 열지 못한다. 운영자가 열어 있으면 이 줄은 걷는다.
+OpenAI 의 처리 국가 · 개인정보 연락처는 운영자가 공식 하위처리자 목록에서 확인했다(위 「남은 항목」). 운영자가 페이지를 복사하거나 회사에 문의해야만
+진행된다는 조건은 걷었다. 남은 문의는 없다.

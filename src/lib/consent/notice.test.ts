@@ -269,7 +269,10 @@ describe('첫 화면의 짧은 사주 문단', () => {
   it('받는 곳의 연락처 · 위탁 · 거부 방법을 적는다', () => {
     expect(outward).toContain('Supabase Pte. Ltd. — 개인정보 문의: privacy@supabase.com');
     expect(outward).toContain('Vercel Inc. — 개인정보 문의: privacy@vercel.com');
-    expect(outward).toContain('OpenAI OpCo, LLC — 개인정보 관련 문의처는 이곳에 안내되어 있습니다');
+    expect(outward).toContain('OpenAI OpCo, LLC — 개인정보 문의: privacy@openai.com');
+    /* 본체와 하위 처리자를 가른다 — 「미국에서만」이라고 쓰지 않는다 */
+    expect(outward).toContain('미국, 그리고 하위 처리자가 있는 여러 나라');
+    expect(outward).not.toContain('미국에서만');
     expect(outward).toContain('가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다');
     expect(text).toContain('풀이와 첫 화면의 짧은 사주 문단 생성은 OpenAI 에 맡깁니다');
   });

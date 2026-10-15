@@ -207,7 +207,7 @@ const TRANSFERS: readonly Transfer[] = [
     items: '저희가 기술 지원을 요청하거나 Supabase 가 보안 사고에 대응할 때 접근되는 데이터베이스의 정보',
     when: '그 경우에만 접근',
     purpose: '기술 지원과 보안 사고 대응',
-    period: '계약 기간 동안(계약이 끝나면 30일 뒤 삭제)',
+    period: '접근한 정보의 보관 기간을 따로 정하지 않았습니다. 계약상 Supabase 는 계약이 끝나고 30일이 지나면 맡긴 정보를 지웁니다',
     policy: 'https://supabase.com/privacy',
     contact: 'privacy@supabase.com',
   },
@@ -217,19 +217,20 @@ const TRANSFERS: readonly Transfer[] = [
     items: '저희가 지원을 요청하거나 보안·법적 사유가 있을 때 접근되는 요청 정보',
     when: '그 경우에만 접근',
     purpose: '기술 지원과 보안 대응',
-    period: '계약 기간 동안(계약이 끝나면 삭제)',
+    period: '접근한 정보의 보관 기간을 따로 정하지 않았습니다. 계약상 Vercel 은 계약이 끝나면 맡긴 정보를 지웁니다',
     policy: 'https://vercel.com/legal/privacy-policy',
     contact: 'privacy@vercel.com (440 N Barranca Avenue #4133, Covina, CA 91723, United States)',
   },
   {
     to: 'OpenAI OpCo, LLC',
-    country: null,
+    country: '미국, 그리고 하위 처리자가 있는 여러 나라 — 목록: https://openai.com/policies/sub-processor-list/',
     items:
       '계산된 명식과 태어난 해·나이·성별 등 분석 정보, 궁합풀이에서는 등록하실 때 붙인 이름과 고르신 사이(인연 궁합풀이는 태어난 해·나이·성별을 빼고 두 분의 닉네임을, 첫 화면의 짧은 사주 문단은 태어난 해·나이를 빼고 보냅니다). 정확한 생년월일시·출생지·분 단위 시각은 보내지 않습니다',
     when: '사주풀이 받기나 궁합풀이 받기를 누르셨을 때, 궁합 요청이 수락되어 궁합풀이가 자동으로 만들어질 때, 그리고 로그인하지 않고 첫 화면에서 사주를 보실 때(짧은 사주 문단) 네트워크를 통해 전송',
     purpose: '풀이 글과 점수, 첫 화면의 짧은 사주 문단 생성',
     period: '회수용 보관 약 10분(첫 화면의 짧은 사주 문단은 회수용으로 보관하지 않습니다), 별도 오·남용 점검 기록 최대 30일',
     policy: 'https://openai.com/policies/privacy-policy',
+    contact: 'privacy@openai.com',
   },
 ];
 
