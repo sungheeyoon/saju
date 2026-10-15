@@ -244,7 +244,7 @@ describe('첫 화면의 짧은 사주 문단', () => {
 
   it('첫 화면의 문단이 OpenAI 로 가는 때와 거부 방법 · 효과를 말한다', () => {
     expect(outward).toContain('로그인하지 않고 첫 화면에서 사주를 보실 때');
-    expect(text).toContain('첫 화면에서 사주를 보지 않으시면 이 처리는 일어나지 않습니다');
+    expect(text).toContain('생년월일시가 담긴 주소를 여시면 곧바로 만들어집니다');
     expect(text).toContain('넣지 않으셔도 가입과 그 밖의 이용에는 영향이 없습니다');
     expect(text).not.toContain('사주풀이·궁합풀이를 받지 않고 궁합 요청도 수락되지 않으면');
   });
@@ -297,8 +297,8 @@ describe('첫 화면의 짧은 사주 문단', () => {
   });
 
   /**
-   * **안전성 확보 조치**(시행령 제31조 ① 3) — 확인되는 조치만. 운영자 2단계 인증은 보류라(G-65) 적지 않고, 저장 암호화는
-   * 공식 문서로 확인하지 못해 적지 않는다.
+   * **안전성 확보 조치**(시행령 제31조 ① 3) — 확인되는 조치만. 운영자 2단계 인증은 보류라(G-65) 적지 않는다. 저장 암호화는
+   * Supabase 보안 페이지가 든다(「encrypted at rest with AES-256」).
    */
   it('확인되는 안전 조치만 적는다', () => {
     const safety = sections.find((section) => section.title === '개인정보를 지키는 조치')?.lines.join(' ') ?? '';
@@ -306,7 +306,7 @@ describe('첫 화면의 짧은 사주 문단', () => {
     expect(safety).toContain('누가·언제·무엇을 열람했는지 기록');
     expect(safety).toContain('HTTPS');
     expect(safety).not.toContain('2단계');
-    expect(safety).not.toContain('저장할 때 암호화');
+    expect(safety).toContain('데이터베이스에서 암호화해 보관합니다');
   });
 
   /** 역산 문장은 처리방침에 두지 않는다 — 경계까지 검증하지 않았다(ADR 0180) */

@@ -205,9 +205,9 @@ const TRANSFERS: readonly Transfer[] = [
     to: 'Supabase, Inc.',
     country: '미국',
     items: '저희가 기술 지원을 요청하거나 Supabase 가 보안 사고에 대응할 때 접근되는 데이터베이스의 정보',
-    when: '그 경우에만 접근하며, 접근은 모두 기록됩니다',
+    when: '그 경우에만 접근',
     purpose: '기술 지원과 보안 사고 대응',
-    period: 'Supabase 가 따로 정해 공개한 기간이 없습니다',
+    period: '계약 기간 동안(계약이 끝나면 30일 뒤 삭제)',
     policy: 'https://supabase.com/privacy',
     contact: 'privacy@supabase.com',
   },
@@ -217,7 +217,7 @@ const TRANSFERS: readonly Transfer[] = [
     items: '저희가 지원을 요청하거나 보안·법적 사유가 있을 때 접근되는 요청 정보',
     when: '그 경우에만 접근',
     purpose: '기술 지원과 보안 대응',
-    period: 'Vercel 이 따로 정해 공개한 기간이 없습니다',
+    period: '계약 기간 동안(계약이 끝나면 삭제)',
     policy: 'https://vercel.com/legal/privacy-policy',
     contact: 'privacy@vercel.com (440 N Barranca Avenue #4133, Covina, CA 91723, United States)',
   },
@@ -274,7 +274,6 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
         '모델에는 계산된 명식과 태어난 해·나이·성별 등 분석 정보를 보냅니다. 궁합풀이에는 등록하실 때 붙인 이름과 고르신 사이도 보냅니다.',
         '인연 궁합풀이에는 태어난 해·나이·성별을 빼고, 이름 대신 두 분의 닉네임을 보냅니다. 첫 화면의 짧은 사주 문단에는 태어난 해·나이를 빼고 보냅니다.',
         '정확한 생년월일시와 태어난 지역, 분 단위 시각은 보내지 않습니다. 규칙으로 막는 것이 아니라 보내는 자료에서 빼고 보냅니다.',
-        '사주풀이·궁합풀이를 받지 않고, 궁합 요청도 수락되지 않고, 첫 화면에서 사주를 보지 않으시면 이 처리는 일어나지 않습니다.',
         '첫 화면의 짧은 사주 문단은 로그인하지 않은 채 생년월일시를 넣고 사주를 보시거나, 생년월일시가 담긴 주소를 여시면 곧바로 만들어집니다. 원하지 않으시면 넣지 않으시면 됩니다. 넣지 않으셔도 가입과 그 밖의 이용에는 영향이 없습니다.',
       ],
     },
@@ -327,13 +326,14 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
     {
       /*
         **안전성 확보 조치**(시행령 제31조 ① 3, ADR 0180) — 코드 · 운영 문서로 확인되는 조치만 적는다. 줄마다의 근거와 적지 않은 것
-        (운영자 2단계 인증은 보류 — G-65, 저장 암호화는 확인 전)은 `docs/legal/privacy-grounds.md` 「안전성 확보 조치」.
+        (운영자 2단계 인증은 보류 — G-65)은 `docs/legal/privacy-grounds.md` 「안전성 확보 조치」.
       */
       title: '개인정보를 지키는 조치',
       lines: [
         '저장된 정보는 데이터베이스의 행 단위 접근 정책으로 본인과 그 정보를 볼 수 있는 상대에게만 열립니다.',
         '운영자의 열람 권한은 운영자로 등록된 계정에만 있습니다. 운영자가 운영자 화면이나 정해진 조회 도구로 개인정보를 열람하면 누가·언제·무엇을 열람했는지 기록을 남깁니다.',
         '이용자와 서비스 사이, 서비스와 데이터베이스 사이의 전송은 HTTPS 로 암호화합니다.',
+        '저장된 정보는 데이터베이스에서 암호화해 보관합니다.',
         '외부 서비스의 비밀키와 데이터베이스 관리 열쇠는 서버에만 둡니다.',
       ],
     },
