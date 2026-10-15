@@ -29,7 +29,7 @@
 | 이용할 때마다 요청 경로 · 계정 id 가 든 로그가 Supabase 의 EU 데이터센터에 저장된다 | 제28조의8 ② 1~5 · 시행령 31 ① 2 | 국가 EU · 기간 1일(무료) · 수령자 Supabase Pte. Ltd. · 연락처 privacy@supabase.com(FAQ · 요금 · 로그 문서) | 없음. (로그에 IP 가 드는지는 항목의 「등」이 덮는다 — 차단 사유 아님) |
 | 우리가 지원을 요청하거나 보안 사고가 나면 Supabase 가 DB 에 접근할 수 있다 | 같음 | 수령자 Supabase, Inc.(미국, FAQ) · 목적 · 조건(FAQ). 기간 — **사실**: DPA 11.2 「On expiry of the Retention Period, Supabase shall delete all copies of Covered Data」(Retention Period = 계약 만료 뒤 30일) · Schedule 3 「Retention period: The duration of the Agreement, unless earlier deletion is requested by the Customer」. **해석**: 지원 접근 때 본 정보도 이 「Covered Data」에 들어 같은 기한을 따른다고 본다 — 지원 접근만의 보관 기간을 정한 조항은 없다 | 없음. 처리방침은 「접근한 정보의 보관 기간을 따로 정하지 않았습니다. 계약상 … 30일이 지나면 맡긴 정보를 지웁니다」로 사실(조항)만 말한다 |
 | 같은 조건에서 Vercel 이 요청 정보에 접근할 수 있다 | 같음 | 수령자 Vercel Inc. · 국가 미국(DPA 13.1 「primary processing facilities are in the United States」) · 연락처 privacy@vercel.com. 기간 — **사실**: DPA 12.1 「Termination or expiration of the Agreement serves as instruction for Vercel to delete all Customer Data … within a commercially reasonable timeframe.」 **해석**: 지원 접근 때 본 정보도 이 「Customer Data」로 같은 기한을 따른다고 본다 | 없음. 처리방침은 사실(조항)만 말한다 |
-| 풀이 · 첫 화면 문단을 만들 때 명식 · 분석 정보 · 이름과 사이가 OpenAI 로 간다 | 같음 | 수령자 OpenAI OpCo, LLC(서비스 약관 · DPA) · 항목 · 시기 · 목적(코드) · 기간 약 10분 · 최대 30일(API 문서) · 한국 리전은 처리 「No」. **국가 · 연락처 — 2026-10-15 운영자 확인, 이 기계 403**: 공식 하위처리자 목록(https://openai.com/policies/sub-processor-list/)에 개인정보 문의 `privacy@openai.com`, OpenAI OpCo, LLC 의 API 처리 위치 미국, API 인프라 하위처리자는 여러 국가. 계약 법인의 출처로 DPA(https://openai.com/policies/data-processing-addendum/ — 운영자 쪽에서 열림) | 없음. 처리방침은 「미국, 그리고 하위 처리자가 있는 여러 나라 — 목록: …」로 본체와 하위처리자를 가른다(데이터 레지던시 없는 우리 구성). 「미국에서만」이라고 쓰지 않는다 |
+| 풀이 · 첫 화면 문단을 만들 때 명식 · 분석 정보 · (직접 고른 궁합의) 사이가 OpenAI 로 간다 — 이름 · 닉네임은 안 간다(reading PR 뒤) | 같음 | 수령자 OpenAI OpCo, LLC(서비스 약관 · DPA) · 항목 · 시기 · 목적(코드) · 기간 약 10분 · 최대 30일(API 문서) · 한국 리전은 처리 「No」. **국가 · 연락처 — 2026-10-15 운영자 확인, 이 기계 403**: 공식 하위처리자 목록(https://openai.com/policies/sub-processor-list/)에 개인정보 문의 `privacy@openai.com`, OpenAI OpCo, LLC 의 API 처리 위치 미국, API 인프라 하위처리자는 여러 국가. 계약 법인의 출처로 DPA(https://openai.com/policies/data-processing-addendum/ — 운영자 쪽에서 열림) | 없음. 처리방침은 「미국, 그리고 하위 처리자가 있는 여러 나라 — 목록: …」로 본체와 하위처리자를 가른다(데이터 레지던시 없는 우리 구성). 「미국에서만」이라고 쓰지 않는다 |
 | 첫 화면 기록(서울) · 쿠키 7일 · 계정에 이어진 기록 | 제30조 ① 1 · 2 · 7 | 코드 · 마이그레이션 | 없음 |
 | 안전성 확보 조치 | 시행령 31 ① 3 | 행 단위 접근 정책 · 운영자 권한 · 접속기록 · HTTPS · 저장 암호화 · 비밀키 | 없음 |
 
@@ -45,12 +45,13 @@
 | 갈래 | 가는 묶음(사람을 가리킬 수 있는 값만) | 함께 가는 것 · 빠지는 것 | 코드 |
 | --- | --- | --- | --- |
 | 첫 화면의 짧은 사주 문단 | 여덟 글자 · 성별 · 시간 앎 | 분석 정보. 해 · 나이 · 절입 날짜 · 대운은 뺀다. 이름 · 계정 없음 | `src/lib/reading/taste-run.ts:51-60` |
-| 인연 궁합풀이 | 두 사람의 여덟 글자 · 닉네임 | 시간 앎 · 두 사주 사이의 관계. 성별 · 해 · 나이는 뺀다 | `src/lib/saju/evidence/shared.ts:88-104` · `:147-158`, 이름은 `20260925090000_…sql:186-230` |
+| 인연 궁합풀이 | 두 사람의 여덟 글자 | 시간 앎 · 두 사주 사이의 관계. 성별 · 해 · 나이는 뺀다 | `src/lib/saju/evidence/shared.ts:88-104` · `:147-158`, 이름은 `20260925090000_…sql:186-230` |
 | 사주풀이 | 여덟 글자 · 해 · 나이 · 성별 | 분석 정보 · 대운수 · 절입 날짜 · 시간 앎. 이름은 싣지 않는다 | `src/lib/saju/evidence/redacted.ts:31-41` |
-| 직접 고른 궁합풀이 | 두 사람의 여덟 글자 · 해 · 나이 · 성별 + 등록할 때 붙인 이름 · 고른 사이 | 위와 같다 | 같은 파일 · `src/lib/reading/prompt.ts:1322` `namingBlock` |
+| 직접 고른 궁합풀이 | 두 사람의 여덟 글자 · 해 · 나이 · 성별 + 고른 사이 | 위와 같다 | 같은 파일 |
 
-**곧 바뀐다** — 운영자가 「궁합풀이에 이름 · 닉네임을 보내지 않는다」로 정했다(2026-10-15). 그 PR(reading)이 main 에 들기 전까지 이 표와 처리방침의
-이름 · 닉네임 줄은 지금 사실대로 두고, 들고 나면 「이름 · 닉네임은 보내지 않는다」로 맞춘다.
+**이름 · 닉네임은 보내지 않는다** — 운영자 결정(2026-10-15) 「궁합풀이에 이름 · 닉네임을 보내지 않는다」. 프롬프트를 자리 호칭(「첫 번째 분」)으로 바꾸고 화면에서
+이름으로 치환하는 PR(reading)이 main 에 든 뒤에 이 판이 머지된다 — 이 표와 처리방침은 그 뒤의 사실이다. 그 PR 전의 코드는 이름(`local_label`) · 닉네임을
+실었다(`src/lib/reading/prompt.ts:1322` `namingBlock`, `20260925090000_…sql:186-230`). 사이(고른 관계)는 그대로 보낸다.
 
 ### 첫 화면 문단 — 주소를 열기만 해도 요청이 나가는가 (코드 경로, 2026-10-15)
 
@@ -123,7 +124,7 @@ v7 의 「세 곳 모두 … 반드시 필요해, 거부하시면 서비스를 �
 
 | 항목 | Supabase Pte. Ltd.(로그) | Supabase, Inc.(지원) | Vercel Inc.(지원) | OpenAI OpCo, LLC | 상태 |
 | --- | --- | --- | --- | --- | --- |
-| ② 1 항목 | 이용 기록(경로 · 계정 id) | 접근되는 DB 정보 | 접근되는 요청 정보 | 명식 · 분석 정보 · 이름과 사이(갈래별) | 채움 |
+| ② 1 항목 | 이용 기록(경로 · 계정 id) | 접근되는 DB 정보 | 접근되는 요청 정보 | 명식 · 분석 정보 · 사이(갈래별) | 채움 |
 | ② 2 국가 · 시기 · 방법 | 「유럽연합(EU)의 데이터센터」 · 이용할 때마다 | 「미국」 · 그 경우에만 | 「미국」 · 그 경우에만 | 「미국, 그리고 하위 처리자가 있는 여러 나라」 · 누를 때 · 수락 때 · 첫 화면 | 채움(OpenAI 는 운영자 확인) |
 | ② 3 명칭 · 연락처 | privacy@supabase.com | privacy@supabase.com | privacy@vercel.com · 우편 | privacy@openai.com | 채움 |
 | ② 4 목적 · 보유기간 | 운영 · 보안 · 1일 | 지원 · 보안 · 계약 조항(끝나면 30일 뒤 삭제) — 지원 접근에 따로 정한 기간은 없다고 적음 | 지원 · 보안 · 계약 조항(끝나면 삭제) — 같은 꼴 | 생성 · 약 10분 · 30일 | 채움(지원 접근 둘은 조항의 사실만, 해석은 근거 문서) |
@@ -222,7 +223,7 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 ### 2. OpenAI 로 가는 항목 — 정확히, 설명은 짧게 (운영자 2026-10-15)
 
 처리방침은 필드 이름을 늘어놓지 않고 묶는다 — 「계산된 명식과 태어난 해 · 나이 · 성별 등 분석 정보」. 갈래가 다른 만큼만 갈라 적는다
-(아래 3). 이름 · 사이와 닉네임은 적는다.
+(아래 3). 사이는 적고, 이름 · 닉네임은 보내지 않는다고 적는다(위 「갈래별 묶음」).
 
 - 성별 · 시간 앎은 입력값이라 「여덟 글자에서 나온 사실」로 보기 어렵다. 모델에 가는 자료(`RedactedChartEvidence`)는 `meta` 에서
   `inputTime` · `resolvedTime` · `instant` · `corrections` · `totalCorrectionMinutes` 만 자른다(`src/lib/saju/evidence/redacted.ts:65-69`) —
@@ -232,7 +233,8 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
   인연 궁합(`match`)은 두 사람의 `app_user.nickname`, 사이는 없음(`'relation', null`). 직접 고른 궁합(`private`)은 등록할 때 붙인
   `user_person_access.local_label` 과 고른 사이(`pair_relation`). 사주풀이(`self` · `person`)는 이름을 프롬프트에 싣지 않는다 — `namingBlock` 은
   궁합 절에만 선다(`:1487`). v7 은 이것을 적지 않았다 — 공개 출시판 초안 「부록 A 어긋남 1」이 이미 든 사실이다. 「무엇을 받고」에
-  닉네임 · 붙인 이름 줄이 없어 함께 더했다.
+  닉네임 · 붙인 이름 줄이 없어 함께 더했다. **운영자가 궁합풀이에 이름 · 닉네임을 보내지 않기로 했다(2026-10-15)** — 위 이름 경로는 reading PR 이 걷고,
+  처리방침은 그 뒤의 사실(「이름·닉네임은 보내지 않습니다」)을 적는다.
 
 ### 3. 해 · 나이 · 성별은 갈래마다 다르다 — 처리방침은 빠지는 것만 갈라 적는다 (운영자 2026-10-15, 코드는 그대로)
 
@@ -262,7 +264,7 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 | 같은 절 — 기록의 항목: 이 브라우저와 접속을 알아보는 값, 계산된 사주를 다시 알아낼 수 있는 값, 만든 문단(구현 — 서버 비밀의 HMAC, 여덟 글자 · 성별 · 시간 앎의 지문 — 은 이 칸에만) | `app/taste/taste-visitor.ts:61` `browserHmacOf` · `:71` `ipHmacOf`(날짜별 키), 지문(SHA-256 — 원문이 여덟 글자 · 성별 · 시간 앎이고 경우의 수가 60⁴ × 2 × 2 남짓이라 대입으로 풀린다, `src/lib/reading/taste-run.ts:132-142` `tasteFingerprintSourceOf`, ADR 0143 의 6), 세션의 `preview_markdown` 사본(`…sql:191`) | 제30조 ① 1 · 2 |
 | 같은 절 — 가입해 이어 받으면 계정의 풀이 기록으로, 탈퇴 때 지움 | `claimed_by … on delete cascade`(`…sql:200`), 단계 표도 세션을 따라 지워진다(`supabase/migrations/20261119090000_…sql:28`) | 제30조 ① 2 |
 | 같은 절 — 쿠키 7일, 첫 화면에서 사주를 볼 때(문단을 받기 전) 놓인다 | 문단 요청이 모델을 부르기 전에 `tasteVisitor` 가 쿠키를 심는다(`app/taste/taste-visitor.ts:103-117`, `app/taste/taste-run.ts` `serveTaste` 의 `hands.visitor()`). `:48` `BROWSER_COOKIE_DAYS` · `:51` `CLAIM_COOKIE_DAYS`, `maxAge` `:116` · `:144`. httpOnly | 제30조 ① 7 |
-| 「풀이를 만들 때 밖으로 나가는 것」 — 첫 화면 문단도 OpenAI 가 씀 · 「계산된 명식과 태어난 해 · 나이 · 성별 등 분석 정보」 · 궁합의 이름과 사이 · 인연 궁합은 해 · 나이 · 성별을 빼고 닉네임 · 첫 화면 문단은 해 · 나이를 뺌 | 위 「판단 셋」의 2 · 3 | 제30조 ① 1 · 4 |
+| 「풀이를 만들 때 밖으로 나가는 것」 — 첫 화면 문단도 OpenAI 가 씀 · 「계산된 명식과 태어난 해 · 나이 · 성별 등 분석 정보」 · 궁합의 사이 · 이름 · 닉네임은 안 보냄 · 인연 궁합은 해 · 나이 · 성별을 빼고 · 첫 화면 문단은 해 · 나이를 뺌 | 위 「판단 셋」의 2 · 3 | 제30조 ① 1 · 4 |
 | 「무엇을 받고」 — 닉네임과 등록할 때 붙인 이름(새 줄) | 위 「판단 셋」의 2 | 제30조 ① 1 |
 | 같은 절 — 첫 화면 문단의 거부 방법과 효과: 넣지 않으면 일어나지 않고, 가입 · 그 밖의 이용에 영향 없음 | 로그인한 사람은 그 문단을 받지 않는다(`app/taste/taste-run.ts:130` `if (await hands.member()) return TASTE_CLOSED`) — 가입 뒤의 길과 무관하다 | 제28조의8 ② 5 꼴 |
 | 「국외로 나가는 것」 — OpenAI 의 「언제」 · 「목적」 · 「보유기간」 | 위 「판단 셋」. 「회수용 보관 약 10분 · 오·남용 점검 기록 최대 30일」은 v7 의 문장 그대로이고 이 판에서 다시 재지 않았다(출처는 초안 「부록 A」) | 제28조의8 ② 1~4 |

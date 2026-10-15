@@ -255,9 +255,11 @@ describe('첫 화면의 짧은 사주 문단', () => {
    */
   it('OpenAI 로 가는 분석 정보와 갈래마다 빠지는 것을 적는다', () => {
     expect(text).toContain('계산된 명식과 태어난 해·나이·성별 등 분석 정보');
-    expect(text).toContain('등록하실 때 붙인 이름과 고르신 사이');
+    expect(text).toContain('궁합풀이에는 고르신 사이도 보내고, 이름·닉네임은 보내지 않습니다');
     expect(text).toContain('인연 궁합풀이에는 태어난 해·나이·성별을 빼고');
-    expect(text).toContain('두 분의 닉네임');
+    /* 궁합풀이에 이름 · 닉네임을 보내지 않는다(운영자 2026-10-15, reading PR) */
+    expect(text).not.toContain('두 분의 닉네임');
+    expect(text).not.toContain('붙인 이름과');
     expect(text).toContain('첫 화면의 짧은 사주 문단에는 태어난 해·나이를 빼고');
     expect(text).not.toContain('여덟 글자와 그 위에서 나온 사실만 보냅니다');
   });
