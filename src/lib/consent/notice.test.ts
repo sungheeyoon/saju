@@ -132,7 +132,9 @@ describe('처리방침이 갖춰야 하는 것', () => {
     expect(text).toContain('이전 항목');
     expect(text).toContain('이전 시기와 방법');
     expect(text).toContain('보유기간');
-    expect(text).toContain('거부하실 수 있습니다');
+    /* 거부는 처리마다 갈린다 — 피할 수 있는 이전(OpenAI)과 따로 거부할 수 없는 이전(로그 · 지원 접근) */
+    expect(text).toContain('넣지 않으시면 일어나지 않습니다');
+    expect(text).toContain('따로 거부할 수 없습니다');
   });
 
   /**
@@ -140,7 +142,8 @@ describe('처리방침이 갖춰야 하는 것', () => {
    * 안 되는지 안 적으면, 고를 수 있는 것처럼 보이는 것을 고르게 된다.
    */
   it('거부하면 무엇이 안 되는지도 적는다', () => {
-    expect(text).toContain('이용하실 수 없습니다');
+    expect(text).toContain('받을 수 없고 인연 궁합 요청을 수락할 수 없지만');
+    expect(text).toContain('가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다');
   });
 
   /**
@@ -282,6 +285,11 @@ describe('첫 화면의 짧은 사주 문단', () => {
     expect(text).not.toContain('세 곳 모두 국외에 서버를 둡니다');
     /* 서울에 있는 저장 자료는 국외 절의 이전 항목이 아니다 */
     expect(outward).not.toContain('구글 계정 이메일');
+    /* 「미국 등」은 국가가 아니다 — 확인된 나라만 싣는다(운영자 2026-10-15) */
+    expect(outward).not.toContain('미국 등');
+    expect(outward).toContain('유럽연합(EU)의 데이터센터');
+    /* 국외 이전의 근거(시행령 제31조 ① 2) — 단정할 수 있는 처리에만 */
+    expect(outward).toContain('제28조의8 제1항 제3호');
   });
 
   /** 역산 문장은 처리방침에 두지 않는다 — 경계까지 검증하지 않았다(ADR 0180) */

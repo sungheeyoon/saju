@@ -19,58 +19,71 @@
 
 갈래 — **첫** = 로그인하지 않은 첫 화면의 짧은 사주 문단 · **사주** = 사주풀이 · **궁합** = 직접 고른 두 사람의 궁합 · 인연 궁합.
 
-### 구성요소마다 — 처리 위치와 계약 법인 (운영자 2026-10-15 「DB · 인증 · 스토리지 · 로그 · 지원 접근별로」)
+### 처리마다 — 사실 · 추정 · 미확인 (운영자 2026-10-15 「확인된 것만 처리방침에 싣는다」)
 
-**국외 이전 해당 여부의 법적 판정은 하지 않는다 — 아래는 사실이다.** 처리방침은 서울에서 처리하는 것을 「맡겨서 처리하는 곳」에, 국외에서
-처리 · 보관 · 접근되는 것(조건부 접근은 그 조건)만 「국외로 나가는 것」에 적는다. 출처는 모두 2026-10-15 에 열었다. 우리 설정 값은 조율자가
-같은 날 읽기로 쟀다 — `npx supabase projects list`(운영 프로젝트 `xgdeguyxgkillndraonc` `region: ap-northeast-2`), `vercel api /v9/projects/saju`
-(`serverlessFunctionRegion: icn1`), `vercel.json:5` `regions: ["icn1"]`.
+**처리방침에 싣는 것은 「사실」 칸뿐이다.** 「회사가 공개하지 않습니다」 · 「미국 등」은 법 요건을 채운 것으로 다루지 않는다 — 운영자 승인으로도
+채워지지 않는다. 국외 이전 해당 여부의 법적 판정은 하지 않는다. 출처는 모두 2026-10-15 에 열었다.
 
-| 구성요소 | 처리 위치 | 국외 처리 · 접근과 그 조건 | 계약 법인 | 출처 · 원문 |
-| --- | --- | --- | --- | --- |
-| Supabase — DB(Postgres) | 서울 `ap-northeast-2` | DPA §6.1 「stored and primarily Processed in that region unless otherwise required … or as necessary to provide Services requested by Customer」 | 아래 「계약 법인」 | https://supabase.com/docs/guides/platform/regions 「The region you choose also determines where your primary project data is stored.」 · https://supabase.com/legal/dpa (Version 1, 2026-08-01) |
-| Supabase — 인증(구글 로그인) | 서울 | 구글 로그인의 콜백 · 토큰 교환이 어디서 도는지 **확인 전**. 메일 발송은 쓰지 않는다(로그인은 구글뿐) | 같음 | https://supabase.com/docs/guides/security/gdpr-compliance.md 「your project's primary Postgres database, Auth service, and Storage objects are hosted in that region」 |
-| Supabase — 스토리지 | **쓰지 않는다** — 프로필 사진은 Postgres 안(`bytea`, ADR 0040)이고 버킷이 없다 | — | — | `supabase/migrations` 에 버킷 정의 없음 |
-| Supabase — Realtime | **세계에 퍼진 클러스터** | 앱을 열어 둔 동안 계정마다 비공개 채널 하나(`app/live/channel.ts:35` 토픽 `user:<계정 id>`). 싣는 것은 갈래 · 방 id · 차례뿐(`app/live/changes.ts`), 내용 없음. 보관 기간 **확인 전** | 같음 | https://supabase.com/docs/guides/realtime/architecture 「Realtime is a globally distributed Elixir cluster.」 · 「A client connected to a Realtime node in the United States can send a message to another client connected to a node in Singapore.」 |
-| Supabase — 백업 | Free 요금제는 자동 백업이 없다(요금제는 운영자 확인 필요 — 저장소의 다른 문서는 「Free 1일 로그」를 든다) | Pro 이상이면 S3 의 어느 리전인지 **확인 전** | 같음 | https://supabase.com/docs/guides/platform/backups · https://supabase.com/pricing 「Automatic backups: Not included」(Free) |
-| Supabase — 로그(API · Postgres) | **확인 전** | 보관 1일(Free). 보관 위치는 공개되지 않았다 — 처리방침은 국외 절에 「요청 기록 1일」로 싣는다(국내인지 알 수 없어서) | 같음 | https://supabase.com/pricing 「Log retention (API & Database) 1 day」 |
-| Supabase — 지원 · 엔지니어 접근 | — | 조건부: 업무상 필요한 인원만(DPA §5), 「follow-the-sun」 — **국가는 밝히지 않는다**. 하위 처리자 목록의 지원 주체 「Supabase, Inc. / United States / Provision of support services」 | 같음 | https://supabase.com/legal/dpa 「Supabase has employees strategically placed around the world, which allows it to utilize a follow-the-sun model」 · https://supabase.com/legal/subprocessor-list/October-12-2026.pdf |
-| Supabase — 앞단(DDoS) | Cloudflare 가 가장자리에서 막는다 | 모든 API 요청이 Cloudflare 의 세계망을 지나는지는 **확인 전** | Cloudflare, Inc.(하위 처리자, 미국) | https://supabase.com/docs/guides/security 「Supabase protects against Distributed Denial of Service (DDoS) attacks at the edge via Cloudflare.」 |
-| Supabase — 하위 처리자 | 목록의 「Country」는 회사 소재지로 보인다(처리 위치 아님) | AWS · Cloudflare · Google · Vercel · Sentry · OpenAI 등 — 고객 자료에 닿는지는 목록이 말하지 않는다 | — | 위 PDF(「As of October 12, 2026」) |
-| Vercel — 함수 실행 | 서울 `icn1` | Hobby 는 한 리전, 다른 리전으로의 자동 넘김은 Enterprise 만. 일반 문서는 장애 때 「rerouted to the next closest region」 | Vercel Inc. | https://vercel.com/docs/functions/configuring-functions/region (2026-08-11) |
-| Vercel — CDN · 가장자리 · 미들웨어 | 이용자와 가까운 PoP · 리전 | PoP 가 TCP 를 끝내고 가까운 리전으로 보낸다, TLS 는 그 리전. **라우팅 미들웨어(`proxy.ts`)는 모든 리전에 깔린다** — 국외에서 접속하면 그 가까운 리전에서 돈다 | 같음 | https://vercel.com/docs/regions 「PoPs terminate TCP and route requests over a private network to the nearest Vercel region」 · 「Vercel deploys Routing Middleware to all regions by default, regardless of your region settings.」 |
-| Vercel — 런타임 로그 | **확인 전** | Hobby 1시간 · Pro 1일. 보관 위치는 공개되지 않았다 — 처리방침은 국외 절에 싣는다 | 같음 | https://vercel.com/docs/logs/runtime (2026-08-28) 「Hobby: 1 hour of logs … Pro: 1 day of logs」 |
-| Vercel — 빌드 | **확인 전**(공식 문서 없음. 빌드 로그의 「iad1」은 공식 출처가 아니다) | 빌드에는 이용자의 개인정보가 지나가지 않는다(환경 변수뿐) | 같음 | https://vercel.com/docs/builds |
-| Vercel — 지원 접근 | — | 조건부: 고객의 지시 · 지원 · 보안 · 법적 사유 | 같음 | https://vercel.com/legal/privacy-policy (2026-06-01) 「Vercel personnel are prohibited from viewing Customer Content, except when instructed by you」 · DPA §13.1 「Vercel's primary processing facilities are in the United States」 |
-| Vercel — 하위 처리자 | **확인 전** — 목록이 JavaScript 신뢰 포털(security.vercel.com)이라 글로 열리지 않았다 | — | — | DPA §7.2 |
-| OpenAI API — 처리 | 처리 위치를 정하지 않는다(「Global」 프로젝트는 「No processing constraint」). **한국 리전은 저장만, 처리 「None」** | 국외 | **OpenAI OpCo, LLC** — 「(a) OpenAI OpCo, LLC for Customers located outside the EEA or Switzerland」 | https://developers.openai.com/api/docs/guides/your-data 「OpenAI may also process and temporarily store Customer Content outside of the Region to deliver the services.」 · https://cdn.openai.com/osa/openai-services-agreement.pdf (「ONLINE v.010126」) |
-| OpenAI API — 보관 | — | 백그라운드 약 10분 · 오남용 점검 최대 30일 | 같음 | 위 your-data 「Background mode stores response data to disk for roughly 10 minutes」 · 「retained for up to 30 days」 |
-| OpenAI — 하위 처리자 · 개인정보 연락처 | **확인 전**(openai.com/policies/* · trust · help 가 403) | — | — | — |
-| 그 밖 — Google(구글 로그인) | 이용자가 구글에서 로그인한다 | 우리가 구글로 보내는 개인정보가 있는지(OAuth 요청 · 토큰 교환) — **판정 안 함 · 확인 전** | Google LLC | — |
-| 그 밖 — AWS S3 | 서울 `ap-northeast-2`(`docs/ops/runbook/security.md` 「반출」) | 운영자 접속기록 사본 — 이용자의 이름 · 이메일 · 메시지 본문이 들지 않게 설계. 켜져 있는지 운영자 확인 필요. 처리방침 v7 · v8 은 적지 않는다 | Amazon Web Services | `app/api/cron/audit-export/s3.ts` |
-| 그 밖 — PortOne · 웹 푸시 | 지금 처리 없음 — 판매 스위치가 꺼져 있고(G-21), 푸시는 켜지 않았다(G-71) | — | — | — |
+**우리 계정 값(읽기로 잼, 2026-10-15)** — Supabase 운영 프로젝트 `xgdeguyxgkillndraonc` `region: ap-northeast-2`, 조직 `qlichigttxdmyzmjmjsi`(「sungheeyoon's
+Org」) **`plan: free`**(Management API `GET /v1/organizations/{slug}`) — Vercel 마켓플레이스 조직(`vercel_icfg_…`)이 아니다. Vercel 프로젝트 `saju` 는 팀
+`team_o5pywRSbdzfxjkQCnddUKaL5` 의 것이고 그 팀 **`billing.plan: hobby`**(`vercel api /v2/teams/…`), `serverlessFunctionRegion: icn1`. **AWS 접속기록 반출은
+꺼져 있다** — Vercel 환경 변수에 `AUDIT_EXPORT_*` 가 하나도 없다(`vercel env ls`, 이름만 봄) — 그러면 반출은 `state: 'off'`(`app/api/cron/audit-export/export.ts:133`).
 
-**계약 법인 — 운영자 확인 필요.**
+| 처리 | 사실(출처 · 원문) | 추정 | 미확인 |
+| --- | --- | --- | --- |
+| Supabase DB · 인증 | 서울. 「The region you choose also determines where your primary project data is stored.」(https://supabase.com/docs/guides/platform/regions) · 「Your PostgreSQL database, as well as Auth service and Storage objects are hosted in that region, alongside backups.」(https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq, 「Version 1 — October 6, 2026」) | — | 구글 로그인의 콜백 · 토큰 교환 위치 |
+| Supabase 백업 | Free 요금제는 자동 백업이 없다(https://supabase.com/pricing). 있으면 리전 안(위 FAQ 「alongside backups」) | — | — |
+| Supabase 스토리지 · CDN | 쓰지 않는다(사진은 Postgres `bytea`, ADR 0040). FAQ 의 네 번째 범주 「If you use our Storage service, content may be cached or served through a global CDN outside your region」는 해당 없음 | — | — |
+| Supabase 리전 밖 처리의 네 범주 | FAQ 원문 그대로 — ① 「Customer Account Information: Your account setup, configuration, and billing data may be processed by centralized systems outside your region.」 「We are controllers of this data.」 ② 「Customer Support Requests: Our support team, located globally to provide 24/7 coverage, may access your data when you request help … report issues, or when we identify and respond to security incidents.」 「We are processors of this data.」 ③ 「Usage Information: Telemetry, logs, and service metadata are processed outside your region to operate and secure the platform.」 「Commonly, we are processors of this data.」 ④ 「Content Delivery: If you use our Storage service, content may be cached or served through a global CDN outside your region … depending on your configuration and end-user locations.」 | ① 은 운영자 계정의 정보라 이용자의 개인정보가 아니다 | — |
+| Supabase 로그(③) | 「Logs are ingested and stored at EU-based data centers.」 · 「This includes operational analytics, performance metrics, and platform health monitoring (not your application data).」(FAQ). 로그에는 요청 경로와 계정 id 가 든다 — 「The User filter matches the user's ID in Auth actor IDs or API Gateway JWT subjects」 · Pathname 필터는 「a request path」(https://supabase.com/docs/guides/telemetry/logs). 보관 1일(Free, https://supabase.com/pricing 「Log retention (API & Database) 1 day」) | — | 로그에 접속 IP 가 드는지(문서에 없음). FAQ 의 「not your application data」와 계정 id · 경로가 든 로그가 어떻게 맞물리는지 |
+| Supabase 지원 접근(②) | 조건부 — 우리가 요청할 때 · 보안 사고 대응 때만. 「Support staff can access only projects relevant to your request, and we log all access.」 · 「Supabase, Inc. (United States) provides technical support and operational services.」 · 「Your data flows to Supabase, Inc. only when necessary for support or operations」(FAQ). 이전 수단 「Supabase transfers data to Singapore and to the US under the Standard Contractual Clauses (SCCs)」 | — | 미국 밖 지원 인력의 국가(「located globally」), 접근한 정보의 보관 기간 |
+| Supabase Realtime | 우리 앱은 DB 에서 Broadcast 를 보낸다 — 트리거가 `realtime.send(…, 'changed', 'user:<uid>', true)`(`supabase/migrations/20261120090000_the_app_hears_what_changed_on_one_private_channel.sql:7`), 실은 것은 `{ area, match_id, seq }` 뿐. 그 메시지는 우리 DB(서울)의 `realtime.messages` 에 3일 남는다 — 「The `realtime.messages` table is partitioned by day.」 · 「Partitions are retained for 3 days before being deleted.」(https://supabase.com/docs/guides/realtime/architecture) | — | **국외 노드를 지나는지** — 「Clients can connect to any node in the cluster」 · 「connects to it from the closest region possible」만 있고, 한국 이용자가 어느 노드에 붙는지는 문서에 없다. 처리방침에 국외로 싣지 않는다 |
+| Supabase 계약 법인 | 약관 §1(j)(https://supabase.com/terms): AWS 마켓플레이스 구매면 「Supabase, Inc.」, 아니면 「Supabase Pte. Ltd., a Singapore corporate entity」. FAQ 「Supabase Pte. Ltd. (Singapore) is the primary data processor under our agreements.」 | 우리 조직은 무료 요금제의 직접 조직이라 마켓플레이스 구매가 아니다 → Supabase Pte. Ltd. | 운영자가 AWS 마켓플레이스로 산 적이 있는지(무료라 없을 것으로 본다) |
+| Vercel 함수 · 입력 계산 | 서울 `icn1`(우리 설정). Hobby 는 한 리전(https://vercel.com/docs/functions/configuring-functions/region) | — | 국외에서 접속할 때 라우팅 미들웨어(`proxy.ts`)가 그 가까운 리전에서 돈다(「Vercel deploys Routing Middleware to all regions by default」) — 국외 접속자에게만 해당, 처리방침에 싣지 않음 |
+| Vercel 런타임 로그 | Hobby 1시간(https://vercel.com/docs/logs/runtime 「Hobby: 1 hour of logs」) | DPA 「Vercel's primary processing facilities are in the United States」(https://vercel.com/legal/dpa §13.1)로 보아 미국일 수 있다 | **저장 위치** — 처리방침에 국외로 싣지 않고, 위탁 절에 보관 기간만 적었다 |
+| Vercel 지원 접근 | 조건부 — 「Vercel personnel are prohibited from viewing Customer Content, except when instructed by you」(https://vercel.com/legal/privacy-policy, 2026-06-01). 법인 「Vercel Inc., a Delaware corporation」, 주된 처리 시설 미국(DPA §13.1) | — | 접근한 정보의 보관 기간 |
+| OpenAI 모델 호출 | 국외 — 우리 프로젝트는 데이터 레지던시를 따로 걸지 않았고, 한국 리전은 처리 「None」. 「OpenAI may also process and temporarily store Customer Content outside of the Region to deliver the services.」 · 보관 「roughly 10 minutes」 · 「up to 30 days」(https://developers.openai.com/api/docs/guides/your-data). 법인 「(a) OpenAI OpCo, LLC for Customers located outside the EEA or Switzerland」(https://cdn.openai.com/osa/openai-services-agreement.pdf v.010126) | 처리 국가는 미국일 것이다(법인 소재지) | **처리 국가**(문서가 정하지 않음 — 처리방침은 「미국(법인 소재지)」로만 적음), 개인정보 연락처 · 하위 처리자(공식 페이지 403) |
+| AWS S3 | 반출이 꺼져 있다(위 계정 값) — 지금 처리 없음 | — | — |
 
-- **Supabase** — 약관(https://supabase.com/terms §1(j))은 구매 경로로 가른다. AWS 마켓플레이스로 샀으면 「Supabase, Inc.」, 아니면 「Supabase Pte. Ltd., a
-  Singapore corporate entity … 65 Chulia Street #38-02/03, OCBC Centre, Singapore 049513」. DPA 당사자도 「Supabase Pte. Ltd」. 처리방침 문의처는 privacy@supabase.com
-  (DPA 는 privacy@supabase.io). 처리방침은 마켓플레이스가 아닌 경우의 **「Supabase Pte. Ltd.」로 고쳤다** — 우리 구매 경로를 운영자가 확인한다.
-- **Vercel** — 「Vercel Inc., a Delaware corporation」 · 「440 N Barranca Ave #4133, Covina, CA 91723」 · privacy@vercel.com(약관 2026-06-01, DPA 2026-03-31 시행).
-- **OpenAI** — 서비스 약관이 EEA · 스위스 밖의 고객을 「OpenAI OpCo, LLC」로 든다 — v7 의 「OpenAI, L.L.C.」를 **「OpenAI OpCo, LLC」로 고쳤다**. 같은 문서의
-  통지 조항은 「OpenAI, L.L.C.」의 주소(1455 3rd Street, San Francisco)를 든다. 우리 API 계정이 어느 판의 약관을 받았는지 운영자가 확인한다.
+### 국외 이전의 근거 — 처리마다 (시행령 제31조 ① 2)
 
-### 제28조의8 ② — 국외로 나가는 곳마다 (위 표에 맞춘 것)
+**법률 자문이 아니다 — 변호사 검토 전의 따짐이다.** 제28조의8 ① 3 은 「정보주체와의 계약의 체결 및 이행을 위하여 개인정보의 처리위탁ㆍ보관이 필요한
+경우」로서 처리방침에 공개한 경우다. 개인정보위 Q&A 는 「정보주체와 체결한 계약을 이행하거나 계약을 체결하는 과정에서 정보주체의 요청에 따른 조치를
+이행하기 위하여 필요한 경우」로 풀고, 필요한지는 「서비스. 제품의 성격 및 사업 구조 등을 종합적으로 고려하여 판단」한다고 한다.
 
-| 항목(조문 원문) | Supabase Pte. Ltd. | Vercel Inc. | OpenAI OpCo, LLC | 상태 |
-| --- | --- | --- | --- | --- |
-| 1 「이전되는 개인정보 항목」 | 실시간 갱신 신호 · 요청 기록 · 지원과 장애 대응 때 접근되는 정보 | 런타임 로그 · 지원과 보안 대응 때 접근되는 요청 정보 | 명식과 분석 정보 · 궁합의 이름과 사이(갈래별) | 채움 |
-| 2 「… 국가, 시기 및 방법」 | 「싱가포르·미국 등」 · 이용할 때마다 / 필요할 때만 접근 | 「미국 등」 · 같은 꼴 | 「미국 등」 · 누를 때 · 수락 때 · 첫 화면 | 채움 — 국가는 회사가 특정하지 않아 「등」이다(Supabase · Vercel 의 로그 위치, Realtime 노드 — 확인 전) |
-| 3 「… 명칭과 연락처」 | privacy@supabase.com | privacy@vercel.com · 우편 주소 | 링크만 — 연락처 **확인 전**(403) | Supabase · Vercel 채움, OpenAI 확인 전. 명칭은 운영자 확인 필요(위) |
-| 4 「… 이용목적 및 보유ㆍ이용 기간」 | 요청 기록 1일 · 실시간 신호의 보관 기간은 공개되지 않았다고 적음 | 런타임 로그 1시간 · 보관 국가는 공개되지 않았다고 적음 | 약 10분 · 최대 30일 · 처리 국가는 OpenAI 가 정함 | 채움(공개되지 않은 것은 공개되지 않았다고) |
-| 5 「… 거부하는 방법, 절차 및 거부의 효과」 | 「거부하시려면 가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다. 다만 세 곳 모두 … 반드시 필요해 …」 | 같은 줄 | 같은 줄 + 첫 화면 갈래의 「넣지 않으시면 됩니다」 | 채움 |
+| 처리 | 이용자의 요청 · 계약과의 관계 | 처리방침에 적은 근거 |
+| --- | --- | --- |
+| OpenAI — 회원이 누른 사주풀이 · 궁합풀이, 수락으로 만들어지는 인연 궁합풀이 | 가입한 이용자가 누른 생성 요청(수락 포함)의 이행 — 풀이 생성이 이 서비스의 내용이다 | **①3 으로 적었다** — 「사주풀이·궁합풀이 생성을 위한 OpenAI 로의 이전은 … 제28조의8 제1항 제3호 … 에 따라」. 판정이 아니라 근거의 표시다 |
+| OpenAI — 가입 전 첫 화면의 짧은 사주 문단 | 계약이 없다. 「계약을 체결하는 과정에서 정보주체의 요청에 따른 조치」에 드는지 미확인 | **적지 않았다 — 근거를 단정 못 함**(보고 · B-9) |
+| Supabase — 로그(EU) | 플랫폼 운영 · 보안을 위한 것. 이용자의 요청에 따른 조치인지 미확인 | **적지 않았다 — 근거를 단정 못 함** |
+| Supabase · Vercel — 지원 접근 | 우리(처리자)의 요청 · 보안 사고 대응 — 이용자의 요청이 아니다 | **적지 않았다 — 근거를 단정 못 함** |
 
-**연락처의 출처** — Vercel: https://vercel.com/legal/privacy-policy (「Last Updated June 1, 2026」) 「privacy@vercel.com」 · 「440 N Barranca Avenue #4133」
-「Covina, CA 91723」 「United States」. Supabase: https://supabase.com/privacy 「Contact Us」 privacy@supabase.com(날짜 표기 없음).
+### 거부 — 처리마다 (제28조의8 ② 5)
+
+| 처리 | 거부할 수 있나 · 방법 | 효과 | 처리방침 문장 |
+| --- | --- | --- | --- |
+| OpenAI — 풀이 · 인연 궁합 · 첫 화면 | 있다 — 누르지 않기 · 수락하지 않기 · 첫 화면에 넣지 않기 | 풀이와 문단을 못 받고 인연 궁합 요청을 수락할 수 없다(수락이 궁합풀이를 만든다). 사주 계산 · 저장은 그대로 | 「OpenAI 로의 이전은 … 일어나지 않습니다. 그 경우 …」 |
+| Supabase 로그 · 지원 접근, Vercel 지원 접근 | 따로 거부할 수 없다 — 이용하는 동안 생긴다 | 가입하지 않거나 탈퇴 | 「… 따로 거부할 수 없습니다. 원하지 않으시면 가입하지 않거나 …」 |
+
+v7 의 「세 곳 모두 … 반드시 필요해, 거부하시면 서비스를 이용하실 수 없습니다」는 핵심 처리(풀이 생성)의 필요성과 개별 처리(로그 · 지원 접근)의 필요성을
+한 주장으로 묶었다 — 위처럼 갈랐다.
+
+### 제28조의8 ② 와 시행령 제31조 ① — 국외로 나가는 줄마다
+
+| 항목 | Supabase Pte. Ltd.(로그) | Supabase, Inc.(지원) | Vercel Inc.(지원) | OpenAI OpCo, LLC | 상태 |
+| --- | --- | --- | --- | --- | --- |
+| ② 1 항목 | 이용 기록(경로 · 계정 id) | 접근되는 DB 정보 | 접근되는 요청 정보 | 명식 · 분석 정보 · 이름과 사이(갈래별) | 채움 |
+| ② 2 국가 · 시기 · 방법 | 「유럽연합(EU)의 데이터센터」 · 이용할 때마다 | 「미국」 · 그 경우에만 | 「미국」 · 그 경우에만 | 「미국(법인 소재지)」 · 누를 때 · 수락 때 · 첫 화면 | Supabase · Vercel 채움. **OpenAI 처리 국가 빠짐**(법인 소재지만 확인) |
+| ② 3 명칭 · 연락처 | privacy@supabase.com | privacy@supabase.com | privacy@vercel.com · 우편 | 링크만 | **OpenAI 연락처 빠짐**(403) |
+| ② 4 목적 · 보유기간 | 운영 · 보안 · 1일 | 지원 · 보안 · **「공개한 기간이 없습니다」** | 지원 · 보안 · **「공개한 기간이 없습니다」** | 생성 · 약 10분 · 30일 | **지원 접근 둘의 보유기간 빠짐** |
+| ② 5 거부 | 따로 거부 불가 · 탈퇴 | 같음 | 같음 | 거부 가능 · 효과 | 채움(처리마다 갈랐다) |
+| 시행령 31 ① 2 국외 이전의 근거 | 없음 | 없음 | 없음 | 회원 풀이만 ①3 | **로그 · 지원 접근 · 첫 화면의 근거 빠짐**(단정 못 함) |
+
+### 시행령 제31조 ① 3 — 안전성 확보 조치
+
+**빠짐(v7 부터).** 지금 처리방침에 이 절이 없다. 코드 · 운영 문서로 확인되는 조치는 있다 — 운영자 화면은 2단계 인증을 마친 세션에서만(ADR 0123),
+운영자가 개인정보를 읽으면 접속기록이 DB 에 남는다(ADR 0105, 반출은 꺼져 있다), 비밀키는 서버에만, 전송 구간 HTTPS, 표마다 행 단위 접근 정책(RLS).
+공개 출시판 초안 8절에 문장이 있다. 이 PR 에서 절을 더하지 않았다 — 새 절은 문구 승인 대상이라 보고에 올린다.
 
 ### 제30조 ① — 첫 화면 처리에 대해
 
@@ -117,6 +130,7 @@
 | 제28조의8 ① 3 | 「정보주체와의 계약의 체결 및 이행을 위하여 개인정보의 처리위탁ㆍ보관이 필요한 경우로서 다음 각 목의 어느 하나에 해당하는 경우」 — 가목 「제2항 각 호의 사항을 제30조에 따른 개인정보 처리방침에 공개한 경우」 · 나목 「전자우편 등 대통령령으로 정하는 방법에 따라 제2항 각 호의 사항을 정보주체에게 알린 경우」 | 같은 곳 |
 | 제28조의8 ② | 1 「이전되는 개인정보 항목」 2 「개인정보가 이전되는 국가, 시기 및 방법」 3 「개인정보를 이전받는 자의 성명(법인인 경우에는 그 명칭과 연락처를 말한다)」 4 「개인정보를 이전받는 자의 개인정보 이용목적 및 보유ㆍ이용 기간」 5 「개인정보의 이전을 거부하는 방법, 절차 및 거부의 효과」 | 같은 곳 |
 | 제30조 ① | 1 「개인정보의 처리 목적」 2 「개인정보의 처리 및 보유 기간」 3의2 「개인정보의 파기절차 및 파기방법(…)」 4 「개인정보처리의 위탁에 관한 사항(해당되는 경우에만 정한다)」 7 「인터넷 접속정보파일 등 개인정보를 자동으로 수집하는 장치의 설치ㆍ운영 및 그 거부에 관한 사항(해당하는 경우에만 정한다)」 | https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1029332499 |
+| 시행령 제31조 ① (시행 2026. 9. 11., 대통령령 제36671호) | 「법 제30조제1항제8호에서 "대통령령으로 정한 사항"이란 다음 각 호의 사항을 말한다.」 — 1 「처리하는 개인정보의 항목」 2 「법 제28조의8제1항 각 호에 따라 개인정보를 국외로 이전하는 경우 국외 이전의 근거와 같은 조 제2항 각 호의 사항」 3 「제30조에 따른 개인정보의 안전성 확보 조치에 관한 사항」 4 「국외에서 국내 정보주체의 개인정보를 직접 수집하여 처리하는 경우 개인정보를 처리하는 국가명」 | https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1033215161 |
 | 제30조 ② | 「개인정보처리자가 개인정보 처리방침을 수립하거나 변경하는 경우에는 정보주체가 쉽게 확인할 수 있도록 대통령령으로 정하는 방법에 따라 공개하여야 한다.」 | 같은 곳 |
 
 개인정보보호위원회의 설명(카드뉴스 「이것이 궁금하다! 개정 개인정보보호법 관련 자주 묻는 질문들」, 2024-01-02) — 제28조의8 ①3 은
@@ -189,7 +203,7 @@
 | 「무엇을 받고」 — 닉네임과 등록할 때 붙인 이름(새 줄) | 위 「판단 셋」의 2 | 제30조 ① 1 |
 | 같은 절 — 첫 화면 문단의 거부 방법과 효과: 넣지 않으면 일어나지 않고, 가입 · 그 밖의 이용에 영향 없음 | 로그인한 사람은 그 문단을 받지 않는다(`app/taste/taste-run.ts:130` `if (await hands.member()) return TASTE_CLOSED`) — 가입 뒤의 길과 무관하다 | 제28조의8 ② 5 꼴 |
 | 「국외로 나가는 것」 — OpenAI 의 「언제」 · 「목적」 · 「보유기간」 | 위 「판단 셋」. 「회수용 보관 약 10분 · 오·남용 점검 기록 최대 30일」은 v7 의 문장 그대로이고 이 판에서 다시 재지 않았다(출처는 초안 「부록 A」) | 제28조의8 ② 1~4 |
-| 「맡겨서 처리하는 곳」 — 서울 리전에서 처리 · 보관하는 것(DB · 로그인 · 임시 기록, 서버 처리 · 입력 계산) / 「국외로 나가는 것」 — 국외에서 처리 · 접근되는 것만 | 위 「구성요소마다 — 처리 위치와 계약 법인」 | 제30조 ① 4 · 제28조의8 ② |
+| 「맡겨서 처리하는 곳」 — 서울 리전에서 처리 · 보관하는 것(DB · 로그인 · 임시 기록, 서버 처리 · 입력 계산) / 「국외로 나가는 것」 — 국외에서 처리 · 접근되는 것만 | 위 「처리마다 — 사실 · 추정 · 미확인」 | 제30조 ① 4 · 제28조의8 ② |
 
 ## 푸시 회사 넷 — 알림을 켜기 전에 따로 올릴 판의 재료 (`notice-v8` 에 없음)
 
