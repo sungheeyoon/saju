@@ -260,6 +260,8 @@ describe('첫 화면의 짧은 사주 문단', () => {
     /* 궁합풀이에 이름 · 닉네임을 보내지 않는다(운영자 2026-10-15, reading PR) */
     expect(text).not.toContain('두 분의 닉네임');
     expect(text).not.toContain('붙인 이름과');
+    /* 이름은 모델에 안 가도 생성 뒤 우리 쪽에서 풀이 글에 붙여 보여 준다 — 받는 목적은 「화면과 풀이에서」 그대로 */
+    expect(text).toContain('화면과 풀이에서 그분을 부르는 데 씁니다');
     expect(text).toContain('첫 화면의 짧은 사주 문단에는 태어난 해·나이를 빼고');
     expect(text).not.toContain('여덟 글자와 그 위에서 나온 사실만 보냅니다');
   });
