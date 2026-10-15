@@ -163,7 +163,7 @@ describe('인연 궁합의 사이', () => {
   const [limited] = built;
 
   it('사이를 넘기면 그 문장이 선다', () => {
-    const prompt = readingPromptOf(limited.reading, limited.variant.assembly, { names: null, relation: 'partner' });
+    const prompt = readingPromptOf(limited.reading, limited.variant.assembly, { relation: 'partner' });
     expect(prompt).toContain(relationSentence('partner'));
     expect(prompt).not.toContain(RELATION_FROM_MATCH);
   });

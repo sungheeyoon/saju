@@ -3,7 +3,7 @@ import type { SharedEvidence } from '@/src/lib/saju/evidence/shared';
 
 import { checkReading, type BirthSecret } from '@/src/lib/reading/check';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
-import { FALLBACK_NAMES } from '@/src/lib/reading/prompt';
+import { SEAT_NAMES } from '@/src/lib/reading/display';
 
 /**
  * **인연 궁합 입력 두 판을 견주는 자** — 모델을 부르지 않는 절반이다(ADR 0067).
@@ -157,7 +157,7 @@ const ELEMENT_WORDS: Readonly<Record<string, RegExp>> = {
  * 확정이 아니다 — 사람이 문장을 자료와 대 본다.
  */
 function personElementCandidates(evidence: SharedEvidence, sentences: readonly string[]): string[] {
-  const [first, second] = [FALLBACK_NAMES.a as string, FALLBACK_NAMES.b as string];
+  const [first, second] = [SEAT_NAMES.first as string, SEAT_NAMES.second as string];
   const support = evidence.compatibility.elementSupport;
   return sentences.filter((sentence) => {
     const names = [first, second].filter((name) => sentence.includes(name));
@@ -236,7 +236,7 @@ export function measureMatchRun({
     .split(/(?<=[.!?。])\s+|\n/)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence !== '' && !sentence.startsWith('#'));
-  const names = [FALLBACK_NAMES.a as string, FALLBACK_NAMES.b as string];
+  const names = [SEAT_NAMES.first as string, SEAT_NAMES.second as string];
   const paragraphs = body.split(/\n{2,}/).filter((paragraph) => !paragraph.startsWith('#'));
   const named = paragraphs.filter((paragraph) => names.some((name) => paragraph.includes(name)));
 

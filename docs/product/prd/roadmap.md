@@ -203,7 +203,7 @@
    그 판만 보여 준다 — 나란히 서 있던 실험판은 운영판처럼 읽혀 걷었다(G-32). 실험판(`PROMPT_VARIANTS`
    · `PAIR_VARIANTS` · `MATCH_INPUT_VARIANTS`)은 시험과 실호출 도구로만 남는다
 5. **모델 입력에 자리 색인을 더한다** — 2026-09-23 에 다시 열어 **더했다**(G-33, ADR 0099, `reading-prompt-v13` — 지금 판본은 개인 풀이
-   `reading-prompt-v15` · 두 궁합 `reading-prompt-v17`).
+   `reading-prompt-v15` · 두 궁합 `reading-prompt-v18`).
    이것은 아래 9/1 실험의 결과가 아니라 사람의 새 결정이다.
 
    **지금 모양.** 모든 kind(개인 · 저장한 사람 · 비공개 궁합 · 인연 궁합)의 프롬프트에 「자리가 붙은 사실」이 선다 —

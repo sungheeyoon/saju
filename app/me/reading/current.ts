@@ -7,7 +7,7 @@ import {
   type ReadingEntry,
 } from '@/src/lib/reading';
 import { STEMS, type Stem } from '@/src/lib/saju';
-import { readingBody, readingGrounding } from '@/src/lib/reading/display';
+import { readingBody, readingGrounding, withNicknames } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readingTargetArgs, type ReadingTarget } from './target';
@@ -148,16 +148,28 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
     const kind = READING_KINDS.find((known) => known === row.kind);
     if (kind === undefined) return [];
 
+    /*
+      **한 줄 요약도 모델 글이다** — 내 궁합은 두 이름표가 `charts.a` · `charts.b` 차례로 오므로(`person_a` 가 작은 쪽)
+      자리 호칭을 지금의 이름표로 바꾼다. **인연 궁합은 못 바꾼다** — 이 문은 상대 닉네임 한 칸만 주고 내가 어느
+      자리인지(`viewer_is_first`)를 안 준다. 결과 화면(`my_reading`)은 그 값을 받아 바꾼다.
+    */
+    const labelA = row.label_a ?? null;
+    const labelB = row.label_b ?? null;
+    const metaphor =
+      kind === 'private' && row.metaphor != null && labelA !== null && labelB !== null
+        ? withNicknames(row.metaphor, { first: labelA, second: labelB })
+        : (row.metaphor ?? null);
+
     return [
       {
         kind,
         personA: row.person_a ?? null,
         personB: row.person_b ?? null,
         matchId: row.match_id ?? null,
-        labelA: row.label_a ?? null,
-        labelB: row.label_b ?? null,
+        labelA,
+        labelB,
         score: row.score ?? null,
-        metaphor: row.metaphor ?? null,
+        metaphor,
         createdAt: row.created_at,
         fromCurrentChart: row.from_current_chart,
         dayMasterA: stemOf(row.day_master_a),

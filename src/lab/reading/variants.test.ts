@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { computeSaju } from '@/src/lib/saju';
 import { type RelationKind } from '@/src/lib/saju/constants';
 import { ABSORPTION_RULE } from '@/src/lib/reading/parts';
+import { SEAT_NAMES } from '@/src/lib/reading/display';
 import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '@/src/lib/saju/relations';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
   selfSectionTexts,
-  FALLBACK_NAMES,
   READING_POLICY,
   READING_PROMPTS,
   readingEvidenceOf,
@@ -317,7 +317,6 @@ describe('고객이 읽는 글의 계약', () => {
    */
   it('무슨 사이인지 프롬프트가 말한다', () => {
     const asFamily = readingPromptOf(pairEvidence(), CONTROL, {
-      names: { a: '나', b: '엄마' },
       relation: 'family',
     });
 
@@ -331,7 +330,6 @@ describe('고객이 읽는 글의 계약', () => {
    */
   it('관계를 모르면 모른다고 싣는다 — 비우지 않는다', () => {
     const unknown = readingPromptOf(pairEvidence(), CONTROL, {
-      names: { a: '나', b: '누구' },
       relation: null,
     });
 
@@ -348,7 +346,6 @@ describe('고객이 읽는 글의 계약', () => {
    */
   it('가족·친구 궁합에는 처음 끌리는 절을 세우지 않는다', () => {
     const asFamily = readingPromptOf(pairEvidence(), LEGACY_PAIR_ASSEMBLY, {
-      names: { a: '나', b: '엄마' },
       relation: 'family',
     });
 
@@ -356,7 +353,6 @@ describe('고객이 읽는 글의 계약', () => {
     expect(asFamily).toContain('이 사이에는 처음이 없다');
 
     const asFriend = readingPromptOf(pairEvidence(), LEGACY_PAIR_ASSEMBLY, {
-      names: { a: '나', b: '동료' },
       relation: 'friend',
     });
 
@@ -398,21 +394,15 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   /**
-   * **이름만 부르면 사람을 두고 품평하는 글이 된다.**
-   *
-   * 한국에서 풀이를 해 주는 자리의 말은 「운영자님은」이지 「운영자는」이 아니다.
-   * 다만 부르는 말이 이미 호칭이면(엄마·어머니·형·언니) 겹쳐 붙일 수 없고, 문장마다
-   * 불러 세우면 기계가 자리를 채운 것처럼 읽힌다 — 셋을 함께 시킨다.
+   * **이름은 모델로 안 나가고 자리 호칭 둘로 부른다**(운영자 2026-10-15). 화면이 그 글자를 찾아 닉네임으로 바꾸므로
+   * 글자 그대로 쓰라고 시킨다 — 바꿔 부르면 그 자리만 호칭으로 남는다. 님 · 호칭 겹침은 화면이 `calledName` 으로 한다.
    */
-  it('이름 뒤에 님을 붙이되 겹치지도 반복하지도 말라고 적는다', () => {
-    const named = readingPromptOf(pairEvidence(), CONTROL, {
-      names: { a: '운영자', b: '김경리' },
-      relation: null,
-    });
-
-    expect(named).toContain('「운영자님은」');
-    expect(named).toContain('부르는 말이 이미 호칭이면 겹쳐 붙이지 마라');
-    expect(named).toContain('문장마다 이름으로 불러 세우지 마라');
+  it('자리 호칭을 글자 그대로 쓰고 바꿔 부르지 말라고 적는다', () => {
+    for (const prompt of [compatPrompt('private'), compatPrompt('match')]) {
+      expect(prompt).toContain(`\`charts.a\` 는 **${SEAT_NAMES.first}**, \`charts.b\` 는 **${SEAT_NAMES.second}**이다.`);
+      expect(prompt).toContain('**이 두 말로만, 글자 그대로** 부른다');
+      expect(prompt).toContain('한 문단에서 같은 사람을 세 번 부르지는 마라');
+    }
   });
 
   /**
@@ -438,34 +428,15 @@ describe('고객이 읽는 글의 계약', () => {
     expect(sample).not.toContain('정작 내 일정이 밀립니다');
   });
 
-  it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
-    const named = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '어머니', b: '아버지' }, relation: null });
+  /** 사이를 고른 길도 이름을 안 받는다 — 부르는 말 블록은 늘 한 벌이다 */
+  it('사이가 있어도 없어도 부르는 말 블록이 같다', () => {
+    const block = (prompt: string) => prompt.slice(prompt.indexOf('## 두 사람을 부르는 말'), prompt.indexOf('`charts.a`·`charts.b` 라는 경로'));
+    const told = readingPromptOf(pairEvidence(), CONTROL, { relation: 'family' });
+    const untold = readingPromptOf(matchEvidence(), CONTROL, { relation: null });
 
-    expect(named).toContain('`charts.a` 는 **어머니**, `charts.b` 는 **아버지**다.');
-
-    // 조사는 받침을 따른다 — 낱말을 꽂는 자리에서 「아버지이다」가 나오면 안 된다
-    const closed = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '동생', b: '형' }, relation: null });
-    expect(closed).toContain('`charts.b` 는 **형**이다.');
-    expect(named).toContain('자리 이름으로\n부르지 마라');
-    expect(named).toContain('받은 그대로');
-
-    /* 공유 궁합도 일반 궁합과 같은 자유 구성이라 이름은 부르는 말 블록이 책임진다. */
-    const inSections = readingPromptOf(matchEvidence(), CONTROL, {
-      names: { a: '동생', b: '형' },
-      relation: null,
-    });
-    expect(inSections).toContain('`charts.a` 는 **동생**, `charts.b` 는 **형**이다.');
-    expect(inSections).not.toContain('첫 번째 분이라고 부른다');
-  });
-
-  /**
-   * 이름을 못 구하는 자리가 실제로 있다 — 공유 궁합은 어느 판본이 누구 것인지 앱이
-   * 모른다. **자리를 비우면 모델이 호칭을 지어내고**, 그러면 같은 사람이 문단마다
-   * 다른 이름으로 불린다.
-   */
-  it('이름이 없으면 비우지 않고 자리를 채운다', () => {
-    expect(FALLBACK_NAMES.a).not.toBe('');
-    expect(READING_PROMPTS.match).toContain(FALLBACK_NAMES.a);
+    expect(block(told)).toBe(block(untold));
+    expect(block(READING_PROMPTS.match)).toBe(block(told));
+    expect(block(told)).toContain(SEAT_NAMES.first);
   });
 
   /**
@@ -821,7 +792,7 @@ describe('고객이 읽는 글의 계약', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
     expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v17');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v18');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');
@@ -918,7 +889,6 @@ describe('고객이 읽는 글의 계약', () => {
     /** 궁합도 같은 판을 탄다 — 한 kind 만 고치면 같은 사람이 두 말투를 읽는다 */
     it('궁합 절도 함께 갈린다', () => {
       const compat = readingPromptOf(pairEvidence(), CONTROL, {
-        names: { a: '나', b: '엄마' },
         relation: 'family',
       });
 
@@ -937,7 +907,6 @@ describe('고객이 읽는 글의 계약', () => {
         **큰 블록 하나로 모인 것**이라, 여기서는 그 블록이 판마다 다른 것을 잰다.
       */
       const annotated = readingPromptOf(pairEvidence(), { ...CONTROL, terminology: 'annotated' }, {
-        names: { a: '나', b: '엄마' },
         relation: 'family',
       });
       expect(annotated).not.toBe(compat);

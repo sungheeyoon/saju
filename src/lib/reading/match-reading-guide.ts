@@ -1,5 +1,7 @@
 import type { MatchInput } from '../saju/evidence/shared';
 
+import { SEAT_NAMES } from './display';
+
 /**
  * **인연 궁합 자료를 읽는 법** — 경로마다 무엇을 기준으로 센 값인가(ADR 0067).
  *
@@ -204,7 +206,7 @@ ${guideLines(input)}
 
 해석은 자유롭게 하되, 아래를 틀리면 두 분이 자기 명식과 대 보는 순간 글 전체를 믿지 않게 된다.
 
-- **사람** — \`a\` 는 첫 번째 분, \`b\` 는 두 번째 분이다. \`aSeesB\` 는 첫 번째 분 쪽에서 본 값이고 \`bSeesA\` 는 그 반대다.
+- **사람** — \`a\` 는 ${SEAT_NAMES.first}, \`b\` 는 ${SEAT_NAMES.second}이다. \`aSeesB\` 는 ${SEAT_NAMES.first} 쪽에서 본 값이고 \`bSeesA\` 는 그 반대다.
   문장마다 누구 이야기인지 바뀌지 않게 쓴다.
 - **방향** — 형의 \`direction\` 은 \`from\` 에서 \`to\` 로 향한다. 거꾸로 옮기지 않는다.
 - **값의 기준** — 겉글자 개수로 센 값과 지장간 가중 비율을 한 값처럼 섞지 않는다. 겉글자에 없다는 것을 그 기운이

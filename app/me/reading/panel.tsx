@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { READING_REPLACES_NOTE, readingNoneNote, READING_USES_TICKET_NOTE } from '@/src/lib/reading/notes';
 import type { CurrentReading, RunProgress } from '@/src/lib/reading';
+import type { PairNicknames } from '@/src/lib/reading/display';
 import type { Element } from '@/src/lib/saju';
 
 import { BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE } from '../../ui/buttons';
@@ -38,7 +39,7 @@ export function ReadingPanel({
   automatic = false,
   ask,
   betweenSummaryAndBody,
-  matchNames,
+  nicknames,
   tones,
   carry = null,
 }: {
@@ -127,7 +128,8 @@ export function ReadingPanel({
   automatic?: boolean;
   ask?: ReactNode;
   betweenSummaryAndBody?: ReactNode;
-  matchNames?: { readonly me: string; readonly partner: string };
+  /** 두 사람 글의 자리 호칭을 바꿔 넣을 닉네임(`Result`) — 궁합 화면만 넘긴다 */
+  nicknames?: PairNicknames;
   /**
    * 표지의 색 — 대상의 일간 오행. 한 사람이면 하나, 두 사람이면 둘이고 못 읽은 사람은 `null`(회색).
    * 안 넘기면 크림 한 장이다(`Result`).
@@ -327,7 +329,7 @@ export function ReadingPanel({
           isMock={isMock}
           tones={tones}
           betweenSummaryAndBody={betweenSummaryAndBody}
-          matchNames={matchNames}
+          nicknames={nicknames}
         />
       )}
 

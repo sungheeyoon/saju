@@ -24,26 +24,15 @@ import type { ReadingEvidence } from '.';
 import { READING_POLICY, isScored, isSolo, type PairKind, type ReadingKind } from './policy';
 
 /**
- * 두 사람을 **뭐라고 부를 것인가.**
+ * 프롬프트에만 실리는 것 — **자료가 아니라 사이.**
  *
- * 자료에는 이름이 없다 — `chartOf` 는 날짜·시각·성별만 엔진에 넘기고 이름은 두고 간다.
- * 그래서 프롬프트가 「첫 번째 분」·「두 번째 분」이라 불렀고, 나온 글이 통째로 그랬다.
- * **읽는 사람에게 그건 사람 이야기가 아니라 표의 행 이름이다.**
- *
- * 이름은 자료가 아니라 **부르는 말**이라 따로 다닌다. 근거에 실리지 않고 프롬프트에만
- * 선다 — 이름으로 판정하는 일은 없어야 하고, 그러려면 이름이 근거 안에 있으면 안 된다.
- */
-type ReadingNames = { readonly a: string; readonly b?: string };
-
-/**
- * 프롬프트에만 실리는 것 — **자료가 아니라 부르는 말과 사이.**
- *
- * 둘을 한 값으로 묶는다. 따로 받으면 이름만 넘기고 관계를 잊는 호출부가 생기고,
- * 그때 모델은 **다시 연애로 읽는다** — 잊어서 생긴 침묵과 정말 모르는 침묵이
- * 구별되지 않기 때문이다.
+ * **이름은 여기 없다**(운영자 2026-10-15). 한동안 두 사람의 이름표 · 닉네임이 이 값으로 프롬프트에 실렸다 —
+ * 「첫 번째 분」이 표의 행 이름처럼 읽힌다는 까닭이었다. 이제 모델은 어느 갈래든 자리 호칭 둘(`SEAT_NAMES`)만
+ * 받고, 화면이 그 호칭을 지금의 닉네임으로 바꾼다(`withNicknames`). 사람의 이름이 외부 모델로 나가지 않고,
+ * 이름표를 고치면 이미 받은 글도 새 이름으로 선다. DB 는 시도를 열 때 이름을 여전히 얼리지만
+ * (`reading_about`) 파이프라인이 그것을 프롬프트에 넘길 자리가 타입에 없다.
  */
 export type ReadingAbout = {
-  readonly names: ReadingNames | null;
   /**
    * 두 사람이 무슨 사이인가. **모르면 `null` 이고 그것도 값이다.**
    *
@@ -53,20 +42,6 @@ export type ReadingAbout = {
   readonly relation: Relation | null;
 };
 
-/**
- * 이름을 못 구했을 때 부르는 말 — **자리를 비우지 않는다.**
- *
- * 비우면 모델이 「A씨」·「그분」을 지어내고, 그러면 같은 사람이 문단마다 다른 이름으로
- * 불린다. 부를 말이 없다는 사실을 그대로 적는 것이 낫다.
- *
- * **이름이 없다는 것은 `null` 로 말한다.** 이 값과 견주어 알아내게 하면, 자기 어머니를
- * 「첫 번째 분」이라고 저장해 둔 사람에게서 조용히 틀린다 — 판별자를 값으로 두면
- * 부르는 쪽이 그것을 손으로 다시 짓게 된다.
- *
- * **말 자체는 `display.ts` 가 든다** — 화면이 그 말을 다시 찾아 이름으로 바꾸므로 두 자리가
- * 한 값을 읽어야 한다(G-44).
- */
-export const FALLBACK_NAMES: ReadingNames = { a: SEAT_NAMES.first, b: SEAT_NAMES.second };
 
 /** 사용자에게 나가는 결과를 만드는 프롬프트 조립 옵션. */
 type Length = { readonly min: number; readonly max: number };
@@ -596,7 +571,7 @@ ${termsSection(terminology)}
  * 예시와 역할 본보기, 요약의 대구 본보기. 명식과 상관없이 모든 글에 같은 틀을 만들던 조각들이다.
  */
 const PAIR_DATA: Record<PairKind, string> = {
-  match: `두 사람의 원국 **사이** 관계가 실려 있고, 참여자마다 \`chartId\` 가 \`natal:a\`(첫 번째 분)·\`natal:b\`(두 번째 분)로 갈린다. ${termNames('luck')}은 이 자료에 없다 — 시기는 이 글이 다루는 이야기가 아니다.`,
+  match: `두 사람의 원국 **사이** 관계가 실려 있고, 참여자마다 \`chartId\` 가 \`natal:a\`(${SEAT_NAMES.first})·\`natal:b\`(${SEAT_NAMES.second})로 갈린다. ${termNames('luck')}은 이 자료에 없다 — 시기는 이 글이 다루는 이야기가 아니다.`,
   private: `두 사람 각자의 원국 판정·원국 안 관계·신살과, 두 원국 사이의 관계, 기준 시각(\`viewedAt\`)에 도는 운이 실려 있다. 관계 참여자의 \`chartId\` 는 \`natal:a\`·\`natal:b\`(두 원국 사이) · \`natal\`(한 사람 원국 안) · \`decade:n\`·\`annual:연도\`·\`monthly:…\`(운)로 갈린다. **어느 칸의 관계인지 섞지 마라** — 원국의 관계는 타고난 구조이고, 운에서 걸린 관계는 그 시기에 새로 걸린 것이다.`,
 };
 
@@ -1078,12 +1053,12 @@ export const selfSectionTexts = (assembly: PromptAssembly): readonly string[] =>
  * 세면 한 칸이 절 여럿을 다시 쓰는 변형이 「한 곳만 바꿨다」로 통과하고, 그것이 규칙 1
  * 이 막으려던 바로 그것이다(`terminology` 한 칸이 절 여섯을 옮긴 전례가 있다).
  *
- * **이름과 관계를 고정해서 부른다.** 궁합 절은 부르는 이름과 무슨 사이인가를 본문에
- * 싣기 때문에, 그것을 안 고정하면 조립이 같아도 절 문자열이 달라져 **자가 눈금을
- * 잃는다.** 여기서 재려는 것은 조립이 옮긴 자리뿐이다.
+ * **관계를 고정해서 부른다.** 궁합 절은 무슨 사이인가를 본문에 싣기 때문에, 그것을 안
+ * 고정하면 조립이 같아도 절 문자열이 달라져 **자가 눈금을 잃는다.** 여기서 재려는 것은
+ * 조립이 옮긴 자리뿐이다. 부르는 말은 늘 자리 호칭이다.
  */
 export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): readonly string[] => {
-  const { a, b = FALLBACK_NAMES.b as string } = FALLBACK_NAMES;
+  const { first: a, second: b } = SEAT_NAMES;
   const meeting = MEETING_SECTION[kind === 'match' ? 'match' : 'unknown'];
 
   /**
@@ -1318,35 +1293,21 @@ const compatPrivateSections = (assembly: PromptAssembly): readonly string[] => [
 방향인지 엇갈리는지. 그래서 **지금이 이 관계에 어떤 시기인지**까지. 기준 시각을 적는다.`,
 ];
 
-/** 궁합 절 목록 — kind 가 재료를 정하고, 재료가 절을 정한다 */
-const namingBlock = (names: ReadingNames | null): string => {
-  const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
-
-  const head =
-    names === null
-      ? `이 자료로는 두 분을 부를 이름을 알 수 없다. \`charts.a\` 를 **${a}**, \`charts.b\` 를
-**${b}**${particleOf(b, '이', '')}라고 부른다. 어색한 말인 것을 알지만 **호칭을 지어내는 것보다 낫다** — 지어내면
-같은 사람이 문단마다 다른 이름으로 불린다.`
-      : `\`charts.a\` 는 **${a}**, \`charts.b\` 는 **${b}**${particleOf(b, '이다', '다')}.
-**본문에서는 이 이름으로만 부른다** — 「첫 번째 분」·「두 번째 분」처럼 자리 이름으로
-부르지 마라. 읽는 사람에게 그것은 사람이 아니라 표의 행이다.
-
-**이름 뒤에 \`님\` 을 붙인다** — 「${a}님은」·「${b}님을」.
-한국에서 풀이를 해 주는 자리의 말이 그렇고, 이름만 부르면 사람을 두고 품평하는
-글이 된다.
-
-다만 **부르는 말이 이미 호칭이면 겹쳐 붙이지 마라.** 「엄마」·「어머니」·「형」·「언니」
-같은 말에 \`님\` 을 더하면 아무도 안 쓰는 말이 된다.
-
-그리고 **문장마다 이름으로 불러 세우지 마라.** 그러면 기계가 자리를 채운 것처럼
-읽힌다. 한 문단에서 처음 한 번 이름으로 부르고 그다음은 주어를 생략한다 — 한국어는
-그렇게 말한다. 이야기가 다른 사람 쪽으로 넘어갈 때 다시 이름을 부른다.
-
-이름 자체를 고쳐 부르지는 마라. 성을 지어 붙이거나 줄이지 말고 **받은 그대로** 쓴다.`;
+/**
+ * 두 사람을 부르는 말 — **늘 자리 호칭 둘이다**(운영자 2026-10-15).
+ *
+ * 이름표 · 닉네임은 모델로 보내지 않는다. 대신 호칭을 **글자 그대로** 쓰게 한다 — 화면이 이 글자를 찾아 그 자리의
+ * 닉네임으로 바꾸므로(`withNicknames`), 「첫째 분」·「그분」처럼 바꿔 부르면 그 자리만 호칭으로 남는다.
+ * 앞판에 있던 「이름 뒤에 님」·「호칭이면 겹쳐 붙이지 마라」는 화면이 `calledName` 으로 하므로 걷었다.
+ */
+const namingBlock = (): string => {
+  const { first: a, second: b } = SEAT_NAMES;
 
   return `## 두 사람을 부르는 말
 
-${head}
+\`charts.a\` 는 **${a}**, \`charts.b\` 는 **${b}**${particleOf(b, '이다', '다')}. 본문과 한 줄 요약에서 두 사람을
+**이 두 말로만, 글자 그대로** 부른다 — 띄어 쓰거나 「첫째 분」·「그분」·「A씨」처럼 바꿔 부르지 마라. 화면이 이 말을
+그 사람의 이름으로 바꿔 보여 준다.
 
 \`charts.a\`·\`charts.b\` 라는 경로 이름은 **맨 끝 근거 칸에서만** 쓴다.
 문장마다 누구 이야기인지 분명히 하되, 한 문단에서 같은 사람을 세 번 부르지는 마라 —
@@ -1484,8 +1445,8 @@ const compatSections = (
   /** 어느 세대의 궁합 지시인가 — **여기서 다시 묻지 않고 받아서 쓴다** */
   voice: PromptVoice,
 ): string => {
-  const { names, relation } = about;
-  const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
+  const { relation } = about;
+  const { first: a, second: b } = SEAT_NAMES;
   /** 공유 궁합은 고른 값이 아니라 성립 방식이 관계를 정한다 — 3번 절도 같은 자리에서 갈린다 */
   const meeting = MEETING_SECTION[kind === 'match' && relation === null ? 'match' : (relation ?? 'unknown')];
   const sections =
@@ -1526,7 +1487,7 @@ Markdown으로 쓰고 소제목은 \`##\`로 단다.
 
 ${sections.join('\n\n')}`;
 
-  return `${namingBlock(names)}
+  return `${namingBlock()}
 
 ${relationOf(kind, relation)}
 
@@ -1791,8 +1752,8 @@ const bodyOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout
     .join('\n\n');
 };
 
-/** 이름도 사이도 모르는 자리 — **모른다를 한 값으로 든다** */
-export const NOTHING_KNOWN: ReadingAbout = { names: null, relation: null };
+/** 사이를 모르는 자리 — **모른다를 한 값으로 든다** */
+export const NOTHING_KNOWN: ReadingAbout = { relation: null };
 
 /** kind마다의 기준 프롬프트 몸통 — 자료 없이. */
 export const READING_PROMPTS: Record<ReadingKind, string> = {
@@ -1808,11 +1769,8 @@ export function readingPromptOf(
   readingEvidence: ReadingEvidence,
   assembly: PromptAssembly = CONTROL,
   /**
-   * 부르는 말과 무슨 사이인가 — **자료가 아니라 프롬프트에만 실린다.**
-   *
-   * 이름의 기본값이 「첫 번째 분」인 것은 못 구하는 자리가 실제로 있기 때문이다
-   * (공유 궁합은 어느 판본이 누구 것인지 앱이 모른다). 자리를 비우면 모델이 호칭을
-   * 지어내므로 비우지 않는다. 관계도 같다 — 모르면 모른다고 싣는다.
+   * 무슨 사이인가 — **자료가 아니라 프롬프트에만 실린다.** 모르면 모른다고 싣는다.
+   * 이름은 받지 않는다 — 두 사람은 늘 자리 호칭으로 부른다(`namingBlock`).
    */
   about: ReadingAbout = NOTHING_KNOWN,
 ): string {
@@ -1828,7 +1786,7 @@ export function readingPromptOf(
     }
   }
   const useCached =
-    assembly === CONTROL && about.names === null && about.relation === null;
+    assembly === CONTROL && about.relation === null;
   const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, about);
   const head = withSummary(body, evidence);
   /**

@@ -27,6 +27,7 @@ import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } fro
 import { forgetTasteClaim } from '../../taste/taste-visitor';
 import { reportRequestError } from '../../request-error';
 import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
+import { SEAT_NAMES } from '@/src/lib/reading/display';
 import {
   TASTE_CARRY_UNREAD,
   TASTE_LINK_FAILED,
@@ -84,25 +85,28 @@ type StartedRun = { run_id: string };
 /**
  * 집어 온 얼린 작업 — **이 뒤로 다시 읽는 것이 없다.**
  *
- * `birth_a`·`birth_b` 는 시도를 열 때 값으로 얼린 계산 입력이고, `about` 은 그때 그
- * 사람들을 부르던 말과 두 사람의 사이다. 셋 다 DB 가 얼렸다 — 앱이 고르는 자리가 없다.
+ * `birth_a`·`birth_b` 는 시도를 열 때 값으로 얼린 계산 입력이고, `about` 은 그때 두 사람의 사이다.
+ * 셋 다 DB 가 얼렸다 — 앱이 고르는 자리가 없다.
+ *
+ * **`about` 에는 그때의 이름(`names`)도 얼어 있지만 여기서 읽지 않는다**(운영자 2026-10-15) — 이름은 모델로
+ * 보내지 않고, 화면이 자리 호칭을 지금의 닉네임으로 바꾼다(`withNicknames`). 그래서 타입에도 안 적는다.
  */
 type FrozenJob = {
   run_id: string;
   kind: ReadingKind;
   birth_a: StoredInput;
   birth_b: StoredInput | null;
-  about: { names: { a: string; b?: string } | null; relation: string | null };
+  about: { relation: string | null };
 };
 
 /**
  * 두 사람을 부르는 말 — **이름은 자료에 들어가지 않는다.**
  *
- * 프롬프트가 `charts.a`·`charts.b` 를 「첫 번째 분」·「두 번째 분」이라 부르므로 여기서도
- * 그렇게 짓는다. 별명이나 localLabel 을 넣으면 그 이름이 근거에 실려 나가고, 공유
- * 결과에서는 상대가 나를 뭐라 부르는지까지 새어 나간다.
+ * 프롬프트가 `charts.a`·`charts.b` 를 자리 호칭(`SEAT_NAMES`)으로 부르므로 여기서도 그렇게 짓는다.
+ * 별명이나 localLabel 을 넣으면 그 이름이 근거에 실려 나가고, 공유 결과에서는 상대가 나를 뭐라
+ * 부르는지까지 새어 나간다.
  */
-export const READING_CHART_NAMES = ['첫 번째 분', '두 번째 분'] as const;
+export const READING_CHART_NAMES = [SEAT_NAMES.first, SEAT_NAMES.second] as const;
 
 /**
  * 시도를 **연다** — 모델은 아직 안 부른다.
@@ -198,17 +202,8 @@ async function submitFrozen(
     b: stood.b === null ? undefined : stood.b.saju,
   };
 
-  /**
-   * 얼려 둔 말을 그대로 쓴다 — **모르는 자리는 지어내지 않는다.**
-   *
-   * 이름을 하나라도 못 찾았으면 DB 가 이미 `null` 로 얼렸다(`reading_about`). 한쪽만
-   * 이름으로 부르고 다른 쪽을 자리 이름으로 부르면, 읽는 사람은 이름 없는 쪽이 덜
-   * 중요한 사람인 줄 안다.
-   */
-  const about: ReadingAbout = {
-    names: job.about?.names ?? null,
-    relation: relationOf(job.about?.relation ?? null),
-  };
+  /** 얼려 둔 사이를 그대로 쓴다 — **모르는 자리는 지어내지 않는다.** 이름은 넘기지 않는다(`FrozenJob`) */
+  const about: ReadingAbout = { relation: relationOf(job.about?.relation ?? null) };
 
   const viewedAt = new Date();
   const made = readingInputOf({ kind, charts, viewedAt, about });
