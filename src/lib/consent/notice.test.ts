@@ -133,7 +133,8 @@ describe('처리방침이 갖춰야 하는 것', () => {
     expect(text).toContain('이전 시기와 방법');
     expect(text).toContain('보유기간');
     /* 거부는 처리마다 갈린다 — 피할 수 있는 이전(OpenAI)과 따로 거부할 수 없는 이전(로그 · 지원 접근) */
-    expect(text).toContain('넣지 않으시면 일어나지 않습니다');
+    /* 링크 방문자도 빠뜨리지 않는다 — 주소를 열기만 해도 문단 요청이 나간다(근거 문서 「주소를 열기만 해도」) */
+    expect(text).toContain('첫 화면에 출생 정보를 넣거나 출생 정보가 담긴 주소를 열지 않으시면 일어나지 않습니다');
     expect(text).toContain('따로 거부할 수 없습니다');
   });
 
@@ -245,7 +246,7 @@ describe('첫 화면의 짧은 사주 문단', () => {
   it('첫 화면의 문단이 OpenAI 로 가는 때와 거부 방법 · 효과를 말한다', () => {
     expect(outward).toContain('로그인하지 않고 첫 화면에서 사주를 보실 때');
     expect(text).toContain('생년월일시가 담긴 주소를 여시면 곧바로 만들어집니다');
-    expect(text).toContain('넣지 않으셔도 가입과 그 밖의 이용에는 영향이 없습니다');
+    expect(text).toContain('원하지 않으시면 출생 정보를 넣거나 출생 정보가 담긴 주소를 열지 않으시면 됩니다. 그래도 가입과 그 밖의 이용에는 영향이 없습니다');
     expect(text).not.toContain('사주풀이·궁합풀이를 받지 않고 궁합 요청도 수락되지 않으면');
   });
 
