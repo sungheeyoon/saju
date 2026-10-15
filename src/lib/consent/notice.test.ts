@@ -281,7 +281,11 @@ describe('첫 화면의 짧은 사주 문단', () => {
   it('서울 리전과 국외에서 처리되는 것을 갈라 적는다', () => {
     const entrusted = sections.find((section) => section.title === '맡겨서 처리하는 곳')?.lines.join(' ') ?? '';
     expect(entrusted).toContain('Supabase 에 맡기고 서울 리전에서 처리·보관합니다');
-    expect(entrusted).toContain('서버 처리는 서울 리전에서 합니다');
+    expect(entrusted).toContain('서버 처리(함수 실행)는 서울 리전에서 합니다');
+    /* 저장 위치와 전달 경로를 가른다 — 실시간 신호는 저장(3일)만 서울이라고 말한다 */
+    expect(entrusted).toContain('실시간으로 갱신하는 신호의 기록도 이 데이터베이스에 3일 남습니다');
+    /* 법인 소재지를 처리 국가로 대신하지 않는다 */
+    expect(outward).not.toContain('법인 소재지');
     expect(text).not.toContain('세 곳 모두 국외에 서버를 둡니다');
     /* 서울에 있는 저장 자료는 국외 절의 이전 항목이 아니다 */
     expect(outward).not.toContain('구글 계정 이메일');
@@ -290,6 +294,19 @@ describe('첫 화면의 짧은 사주 문단', () => {
     expect(outward).toContain('유럽연합(EU)의 데이터센터');
     /* 국외 이전의 근거(시행령 제31조 ① 2) — 단정할 수 있는 처리에만 */
     expect(outward).toContain('제28조의8 제1항 제3호');
+  });
+
+  /**
+   * **안전성 확보 조치**(시행령 제31조 ① 3) — 확인되는 조치만. 운영자 2단계 인증은 보류라(G-65) 적지 않고, 저장 암호화는
+   * 공식 문서로 확인하지 못해 적지 않는다.
+   */
+  it('확인되는 안전 조치만 적는다', () => {
+    const safety = sections.find((section) => section.title === '개인정보를 지키는 조치')?.lines.join(' ') ?? '';
+    expect(safety).toContain('행 단위 접근 정책');
+    expect(safety).toContain('누가·언제·무엇을 열람했는지 기록');
+    expect(safety).toContain('HTTPS');
+    expect(safety).not.toContain('2단계');
+    expect(safety).not.toContain('저장할 때 암호화');
   });
 
   /** 역산 문장은 처리방침에 두지 않는다 — 경계까지 검증하지 않았다(ADR 0180) */
