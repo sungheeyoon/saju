@@ -54,12 +54,12 @@ export async function MatchScreen({
    * 거절을 화면 안쪽 컴포넌트에 두면 그것이 그려질 때는 응답이 이미 흘러나가기
    * 시작했을 수 있고, 그러면 404 를 부르고도 200 이 나간다.
    */
-  /* 내 닉네임은 글의 자리 호칭을 바꿔 넣을 때만 쓴다(`Result`) — 못 읽으면 「나」로 부른다 */
+  /* 내 닉네임은 글의 자리 호칭을 바꿔 넣을 때만 쓴다(`Result`). 닉네임은 가입 때 정해 늘 있다 — 못 읽은 드문 때는 빈 값이고, 그 자리는 호칭 그대로 선다(`withNicknames`) */
   const [outcome, account] = await Promise.all([
     matchResultForViewer(matchId),
     readAccount(supabase, ['status', 'nickname']),
   ]);
-  const myNickname = account.row?.nickname ?? '나';
+  const myNickname = account.row?.nickname ?? '';
 
   /**
    * **없는 Match 와 못 보는 Match 를 같은 말로 거절한다.**

@@ -7,12 +7,20 @@ import {
   type ReadingEntry,
 } from '@/src/lib/reading';
 import { STEMS, type Stem } from '@/src/lib/saju';
-import { readingBody, readingGrounding, withNicknames } from '@/src/lib/reading/display';
+import {
+  hasSeatName,
+  listedPairSummary,
+  readingBody,
+  readingGrounding,
+  seatNicknamesOf,
+  viewerIsFirstOf,
+} from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readingTargetArgs, type ReadingTarget } from './target';
 import { rpcArgs } from '@/src/lib/db';
-import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
+import { dbFailure, read, recordDbFailure, unread, type SkippableRead } from '../../db-error';
+import { readAccount } from '../account';
 
 /**
  * **현재 결과가 브라우저로 내려가는 문.**
@@ -143,22 +151,40 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
   const { data, error } = await supabase.rpc('my_readings');
   if (error) throw dbFailure(error, 'my_readings');
 
-  return (data ?? []).flatMap((row) => {
+  const rows = data ?? [];
+  /* 인연 궁합의 요약에 호칭이 있을 때만 내가 어느 자리인지 읽는다 — 없으면 왕복을 안 늘린다 */
+  const viewer = rows.some((row) => row.kind === 'match' && row.metaphor != null && hasSeatName(row.metaphor))
+    ? await matchViewerOf(supabase)
+    : null;
+
+  return rows.flatMap((row) => {
     /* 모르는 kind 는 그리지 않는다 — DB 의 `text` 를 화면의 네 갈래로 좁히는 자리다 */
     const kind = READING_KINDS.find((known) => known === row.kind);
     if (kind === undefined) return [];
 
     /*
-      **한 줄 요약도 모델 글이다** — 내 궁합은 두 이름표가 `charts.a` · `charts.b` 차례로 오므로(`person_a` 가 작은 쪽)
-      자리 호칭을 지금의 이름표로 바꾼다. **인연 궁합은 못 바꾼다** — 이 문은 상대 닉네임 한 칸만 주고 내가 어느
-      자리인지(`viewer_is_first`)를 안 준다. 결과 화면(`my_reading`)은 그 값을 받아 바꾼다.
+      **한 줄 요약도 모델 글이다**(ADR 0181) — 자리 호칭을 지금의 닉네임으로 바꾼다. 내 궁합은 두 이름표가 `charts.a` ·
+      `charts.b` 차례로 온다(`person_a` 가 작은 쪽). 인연 궁합은 이 문이 상대 닉네임만 주므로 내 닉네임 · 내 자리를
+      `matchViewerOf` 로 맞춘다. 못 맞추면 호칭이 남은 요약은 세우지 않는다(`listedPairSummary`).
     */
     const labelA = row.label_a ?? null;
     const labelB = row.label_b ?? null;
+    const summary = row.metaphor ?? null;
+    const partnerUserId = row.match_id == null ? undefined : viewer?.partners.get(row.match_id);
     const metaphor =
-      kind === 'private' && row.metaphor != null && labelA !== null && labelB !== null
-        ? withNicknames(row.metaphor, { first: labelA, second: labelB })
-        : (row.metaphor ?? null);
+      kind === 'private'
+        ? listedPairSummary(summary, labelA !== null && labelB !== null ? { first: labelA, second: labelB } : null)
+        : kind === 'match'
+          ? listedPairSummary(
+              summary,
+              viewer !== null && partnerUserId !== undefined && labelA !== null
+                ? seatNicknamesOf(
+                    { viewer: viewer.nickname, partner: labelA },
+                    viewerIsFirstOf(viewer.userId, partnerUserId),
+                  )
+                : null,
+            )
+          : summary;
 
     return [
       {
@@ -177,6 +203,34 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
       },
     ];
   });
+}
+
+/**
+ * 인연 궁합 요약의 호칭을 바꿀 재료 — 내 계정 id · 닉네임과 Match 마다의 상대 계정 id.
+ *
+ * `my_readings` 는 내가 어느 자리인지를 안 준다. 마이그레이션 없이 이미 있는 두 읽기로 맞춘다 — 내 행(`app_user`,
+ * 정책이 내 것만 준다)과 `my_matches`(같은 `visible_matches()` 위에 선다). **어느 하나라도 못 읽으면 `null`** — 목록은
+ * 그대로 서고, 호칭이 남은 요약만 안 선다(부속 정보, ADR 0078).
+ */
+async function matchViewerOf(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+): Promise<{ userId: string; nickname: string; partners: ReadonlyMap<string, string> } | null> {
+  const [account, matches] = await Promise.all([
+    readAccount(supabase, ['status', 'id', 'nickname']),
+    supabase.rpc('my_matches'),
+  ]);
+  if (matches.error) {
+    recordDbFailure(matches.error, 'my_matches');
+    return null;
+  }
+  const row = account.row;
+  if (row === null || row.nickname === null) return null;
+
+  return {
+    userId: row.id,
+    nickname: row.nickname,
+    partners: new Map((matches.data ?? []).map((match) => [match.match_id, match.partner_user_id])),
+  };
 }
 
 type ReadingArtifacts = {

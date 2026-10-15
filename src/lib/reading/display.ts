@@ -1,5 +1,3 @@
-import { endsWithBatchim } from '../saju/text/batchim';
-
 /**
  * 모델 출력에는 내부 검토용 근거가 본문 뒤에 붙는다.
  *
@@ -59,13 +57,14 @@ export function readingGrounding(markdown: string): string | null {
  * 이름은 갈래를 나누지 않는다 — 「어머니」로 등록했으면 그것이 그 사람의 닉네임이다(운영자 2026-10-15).
  * 2026-10-15 부터는 궁합 본문의 호칭도 이 함수가 짓는다(`withNicknames`) — 머리와 본문이 같은 말로 부른다.
  *
- * 기계적으로 틀리는 셋만 막는다 — 이미 `님` 으로 끝나는 말(「어머님님」), 자기를
- * 가리키는 말(「나님」), 그리고 빈 이름(「님」 한 글자).
+ * 기계적으로 틀리는 둘만 막는다 — 이미 `님` 으로 끝나는 말(「어머님님」)과 빈 이름(「님」 한 글자).
+ *
+ * **예외가 없다**(운영자 2026-10-15). 본인도 상대도 「닉네임님」이고, 닉네임이 「나」 · 「저」여도 「나님」 · 「저님」이다 —
+ * 글자를 보고 본인을 가리는 갈래도, 본인 자리를 「나」로 부르는 갈래도 두지 않는다.
  */
 export function calledName(name: string): string {
   const said = name.trim();
   if (said === '') return said;
-  if (said === '나' || said === '저') return said;
   if (said.endsWith('님')) return said;
 
   return `${said}님`;
@@ -90,32 +89,23 @@ export const SEAT_NAMES = { first: '첫번째님', second: '두번째님' } as c
  *
  * 2026-10-15 전 풀이는 「첫 번째 분」·「두 번째 분」으로 났다(이름을 몰랐던 글 · 옛 공유 궁합). 그 글도 지금의
  * 닉네임으로 서야 하므로 옛 말을 계속 받는다. 띄어쓰기는 흔들려도 받는다(「첫 번째님」·「첫번째 분」).
+ *
+ * **낱말의 앞머리는 안 먹는다** — 「첫 번째 분석」 · 「두 번째 분기점」 · 「첫 번째 분야」의 「분」은 호칭이 아니다. 호칭 뒤에는
+ * 조사가 오거나, 한글 음절이 아닌 글자(띄어쓰기 · 문장 부호)가 오거나, 글이 끝나야 한다(`SEAT_END`).
  */
-const SEAT_PATTERN = { first: '첫\\s?번째\\s?(?:님|분)', second: '두\\s?번째\\s?(?:님|분)' } as const;
-
-/**
- * 호칭 뒤에 붙은 조사 — 두 호칭이 다 받침(`님` · `분`)으로 끝나므로 모델은 받침 쪽 조사를 쓴다.
- * 긴 것이 앞이어야 「이에요」가 「이」로 잘리지 않는다.
- */
-const PARTICLE = '(이에요|이랑|으로|에게|께서|은|이|을|과|의|도|만|께)?';
-
-/** 받침 없이 끝나는 이름(「나」·「저」)이 서면 받침 쪽 조사를 이쪽으로 옮긴다 */
-const WITHOUT_BATCHIM: Readonly<Record<string, string>> = {
-  이에요: '예요',
-  이랑: '랑',
-  으로: '로',
-  은: '는',
-  이: '가',
-  을: '를',
-  과: '와',
-};
+const PARTICLE_AFTER = '은|는|이|가|을|를|과|와|의|도|만|에|께|으로|로|처럼|보다|부터|까지|한테|랑|하고|마저|조차|뿐';
+const SEAT_END = `(?=(?:${PARTICLE_AFTER})|[^가-힣]|$)`;
+const SEAT_PATTERN = {
+  first: `첫\\s?번째\\s?(?:님|분)${SEAT_END}`,
+  second: `두\\s?번째\\s?(?:님|분)${SEAT_END}`,
+} as const;
 
 /** 두 자리의 닉네임 — `first` 가 `charts.a`, `second` 가 `charts.b` 다 */
 export type SeatNicknames = { readonly first: string; readonly second: string };
 
 /**
  * 부르는 화면이 아는 꼴 — 내 궁합은 두 자리를 바로 안다(`pairSeatsOf`). 인연 궁합은 **보는 사람 쪽에서** 안다 —
- * 누가 `charts.a` 인지는 그 글이 든다(`CurrentReading.viewerIsFirst`).
+ * 누가 `charts.a` 인지는 그 글이 든다(`CurrentReading.viewerIsFirst`). 보는 사람도 자기 닉네임으로 부른다.
  */
 export type PairNicknames = SeatNicknames | { readonly viewer: string; readonly partner: string };
 
@@ -143,21 +133,43 @@ export function pairSeatsOf(
 }
 
 /**
+ * 인연 궁합에서 **내가 첫 자리인가** — `match.user_low` 가 나인가.
+ *
+ * 결과 화면은 이 값을 `my_reading` 의 `viewer_is_first` 로 받는다. 목록 문(`my_readings`)은 그 칸이 없어 같은 비교를
+ * 여기서 한다 — `match` 표가 `user_low < user_high` 를 검사식으로 들고(`pair_is_ordered`), `uuid` 비교는 소문자 표기의
+ * 사전 순과 같다(`pairSeatsOf` 와 같은 까닭).
+ */
+export const viewerIsFirstOf = (myUserId: string, partnerUserId: string): boolean =>
+  myUserId.toLowerCase() < partnerUserId.toLowerCase();
+
+/** 글에 자리 호칭(새 · 옛)이 남아 있는가 */
+export const hasSeatName = (text: string): boolean =>
+  new RegExp(`${SEAT_PATTERN.first}|${SEAT_PATTERN.second}`).test(text);
+
+/**
+ * 목록에 서는 두 사람 글의 한 줄 요약 — **호칭을 날것으로 세우지 않는다.**
+ *
+ * 두 자리의 닉네임을 알면 바꾸고, 모르는데(읽기가 실패했다 · 짝을 못 찾았다) 호칭이 남아 있으면 요약을 안 세운다(`null`) —
+ * 「첫번째님은…」이 그대로 서는 것보다 요약 없는 표지가 낫다. 호칭이 없는 요약은 그대로다.
+ */
+export function listedPairSummary(summary: string | null, seats: SeatNicknames | null): string | null {
+  if (summary === null) return null;
+  const named = seats === null ? summary : withNicknames(summary, seats);
+  /* 닉네임이 비어 바꾸지 못한 자리도 같다 */
+  return hasSeatName(named) ? null : named;
+}
+
+/**
  * 모델이 쓴 글의 자리 호칭을 **지금 그 자리의 닉네임**으로 바꾼다 — 본문 · 한 줄 요약, 모델 글이 서는 자리 전부.
  *
- * 부르는 말은 `calledName` 이 정한다(공유본의 제목과 같은 규칙). 호칭이 없는 글(옛 이름이 박힌 풀이)은 그대로
- * 돌아간다. 닉네임이 비었으면 그 자리는 안 바꾼다 — 조사만 남은 문장보다 호칭이 낫다.
+ * 부르는 말은 늘 `calledName`(「닉네임님」)이라 받침(`님`)으로 끝난다 — 호칭(`님` · `분`)도 받침으로 끝나서 모델이 쓴 받침 쪽
+ * 조사(은 · 이 · 을 · 과 · 으로)가 그대로 맞으므로 조사는 손대지 않는다. 호칭이 없는 글(옛 이름이 박힌 풀이)은 그대로 돌아간다.
+ * 닉네임이 비었으면 그 자리는 안 바꾼다 — 조사만 남은 문장보다 호칭이 낫다.
  */
 export function withNicknames(text: string, nicknames: SeatNicknames): string {
   const replace = (source: string, pattern: string, name: string) => {
     const called = calledName(name);
-    if (called === '') return source;
-    const moved = endsWithBatchim(called) ? {} : WITHOUT_BATCHIM;
-
-    return source.replace(
-      new RegExp(`${pattern}${PARTICLE}`, 'g'),
-      (_, suffix: string | undefined) => `${called}${suffix === undefined ? '' : (moved[suffix] ?? suffix)}`,
-    );
+    return called === '' ? source : source.replace(new RegExp(pattern, 'g'), called);
   };
 
   return replace(replace(text, SEAT_PATTERN.first, nicknames.first), SEAT_PATTERN.second, nicknames.second);
