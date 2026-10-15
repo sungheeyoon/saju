@@ -603,7 +603,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
       asks: string;
       charts: ReturnType<typeof chartsOf>;
       secrets: ReturnType<typeof secretsOf>;
-      about: { names: null; relation: (typeof RELATIONS)[number] | null };
+      about: { relation: (typeof RELATIONS)[number] | null };
       /** 기록에 남길 출처 — 출생 원문은 안 적는다 */
       source: Record<string, unknown>;
     };
@@ -627,7 +627,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
           birthTime: revision.birth_time,
           city: revision.city,
         })),
-        about: { names: null, relation: pair.relation },
+        about: { relation: pair.relation },
         source: {
           kind: 'pair-file',
           personIds: [pair.a.personId, pair.b.personId],
@@ -644,7 +644,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
           asks: fixture.asks,
           charts: chartsOf(fixture),
           secrets: secretsOf(fixture),
-          about: { names: null, relation: null },
+          about: { relation: null },
           source: { kind: 'fixture' },
         });
       }

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { isSolo, selfSectionTitlesOf, type CurrentReading } from '@/src/lib/reading';
+import type { PairNicknames } from '@/src/lib/reading/display';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -29,7 +30,7 @@ export async function ReadingSection({
   ask,
   betweenSummaryAndBody,
   bare = false,
-  matchNames,
+  nicknames,
   tones,
   reading: preloaded,
   carry = null,
@@ -58,8 +59,8 @@ export async function ReadingSection({
   betweenSummaryAndBody?: ReactNode;
   /** 독립 결과 화면에서 바깥 카드 테두리를 생략한다. */
   bare?: boolean;
-  /** 옛 공유 풀이의 자리 호칭을 화면의 이름으로 옮길 때만 사용한다. */
-  matchNames?: { readonly me: string; readonly partner: string };
+  /** 두 사람 글의 자리 호칭을 바꿔 넣을 닉네임 — 내 궁합은 두 자리를, 인연 궁합은 나와 상대를 준다 */
+  nicknames?: PairNicknames;
   /**
    * 표지의 색 — 대상의 일간 오행(`ReadingPanel`). 부르는 화면이 이미 명식을 들고 있을 때만 넘긴다.
    * **글이 있으면 그 글을 만들 때의 일간이 이긴다** — 「수정 전」 글이 고친 뒤의 색을 입지 않는다(2026-09-25).
@@ -119,7 +120,7 @@ export async function ReadingSection({
         automatic={automatic}
         ask={ask}
         betweenSummaryAndBody={betweenSummaryAndBody}
-        matchNames={matchNames}
+        nicknames={nicknames}
         tones={cover}
         carry={carry}
       />

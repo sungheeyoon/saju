@@ -74,6 +74,68 @@ describe('표지의 일간', () => {
   });
 });
 
+/**
+ * **목록의 한 줄 요약에 자리 호칭이 날것으로 서지 않는다**(ADR 0181) — 내 궁합은 두 이름표로, 인연 궁합은 내 닉네임과
+ * 상대 닉네임으로 바꾼다. 내가 어느 자리인지는 `my_matches` 의 상대 id 와 내 id 를 견줘 안다(`user_low` 가 첫 자리).
+ */
+describe('목록의 두 사람 요약', () => {
+  const ME = '50000000-0000-4000-8000-000000000000';
+  const LOW_PARTNER = '10000000-0000-4000-8000-000000000000';
+  const HIGH_PARTNER = 'a0000000-0000-4000-8000-000000000000';
+  const base = { person_a: null, person_b: null, created_at: '2026-10-15T00:00:00Z', from_current_chart: true, score: 70 };
+  const matchRow = (matchId: string, metaphor: string | null) => ({
+    ...base, kind: 'match', match_id: matchId, label_a: '바람', label_b: null, metaphor,
+  });
+
+  const serving = (
+    rows: unknown[],
+    { matches = { data: [] as unknown[] | null, error: null as unknown } as { data: unknown[] | null; error: unknown }, me = { id: ME, nickname: '달빛' } as unknown } = {},
+  ) => {
+    const calls: string[] = [];
+    vi.mocked(supabaseOnServer).mockResolvedValue({
+      rpc: async (name: string) => {
+        calls.push(name);
+        return name === 'my_readings' ? { data: rows, error: null } : matches;
+      },
+      from: () => ({
+        select: () => ({ maybeSingle: async () => ({ data: me === null ? null : { status: 'active', ...(me as object) }, error: null }) }),
+      }),
+    } as never);
+    return calls;
+  };
+
+  it('내 궁합 — 두 이름표로 바꾼다', async () => {
+    serving([{ ...base, kind: 'private', match_id: null, person_a: 'p1', person_b: 'p2', label_a: '엄마', label_b: '아빠', metaphor: '첫번째님이 두번째님을 챙기는 사이' }]);
+    const [entry] = await myReadings();
+    expect(entry?.metaphor).toBe('엄마님이 아빠님을 챙기는 사이');
+  });
+
+  it('인연 궁합 — 내가 첫 자리면 내 닉네임이 첫번째님, 둘째 자리면 두번째님이다', async () => {
+    serving(
+      [matchRow('m-high', '첫번째님은 묻고 두번째님은 기다리는 사이'), matchRow('m-low', '첫번째님은 묻고 두번째님은 기다리는 사이')],
+      { matches: { data: [{ match_id: 'm-high', partner_user_id: HIGH_PARTNER }, { match_id: 'm-low', partner_user_id: LOW_PARTNER }], error: null } },
+    );
+    const [first, second] = await myReadings();
+    expect(first?.metaphor).toBe('달빛님은 묻고 바람님은 기다리는 사이');
+    expect(second?.metaphor).toBe('바람님은 묻고 달빛님은 기다리는 사이');
+  });
+
+  it('짝을 못 찾거나 못 읽으면 호칭이 남은 요약은 안 세운다 — 호칭 없는 요약은 그대로', async () => {
+    serving([matchRow('m-gone', '첫번째님이 먼저 다가가는 사이'), matchRow('m-plain', '서로 속도를 맞춰 가는 사이')], {
+      matches: { data: null, error: { message: 'fetch failed' } },
+    });
+    const [gone, plain] = await myReadings();
+    expect(gone?.metaphor).toBeNull();
+    expect(plain?.metaphor).toBe('서로 속도를 맞춰 가는 사이');
+  });
+
+  it('호칭이 없으면 더 읽지 않는다', async () => {
+    const calls = serving([matchRow('m-plain', '서로 속도를 맞춰 가는 사이')]);
+    await myReadings();
+    expect(calls).toEqual(['my_readings']);
+  });
+});
+
 /** 풀이권(부속 정보)의 같은 갈래는 `app/me/credits/remaining.test.ts` 가 잰다 */
 describe('부속 정보는 값으로 말한다', () => {
   /**

@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 import { matchBasisOf } from '@/src/lib/matching';
 import { relationOf } from '@/src/lib/people';
+import { pairSeatsOf } from '@/src/lib/reading/display';
 import { analyzeCompatibility, STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -384,6 +385,8 @@ async function Result({ outcome }: { outcome: Outcome }) {
           <ReadingSection
             target={target}
             reading={reading}
+            /* 글은 자리 호칭으로 온다 — 두 사람에게 붙인 지금의 이름으로 바꿔 세운다(`withNicknames`) */
+            nicknames={pairSeatsOf(first, second)}
             /**
              * **여기서는 사이를 다시 묻지 않는다**(ADR 0054).
              *

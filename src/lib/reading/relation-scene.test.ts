@@ -20,14 +20,12 @@ const headOf = (prompt: string) => prompt.split('\n## 자료 (')[0];
 const privatePrompt = (relation: Relation | null) =>
   headOf(
     readingPromptOf(readingEvidenceOf('private', { a: A, b: B }, VIEWED_AT), CONTROL, {
-      names: { a: '나', b: '그 사람' },
       relation,
     }),
   );
 
 const matchPrompt = headOf(
   readingPromptOf(readingEvidenceOf('match', { a: A, b: B }, VIEWED_AT), CONTROL, {
-    names: { a: '달빛', b: '바람' },
     relation: null,
   }),
 );

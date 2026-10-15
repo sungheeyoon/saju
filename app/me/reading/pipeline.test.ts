@@ -72,6 +72,7 @@ const { GENERATION } = await import('./generation');
 const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
 const { TASTE_LINK_FAILED, TASTE_WRONG_RUN_ALERT, TASTE_WRONG_RUN_DETAIL } = await import('@/src/lib/reading/taste-visit');
 const { baselineIn } = await import('@/src/lib/reading');
+const { SEAT_NAMES } = await import('@/src/lib/reading/display');
 
 /**
  * **파이프라인이 실제로 이어져 있는가.**
@@ -235,24 +236,6 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
     expect(submit.mock.calls[0][1]).toBe(started.run_id);
   });
 
-  /**
-   * **부르는 말도 얼려서 온다.** 앞서는 이 이름을 파이프라인이 그 자리에서 읽었고,
-   * 만드는 동안 이름표를 고치면 프롬프트가 두 이름을 섞어 썼다.
-   */
-  it('공유 궁합도 얼린 두 이름으로 부르고 자리 이름으로 퇴행하지 않는다', async () => {
-    job = frozen({
-      kind: 'match',
-      birth_b: BIRTH_B,
-      about: { names: { a: '민수', b: '지영' }, relation: null },
-    });
-
-    await sendAcceptedMatchReading('request-1');
-
-    const prompt = prepared()?.[1].p_prompt as string;
-    expect(prompt).toContain('`charts.a` 는 **민수**, `charts.b` 는 **지영**');
-    expect(prompt).toContain('「첫 번째 분」·「두 번째 분」처럼 자리 이름으로');
-    expect(prompt).toContain('부르지 마라');
-  });
 
   it('적은 프롬프트에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {
     await beginReading({ kind: 'self' });
@@ -499,6 +482,82 @@ describe('궁합은 얼려 둔 사이로 읽는다', () => {
     const prompt = await askForPair({ names: { a: '나', b: '동료' }, relation: '동창' });
 
     expect(prompt).toContain('무슨 사이인지 모른다');
+  });
+});
+
+/**
+ * **이름 · 닉네임은 모델로 안 나간다**(운영자 2026-10-15) — 모델을 부르는 길마다 잠근다.
+ *
+ * DB 는 시도를 열 때 그때의 이름을 여전히 얼린다(`reading_about` 의 `names`). 그 값이 와도 프롬프트 — 적는 것
+ * (`prepare_reading_job`)과 보내는 것(`submitBackgroundReading`) 둘 다 — 에 그 글자가 없어야 한다. 두 사람 글은
+ * 자리 호칭으로 부르고 화면이 닉네임으로 바꾼다(`withNicknames`). 로그인 전 맛보기는 `app/taste/taste-run.test.ts` 가 잰다.
+ */
+describe('모델로 가는 프롬프트에 이름이 없다', () => {
+  /** 다른 글자와 겹칠 일이 없는 이름 — 들어갔다면 그대로 보인다 */
+  const NAMES = { a: '가온누리별', b: '다솜하늘빛' };
+  const about = { names: NAMES, relation: 'family' };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-26T09:00:00+09:00'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** 적은 것과 보낸 것 둘 다 — 한쪽만 재면 둘이 갈리는 날을 못 본다 */
+  const sentPrompts = (): string[] => [prepared()?.[1].p_prompt as string, submit.mock.calls[0]?.[0] as string];
+  const expectNoNames = (pair: boolean) => {
+    const prompts = sentPrompts();
+    expect(prompts.every((prompt) => typeof prompt === 'string' && prompt.length > 0), '보낸 것이 없다').toBe(true);
+    for (const prompt of prompts) {
+      for (const name of Object.values(NAMES)) expect(prompt).not.toContain(name);
+      if (pair) expect(prompt).toContain(`\`charts.a\` 는 **${SEAT_NAMES.first}**, \`charts.b\` 는 **${SEAT_NAMES.second}**`);
+    }
+  };
+
+  it.each([
+    ['사주풀이(self)', { kind: 'self' as const }, false],
+    ['저장한 사람(person)', { kind: 'person' as const, personId: 'person-a' }, false],
+    ['내 궁합(private)', { kind: 'private' as const, personA: 'person-a', personB: 'person-b' }, true],
+    ['인연 궁합 — 다시 받기(match)', { kind: 'match' as const, matchId: 'match-1' }, true],
+  ])('누름 — %s', async (_, target, pair) => {
+    job = frozen({ kind: target.kind, birth_b: pair ? BIRTH_B : null, about: { ...about, names: pair ? NAMES : { a: NAMES.a } } });
+
+    await beginReading(target);
+    await settle();
+
+    expectNoNames(pair);
+  });
+
+  it('수락 뒤 자동 생성 — 인연 궁합', async () => {
+    job = frozen({ kind: 'match', birth_b: BIRTH_B, about: { names: NAMES, relation: null } });
+
+    await sendAcceptedMatchReading('request-1');
+
+    expectNoNames(true);
+  });
+
+  it('이어쓰기 — 맛보기를 이은 사주풀이', async () => {
+    const carry = {
+      previewMarkdown: '쇠의 기운을 가장 많이 타고났어요.',
+      continuationQuestion: '어디서 쉬어 가나',
+      answerDirection: '말로 먼저 꺼낸다',
+      supportingClaims: ['analysis.structure'],
+    };
+    claimed.mockResolvedValue({
+      sessionId: 'session-1',
+      claim: { outcome: 'claimed', carry, readingRunId: null, readingRunStatus: null },
+    });
+    link.mockResolvedValue({ answered: true, outcome: 'linked' });
+    continuationOfRun.mockResolvedValue(carry);
+    job = frozen({ about: { names: { a: NAMES.a }, relation: null } });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(prepared()?.[1].p_prompt).toContain('## 이어쓰기');
+    expectNoNames(false);
   });
 });
 

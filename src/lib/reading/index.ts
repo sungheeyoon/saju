@@ -137,7 +137,6 @@ export * from './notes';
 export {
   baselineIn,
   CONTROL,
-  FALLBACK_NAMES,
   LEGACY_PAIR_ASSEMBLY,
   NOTHING_KNOWN,
   READING_PROMPTS,

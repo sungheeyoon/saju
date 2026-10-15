@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { READING_STALE_LABEL, READING_STALE_NOTE } from '@/src/lib/reading/notes';
-import { namedMatchBody } from '@/src/lib/reading/display';
+import { seatNicknamesOf, withNicknames, type PairNicknames } from '@/src/lib/reading/display';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
@@ -22,19 +22,24 @@ export function Result({
   isMock,
   tones,
   betweenSummaryAndBody,
-  matchNames,
+  nicknames,
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
   isMock: boolean;
   tones: readonly (Element | null)[] | undefined;
   betweenSummaryAndBody?: ReactNode;
-  matchNames?: { readonly me: string; readonly partner: string };
+  /** 두 사람 글의 자리 호칭을 바꿔 넣을 닉네임 — 궁합 화면만 넘긴다 */
+  nicknames?: PairNicknames;
 }) {
-  const body =
-    target.kind === 'match' && matchNames !== undefined
-      ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
-      : reading.output;
+  /*
+    **모델 글이 서는 두 자리(본문 · 한 줄 요약) 모두 자리 호칭을 지금의 닉네임으로 바꾼다.** 프롬프트에는 이름이
+    안 실리므로(운영자 2026-10-15) 글은 「첫번째님」·「두번째님」으로 온다. 호칭이 없는 옛 글은 그대로 돌아간다.
+  */
+  const seats = nicknames === undefined ? null : seatNicknamesOf(nicknames, reading.viewerIsFirst);
+  const named = (text: string): string => (seats === null ? text : withNicknames(text, seats));
+  const body = named(reading.output);
+  const metaphor = reading.metaphor === null ? null : named(reading.metaphor);
 
   /*
     **표지의 색은 부르는 화면이 정한다** — 대상의 일간이다. 모르면(부르는 화면이 안 넘기면) 크림 한 장이다:
@@ -65,7 +70,7 @@ export function Result({
         오른쪽 아래, 비유가 흐르는 자리를 밀어내지 않는 곳에 선다. 비유는 길이가 들쭉날쭉하다(마흔 자 안팎을
         시키지만 막는 자리는 120자) — 한 줄을 전제하지 않고 `text-pretty` 로 고르게 나눈다.
       */}
-      {reading.score !== null || reading.metaphor !== null ? (
+      {reading.score !== null || metaphor !== null ? (
         <figure
           className={`${elementScope(firstTone)} relative overflow-hidden rounded-paper px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
@@ -78,13 +83,13 @@ export function Result({
               className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
             />
           )}
-          {reading.metaphor !== null ? (
+          {metaphor !== null ? (
             <>
               <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
                 “
               </span>
               <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-title leading-[1.4] tracking-[-0.02em] text-foreground sm:text-figure">
-                {reading.metaphor}
+                {metaphor}
               </blockquote>
             </>
           ) : (

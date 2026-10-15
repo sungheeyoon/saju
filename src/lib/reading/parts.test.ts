@@ -422,9 +422,9 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
 
   it('개인 풀이는 v15, 궁합은 v17 이다', () => {
     expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v17');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v18');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v17');
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v18');
     }
   });
 

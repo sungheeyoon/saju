@@ -43,9 +43,9 @@ describe('재는 법', () => {
   const markdown = [
     '## 서로를 보는 자리',
     '',
-    '첫 번째 분은 두 번째 분에게 기대는 편이에요. 일지에서 맞물립니다.',
+    '첫번째님은 두번째님에게 기대는 편이에요. 일지에서 맞물립니다.',
     '',
-    '첫 번째 분은 건강을 챙겨야 해요.',
+    '첫번째님은 건강을 챙겨야 해요.',
     '',
     '### 근거 (검사용)',
     '',
@@ -146,7 +146,7 @@ describe('재는 법', () => {
     expect(Object.keys(run('자료상 이 판단은 후보예요.'))).toEqual(['내부 용어']);
     expect(Object.keys(run('이 조언 자체는 자료 밖의 생활 조언이에요.'))).toEqual(['내부 용어']);
     expect(Object.keys(run('이번 자료에는 올해 흐름이 들어 있지 않아요.'))).toEqual(['내부 용어']);
-    expect(Object.keys(run('첫 번째 분은 행동하는 사람이에요.'))).toEqual(['역할 배정']);
+    expect(Object.keys(run('첫번째님은 행동하는 사람이에요.'))).toEqual(['역할 배정']);
     /* 부정문은 확대가 아니다 — 대신 규칙 문장이 샌 꼴로 센다 */
     expect(Object.keys(run('토가 전혀 없다는 뜻이 아니라 드러난 글자에 없다는 뜻이에요.'))).toEqual(['범위 해설']);
   });
@@ -179,7 +179,7 @@ describe('검토 후보', () => {
   if (reading.kind !== 'match') throw new Error('인연 궁합이 아니다');
   const { elementSupport } = reading.evidence.compatibility;
 
-  it('사람-오행 엇갈림 후보 — 두 번째 분에게 없다고 한 오행이 그 사람 missing 에 없으면 후보다', () => {
+  it('사람-오행 엇갈림 후보 — 두번째님에게 없다고 한 오행이 그 사람 missing 에 없으면 후보다', () => {
     const [absentA] = elementSupport.a.missing;
     const word = { 木: '나무', 火: '불기운', 土: '흙', 金: '쇠', 水: '물기운' }[absentA as '木']!;
     const run = (sentence: string) =>
@@ -190,7 +190,7 @@ describe('검토 후보', () => {
         secrets: secretsOf(fixture),
       }).reviewCandidates['사람-오행 엇갈림'] ?? [];
 
-    expect(run(`첫 번째 분에게는 ${word}이 드러난 글자에 없어요.`)).toEqual([]);
-    expect(run(`두 번째 분에게는 ${word}이 드러난 글자에 없어요.`)).toHaveLength(1);
+    expect(run(`첫번째님에게는 ${word}이 드러난 글자에 없어요.`)).toEqual([]);
+    expect(run(`두번째님에게는 ${word}이 드러난 글자에 없어요.`)).toHaveLength(1);
   });
 });

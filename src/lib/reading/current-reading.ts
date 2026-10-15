@@ -24,7 +24,7 @@ export type CurrentReading = {
   readonly model: string;
   readonly viewedAt: string;
   readonly createdAt: string;
-  /** 공유 결과의 글이 「첫 번째 분」이라 부르는 것이 나인가 */
+  /** 공유 결과의 글이 첫 자리(`charts.a`, 「첫번째님」)로 부르는 것이 나인가 */
   readonly viewerIsFirst: boolean;
   /**
    * 이 글의 **여덟 글자**가 아직 지금 명식인가 — `match` 는 언제나 참이다.
