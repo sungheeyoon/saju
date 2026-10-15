@@ -74,6 +74,22 @@ describe('자리 호칭을 닉네임으로', () => {
     expect(withNicknames('첫번째님처럼 두번째님부터', seats)).toBe('민수님처럼 지영님부터');
   });
 
+  /** 외부 검토(2026-10-15) — 닉네임을 치환 문자열로 넘기면 `$&` · `$1` · `$$` 가 풀렸다 */
+  it('닉네임의 $ 패턴을 글자 그대로 넣는다', () => {
+    const text = '첫번째님은 두번째님과 달라요.';
+    expect(withNicknames(text, { first: '$&', second: '$1' })).toBe('$&님은 $1님과 달라요.');
+    expect(withNicknames(text, { first: '$$', second: "$'" })).toBe("$$님은 $'님과 달라요.");
+  });
+
+  /** 외부 검토(2026-10-15) — 차례로 두 번 바꾸면 첫째 닉네임이 둘째 호칭일 때 둘째 치환이 그것까지 먹었다 */
+  it('닉네임이 다른 자리의 호칭과 같아도 자리가 섞이지 않는다', () => {
+    const text = '첫번째님은 두번째님과 달라요.';
+    expect(withNicknames(text, { first: '두번째님', second: '민지' })).toBe('두번째님은 민지님과 달라요.');
+    expect(withNicknames(text, { first: '첫 번째 분', second: '민지' })).toBe('첫 번째 분님은 민지님과 달라요.');
+    expect(withNicknames(text, { first: '민지', second: '첫번째님' })).toBe('민지님은 첫번째님과 달라요.');
+    expect(withNicknames(text, { first: '민지', second: '민지' })).toBe('민지님은 민지님과 달라요.');
+  });
+
   it('본인 자리도 닉네임님이다 — 인연 궁합에서 보는 사람', () => {
     expect(withNicknames('첫번째님은 묻고 두번째님은 기다려요.', seatNicknamesOf({ viewer: '달빛', partner: '바람' }, true))).toBe(
       '달빛님은 묻고 바람님은 기다려요.',

@@ -165,12 +165,19 @@ export function listedPairSummary(summary: string | null, seats: SeatNicknames |
  * 부르는 말은 늘 `calledName`(「닉네임님」)이라 받침(`님`)으로 끝난다 — 호칭(`님` · `분`)도 받침으로 끝나서 모델이 쓴 받침 쪽
  * 조사(은 · 이 · 을 · 과 · 으로)가 그대로 맞으므로 조사는 손대지 않는다. 호칭이 없는 글(옛 이름이 박힌 풀이)은 그대로 돌아간다.
  * 닉네임이 비었으면 그 자리는 안 바꾼다 — 조사만 남은 문장보다 호칭이 낫다.
+ *
+ * **두 자리를 정규식 하나로 한 번에, 콜백으로 바꾼다**(외부 검토 2026-10-15). 차례로 두 번 바꾸면 첫째 닉네임이 「두번째님」일 때
+ * 둘째 치환이 그것까지 먹고, 닉네임을 치환 **문자열**로 넘기면 「$&」 · 「$1」 같은 특수 패턴이 풀린다. 콜백이 돌려준 글은 그대로
+ * 들어가고, 이미 바꾼 자리는 다시 안 본다.
  */
 export function withNicknames(text: string, nicknames: SeatNicknames): string {
-  const replace = (source: string, pattern: string, name: string) => {
-    const called = calledName(name);
-    return called === '' ? source : source.replace(new RegExp(pattern, 'g'), called);
-  };
+  const called = { first: calledName(nicknames.first), second: calledName(nicknames.second) };
 
-  return replace(replace(text, SEAT_PATTERN.first, nicknames.first), SEAT_PATTERN.second, nicknames.second);
+  return text.replace(
+    new RegExp(`(${SEAT_PATTERN.first})|(${SEAT_PATTERN.second})`, 'g'),
+    (seat: string, first: string | undefined) => {
+      const name = first !== undefined ? called.first : called.second;
+      return name === '' ? seat : name;
+    },
+  );
 }
