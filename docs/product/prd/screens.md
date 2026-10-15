@@ -20,7 +20,7 @@
 | 인연 · 채팅 · 소식 | 매칭 · 인연 기록 · 채팅 · 소식 · 인연 궁합 결과 | `docs/product/prd/screens/matching.md` |
 | 설정 · 프로필 · 설문 | 프로필 · 계정 관리 · 서비스 설문 | `docs/product/prd/screens/settings.md` |
 | 결제 · 풀이권 | 풀이권 구매 · 결제 뒤 · 결제 내역 — §7.0 | `docs/product/prd/screens/credits.md` |
-| 운영 화면 · 작업대 | 검산 · 설문 요약 · 신고 열람 · 2단계 인증 | `docs/product/prd/screens/ops.md` |
+| 운영 화면 · 작업대 | 검산 · 설문 요약 · 신고 열람 | `docs/product/prd/screens/ops.md` |
 
 ### 3.2 버튼은 동사로 갈린다 — **선다 · 2026-09-14**
 

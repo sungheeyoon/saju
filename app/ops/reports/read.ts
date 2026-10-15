@@ -2,8 +2,7 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import { noteDenial, type DeniedAction } from '../denial';
-import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
+import { noteDenial } from '../denial';
 import { argsOf, isReportId, type ReportFilters } from './filters';
 import { sideOf, type Side } from './labels';
 import { chosenOnce, type SnapshotMessage } from './snapshot';
@@ -18,9 +17,6 @@ import { chosenOnce, type SnapshotMessage } from './snapshot';
  * 운영자가 CLI 로 부르는 검토 문(`review_report`)이 적는다(ADR 0105 · 0107). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
  * 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
  *
- * **세션이 2단계 인증(aal2)을 안 지났으면 운영자 문을 부르지 않는다**(ADR 0123, `../second-factor.ts`). 등록한 요소가
- * 있으면 `SECOND_FACTOR_NEEDED` 로 확인 화면에 보내고, 없으면 운영자가 아닌 사람과 같은 거절이다(기록도 같다).
- *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인
  * 말 · 검토 시각 · 스냅샷 칸은 실제로 비므로 여기서 한 번 `null` 로 받아 옮긴다.
  */
@@ -32,21 +28,6 @@ type Asked = { readonly error: { readonly code?: string } | null };
 
 const denied = (answers: readonly Asked[]): boolean =>
   answers.some((answer) => answer.error?.code === '42501');
-
-/**
- * 운영자 문 앞의 두 번째 요소 — 지났으면 `null`, 아니면 이 문이 낼 답이다. 거절이면 `noteDenial` 이 적는다.
- */
-async function withoutSecondFactor(
-  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
-  action: DeniedAction,
-  reportId: string | null,
-): Promise<typeof DENIED | typeof SECOND_FACTOR_NEEDED | null> {
-  const factor = await secondFactorOf(supabase);
-  if (factor === 'passed') return null;
-  if (factor === 'challenge') return SECOND_FACTOR_NEEDED;
-  await noteDenial(supabase, action, reportId);
-  return DENIED;
-}
 
 export type Account = {
   readonly userId: string;
@@ -102,11 +83,8 @@ export const reportRowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
  */
 export async function operatorReports(
   filters: ReportFilters,
-): Promise<typeof DENIED | typeof SECOND_FACTOR_NEEDED | SkippableRead<ReportPage>> {
+): Promise<typeof DENIED | SkippableRead<ReportPage>> {
   const supabase = await supabaseOnServer();
-  const refused = await withoutSecondFactor(supabase, 'reports.list', null);
-  if (refused !== null) return refused;
-
   const answer = await supabase.rpc('operator_reports', rpcArgs<'operator_reports'>(argsOf(filters)));
 
   if (denied([answer])) {
@@ -170,13 +148,10 @@ type ReportDetail = {
  */
 export async function operatorReport(
   reportId: string,
-): Promise<typeof DENIED | typeof SECOND_FACTOR_NEEDED | SkippableRead<ReportDetail | null>> {
+): Promise<typeof DENIED | SkippableRead<ReportDetail | null>> {
   if (!isReportId(reportId)) return read(null);
 
   const supabase = await supabaseOnServer();
-  const refused = await withoutSecondFactor(supabase, 'reports.detail', reportId);
-  if (refused !== null) return refused;
-
   const [head, copied] = await Promise.all([
     supabase.rpc('operator_report', { p_report_id: reportId }),
     supabase.rpc('operator_report_snapshot', { p_report_id: reportId }),

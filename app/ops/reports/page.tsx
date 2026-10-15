@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { REPORT_REASONS } from '@/src/lib/account';
 
@@ -22,7 +22,6 @@ import { FilterPanel } from './filter-panel';
 import { openByReported } from './same-account';
 import { DENIED, operatorReports, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
-import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
 import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
@@ -55,7 +54,6 @@ export default async function OperatorReportsPage({
   const filters = filtersOf(await searchParams);
   const listed = await operatorReports(filters);
   if (listed === DENIED) notFound();
-  if (listed === SECOND_FACTOR_NEEDED) redirect(secondFactorHref(hrefOf(filters, { page: filters.page })));
   const openOnPage = listed.ok ? openByReported(listed.value.rows) : new Map<string, number>();
 
   return (

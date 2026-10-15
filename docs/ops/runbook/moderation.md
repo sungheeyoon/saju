@@ -196,7 +196,7 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '이
 2. **최신 main 이 Production 에서 Ready 다** — `docs/ops/runbook/deploy.md` 「배포」의 「묶음 배포 — 최신 main 을 Production 으로 한 번」을 먼저
    밟는다. 배포 커밋이 main HEAD 가 아니면 옛 화면을 재는 것이다
 3. **실제 개인정보가 없는 전용 테스트 계정** — 주소는 `@example.com`, 닉네임은 `검증A-<날짜>` 처럼 누가 봐도 시험인 것.
-   운영자 계정(구글)은 제 것을 쓰고, 그 세션은 먼저 `/ops/mfa` 를 지난다(`docs/ops/runbook/operators.md` 「운영자 2단계 인증」, ADR 0123)
+   운영자 계정(구글)은 제 것을 쓴다 — 2단계 없이 구글 로그인 세션으로 연다(`docs/ops/runbook/operators.md` 「운영자 로그인」, ADR 0182)
 4. **테스트 메시지 · 신고 설명에도 실제 이름 · 연락처 · 출생정보를 쓰지 않는다** — 스냅샷은 불변이고 접속기록은 지울 수
    없다. 출생정보는 가짜(예: 1990-05-15 14:30 서울)로 넣는다
 

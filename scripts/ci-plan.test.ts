@@ -1792,7 +1792,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     // 2026-10-09 검토 에이전트가 센 리터럴 315 개 — 그 뒤 시험이 늘면 늘 뿐 줄지 않게(줄면 셈이 빠진 것인지 본다)
     expect(walked).toBeGreaterThanOrEqual(315);
     expect(literals).toBeGreaterThanOrEqual(walked);
-    // 검색만 보면 G-86 한 줄이 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` · `e2e/second-factor.ts`)의 `.exec` ·
+    // 검색만 보면 G-86 한 줄이 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` 등)의 `.exec` ·
     // `.test` 에 선다. 그래도 문구 판정은 좁히기만 하므로 계획은 지금 규칙(core)보다 넓어지지 않는다
     const note = 'src/lib/matching/copy.ts';
     const noteBefore = readFileSync(resolve(ROOT, note), 'utf8');
