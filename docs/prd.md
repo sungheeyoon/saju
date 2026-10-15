@@ -30,7 +30,7 @@
 | `docs/product/prd/screens/matching.md` | — | 화면 표(매칭 · 인연 기록 · 채팅 · 소식 · 인연 궁합 결과) |
 | `docs/product/prd/screens/settings.md` | — | 화면 표(프로필 · 계정 관리 · 서비스 설문) |
 | `docs/product/prd/screens/credits.md` | — | 화면 표(풀이권 구매 · 결제 뒤 · 결제 내역) |
-| `docs/product/prd/screens/ops.md` | — | 화면 표(검산 · 설문 요약 · 신고 열람 · 2단계 인증) |
+| `docs/product/prd/screens/ops.md` | — | 화면 표(검산 · 설문 요약 · 신고 열람) |
 | `docs/product/prd/reading.md` | 「4. 풀이」 | §4.1–4.8 대상 · 풀이 화면 · 사람 · 같은 명식 · 두 사람의 궁합 · 풀이 평가 · 서비스 설문 · 링크 공유 |
 | `docs/product/prd/account.md` | 「5. 계정」 | §5.0–5.3 들어오는 문 · 이름과 얼굴 · 닉네임 · 계정이 멈추는 자리 |
 | `docs/product/prd/matching.md` | 「6. 인연」 | §6.1–6.5 추천 덱 · 매칭 카드(§6.1.1) · 보관 20명(§6.1.2) · 요청과 동의 · 열리는 것 · 소식 · 차단과 신고 |

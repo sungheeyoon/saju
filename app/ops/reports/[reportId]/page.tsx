@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
@@ -27,7 +27,6 @@ import {
 } from '../read';
 import { CARD } from '../../../ui/surfaces';
 import { CopyValue } from '../../copy-value';
-import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../../second-factor';
 import { FailureLine } from '../../../ui/failure-line';
 
 export const metadata = {
@@ -59,7 +58,6 @@ export default async function OperatorReportPage({
   const { reportId } = await params;
   const found = await operatorReport(reportId);
   if (found === DENIED) notFound();
-  if (found === SECOND_FACTOR_NEEDED) redirect(secondFactorHref(`/ops/reports/${reportId}`));
   if (found.ok && found.value === null) notFound();
 
   return (

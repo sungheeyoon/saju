@@ -2,7 +2,6 @@ import type { FeltLength, IssueTag } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { noteDenial } from '../denial';
-import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
 
 /**
  * 설문 집계가 **브라우저로 내려오는 문.**
@@ -14,9 +13,6 @@ import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
  * **운영자인지도 여기서 안 묻는다.** 묻는 자리는 DB 하나다(`is_operator`). 화면이 먼저
  * 물어보고 열고 닫으면 판정하는 자리가 둘이 되므로, 그냥 자료를 청하고 **거절당하는
  * 것으로 안다.**
- *
- * **세션이 2단계 인증(aal2)을 안 지났으면 청하지도 않는다**(ADR 0123, `../second-factor.ts`) — 등록한 요소가 있으면
- * 확인 화면으로, 없으면 거절과 같다.
  *
  * **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(ADR 0105 추기 2026-10-01) — 성공은 일곱 문 안에서 문마다, 거절은
  * 아래에서 `noteDenial` 이 머리 문의 이름(`survey.overview`) 한 줄로. 기록에는 설문 답 · 글이 안 들어간다.
@@ -110,17 +106,8 @@ type Row = Record<string, unknown>;
  *
  * @returns 거절이면 `DENIED`, 못 읽었으면 `null`.
  */
-export async function operatorSurvey(): Promise<
-  OperatorSurvey | typeof DENIED | typeof SECOND_FACTOR_NEEDED | null
-> {
+export async function operatorSurvey(): Promise<OperatorSurvey | typeof DENIED | null> {
   const supabase = await supabaseOnServer();
-
-  const factor = await secondFactorOf(supabase);
-  if (factor === 'challenge') return SECOND_FACTOR_NEEDED;
-  if (factor !== 'passed') {
-    await noteDenial(supabase, 'survey.overview');
-    return DENIED;
-  }
 
   const [overview, versions, tags, comments, service, serviceCounts, serviceTexts] =
     await Promise.all([

@@ -23,7 +23,6 @@ import {
 import { activityText } from '@/src/lib/presence';
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
 
-import { passSecondFactor } from './second-factor';
 
 /**
  * 채팅 안전 베타의 완료 조건 여섯을 브라우저에서 밟는다(PRD §7.0) — 주고받음 · 차단 · 이용 정지 ·
@@ -629,13 +628,6 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const ops = await openAs({ selfPerson: true });
     makeOperator(ops.account.email);
 
-    // 운영자여도 2단계 인증 전의 세션에는 없는 화면이다 — 인증 앱을 등록한 적이 없으면 확인 화면으로도 안 보낸다(ADR 0123)
-    for (const path of ['/ops/reports', `/ops/reports/${reportId}`]) {
-      const closed = await ops.page.goto(path);
-      expect(closed?.status()).toBe(404);
-    }
-    await passSecondFactor(ops.page, '/ops/reports');
-
     await ops.page.goto('/ops/reports?evidence=chat');
     await expect(ops.page.getByRole('heading', { name: '신고', exact: true })).toBeVisible();
     const row = ops.page.getByRole('listitem').filter({
@@ -688,7 +680,6 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const b = await openAs({ selfPerson: true });
     const ops = await openAs({ selfPerson: true });
     makeOperator(ops.account.email);
-    await passSecondFactor(ops.page, '/ops/reports');
     const [aId, bId, opsId] = [a, b, ops].map((one) => userIdOf(one.account.email));
 
     const report = (reason: string): string =>
@@ -749,7 +740,6 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const c = await openAs({ selfPerson: true });
     const ops = await openAs({ selfPerson: true });
     makeOperator(ops.account.email);
-    await passSecondFactor(ops.page, '/ops/reports');
     const [aId, bId, cId, opsId] = [a, b, c, ops].map((one) => userIdOf(one.account.email));
 
     const report = (reporter: string, reported: string, reason: string): string =>

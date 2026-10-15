@@ -327,7 +327,7 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
     {
       /*
         **안전성 확보 조치**(시행령 제31조 ① 3, ADR 0180) — 코드 · 운영 문서로 확인되는 조치만 적는다. 줄마다의 근거와 적지 않은 것
-        (운영자 2단계 인증은 보류 — G-65)은 `docs/legal/privacy-grounds.md` 「안전성 확보 조치」.
+        (운영자 2단계 인증은 쓰지 않는다 — ADR 0182 · G-65)은 `docs/legal/privacy-grounds.md` 「안전성 확보 조치」.
       */
       title: '개인정보를 지키는 조치',
       lines: [

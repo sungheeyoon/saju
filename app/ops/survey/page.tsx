@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import {
   FELT_LENGTH_LABEL,
@@ -25,7 +25,6 @@ import {
   type VersionRow,
 } from './read';
 import { CARD } from '../../ui/surfaces';
-import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
 import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
@@ -64,7 +63,6 @@ export default async function OperatorSurveyPage() {
 
   const survey = await operatorSurvey();
   if (survey === DENIED) notFound();
-  if (survey === SECOND_FACTOR_NEEDED) redirect(secondFactorHref('/ops/survey'));
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">

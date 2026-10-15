@@ -145,7 +145,7 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 | 외부 서비스의 비밀키와 데이터베이스 관리 열쇠는 서버에만 둡니다. | 비밀은 `NEXT_PUBLIC_` 이 아닌 이름으로 서버 층에서만 읽는다 — `scripts/secret-env.mjs` 머리 · `scripts/secret-env.test.ts` |
 
 **적지 않은 것과 까닭**
-- **운영자 2단계 인증** — 보류다(ADR 0123 「추기 — 보류」, G-65). 운영자 화면은 막혀 있고(`/ops/reports` · `/ops/survey` 404), DB 는 `aal` 을 묻지 않는다.
+- **운영자 2단계 인증** — 쓰지 않는다(운영자 결정 2026-10-15, ADR 0182). 운영자 로그인은 구글 간편로그인만이고, 운영자 화면은 운영자 판정(`is_operator()`)만 묻는다. 이것이 안전성 확보조치 기준 제6조 제2항의 안전한 인증수단을 채우는지는 확인 전이다(G-65).
 - **접속기록의 빈틈** — Supabase SQL Editor · Table Editor · `db query --linked` 를 직접 부르면 읽기는 남지 않는다(`log_statement = ddl`, `docs/ops/runbook/security.md`).
   그래서 처리방침은 「운영자 화면이나 정해진 조회 도구로」라고 범위를 적었다. 이 빈틈을 막을지는 운영 결정이다.
 
