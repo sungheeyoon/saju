@@ -16,6 +16,7 @@ import {
   readingBody,
   readingGrounding,
   seatNicknamesOf,
+  listedPairSummary,
   viewerIsFirstOf,
   withNicknames,
 } from './display';
@@ -88,6 +89,28 @@ describe('자리 호칭을 닉네임으로', () => {
     expect(withNicknames(text, { first: '첫 번째 분', second: '민지' })).toBe('첫 번째 분님은 민지님과 달라요.');
     expect(withNicknames(text, { first: '민지', second: '첫번째님' })).toBe('민지님은 첫번째님과 달라요.');
     expect(withNicknames(text, { first: '민지', second: '민지' })).toBe('민지님은 민지님과 달라요.');
+  });
+
+  /**
+   * 외부 검토(2026-10-15) — 목록 요약은 바꾼 **뒤** 글에서 호칭을 찾아 못 바꾼 것으로 보고 지웠다. 닉네임이 호칭 꼴이면
+   * (「첫번째」 → 「첫번째님」) 정상 치환도 사라졌다. 판정은 치환이 직접 센다.
+   */
+  it.each([
+    ['첫번째', '두번째', '첫번째님은 두번째님과'],
+    ['두번째님', '첫번째', '두번째님은 첫번째님과'],
+    ['첫 번째 분', '민지', '첫 번째 분님은 민지님과'],
+  ])('닉네임 「%s」 · 「%s」 — 본문과 목록 요약이 둘 다 선다', (first, second, shown) => {
+    const text = '첫번째님은 두번째님과';
+    expect(withNicknames(text, { first, second })).toBe(shown);
+    expect(listedPairSummary(text, { first, second })).toBe(shown);
+  });
+
+  it('목록 요약 — 호칭이 가리키는 자리의 닉네임을 모를 때만 숨긴다', () => {
+    expect(listedPairSummary('첫번째님은 두번째님과', { first: '민지', second: '  ' })).toBeNull();
+    expect(listedPairSummary('첫번째님은 두번째님과', null)).toBeNull();
+    /* 모르는 자리의 호칭이 원문에 없으면 선다 */
+    expect(listedPairSummary('첫번째님이 먼저 다가가는 사이', { first: '민지', second: '' })).toBe('민지님이 먼저 다가가는 사이');
+    expect(listedPairSummary('서로 속도를 맞춰 가는 사이', null)).toBe('서로 속도를 맞춰 가는 사이');
   });
 
   it('본인 자리도 닉네임님이다 — 인연 궁합에서 보는 사람', () => {

@@ -154,9 +154,12 @@ export const hasSeatName = (text: string): boolean =>
  */
 export function listedPairSummary(summary: string | null, seats: SeatNicknames | null): string | null {
   if (summary === null) return null;
-  const named = seats === null ? summary : withNicknames(summary, seats);
-  /* 닉네임이 비어 바꾸지 못한 자리도 같다 */
-  return hasSeatName(named) ? null : named;
+  /*
+    **판정은 치환 전 글로 한다**(외부 검토 2026-10-15). 바꾼 뒤 글에서 호칭을 찾으면 닉네임이 「첫번째」(→「첫번째님」)처럼 호칭과
+    같은 꼴일 때 정상 치환도 못 바꾼 것으로 보고 요약을 지웠다. 바꾸지 못한 자리가 있었는가는 치환이 직접 센다.
+  */
+  const { text, unresolved } = nicknamed(summary, seats ?? { first: '', second: '' });
+  return unresolved ? null : text;
 }
 
 /**
@@ -171,13 +174,22 @@ export function listedPairSummary(summary: string | null, seats: SeatNicknames |
  * 들어가고, 이미 바꾼 자리는 다시 안 본다.
  */
 export function withNicknames(text: string, nicknames: SeatNicknames): string {
-  const called = { first: calledName(nicknames.first), second: calledName(nicknames.second) };
+  return nicknamed(text, nicknames).text;
+}
 
-  return text.replace(
+/** 바꾼 글과, **원문의 호칭 가운데 닉네임을 몰라 못 바꾼 자리가 있었는가** — 한 번의 치환이 둘 다 센다 */
+function nicknamed(text: string, nicknames: SeatNicknames): { text: string; unresolved: boolean } {
+  const called = { first: calledName(nicknames.first), second: calledName(nicknames.second) };
+  let unresolved = false;
+
+  const replaced = text.replace(
     new RegExp(`(${SEAT_PATTERN.first})|(${SEAT_PATTERN.second})`, 'g'),
     (seat: string, first: string | undefined) => {
       const name = first !== undefined ? called.first : called.second;
+      if (name === '') unresolved = true;
       return name === '' ? seat : name;
     },
   );
+
+  return { text: replaced, unresolved };
 }
