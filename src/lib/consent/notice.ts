@@ -174,6 +174,11 @@ type Transfer = {
   readonly purpose: string;
   readonly period: string;
   readonly policy: string;
+  /**
+   * 개인정보 문의 연락처 — 받는 자의 「명칭과 연락처」(제28조의8 ② 3). 그 회사의 공식 처리방침에서 찾은 값만 적는다(출처는
+   * `docs/legal/privacy-grounds.md`). 못 찾았으면 비워 두고 처리방침 링크만 선다 — 지어 쓰지 않는다.
+   */
+  readonly contact?: string;
 };
 
 const TRANSFERS: readonly Transfer[] = [
@@ -185,6 +190,7 @@ const TRANSFERS: readonly Transfer[] = [
     purpose: '계정 인증과 데이터베이스 보관',
     period: '베타 종료 후 파기 시점까지(첫 화면의 임시 기록은 24시간)',
     policy: 'https://supabase.com/privacy',
+    contact: 'privacy@supabase.com',
   },
   {
     to: 'Vercel Inc.',
@@ -195,6 +201,7 @@ const TRANSFERS: readonly Transfer[] = [
     purpose: '서비스 운영과 화면 전송, 입력을 데이터베이스로 넘기고 사주를 계산하는 처리',
     period: '보관하지 않습니다. 런타임 로그만 1시간(현재 요금제 기준)',
     policy: 'https://vercel.com/legal/privacy-policy',
+    contact: 'privacy@vercel.com (440 N Barranca Avenue #4133, Covina, CA 91723, United States)',
   },
   {
     to: 'OpenAI, L.L.C.',
@@ -213,7 +220,9 @@ const transferLines = (): readonly string[] =>
   TRANSFERS.flatMap((one) => [
     `${one.to}(${one.country}) — 이전 항목: ${one.items}`,
     `${one.to} — 이전 시기와 방법: ${one.when} · 이전 목적: ${one.purpose} · 보유기간: ${one.period}`,
-    `${one.to} — 개인정보 관련 문의처는 이곳에 안내되어 있습니다: ${one.policy}`,
+    one.contact === undefined
+      ? `${one.to} — 개인정보 관련 문의처는 이곳에 안내되어 있습니다: ${one.policy}`
+      : `${one.to} — 개인정보 문의: ${one.contact} · 처리방침: ${one.policy}`,
   ]);
 
 export function noticeFor(dates: BetaDates, operator: Operator): readonly NoticeSection[] {
@@ -254,7 +263,7 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
     {
       title: '맡겨서 처리하는 곳',
       lines: [
-        '계정과 데이터베이스는 Supabase, 서비스 운영은 Vercel, 풀이 생성은 OpenAI 에 맡깁니다.',
+        '계정과 데이터베이스는 Supabase, 서비스 운영은 Vercel, 풀이와 첫 화면의 짧은 사주 문단 생성은 OpenAI 에 맡깁니다.',
         '맡기는 범위는 이 서비스를 돌리는 데 필요한 저장·전송·생성뿐이고, 세 곳 모두 국외에 서버를 둡니다. 아래에 항목과 기간을 따로 적습니다.',
       ],
     },
@@ -262,7 +271,7 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
       title: '국외로 나가는 것',
       lines: [
         ...transferLines(),
-        '위 이전을 거부하실 수 있습니다. 다만 세 곳 모두 이 서비스를 제공하는 데 반드시 필요해, 거부하시면 서비스를 이용하실 수 없습니다.',
+        '위 이전을 거부하실 수 있습니다. 거부하시려면 가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다. 다만 세 곳 모두 이 서비스를 제공하는 데 반드시 필요해, 거부하시면 서비스를 이용하실 수 없습니다.',
       ],
     },
     {

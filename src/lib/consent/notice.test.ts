@@ -259,6 +259,18 @@ describe('첫 화면의 짧은 사주 문단', () => {
     expect(text).not.toContain('여덟 글자와 그 위에서 나온 사실만 보냅니다');
   });
 
+  /**
+   * **받는 자의 명칭과 연락처**(제28조의8 ② 3) — 회사의 공식 처리방침에서 찾은 연락처만 싣는다. 못 찾은 곳(OpenAI)은 링크만 선다.
+   * 위탁 줄에도 첫 화면 문단이 서고(제30조 ① 4), 거부는 방법까지 말한다(제28조의8 ② 5).
+   */
+  it('받는 곳의 연락처 · 위탁 · 거부 방법을 적는다', () => {
+    expect(outward).toContain('Supabase, Inc. — 개인정보 문의: privacy@supabase.com');
+    expect(outward).toContain('Vercel Inc. — 개인정보 문의: privacy@vercel.com');
+    expect(outward).toContain('OpenAI, L.L.C. — 개인정보 관련 문의처는 이곳에 안내되어 있습니다');
+    expect(outward).toContain('가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다');
+    expect(text).toContain('풀이와 첫 화면의 짧은 사주 문단 생성은 OpenAI 에 맡깁니다');
+  });
+
   /** 역산 문장은 처리방침에 두지 않는다 — 경계까지 검증하지 않았다(ADR 0180) */
   it('역산을 처리방침에서 말하지 않는다', () => {
     expect(text).not.toContain('60년');
