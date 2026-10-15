@@ -12,6 +12,7 @@ import type { Saju } from '@/src/lib/saju';
 import { noteTasteStep, readTaste, requestTaste } from './actions';
 import { SelfCard } from '../me/home/self-card';
 import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from '../reading-draft';
+import { tasteDraftOf } from './taste-draft';
 import { SignInCarrying } from '../sign-in-carrying';
 import motion from './taste.module.css';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY_FACE } from '../ui/buttons';
@@ -84,7 +85,7 @@ export function Taste({
         <SelfCard personId={null} label={name || '나'} query={query} saju={saju} reading={null} />
       </div>
 
-      <LockedOutline outline={outline} draft={draft} />
+      <LockedOutline outline={outline} draft={draft} tasteDraft={tasteDraftOf(query)} />
 
       <details id="saju-detail" data-fold="" className="group/detail scroll-mt-24">
         <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-tile border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
@@ -202,8 +203,18 @@ const RISE_STEP_S = 0.35;
  *
  * 셋째 절부터는 이름과 자물쇠뿐이다.
  */
-function LockedOutline({ outline, draft }: { outline: readonly string[]; draft: string }) {
-  const { answer, retry } = useTasteAnswer(draft);
+function LockedOutline({
+  outline,
+  draft,
+  tasteDraft,
+}: {
+  outline: readonly string[];
+  /** 가입 왕복이 들고 가는 입력 — 이름째 */
+  draft: string;
+  /** 문단을 받으러 서버에 보내는 입력 — 이름을 뺀다(`tasteDraftOf`) */
+  tasteDraft: string;
+}) {
+  const { answer, retry } = useTasteAnswer(tasteDraft);
   const first = tasteFirstSectionOf(answer);
   const ready = answer !== null && answer.state === 'ready' ? answer : null;
   /** 글이 선 세션 — 가입 왕복이 들고 가 전체 풀이가 그 글을 잇는다. 글이 안 섰으면 `null` 이다 */
