@@ -13,6 +13,22 @@ import {
   reviewOutcomeLabel,
 } from '../reports/labels';
 import { DENIED, QUERY_MAX, operatorMember, queryOf, type Member, type MemberWarning } from './read';
+import { memberCreditHistory, memberGrantLedger, type MemberGrantLedger, type MemberHistory } from './credits';
+import {
+  HISTORY_FILTERS,
+  HISTORY_MAX,
+  HISTORY_PAGE,
+  historyAmount,
+  historyCause,
+  historyFilterOf,
+  historyKindLabel,
+  historyLimitOf,
+  sourceLabel,
+  type HistoryFilter,
+  type HistoryLine,
+} from './credit-grant';
+import { GrantPanel } from './grant-panel';
+import type { SkippableRead } from '../../db-error';
 import { CARD } from '../../ui/surfaces';
 import { CopyValue } from '../copy-value';
 import { FailureLine } from '../../ui/failure-line';
@@ -42,9 +58,20 @@ export default async function OperatorMembersPage({
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const query = queryOf((await searchParams).q);
+  const params = await searchParams;
+  const query = queryOf(params.q);
   const found = await operatorMember(query);
   if (found === DENIED) notFound();
+
+  const member = found.ok ? found.value?.member ?? null : null;
+  const filter = historyFilterOf(params.history);
+  const limit = historyLimitOf(params.n);
+  const [ledger, history] =
+    member === null
+      ? [null, null]
+      : await Promise.all([memberGrantLedger(member.userId), memberCreditHistory(member.userId, filter, limit)]);
+  if (ledger === DENIED || history === DENIED) notFound();
+  const reportId = reportIdOf(params.report);
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
@@ -86,7 +113,10 @@ export default async function OperatorMembersPage({
       ) : (
         <>
           <Account member={found.value.member} />
-          <Credits member={found.value.member} />
+          <Credits member={found.value.member} ledger={ledger} reportId={reportId} />
+          {history !== null && (
+            <History userId={found.value.member.userId} history={history} filter={filter} limit={limit} />
+          )}
           <Warnings warnings={found.value.warnings} />
         </>
       )}
@@ -117,7 +147,15 @@ function Account({ member }: { member: Member }) {
  * 풀이권 — 묶음과 쓰임 장부의 셈을 그대로 적는다. 화면은 더하거나 빼지 않는다 — 안 쓴 회차의 셈은 환불 셈
  * (`operator_reading_refund_basis`)의 일이다. 승인된 주문의 번호마다 주문 화면(`/ops/orders`, G-110 ②)으로 가는 길이 선다.
  */
-function Credits({ member }: { member: Member }) {
+function Credits({
+  member,
+  ledger,
+  reportId,
+}: {
+  member: Member;
+  ledger: SkippableRead<MemberGrantLedger | null> | null;
+  reportId: string | null;
+}) {
   const { credits } = member;
   return (
     <section aria-labelledby="member-credits" className={`${CARD} flex flex-col gap-3`}>
@@ -147,15 +185,150 @@ function Credits({ member }: { member: Member }) {
           ))}
         </ul>
       )}
+      {ledger === null ? null : !ledger.ok ? (
+        <FailureLine retry>무상 지급분을 읽지 못했습니다.</FailureLine>
+      ) : ledger.value === null ? null : (
+        <>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Count title="무상 지급분" value={ledger.value.granted} unit="장" />
+            <Count title="무상 지급분에서 쓴 것" value={ledger.value.used} />
+            <Count title="무상 지급분 예약 중" value={ledger.value.reserved} />
+            <Count title="회수할 수 있는 수" value={ledger.value.revocable} unit="장" />
+          </dl>
+          <p className="text-xs text-secondary">
+            <span className="rounded-full bg-surface-soft px-2.5 py-1 font-semibold">현금 환불 대상 아님</span> 무상 지급분은
+            환불 셈에 들지 않습니다.
+          </p>
+          <GrantPanel
+            userId={member.userId}
+            nickname={member.nickname}
+            ledger={ledger.value}
+            reserved={ledger.value.reserved}
+            reportId={reportId}
+          />
+        </>
+      )}
     </section>
   );
 }
 
-function Count({ title, value }: { title: string; value: number }) {
+/** 신고 화면에서 넘어온 신고 id — 모양이 틀리면 버린다(DB 가 그 회원의 신고인지 다시 잰다) */
+const reportIdOf = (value: string | string[] | undefined): string | null => {
+  const text = (Array.isArray(value) ? value[0] : value)?.trim() ?? '';
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text) ? text.toLowerCase() : null;
+};
+
+const historyHref = (userId: string, filter: HistoryFilter, limit: number = HISTORY_PAGE): string => {
+  const params = new URLSearchParams({ q: userId });
+  if (filter !== 'all') params.set('history', filter);
+  if (limit > HISTORY_PAGE) params.set('n', String(limit));
+  return `/ops/members?${params.toString()}#member-history`;
+};
+
+/**
+ * 풀이권 이력 — 구매 · 환불 · 사용 · 지급 · 회수를 한 목록에 최근 것부터(G-111 ①). 줄마다 종류 · 출처 · 수 · 증감 사유.
+ * 수는 늘고 준 것만 부호가 있다 — 예약 · 반환은 차감이 아니다. 사용 줄은 무엇을 풀었는지 적지 않는다(ADR 0185 의 2). 구매 ·
+ * 환불 줄은 주문 번호로 주문 화면에 간다 — 금액은 거기서만.
+ */
+function History({
+  userId,
+  history,
+  filter,
+  limit,
+}: {
+  userId: string;
+  history: SkippableRead<MemberHistory>;
+  filter: HistoryFilter;
+  limit: number;
+}) {
+  return (
+    <section aria-labelledby="member-history" className={`${CARD} flex flex-col gap-3`}>
+      <h2 id="member-history" className="text-base font-semibold">
+        풀이권 이력
+      </h2>
+      <nav aria-label="이력 거르기" className="flex flex-wrap gap-2">
+        {HISTORY_FILTERS.map((one) => (
+          <Link
+            key={one.value}
+            href={historyHref(userId, one.value)}
+            aria-current={one.value === filter ? 'true' : undefined}
+            className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm ${
+              one.value === filter
+                ? 'border-foreground bg-foreground font-semibold text-background'
+                : 'border-border bg-surface-soft text-secondary'
+            }`}
+          >
+            {one.label}
+          </Link>
+        ))}
+      </nav>
+      {!history.ok ? (
+        <FailureLine retry>이력을 읽지 못했습니다.</FailureLine>
+      ) : history.value.lines.length === 0 ? (
+        <p className="text-sm text-secondary">풀이권 이력이 없습니다.</p>
+      ) : (
+        <>
+          <ul className="flex flex-col divide-y divide-border">
+            {history.value.lines.map((line, index) => (
+              <HistoryRow key={`${line.at}-${line.kind}-${index}`} line={line} />
+            ))}
+          </ul>
+          {history.value.more && limit < HISTORY_MAX && (
+            <Link
+              href={historyHref(userId, filter, limit + HISTORY_PAGE)}
+              className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline"
+            >
+              더 보기
+            </Link>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function HistoryRow({ line }: { line: HistoryLine }) {
+  const amount = historyAmount(line);
+  return (
+    <li className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold">{historyKindLabel(line.kind)}</span>
+        <span className="rounded-full bg-surface-soft px-2.5 py-1 text-xs font-semibold text-secondary">
+          {sourceLabel(line.source)}
+        </span>
+        {amount !== '' && <span className="font-semibold tabular-nums">{amount}</span>}
+        <span className="text-xs tabular-nums text-muted">{evidenceTime(line.at)}</span>
+      </p>
+      <p className="text-sm text-secondary">{historyCause(line)}</p>
+      {line.note !== null && <p className="break-words text-sm text-secondary">{line.note}</p>}
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        {line.orderNumber !== null && (
+          <Link
+            href={`/ops/orders?order=${encodeURIComponent(line.orderNumber)}`}
+            className="font-mono text-accent underline-offset-4 hover:underline"
+          >
+            {line.orderNumber}
+          </Link>
+        )}
+        {line.actorNickname !== null && <span>실행자 {line.actorNickname}</span>}
+        {line.reportId !== null && (
+          <Link href={`/ops/reports/${line.reportId}`} className="text-accent underline-offset-4 hover:underline">
+            관련 신고 보기
+          </Link>
+        )}
+      </p>
+    </li>
+  );
+}
+
+function Count({ title, value, unit = '회' }: { title: string; value: number; unit?: '회' | '장' }) {
   return (
     <div className="rounded-row bg-surface-soft px-3 py-2">
       <dt className="text-xs text-muted">{title}</dt>
-      <dd className="mt-0.5 text-lg font-bold tabular-nums">{value}회</dd>
+      <dd className="mt-0.5 text-lg font-bold tabular-nums">
+        {value}
+        {unit}
+      </dd>
     </div>
   );
 }

@@ -22,8 +22,12 @@ export type DeniedAction =
   | 'credits.refund_hold'
   | 'credits.refund_book'
   | 'credits.refund_release'
+  | 'credits.grant'
+  | 'credits.revoke'
   | 'members.find'
-  | 'members.warnings';
+  | 'members.warnings'
+  | 'members.credits'
+  | 'members.credit_history';
 
 export async function noteDenial(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,

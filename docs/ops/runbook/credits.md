@@ -21,8 +21,8 @@ group by u.email
 order by 쓴것 desc;
 ```
 
-한 사람에게 더 주려면 상한을 옮긴다. **그 사람만 올릴 수는 없다** — 값이 하나뿐인 것이
-이 설계의 요점이다.
+모두에게 더 주려면 상한을 옮긴다 — 값이 하나뿐인 것이 이 설계의 요점이다. **한 사람에게만** 더 주는 것은 상한이 아니라
+아래 「무상 풀이권 지급 · 회수」다(ADR 0043 · 0187).
 
 ```sql
 create or replace function public.reading_credit_limit()
@@ -46,6 +46,59 @@ returns integer language sql immutable set search_path = '' as $$ select 5 $$;
 **전체 비용은 이 값이 안 막는다.** 사람당 상한일 뿐이라, 초대 인원이 늘면 하루 전체
 상한(`reading_daily_budget()`, `docs/ops/runbook/ai.md` 「AI 비용 한도」)과 OpenAI 쪽 예산을 함께 옮겨야 한다.
 그리고 실패한 시도도 모델은 이미 불렸으므로 「성공 건수 × 인원」이 호출 상한이 아니다.
+
+### 무상 풀이권 지급 · 회수 (G-111 ①, ADR 0187)
+
+**화면이 먼저다** — 회원 화면(`/ops/members?q=<계정 id>`)의 「무상 풀이권 지급」 · 「무상 지급분 회수」. 한 번에 1 ~ 10장, 지급
+갈래는 장애 보상 · 운영 지급, 회수 갈래는 잘못 지급 · 중복 지급 · 기타, 메모 필수(이용자에게는 안 간다). 회수는 운영 지급분의 안
+쓰고 예약도 안 된 것만이다 — 가입 무료분 · 유료 구매분은 줄지 않는다(유료분은 주문 화면의 환불). 지급마다 장애 알림 길에 한 줄,
+지급 · 회수마다 이용자 소식에 한 줄이 간다.
+
+`reading_credit_grant` 를 직접 고치지 않는다 — `extra` 는 지급 장부(`reading_credit_grant_entry`)의 합이고, 직접 고치면 장부와 갈린다.
+화면을 못 쓸 때(break-glass)도 같은 공통 함수(`book_reading_credit_grant`)를 운영자 UUID 와 함께 부르고, moderation.md 「SQL 실행 전 확인」의
+셋을 밟는다.
+
+1. **대상을 먼저 본다** — 계정 상태와 지급 장부의 지금(메모는 안 꺼낸다). 회수면 회수할 수 있는 수도 본다(예약 정리 전의 값이라
+   블록 안에서 다시 잰다).
+
+   ```bash
+   npm run db:remote -- --purpose "무상 지급 전 확인 <계정 앞 8자>" \
+     "select a.id, a.status, (select g.extra from public.reading_credit_grant g where g.user_id = a.id) as extra, (select count(*) from public.reading_credit_grant_entry e where e.user_id = a.id) as 장부줄, public.reading_credit_grant_left(a.id) as 회수가능 from public.app_user a where a.id = '<계정 UUID>'"
+   ```
+
+2. **요청 번호를 먼저 하나 짓고 적어 둔다** — `select gen_random_uuid()` 로 받은 값을 대장에 적는다. 응답이 끊겨 같은 블록을 다시
+   보내도 같은 번호면 한 줄만 선다(블록은 `replayed` 면 되감는다 — 이미 선 것이다).
+3. **검사가 든 블록 하나로 보낸다** — 블록 안에서 부르고 예외 몫이 뜻한 만큼 바뀌었는지 재서, 어긋나면 되감는다. 따옴표 친
+   heredoc 으로 넘긴다(moderation.md 「보내는 모양」).
+
+   ```bash
+   npm run db:remote -- --purpose "무상 지급 <계정 앞 8자> 3장 — 장애 보상" "$(cat <<'SQL'
+   do $$
+   declare
+     who constant uuid := '<계정 UUID>';
+     before integer := coalesce((select g.extra from public.reading_credit_grant g where g.user_id = who), 0);
+     r record;
+     after integer;
+   begin
+     -- 회수면 'revoke', 3 → 걷을 수, 갈래 'mistake' · 'duplicate' · 'other', 관련 신고 인자는 null
+     select * into r from public.book_reading_credit_grant(
+       '<운영자 UUID>', who, 'grant', 3, 'outage', '<메모 — break-glass 대장 번호>', '<2 의 요청 번호>', null);
+     after := coalesce((select g.extra from public.reading_credit_grant g where g.user_id = who), 0);
+     if r.replayed then raise exception '이미 선 요청 번호 — 되감는다(장부 줄 %)', r.entry_id; end if;
+     if after <> before + 3 then raise exception '지급: % → % — 되감는다', before, after; end if;
+   end $$;
+   SQL
+   )"
+   ```
+
+   회수할 수 있는 수보다 많으면 함수가 「회수할 수 있는 지급분보다 많습니다 — 지금 N장입니다.」로 거절한다(되감긴다).
+4. **사유 · 실행자** — 함수가 장부 줄에 갈래 · 메모 · 실행자 UUID · 시각을 남기고, `db:remote` 의 목적이 접속기록에 남는다.
+
+```bash
+# 장부 합 = 예외 몫인가 — 어긋난 계정 수. 0 이어야 한다
+npm run db:remote -- --purpose "무상 지급 장부와 예외 몫의 대조" \
+  "select count(*) as 어긋난_계정 from public.reading_credit_grant g full join (select user_id, sum(case kind when 'grant' then credits else -credits end) as total from public.reading_credit_grant_entry group by user_id) e on e.user_id = g.user_id where coalesce(g.extra, 0) <> coalesce(e.total, 0)"
+```
 
 ### 산 풀이권 — 주문 · 묶음 · 쓰임 · 환불 (G-21 ⑤ ④, ADR 0106)
 

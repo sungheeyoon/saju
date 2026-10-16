@@ -121,7 +121,9 @@ export type Changed =
   /** 경고 안내를 확인했다 — 안내는 `/me` 의 레이아웃에 서므로 그 아래가 전부 따라간다(ADR 0108) */
   | 'warning-acknowledged'
   /** 운영자가 환불을 확보 · 확정 · 준비 취소했다 — 주문 화면(`/ops/orders`)의 진행 상태 · 걷은 회차가 갈린다(ADR 0184) */
-  | 'refund-moved';
+  | 'refund-moved'
+  /** 운영자가 무상 풀이권을 지급 · 회수했다 — 회원 화면(`/ops/members`)의 장부 · 이력이 갈린다(ADR 0187) */
+  | 'credits-granted';
 
 /**
  * 바뀐 것 → 무를 화면.
@@ -146,6 +148,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'signed-up': [{ path: '/me', scope: 'layout' }],
   'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
   'refund-moved': [THIS_SCREEN],
+  'credits-granted': [THIS_SCREEN],
 };
 
 /** 표를 시험이 읽는다 — 적힌 경로가 실재하는 라우트인가를 거기서 잰다 */

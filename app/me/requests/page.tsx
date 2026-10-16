@@ -83,6 +83,8 @@ const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
   request_expired: 'ticket',
   reading_ready: 'reading',
   reading_failed: 'alert',
+  credits_granted: 'ticket',
+  credits_revoked: 'ticket',
 };
 
 /** 되돌아볼 일이 난 사건 — 그림 자리가 위험 색을 입는다(문장이 따로 말하므로 색만으로 말하지 않는다) */

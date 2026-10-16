@@ -120,6 +120,12 @@ export const NOTIFICATION_KINDS = [
    * 다시 골라야 닿는 자리다. **조용한 실패를 남기지 않는다.**
    */
   'reading_failed',
+  /**
+   * 운영자가 무상 풀이권을 지급했다 · 회수했다 — **받은 사람에게 선다**(ADR 0187). 수량과 사유 갈래만 간다 — 운영자의
+   * 메모는 안 간다. 상대가 없는 사건이다.
+   */
+  'credits_granted',
+  'credits_revoked',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -146,7 +152,26 @@ type NotificationEvent = {
    * 「이 알림을 눌러」는 눌리는 줄에만 참이다. 없으면 안 눌리는 줄로 본다
    */
   readonly tappable?: boolean;
+  /** 풀이권 소식(`credits_granted` · `credits_revoked`)의 수량과 갈래. 앱이 DB 보다 먼저 나가면 없다 */
+  readonly credits?: { readonly count: number | null; readonly reason: string | null };
 };
+
+/** 무상 풀이권 소식이 이용자에게 말하는 갈래 — DB 의 `reading_credit_grant_entry.reason` 과 같은 값 */
+const CREDIT_REASON_TEXT: Readonly<Record<string, string>> = {
+  outage: '장애 보상',
+  operator: '운영 지급',
+  mistake: '잘못 지급',
+  duplicate: '중복 지급',
+  other: '기타',
+};
+
+/** 「풀이권 3장이 지급됐어요 — 장애 보상」. 수량 · 갈래를 못 읽으면 그 자리만 비운 문장이다 */
+function creditText(verb: '지급' | '회수', credits: NotificationEvent['credits']): string {
+  const count = credits?.count ?? null;
+  const reason = credits?.reason === null || credits?.reason === undefined ? null : CREDIT_REASON_TEXT[credits.reason] ?? null;
+  const head = count === null ? `풀이권이 ${verb}됐어요` : `풀이권 ${count}장이 ${verb}됐어요`;
+  return reason === null ? head : `${head} — ${reason}`;
+}
 
 /**
  * 알림 한 줄.
@@ -164,10 +189,15 @@ export function notificationText({
   readingKind,
   readingLabels = [null, null],
   tappable = false,
+  credits,
 }: NotificationEvent): string {
   const who = nickname?.trim() ?? '';
 
   switch (kind) {
+    case 'credits_granted':
+      return creditText('지급', credits);
+    case 'credits_revoked':
+      return creditText('회수', credits);
     case 'request_received':
       return who === ''
         ? '상세 궁합을 함께 보자는 요청이 왔어요'

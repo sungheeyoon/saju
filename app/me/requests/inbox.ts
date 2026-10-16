@@ -171,6 +171,8 @@ function destinationFor(
     return `/me/chat/${row.match_id}`;
   }
   if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
+  /* 무상 풀이권의 지급 · 회수는 풀이권 화면으로 — 바뀐 잔액이 거기 선다 */
+  if (kind === 'credits_granted' || kind === 'credits_revoked') return '/me/credits';
   if (kind !== 'reading_failed' && kind !== 'reading_ready') return null;
 
   /*
@@ -276,6 +278,8 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
         /* 앱이 DB 보다 먼저 나가면 두 칸이 안 온다 — 그때는 이름 없는 문장이다 */
         readingLabels: [row.reading_label_a ?? null, row.reading_label_b ?? null],
         tappable: href !== null,
+        /* 앱이 DB 보다 먼저 나가면 두 칸이 안 온다 — 그때는 수량 · 갈래 없는 문장이다 */
+        credits: { count: row.credit_count ?? null, reason: row.credit_reason ?? null },
       }),
       href,
       createdAt: row.created_at,

@@ -133,6 +133,7 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/ops/orders/actions.ts::holdRefund': 'refund-moved',
     'app/ops/orders/actions.ts::bookRefund': 'refund-moved',
     'app/ops/orders/actions.ts::releaseRefund': 'refund-moved',
+    'app/ops/members/actions.ts::bookCreditGrant': 'credits-granted',
     'app/signup/actions.ts::completeSignup': 'signed-up',
   };
 
@@ -282,6 +283,8 @@ describe('브라우저가 화면을 다시 읽는 자리', () => {
       '결제 뒤 화면이 승인을 기다리는 동안만 — 주문을 승인하는 것은 누름이 아니라 웹훅이라 무를 액션이 없다(ADR 0171)',
     'app/me/profile/photo-grid.tsx':
       '거절된 누름만 — 서버가 아무것도 안 무르므로, 다른 탭이 바꾼 목록을 다시 받아 지금 모양을 그린다',
+    'app/ops/members/grant-panel.tsx':
+      '응답을 못 받은 누름만 — 액션이 무른 응답이 오지 않았으므로 지급 · 회수가 섰는지 서버 화면을 다시 읽는다(ADR 0187)',
     'app/ops/orders/refund-form.tsx':
       '응답을 못 받은 누름만 — 액션이 무른 응답이 오지 않았으므로 확보 · 확정 · 준비 취소가 섰는지 서버 화면을 다시 읽는다(ADR 0184)',
     'app/ui/failure-line.tsx':
@@ -331,6 +334,7 @@ describe('표가 가리키는 것', () => {
     'consent-changed': '설문의 「동의하고 설문 열기」가 `/me/survey` 에서 켠다',
     'deck-moved': '덱은 `/me/matching` 에 서고, 응답의 새 목록을 사람 id 로 합친다(ADR 0115)',
     'requests-changed': '차단은 궁합 화면 · 채팅 방 · 지난 요청(`/me/matching/history`)에서도 누른다',
+    'credits-granted': '무상 풀이권 지급 · 회수는 회원 화면(`/ops/members?q=…`)에서만 누른다 — 그 화면의 지급 장부 · 이력이 갈린다(ADR 0187)',
     'refund-moved': '환불의 세 걸음은 주문 화면(`/ops/orders?order=…`)에서만 누른다 — 그 화면의 진행 상태 · 걷은 회차가 갈린다(ADR 0184)',
   };
 
@@ -424,6 +428,7 @@ describe('표의 값은 계약과 글자까지 같다', () => {
     'signed-up': [{ path: '/me', scope: 'layout' }],
     'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
     'refund-moved': [THIS_SCREEN],
+    'credits-granted': [THIS_SCREEN],
   };
 
   it('경로도 순서도 scope 도 계약 그대로다', () => {
