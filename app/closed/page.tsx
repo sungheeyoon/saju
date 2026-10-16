@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { currentSchedule } from '../beta-schedule';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
+import { BUTTON_PRIMARY } from '../ui/buttons';
 import { NoticeScreen } from '../ui/notice-screen';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 import { betaIsOver, betaOverNote } from '@/src/lib/consent';
 
 export const metadata = {
@@ -41,7 +42,8 @@ export default async function ClosedPage() {
 
   /*
     인사하는 자리지만 다른 막힌 화면과 같은 안내 화면의 틀이다(2026-10-09 화면 점검 A5) — 앞서는 넓은 크림 판에 단추가
-    없고 길이 글 안의 밑줄 링크뿐이었다. 글자는 그대로이고 그 두 길(계정 관리 · 처리방침)이 단추가 됐다. 종료와 파기의
+    없고 길이 글 안의 밑줄 링크뿐이었다. 글자는 그대로이고 그 두 길(계정 관리 · 처리방침)이 단추가 됐다. 2026-10-16 에 문의가 고객 문의 이메일을
+    바로 들면서 처리방침 단추는 걷었다 — 그 길은 바닥글에 있다(대장 public-02). 종료와 파기의
     고지라 합니다체를 둔다(ADR 0135 — 이용 제한 · 삭제 · 보존의 고지).
   */
   return (
@@ -50,20 +52,15 @@ export default async function ClosedPage() {
       description={
         <>
           <p>{betaOverNote(notice.dates)}</p>
-          <p>함께해 주셔서 고맙습니다. 남은 문의는 처리방침에 적힌 연락처로 알려 주세요.</p>
+          <p>함께해 주셔서 고맙습니다. 남은 문의는 {SUPPORT_EMAIL}으로 보내 주세요.</p>
           {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
           <p>선택 동의 철회와 탈퇴 신청은 계정 관리에서 계속하실 수 있습니다.</p>
         </>
       }
       actions={
-        <>
-          <Link href="/me/settings" className={BUTTON_PRIMARY}>
-            계정 관리
-          </Link>
-          <Link href="/privacy" className={BUTTON_SECONDARY}>
-            처리방침
-          </Link>
-        </>
+        <Link href="/me/settings" className={BUTTON_PRIMARY}>
+          계정 관리
+        </Link>
       }
     />
   );

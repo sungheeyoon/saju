@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  SUPPORT_EMAIL,
   WARNING_ACKNOWLEDGE_LABEL,
   WARNING_NOTICE_TITLE,
   warningDateLabel,
@@ -21,7 +20,7 @@ describe('경고 안내 — 표 승인 그대로의 줄 넷', () => {
     expect(warningNoticeLines(notice, 'help@example.com')).toEqual([
       '2026년 9월 24일에 괴롭힘이나 위협에 해당하는 이용이 확인되어 경고를 드립니다.',
       '같은 일이 반복되면 이용이 제한될 수 있습니다.',
-      '이 경고에 이의가 있으면 help@example.com로 알려 주세요. 3영업일 안에 답을 드립니다.',
+      '이 경고에 이의가 있으면 help@example.com으로 알려 주세요. 3영업일 안에 답을 드립니다.',
       '문의하실 때 안내번호 W-7K3F를 함께 적어 주세요.',
     ]);
   });
@@ -32,17 +31,13 @@ describe('경고 안내 — 표 승인 그대로의 줄 넷', () => {
     ['other', '운영정책에 어긋나는'],
     ['모르는 값', '운영정책에 어긋나는'],
   ])('갈래 %s 는 「%s 이용」으로 말한다', (category, phrase) => {
-    expect(warningNoticeLines({ ...notice, category })[0]).toBe(
+    expect(warningNoticeLines({ ...notice, category }, 'help@example.com')[0]).toBe(
       `2026년 9월 24일에 ${phrase} 이용이 확인되어 경고를 드립니다.`,
     );
   });
 
-  it('고객 문의 이메일을 안 주면 서버 상수를 쓴다', () => {
-    expect(warningNoticeLines(notice)[2]).toContain(SUPPORT_EMAIL);
-  });
-
   it('경고 횟수 · 판단 근거 · 신고를 말하는 줄이 없다', () => {
-    expect(warningNoticeLines(notice).join(' ')).not.toMatch(/번째|회째|근거|신고/);
+    expect(warningNoticeLines(notice, 'help@example.com').join(' ')).not.toMatch(/번째|회째|근거|신고/);
   });
 
   it('날짜는 문이 준 한국 날짜 그대로다 — 자정 언저리에 밀리지 않는다', () => {
