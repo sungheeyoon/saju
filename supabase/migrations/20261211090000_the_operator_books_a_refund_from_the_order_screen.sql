@@ -28,7 +28,9 @@
 -- 산 사람의 결제 내역(`my_reading_orders`)의 남은 회차도 확보를 뺀다.
 
 -- ---------------------------------------------------------------------------
--- 1. 기록 표와 거절 문이 새 동작을 받는다 — 목록은 `20261116090000` 의 것에 넷을 더했다
+-- 1. 기록 표와 거절 문이 새 동작을 받는다 — 목록은 바로 앞 `20261210090000`(오늘의 숫자 `today.figures`)의 것에 넷을
+--    더했다. 앞 것의 동작을 빠뜨리면 이미 적힌 줄이 검사식에 걸려 이 마이그레이션이 선다. `app_access_names_the_operator` 는
+--    `credits.%` 를 이미 받아 다시 짓지 않는다
 -- ---------------------------------------------------------------------------
 
 alter table audit.operator_access drop constraint operator_access_action_check;
@@ -38,6 +40,7 @@ alter table audit.operator_access add constraint operator_access_action_check
                     'audit.export_status',
                     'survey.overview', 'survey.by_version', 'survey.tags', 'survey.comments',
                     'survey.service_overview', 'survey.service_counts', 'survey.service_texts',
+                    'today.figures',
                     'cli.query', 'cli.result'));
 
 create or replace function public.note_operator_denial(p_action text, p_report_id uuid default null)
@@ -58,7 +61,8 @@ begin
      or p_action not in ('reports.list', 'reports.detail', 'reports.snapshot', 'credits.refund_basis',
                          'credits.refund_status', 'credits.refund_hold', 'credits.refund_book', 'credits.refund_release',
                          'survey.overview', 'survey.by_version', 'survey.tags', 'survey.comments',
-                         'survey.service_overview', 'survey.service_counts', 'survey.service_texts') then
+                         'survey.service_overview', 'survey.service_counts', 'survey.service_texts',
+                         'today.figures') then
     raise exception 'operator: unknown action' using errcode = '22023';
   end if;
 
