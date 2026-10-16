@@ -12,6 +12,7 @@ const OPERATOR_LINKS = [
   { href: '/ops/today', label: '오늘' },
   { href: '/ops/reports', label: '신고' },
   { href: '/ops/survey', label: '설문' },
+  { href: '/ops/orders', label: '주문' },
 ] as const;
 
 /**

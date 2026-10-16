@@ -1690,6 +1690,69 @@ export type Database = {
           },
         ]
       }
+      reading_refund_hold: {
+        Row: {
+          amount: number
+          bundle_id: string
+          closed_at: string | null
+          credits: number
+          held_at: string
+          held_by: string | null
+          id: string
+          order_id: string
+          paid_amount: number
+          provider_order_id: string
+          provider_payment_id: string | null
+          provider_refund_id: string | null
+          reason: string
+          release_note: string | null
+          remaining_amount: number
+          request_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bundle_id: string
+          closed_at?: string | null
+          credits: number
+          held_at?: string
+          held_by?: string | null
+          id?: string
+          order_id: string
+          paid_amount: number
+          provider_order_id: string
+          provider_payment_id?: string | null
+          provider_refund_id?: string | null
+          reason: string
+          release_note?: string | null
+          remaining_amount: number
+          request_id: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bundle_id?: string
+          closed_at?: string | null
+          credits?: number
+          held_at?: string
+          held_by?: string | null
+          id?: string
+          order_id?: string
+          paid_amount?: number
+          provider_order_id?: string
+          provider_payment_id?: string | null
+          provider_refund_id?: string | null
+          reason?: string
+          release_note?: string | null
+          remaining_amount?: number
+          request_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reading_run: {
         Row: {
           check_findings: Json | null
@@ -3388,6 +3451,24 @@ export type Database = {
           pending_rows: number
         }[]
       }
+      operator_book_reading_refund: {
+        Args: { p_hold_id: string; p_provider_refund_id: string }
+        Returns: string
+      }
+      operator_hold_reading_refund: {
+        Args: {
+          p_credits: number
+          p_expected_amount: number
+          p_order_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          amount: number
+          credits: number
+          hold_id: string
+        }[]
+      }
       operator_reading_refund_basis: {
         Args: { p_order_id: string }
         Returns: {
@@ -3400,6 +3481,8 @@ export type Database = {
           last_used_at: string
           order_id: string
           ordered_at: string
+          owner_nickname: string
+          owner_ref: string
           provider: string
           provider_order_id: string
           provider_payment_id: string
@@ -3410,6 +3493,28 @@ export type Database = {
           unused: number
           used: number
         }[]
+      }
+      operator_reading_refund_hold: {
+        Args: { p_order_id: string }
+        Returns: {
+          amount: number
+          booked_refund: number
+          credits: number
+          departed: boolean
+          held_at: string
+          hold_id: string
+          owner_nickname: string
+          owner_ref: string
+          paid_amount: number
+          provider_order_id: string
+          provider_payment_id: string
+          reason: string
+          remaining_amount: number
+        }[]
+      }
+      operator_release_reading_refund: {
+        Args: { p_hold_id: string }
+        Returns: undefined
       }
       operator_report: {
         Args: { p_report_id: string }
@@ -3656,6 +3761,7 @@ export type Database = {
         Returns: Json
       }
       reading_budget_warning: { Args: never; Returns: number }
+      reading_bundle_held: { Args: { p_bundle_id: string }; Returns: number }
       reading_bundle_price: { Args: { p_credits: number }; Returns: number }
       reading_credit_limit: { Args: never; Returns: number }
       reading_credit_limit_for: { Args: { p_user: string }; Returns: number }
@@ -3750,6 +3856,10 @@ export type Database = {
         Returns: undefined
       }
       release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      release_reading_refund_by_hand: {
+        Args: { p_hold_id: string; p_note: string }
+        Returns: undefined
+      }
       remove_my_photo: {
         Args: { p_position: number; p_version?: number }
         Returns: undefined
