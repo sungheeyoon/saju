@@ -1,4 +1,5 @@
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 
 import { AcknowledgeWarning } from './acknowledge';
 import { readWarningNotice } from './notice';
@@ -24,7 +25,7 @@ export async function WarningNotice() {
           {WARNING_NOTICE_TITLE}
         </h2>
         <div className="flex flex-col gap-1 text-body leading-6 text-foreground">
-          {warningNoticeLines(notice).map((line) => (
+          {warningNoticeLines(notice, SUPPORT_EMAIL).map((line) => (
             <p key={line}>{line}</p>
           ))}
         </div>
