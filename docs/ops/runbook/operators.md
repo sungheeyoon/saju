@@ -32,13 +32,14 @@ delete from public.operator where user_id =
 ```
 
 **운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수들과
-신고를 읽는 함수 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, ADR 0103)이고 전부
+신고를 읽는 함수 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, ADR 0103), 회원을 읽는 함수 둘
+(`operator_member` · `operator_member_warnings`, ADR 0185)이고 전부
 읽기만 한다. 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(`docs/ops/runbook/credits.md` 「풀이권」). 이 줄이 사라지면
 `/ops/reports` 도 그 사람에게 없는 화면이 된다.
 
 ### 운영자 로그인 — 구글 간편로그인만 (ADR 0182)
 
-운영 화면(`/ops/reports` · `/ops/survey`)은 **구글로 로그인한 세션이면 2단계 없이** 운영자 문을 부른다 — 운영자인지는 위
+운영 화면(`/ops/today` · `/ops/reports` · `/ops/survey` · `/ops/orders` · `/ops/members`)은 **구글로 로그인한 세션이면 2단계 없이** 운영자 문을 부른다 — 운영자인지는 위
 `public.operator` 줄 하나로 DB(`is_operator()`)가 답하고, 아니면 404 다. 열람 · 거절은 지금처럼 접속기록에 남는다(ADR 0105).
 인증 앱 등록 화면(`/ops/mfa`)은 없다(2026-10-15 걷음, ADR 0123 을 대체).
 

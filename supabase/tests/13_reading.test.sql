@@ -983,6 +983,11 @@ select is(
     'refund_reading_order',
     'release_reading_job',
     /**
+     * 환불 확보를 손으로 푸는 문 — 앱이 PortOne 조회를 못 할 때 운영자가 콘솔을 보고 사유를 남겨 부른다(`20261211090000`,
+     * ADR 0184). 로그인한 사람은 못 부른다 — 운영자의 화면 문은 PortOne 확인을 거친다.
+     */
+    'release_reading_refund_by_hand',
+    /**
      * 결제 이상을 운영자에게 알리는 문(`20261213090000`, G-110 ④) — 종류 · 결제 번호 · ASCII 까닭 한 줄만 받고 결제마다
      * 하루 한 줄이다. 결제 알림의 문이 서명을 맞힌 뒤에만 부른다(`98_payment_trouble_alerts`).
      */
@@ -1016,7 +1021,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 마흔 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔한 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

@@ -1,6 +1,6 @@
 -- 산 풀이권 — 묶음이 결제 주문에 매이고, 어느 쓰임이 어느 몫을 썼는지가 남는다 (G-21 ⑤ ④, ADR 0106)
 --
--- 여기서 재는 것 여섯.
+-- 여기서 재는 것 일곱.
 --
 -- 1. **지금 동작이 그대로다.** 산 몫이 없는 계정은 한도 · 잔액이 전과 같다 — 이 DB 의 모든 계정에 대고 잰다.
 -- 2. **몫을 만드는 길은 서버의 문뿐이다.** 판매는 닫혀 있고, 로그인한 사람은 표에도 승인 문에도 못 닿는다.
@@ -10,8 +10,10 @@
 -- 4. **환불은 안 쓴 것만.** 예약 중인 것은 풀릴 때까지 안 쓴 것이 아니다. 운영자의 읽기는 적힌다.
 -- 5. **두 문이 마지막 한 번을 다투면 하나만** — 두 문이 같은 자물쇠 안에서 센다.
 -- 6. **떠나면** 결제 기록이 따로 5년 남고 일반 표에서는 사라진다.
+-- 7. **무료 · 유료가 함께 있으면** 무료 → 예외 → 먼저 산 묶음. 풀린 무료 · 예외 자리가 묶음보다 먼저 돌아오고,
+--    인연 요청도 같은 순서이며, 무료를 쓰는 동안 묶음의 환불 셈은 안 준다(운영자 요구 2026-10-16).
 begin;
-select plan(60);
+select plan(76);
 
 create or replace function pg_temp.participant(mail text, who text, summary jsonb)
 returns uuid
@@ -510,6 +512,173 @@ select is(
                 (select count(*)::integer from retention.reading_payment where order_id = (select order_id from ord))]),
   array[1, 1],
   '5년이 지난 줄은 지우고 보류가 걸린 줄은 남긴다');
+
+-- ── 7. 무료 · 유료가 함께 있을 때의 순서 ─────────────────────────────────────
+
+/**
+ * 운영자 요구(2026-10-16): 가입 무료분 → 운영자 무상 지급분(grant) → 먼저 산 묶음. 풀이 시작과 인연 요청이
+ * 같은 순서로 예약하고, 실패 · 거절로 풀리면 그 출처로 돌아간다. 3 절은 묶음 하나와 무료를 다 쓴 뒤의 차례를
+ * 잰다 — 여기는 **처음부터 묶음 둘을 쥔 사람**이 무료를 쓰는 동안 묶음이 안 줄고, 풀린 무료 · 예외 자리가
+ * 묶음보다 먼저 돌아오며, 묶음 둘 사이는 산 때가 이른 쪽부터인지를 잰다.
+ *
+ * 승인 문은 한 트랜잭션 안에서 묶음 둘에 같은 `acquired_at` 을 준다. 그래서 **id 가 큰 쪽**을 하루 앞으로
+ * 당겨 「먼저 산 묶음」으로 삼는다 — id 로만 고르면 붉다. 묶음은 걷은 회차만 늘 수 있어(`reading_bundle_moves`)
+ * 이 한 줄 동안만 그 트리거를 끈다.
+ */
+create temporary table pair (
+  jung uuid, han uuid, me uuid, early uuid, late uuid, early_order uuid, late_order uuid, early_no text, late_no text);
+grant select, update on pair to authenticated, service_role;
+
+insert into pair (jung, han)
+select pg_temp.participant('jung-ledger@example.com', '정장', pg_temp.summary(4, 4, 0, 0, 0)),
+       pg_temp.participant('han-ledger@example.com', '한장', pg_temp.summary(0, 0, 4, 4, 0));
+
+insert into public.reading_credit_grant (user_id, extra, note)
+values ((select jung from pair), 1, '시험 — 풀린 예외 자리가 묶음보다 먼저 돌아오는지 잰다');
+
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+update pair set me = public.create_managed_person('동생', null, 'solar', '1994-04-04', '1994-04-04', '09:30',
+  'male', '수원', 'jo', 'localMean', tests.chart(), 'chart-for-tests');
+update pair set early_order = (select order_id from public.open_reading_order(3, 'dev', 'ledger-order-0101')),
+                late_order = (select order_id from public.open_reading_order(3, 'dev', 'ledger-order-0102'));
+
+set local role service_role;
+select public.approve_reading_order((select early_order from pair), 'dev-pay-0101', 12900, 'dev-evt-0101');
+select public.approve_reading_order((select late_order from pair), 'dev-pay-0102', 12900, 'dev-evt-0102');
+
+reset role;
+/** id 가 큰 묶음을 먼저 산 것으로 — 이름도 그쪽으로 맞춘다 */
+update pair p set
+  early = (select b.id from public.reading_bundle b where b.user_id = p.jung order by b.id desc limit 1),
+  late = (select b.id from public.reading_bundle b where b.user_id = p.jung order by b.id asc limit 1),
+  early_order = (select b.order_id from public.reading_bundle b where b.user_id = p.jung order by b.id desc limit 1),
+  late_order = (select b.order_id from public.reading_bundle b where b.user_id = p.jung order by b.id asc limit 1);
+update pair p set
+  early_no = (select o.provider_order_id from public.reading_order o where o.id = p.early_order),
+  late_no = (select o.provider_order_id from public.reading_order o where o.id = p.late_order);
+alter table public.reading_bundle disable trigger reading_bundle_moves;
+update public.reading_bundle set acquired_at = now() - interval '1 day' where id = (select early from pair);
+alter table public.reading_bundle enable trigger reading_bundle_moves;
+
+/** 그 시도 · 요청이 든 묶음 — 먼저 산 것 · 나중 산 것 · 묶음 아님 */
+create or replace function pg_temp.bundle_of_run(run uuid)
+returns text language sql security definer as $$
+  select case u.bundle_id when p.early then 'early' when p.late then 'late' else u.share end
+  from public.reading_credit_use u, pg_temp.pair p where u.run_id = run
+$$;
+
+/** 묶음 둘의 안 쓴 회차 — 운영자 환불 셈 · 산 사람의 결제 내역 · 환불 문이 각자 센다 */
+create or replace function pg_temp.unused_by_basis()
+returns integer[] language plpgsql as $$
+declare seen integer[];
+begin
+  perform pg_temp.acting((select op from pg_temp.folks));
+  select array[(select unused from public.operator_reading_refund_basis((select early_order from pg_temp.pair)) where asked),
+               (select unused from public.operator_reading_refund_basis((select late_order from pg_temp.pair)) where asked)]
+  into seen;
+  perform pg_temp.acting((select jung from pg_temp.pair));
+  return seen;
+end;
+$$;
+
+create or replace function pg_temp.remaining_by_history()
+returns integer[] language sql as $$
+  select array[(select h.remaining from public.my_reading_orders() h where h.provider_order_id = p.early_no),
+               (select h.remaining from public.my_reading_orders() h where h.provider_order_id = p.late_no)]
+  from pg_temp.pair p
+$$;
+
+create temporary table steps (label text, run_id uuid, request_id uuid);
+grant select, insert on steps to authenticated, service_role;
+
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+
+insert into steps
+select 'free-' || n, pg_temp.burn((select me from pair), 'ledger-run-01' || lpad(n::text, 2, '0')), null
+from generate_series(1, tests.reading_credit_limit() - 1) n;
+
+select is(
+  (select array_agg(distinct pg_temp.use_of_run(s.run_id)) from steps s where s.label like 'free-%'),
+  array['free:confirmed'],
+  '묶음 둘을 먼저 사 두었어도 무료 몫부터 쓴다');
+
+select count(*) from public.my_discovery_board();
+insert into steps (label, request_id) values ('ask-han', public.request_match((select han from pair)));
+select is(pg_temp.use_of_request((select request_id from steps where label = 'ask-han')), 'free:reserved',
+  '무료가 남아 있으면 인연 요청도 무료에서 예약한다');
+
+select is(pg_temp.unused_by_basis(), array[3, 3], '무료로 예약하는 동안 두 묶음의 환불 셈은 그대로다');
+
+select pg_temp.acting((select han from pair));
+select public.respond_to_match_request((select request_id from steps where label = 'ask-han'), false);
+select is(pg_temp.use_of_request((select request_id from steps where label = 'ask-han')), 'free:released',
+  '거절되면 무료 예약이 풀린다');
+
+select pg_temp.acting((select jung from pair));
+insert into steps (label, run_id)
+select 'after-refusal', run_id from public.start_reading_run('person', 'ledger-run-0150', (select me from pair));
+select is(pg_temp.use_of_run((select run_id from steps where label = 'after-refusal')), 'free:reserved',
+  '거절로 풀린 무료 자리가 돌아온다 — 묶음에서 먼저 빼지 않는다');
+
+reset role;
+select public.fail_reading_job((select run_id from steps where label = 'after-refusal'), 'provider_error');
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+select is(pg_temp.use_of_run((select run_id from steps where label = 'after-refusal')), 'free:released',
+  '무료로 예약한 풀이가 실패하면 풀린다');
+
+insert into steps select 'after-failure', pg_temp.burn((select me from pair), 'ledger-run-0151'), null;
+select is(pg_temp.use_of_run((select run_id from steps where label = 'after-failure')), 'free:confirmed',
+  '실패로 풀린 무료 자리가 돌아온다 — 산 묶음이 있어도');
+
+reset role;
+select is(
+  (select array[count(*) filter (where u.share = 'free'), count(*) filter (where u.share <> 'free')]::integer[]
+   from public.reading_credit_use u where u.user_id = (select jung from pair) and u.state <> 'released'),
+  array[tests.reading_credit_limit(), 0],
+  '무료를 다 쓸 때까지 예외 · 묶음 몫은 하나도 안 잡혔다');
+
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+select is(pg_temp.unused_by_basis(), array[3, 3], '무료를 다 쓴 때에도 운영자 환불 셈의 안 쓴 회차는 셋 · 셋이다');
+select is(pg_temp.remaining_by_history(), array[3, 3], '산 사람의 결제 내역도 남은 회차 셋 · 셋이다');
+
+set local role service_role;
+select throws_ok(
+  format($$select public.refund_reading_order(%L, 100, 4, 'unused')$$, (select early_order from pair)),
+  '22023', 'reading_order: only unused credits are taken back (3 left)',
+  '환불 문도 먼저 산 묶음의 안 쓴 것을 셋으로 센다');
+select throws_ok(
+  format($$select public.refund_reading_order(%L, 100, 4, 'unused')$$, (select late_order from pair)),
+  '22023', 'reading_order: only unused credits are taken back (3 left)',
+  '나중 산 묶음도 셋이다');
+
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+insert into steps (label, run_id)
+select 'grant-held', run_id from public.start_reading_run('person', 'ledger-run-0152', (select me from pair));
+select is(pg_temp.use_of_run((select run_id from steps where label = 'grant-held')), 'grant:reserved',
+  '무료를 다 쓰면 예외 몫에서 예약한다');
+
+reset role;
+select public.fail_reading_job((select run_id from steps where label = 'grant-held'), 'provider_error');
+set local role authenticated;
+select pg_temp.acting((select jung from pair));
+insert into steps select 'grant-back', pg_temp.burn((select me from pair), 'ledger-run-0153'), null;
+select is(pg_temp.use_of_run((select run_id from steps where label = 'grant-back')), 'grant:confirmed',
+  '실패로 풀린 예외 자리가 돌아온다 — 묶음에서 먼저 빼지 않는다');
+
+insert into steps
+select 'bundle-' || n, pg_temp.burn((select me from pair), 'ledger-run-016' || n), null
+from generate_series(1, 4) n;
+select is(
+  (select array_agg(pg_temp.bundle_of_run(s.run_id) order by s.label) from steps s where s.label like 'bundle-%'),
+  array['early', 'early', 'early', 'late'],
+  '묶음 둘이면 먼저 산 묶음을 다 쓴 뒤에 다음 묶음으로 간다');
+
+select is(pg_temp.unused_by_basis(), array[0, 2], '묶음에서 쓴 만큼만 그 묶음의 환불 셈이 준다');
 
 select * from finish();
 rollback;

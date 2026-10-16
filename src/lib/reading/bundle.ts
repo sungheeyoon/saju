@@ -3,7 +3,7 @@
  *
  * 값을 적는 자리는 DB 다 — 주문 금액은 `reading_bundle_price` 가 정하고, 쓴 수 · 예약 중 수는
  * `operator_reading_refund_basis` 가 내준다. 여기는 그 값을 두고 **판단만** 한다: 1회권과 견준 할인율,
- * 묶음 하나에서 지금 걷을 수 있는 회차. 환불 **금액**의 산식은 없다 — 변호사 검토(G-25 ⑥) 뒤에 선다.
+ * 환불 금액(ADR 0148 — 운영자 주문 화면이 미리 보이고, 확정 금액은 DB 의 `operator_hold_reading_refund` 가 같은 산식으로 정한다).
  *
  * 가격은 2026-09-23 에 사람이 정한 값이다. 주문 금액은 DB 의 가격표가 정하고, 사람이 읽는 가격 · 개수는 모두 이 표에서
  * 온다 — 결제 화면, 약관 제12조 · 제16조, 환불정책의 예시(`src/lib/brand/bundle-prices.ts`). 둘이 같은지는
@@ -70,3 +70,34 @@ export const bundleMark = (credits: number): '추천' | '최대 할인' | null =
  * 다시 짓고, 웹훅 · 정산은 이름을 견주지 않는다. 그래서 단위가 「회」에서 「장」으로 바뀐 날(대장 all-02) 앞의 주문도 「장」으로 읽힌다.
  */
 export const bundleOrderName = (credits: number): string => `풀이권 ${credits}장`;
+
+/**
+ * 가맹점 주문 번호(`rdo_` + 하이픈 뺀 주문 id)에서 주문 id 를 되짚는다 — `open_reading_order` 가 그렇게 짓는다(`20261011090000`).
+ * 운영자가 붙여 넣는 글자라 앞뒤 빈칸과 대문자는 받는다. 그 모양이 아니면 `null` 이다.
+ */
+export function readingOrderIdOf(orderNumber: string): string | null {
+  const hex = /^rdo_([0-9a-f]{32})$/.exec(orderNumber.trim().toLowerCase())?.[1];
+  if (!hex) return null;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** 환불 금액을 셈할 묶음 하나의 값 — `operator_reading_refund_basis` 의 한 줄에서 온다 */
+export type RefundLedger = {
+  /** 실제 결제액(원) */
+  readonly paid: number;
+  /** 산 회차 */
+  readonly credits: number;
+  /** 이미 걷은 회차 */
+  readonly refundedCredits: number;
+  /** 이미 돌려준 금액(원) */
+  readonly refundedAmount: number;
+};
+
+/**
+ * 이번에 `take` 장을 걷을 때 돌려줄 금액(원) — ADR 0148 의 누적 산식이다: `결제액 × (이미 걷은 회차 + 이번 회차) ÷ 산 회차`를
+ * 원 아래 버림한 뒤 이미 돌려준 금액을 뺀다. 그래서 나눠 돌려줘도 묶음을 다 걷으면 합이 결제액과 같고 넘지 않는다.
+ * 걷을 수 있는 회차(안 쓴 것)를 가리는 것은 이 함수가 아니다 — DB 가 거절한다.
+ */
+export function refundOwed(ledger: RefundLedger, take: number): number {
+  return Math.floor((ledger.paid * (ledger.refundedCredits + take)) / ledger.credits) - ledger.refundedAmount;
+}
