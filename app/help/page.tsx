@@ -118,8 +118,7 @@ const GROUPS: readonly {
       {
         id: 'contact',
         q: '더 묻고 싶은 것이 있어요.',
-        a: [`궁금한 점은 ${SUPPORT_EMAIL} 으로 보내 주세요.`],
-        link: { href: '/privacy', label: '처리방침' },
+        a: [`궁금한 점은 ${SUPPORT_EMAIL}으로 보내 주세요.`],
       },
     ],
   },

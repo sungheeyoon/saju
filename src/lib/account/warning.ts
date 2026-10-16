@@ -51,7 +51,7 @@ export function warningNoticeLines(notice: WarningNotice, supportEmail: string):
   return [
     `${warningDateLabel(notice.warnedOn)}에 ${phraseOf(notice.category)} 이용이 확인되어 경고를 드립니다.`,
     '같은 일이 반복되면 이용이 제한될 수 있습니다.',
-    `이 경고에 이의가 있으면 ${supportEmail}로 알려 주세요. 3영업일 안에 답을 드립니다.`,
+    `이 경고에 이의가 있으면 ${supportEmail}으로 알려 주세요. 3영업일 안에 답을 드립니다.`,
     `문의하실 때 안내번호 ${notice.ref}를 함께 적어 주세요.`,
   ];
 }
