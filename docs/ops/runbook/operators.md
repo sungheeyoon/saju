@@ -32,7 +32,8 @@ delete from public.operator where user_id =
 ```
 
 **운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수들과
-신고를 읽는 함수 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, ADR 0103)이고 전부
+신고를 읽는 함수 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, ADR 0103), 회원을 읽는 함수 둘
+(`operator_member` · `operator_member_warnings`, ADR 0185)이고 전부
 읽기만 한다. 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(`docs/ops/runbook/credits.md` 「풀이권」). 이 줄이 사라지면
 `/ops/reports` 도 그 사람에게 없는 화면이 된다.
 

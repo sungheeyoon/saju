@@ -11,6 +11,7 @@ import { Logo } from '../ui/logo';
 const OPERATOR_LINKS = [
   { href: '/ops/reports', label: '신고' },
   { href: '/ops/survey', label: '설문' },
+  { href: '/ops/members', label: '회원' },
 ] as const;
 
 /**
