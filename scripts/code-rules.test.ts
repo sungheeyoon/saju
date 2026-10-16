@@ -17,7 +17,7 @@ import { basename, dirname, extname, join, relative, resolve, sep } from 'node:p
 import ts from 'typescript';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { SUPPORT_EMAIL } from '../src/lib/account';
+import { SUPPORT_EMAIL } from '../src/lib/brand';
 
 import { ON_DEMAND_SECTION, TABLE_COLUMNS, linksOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
@@ -1470,18 +1470,11 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
   });
 
   /**
-   * 경고 안내는 이의 제기의 길로 고객 문의 이메일을 이용자에게 말한다(ADR 0108). 그 주소는 사업자등록 뒤에 서므로(G-25 ㉡)
-   * 지금은 자리 표시다 — 공개 출시로 옮기는 날 채우지 않았으면 여기서 붉다.
+   * 경고 안내 · 바닥글 · 약관 · 환불 줄은 고객 문의 이메일을 이용자에게 말한다(ADR 0108 · 0172 덧). 주소는 상수 하나다 —
+   * 자리 표시로 되돌리면 여기서 붉다.
    */
-  it('공개 출시에는 고객 문의 이메일이 자리 표시가 아니라 주소다 (ADR 0108)', () => {
-    const [stage] = stagesOfPrd().filter((one) => one.current).map((one) => one.name);
-    if (TIER_THREE_LOCKED[stage]) {
-      expect(SUPPORT_EMAIL, 'src/lib/account/warning.ts 의 SUPPORT_EMAIL 을 채운다(G-25 ㉡)').toMatch(
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      );
-    } else {
-      expect(SUPPORT_EMAIL.length).toBeGreaterThan(0);
-    }
+  it('고객 문의 이메일은 자리 표시가 아니라 주소다 (ADR 0172)', () => {
+    expect(SUPPORT_EMAIL, 'src/lib/brand/index.ts 의 SUPPORT_EMAIL').toMatch(/^[^\s@［\[]+@[^\s@]+\.[^\s@]+$/);
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */
