@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { RpcRow } from '@/src/lib/db';
 
-import { orderLineOf, refundForAllUnused } from './read';
+import { orderLineOf, refundForAllUnused, refundHoldOf } from './read';
 
 const row = (over: Partial<RpcRow<'operator_reading_refund_basis'>> = {}): RpcRow<'operator_reading_refund_basis'> => ({
   order_id: '0f1e2d3c-4b5a-4968-8776-655443322110',
@@ -53,5 +53,27 @@ describe('주문 화면의 문', () => {
   it('이미 나눠 돌려준 주문은 누적으로 셈한다 — 남은 몫을 다 걷으면 합이 결제액이다', () => {
     const line = orderLineOf(row({ status: 'partially_refunded', refunded_amount: 2950, refunded_credits: 1, unused: 16 }));
     expect(2950 + refundForAllUnused(line)).toBe(Math.floor((59000 * 17) / 20));
+  });
+
+  it('진행 중인 환불은 확보한 금액 · 취소 후 잔액 · 거래 번호와 함께 옮긴다', () => {
+    expect(
+      refundHoldOf({
+        hold_id: 'h-1',
+        credits: 2,
+        amount: 8600,
+        reason: 'unused',
+        held_at: '2026-10-16T05:10:00Z',
+        provider_payment_id: null as unknown as string,
+        remaining_amount: 4300,
+      }),
+    ).toEqual({
+      holdId: 'h-1',
+      credits: 2,
+      amount: 8600,
+      reason: 'unused',
+      heldAt: '2026-10-16T05:10:00Z',
+      paymentId: null,
+      remainingAmount: 4300,
+    });
   });
 });

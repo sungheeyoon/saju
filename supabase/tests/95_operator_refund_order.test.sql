@@ -1,16 +1,18 @@
--- 운영자가 주문 화면에서 환불을 적는다 (`20261211090000`, G-110 ②, ADR 0184)
+-- 운영자 환불 — 확보 → 확정 · 준비 취소 (`20261211090000`, G-110 ②, ADR 0184)
 --
--- 여기서 재는 것 다섯.
+-- 여기서 재는 것 여섯.
 --
--- 1. **운영자만** — 산 사람 자신도 못 부른다(`42501`)
--- 2. **금액은 DB 가 다시 셈한다** — ADR 0148 의 누적 산식과 다른 금액은 적지 않는다. 나눠 돌려줘도 합이 결제액을 넘지 않는다
--- 3. **안 쓴 것만 · 취소 번호 필수 · 닫힌 주문 거절** — 쓴 회차 · 빈 번호 · 결제 전 주문은 거절된다
--- 4. **같은 취소 번호는 한 번** — 같은 회차 · 사유면 재시도, 다르면 거절
--- 5. **접속기록** — 적을 때마다 `credits.refund` 한 줄(주문 id 만), 운영자가 아니면 거절 한 줄
+-- 1. **운영자만** — 산 사람 자신도 못 부르고, 그 거절이 따로 남는다(`42501`)
+-- 2. **확보한 회차는 이용자가 못 쓴다** — 한도(`reading_credit_limit_for`)가 그만큼 줄고, 다음 쓰임의 몫 고르기
+--    (`pick_reading_credit_share`)가 그 묶음을 건너뛰며, 서버 열쇠의 환불도 그 회차를 걷지 못한다. 풀면 돌아온다
+-- 3. **금액은 확보할 때 정한다** — ADR 0148 의 누적 산식. 나눠 돌려줘도 누적으로 셈한다
+-- 4. **진행 중은 주문마다 하나 · 안 쓴 것만 · 닫힌 주문 거절**
+-- 5. **확정은 한 번** — 같은 취소 번호면 재시도, 다른 번호 · 빈 번호 · 준비 취소된 확보는 거절. 확정된 확보는 풀지 못한다
+-- 6. **접속기록** — 진행 상태 · 확보 · 확정 · 준비 취소가 동작마다 남는다(주문 id 만)
 --
--- 산식에서 `b.refunded_credits` 를 빼면(누적이 아니라 이번 회차만 셈하면) 둘째 환불이, 운영자 판정을 빼면 1 이 붉다.
+-- 한도에서 확보를 빼지 않으면(`reading_credit_shares`) 2 의 한도 줄이, 몫 고르기에서 빼지 않으면 묶음 줄이 붉다.
 begin;
-select plan(17);
+select plan(31);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -45,83 +47,165 @@ select is(
   (select outcome from public.approve_reading_order(
      (select order_id from ord where label = 'three'), 'tx-refund-3', 12900, 'whk-refund-3')),
   'applied',
-  '준비 — 3회 주문(12,900원)이 승인된다');
+  '준비 — 3회 주문(12,900원)이 먼저 승인된다');
 select is(
   (select outcome from public.approve_reading_order(
      (select order_id from ord where label = 'one'), 'tx-refund-1', 4900, 'whk-refund-1')),
   'applied',
-  '준비 — 1회 주문(4,900원)이 승인된다');
+  '준비 — 1회 주문(4,900원)이 뒤에 승인된다');
 
--- 3회 묶음에서 하나를 쓴다 — 표는 밖에서 못 쓰므로 소유자 권한으로
+-- 무료 몫을 다 쓰고 3회 묶음에서 하나를 쓴다 — 다음 쓰임이 묶음으로 가게. 표는 밖에서 못 쓰므로 소유자 권한으로
 reset role;
+-- 두 묶음이 같은 트랜잭션의 같은 시각에 섰다 — 3회 묶음을 앞으로 당겨 차례를 정한다(묶음 트리거는 걷은 회차만 받는다)
+alter table public.reading_bundle disable trigger reading_bundle_moves;
+update public.reading_bundle set acquired_at = acquired_at - interval '1 minute'
+where order_id = (select order_id from ord where label = 'three');
+alter table public.reading_bundle enable trigger reading_bundle_moves;
+insert into public.reading_credit_use (user_id, share, source, state, confirmed_at)
+select (select buyer from folks), 'free', 'run', 'confirmed', now()
+from generate_series(1, tests.reading_credit_limit());
 insert into public.reading_credit_use (user_id, share, bundle_id, source, state, confirmed_at)
 select (select buyer from folks), 'bundle', b.id, 'run', 'confirmed', now()
 from public.reading_bundle b where b.order_id = (select order_id from ord where label = 'three');
+
+create temporary table seen (label text, n integer, id uuid);
+grant select, insert on seen to authenticated, service_role;
+insert into seen values ('limit', public.reading_credit_limit_for((select buyer from folks)), null);
 
 -- ── 1. 운영자만 ───────────────────────────────────────────────────────────────
 
 set local role authenticated;
 select pg_temp.acting((select buyer from folks));
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 4300, 'unused', 'pg-cancel-1')$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused')$$,
          (select order_id from ord where label = 'three')),
-  '42501', null, '산 사람 자신도 환불을 적지 못한다');
+  '42501', null, '산 사람 자신도 환불을 준비하지 못한다');
+select throws_ok(
+  format($$select * from public.operator_reading_refund_hold(%L)$$, (select order_id from ord where label = 'three')),
+  '42501', null, '진행 상태도 운영자만 읽는다');
 select lives_ok(
-  $$select public.note_operator_denial('credits.refund')$$,
+  $$select public.note_operator_denial('credits.refund_hold')$$,
   '앱의 문이 그 거절을 따로 적는다');
 
--- ── 3. 안 쓴 것만 · 취소 번호 필수 · 닫힌 주문 거절 ────────────────────────────
+-- ── 4. 안 쓴 것만 · 닫힌 주문 거절 ─────────────────────────────────────────────
 
 select pg_temp.acting((select op from folks));
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 4300, 'unused', '  ')$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 3, 'unused')$$,
          (select order_id from ord where label = 'three')),
-  '22023', 'PG 취소 번호를 적어 주세요.', 'PG 취소 번호 없이는 적지 않는다');
+  '22023', '걷을 수 있는 회차는 2장입니다.', '쓴 회차는 잠그지 못한다 — 안 쓴 것은 둘이다');
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 3, 12900, 'unused', 'pg-cancel-1')$$,
-         (select order_id from ord where label = 'three')),
-  '22023', '걷을 수 있는 회차는 2장입니다.', '쓴 회차는 걷지 못한다 — 안 쓴 것은 둘이다');
-select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 5000, 'pending', 'pg-cancel-x')$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused')$$,
          (select order_id from ord where label = 'pending')),
   '55000', '환불할 수 없는 상태의 주문입니다.', '결제 전 주문은 환불하지 못한다');
 
--- ── 2. 금액은 DB 가 다시 셈한다 ───────────────────────────────────────────────
+reset role;
+select is(
+  (select bundle_id from public.pick_reading_credit_share((select buyer from folks))),
+  (select id from public.reading_bundle where order_id = (select order_id from ord where label = 'three')),
+  '확보 전 — 다음 쓰임은 먼저 산 3회 묶음의 안 쓴 자리로 간다');
 
+-- ── 3. 확보 — 금액은 여기서 정한다 ─────────────────────────────────────────────
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+insert into seen
+select 'hold-a', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 2, 'unused') h;
+select is((select n from seen where label = 'hold-a'), 8600, '안 쓴 둘을 잠그고 금액을 정한다 — 12,900 × 2 ÷ 3 = 8,600원');
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 4900, 'unused', 'pg-cancel-1')$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused')$$,
          (select order_id from ord where label = 'three')),
-  '22023', '환불 금액이 4300원으로 바뀌었습니다. 새로 읽고 다시 확인해 주세요.',
-  '1회권 정가(4,900원)로 셈한 금액은 적지 않는다 — 12,900 × 1 ÷ 3 = 4,300원');
+  '55000', '이 주문에는 진행 중인 환불이 있습니다.', '같은 주문에 진행 중인 확보는 하나뿐이다');
 select is(
-  public.operator_refund_reading_order((select order_id from ord where label = 'three'), 1, 4300, 'unused', 'pg-cancel-1'),
-  'partially_refunded',
-  '안 쓴 하나를 걷고 4,300원을 적는다');
+  (select array[credits, amount, remaining_amount]
+   from public.operator_reading_refund_hold((select order_id from ord where label = 'three'))),
+  array[2, 8600, 4300],
+  '화면을 다시 열어도 진행 중인 확보가 선다 — 회차 · 금액 · 취소 후 잔액');
 
--- ── 4. 같은 취소 번호는 한 번 ─────────────────────────────────────────────────
+-- ── 2. 확보한 회차는 이용자가 못 쓴다 ──────────────────────────────────────────
 
+reset role;
 select is(
-  public.operator_refund_reading_order((select order_id from ord where label = 'three'), 1, 4300, 'unused', 'pg-cancel-1'),
-  'partially_refunded',
-  '같은 취소 번호 · 회차 · 사유로 다시 눌러도 한 번만 적힌다');
+  public.reading_credit_limit_for((select buyer from folks)),
+  (select n from seen where label = 'limit') - 2,
+  '확보하면 한도가 잠근 둘만큼 준다 — 풀이 시작 · 인연 요청이 이 한도로 막힌다');
+select is(
+  (select bundle_id from public.pick_reading_credit_share((select buyer from folks))),
+  (select id from public.reading_bundle where order_id = (select order_id from ord where label = 'one')),
+  '다음 쓰임은 잠긴 3회 묶음을 건너뛰고 1회 묶음으로 간다');
+set local role authenticated;
+select pg_temp.acting((select buyer from folks));
+select is(
+  (select remaining from public.my_reading_orders() m where m.bundle_credits = 3),
+  0,
+  '산 사람의 결제 내역에서도 잠긴 회차는 남은 것이 아니다');
+
+set local role service_role;
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 4300, 'withdrawal', 'pg-cancel-1')$$,
+  format($$select public.refund_reading_order(%L, 4300, 1, 'unused', 'sql-refund-1')$$,
          (select order_id from ord where label = 'three')),
-  '22023', '이 PG 취소 번호는 다른 환불에 이미 적혔습니다.', '같은 취소 번호에 다른 사유는 거절한다');
+  '22023', null, '서버 열쇠의 환불도 잠긴 회차를 걷지 못한다');
 
--- 둘째 환불 — 누적 산식: 12,900 × 2 ÷ 3 = 8,600 에서 이미 돌려준 4,300 을 뺀다
+-- ── 준비 취소 ─────────────────────────────────────────────────────────────────
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+select lives_ok(
+  format($$select public.operator_release_reading_refund(%L)$$, (select id from seen where label = 'hold-a')),
+  '확정 전에는 준비를 취소한다');
 select is(
-  public.operator_refund_reading_order((select order_id from ord where label = 'three'), 1, 4300, 'unused', 'pg-cancel-2'),
-  'partially_refunded',
-  '나눠 돌려주면 누적으로 셈한다 — 둘째도 4,300원');
+  (select count(*)::integer from public.operator_reading_refund_hold((select order_id from ord where label = 'three'))),
+  0,
+  '준비를 취소하면 진행 중인 것이 없다');
 select throws_ok(
-  format($$select public.operator_refund_reading_order(%L, 1, 4300, 'unused', 'pg-cancel-3')$$,
-         (select order_id from ord where label = 'three')),
-  '22023', '걷을 수 있는 회차는 0장입니다.', '다 걷은 뒤에는 더 걷지 못한다 — 쓴 하나는 남는다');
+  format($$select public.operator_book_reading_refund(%L, 'pg-cancel-0')$$, (select id from seen where label = 'hold-a')),
+  '55000', '준비가 취소된 환불입니다. 다시 준비해 주세요.', '준비 취소된 확보는 확정하지 못한다');
+
+reset role;
 select is(
-  public.operator_refund_reading_order((select order_id from ord where label = 'one'), 1, 4900, 'withdrawal', 'pg-cancel-4'),
-  'refunded',
-  '안 쓴 1회권은 결제액 전부를 돌려주고 주문이 닫힌다');
+  public.reading_credit_limit_for((select buyer from folks)),
+  (select n from seen where label = 'limit'),
+  '풀면 잠갔던 회차가 한도로 돌아온다');
+
+-- ── 5. 확정은 한 번 ───────────────────────────────────────────────────────────
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+insert into seen
+select 'hold-b', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 1, 'unused') h;
+select is((select n from seen where label = 'hold-b'), 4300, '하나를 다시 준비한다 — 12,900 × 1 ÷ 3 = 4,300원');
+select throws_ok(
+  format($$select public.operator_book_reading_refund(%L, '  ')$$, (select id from seen where label = 'hold-b')),
+  '22023', 'PG 취소 번호를 적어 주세요.', 'PG 취소 번호 없이는 확정하지 않는다');
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-b'), 'pg-cancel-1'),
+  'partially_refunded',
+  '취소 번호로 확정하면 장부에 4,300원이 적힌다');
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-b'), 'pg-cancel-1'),
+  'partially_refunded',
+  '같은 취소 번호로 다시 눌러도 한 번만 적힌다');
+select throws_ok(
+  format($$select public.operator_book_reading_refund(%L, 'pg-cancel-9')$$, (select id from seen where label = 'hold-b')),
+  '22023', '이 환불은 다른 PG 취소 번호로 이미 적혔습니다.', '확정된 확보에 다른 취소 번호는 거절한다');
+select throws_ok(
+  format($$select public.operator_release_reading_refund(%L)$$, (select id from seen where label = 'hold-b')),
+  '55000', '이미 장부에 적힌 환불입니다.', '확정된 확보는 풀지 못한다');
+
+-- 둘째 — 누적 산식: 12,900 × 2 ÷ 3 = 8,600 에서 이미 돌려준 4,300 을 뺀다
+insert into seen
+select 'hold-c', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 1, 'withdrawal') h;
+select is((select n from seen where label = 'hold-c'), 4300, '나눠 돌려주면 누적으로 셈한다 — 둘째도 4,300원');
+select throws_ok(
+  format($$select public.operator_book_reading_refund(%L, 'pg-cancel-1')$$, (select id from seen where label = 'hold-c')),
+  '22023', '이 PG 취소 번호는 이 주문의 다른 환불에 이미 적혔습니다.', '앞 환불의 취소 번호로 다른 확보를 확정하지 못한다');
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-c'), 'pg-cancel-2'),
+  'partially_refunded',
+  '둘째를 확정한다');
 
 reset role;
 select is(
@@ -132,17 +216,20 @@ select is(
   array[2, 8600, 2],
   '3회 주문의 장부 — 걷은 둘 · 돌려준 8,600원 · 환불 줄 둘(재시도는 줄을 더하지 않았다)');
 
--- ── 5. 접속기록 ───────────────────────────────────────────────────────────────
+-- ── 6. 접속기록 ───────────────────────────────────────────────────────────────
 
 select is(
-  (select count(*)::integer from audit.operator_access a
-   where a.actor_user_id = (select op from folks) and a.action = 'credits.refund' and a.outcome = 'allowed'
-     and a.filter_summary in (select 'order=' || order_id from ord)),
-  4,
-  '적은 셋과 재시도 하나가 줄마다 남고 거절된 시도는 되감긴다 — 거른 조건 칸에는 주문 id 만');
+  (select array_agg(a.action || ':' || n order by a.action)
+   from (select action, count(*)::text as n from audit.operator_access
+         where actor_user_id = (select op from folks) and outcome = 'allowed'
+           and action like 'credits.refund\_%' and action <> 'credits.refund_basis'
+           and filter_summary = 'order=' || (select order_id from ord where label = 'three')
+         group by action) a),
+  array['credits.refund_book:3', 'credits.refund_hold:3', 'credits.refund_release:1', 'credits.refund_status:2'],
+  '진행 상태 · 확보 · 확정 · 준비 취소가 동작마다 남고 거절된 시도는 되감긴다 — 거른 조건 칸에는 주문 id 만');
 select is(
   (select count(*)::integer from audit.operator_access a
-   where a.actor_user_id = (select buyer from folks) and a.action = 'credits.refund' and a.outcome = 'denied'),
+   where a.actor_user_id = (select buyer from folks) and a.action = 'credits.refund_hold' and a.outcome = 'denied'),
   1,
   '운영자가 아닌 사람의 시도는 거절 한 줄로 남는다');
 

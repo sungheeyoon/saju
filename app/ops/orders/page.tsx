@@ -26,7 +26,8 @@ export const metadata = {
  * 찾는 것은 주문 번호(`rdo_…`)뿐이다 — 이메일로 주문을 찾지 않는다(런북 「수동 환불」). 찾은 주문과 같은 계정의 다른 주문이
  * 함께 서지만 그 계정이 누구인지는 안 보인다.
  *
- * 환불은 PG 취소를 부르지 않는다. 금액이 셈해져 서고, 운영자가 PortOne 콘솔에서 취소한 뒤 취소 번호를 적어 장부에 적는다.
+ * 환불은 세 걸음이다 — 화면에서 준비(회차를 잠그고 금액을 확정) → PortOne 콘솔에서 취소 → 취소 번호로 장부에 확정. 화면은 PG
+ * 취소를 부르지 않는다.
  */
 export default async function OperatorOrdersPage({
   searchParams,
@@ -81,7 +82,7 @@ export default async function OperatorOrdersPage({
         <p className={`${CARD} text-sm text-secondary`}>이 번호의 주문이 없습니다.</p>
       ) : (
         <>
-          <Asked line={found.value.asked} />
+          <Asked line={found.value.asked} hold={found.value.hold} />
           {found.value.others.length > 0 && <Others lines={found.value.others} />}
         </>
       )}

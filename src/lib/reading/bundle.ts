@@ -3,7 +3,7 @@
  *
  * 값을 적는 자리는 DB 다 — 주문 금액은 `reading_bundle_price` 가 정하고, 쓴 수 · 예약 중 수는
  * `operator_reading_refund_basis` 가 내준다. 여기는 그 값을 두고 **판단만** 한다: 1회권과 견준 할인율,
- * 환불 금액(ADR 0148 — 운영자 주문 화면이 보이고, DB 의 `operator_refund_reading_order` 가 같은 산식으로 다시 셈한다).
+ * 환불 금액(ADR 0148 — 운영자 주문 화면이 미리 보이고, 확정 금액은 DB 의 `operator_hold_reading_refund` 가 같은 산식으로 정한다).
  *
  * 가격은 2026-09-23 에 사람이 정한 값이다. 주문 금액은 DB 의 가격표가 정하고, 사람이 읽는 가격 · 개수는 모두 이 표에서
  * 온다 — 결제 화면, 약관 제12조 · 제16조, 환불정책의 예시(`src/lib/brand/bundle-prices.ts`). 둘이 같은지는

@@ -120,8 +120,8 @@ export type Changed =
   | 'signed-up'
   /** 경고 안내를 확인했다 — 안내는 `/me` 의 레이아웃에 서므로 그 아래가 전부 따라간다(ADR 0108) */
   | 'warning-acknowledged'
-  /** 운영자가 환불을 장부에 적었다 — 주문 화면(`/ops/orders`)의 상태 · 걷은 회차가 갈린다(ADR 0184) */
-  | 'refund-booked';
+  /** 운영자가 환불을 확보 · 확정 · 준비 취소했다 — 주문 화면(`/ops/orders`)의 진행 상태 · 걷은 회차가 갈린다(ADR 0184) */
+  | 'refund-moved';
 
 /**
  * 바뀐 것 → 무를 화면.
@@ -145,7 +145,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'pair-opened': [{ path: '/me/compat' }],
   'signed-up': [{ path: '/me', scope: 'layout' }],
   'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
-  'refund-booked': [THIS_SCREEN],
+  'refund-moved': [THIS_SCREEN],
 };
 
 /** 표를 시험이 읽는다 — 적힌 경로가 실재하는 라우트인가를 거기서 잰다 */

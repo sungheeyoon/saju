@@ -2,11 +2,14 @@ import Link from 'next/link';
 
 import { CARD } from '../../ui/surfaces';
 import { orderStatusLabel, seoulTime, won } from './labels';
-import { refundForAllUnused, type OrderLine } from './read';
-import { RefundForm } from './refund-form';
+import { refundForAllUnused, type OrderLine, type RefundHold } from './read';
+import { HoldPanel, PrepareForm } from './refund-form';
 
-/** 찾은 주문 — 결제 · 묶음 · 쓰임과 환불 폼 */
-export function Asked({ line }: { line: OrderLine }) {
+/**
+ * 찾은 주문 — 결제 · 묶음 · 쓰임과 환불의 한 걸음(G-110 ②, ADR 0184). 진행 중인 환불이 있으면 그것을 이어서 확정하는 판이,
+ * 없으면 준비하는 폼이 선다 — 같은 주문에 진행 중인 환불은 하나뿐이다.
+ */
+export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null }) {
   const bundle = line.bundle;
   return (
     <section aria-label="찾은 주문" className={`${CARD} flex flex-col gap-5`}>
@@ -33,8 +36,8 @@ export function Asked({ line }: { line: OrderLine }) {
           <>
             <dt className="text-muted">회차</dt>
             <dd className="tabular-nums">
-              산 {bundle.credits} · 쓴 {bundle.used} · 예약 중 {bundle.reserved} · 걷은 {bundle.refundedCredits} · 안 쓴{' '}
-              <strong>{bundle.unused}</strong>
+              산 {bundle.credits} · 쓴 {bundle.used} · 예약 중 {bundle.reserved} · 걷은 {bundle.refundedCredits}
+              {hold !== null && ` · 환불 진행 중 ${hold.credits}`} · 안 쓴 <strong>{bundle.unused}</strong>
             </dd>
             <dt className="text-muted">유효기간</dt>
             <dd className="tabular-nums">{bundle.validUntil}까지</dd>
@@ -42,7 +45,11 @@ export function Asked({ line }: { line: OrderLine }) {
         )}
       </dl>
 
-      {bundle === null ? (
+      {hold !== null ? (
+        <div className="border-t border-border pt-5">
+          <HoldPanel hold={hold} orderNumber={line.orderNumber} paid={line.amount} />
+        </div>
+      ) : bundle === null ? (
         <p className="text-sm text-secondary">결제되지 않은 주문이라 환불할 것이 없습니다.</p>
       ) : bundle.unused === 0 ? (
         <p className="text-sm text-secondary">
@@ -58,7 +65,7 @@ export function Asked({ line }: { line: OrderLine }) {
             안 쓴 {bundle.unused}장을 다 걷으면 {won(refundForAllUnused(line))}입니다.
             {bundle.reserved > 0 && ` 예약 중 ${bundle.reserved}장은 풀린 뒤에 걷을 수 있습니다.`}
           </p>
-          <RefundForm
+          <PrepareForm
             orderId={line.orderId}
             paid={line.amount}
             refundedAmount={line.refundedAmount}

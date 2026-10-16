@@ -1690,6 +1690,63 @@ export type Database = {
           },
         ]
       }
+      reading_refund_hold: {
+        Row: {
+          amount: number
+          bundle_id: string
+          closed_at: string | null
+          credits: number
+          held_at: string
+          held_by: string | null
+          id: string
+          order_id: string
+          provider_refund_id: string | null
+          reason: string
+          state: string
+        }
+        Insert: {
+          amount: number
+          bundle_id: string
+          closed_at?: string | null
+          credits: number
+          held_at?: string
+          held_by?: string | null
+          id?: string
+          order_id: string
+          provider_refund_id?: string | null
+          reason: string
+          state?: string
+        }
+        Update: {
+          amount?: number
+          bundle_id?: string
+          closed_at?: string | null
+          credits?: number
+          held_at?: string
+          held_by?: string | null
+          id?: string
+          order_id?: string
+          provider_refund_id?: string | null
+          reason?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_refund_hold_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "reading_bundle"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_refund_hold_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "reading_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading_run: {
         Row: {
           check_findings: Json | null
@@ -3388,6 +3445,18 @@ export type Database = {
           pending_rows: number
         }[]
       }
+      operator_book_reading_refund: {
+        Args: { p_hold_id: string; p_provider_refund_id: string }
+        Returns: string
+      }
+      operator_hold_reading_refund: {
+        Args: { p_credits: number; p_order_id: string; p_reason: string }
+        Returns: {
+          amount: number
+          credits: number
+          hold_id: string
+        }[]
+      }
       operator_reading_refund_basis: {
         Args: { p_order_id: string }
         Returns: {
@@ -3411,15 +3480,21 @@ export type Database = {
           used: number
         }[]
       }
-      operator_refund_reading_order: {
-        Args: {
-          p_amount: number
-          p_credits: number
-          p_order_id: string
-          p_provider_refund_id: string
-          p_reason: string
-        }
-        Returns: string
+      operator_reading_refund_hold: {
+        Args: { p_order_id: string }
+        Returns: {
+          amount: number
+          credits: number
+          held_at: string
+          hold_id: string
+          provider_payment_id: string
+          reason: string
+          remaining_amount: number
+        }[]
+      }
+      operator_release_reading_refund: {
+        Args: { p_hold_id: string }
+        Returns: undefined
       }
       operator_report: {
         Args: { p_report_id: string }
@@ -3653,6 +3728,7 @@ export type Database = {
         Returns: Json
       }
       reading_budget_warning: { Args: never; Returns: number }
+      reading_bundle_held: { Args: { p_bundle_id: string }; Returns: number }
       reading_bundle_price: { Args: { p_credits: number }; Returns: number }
       reading_credit_limit: { Args: never; Returns: number }
       reading_credit_limit_for: { Args: { p_user: string }; Returns: number }

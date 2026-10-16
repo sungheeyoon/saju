@@ -5,37 +5,41 @@ import { useId, useState, useTransition } from 'react';
 import { refundOwed } from '@/src/lib/reading/bundle';
 
 import { actionAnswer } from '../../ui/action-answer';
-import { BUTTON_PRIMARY } from '../../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
-import { bookRefund } from './actions';
-import { orderStatusLabel, REFUND_REASONS, won } from './labels';
+import { bookRefund, holdRefund, releaseRefund } from './actions';
+import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime, won } from './labels';
+import type { RefundHold } from './read';
 
-type Props = {
+const ROW = 'flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3';
+const LABEL = 'shrink-0 text-xs font-semibold text-muted sm:w-24';
+
+/**
+ * **환불 준비** — 걷을 회차 · 사유를 고르고 「환불 준비」를 누르면 DB 가 그 회차를 잠그고 금액을 확정한다(G-110 ②, ADR 0184).
+ * 여기 보이는 금액은 미리 셈한 것이고(`refundOwed`, ADR 0148), 확정 금액은 DB 가 정해 진행 중인 환불(`HoldPanel`)에 선다.
+ */
+export function PrepareForm({
+  orderId,
+  paid,
+  refundedAmount,
+  credits,
+  refundedCredits,
+  unused,
+}: {
   readonly orderId: string;
   readonly paid: number;
   readonly refundedAmount: number;
   readonly credits: number;
   readonly refundedCredits: number;
-  /** 지금 걷을 수 있는 회차 — 1 이상일 때만 이 폼이 선다 */
+  /** 지금 잠글 수 있는 회차 — 1 이상일 때만 이 폼이 선다 */
   readonly unused: number;
-};
-
-/**
- * **환불을 장부에 적는 폼** — 걷을 회차를 고르면 금액이 셈해져 서고, PortOne 콘솔에서 그 금액을 취소한 뒤 취소 번호를 적어
- * 「장부에 적기」를 누른다(G-110 ②, ADR 0184). PG 취소는 이 화면이 부르지 않는다.
- *
- * 금액은 화면이 ADR 0148 의 산식(`refundOwed`)으로 셈하고, 누르면 그 금액을 함께 보낸다 — DB 가 같은 산식으로 다시 셈해 다르면
- * 거절한다. 적고 나면 액션의 응답이 이 화면을 다시 그려 싣는다(`refresh`) — 걷을 수 있는 회차가 줄면 고른 회차도 그 안으로 줄인다.
- */
-export function RefundForm({ orderId, paid, refundedAmount, credits, refundedCredits, unused }: Props) {
+}) {
   const [chosen, setTake] = useState(unused);
   const take = Math.min(chosen, unused);
   const [reason, setReason] = useState<string>(REFUND_REASONS[0].value);
-  const [refundId, setRefundId] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
-  const [booked, setBooked] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const ids = useId();
 
@@ -44,20 +48,16 @@ export function RefundForm({ orderId, paid, refundedAmount, credits, refundedCre
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFailure(null);
-    setBooked(null);
     startSaving(async () => {
-      const answer = await actionAnswer(bookRefund({ orderId, credits: take, amount, reason, refundId }));
-      if (answer.ok) {
-        setBooked(`장부에 적었습니다 — ${orderStatusLabel(answer.status)}`);
-        setRefundId('');
-      } else setFailure(answer.message);
+      const answer = await actionAnswer(holdRefund({ orderId, credits: take, reason }));
+      if (!answer.ok) setFailure(answer.message);
     });
   };
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <label htmlFor={`${ids}-take`} className="shrink-0 text-xs font-semibold text-muted sm:w-24">
+      <div className={ROW}>
+        <label htmlFor={`${ids}-take`} className={LABEL}>
           걷을 회차
         </label>
         <select
@@ -74,8 +74,8 @@ export function RefundForm({ orderId, paid, refundedAmount, credits, refundedCre
         </select>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <label htmlFor={`${ids}-reason`} className="shrink-0 text-xs font-semibold text-muted sm:w-24">
+      <div className={ROW}>
+        <label htmlFor={`${ids}-reason`} className={LABEL}>
           사유
         </label>
         <select
@@ -101,13 +101,92 @@ export function RefundForm({ orderId, paid, refundedAmount, credits, refundedCre
         </p>
       </div>
 
+      <p className="text-sm text-secondary">
+        준비하면 이 회차가 잠겨 이용자가 쓰지 못합니다. 그다음 PortOne 콘솔에서 취소합니다.
+      </p>
+
+      {failure !== null && <FailureLine>{failure}</FailureLine>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={saving} className={BUTTON_PRIMARY}>
+          환불 준비
+        </button>
+        <DoneNote>{saving ? '준비하는 중…' : ''}</DoneNote>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * **진행 중인 환불** — 확보된 금액 · 결제 번호 · 취소 후 잔액 · 사유를 보이고(PG 부분취소 화면의 칸), 운영자가 PortOne 콘솔에서
+ * 그 금액을 취소한 뒤 취소 번호를 적어 「장부에 확정」을 누른다. 확정 전에는 「준비 취소」로 잠근 회차를 푼다.
+ * 화면을 닫았다 다시 열어도 문이 진행 중인 것을 다시 내주므로 이 판이 그대로 선다.
+ */
+export function HoldPanel({
+  hold,
+  orderNumber,
+  paid,
+}: {
+  readonly hold: RefundHold;
+  readonly orderNumber: string;
+  readonly paid: number;
+}) {
+  const [refundId, setRefundId] = useState('');
+  const [failure, setFailure] = useState<string | null>(null);
+  const [booked, setBooked] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
+  const ids = useId();
+
+  const book = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFailure(null);
+    startSaving(async () => {
+      const answer = await actionAnswer(bookRefund({ holdId: hold.holdId, refundId }));
+      if (answer.ok) setBooked(`장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}`);
+      else setFailure(answer.message);
+    });
+  };
+
+  const release = () => {
+    setFailure(null);
+    startSaving(async () => {
+      const answer = await actionAnswer(releaseRefund({ holdId: hold.holdId }));
+      if (!answer.ok) setFailure(answer.message);
+    });
+  };
+
+  return (
+    <form onSubmit={book} className="flex flex-col gap-4" aria-label="진행 중인 환불">
+      <div className="rounded-tile border border-border-strong bg-surface-soft p-4">
+        <p className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full bg-foreground px-2.5 py-1 font-bold text-background">환불 진행 중</span>
+          <span className="tabular-nums text-muted">{seoulTime(hold.heldAt)} 준비</span>
+        </p>
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+          <dt className="text-muted">취소할 금액</dt>
+          <dd className="text-xl font-bold tabular-nums tracking-[-0.02em]">{won(hold.amount)}</dd>
+          <dt className="text-muted">결제 금액</dt>
+          <dd className="tabular-nums">{won(paid)}</dd>
+          <dt className="text-muted">취소 후 잔액</dt>
+          <dd className="tabular-nums">{won(hold.remainingAmount)}</dd>
+          <dt className="text-muted">걷는 회차</dt>
+          <dd className="tabular-nums">{hold.credits}장</dd>
+          <dt className="text-muted">사유</dt>
+          <dd>{refundReasonLabel(hold.reason)}</dd>
+          <dt className="text-muted">결제 번호</dt>
+          <dd className="break-all font-mono text-xs leading-5">{orderNumber}</dd>
+          <dt className="text-muted">거래 번호</dt>
+          <dd className="break-all font-mono text-xs leading-5">{hold.paymentId ?? '없음'}</dd>
+        </dl>
+      </div>
+
       <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-secondary">
-        <li>PortOne 콘솔에서 이 주문을 {won(amount)} 취소합니다.</li>
-        <li>취소 번호를 적고 장부에 적습니다.</li>
+        <li>PortOne 콘솔에서 이 결제를 {won(hold.amount)} 취소합니다.</li>
+        <li>취소 번호를 적고 장부에 확정합니다.</li>
       </ol>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <label htmlFor={`${ids}-refund-id`} className="shrink-0 text-xs font-semibold text-muted sm:w-24">
+      <div className={ROW}>
+        <label htmlFor={`${ids}-refund-id`} className={LABEL}>
           PG 취소 번호
         </label>
         <input
@@ -125,9 +204,12 @@ export function RefundForm({ orderId, paid, refundedAmount, credits, refundedCre
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={saving || refundId.trim() === ''} className={BUTTON_PRIMARY}>
-          장부에 적기
+          장부에 확정
         </button>
-        <DoneNote>{saving ? '적는 중…' : (booked ?? '')}</DoneNote>
+        <button type="button" onClick={release} disabled={saving} className={BUTTON_SECONDARY}>
+          준비 취소
+        </button>
+        <DoneNote>{saving ? '처리하는 중…' : (booked ?? '')}</DoneNote>
       </div>
     </form>
   );

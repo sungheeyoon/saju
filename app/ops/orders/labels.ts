@@ -16,7 +16,10 @@ export const REFUND_REASONS = [
 
 export type RefundReason = (typeof REFUND_REASONS)[number]['value'];
 
-export const isRefundReason = (value: string): value is RefundReason =>
+export const refundReasonLabel = (value: string): string =>
+  REFUND_REASONS.find((reason) => reason.value === value)?.label ?? value;
+
+export const isRefundReason =(value: string): value is RefundReason =>
   REFUND_REASONS.some((reason) => reason.value === value);
 
 const STATUS_LABEL: Readonly<Record<string, string>> = {

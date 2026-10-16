@@ -130,7 +130,9 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/requests/actions.ts::markNotificationsRead': 'requests-changed',
     'app/me/survey/actions.ts::saveServiceSurvey': 'survey-submitted',
     'app/me/warning/actions.ts::acknowledgeWarning': 'warning-acknowledged',
-    'app/ops/orders/actions.ts::bookRefund': 'refund-booked',
+    'app/ops/orders/actions.ts::holdRefund': 'refund-moved',
+    'app/ops/orders/actions.ts::bookRefund': 'refund-moved',
+    'app/ops/orders/actions.ts::releaseRefund': 'refund-moved',
     'app/signup/actions.ts::completeSignup': 'signed-up',
   };
 
@@ -327,7 +329,7 @@ describe('표가 가리키는 것', () => {
     'consent-changed': '설문의 「동의하고 설문 열기」가 `/me/survey` 에서 켠다',
     'deck-moved': '덱은 `/me/matching` 에 서고, 응답의 새 목록을 사람 id 로 합친다(ADR 0115)',
     'requests-changed': '차단은 궁합 화면 · 채팅 방 · 지난 요청(`/me/matching/history`)에서도 누른다',
-    'refund-booked': '환불은 주문 화면(`/ops/orders?order=…`)에서만 적는다 — 그 화면의 상태 · 걷은 회차가 갈린다(ADR 0184)',
+    'refund-moved': '환불의 세 걸음은 주문 화면(`/ops/orders?order=…`)에서만 누른다 — 그 화면의 진행 상태 · 걷은 회차가 갈린다(ADR 0184)',
   };
 
   it('지금 화면을 다시 그리는 이름은 까닭이 적힌 것들뿐이다', () => {
@@ -419,7 +421,7 @@ describe('표의 값은 계약과 글자까지 같다', () => {
     'pair-opened': [{ path: '/me/compat' }],
     'signed-up': [{ path: '/me', scope: 'layout' }],
     'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
-    'refund-booked': [THIS_SCREEN],
+    'refund-moved': [THIS_SCREEN],
   };
 
   it('경로도 순서도 scope 도 계약 그대로다', () => {
