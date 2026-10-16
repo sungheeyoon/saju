@@ -99,7 +99,7 @@ insert into ord select 'waiting', order_id from public.open_reading_order(5, 'po
 reset role;
 create temporary table paid as
 select o.id, o.amount from public.reading_order o where o.id in (select order_id from ord where label in ('one', 'three'));
-grant select on paid to service_role;
+grant select on paid to authenticated, service_role;
 
 set local role service_role;
 select public.approve_reading_order(id, 'tx-' || id::text, amount, 'whk-' || id::text) from paid;
