@@ -123,12 +123,31 @@ describe('이력의 말', () => {
     ...over,
   });
 
-  it('확정 사용만 −1회, 예약 · 반환은 부호 없이 — 반환은 「반환 · 차감 없음」', () => {
-    expect(historyAmount(line({ delta: -1, state: 'confirmed', cause: 'run' }))).toBe('−1회');
+  it('확정 사용만 −1장, 예약은 부호 없이 「예약 중」, 반환은 숫자 없이 「반환 · 차감 없음」', () => {
+    expect(historyAmount(line({ delta: -1, state: 'confirmed', cause: 'run' }))).toBe('−1장');
     expect(historyCause(line({ delta: -1, state: 'confirmed', cause: 'run' }))).toBe('풀이 사용');
-    expect(historyAmount(line({ state: 'released', cause: 'run' }))).toBe('1회');
+    expect(historyAmount(line({ state: 'released', cause: 'run' }))).toBe('');
     expect(historyCause(line({ state: 'released', cause: 'run' }))).toBe('반환 · 차감 없음');
-    expect(historyCause(line({ state: 'reserved', cause: 'request' }))).toBe('인연 요청 예약 중');
+    expect(historyAmount(line({ state: 'reserved', cause: 'request' }))).toBe('예약 중');
+    expect(historyCause(line({ state: 'reserved', cause: 'request' }))).toBe('인연 요청');
+  });
+
+  it('증감 칸에는 「회」가 안 선다 — 풀이권의 증감은 늘 「장」이다', () => {
+    const lines: HistoryLine[] = [
+      line({ delta: -1, state: 'confirmed', cause: 'run' }),
+      line({ state: 'released', cause: 'run' }),
+      line({ state: 'reserved', cause: 'request' }),
+      line({ kind: 'grant', source: 'grant', delta: 3 }),
+      line({ kind: 'revoke', source: 'grant', delta: -2 }),
+      line({ kind: 'purchase', source: 'bundle', delta: 5 }),
+      line({ kind: 'refund', source: 'bundle', delta: -1, reason: 'unused' }),
+    ];
+    for (const one of lines) {
+      expect(historyAmount(one)).not.toContain('회');
+      expect(historyAmount(one)).not.toMatch(/^[+−-]?\d+$/);
+    }
+    expect(historyAmount(line({ kind: 'refund', source: 'bundle', delta: -1 }))).toBe('−1장');
+    expect(historyAmount(line({ kind: 'purchase', source: 'bundle', delta: 5 }))).toBe('+5장');
   });
 
   it('지급 · 회수 · 구매 · 환불은 장으로, 늘고 준 만큼', () => {

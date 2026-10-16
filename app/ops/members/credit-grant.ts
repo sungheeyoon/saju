@@ -204,14 +204,15 @@ const KIND_LABEL: Record<string, string> = {
 export const historyKindLabel = (kind: string): string => KIND_LABEL[kind] ?? kind;
 
 /**
- * 증감 사유 — 사용 줄은 상태가 말한다. 확정은 「풀이 사용」 · 「인연 요청 사용」, 예약은 「… 예약 중」, 풀림은 「반환 · 차감 없음」.
+ * 증감 사유 — 사용 줄은 상태가 말한다. 확정은 「풀이 사용」 · 「인연 요청 사용」, 예약은 무엇이 잡았나(「풀이」 · 「인연 요청」 —
+ * 「예약 중」은 증감 칸이 말한다), 풀림은 「반환 · 차감 없음」.
  * 지급 · 회수 · 환불은 갈래다.
  */
 export function historyCause(line: HistoryLine): string {
   if (line.kind === 'use') {
     const what = line.cause === 'request' ? '인연 요청' : '풀이';
     if (line.state === 'released') return '반환 · 차감 없음';
-    if (line.state === 'reserved') return `${what} 예약 중`;
+    if (line.state === 'reserved') return what;
     return `${what} 사용`;
   }
   if (line.kind === 'purchase') return '구매';
@@ -221,10 +222,14 @@ export function historyCause(line: HistoryLine): string {
 }
 
 /**
- * 수 — 늘고 준 것만 부호가 있다. 사용은 「회」, 나머지는 「장」. 예약 · 반환은 부호 없이 「1회」(차감이 아니다).
+ * 증감 칸 — 풀이권의 증감이라 늘 「장」이다(「회」는 실제 풀이 횟수에만 쓴다). 확정 사용은 「−1장」, 예약은 부호 없이 「예약 중」,
+ * 반환은 숫자 없이 빈 칸이다 — 사유 칸의 「반환 · 차감 없음」이 말한다(−1 · +1 로 읽히지 않게).
  */
 export function historyAmount(line: HistoryLine): string {
-  if (line.kind === 'use') return line.delta === null ? '1회' : `−${Math.abs(line.delta)}회`;
+  if (line.kind === 'use') {
+    if (line.state === 'released') return '';
+    if (line.state === 'reserved') return '예약 중';
+  }
   if (line.delta === null) return '';
   return line.delta >= 0 ? `+${line.delta}장` : `−${Math.abs(line.delta)}장`;
 }
