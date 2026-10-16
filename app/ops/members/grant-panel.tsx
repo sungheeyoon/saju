@@ -12,6 +12,7 @@ import { FIELD } from '../../ui/fields';
 import { oneAtATime } from '../orders/refund-confirm';
 import { bookCreditGrant } from './actions';
 import {
+  afterFailure,
   GRANT_MAX,
   GRANT_REASONS,
   NOTE_MAX,
@@ -94,7 +95,8 @@ export function GrantPanel({
       setFailure('메모를 적어 주세요.');
       return;
     }
-    // 같은 값으로 다시 여는 것(앞의 응답이 끊겼다)이면 앞 고정본을 다시 낸다 — 서버가 같은 줄을 돌려준다
+    // 같은 값으로 다시 여는 것이 응답이 끊긴 뒤라면 앞 고정본을 다시 낸다 — 서버가 같은 줄을 돌려준다. 분명히 거절된 고정본은
+    // 이미 버렸으므로(`afterFailure`) 여기서는 새 읽은 버전 · 새 요청 번호로 연다
     setPlan(samePlan(plan, input) ? plan : grantPlan(ledger, input, crypto.randomUUID()));
     setConfirming(true);
   };
@@ -115,7 +117,9 @@ export function GrantPanel({
               done.say(answer.replayed ? `이미 ${verb}했습니다.` : `${verb}했습니다.`);
             } else {
               setFailure(answer.message);
-              if (answer.message === ACTION_UNREACHED_NOTE) router.refresh();
+              // 결과를 모르면 고정본을 지키고, 분명한 거절이면 버린다 — 둘 다 지금 장부를 다시 읽는다(`afterFailure`)
+              if (afterFailure(answer.message, ACTION_UNREACHED_NOTE) === 'discard') setPlan(null);
+              router.refresh();
             }
             finish();
           });

@@ -96,14 +96,14 @@ describe('알림은 여섯 사건을 말한다', () => {
   it('풀이권 소식은 수량과 갈래를 말한다', () => {
     expect(
       notificationText({ kind: 'credits_granted', nickname: null, readingKind: null, credits: { count: 3, reason: 'outage' } }),
-    ).toBe('풀이권 3장이 지급됐어요 — 장애 보상');
+    ).toBe('무상 풀이권 3장이 지급됐어요 — 장애 보상');
     expect(
       notificationText({ kind: 'credits_revoked', nickname: null, readingKind: null, credits: { count: 2, reason: 'duplicate' } }),
-    ).toBe('풀이권 2장이 회수됐어요 — 중복 지급');
-    expect(notificationText({ kind: 'credits_granted', nickname: null, readingKind: null })).toBe('풀이권이 지급됐어요');
+    ).toBe('무상 지급 풀이권 2장이 회수됐어요 — 중복 지급');
+    expect(notificationText({ kind: 'credits_granted', nickname: null, readingKind: null })).toBe('무상 풀이권이 지급됐어요');
     expect(
       notificationText({ kind: 'credits_revoked', nickname: null, readingKind: null, credits: { count: 1, reason: 'unknown' } }),
-    ).toBe('풀이권 1장이 회수됐어요');
+    ).toBe('무상 지급 풀이권 1장이 회수됐어요');
   });
 
   it('빈 별명도 없는 것으로 읽는다', () => {

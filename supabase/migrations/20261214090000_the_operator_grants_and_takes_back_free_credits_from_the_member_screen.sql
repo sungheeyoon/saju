@@ -332,7 +332,8 @@ $$;
  * 수를 센 뒤 — 장부 한 줄 · 예외 몫 · 이용자 소식 한 줄을 적고, 지급이면 장애 알림 길에 한 줄을 보낸다.
  *
  * @param p_actor 실행한 운영자 — 문은 `auth.uid()`, 런북은 운영자 UUID
- * @param p_seen_version 화면이 읽은 그 계정의 장부 줄 수 — 다르면 거절한다. `null` 이면 견주지 않는다(런북)
+ * @param p_seen_version 화면이 읽은 그 계정의 장부 줄 수 — 다르면 거절한다. `null` 이면 견주지 않는다 — 이 함수는 누구에게도
+ *   안 열렸고 운영 SQL(런북)만 `null` 을 낸다. 화면의 문 둘은 `null` · 음수를 받지 않는다
  * @returns 장부 줄 · 같은 요청의 재시도였는가
  */
 create function public.book_reading_credit_grant(
@@ -388,12 +389,8 @@ begin
     raise exception '회원을 찾지 못했습니다.' using errcode = 'no_data_found';
   end if;
 
-  if p_report_id is not null and (
-       p_kind <> 'grant'
-       or not exists (select 1 from public.report r
-                      where r.id = p_report_id
-                        and p_user_id in (r.reporter_user_id, r.reported_user_id))) then
-    raise exception '관련 신고가 이 회원의 신고가 아닙니다.' using errcode = '22023';
+  if p_report_id is not null and p_kind <> 'grant' then
+    raise exception '관련 신고는 지급에만 답니다.' using errcode = '22023';
   end if;
 
   perform pg_advisory_xact_lock(hashtext('reading:user:' || p_user_id::text));
@@ -409,6 +406,14 @@ begin
     replayed := true;
     return next;
     return;
+  end if;
+
+  -- 관련 신고는 **새 지급일 때만** 잰다 — 첫 지급 뒤 신고가 보관으로 옮겨져도(신고한 사람이 떠남) 같은 요청의 재시도는 위에서
+  -- 첫 결과를 돌려받는다
+  if p_report_id is not null and not exists (
+       select 1 from public.report r
+       where r.id = p_report_id and p_user_id in (r.reporter_user_id, r.reported_user_id)) then
+    raise exception '관련 신고가 이 회원의 신고가 아닙니다.' using errcode = '22023';
   end if;
 
   if p_seen_version is not null
@@ -482,6 +487,11 @@ begin
     raise exception '운영자만 쓰는 자리입니다.' using errcode = '42501';
   end if;
 
+  -- 화면은 늘 읽은 버전을 낸다 — 비었거나 음수면 버전 검사를 건너뛰는 길이 되므로 받지 않는다
+  if p_seen_version is null or p_seen_version < 0 then
+    raise exception '읽은 버전이 없습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+  end if;
+
   select * into booked
   from public.book_reading_credit_grant(
     (select auth.uid()), p_user_id, 'grant', p_credits, p_reason, p_note, p_request_id, p_report_id, p_seen_version) b;
@@ -512,6 +522,11 @@ declare
 begin
   if not public.is_operator() then
     raise exception '운영자만 쓰는 자리입니다.' using errcode = '42501';
+  end if;
+
+  -- 화면은 늘 읽은 버전을 낸다 — 비었거나 음수면 버전 검사를 건너뛰는 길이 되므로 받지 않는다
+  if p_seen_version is null or p_seen_version < 0 then
+    raise exception '읽은 버전이 없습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
   end if;
 
   select * into booked

@@ -11,7 +11,7 @@
 --
 -- 상한 검사를 빼면 2 가, 재시도 찾기를 빼면 3 이, 회수할 수 있는 수에서 예약을 빼지 않으면 4 가, 자물쇠를 셈 뒤로 옮기면 5 가 붉다.
 begin;
-select plan(57);
+select plan(62);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -177,6 +177,33 @@ select results_eq(
   $$values (true)$$,
   '같은 요청 번호로 다시 오면 첫 결과를 돌려준다 — 읽은 버전이 낡아도');
 select is(pg_temp.extra((select member from folks)), 13, '두 번 더하지 않는다');
+
+-- 첫 지급은 섰는데 응답이 끊겼고, 그 사이 신고한 사람이 떠나 신고가 보관으로 옮겨졌다 — 같은 요청의 재시도는 첫 결과다
+reset role;
+delete from public.report where id = (select about_member from cases);
+set local role authenticated;
+select pg_temp.acting((select operator from folks));
+select results_eq(
+  format($$select replayed from public.operator_grant_reading_credits(%L, 3, 'outage', '장애 보상 — 10/16 오류', %L, 0, %L)$$,
+         (select member from folks), (select about_member from cases), (select id from asks where label = 'g1')),
+  $$values (true)$$,
+  '관련 신고가 사라진 뒤의 재시도도 첫 결과를 돌려준다 — 같은 요청 찾기가 신고 검사보다 먼저다');
+select throws_ok(
+  format($$select * from public.operator_grant_reading_credits(%L, 1, 'outage', '메모', %L, 2, %L)$$,
+         (select member from folks), (select about_member from cases), (select id from asks where label = 'big')),
+  '22023', '관련 신고가 이 회원의 신고가 아닙니다.', '새 지급은 사라진 신고를 관련 신고로 달지 못한다');
+select throws_ok(
+  format($$select * from public.operator_grant_reading_credits(%L, 1, 'operator', '메모', null, null, %L)$$,
+         (select member from folks), (select id from asks where label = 'big')),
+  '22023', '읽은 버전이 없습니다. 화면을 새로 열어 주세요.', '화면의 지급 문은 읽은 버전 없이 받지 않는다');
+select throws_ok(
+  format($$select * from public.operator_grant_reading_credits(%L, 1, 'operator', '메모', null, -1, %L)$$,
+         (select member from folks), (select id from asks where label = 'big')),
+  '22023', '읽은 버전이 없습니다. 화면을 새로 열어 주세요.', '음수 버전도');
+select throws_ok(
+  format($$select * from public.operator_revoke_reading_credits(%L, 1, 'mistake', '메모', null, %L)$$,
+         (select member from folks), (select id from asks where label = 'big')),
+  '22023', '읽은 버전이 없습니다. 화면을 새로 열어 주세요.', '회수 문도');
 select throws_ok(
   format($$select * from public.operator_grant_reading_credits(%L, 2, 'outage', '메모', null, 2, %L)$$,
          (select member from folks), (select id from asks where label = 'g1')),
@@ -390,12 +417,14 @@ select results_eq(
   $$select action, filter from pg_temp.lines((select operator from folks))
     where action in ('credits.grant', 'credits.revoke') and filter like 'user=' || (select member from folks) || ' %'$$,
   format($$select a, f from (values
-           ('credits.grant'::text, %L::text), ('credits.grant', %L), ('credits.grant', %L),
+           ('credits.grant'::text, %L::text), ('credits.grant', %L), ('credits.grant', %L), ('credits.grant', %L),
            ('credits.revoke', %L), ('credits.revoke', %L)) v(a, f)$$,
          (select format('user=%s entry=%s report=%s', e.user_id, e.id, e.report_id) from public.reading_credit_grant_entry e
           where e.request_id = (select id from asks where label = 'g1')),
          (select format('user=%s entry=%s', e.user_id, e.id) from public.reading_credit_grant_entry e
           where e.request_id = (select id from asks where label = 'g2')),
+         (select format('user=%s entry=%s report=%s', e.user_id, e.id, e.report_id) from public.reading_credit_grant_entry e
+          where e.request_id = (select id from asks where label = 'g1')),
          (select format('user=%s entry=%s report=%s', e.user_id, e.id, e.report_id) from public.reading_credit_grant_entry e
           where e.request_id = (select id from asks where label = 'g1')),
          (select format('user=%s entry=%s', e.user_id, e.id) from public.reading_credit_grant_entry e

@@ -165,11 +165,15 @@ const CREDIT_REASON_TEXT: Readonly<Record<string, string>> = {
   other: '기타',
 };
 
-/** 「풀이권 3장이 지급됐어요 — 장애 보상」. 수량 · 갈래를 못 읽으면 그 자리만 비운 문장이다 */
+/**
+ * 「무상 풀이권 3장이 지급됐어요 — 장애 보상」 · 「무상 지급 풀이권 2장이 회수됐어요 — 중복 지급」(운영자 2026-10-17). 수량 ·
+ * 갈래를 못 읽으면 그 자리만 비운 문장이다.
+ */
 function creditText(verb: '지급' | '회수', credits: NotificationEvent['credits']): string {
   const count = credits?.count ?? null;
   const reason = credits?.reason === null || credits?.reason === undefined ? null : CREDIT_REASON_TEXT[credits.reason] ?? null;
-  const head = count === null ? `풀이권이 ${verb}됐어요` : `풀이권 ${count}장이 ${verb}됐어요`;
+  const what = verb === '지급' ? '무상 풀이권' : '무상 지급 풀이권';
+  const head = count === null ? `${what}이 ${verb}됐어요` : `${what} ${count}장이 ${verb}됐어요`;
   return reason === null ? head : `${head} — ${reason}`;
 }
 
