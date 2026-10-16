@@ -27,17 +27,34 @@ type Asked = { readonly error: { readonly code?: string } | null };
 
 const denied = (answers: readonly Asked[]): boolean => answers.some((answer) => answer.error?.code === '42501');
 
+/** 출처 하나의 장부 — 받은(산) 수 · 확정 쓰임 · 빈자리(받은 − 확정 − 예약, 묶음은 걷은 것 · 확보 중인 것도 뺀다) */
+export type CreditSource = {
+  readonly received: number;
+  readonly used: number;
+  readonly left: number;
+};
+
+/**
+ * 풀이권 — `available` 은 이용자 본인 화면과 같은 셈(`reading_credits_for`)이고, 출처별은 쓰임 장부다. 풀이 대상을 지우면 셈은
+ * 자리를 돌려주지만 장부의 확정 줄은 남아 둘의 합이 다를 수 있다(`20261214080000`).
+ */
 export type MemberCredits = {
-  /** 묶음의 산 회차 합 */
-  readonly bought: number;
-  /** 환불로 걷은 회차 합 */
-  readonly refunded: number;
-  /** 산 묶음에서 확정된 쓰임 */
-  readonly usedBought: number;
-  /** 산 묶음에서 지금 예약 중인 쓰임 — 쓴 것도 안 쓴 것도 아니다(G-21 ③) */
-  readonly reservedBought: number;
-  /** 몫(무료 · 예외 · 묶음 · 몫 밖)을 가리지 않은 확정된 쓰임 */
+  /** 지금 쓸 수 있는 풀이권 — 본인 화면의 잔액 */
+  readonly available: number;
+  /** 가입 무료 */
+  readonly free: CreditSource;
+  /** 운영 무상 지급 */
+  readonly granted: CreditSource;
+  /** 유료 구매 — `received` 는 산 수 합, 환불로 걷은 수는 `refunded` */
+  readonly bought: CreditSource & { readonly refunded: number };
+  /** 몫을 가리지 않은 예약 중 — 도는 풀이 · 답을 기다리는 요청 */
+  readonly reserved: number;
+  /** 진행 중인 환불 확보가 잡은 수 */
+  readonly held: number;
+  /** 몫을 가리지 않은 확정 쓰임 — 만든 풀이의 수 */
   readonly usedAll: number;
+  /** 그중 몫 밖 — 지운 대상으로 돌아온 자리로 쓴 것 */
+  readonly outsideUsed: number;
 };
 
 export type Member = {
@@ -71,11 +88,19 @@ export const memberOf = (row: RpcRow<'operator_member'>): Member => ({
   nickname: row.nickname ?? null,
   status: row.status,
   credits: {
-    bought: row.bought_credits,
-    refunded: row.refunded_credits,
-    usedBought: row.used_bought,
-    reservedBought: row.reserved_bought,
+    available: row.available,
+    free: { received: row.free_credits, used: row.free_used, left: row.free_left },
+    granted: { received: row.granted_credits, used: row.granted_used, left: row.granted_left },
+    bought: {
+      received: row.bought_credits,
+      used: row.used_bought,
+      left: row.bundle_left,
+      refunded: row.refunded_credits,
+    },
+    reserved: row.reserved_all,
+    held: row.held_credits,
     usedAll: row.used_all,
+    outsideUsed: row.outside_used,
   },
   orderNumbers: row.order_numbers ?? [],
 });

@@ -36,12 +36,32 @@ describe('회원 한 명 · 경고 한 줄 — 생성 타입이 null 아님으�
       reserved_bought: 0,
       used_all: 3,
       order_numbers: null,
+      available: 6,
+      free_credits: 5,
+      free_used: 2,
+      free_left: 2,
+      granted_credits: 2,
+      granted_used: 0,
+      granted_left: 2,
+      bundle_left: 2,
+      reserved_all: 1,
+      held_credits: 0,
+      outside_used: 1,
     } as unknown as RpcRow<'operator_member'>;
     expect(memberOf(row)).toEqual({
       userId: '00000000-0000-4000-8000-0000000000aa',
       nickname: null,
       status: 'active',
-      credits: { bought: 4, refunded: 1, usedBought: 1, reservedBought: 0, usedAll: 3 },
+      credits: {
+        available: 6,
+        free: { received: 5, used: 2, left: 2 },
+        granted: { received: 2, used: 0, left: 2 },
+        bought: { received: 4, used: 1, left: 2, refunded: 1 },
+        reserved: 1,
+        held: 0,
+        usedAll: 3,
+        outsideUsed: 1,
+      },
       orderNumbers: [],
     });
   });
