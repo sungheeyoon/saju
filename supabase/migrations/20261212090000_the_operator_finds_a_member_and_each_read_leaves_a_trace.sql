@@ -32,15 +32,18 @@
 -- 재는 자리는 `supabase/tests/97_operator_member.test.sql`.
 
 -- ---------------------------------------------------------------------------
--- 1. 기록 표가 회원 동작을 받는다 — `20261116090000` 의 목록에 둘을 더한다
+-- 1. 기록 표가 회원 동작을 받는다 — 바로 앞 둘(`20261210090000` 오늘의 숫자 `today.*`, `20261211090000` 환불
+--    `credits.refund_*`)까지 든 목록에 둘을 더한다. 앞 것의 동작을 빠뜨리면 이미 적힌 줄이 검사식에 걸려 이 마이그레이션이 선다
 -- ---------------------------------------------------------------------------
 
 alter table audit.operator_access drop constraint operator_access_action_check;
 alter table audit.operator_access add constraint operator_access_action_check
   check (action in ('reports.list', 'reports.detail', 'reports.snapshot', 'credits.refund_basis',
+                    'credits.refund_status', 'credits.refund_hold', 'credits.refund_book', 'credits.refund_release',
                     'audit.export_status',
                     'survey.overview', 'survey.by_version', 'survey.tags', 'survey.comments',
                     'survey.service_overview', 'survey.service_counts', 'survey.service_texts',
+                    'today.figures',
                     'members.find', 'members.warnings',
                     'cli.query', 'cli.result'));
 
@@ -49,7 +52,7 @@ alter table audit.operator_access add constraint app_access_names_the_operator c
   channel <> 'app' or (actor_user_id is not null and actor_name is null and purpose is null
                        and sql_sha256 is null and result_of is null and result is null and error_class is null
                        and (action like 'reports.%' or action like 'credits.%' or action like 'audit.%'
-                            or action like 'survey.%' or action like 'members.%')));
+                            or action like 'survey.%' or action like 'today.%' or action like 'members.%')));
 
 -- ---------------------------------------------------------------------------
 -- 2. 회원 한 명 — 상태와 풀이권
@@ -217,8 +220,10 @@ begin
 
   if p_action is null
      or p_action not in ('reports.list', 'reports.detail', 'reports.snapshot', 'credits.refund_basis',
+                         'credits.refund_status', 'credits.refund_hold', 'credits.refund_book', 'credits.refund_release',
                          'survey.overview', 'survey.by_version', 'survey.tags', 'survey.comments',
                          'survey.service_overview', 'survey.service_counts', 'survey.service_texts',
+                         'today.figures',
                          'members.find', 'members.warnings') then
     raise exception 'operator: unknown action' using errcode = '22023';
   end if;
