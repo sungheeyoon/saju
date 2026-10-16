@@ -983,6 +983,11 @@ select is(
     'refund_reading_order',
     'release_reading_job',
     /**
+     * 결제 이상을 운영자에게 알리는 문(`20261213090000`, G-110 ④) — 종류 · 결제 번호 · ASCII 까닭 한 줄만 받고 결제마다
+     * 하루 한 줄이다. 결제 알림의 문이 서명을 맞힌 뒤에만 부른다(`98_payment_trouble_alerts`).
+     */
+    'report_payment_trouble',
+    /**
      * 서버 오류를 운영자에게 알리는 문(`20261108090000`) — 라우트 파일 무늬 · 자리 · digest 만 받고 하루 한 줄이다.
      * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`77_ops_alerts`).
      */
@@ -1011,7 +1016,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 서른아홉 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

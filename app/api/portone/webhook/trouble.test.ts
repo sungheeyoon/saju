@@ -6,7 +6,7 @@ import { TROUBLE_TIMEOUT_MS, tellTrouble, troubleArgs, type SendTrouble, type Tr
  * **결제 이상 알림은 Production 에서만, DB 가 받는 모양으로, 실패는 삼킨다** (G-110 ④).
  *
  * 가짜는 부르는 손 하나다. DB 쪽 — 누가 부를 수 있나 · 모양이 틀리면 던지나 · 결제마다 하루 한 줄 — 은
- * `95_payment_trouble_alerts` 가 잰다.
+ * `98_payment_trouble_alerts` 가 잰다.
  */
 
 const PAYMENT_ID = 'rdo_0f1e2d3c4b5a49688776655443322110';

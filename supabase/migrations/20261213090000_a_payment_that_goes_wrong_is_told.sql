@@ -17,7 +17,7 @@
 -- - 모양이 틀리면 던진다(`22023`) — 앱은 그 실패를 삼키고 로그에 남긴다(알림이 결제 알림의 답을 바꾸지 않는다).
 --
 -- 운영자가 알림을 받고 하는 일은 `docs/ops/runbook/credits.md` 「결제 이상 알림」. 재는 자리는
--- `supabase/tests/95_payment_trouble_alerts.test.sql`.
+-- `supabase/tests/98_payment_trouble_alerts.test.sql`.
 
 /**
  * 결제 이상 하나를 운영자에게 알린다 — 결제 번호마다 · 종류마다 하루 한 줄.
