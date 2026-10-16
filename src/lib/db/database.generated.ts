@@ -3469,6 +3469,32 @@ export type Database = {
           hold_id: string
         }[]
       }
+      operator_member: {
+        Args: { p_query?: string }
+        Returns: {
+          bought_credits: number
+          nickname: string
+          order_numbers: string[]
+          refunded_credits: number
+          reserved_bought: number
+          status: string
+          used_all: number
+          used_bought: number
+          user_id: string
+        }[]
+      }
+      operator_member_warnings: {
+        Args: { p_user_id: string }
+        Returns: {
+          counted: boolean
+          report_id: string
+          review_outcome: string
+          reviewed_at: string
+          warning_acknowledged_at: string
+          warning_category: string
+          warning_ref: string
+        }[]
+      }
       operator_reading_refund_basis: {
         Args: { p_order_id: string }
         Returns: {
