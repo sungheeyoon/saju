@@ -14,6 +14,7 @@
 - **고객 문의 이메일은 `mannalmap@gmail.com`**(Gmail 새 계정, 이름 「만날지도 고객센터」) — 상수 `SUPPORT_EMAIL` 하나로 두고 화면이 끌어 쓴다(#722).
   Vercel · Supabase · GitHub · OpenAI 로그인과 운영자 계정으로는 쓰지 않는다.
 - 이메일 뒤 조사는 붙여 쓴다(「…com으로」) — 한글 맞춤법 제41항, 실사례 BoxHero(붙임) · 크몽(띄움) 중 붙임.
+  #722 화면 전후(/help · /closed · 경고 안내 줄): <https://claude.ai/artifact/UjBzqq8yXgB4oEDVBHJY4x>
 
 ## 다음 세션 할 일 — 이 차례로
 
