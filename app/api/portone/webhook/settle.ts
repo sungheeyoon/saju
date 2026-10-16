@@ -17,6 +17,14 @@ import { verifySigned } from './signature';
  *
  * **다루는 알림은 `Transaction.Paid` 하나다.** 실패(`Failed`)에 주문을 닫지 않는다 — 같은 결제 번호로 다시 낼 수 있어서다.
  * 취소 · 환불은 사람이 PG 콘솔에서 먼저 하고 적는다(`docs/ops/runbook/credits.md` 「수동 환불」) — 그 알림은 받고(200) 아무것도 안 한다.
+ *
+ * **결제 이상은 운영자에게 알린다**(G-110 ④, `20261213090000`) — 답과 함께 `trouble` 을 돌려주고 라우트가 알림 문으로 옮긴다.
+ * **서명이 맞은 뒤의 것만** 알린다 — 그 앞(설정 없음 · 서명 틀림)은 아무나 일으킬 수 있어 알림함을 채운다. 갈래는 셋이다.
+ * - `amount-mismatch` — 승인 문이 금액이 달라 거절했다(`refused`)
+ * - `paid-without-bundle` — PortOne 은 결제 완료인데 묶음을 세우지 않았고 다시 와도 같다(없는 주문 · 이미 닫힌 주문 ·
+ *   다른 요청의 알림 번호 · 원화 아님 · 거래 번호 없음 · 우리 상점의 풀이권 주문이 아닌 결제 번호)
+ * - `webhook-failed` — 처리하지 못했다(읽을 수 없는 본문 · PortOne 에 없음 · 못 닿음 · 모르는 거절 코드). 503 이면
+ *   PortOne 이 다시 보내 묶음이 설 수 있다 — 운영자는 장부에서 섰는지 본다
  */
 
 /** 승인 문의 답 — 적혔다(`applied` · `refused`) 또는 문이 거절했다(오류 코드) */
@@ -33,9 +41,19 @@ export type SettleDeps = {
   now: () => Date;
 };
 
-type Settled = { status: 200 | 400 | 401 | 503; note: string | null };
+/** 운영자에게 알릴 결제 이상의 갈래 — DB 의 `report_payment_trouble` 이 받는 셋 */
+export type TroubleKind = 'amount-mismatch' | 'paid-without-bundle' | 'webhook-failed';
 
-const answer = (status: Settled['status'], note: string | null = null): Settled => ({ status, note });
+/** 알릴 것 — 가맹점 결제 번호는 본문에서 못 읽었으면 `null`. 까닭은 `note` 다 */
+export type Trouble = { kind: TroubleKind; paymentId: string | null };
+
+type Settled = { status: 200 | 400 | 401 | 503; note: string | null; trouble: Trouble | null };
+
+const answer = (status: Settled['status'], note: string | null = null, trouble: Trouble | null = null): Settled => ({
+  status,
+  note,
+  trouble,
+});
 
 /**
  * 가맹점 주문 번호에서 주문 id 를 되짚는다. `open_reading_order` 가 `'rdo_' || replace(id::text, '-', '')` 로 짓는다
@@ -69,7 +87,7 @@ const FINAL_REJECTIONS: Record<string, string> = {
   /** 같은 알림 번호가 다른 주문 · 금액 · 거래 번호로 왔다(`20261015090000`) */
   '22023': 'event id belongs to another request',
   /** 주문이 이미 닫혔거나 다른 거래 번호로 승인됐다 — 돈은 들어왔으니 사람이 환불한다 */
-  '55000': 'order already closed — refund by hand',
+  '55000': 'order already closed - refund by hand',
 };
 
 export async function settleWebhook(headers: Headers, body: string, deps: SettleDeps): Promise<Settled> {
@@ -80,31 +98,38 @@ export async function settleWebhook(headers: Headers, body: string, deps: Settle
   if (!verified.ok) return answer(401, `signature: ${verified.detail}`);
 
   const notice = noticeOf(body);
-  if (!notice) return answer(400, 'unreadable body');
+  if (!notice) return answer(400, 'unreadable body', { kind: 'webhook-failed', paymentId: null });
 
   if (notice.type !== 'Transaction.Paid') return answer(200);
 
-  if (!notice.paymentId) return answer(400, 'paid notice without paymentId');
+  if (!notice.paymentId) {
+    return answer(400, 'paid notice without paymentId', { kind: 'webhook-failed', paymentId: null });
+  }
+  // 같은 비밀을 나눠 쓰는 다른 상점의 알림 — 우리 돈이 아니다
   if (notice.storeId !== config.storeId) return answer(200, 'another store');
 
-  const orderId = orderIdOf(notice.paymentId);
-  if (!orderId) return answer(200, 'not a reading order');
+  const { paymentId } = notice;
+  const failed = { kind: 'webhook-failed', paymentId } as const;
+  const unbundled = { kind: 'paid-without-bundle', paymentId } as const;
+
+  const orderId = orderIdOf(paymentId);
+  if (!orderId) return answer(200, 'not a reading order', unbundled);
 
   let lookup: PaymentLookup;
   try {
-    lookup = await deps.paymentOf(notice.paymentId, config);
+    lookup = await deps.paymentOf(paymentId, config);
   } catch (error) {
-    return answer(503, `payment lookup: ${error instanceof Error ? error.message : 'failed'}`);
+    return answer(503, `payment lookup: ${error instanceof Error ? error.message : 'failed'}`, failed);
   }
 
-  if (lookup.kind === 'missing') return answer(200, 'payment not found at portone');
+  if (lookup.kind === 'missing') return answer(200, 'payment not found at portone', failed);
 
   const { payment } = lookup;
   // 알림이 늦게 왔다 — 그 사이 취소됐으면 승인하지 않는다
   if (payment.status !== 'PAID') return answer(200);
   if (payment.storeId !== config.storeId) return answer(200, 'payment of another store');
-  if (payment.currency !== 'KRW') return answer(200, `currency ${payment.currency}`);
-  if (!payment.transactionId) return answer(200, 'paid without transactionId');
+  if (payment.currency !== 'KRW') return answer(200, `currency ${payment.currency}`, unbundled);
+  if (!payment.transactionId) return answer(200, 'paid without transactionId', unbundled);
 
   let approval: Approval;
   try {
@@ -115,13 +140,17 @@ export async function settleWebhook(headers: Headers, body: string, deps: Settle
       eventId: verified.eventId,
     });
   } catch (error) {
-    return answer(503, `approve: ${error instanceof Error ? error.message : 'failed'}`);
+    return answer(503, `approve: ${error instanceof Error ? error.message : 'failed'}`, failed);
   }
 
   if (approval.kind === 'done') {
-    return approval.outcome === 'applied' ? answer(200) : answer(200, `approve ${approval.outcome} — amount differs`);
+    if (approval.outcome === 'applied') return answer(200);
+    return answer(200, `approve ${approval.outcome} - amount differs (paid ${payment.total})`, {
+      kind: 'amount-mismatch',
+      paymentId,
+    });
   }
 
   const final = FINAL_REJECTIONS[approval.code];
-  return final ? answer(200, `approve: ${final}`) : answer(503, `approve: ${approval.code}`);
+  return final ? answer(200, `approve: ${final}`, unbundled) : answer(503, `approve: ${approval.code}`, failed);
 }

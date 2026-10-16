@@ -64,7 +64,7 @@ describe('결제 알림의 문 (G-23 ⑥)', () => {
   it('서명이 맞는 결제 완료 알림은 PortOne 에서 받은 금액 · 거래 번호와 알림 번호로 승인 문을 부른다', async () => {
     const body = paidBody();
     const { deps, approved, looked } = depsOf();
-    expect(await settleWebhook(signed(body), body, deps)).toEqual({ status: 200, note: null });
+    expect(await settleWebhook(signed(body), body, deps)).toEqual({ status: 200, note: null, trouble: null });
     expect(looked).toEqual([PAYMENT_ID]);
     expect(approved).toEqual([{ orderId: ORDER, paymentId: 'tx_attempt_1', amount: 4300, eventId: 'whk_0001' }]);
   });
@@ -97,7 +97,7 @@ describe('결제 알림의 문 (G-23 ⑥)', () => {
     const { deps, approved, looked } = depsOf();
     const forged = signed(paidBody({ paymentId: 'rdo_ffffffffffffffffffffffffffffffff' }));
     const settled = await settleWebhook(forged, body, deps);
-    expect(settled).toEqual({ status: 401, note: 'signature: signature mismatch' });
+    expect(settled).toEqual({ status: 401, note: 'signature: signature mismatch', trouble: null });
     expect([...looked, ...approved]).toEqual([]);
   });
 
@@ -114,7 +114,7 @@ describe('결제 알림의 문 (G-23 ⑥)', () => {
       const body = paidBody();
       const other = body.replace('Transaction.Paid', type);
       const { deps, approved, looked } = depsOf();
-      expect(await settleWebhook(signed(other), other, deps)).toEqual({ status: 200, note: null });
+      expect(await settleWebhook(signed(other), other, deps)).toEqual({ status: 200, note: null, trouble: null });
       expect([...looked, ...approved]).toEqual([]);
     }
   });
@@ -179,6 +179,74 @@ describe('결제 알림의 문 (G-23 ⑥)', () => {
       expect([code, settled.status]).toEqual([code, status]);
       expect(settled.note).not.toBeNull();
     }
+  });
+});
+
+describe('결제 이상을 운영자에게 (G-110 ④)', () => {
+  const failed = { kind: 'webhook-failed', paymentId: PAYMENT_ID } as const;
+  const unbundled = { kind: 'paid-without-bundle', paymentId: PAYMENT_ID } as const;
+
+  it('금액이 달라 거절되면 금액 불일치로 알리고, 까닭에 받은 금액을 싣는다', async () => {
+    const body = paidBody();
+    const { deps } = depsOf({ paymentOf: async () => found({ total: 100 }) }, { kind: 'done', outcome: 'refused' });
+    expect(await settleWebhook(signed(body), body, deps)).toEqual({
+      status: 200,
+      note: 'approve refused - amount differs (paid 100)',
+      trouble: { kind: 'amount-mismatch', paymentId: PAYMENT_ID },
+    });
+  });
+
+  it('PortOne 은 결제 완료인데 묶음을 세우지 않았고 다시 와도 같으면 「돈은 들어왔는데 묶음이 없다」다', async () => {
+    const body = paidBody();
+    for (const code of ['P0002', '22023', '55000']) {
+      const { deps } = depsOf({}, { kind: 'rejected', code });
+      expect((await settleWebhook(signed(body), body, deps)).trouble).toEqual(unbundled);
+    }
+    for (const payment of [found({ currency: 'USD' }), found({ transactionId: null })]) {
+      const { deps } = depsOf({ paymentOf: async () => payment });
+      expect((await settleWebhook(signed(body), body, deps)).trouble).toEqual(unbundled);
+    }
+    const elsewhere = paidBody({ paymentId: 'order-from-elsewhere' });
+    expect((await settleWebhook(signed(elsewhere), elsewhere, depsOf().deps)).trouble).toEqual({
+      kind: 'paid-without-bundle',
+      paymentId: 'order-from-elsewhere',
+    });
+  });
+
+  it('서명이 맞았는데 처리하지 못하면 처리 실패로 알린다 — 503 이어도', async () => {
+    const body = paidBody();
+    const cases: [Partial<SettleDeps>, Approval | undefined][] = [
+      [{ paymentOf: async () => Promise.reject(new Error('portone payment: 502')) }, undefined],
+      [{ paymentOf: async () => ({ kind: 'missing' }) }, undefined],
+      [{ approve: async () => Promise.reject(new Error('fetch failed')) }, undefined],
+      [{}, { kind: 'rejected', code: '08006' }],
+    ];
+    for (const [over, approval] of cases) {
+      const { deps } = depsOf(over, approval);
+      expect((await settleWebhook(signed(body), body, deps)).trouble).toEqual(failed);
+    }
+    expect((await settleWebhook(signed('not json'), 'not json', depsOf().deps)).trouble).toEqual({
+      kind: 'webhook-failed',
+      paymentId: null,
+    });
+    const noId = paidBody({ paymentId: undefined });
+    expect((await settleWebhook(signed(noId), noId, depsOf().deps)).trouble).toEqual({
+      kind: 'webhook-failed',
+      paymentId: null,
+    });
+  });
+
+  it('서명 앞(설정 없음 · 서명 틀림)과 우리 돈이 아닌 것 · 정상 · 취소는 알리지 않는다 — 아무나 알림함을 채우지 못한다', async () => {
+    const body = paidBody();
+    const quiet = [
+      await settleWebhook(signed(body), body, depsOf({ config: null }).deps),
+      await settleWebhook(signed(paidBody({ paymentId: 'rdo_ffffffffffffffffffffffffffffffff' })), body, depsOf().deps),
+      await settleWebhook(signed(paidBody({ storeId: 'store-other' })), paidBody({ storeId: 'store-other' }), depsOf().deps),
+      await settleWebhook(signed(body), body, depsOf({ paymentOf: async () => found({ storeId: 'store-other' }) }).deps),
+      await settleWebhook(signed(body), body, depsOf({ paymentOf: async () => found({ status: 'CANCELLED' }) }).deps),
+      await settleWebhook(signed(body), body, depsOf().deps),
+    ];
+    expect(quiet.map((one) => one.trouble)).toEqual([null, null, null, null, null, null]);
   });
 });
 

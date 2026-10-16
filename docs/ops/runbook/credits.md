@@ -133,7 +133,7 @@ update retention.reading_payment set hold_reason = null, held_at = null where or
    남고(200), 이미 닫힌 주문의 결제(`55000`)는 **돈이 들어왔는데 묶음이 없다** — PG 콘솔에서 환불한다
 
 답은 다시 보내도 같을 것이면 2xx · 401 · 400, 우리 쪽이 잠깐 못 한 것(설정 · PortOne · DB)이면 503 이다 — PortOne 이 다섯 번까지
-다시 보낸다. 까닭은 답에 안 싣고 Vercel 로그의 `portone webhook` 줄에만 남는다.
+다시 보낸다. 까닭은 답에 안 싣고 Vercel 로그의 `portone webhook` 줄에 남는다 — 결제 이상이면 알림도 온다(아래 「결제 이상 알림」).
 
 **켜는 날**(가맹 · 샌드박스 뒤, 사람) — ① Vercel **Production** 에 위 셋을 넣고 재배포 ② PortOne 콘솔 → 웹훅에 `https://<도메인>/api/portone/webhook`
 을 넣는다(버전 V2) ③ 샌드박스 채널로 1회권 하나를 결제하고 묶음이 선 것을 본다 — 판매 스위치는 운영에서 켜지 않는다. 운영에서 밟을 때는 아래
@@ -141,6 +141,30 @@ update retention.reading_payment set hold_reason = null, held_at = null where or
 호출이 200 인지 본다. 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 — 결제 전 고지 · 철회
 기준(G-25) · 탈퇴 판의 남은 수량(G-25 ⑦) · 환불 셈 화면이 먼저 선다. **샌드박스에서 볼 것** — 알림 본문과 결제 조회의 모양이
 문서대로인가, 환불 번호를 주문 사이에 겹쳐 쓰는가(`20261015090000`), 거래 번호로 `transactionId` 와 `pgTxId` 중 무엇을 남길까.
+
+#### 결제 이상 알림 — 알림이 오면 (G-110 ④)
+
+결제 알림의 문이 **서명이 맞은 알림**에서 이상을 보면 장애 알림과 같은 주소(Vault `ops_alert_url`)로 한 줄이 온다 —
+`report_payment_trouble`(`20261213090000`) → `notify_ops`, **결제 하나 · 갈래 하나에 하루 한 줄**이고 Production 에서만 보낸다. 알림의
+`kind` 는 `payment-<갈래>:<결제 번호 rdo_…>`, 본문은 머리말 · 결제 번호 · 까닭(Vercel 로그의 `portone webhook` 줄과 같은 글)이다.
+알림에는 사람이 없고, 아래 질의도 계정을 읽지 않는다 — 주문 · 묶음 · 받은 알림만이라 보통 질의다(`docs/ops/runbook/access.md`
+「개인정보는 화면으로만」). 누가 낸 결제인지가 필요하면 PortOne 콘솔에서 본다.
+
+```bash
+# 결제 번호(rdo_…)로 주문 · 묶음 · 받은 알림
+npm run db:remote -- --purpose "결제 이상 알림 <rdo_…>" \
+  "select o.status, o.amount, o.provider_payment_id, o.created_at, o.approved_at, b.id as bundle_id, b.credits, (select json_agg(json_build_object('event', e.provider_event_id, 'outcome', e.outcome, 'amount', e.amount, 'at', e.received_at) order by e.received_at) from public.payment_event e where e.order_id = o.id) as events from public.reading_order o left join public.reading_bundle b on b.order_id = o.id where o.provider_order_id = '<rdo_…>'"
+```
+
+| 갈래(`kind`) | 무엇이 일어났나 | 하는 일 |
+| --- | --- | --- |
+| `payment-amount-mismatch` | PortOne 의 결제 금액이 주문 금액과 달라 승인 문이 거절했다(`payment_event.outcome = 'refused'`). 묶음은 없다 | ① PortOne 콘솔에서 그 결제의 금액 · 상태를 본다 ② 위 질의의 `amount` 와 견준다 ③ **받은 돈 전부를 PG 콘솔에서 취소한다** — 주문은 `pending` 그대로라 장부에 적을 환불이 없다 ④ 같은 일이 둘 이상이면 결제창이 금액을 어떻게 싣는지(`app/me/credits/`)부터 본다 |
+| `payment-paid-without-bundle` | 돈은 들어왔는데 묶음을 세우지 않았고, 다시 와도 같다. 까닭으로 가른다 — `no such order`(떠난 사람 · 우리 주문 아님) · `order already closed - refund by hand`(이미 승인된 주문에 다른 거래로 또 냄) · `event id belongs to another request` · `currency …` · `paid without transactionId` · `not a reading order`(우리 상점에 `rdo_` 가 아닌 결제 — 콘솔의 시험 결제 등) | ① PortOne 콘솔에서 결제가 정말 `PAID` 인지 본다 ② 이미 승인된 주문의 두 번째 결제면 **두 번째 거래만** PG 콘솔에서 취소한다 — 첫 거래의 묶음은 그대로 ③ 그 밖은 받은 돈 전부를 PG 콘솔에서 취소한다. 장부(`refund_reading_order`)는 승인된 주문의 환불만 받으므로 여기서는 적지 않는다 ④ `event id …` · `paid without transactionId` · `currency …` 는 PortOne 의 모양이 바뀐 신호다 — 둘 이상이면 `app/api/portone/webhook/` 을 고칠 일로 올린다 |
+| `payment-webhook-failed` | 서명은 맞았는데 처리하지 못했다 — `payment lookup: …`(PortOne 에 못 닿음) · `approve: …`(DB 에 못 닿음 · 열쇠 없음 · 모르는 코드) · `payment not found at portone` · `unreadable body` · `paid notice without paymentId` | ① **503 갈래(`payment lookup` · `approve`)는 PortOne 이 다섯 번까지 다시 보낸다** — 한 시간 뒤 위 질의로 묶음이 섰는지 본다. 섰으면 끝 ② 안 섰으면 PortOne 콘솔 → 웹훅 내역에서 그 알림을 다시 보낸다(재발송 단추가 있는지는 켜는 날 샌드박스에서 본다) ③ 다시 보내도 안 서면 Vercel 로그의 `portone webhook` 줄로 까닭을 보고 고친 뒤 ② ④ `unreadable body` · `paid notice without paymentId` · `payment not found` 는 PortOne 의 모양 · 상점 설정이 어긋난 신호다 — 콘솔의 상점 아이디 · API 비밀이 Vercel 의 셋과 같은지 본다 |
+
+**이 알림이 못 잡는 것.** 서명 앞의 실패(설정 셋이 빠짐 · 웹훅 비밀이 어긋남 → 503 · 401)는 아무나 일으킬 수 있어 알리지 않는다 —
+PortOne 콘솔의 웹훅 내역에 실패가 쌓인다. DB 가 내려가 승인이 실패한 갈래는 이 알림도 같이 실패한다(Vercel 로그에만 남는다).
+웹훅이 아예 안 온 결제는 우리 쪽에 흔적이 없다 — PortOne 콘솔의 결제 목록과 위 「주문 조회」의 승인 수를 견주는 것은 아직 손이다.
 
 #### 심사 계정 — 카드사 심사 때만 결제창이 선다 (G-21, ADR 0171)
 
