@@ -813,6 +813,7 @@ export type Database = {
       notification: {
         Row: {
           created_at: string
+          credit_entry_id: string | null
           id: string
           kind: string
           match_id: string | null
@@ -823,6 +824,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credit_entry_id?: string | null
           id?: string
           kind: string
           match_id?: string | null
@@ -833,6 +835,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credit_entry_id?: string | null
           id?: string
           kind?: string
           match_id?: string | null
@@ -842,6 +845,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_credit_entry_id_fkey"
+            columns: ["credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "reading_credit_grant_entry"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_match_id_fkey"
             columns: ["match_id"]
@@ -1387,6 +1397,48 @@ export type Database = {
           extra?: number
           granted_at?: string
           note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reading_credit_grant_entry: {
+        Row: {
+          actor_user_id: string | null
+          at: string
+          carried_over: boolean
+          credits: number
+          id: string
+          kind: string
+          note: string
+          reason: string
+          report_id: string | null
+          request_id: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          at?: string
+          carried_over?: boolean
+          credits: number
+          id?: string
+          kind: string
+          note: string
+          reason: string
+          report_id?: string | null
+          request_id?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          at?: string
+          carried_over?: boolean
+          credits?: number
+          id?: string
+          kind?: string
+          note?: string
+          reason?: string
+          report_id?: string | null
+          request_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2657,6 +2709,23 @@ export type Database = {
       }
       beta_is_over: { Args: never; Returns: boolean }
       block_user: { Args: { p_user_id: string }; Returns: boolean }
+      book_reading_credit_grant: {
+        Args: {
+          p_actor: string
+          p_credits: number
+          p_kind: string
+          p_note: string
+          p_reason: string
+          p_report_id?: string
+          p_request_id: string
+          p_seen_version?: number
+          p_user_id: string
+        }
+        Returns: {
+          entry_id: string
+          replayed: boolean
+        }[]
+      }
       cancel_match_request: { Args: { p_request_id: string }; Returns: string }
       cancel_reading_order: {
         Args: { p_order_id: string; p_reason: string }
@@ -3188,6 +3257,8 @@ export type Database = {
         Returns: {
           counterpart_nickname: string
           created_at: string
+          credit_count: number
+          credit_reason: string
           kind: string
           match_id: string
           notification_id: string
@@ -3455,6 +3526,21 @@ export type Database = {
         Args: { p_hold_id: string; p_provider_refund_id: string }
         Returns: string
       }
+      operator_grant_reading_credits: {
+        Args: {
+          p_credits: number
+          p_note: string
+          p_reason: string
+          p_report_id: string
+          p_request_id: string
+          p_seen_version: number
+          p_user_id: string
+        }
+        Returns: {
+          entry_id: string
+          replayed: boolean
+        }[]
+      }
       operator_hold_reading_refund: {
         Args: {
           p_credits: number
@@ -3492,6 +3578,33 @@ export type Database = {
           used_all: number
           used_bought: number
           user_id: string
+        }[]
+      }
+      operator_member_credit_history: {
+        Args: { p_filter: string; p_limit: number; p_user_id: string }
+        Returns: {
+          actor_nickname: string
+          at: string
+          carried_over: boolean
+          cause: string
+          delta: number
+          kind: string
+          note: string
+          order_number: string
+          reason: string
+          report_id: string
+          source: string
+          state: string
+        }[]
+      }
+      operator_member_grant_ledger: {
+        Args: { p_user_id: string }
+        Returns: {
+          granted: number
+          reserved: number
+          revocable: number
+          used: number
+          version: number
         }[]
       }
       operator_member_warnings: {
@@ -3613,6 +3726,20 @@ export type Database = {
           reviewed_at: string
           snapshot_messages: number
           warning_ref: string
+        }[]
+      }
+      operator_revoke_reading_credits: {
+        Args: {
+          p_credits: number
+          p_note: string
+          p_reason: string
+          p_request_id: string
+          p_seen_version: number
+          p_user_id: string
+        }
+        Returns: {
+          entry_id: string
+          replayed: boolean
         }[]
       }
       operator_service_survey_counts: {
@@ -3800,6 +3927,7 @@ export type Database = {
       reading_budget_warning: { Args: never; Returns: number }
       reading_bundle_held: { Args: { p_bundle_id: string }; Returns: number }
       reading_bundle_price: { Args: { p_credits: number }; Returns: number }
+      reading_credit_grant_left: { Args: { p_user: string }; Returns: number }
       reading_credit_limit: { Args: never; Returns: number }
       reading_credit_limit_for: { Args: { p_user: string }; Returns: number }
       reading_credit_shares: {
@@ -4162,6 +4290,7 @@ export type Database = {
         Args: { p_picked: string[]; p_sole: string[] }
         Returns: boolean
       }
+      sync_reading_credit_grant: { Args: { p_user: string }; Returns: number }
       take_reading_job: {
         Args: { p_run_id: string }
         Returns: {
@@ -4258,6 +4387,7 @@ export type Database = {
         Args: never
         Returns: {
           created_at: string
+          credit_entry_id: string | null
           id: string
           kind: string
           match_id: string | null
