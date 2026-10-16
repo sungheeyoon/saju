@@ -9,6 +9,7 @@ import { Logo } from '../ui/logo';
 
 /** 운영 화면 사이의 길 — 화면이 늘면 여기에 줄을 더한다 */
 const OPERATOR_LINKS = [
+  { href: '/ops/today', label: '오늘' },
   { href: '/ops/reports', label: '신고' },
   { href: '/ops/survey', label: '설문' },
 ] as const;

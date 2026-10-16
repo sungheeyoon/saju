@@ -3548,6 +3548,19 @@ export type Database = {
           tag: string
         }[]
       }
+      operator_today_figures: {
+        Args: never
+        Returns: {
+          orders: number
+          period: string
+          readings: number
+          refunded: number
+          refunds: number
+          revenue: number
+          signups: number
+          since: string
+        }[]
+      }
       pair_relation_of: {
         Args: { p_person_a: string; p_person_b: string }
         Returns: string

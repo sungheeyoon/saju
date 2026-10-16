@@ -54,7 +54,8 @@ returns integer language sql immutable set search_path = '' as $$ select 5 $$;
 쓴 순서는 무료 → 예외 → 산 때가 이른 묶음이고, 자리를 잡는 순간 트리거가 정한다. 지운 대상의 시도가 셈에서 빠져
 되돌아온 자리로 만든 것은 몫 밖(`outside`)이다 — 환불 대상이 아니다.
 
-**주문 조회 — 개인을 가리키지 않는 질의만**(`docs/ops/runbook/access.md` 「개인정보는 화면으로만」). 에이전트도 돈다.
+**주문 조회 — 개인을 가리키지 않는 질의만**(`docs/ops/runbook/access.md` 「개인정보는 화면으로만」). 에이전트도 돈다. 오늘 · 이번 주의
+주문 · 매출 · 환불 수는 운영 화면 `/ops/today` 가 낸다(ADR 0183) — 아래 SQL 은 상태별 전체 합이다.
 
 ```bash
 # 상태별 주문 수 · 금액 · 돌려준 금액
