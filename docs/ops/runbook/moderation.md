@@ -7,6 +7,8 @@
 `status` 하나가 모든 문을 막는다 — 읽기까지 막는다(`is_active_account()`). 새 관문을
 두지 않았으므로 이 값만 옮기면 discovery·요청·수락·AI 생성이 한꺼번에 닫힌다.
 
+**바꾸기 전에 아래 「SQL 실행 전 확인」을 밟는다** — 이 절의 정지 · 해제와 「신고와 차단」의 검토 문(`review_report`) 모두.
+
 계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(`docs/ops/runbook/access.md`
 「개인정보는 화면으로만」). **신고로 정지하는 것이면 아래 UPDATE 대신 「신고와 차단」의 검토 문을 `suspension` 으로 부른다** —
 검토 기록과 정지가 한 트랜잭션이다(ADR 0107). 아래 정지 SQL 은 신고와 무관한 정지에만 쓴다. 해제는 어느 쪽이든 아래 SQL 이고,
@@ -32,6 +34,48 @@ from public.app_user a
 where a.status <> 'active'
 order by a.deletion_requested_at desc nulls last;
 ```
+
+### SQL 실행 전 확인 (운영자 규칙 2026-10-16)
+
+관리자 화면의 확인 창은 SQL 을 지켜 주지 못한다. 정지 · 해제 · 경고 · 처분을 SQL 로 적을 때는 셋을 밟는다.
+
+1. **영향받는 대상을 먼저 본다** — 바꿀 계정 · 신고와 그 **지금 상태**를 select 로 읽고, 가리킨 것이 맞는지(UUID 앞자리 · 상태)
+   눈으로 맞춘다. 이메일 · 닉네임은 꺼내지 않는다(보통 질의).
+
+   ```bash
+   npm run db:remote -- --purpose "정지 전 확인 <계정 앞 8자>" \
+     "select id, status, deletion_requested_at from public.app_user where id = '<계정 UUID>'"
+   npm run db:remote -- --purpose "검토 전 확인 <신고 앞 8자>" \
+     "select id, reviewed_at, review_outcome, sanctioned_user_id, reported_user_id, reporter_user_id from public.report where id = '<신고 id>'"
+   ```
+
+2. **실행하고, 결과를 확인한 뒤에만 반영한다** — `begin` → 실행 → 바뀐 줄 수 · 값을 select 로 확인 → 맞으면 `commit`, 아니면
+   `rollback`. `db:remote` 는 문장 하나를 보내고 `begin` · `rollback` 을 따로 받지 못하므로(`docs/agents/delegation/local-env.md`
+   「로컬 환경의 함정」의 prepared statement) **`do` 블록 하나**로 보낸다 — 블록 안에서 실행하고 바뀐 줄 수와 새 값을 검사해,
+   어긋나면 `raise exception` 으로 블록 전체를 되감고(= rollback), 맞으면 블록이 끝나며 반영된다(= commit). 처음 쓰는 블록은 로컬
+   DB 에서 같은 모양으로 한 번 돌려 본다.
+
+   ```sql
+   -- 이용 정지 — 이용 중인 그 계정 한 줄만 바뀌어야 한다
+   do $$
+   declare n integer;
+   begin
+     update public.app_user set status = 'suspended' where id = '<계정 UUID>' and status = 'active';
+     get diagnostics n = row_count;
+     if n <> 1 then raise exception '정지: 바뀐 줄 % — 되감는다', n; end if;
+   end $$;
+   ```
+
+   검토 문(`review_report`)은 스스로 한 트랜잭션이다 — 돌려준 값(`report` · `retention`)을 보고, 1 의 select 를 다시 돌려 결과 · 제재
+   대상 · (정지 결정이면) 계정 상태가 뜻한 대로인지 본다. 어긋났으면 같은 문을 바른 값으로 다시 부르고, 정지가 잘못 걸렸으면 위
+   해제로 푼다.
+3. **사유 · 실행자를 남긴다** — 지금 남는 자리는 둘이다. `db:remote` 의 **목적**(실행자 · 시각 · SQL 해시와 함께 접속기록에 남는다)에
+   「무엇을 · 왜」를 적는다 — 예: `"이용 정지 <계정 앞 8자> — 결제 부정"`(목적에 `@` · 이메일 · 실명은 못 넣는다). 검토 문은
+   판단 근거 칸에 적는다. 정지 · 해제의 UPDATE 에는 사유를 받는 칸이 아직 없다.
+
+**G-111 의 공통 함수가 서면 바뀐다** — 계정 상태를 바꾸는 공통 함수(사유 갈래 · 메모 · 실행자 · 이력, `docs/product/gaps/records/g-111.md`
+③)가 서면 이 절의 정지 · 해제는 그 함수 호출만 쓰고, 직접 UPDATE 는 쓰지 않는다(쓰면 실행자 · 사유가 빈 이력 줄과 알림이 남는다).
+환불 SQL 의 실행 전 확인은 `docs/ops/runbook/credits.md` 에 #727 이 넣는다.
 
 ---
 
@@ -73,7 +117,7 @@ group by reported_user_id, reason
 order by count(*) desc;
 ```
 
-**검토를 적는다 — 문 하나, 신고 id 로**(`public.review_report`, ADR 0107). 화면에서 읽고 판단한 뒤 적는다. 표를 직접
+**검토를 적는다 — 문 하나, 신고 id 로**(`public.review_report`, ADR 0107). 화면에서 읽고 판단한 뒤, 위 「SQL 실행 전 확인」을 밟고 적는다. 표를 직접
 UPDATE 하지 않는다. 결과는 넷 중 하나다 — `no_action`(조치 없음) · `warning`(경고) · `suspension`(이용 정지 결정) ·
 `needs_more`(추가 확인 필요). 판단 근거는 500자 안에서 **이메일 · 실명 · 연락처 없이** 적는다. 검토한 사람은 `public.operator` 의
 운영자 UUID 다 — 한 번 보고 적어 둔다(`select user_id, note, added_at from public.operator;`, 이메일 없이). 운영자 표에 없는
@@ -95,6 +139,8 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'suspension', '<�
 
 대상은 보통 신고받은 계정(화면의 「신고받은 계정」 아래 회색 글자)이고, 신고한 쪽이 받는 드문 경우는 그 계정이다. 돌려주는 값은
 적은 표다 — `report`(지금 계정의 신고) · `retention`(떠난 사람의 신고). 다시 부르면 덮어쓴다(추가 확인 필요 → 결론).
+**결정을 바꾸면 정지는 따로 푼다** — 이용 정지 결정을 다른 결과로 다시 적어도 계정 정지는 그대로 남는다(문은 정지를 걸기만 한다). 풀려면
+「이용 정지와 해제」의 해제를 따로 밟는다.
 **경고의 갈래는 이용자에게 가는 말이다** — 신고한 사람이 고른 사유가 운영자가 본 위반과 다르면(제재 대상이 신고한 쪽이면 더 그렇다)
 여섯째 인자로 고른다. 경고가 아닌데 갈래를 주면 `22023`. 경고로 적히면 안내번호(`W-` 와 네 글자)가 붙고 상세 화면에 선다.
 

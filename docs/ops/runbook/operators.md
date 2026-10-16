@@ -39,7 +39,7 @@ delete from public.operator where user_id =
 
 ### 운영자 로그인 — 구글 간편로그인만 (ADR 0182)
 
-운영 화면(`/ops/reports` · `/ops/survey` · `/ops/members`)은 **구글로 로그인한 세션이면 2단계 없이** 운영자 문을 부른다 — 운영자인지는 위
+운영 화면(`/ops/today` · `/ops/reports` · `/ops/survey` · `/ops/orders` · `/ops/members`)은 **구글로 로그인한 세션이면 2단계 없이** 운영자 문을 부른다 — 운영자인지는 위
 `public.operator` 줄 하나로 DB(`is_operator()`)가 답하고, 아니면 404 다. 열람 · 거절은 지금처럼 접속기록에 남는다(ADR 0105).
 인증 앱 등록 화면(`/ops/mfa`)은 없다(2026-10-15 걷음, ADR 0123 을 대체).
 

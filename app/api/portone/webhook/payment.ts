@@ -19,6 +19,9 @@ const LOOKUP_TIMEOUT_MS = 10_000;
 
 export type PortoneConfig = { webhookSecret: string; apiSecret: string; storeId: string };
 
+/** 결제 조회에 드는 둘 — 웹훅 밖(운영자 환불 화면의 준비 취소)도 이것으로 조회한다 */
+export type PortoneLookupConfig = Pick<PortoneConfig, 'apiSecret' | 'storeId'>;
+
 /** 결제 단건 — 승인에 드는 칸만 */
 type PortonePayment = {
   status: string;
@@ -63,21 +66,47 @@ export function paymentOf(json: unknown): PortonePayment {
   return { status, storeId, transactionId: text(body.transactionId), total, currency };
 }
 
+/** 웹훅 밖에서 쓰는 조회 열쇠 둘 — 하나라도 없으면 `null`(조회하지 않는다) */
+export function portoneLookupConfigOf(env: {
+  PORTONE_API_SECRET: string | undefined;
+  PORTONE_STORE_ID: string | undefined;
+}): PortoneLookupConfig | null {
+  const apiSecret = env.PORTONE_API_SECRET?.trim();
+  const storeId = env.PORTONE_STORE_ID?.trim();
+  if (!apiSecret || !storeId) return null;
+  return { apiSecret, storeId };
+}
+
 /**
- * @throws 닿지 못했거나 · 한도 안에 답이 없거나 · 404 가 아닌 실패 — 라우트가 503 으로 답해 PortOne 이 다시 보낸다
+ * 결제 단건의 본문을 그대로 — 없으면 `null`(404).
+ *
+ * @throws 닿지 못했거나 · 한도 안에 답이 없거나 · 404 가 아닌 실패
  */
-export async function portonePayment(
+export async function portonePaymentBody(
   paymentId: string,
-  config: PortoneConfig,
+  config: PortoneLookupConfig,
   fetchImpl: typeof fetch,
-): Promise<PaymentLookup> {
+): Promise<unknown> {
   const url = `${API}/payments/${encodeURIComponent(paymentId)}?storeId=${encodeURIComponent(config.storeId)}`;
   const response = await fetchImpl(url, {
     headers: { authorization: `PortOne ${config.apiSecret}` },
     cache: 'no-store',
     signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
   });
-  if (response.status === 404) return { kind: 'missing' };
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error(`portone payment: ${response.status}`);
-  return { kind: 'found', payment: paymentOf(await response.json()) };
+  return response.json();
+}
+
+/**
+ * @throws 닿지 못했거나 · 한도 안에 답이 없거나 · 404 가 아닌 실패 — 라우트가 503 으로 답해 PortOne 이 다시 보낸다
+ */
+export async function portonePayment(
+  paymentId: string,
+  config: PortoneLookupConfig,
+  fetchImpl: typeof fetch,
+): Promise<PaymentLookup> {
+  const body = await portonePaymentBody(paymentId, config, fetchImpl);
+  if (body === null) return { kind: 'missing' };
+  return { kind: 'found', payment: paymentOf(body) };
 }

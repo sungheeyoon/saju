@@ -96,6 +96,8 @@
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |
 | 사용 이력 | `reading_credit_use` · `operator_reading_refund_basis` | 표 · 함수 |
+| 환불 | `reading_order_refund` · `refund_reading_order` · `refundOwed` | 표 · 함수 · `src/lib/reading` |
+| 환불 진행 중(확보) | `reading_refund_hold` · `operator_hold_reading_refund` · `operator_book_reading_refund` · `operator_release_reading_refund` · `operator_reading_refund_hold` · `release_reading_refund_by_hand` · `retention.reading_refund_after_leave` · `holdRefund` · `bookRefund` · `releaseRefund` · `RefundHold` · `releaseCheckOf` · `cancellationCheck` · `preparePlan` · `oneAtATime` | 표 · 함수 · `app/ops/orders/` |
 | 심사 계정 | `reading_sale_reviewer` · `reading_sale_is_open_for` · `my_reading_sale_is_open` · `mySaleIsOpen` | 표 · 함수 · `app/me/credits/sale.ts` |
 | 결제 내역 | `my_reading_orders` · `myPaidOrders` · `PaidOrder` · `readingBundleValidUntil` · `refundRequestLine` · `checkoutRefundLine`(결제 화면 유의사항) | 함수 · `app/me/credits/history/orders.ts` · `src/lib/reading` · `src/lib/brand` |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |
