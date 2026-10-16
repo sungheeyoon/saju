@@ -22,10 +22,26 @@
 -- `credits.refund_release`. 거른 조건 칸에 주문 id 만 적고, 같은 트랜잭션이라 거절된 시도는 줄도 되감긴다. 운영자가 아니면
 -- `42501` 이고 앱이 `note_operator_denial` 로 같은 이름을 따로 적는다.
 --
--- ## 서버 열쇠의 환불도 확보를 넘지 않는다
+-- ## 진행 중인 확보가 있는 동안 그 주문의 다른 환불은 막힌다
 --
--- `refund_reading_order`(SQL 차례 — 쓴 회차까지 돌려주는 미제공 등)도 다른 확보가 잡은 회차는 안 쓴 것으로 세지 않는다.
+-- `refund_reading_order`(SQL 차례 — 쓴 회차까지 돌려주는 미제공 등)는 그 주문에 진행 중인 확보가 있으면 거절한다(`55000`) —
+-- 회차뿐 아니라 금액도 확보가 먼저 잡았다. 확정은 확보를 닫은 뒤 이 문을 부르므로 걸리지 않는다. 두 번째 확보도 막힌다.
 -- 산 사람의 결제 내역(`my_reading_orders`)의 남은 회차도 확보를 뺀다.
+--
+-- ## 산 사람이 떠나도 진행 중인 확보는 남는다
+--
+-- 확보는 주문 · 묶음에 FK 로 매지 않고, 확정에 드는 값(계정 내부 번호 · 가맹점 주문 번호 · 거래 번호 · 결제액 · 취소 후
+-- 잔액)을 제 줄에 적어 둔다. 떠날 때(`retention.keep_payments_of_leaver`) 주문은 `retention.reading_payment` 로 옮겨지고
+-- 지워지지만 진행 중인 확보는 그대로 남는다 — 콘솔에서 이미 취소했으면 확정하고, 아니면 준비 취소한다. 떠난 뒤의 확정은
+-- 고칠 수 없는 보관 표 `retention.reading_payment` 대신 **떠난 뒤의 환불 표** `retention.reading_refund_after_leave` 에 적는다
+-- (같은 규율 — API 역할 셋에 닫힘 · 고치지 못함 · 보류 두 칸 · 환불 시각 + 5년 뒤 크론이 지움). 닫힌 확보 중 주문이 없는
+-- 줄은 그 크론(`retention.purge_expired_payments`)이 걷는다.
+--
+-- ## 준비 취소는 PG 의 취소 내역을 본 뒤에
+--
+-- 콘솔에서 이미 취소한 확보를 풀면 돈은 나갔는데 회차가 돌아온다. 앱의 「준비 취소」는 PortOne 결제 조회로 확보 뒤의 취소가
+-- 없음을 확인한 뒤에만 이 문을 부른다(`app/ops/orders/release-check.ts`). 조회할 수 없는 환경(열쇠 없음)에서는 화면이 막고,
+-- 운영자가 콘솔을 보고 사유를 남겨 서버 열쇠로 푼다(`release_reading_refund_by_hand`, 런북 `docs/ops/runbook/credits.md`).
 
 -- ---------------------------------------------------------------------------
 -- 1. 기록 표와 거절 문이 새 동작을 받는다 — 목록은 바로 앞 `20261210090000`(오늘의 숫자 `today.figures`)의 것에 넷을
@@ -85,8 +101,18 @@ $$;
 
 create table public.reading_refund_hold (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.reading_order (id) on delete cascade,
-  bundle_id uuid not null references public.reading_bundle (id) on delete cascade,
+  /** 주문 · 묶음 — FK 로 매지 않는다: 산 사람이 떠나 주문이 지워져도 진행 중인 확보는 남아 확정 · 준비 취소로 닫는다 */
+  order_id uuid not null,
+  bundle_id uuid not null,
+  /** 산 사람의 계정 내부 번호 — 떠날 때 닫힌 확보를 걷는 열쇠. `retention.reading_payment` 도 드는 값이다 */
+  user_id uuid not null,
+  /** 가맹점 주문 번호(`rdo_…`) — PortOne 의 결제 번호. 떠난 뒤에도 콘솔에서 그 결제를 찾는다 */
+  provider_order_id text not null,
+  /** PG 의 거래 번호 */
+  provider_payment_id text,
+  /** 결제액 · 이 환불 뒤의 잔액(원) — 확보할 때의 값. 확보가 열려 있는 동안 그 주문의 다른 환불은 막힌다 */
+  paid_amount integer not null check (paid_amount > 0),
+  remaining_amount integer not null check (remaining_amount >= 0),
   /** 잠근 회차 — 진행 중인 동안 한도와 몫 고르기에서 빠진다 */
   credits integer not null check (credits > 0),
   /** 확보할 때 확정한 금액(원) — 확정은 이 금액을 적는다 */
@@ -100,6 +126,9 @@ create table public.reading_refund_hold (
   closed_at timestamptz,
   /** 확정할 때 받은 PG 취소 번호 */
   provider_refund_id text check (provider_refund_id is null or length(provider_refund_id) between 1 and 200),
+  /** 준비 취소의 근거 — 앱은 PortOne 조회로 확인했다는 표지, 손으로 푼 것은 운영자가 남긴 사유 */
+  release_note text check (release_note is null or length(btrim(release_note)) between 1 and 500),
+  constraint released_says_why check ((state = 'released') = (release_note is not null)),
   constraint closed_has_its_time check ((state = 'held') = (closed_at is null)),
   constraint booked_has_the_refund_id check ((state = 'booked') = (provider_refund_id is not null))
 );
@@ -110,6 +139,7 @@ comment on table public.reading_refund_hold is
 /** 같은 주문에 진행 중인 확보는 하나 */
 create unique index reading_refund_hold_one_open on public.reading_refund_hold (order_id) where state = 'held';
 create index reading_refund_hold_by_bundle on public.reading_refund_hold (bundle_id) where state = 'held';
+create index reading_refund_hold_by_user on public.reading_refund_hold (user_id);
 
 alter table public.reading_refund_hold enable row level security;
 revoke all on public.reading_refund_hold from public, anon, authenticated, service_role;
@@ -191,8 +221,9 @@ $$;
 
 /**
  * 환불을 적는다 — 서버만. 금액과 걷을 회차는 부르는 쪽이 정한다(운영자 화면은 확보가 정한 것을 넘긴다). 걷는 회차는 그
- * 묶음의 **안 쓴** 것을 넘지 못한다 — 예약 중인 것(G-21 ③)과 진행 중인 확보가 잡은 것은 안 쓴 것이 아니다. 제공자 환불
- * 번호가 같으면 한 번만 적힌다 — **금액 · 회차 · 사유까지 같을 때만**, 다르면 `22023`.
+ * 묶음의 **안 쓴** 것을 넘지 못한다 — 예약 중인 것(G-21 ③)과 진행 중인 확보가 잡은 것은 안 쓴 것이 아니다. 그 주문에
+ * 진행 중인 확보가 있으면 금액도 확보가 잡았으므로 거절한다(`55000`). 제공자 환불 번호가 같으면 한 번만 적힌다 — **금액 ·
+ * 회차 · 사유까지 같을 때만**, 다르면 `22023`.
  *
  * @returns 주문의 새 상태
  */
@@ -235,6 +266,11 @@ begin
 
   if o.status not in ('approved', 'partially_refunded') then
     raise exception 'reading_order: a % order is not refunded', o.status using errcode = '55000';
+  end if;
+
+  -- 진행 중인 확보가 회차와 금액을 먼저 잡았다 — 확정(확보를 닫은 뒤 부른다)이나 준비 취소 뒤에 온다
+  if exists (select 1 from public.reading_refund_hold h where h.order_id = o.id and h.state = 'held') then
+    raise exception 'reading_order: a refund is being prepared for this order' using errcode = '55000';
   end if;
 
   if p_amount is null or p_amount <= 0 or o.refunded_amount + p_amount > o.amount then
@@ -407,12 +443,187 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- 5'. 떠난 뒤 — 진행 중인 확보는 남고, 떠난 뒤의 확정은 보관 표 하나에
+-- ---------------------------------------------------------------------------
+
+/**
+ * 산 사람이 떠난 뒤에 확정한 환불 — `retention.reading_payment` 는 고칠 수 없으므로 그 결제에 덧붙는 환불을 여기 둔다.
+ * 계정에 FK 로 매지 않는다. 칸은 보관된 결제의 `refunds` 한 줄과 같고, 확보 번호(재시도를 알아보는 열쇠)와 가맹점 주문 번호를 더했다.
+ */
+create table retention.reading_refund_after_leave (
+  hold_id uuid primary key,
+  order_id uuid not null,
+  user_id uuid not null,
+  provider_order_id text not null,
+  amount integer not null check (amount > 0),
+  credits integer not null check (credits >= 0),
+  reason text not null,
+  provider_refund_id text not null,
+  refunded_at timestamptz not null default now(),
+  /** 지울 때 — 이 환불 + 5년 */
+  keep_until timestamptz not null,
+  /** 보존 보류 — 분쟁 · 수사기관의 적법한 요청이 걸렸다. 사유가 끝나면 비운다 */
+  hold_reason text check (hold_reason is null or length(btrim(hold_reason)) between 1 and 500),
+  held_at timestamptz,
+  constraint hold_has_a_time check ((hold_reason is null) = (held_at is null)),
+  unique (order_id, provider_refund_id)
+);
+
+comment on table retention.reading_refund_after_leave is
+  '떠난 사람의 결제에 떠난 뒤 확정한 환불 — 환불부터 5년 뒤 크론이 지운다. 앱은 못 읽는다 (G-110 ②, ADR 0184)';
+
+create index retention_refund_after_leave_expiry on retention.reading_refund_after_leave (keep_until)
+  where hold_reason is null;
+
+alter table retention.reading_refund_after_leave enable row level security;
+revoke all on retention.reading_refund_after_leave from public, anon, authenticated, service_role;
+
+create trigger retained_refund_is_immutable
+before update on retention.reading_refund_after_leave
+for each row execute function retention.refuse_payment_update();
+
+/** 떠난 사람의 결제가 지금 얼마나 돌려졌나 — 보관된 환불 합 + 떠난 뒤의 환불 합이 결제액이면 `refunded` */
+create function retention.refund_status_after_leave(p_order_id uuid)
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select case
+           when k.refunded_amount + coalesce((select sum(a.amount) from retention.reading_refund_after_leave a
+                                              where a.order_id = k.order_id), 0) >= k.amount then 'refunded'
+           else 'partially_refunded'
+         end
+  from retention.reading_payment k
+  where k.order_id = p_order_id;
+$$;
+
+/**
+ * 떠나기 **전에** 그 사람의 결제를 옮긴다 — 몸은 `20261018090000` 그대로다. 끝에 그 사람의 **닫힌** 확보를 걷는 한 줄을
+ * 더했다(확정된 것은 `refunds` 로 이미 옮겨졌다). 진행 중인 확보는 남는다 — 운영자가 확정하거나 준비 취소한다.
+ */
+create or replace function retention.keep_payments_of_leaver()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform public.settle_reading_credit_uses(old.id);
+
+  insert into retention.reading_payment (
+    order_id, user_id, provider, provider_order_id, provider_payment_id, bundle_credits, amount, currency,
+    status, refunded_amount, ordered_at, approved_at, last_refunded_at, bundle, refunds, events, keep_until)
+  select
+    o.id, o.user_id, o.provider, o.provider_order_id, o.provider_payment_id, o.bundle_credits, o.amount,
+    o.currency, o.status, o.refunded_amount, o.created_at, o.approved_at, o.last_refunded_at,
+    jsonb_build_object(
+      'credits', b.credits,
+      'price', b.price,
+      'acquired_at', b.acquired_at,
+      'refunded_credits', b.refunded_credits,
+      'uses', coalesce((
+        select jsonb_agg(jsonb_build_object(
+                 'source', u.source, 'state', u.state, 'reserved_at', u.reserved_at,
+                 'confirmed_at', u.confirmed_at, 'released_at', u.released_at)
+               order by u.id)
+        from public.reading_credit_use u where u.bundle_id = b.id), '[]'::jsonb)),
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'amount', f.amount, 'credits', f.credits, 'reason', f.reason,
+               'provider_refund_id', f.provider_refund_id, 'refunded_at', f.refunded_at)
+             order by f.refunded_at, f.id)
+      from public.reading_order_refund f where f.order_id = o.id), '[]'::jsonb),
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'provider_event_id', e.provider_event_id, 'kind', e.kind, 'amount', e.amount,
+               'received_at', e.received_at, 'outcome', e.outcome)
+             order by e.id)
+      from public.payment_event e where e.order_id = o.id), '[]'::jsonb),
+    greatest(o.approved_at, coalesce(o.last_refunded_at, o.approved_at)) + retention.payment_period()
+  from public.reading_order o
+  join public.reading_bundle b on b.order_id = o.id
+  where o.user_id = old.id and o.approved_at is not null
+  on conflict (order_id) do nothing;
+
+  -- 승인된 적 없는 주문은 거절 알림이 있을 때만, 최소 칸으로 (20261018090000)
+  insert into retention.refused_reading_payment (
+    order_id, user_id, provider, provider_order_id, amount, ordered_at, events, keep_until)
+  select
+    o.id, o.user_id, o.provider, o.provider_order_id, o.amount, o.created_at,
+    r.events, r.last_at + retention.payment_period()
+  from public.reading_order o
+  cross join lateral (
+    select jsonb_agg(jsonb_build_object(
+             'provider_event_id', e.provider_event_id, 'kind', e.kind, 'amount', e.amount,
+             'received_at', e.received_at, 'outcome', e.outcome)
+           order by e.id) as events,
+           max(e.received_at) as last_at
+    from public.payment_event e where e.order_id = o.id and e.outcome = 'refused'
+  ) r
+  where o.user_id = old.id and o.approved_at is null and r.events is not null
+  on conflict (order_id) do nothing;
+
+  -- 닫힌 확보는 걷는다 — 진행 중인 것은 남아 확정 · 준비 취소를 기다린다 (20261211090000)
+  delete from public.reading_refund_hold h where h.user_id = old.id and h.state <> 'held';
+
+  return old;
+end;
+$$;
+
+/**
+ * 5년이 지난 줄을 지운다 — 몸은 `20261018090000` 그대로에 둘을 더했다: 떠난 뒤의 환불 표의 만료 줄, 그리고 주문이 없는
+ * **닫힌** 확보(떠난 사람의 것 — 확정된 것은 떠난 뒤의 환불 표에 남았다). @returns 이번에 지운 결제 기록 수(합, 확보는 안 센다)
+ */
+create or replace function retention.purge_expired_payments()
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  gone integer;
+  gone_refused integer;
+  gone_after_leave integer;
+begin
+  with purged as (
+    delete from retention.reading_payment k
+    where k.keep_until <= now() and k.hold_reason is null
+    returning 1
+  )
+  select count(*)::integer into gone from purged;
+
+  with purged as (
+    delete from retention.refused_reading_payment k
+    where k.keep_until <= now() and k.hold_reason is null
+    returning 1
+  )
+  select count(*)::integer into gone_refused from purged;
+
+  with purged as (
+    delete from retention.reading_refund_after_leave k
+    where k.keep_until <= now() and k.hold_reason is null
+    returning 1
+  )
+  select count(*)::integer into gone_after_leave from purged;
+
+  delete from public.reading_refund_hold h
+  where h.state <> 'held'
+    and not exists (select 1 from public.reading_order o where o.id = h.order_id);
+
+  return gone + gone_refused + gone_after_leave;
+end;
+$$;
+
+revoke execute on all functions in schema retention from public, anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
 -- 6. 운영자 문 넷 — 진행 상태 · 확보 · 확정 · 준비 취소
 -- ---------------------------------------------------------------------------
 
 /**
- * 주문 하나에 진행 중인 환불 — 없으면 빈 답. 화면을 닫았다 다시 열어도 이것으로 이어서 확정한다.
- * 잔여(`remaining_amount`)는 결제액에서 이미 돌려준 것과 이번 확보 금액을 뺀 것이다 — PG 부분취소 화면의 「취소 후 잔액」.
+ * 주문 하나에 진행 중인 환불 — 없으면 빈 답. 화면을 닫았다 다시 열어도 이것으로 이어서 확정한다. 산 사람이 떠나 주문이
+ * 지워졌어도 확보가 든 값으로 선다(`departed`). 잔여(`remaining_amount`)는 결제액에서 이미 돌려준 것과 이번 확보 금액을 뺀
+ * 것이다 — PG 부분취소 화면의 「취소 후 잔액」.
  */
 create function public.operator_reading_refund_hold(p_order_id uuid)
 returns table (
@@ -421,8 +632,11 @@ returns table (
   amount integer,
   reason text,
   held_at timestamptz,
+  provider_order_id text,
   provider_payment_id text,
-  remaining_amount integer
+  paid_amount integer,
+  remaining_amount integer,
+  departed boolean
 )
 language plpgsql
 volatile
@@ -437,10 +651,10 @@ begin
   perform audit.note_app_access('credits.refund_status', null, format('order=%s', p_order_id), 'allowed');
 
   return query
-  select h.id, h.credits, h.amount, h.reason, h.held_at, o.provider_payment_id,
-         o.amount - o.refunded_amount - h.amount
+  select h.id, h.credits, h.amount, h.reason, h.held_at, h.provider_order_id, h.provider_payment_id,
+         h.paid_amount, h.remaining_amount,
+         not exists (select 1 from public.reading_order o where o.id = h.order_id)
   from public.reading_refund_hold h
-  join public.reading_order o on o.id = h.order_id
   where h.order_id = p_order_id and h.state = 'held';
 end;
 $$;
@@ -508,8 +722,12 @@ begin
     raise exception '돌려줄 금액이 없습니다.' using errcode = '22023';
   end if;
 
-  insert into public.reading_refund_hold (order_id, bundle_id, credits, amount, reason, held_by)
-  values (o.id, b.id, p_credits, owed, p_reason, (select auth.uid()))
+  insert into public.reading_refund_hold (
+    order_id, bundle_id, user_id, provider_order_id, provider_payment_id, paid_amount, remaining_amount,
+    credits, amount, reason, held_by)
+  values (
+    o.id, b.id, o.user_id, o.provider_order_id, o.provider_payment_id, o.amount, o.amount - o.refunded_amount - owed,
+    p_credits, owed, p_reason, (select auth.uid()))
   returning id into made;
 
   hold_id := made;
@@ -523,6 +741,9 @@ $$;
  * 확보한 환불을 장부에 확정한다 — PG 콘솔에서 취소한 **뒤에**, 그 취소 번호로. 금액 · 회차 · 사유는 확보가 정한 것이다.
  * 같은 취소 번호로 다시 부르면 한 번만 적히고 지금 상태를 돌려준다. 다른 번호로 확정된 확보 · 준비 취소된 확보는 거절한다.
  *
+ * 산 사람이 떠나 주문이 지워졌으면 보관된 결제(`retention.reading_payment`)를 보고 떠난 뒤의 환불 표에 적는다 — 그 결제의
+ * 환불 합이 결제액을 넘지 않는 한. 크론이 닫힌 확보를 걷은 뒤의 재시도는 그 표의 줄(확보 번호)로 알아본다.
+ *
  * @returns 주문의 새 상태
  */
 create function public.operator_book_reading_refund(p_hold_id uuid, p_provider_refund_id text)
@@ -534,47 +755,90 @@ set search_path = ''
 as $$
 declare
   h public.reading_refund_hold;
+  kept retention.reading_payment;
+  after_leave retention.reading_refund_after_leave;
   refund_id text := btrim(coalesce(p_provider_refund_id, ''));
-  outcome text;
+  later integer;
 begin
   if not public.is_operator() then
     raise exception '운영자만 쓰는 자리입니다.' using errcode = '42501';
   end if;
 
-  select * into h from public.reading_refund_hold where id = p_hold_id for update;
-  if not found then
-    raise exception '진행 중인 환불을 찾지 못했습니다.' using errcode = 'no_data_found';
-  end if;
-
-  perform audit.note_app_access('credits.refund_book', null, format('order=%s', h.order_id), 'allowed');
-
   if refund_id = '' then
     raise exception 'PG 취소 번호를 적어 주세요.' using errcode = '22023';
   end if;
+
+  select * into h from public.reading_refund_hold where id = p_hold_id for update;
+  if not found then
+    -- 떠난 사람의 확보를 확정한 뒤 크론이 그 줄을 걷었다 — 같은 번호면 재시도다
+    select * into after_leave from retention.reading_refund_after_leave a where a.hold_id = p_hold_id;
+    if not found then
+      raise exception '진행 중인 환불을 찾지 못했습니다.' using errcode = 'no_data_found';
+    end if;
+    perform audit.note_app_access('credits.refund_book', null, format('order=%s', after_leave.order_id), 'allowed');
+    if after_leave.provider_refund_id is distinct from refund_id then
+      raise exception '이 환불은 다른 PG 취소 번호로 이미 적혔습니다.' using errcode = '22023';
+    end if;
+    return retention.refund_status_after_leave(after_leave.order_id);
+  end if;
+
+  perform audit.note_app_access('credits.refund_book', null, format('order=%s', h.order_id), 'allowed');
 
   if h.state = 'booked' then
     if h.provider_refund_id is distinct from refund_id then
       raise exception '이 환불은 다른 PG 취소 번호로 이미 적혔습니다.' using errcode = '22023';
     end if;
-    return (select o.status from public.reading_order o where o.id = h.order_id);
+    return coalesce((select o.status from public.reading_order o where o.id = h.order_id),
+                    retention.refund_status_after_leave(h.order_id));
   end if;
 
   if h.state = 'released' then
     raise exception '준비가 취소된 환불입니다. 다시 준비해 주세요.' using errcode = '55000';
   end if;
 
-  if exists (select 1 from public.reading_order_refund f
-             where f.order_id = h.order_id and f.provider_refund_id = refund_id) then
+  if exists (select 1 from public.reading_order o where o.id = h.order_id) then
+    if exists (select 1 from public.reading_order_refund f
+               where f.order_id = h.order_id and f.provider_refund_id = refund_id) then
+      raise exception '이 PG 취소 번호는 이 주문의 다른 환불에 이미 적혔습니다.' using errcode = '22023';
+    end if;
+
+    -- 확보를 먼저 닫는다 — 아래 문이 안 쓴 것을 셀 때 이 확보가 잡은 회차가 다시 풀려 있어야 하고, 열린 확보가 있으면 거절한다
+    update public.reading_refund_hold
+    set state = 'booked', closed_at = now(), provider_refund_id = refund_id
+    where id = h.id;
+
+    return public.refund_reading_order(h.order_id, h.amount, h.credits, h.reason, refund_id);
+  end if;
+
+  -- 산 사람이 떠났다 — 결제는 보관 표에 있고, 이 환불은 떠난 뒤의 환불 표에 적는다
+  select * into kept from retention.reading_payment k where k.order_id = h.order_id;
+  if not found then
+    raise exception '보관된 결제를 찾지 못했습니다.' using errcode = 'no_data_found';
+  end if;
+
+  if exists (select 1 from jsonb_array_elements(kept.refunds) r where r->>'provider_refund_id' = refund_id)
+     or exists (select 1 from retention.reading_refund_after_leave a
+                where a.order_id = h.order_id and a.provider_refund_id = refund_id) then
     raise exception '이 PG 취소 번호는 이 주문의 다른 환불에 이미 적혔습니다.' using errcode = '22023';
   end if;
 
-  -- 확보를 먼저 닫는다 — 아래 문이 안 쓴 것을 셀 때 이 확보가 잡은 회차가 다시 풀려 있어야 한다
+  later := coalesce((select sum(a.amount)::integer from retention.reading_refund_after_leave a
+                     where a.order_id = h.order_id), 0);
+  if kept.refunded_amount + later + h.amount > kept.amount then
+    raise exception '결제액을 넘는 환불입니다.' using errcode = '22023';
+  end if;
+
   update public.reading_refund_hold
   set state = 'booked', closed_at = now(), provider_refund_id = refund_id
   where id = h.id;
 
-  outcome := public.refund_reading_order(h.order_id, h.amount, h.credits, h.reason, refund_id);
-  return outcome;
+  insert into retention.reading_refund_after_leave (
+    hold_id, order_id, user_id, provider_order_id, amount, credits, reason, provider_refund_id, keep_until)
+  values (
+    h.id, h.order_id, h.user_id, h.provider_order_id, h.amount, h.credits, h.reason, refund_id,
+    now() + retention.payment_period());
+
+  return retention.refund_status_after_leave(h.order_id);
 end;
 $$;
 
@@ -605,7 +869,44 @@ begin
   end if;
 
   if h.state = 'held' then
-    update public.reading_refund_hold set state = 'released', closed_at = now() where id = h.id;
+    update public.reading_refund_hold
+    set state = 'released', closed_at = now(), release_note = 'portone: no cancellation after the hold'
+    where id = h.id;
+  end if;
+end;
+$$;
+
+/**
+ * 손으로 푸는 준비 취소 — 서버 열쇠 · 운영 SQL 만. 앱이 PortOne 을 조회하지 못하는 환경에서, 운영자가 콘솔에서 확보 뒤의
+ * 취소가 없음을 본 뒤 그 사유를 남겨 부른다(런북 `docs/ops/runbook/credits.md` 「준비 취소를 손으로」). 사유는 빠질 수 없다.
+ */
+create function public.release_reading_refund_by_hand(p_hold_id uuid, p_note text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  h public.reading_refund_hold;
+begin
+  if p_note is null or length(btrim(p_note)) not between 10 and 500 then
+    raise exception 'refund hold: say what was checked (10 to 500 characters)' using errcode = '22023';
+  end if;
+
+  select * into h from public.reading_refund_hold where id = p_hold_id for update;
+  if not found then
+    raise exception 'refund hold: no such hold' using errcode = 'no_data_found';
+  end if;
+
+  if h.state = 'booked' then
+    raise exception 'refund hold: already booked' using errcode = '55000';
+  end if;
+
+  if h.state = 'held' then
+    update public.reading_refund_hold
+    set state = 'released', closed_at = now(), release_note = 'by hand: ' || btrim(p_note)
+    where id = h.id;
   end if;
 end;
 $$;
@@ -618,6 +919,9 @@ comment on function public.operator_release_reading_refund(uuid) is
   '환불 준비 취소 — 확정 전의 확보를 푼다 (G-110 ②, ADR 0184).';
 comment on function public.operator_reading_refund_hold(uuid) is
   '주문 하나에 진행 중인 환불 — 화면을 다시 열어도 이어서 확정한다 (G-110 ②, ADR 0184).';
+
+revoke execute on function public.release_reading_refund_by_hand(uuid, text) from public, anon, authenticated, service_role;
+grant execute on function public.release_reading_refund_by_hand(uuid, text) to service_role;
 
 revoke execute on function public.operator_reading_refund_hold(uuid),
   public.operator_hold_reading_refund(uuid, integer, text),

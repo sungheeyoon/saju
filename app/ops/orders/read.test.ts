@@ -55,7 +55,7 @@ describe('주문 화면의 문', () => {
     expect(2950 + refundForAllUnused(line)).toBe(Math.floor((59000 * 17) / 20));
   });
 
-  it('진행 중인 환불은 확보한 금액 · 취소 후 잔액 · 거래 번호와 함께 옮긴다', () => {
+  it('진행 중인 환불은 확보한 금액 · 결제액 · 취소 후 잔액 · 결제 번호와 함께 옮기고, 떠난 사람의 것인지 든다', () => {
     expect(
       refundHoldOf({
         hold_id: 'h-1',
@@ -63,8 +63,11 @@ describe('주문 화면의 문', () => {
         amount: 8600,
         reason: 'unused',
         held_at: '2026-10-16T05:10:00Z',
+        provider_order_id: 'rdo_0f1e2d3c4b5a49688776655443322110',
         provider_payment_id: null as unknown as string,
+        paid_amount: 12900,
         remaining_amount: 4300,
+        departed: true,
       }),
     ).toEqual({
       holdId: 'h-1',
@@ -72,8 +75,11 @@ describe('주문 화면의 문', () => {
       amount: 8600,
       reason: 'unused',
       heldAt: '2026-10-16T05:10:00Z',
+      orderNumber: 'rdo_0f1e2d3c4b5a49688776655443322110',
       paymentId: null,
+      paidAmount: 12900,
       remainingAmount: 4300,
+      departed: true,
     });
   });
 });

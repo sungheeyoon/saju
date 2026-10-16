@@ -54,15 +54,21 @@ export type RefundHold = {
   readonly amount: number;
   readonly reason: string;
   readonly heldAt: string;
+  /** 가맹점 주문 번호(`rdo_…`) — PortOne 의 결제 번호 */
+  readonly orderNumber: string;
   /** PG 의 거래 번호 — 콘솔에서 이 결제를 찾는다 */
   readonly paymentId: string | null;
+  /** 결제액 */
+  readonly paidAmount: number;
   /** 취소 후 잔액 — 결제액 − 이미 돌려준 금액 − 이번 금액 */
   readonly remainingAmount: number;
+  /** 산 사람이 떠나 주문이 지워졌다 — 확정은 보관된 결제에 대해 한다 */
+  readonly departed: boolean;
 };
 
 export type RefundBasis = {
-  /** 찾은 주문 */
-  readonly asked: OrderLine;
+  /** 찾은 주문 — 산 사람이 떠나 주문이 지워졌으면 `null`(그때는 진행 중인 확보만 선다) */
+  readonly asked: OrderLine | null;
   /** 같은 계정의 다른 주문 — 결제 시각 차례 */
   readonly others: readonly OrderLine[];
   /** 찾은 주문에 진행 중인 환불 — 없으면 `null` */
@@ -75,8 +81,11 @@ export const refundHoldOf = (row: RpcRow<'operator_reading_refund_hold'>): Refun
   amount: row.amount,
   reason: row.reason,
   heldAt: row.held_at,
+  orderNumber: row.provider_order_id,
   paymentId: row.provider_payment_id ?? null,
+  paidAmount: row.paid_amount,
   remainingAmount: row.remaining_amount,
+  departed: row.departed,
 });
 
 /** 문의 한 줄을 화면의 값으로 옮긴다 — 비는 칸은 여기서 한 번 `null` 로 받는다(위 머리말) */
@@ -128,7 +137,8 @@ export const refundForAllUnused = (line: OrderLine): number =>
 export const NO_ORDER = '00000000-0000-0000-0000-000000000000';
 
 /**
- * 주문 id 하나로 청한다. 화면의 본체라 못 읽으면 값으로 낸다 — 운영자 화면이 제 문장을 세운다. 없는 주문이면 `null`.
+ * 주문 id 하나로 청한다. 화면의 본체라 못 읽으면 값으로 낸다 — 운영자 화면이 제 문장을 세운다. 주문도 진행 중인 확보도
+ * 없으면 `null`. 산 사람이 떠나 주문이 지워졌어도 진행 중인 확보가 있으면 그것만 선다(ADR 0184).
  */
 export async function refundBasis(
   orderId: string,
@@ -147,7 +157,7 @@ export async function refundBasis(
 
   const rows = answer.data ?? [];
   const asked = rows.find((row) => row.asked);
-  if (!asked) return read(null);
+  if (orderId === NO_ORDER) return read(null);
 
   // 진행 중인 환불 — 화면을 닫았다 다시 와도 이어서 확정한다. 접속기록에 `credits.refund_status` 한 줄
   const held = await supabase.rpc(
@@ -160,9 +170,10 @@ export async function refundBasis(
   }
   if (held.error) return unread(held.error, 'operator_reading_refund_hold');
   const hold = held.data?.[0];
+  if (!asked && hold === undefined) return read(null);
 
   return read({
-    asked: orderLineOf(asked),
+    asked: asked ? orderLineOf(asked) : null,
     others: rows.filter((row) => !row.asked).map(orderLineOf),
     hold: hold === undefined ? null : refundHoldOf(hold),
   });

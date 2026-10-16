@@ -7,6 +7,8 @@ import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { noteDenial, type DeniedAction } from '../denial';
 import { isRefundReason } from './labels';
+import { cancellationCheck } from './portone-cancellations';
+import { RELEASE_CANCELLED_NOTE, RELEASE_UNKNOWN_NOTE } from './release-check';
 
 /**
  * 환불 세 걸음의 누름 — **확보 → (PortOne 콘솔에서 취소) → 확정**, 확정 전에는 준비 취소 (G-110 ②, ADR 0184).
@@ -75,9 +77,28 @@ export async function bookRefund(input: {
   return { ok: true, value: { status: data } };
 }
 
-/** 준비 취소 — 확정 전의 확보를 풀어 잠근 회차를 돌려놓는다 */
-export async function releaseRefund(input: { readonly holdId: string }): Promise<Answer> {
+/**
+ * 준비 취소 — 확정 전의 확보를 풀어 잠근 회차를 돌려놓는다. **풀기 전에 PortOne 에 그 결제의 취소 내역을 묻는다** —
+ * 확보 뒤의 취소가 성공 · 요청 중이거나, 조회가 실패하거나 결과를 알 수 없으면(열쇠가 없는 환경 포함) 막는다(ADR 0184).
+ */
+export async function releaseRefund(input: { readonly orderId: string; readonly holdId: string }): Promise<Answer> {
   const supabase = await supabaseOnServer();
+
+  const held = await supabase.rpc(
+    'operator_reading_refund_hold',
+    rpcArgs<'operator_reading_refund_hold'>({ p_order_id: input.orderId }),
+  );
+  if (held.error) return refused(supabase, held.error, 'credits.refund_status', 'operator_reading_refund_hold');
+  const hold = (held.data ?? []).find((row) => row.hold_id === input.holdId);
+  if (!hold) return { ok: false, message: '진행 중인 환불을 찾지 못했습니다. 화면을 새로 열어 주세요.' };
+
+  const check = await cancellationCheck(hold.provider_order_id, new Date(hold.held_at));
+  if (check.kind === 'cancelled') return { ok: false, message: RELEASE_CANCELLED_NOTE };
+  if (check.kind === 'unknown') {
+    console.error('refund release blocked', check.why);
+    return { ok: false, message: RELEASE_UNKNOWN_NOTE };
+  }
+
   const { error } = await supabase.rpc(
     'operator_release_reading_refund',
     rpcArgs<'operator_release_reading_refund'>({ p_hold_id: input.holdId }),

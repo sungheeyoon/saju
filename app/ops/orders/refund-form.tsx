@@ -6,6 +6,7 @@ import { refundOwed } from '@/src/lib/reading/bundle';
 
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
@@ -119,19 +120,13 @@ export function PrepareForm({
 
 /**
  * **진행 중인 환불** — 확보된 금액 · 결제 번호 · 취소 후 잔액 · 사유를 보이고(PG 부분취소 화면의 칸), 운영자가 PortOne 콘솔에서
- * 그 금액을 취소한 뒤 취소 번호를 적어 「장부에 확정」을 누른다. 확정 전에는 「준비 취소」로 잠근 회차를 푼다.
- * 화면을 닫았다 다시 열어도 문이 진행 중인 것을 다시 내주므로 이 판이 그대로 선다.
+ * 그 금액을 취소한 뒤 취소 번호를 적어 「장부에 확정」을 누른다. 확정 전에는 「준비 취소」로 잠근 회차를 푼다 — 콘솔에서 아직
+ * 취소하지 않았을 때만이고, 서버가 PortOne 의 취소 내역을 본 뒤에 푼다. 화면을 닫았다 다시 열어도, 산 사람이 떠났어도 문이
+ * 진행 중인 것을 다시 내주므로 이 판이 그대로 선다.
  */
-export function HoldPanel({
-  hold,
-  orderNumber,
-  paid,
-}: {
-  readonly hold: RefundHold;
-  readonly orderNumber: string;
-  readonly paid: number;
-}) {
+export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readonly orderId: string }) {
   const [refundId, setRefundId] = useState('');
+  const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -150,7 +145,8 @@ export function HoldPanel({
   const release = () => {
     setFailure(null);
     startSaving(async () => {
-      const answer = await actionAnswer(releaseRefund({ holdId: hold.holdId }));
+      const answer = await actionAnswer(releaseRefund({ orderId, holdId: hold.holdId }));
+      setConfirming(false);
       if (!answer.ok) setFailure(answer.message);
     });
   };
@@ -166,7 +162,7 @@ export function HoldPanel({
           <dt className="text-muted">취소할 금액</dt>
           <dd className="text-xl font-bold tabular-nums tracking-[-0.02em]">{won(hold.amount)}</dd>
           <dt className="text-muted">결제 금액</dt>
-          <dd className="tabular-nums">{won(paid)}</dd>
+          <dd className="tabular-nums">{won(hold.paidAmount)}</dd>
           <dt className="text-muted">취소 후 잔액</dt>
           <dd className="tabular-nums">{won(hold.remainingAmount)}</dd>
           <dt className="text-muted">걷는 회차</dt>
@@ -174,7 +170,7 @@ export function HoldPanel({
           <dt className="text-muted">사유</dt>
           <dd>{refundReasonLabel(hold.reason)}</dd>
           <dt className="text-muted">결제 번호</dt>
-          <dd className="break-all font-mono text-xs leading-5">{orderNumber}</dd>
+          <dd className="break-all font-mono text-xs leading-5">{hold.orderNumber}</dd>
           <dt className="text-muted">거래 번호</dt>
           <dd className="break-all font-mono text-xs leading-5">{hold.paymentId ?? '없음'}</dd>
         </dl>
@@ -206,11 +202,23 @@ export function HoldPanel({
         <button type="submit" disabled={saving || refundId.trim() === ''} className={BUTTON_PRIMARY}>
           장부에 확정
         </button>
-        <button type="button" onClick={release} disabled={saving} className={BUTTON_SECONDARY}>
+        <button type="button" onClick={() => setConfirming(true)} disabled={saving} className={BUTTON_SECONDARY}>
           준비 취소
         </button>
         <DoneNote>{saving ? '처리하는 중…' : (booked ?? '')}</DoneNote>
       </div>
+
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title="준비를 취소할까요?"
+        confirmLabel="준비 취소"
+        cancelLabel="닫기"
+        onConfirm={release}
+        busy={saving}
+      >
+        <p>콘솔에서 아직 취소하지 않았을 때만 누릅니다.</p>
+      </ConfirmDialog>
     </form>
   );
 }

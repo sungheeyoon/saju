@@ -9,7 +9,7 @@ import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
 import { CARD } from '../../ui/surfaces';
-import { Asked, Others } from './order-view';
+import { Asked, Departed, Others } from './order-view';
 import { DENIED, NO_ORDER, refundBasis } from './read';
 
 export const metadata = {
@@ -82,7 +82,11 @@ export default async function OperatorOrdersPage({
         <p className={`${CARD} text-sm text-secondary`}>이 번호의 주문이 없습니다.</p>
       ) : (
         <>
-          <Asked line={found.value.asked} hold={found.value.hold} />
+          {found.value.asked !== null ? (
+            <Asked line={found.value.asked} hold={found.value.hold} />
+          ) : (
+            found.value.hold !== null && orderId !== null && <Departed orderId={orderId} hold={found.value.hold} />
+          )}
           {found.value.others.length > 0 && <Others lines={found.value.others} />}
         </>
       )}

@@ -47,7 +47,7 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
 
       {hold !== null ? (
         <div className="border-t border-border pt-5">
-          <HoldPanel hold={hold} orderNumber={line.orderNumber} paid={line.amount} />
+          <HoldPanel hold={hold} orderId={line.orderId} />
         </div>
       ) : bundle === null ? (
         <p className="text-sm text-secondary">결제되지 않은 주문이라 환불할 것이 없습니다.</p>
@@ -75,6 +75,30 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
           />
         </div>
       )}
+    </section>
+  );
+}
+
+/**
+ * 산 사람이 떠나 주문이 지워졌는데 진행 중인 환불이 남은 주문 — 결제는 보관 표에 있고, 확보가 든 값으로 이어서 확정하거나
+ * 준비 취소한다(ADR 0184). 계정은 이미 없다.
+ */
+export function Departed({ orderId, hold }: { orderId: string; hold: RefundHold }) {
+  return (
+    <section aria-label="떠난 사람의 주문" className={`${CARD} flex flex-col gap-5`}>
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-center gap-2">
+          <span className="text-xl font-bold tracking-[-0.02em]">{won(hold.paidAmount)}</span>
+          <span className="rounded-full bg-surface-soft px-2.5 py-1 text-xs font-semibold text-secondary">
+            탈퇴한 계정의 주문
+          </span>
+        </p>
+        <p className="mt-1 break-all font-mono text-xs text-muted">{hold.orderNumber}</p>
+        <p className="mt-2 text-sm text-secondary">결제 기록은 보관 중입니다. 진행 중인 환불을 마무리합니다.</p>
+      </div>
+      <div className="border-t border-border pt-5">
+        <HoldPanel hold={hold} orderId={orderId} />
+      </div>
     </section>
   );
 }

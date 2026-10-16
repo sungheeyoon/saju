@@ -983,6 +983,11 @@ select is(
     'refund_reading_order',
     'release_reading_job',
     /**
+     * 환불 확보를 손으로 푸는 문 — 앱이 PortOne 조회를 못 할 때 운영자가 콘솔을 보고 사유를 남겨 부른다(`20261211090000`,
+     * ADR 0184). 로그인한 사람은 못 부른다 — 운영자의 화면 문은 PortOne 확인을 거친다.
+     */
+    'release_reading_refund_by_hand',
+    /**
      * 서버 오류를 운영자에게 알리는 문(`20261108090000`) — 라우트 파일 무늬 · 자리 · digest 만 받고 하루 한 줄이다.
      * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`77_ops_alerts`).
      */
@@ -1011,7 +1016,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 서른아홉 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

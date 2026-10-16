@@ -89,12 +89,24 @@ npm run db:remote -- --purpose "풀이권 장부와 셈의 대조" \
    한 번만 적힌다
 
 콘솔 취소 전에 멈추려면 「준비 취소」(`operator_release_reading_refund`, `credits.refund_release`)로 잠근 회차를 푼다. **콘솔에서 취소한
-뒤에는 준비 취소하지 않는다** — 확정한다. 화면을 닫아도 진행 중인 것은 남고, 주문을 다시 찾으면 그 판이 다시 선다. 진행 중으로 오래
-남은 것이 있는지는 아래로 본다(개인을 가리키지 않는다):
+뒤에는 준비 취소하지 않는다** — 확정한다. 화면의 준비 취소는 풀기 전에 PortOne 결제 조회로 확보 뒤의 취소를 보고, 취소가 성공 · 요청
+중이면 「취소 번호로 확정」을, 조회가 안 되면(열쇠 없음 · 실패 · 결과 불명) 「확인하지 못해 막았다」를 세운다 — 그때는 아래 「준비 취소를
+손으로」. 화면을 닫아도 진행 중인 것은 남고, 주문을 다시 찾으면 그 판이 다시 선다. **산 사람이 탈퇴해도 진행 중인 확보는 남는다** —
+주문 번호로 찾으면 「탈퇴한 계정의 주문」 판이 서고 같은 방법으로 확정 · 준비 취소한다(아래 「떠난 사람의 결제 기록」). 진행 중인 확보가
+있는 동안 그 주문에는 SQL 환불(`refund_reading_order`)도 막힌다. 진행 중으로 오래 남은 것이 있는지는 아래로 본다(개인을 가리키지 않는다):
 
 ```bash
 npm run db:remote -- --purpose "진행 중인 환불 수" \
   "select count(*), min(held_at) from public.reading_refund_hold where state = 'held'"
+```
+
+**준비 취소를 손으로**(화면이 PortOne 을 조회하지 못할 때만 — break-glass). ① PortOne 콘솔에서 그 결제(판의 결제 번호 `rdo_…`)의
+취소 내역을 열어 **확보 시각(판의 「… 준비」) 뒤의 취소가 성공 · 요청 중으로 하나도 없는지** 본다. 하나라도 있으면 풀지 말고 그 취소
+번호로 화면에서 확정한다. ② 없으면 break-glass 대장에 적고 운영 SQL 로 푼다 — 무엇을 확인했는지가 사유다(10자 이상, 확보 줄의
+`release_note` 에 「by hand: 」를 붙여 남는다). 확보 번호는 같은 주문의 진행 중인 것이다(`operator_reading_refund_hold` 의 첫 칸).
+
+```sql
+select public.release_reading_refund_by_hand('<hold-id>', 'PortOne 콘솔 <YYYY-MM-DD HH:MM> 확인 — 확보 뒤 취소 없음');
 ```
 
 화면이 못 하는 것 둘만 아래 SQL 차례로 한다 — **쓴 회차까지 돌려주는 경우**(생성 실패 · 계약과 다른 제공, `failure`)와 **금액이 산식과
@@ -125,12 +137,15 @@ select public.refund_reading_order('<order-id>', <amount>, <credits>, 'unused', 
 `retention.refused_reading_payment` 로 최소 칸(주문 번호 · 계정 내부 번호 · 제공자 · 가맹점 주문 번호 · 주문 금액 · 주문 시각 ·
 거절 알림)만 옮긴다(`20261018090000`, ADR 0106 추기 — 법적 범위는 변호사 검토 B-8). 크론 `payment-retention-purge`(매일 04:53 UTC)의
 `retention.purge_expired_payments()` 가 두 표에서 `keep_until`(앞은 마지막 승인 · 환불, 뒤는 마지막 거절 알림 + 5년)이 지난 줄을
-함께 지운다. 분쟁이나 수사기관의 요청이 걸리면 보류를 건다 — 신고 기록의 보류(`docs/ops/runbook/erasure.md` 「떠난 사람의 신고 기록」)와 같은 모양이다.
+함께 지운다. **탈퇴 뒤에 확정한 환불**(진행 중인 확보가 탈퇴를 넘어 남았던 것)은 고칠 수 없는 `retention.reading_payment` 대신
+`retention.reading_refund_after_leave` 에 한 줄로 남고(확보 번호 · 주문 · 계정 내부 번호 · 가맹점 주문 번호 · 금액 · 회차 · 사유 · PG 취소
+번호, ADR 0184), 같은 크론이 환불 + 5년 뒤 지운다. 탈퇴 뒤 닫힌 확보 줄도 그 크론이 걷는다. 분쟁이나 수사기관의 요청이 걸리면 보류를 건다 — 신고 기록의 보류(`docs/ops/runbook/erasure.md` 「떠난 사람의 신고 기록」)와 같은 모양이다.
 
 ```sql
 -- 몇 줄 · 가장 이른 파기 예정 — 개인을 가리키지 않는다
 select count(*), min(keep_until) from retention.reading_payment;
 select count(*), min(keep_until) from retention.refused_reading_payment;
+select count(*), min(keep_until) from retention.reading_refund_after_leave;
 
 -- 건다 · 푼다 — 대상은 주문 id 로. 거절 기록이면 표 이름만 retention.refused_reading_payment 로
 update retention.reading_payment set hold_reason = '<사유> <문서 번호> <받은 날>', held_at = now() where order_id = '<order-id>';

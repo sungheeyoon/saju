@@ -9,10 +9,14 @@
 -- 4. **진행 중은 주문마다 하나 · 안 쓴 것만 · 닫힌 주문 거절**
 -- 5. **확정은 한 번** — 같은 취소 번호면 재시도, 다른 번호 · 빈 번호 · 준비 취소된 확보는 거절. 확정된 확보는 풀지 못한다
 -- 6. **접속기록** — 진행 상태 · 확보 · 확정 · 준비 취소가 동작마다 남는다(주문 id 만)
+-- 7. **손으로 푸는 준비 취소** — 서버 열쇠만, 무엇을 확인했는지 적어야 한다
+-- 8. **떠나도 진행 중인 확보는 남는다** — 닫힌 확보는 걷히고, 남은 확보는 보관된 결제에 대해 확정되며(떠난 뒤의 환불 표),
+--    크론이 닫힌 확보를 걷은 뒤의 재시도도 알아본다
+-- 그리고 진행 중인 확보가 있으면 그 주문의 다른 환불(회차 없이 금액만이라도)은 막힌다.
 --
 -- 한도에서 확보를 빼지 않으면(`reading_credit_shares`) 2 의 한도 줄이, 몫 고르기에서 빼지 않으면 묶음 줄이 붉다.
 begin;
-select plan(31);
+select plan(47);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -145,7 +149,11 @@ set local role service_role;
 select throws_ok(
   format($$select public.refund_reading_order(%L, 4300, 1, 'unused', 'sql-refund-1')$$,
          (select order_id from ord where label = 'three')),
-  '22023', null, '서버 열쇠의 환불도 잠긴 회차를 걷지 못한다');
+  '55000', null, '서버 열쇠의 환불도 잠긴 회차를 걷지 못한다');
+select throws_ok(
+  format($$select public.refund_reading_order(%L, 12900, 0, 'other', 'sql-refund-2')$$,
+         (select order_id from ord where label = 'three')),
+  '55000', null, '회차 없이 금액만 돌려주는 환불도 확보가 열린 동안은 막힌다 — 확보 금액을 먼저 쓰지 못한다');
 
 -- ── 준비 취소 ─────────────────────────────────────────────────────────────────
 
@@ -232,6 +240,112 @@ select is(
    where a.actor_user_id = (select buyer from folks) and a.action = 'credits.refund_hold' and a.outcome = 'denied'),
   1,
   '운영자가 아닌 사람의 시도는 거절 한 줄로 남는다');
+
+-- ── 7. 손으로 푸는 준비 취소 — 서버 열쇠 · 사유 필수 ─────────────────────────────
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+insert into seen
+select 'hold-one', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'one'), 1, 'unused') h;
+
+set local role service_role;
+select throws_ok(
+  format($$select public.release_reading_refund_by_hand(%L, '봤음')$$, (select id from seen where label = 'hold-one')),
+  '22023', null, '손으로 풀 때는 무엇을 확인했는지 적어야 한다');
+select lives_ok(
+  format($$select public.release_reading_refund_by_hand(%L, 'PortOne 콘솔 확인 - 확보 뒤 취소 없음')$$,
+         (select id from seen where label = 'hold-one')),
+  '콘솔을 본 사유를 남기고 서버 열쇠로 푼다');
+
+reset role;
+select is(
+  (select release_note from public.reading_refund_hold where id = (select id from seen where label = 'hold-one')),
+  'by hand: PortOne 콘솔 확인 - 확보 뒤 취소 없음',
+  '손으로 푼 사유가 확보 줄에 남는다');
+
+-- ── 8. 산 사람이 떠나도 진행 중인 확보는 남고 확정된다 ─────────────────────────
+
+create temporary table leaving as select tests.signup('refund-leaver@example.com') as leaver;
+grant select on leaving to authenticated, service_role;
+insert into public.reading_sale_reviewer (user_id, note) values ((select leaver from leaving), '시험 — 떠나는 사람');
+
+set local role authenticated;
+select pg_temp.acting((select leaver from leaving));
+insert into ord select 'leaver', order_id from public.open_reading_order(3, 'portone', 'refund-leave-0001');
+
+set local role service_role;
+select is(
+  (select outcome from public.approve_reading_order(
+     (select order_id from ord where label = 'leaver'), 'tx-refund-l', 12900, 'whk-refund-l')),
+  'applied',
+  '준비 — 떠날 사람의 3회 주문이 승인된다');
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+insert into seen
+select 'hold-l0', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'leaver'), 1, 'unused') h;
+select lives_ok(
+  format($$select public.operator_release_reading_refund(%L)$$, (select id from seen where label = 'hold-l0')),
+  '준비 — 앞의 확보 하나는 준비 취소로 닫힌다');
+insert into seen
+select 'hold-l', h.amount, h.hold_id
+from public.operator_hold_reading_refund((select order_id from ord where label = 'leaver'), 3, 'withdrawal') h;
+select is((select n from seen where label = 'hold-l'), 12900, '셋을 다 잠그면 결제액 전부다');
+
+-- 떠난다 — 주문은 보관 표로 옮겨지고 지워진다
+reset role;
+delete from auth.users where id = (select leaver from leaving);
+
+select is(
+  (select array_agg(state order by held_at) from public.reading_refund_hold
+   where order_id = (select order_id from ord where label = 'leaver')),
+  array['held'],
+  '떠나면 닫힌 확보는 걷히고 진행 중인 확보는 남는다');
+select is(
+  (select count(*)::integer from retention.reading_payment where order_id = (select order_id from ord where label = 'leaver')),
+  1,
+  '결제는 보관 표로 옮겨졌다');
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+select is(
+  (select array[departed::text, paid_amount::text, remaining_amount::text, (provider_order_id like 'rdo\_%')::text]
+   from public.operator_reading_refund_hold((select order_id from ord where label = 'leaver'))),
+  array['true', '12900', '0', 'true'],
+  '떠난 뒤에도 주문 번호로 진행 중인 확보가 선다 — 결제 번호 · 결제액 · 취소 후 잔액을 확보가 든다');
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-l'), 'pg-leave-1'),
+  'refunded',
+  '떠난 뒤에도 확정한다 — 보관된 결제가 전액 환불이 된다');
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-l'), 'pg-leave-1'),
+  'refunded',
+  '같은 취소 번호로 다시 눌러도 한 번만 적힌다');
+
+reset role;
+select is(
+  (select array[count(*)::integer, sum(amount)::integer, sum(credits)::integer]
+   from retention.reading_refund_after_leave where order_id = (select order_id from ord where label = 'leaver')),
+  array[1, 12900, 3],
+  '떠난 뒤의 확정은 떠난 뒤의 환불 표에 한 줄로 남는다');
+
+do $$ begin perform retention.purge_expired_payments(); end $$;
+select is(
+  (select count(*)::integer from public.reading_refund_hold where order_id = (select order_id from ord where label = 'leaver')),
+  0,
+  '크론이 주문 없는 닫힌 확보를 걷는다');
+
+set local role authenticated;
+select pg_temp.acting((select op from folks));
+select is(
+  public.operator_book_reading_refund((select id from seen where label = 'hold-l'), 'pg-leave-1'),
+  'refunded',
+  '확보 줄이 걷힌 뒤의 재시도도 떠난 뒤의 환불 표로 알아본다');
+select throws_ok(
+  format($$select public.operator_book_reading_refund(%L, 'pg-leave-9')$$, (select id from seen where label = 'hold-l')),
+  '22023', '이 환불은 다른 PG 취소 번호로 이미 적혔습니다.', '걷힌 뒤에도 다른 취소 번호는 거절한다');
 
 select * from finish();
 rollback;

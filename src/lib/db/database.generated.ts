@@ -1700,9 +1700,15 @@ export type Database = {
           held_by: string | null
           id: string
           order_id: string
+          paid_amount: number
+          provider_order_id: string
+          provider_payment_id: string | null
           provider_refund_id: string | null
           reason: string
+          release_note: string | null
+          remaining_amount: number
           state: string
+          user_id: string
         }
         Insert: {
           amount: number
@@ -1713,9 +1719,15 @@ export type Database = {
           held_by?: string | null
           id?: string
           order_id: string
+          paid_amount: number
+          provider_order_id: string
+          provider_payment_id?: string | null
           provider_refund_id?: string | null
           reason: string
+          release_note?: string | null
+          remaining_amount: number
           state?: string
+          user_id: string
         }
         Update: {
           amount?: number
@@ -1726,26 +1738,17 @@ export type Database = {
           held_by?: string | null
           id?: string
           order_id?: string
+          paid_amount?: number
+          provider_order_id?: string
+          provider_payment_id?: string | null
           provider_refund_id?: string | null
           reason?: string
+          release_note?: string | null
+          remaining_amount?: number
           state?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "reading_refund_hold_bundle_id_fkey"
-            columns: ["bundle_id"]
-            isOneToOne: false
-            referencedRelation: "reading_bundle"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reading_refund_hold_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "reading_order"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reading_run: {
         Row: {
@@ -3485,8 +3488,11 @@ export type Database = {
         Returns: {
           amount: number
           credits: number
+          departed: boolean
           held_at: string
           hold_id: string
+          paid_amount: number
+          provider_order_id: string
           provider_payment_id: string
           reason: string
           remaining_amount: number
@@ -3823,6 +3829,10 @@ export type Database = {
         Returns: undefined
       }
       release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      release_reading_refund_by_hand: {
+        Args: { p_hold_id: string; p_note: string }
+        Returns: undefined
+      }
       remove_my_photo: {
         Args: { p_position: number; p_version?: number }
         Returns: undefined
