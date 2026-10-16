@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { keyedClient } from '@/app/keyed-client';
+import { rpcArgs } from '@/src/lib/db';
 
 import { portoneConfigOf, portonePayment } from './payment';
 import { settleWebhook, type Approval } from './settle';
+import { tellTrouble } from './trouble';
 
 /**
  * **PortOne 이 두드리는 결제 알림의 문** (G-23 ⑥, ADR 0106).
@@ -47,6 +49,15 @@ export async function POST(request: Request): Promise<Response> {
 
   // 까닭은 기록에만 — 답에 실으면 아무나 우리 설정과 주문의 상태를 묻는다
   if (settled.note) console.error('portone webhook', settled.note);
+
+  // 결제 이상은 운영자에게도 — 답은 그대로다(G-110 ④)
+  if (settled.trouble) {
+    await tellTrouble(settled.trouble, settled.note, (args, signal) =>
+      keyedClient('결제 이상 알림')
+        .rpc('report_payment_trouble', rpcArgs<'report_payment_trouble'>(args))
+        .abortSignal(signal),
+    );
+  }
 
   return new Response(null, { status: settled.status });
 }

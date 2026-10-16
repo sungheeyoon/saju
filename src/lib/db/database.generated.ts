@@ -3913,6 +3913,10 @@ export type Database = {
         Args: { p_outcome: string; p_reviewed_at: string }
         Returns: boolean
       }
+      report_payment_trouble: {
+        Args: { p_kind: string; p_payment_id: string; p_reason: string }
+        Returns: boolean
+      }
       report_request_error: {
         Args: { p_digest: string; p_kind: string; p_route: string }
         Returns: boolean
