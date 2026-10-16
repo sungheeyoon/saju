@@ -7,13 +7,6 @@ import type { ReportReason } from '.';
  * 않는다 — 문(`my_warning_notice`)이 애초에 안 내주고, 여기도 받을 자리가 없다. 화면은 이 값을 그리기만 한다(ADR 0080).
  */
 
-/**
- * 고객 문의 이메일 — **아직 없다.** 사업자 명의의 주소는 사업자등록 뒤에 선다(G-25 ㉡). 그때까지 자리 표시로 두고,
- * 공개 출시로 옮기는 날 `scripts/code-rules.test.ts` 가 이메일 모양이 아니면 붉힌다. 운영 DB 에 경고는 0건이다(2026-09-24).
- * ［출시 전 운영자·변호사 확인］
- */
-export const SUPPORT_EMAIL = '［고객 문의 이메일］';
-
 /** 갈래마다 한 줄의 가운데 — 표 승인 그대로다. `other` 는 넓은 말로 한다(ADR 0108 의 2) */
 const CATEGORY_PHRASE: Readonly<Record<ReportReason, string>> = {
   harassment: '괴롭힘이나 위협에 해당하는',
@@ -50,12 +43,15 @@ export const warningDateLabel = (day: string): string =>
 const phraseOf = (category: string): string =>
   CATEGORY_PHRASE[category as ReportReason] ?? CATEGORY_PHRASE.other;
 
-/** 안내의 줄 넷 — 차례도 표 승인 그대로다 */
-export function warningNoticeLines(notice: WarningNotice, supportEmail: string = SUPPORT_EMAIL): readonly string[] {
+/**
+ * 안내의 줄 넷 — 차례도 표 승인 그대로다. 이의 제기의 길인 고객 문의 이메일은 화면이 `SUPPORT_EMAIL`(`src/lib/brand`)을
+ * 읽어 넘긴다(ADR 0172 덧) — `account` 는 `brand` 를 부르지 않는다.
+ */
+export function warningNoticeLines(notice: WarningNotice, supportEmail: string): readonly string[] {
   return [
     `${warningDateLabel(notice.warnedOn)}에 ${phraseOf(notice.category)} 이용이 확인되어 경고를 드립니다.`,
     '같은 일이 반복되면 이용이 제한될 수 있습니다.',
-    `이 경고에 이의가 있으면 ${supportEmail}로 알려 주세요. 3영업일 안에 답을 드립니다.`,
+    `이 경고에 이의가 있으면 ${supportEmail}으로 알려 주세요. 3영업일 안에 답을 드립니다.`,
     `문의하실 때 안내번호 ${notice.ref}를 함께 적어 주세요.`,
   ];
 }
