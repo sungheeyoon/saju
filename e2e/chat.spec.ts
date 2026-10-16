@@ -22,6 +22,7 @@ import {
 } from '@/src/lib/chat/copy';
 import { activityText } from '@/src/lib/presence';
 import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 
 
 /**
@@ -764,7 +765,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
 
     await b.page.goto('/me');
     await expect(notice(b)).toBeVisible();
-    for (const line of warningNoticeLines({ ref: firstRef, category: 'inappropriate', warnedOn: warnedOn(first) })) {
+    for (const line of warningNoticeLines({ ref: firstRef, category: 'inappropriate', warnedOn: warnedOn(first) }, SUPPORT_EMAIL)) {
       await expect(notice(b).getByText(line, { exact: true })).toBeVisible();
     }
     // 줄은 그 넷뿐이다 — 판단 근거 · 신고한 사람 · 횟수를 싣지 않는다

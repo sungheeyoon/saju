@@ -22,6 +22,13 @@ export const SERVICE_NAME = '만날지도';
 export const SERVICE_NAME_TOPIC = `${SERVICE_NAME}는`;
 export const SERVICE_NAME_OBJECT = `${SERVICE_NAME}를`;
 
+/**
+ * **고객 문의 이메일은 여기 한 곳에서 온다**(운영자 지시 2026-10-16, ADR 0172 덧). 경고 안내의 이의 제기 줄 · 바닥글 · 약관 ·
+ * 환불정책 · 결제 화면의 환불 줄이 이 값을 읽는다. 어차피 모든 화면에 공개되는 주소라 사업자 정보의 다른 여덟과 달리
+ * 환경변수에 두지 않는다.
+ */
+export const SUPPORT_EMAIL = 'mannalmap@gmail.com';
+
 /** 이름 옆에 서는 짧은 소개 한 줄 — 뿌리 메타데이터의 제목과 미리보기 그림의 대체 글에 쓴다 */
 export const SERVICE_TAGLINE = '나와 사람 사이를 이해하는 사주';
 
