@@ -5,6 +5,7 @@ import { supabaseOnServer } from '../auth/server-client';
 import { currentSchedule } from '../beta-schedule';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
 import { NoticeScreen } from '../ui/notice-screen';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 import { betaIsOver, betaOverNote } from '@/src/lib/consent';
 
 export const metadata = {
@@ -50,7 +51,7 @@ export default async function ClosedPage() {
       description={
         <>
           <p>{betaOverNote(notice.dates)}</p>
-          <p>함께해 주셔서 고맙습니다. 남은 문의는 처리방침에 적힌 연락처로 알려 주세요.</p>
+          <p>함께해 주셔서 고맙습니다. 남은 문의는 {SUPPORT_EMAIL} 으로 보내 주세요.</p>
           {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
           <p>선택 동의 철회와 탈퇴 신청은 계정 관리에서 계속하실 수 있습니다.</p>
         </>
