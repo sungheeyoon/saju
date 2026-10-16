@@ -3411,6 +3411,16 @@ export type Database = {
           used: number
         }[]
       }
+      operator_refund_reading_order: {
+        Args: {
+          p_amount: number
+          p_credits: number
+          p_order_id: string
+          p_provider_refund_id: string
+          p_reason: string
+        }
+        Returns: string
+      }
       operator_report: {
         Args: { p_report_id: string }
         Returns: {

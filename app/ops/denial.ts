@@ -12,7 +12,12 @@ import type { supabaseOnServer } from '../auth/server-client';
  * 동작 이름은 화면의 머리 문이다 — 한 화면이 문 여럿을 불러도 거절은 한 줄이다(신고 상세는 `reports.detail`, 설문은
  * `survey.overview`). DB 가 받는 이름은 `note_operator_denial` 의 목록 하나가 든다.
  */
-export type DeniedAction = 'reports.list' | 'reports.detail' | 'survey.overview';
+export type DeniedAction =
+  | 'reports.list'
+  | 'reports.detail'
+  | 'survey.overview'
+  | 'credits.refund_basis'
+  | 'credits.refund';
 
 export async function noteDenial(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,

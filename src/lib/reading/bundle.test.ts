@@ -7,6 +7,8 @@ import {
   discountAgainstSingles,
   READING_BUNDLES,
   readingBundleValidUntil,
+  readingOrderIdOf,
+  refundOwed,
 } from './bundle';
 
 describe('풀이권 묶음', () => {
@@ -67,5 +69,42 @@ describe('유효기간이 끝나는 날 (ADR 0173 · 0174)', () => {
 
   it('5년 뒤에 같은 날이 없으면 그 달의 끝날이다', () => {
     expect(readingBundleValidUntil(new Date('2028-02-29T03:00:00Z'))).toBe('2033-02-28');
+  });
+});
+
+describe('환불 금액 (ADR 0148)', () => {
+  const fresh = (paid: number, credits: number) => ({ paid, credits, refundedCredits: 0, refundedAmount: 0 });
+
+  it('환불정책의 예시 다섯과 같다 — 낸 돈 × 안 쓴 장수 ÷ 산 장수', () => {
+    expect(refundOwed(fresh(59000, 20), 17)).toBe(50150);
+    expect(refundOwed(fresh(59000, 20), 8)).toBe(23600);
+    expect(refundOwed(fresh(19900, 5), 4)).toBe(15920);
+    expect(refundOwed(fresh(12900, 3), 2)).toBe(8600);
+    expect(refundOwed(fresh(4900, 1), 1)).toBe(4900);
+  });
+
+  it('나눠 돌려주면 누적으로 셈해 묶음을 다 걷은 합이 결제액과 같다', () => {
+    let ledger = fresh(19900, 3);
+    const paidBack: number[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const owed = refundOwed(ledger, 1);
+      paidBack.push(owed);
+      ledger = { ...ledger, refundedCredits: ledger.refundedCredits + 1, refundedAmount: ledger.refundedAmount + owed };
+    }
+    expect(paidBack).toEqual([6633, 6633, 6634]);
+    expect(paidBack.reduce((a, b) => a + b, 0)).toBe(19900);
+  });
+});
+
+describe('주문 번호', () => {
+  it('rdo_ 뒤의 32자를 주문 id 로 되짚고 붙여 넣은 빈칸 · 대문자는 받는다', () => {
+    expect(readingOrderIdOf('rdo_0f1e2d3c4b5a49688776655443322110')).toBe('0f1e2d3c-4b5a-4968-8776-655443322110');
+    expect(readingOrderIdOf('  RDO_0F1E2D3C4B5A49688776655443322110 ')).toBe('0f1e2d3c-4b5a-4968-8776-655443322110');
+  });
+
+  it('그 모양이 아니면 주문 번호가 아니다', () => {
+    expect(readingOrderIdOf('0f1e2d3c-4b5a-4968-8776-655443322110')).toBeNull();
+    expect(readingOrderIdOf('rdo_0f1e2d3c')).toBeNull();
+    expect(readingOrderIdOf('')).toBeNull();
   });
 });
