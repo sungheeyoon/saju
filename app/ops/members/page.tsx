@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
@@ -12,7 +13,15 @@ import {
   reasonLabel,
   reviewOutcomeLabel,
 } from '../reports/labels';
-import { DENIED, QUERY_MAX, operatorMember, queryOf, type Member, type MemberWarning } from './read';
+import {
+  DENIED,
+  QUERY_MAX,
+  operatorMember,
+  queryOf,
+  type CreditSource,
+  type Member,
+  type MemberWarning,
+} from './read';
 import { memberCreditHistory, memberGrantLedger, type MemberGrantLedger, type MemberHistory } from './credits';
 import {
   HISTORY_FILTERS,
@@ -44,8 +53,8 @@ export const metadata = {
  * 신고 화면(`/ops/reports`)과 같은 경계다 — 「나는 운영자인가」를 안 묻고 자료를 청해 **거절당하면 없는 화면이 된다**
  * (`notFound`). 찾는 말 없이 열어도 문을 한 번 부른다(`read.ts`).
  *
- * **읽기 전용이다.** 찾는 칸은 주소(`?q=`)로 가는 GET 폼이고, 누름은 계정 id 를 복사하는 하나뿐이다. 보여 주는 것은 G-110 이
- * 든 넷 — 상태 · 산 풀이권 · 쓴 풀이권 · 경고 이력 — 뿐이고, 이메일 · 출생정보 · 풀이 · 저장한 사람 · 주문 금액은 문이 안
+ * **읽기 전용이다.** 찾는 칸은 주소(`?q=`)로 가는 GET 폼이고, 누름은 계정 id 를 복사하는 하나뿐이다. 보여 주는 것은 상태 ·
+ * 풀이권(본인 화면과 같은 잔액과 출처별 장부, 운영자 2026-10-17) · 경고 이력뿐이고, 이메일 · 출생정보 · 풀이 · 저장한 사람 · 주문 금액은 문이 안
  * 내준다. 찾고 볼 때마다 접속기록에 남는다.
  */
 export default async function OperatorMembersPage({
@@ -133,6 +142,10 @@ function Account({ member }: { member: Member }) {
           {accountStatusLabel(member.status)}
         </span>
       </div>
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-sm font-semibold text-secondary">사용 가능한 풀이권</span>
+        <span className="text-4xl font-bold tracking-[-0.04em] tabular-nums">{member.credits.available}장</span>
+      </p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="min-w-0 text-xs text-muted">
           계정 id <span className="break-all font-mono text-secondary">{member.userId}</span>
@@ -144,8 +157,9 @@ function Account({ member }: { member: Member }) {
 }
 
 /**
- * 풀이권 — 묶음과 쓰임 장부의 셈을 그대로 적는다. 화면은 더하거나 빼지 않는다 — 안 쓴 회차의 셈은 환불 셈
- * (`operator_reading_refund_basis`)의 일이다. 승인된 주문의 번호마다 주문 화면(`/ops/orders`, G-110 ②)으로 가는 길이 선다.
+ * 풀이권 출처별 장부 — 가입 무료 · 운영 지급 · 유료 구매의 받은(산) 수 · 확정 쓰임 · 빈자리, 그리고 예약 중 · 환불 확보 중. 화면은
+ * 더하거나 빼지 않는다 — 셈은 문(`operator_member`)이 다 낸다. 잔액(위 계정 칸)은 본인 화면의 셈이고 이것은 장부라, 풀이 대상을
+ * 지운 계정은 둘의 합이 다르다 — 그 한 줄을 늘 둔다. 승인된 주문의 번호마다 주문 화면(`/ops/orders`, G-110 ②)으로 가는 길이 선다.
  */
 function Credits({
   member,
@@ -160,17 +174,21 @@ function Credits({
   return (
     <section aria-labelledby="member-credits" className={`${CARD} flex flex-col gap-3`}>
       <h2 id="member-credits" className="text-base font-semibold">
-        풀이권
+        풀이권 출처
       </h2>
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Count title="산 풀이권" value={credits.bought} />
-        <Count title="환불로 걷은 회차" value={credits.refunded} />
-        <Count title="산 것에서 쓴 회차" value={credits.usedBought} />
-        <Count title="쓴 풀이권 (무료 포함)" value={credits.usedAll} />
+      <p className="text-xs text-muted">출처별은 장부 기준이라 합이 잔액과 다를 수 있습니다.</p>
+      <dl className="flex max-w-xl flex-col divide-y divide-border">
+        <Source title="가입 무료" receivedLabel="받은" source={credits.free} />
+        <Source title="운영 지급" receivedLabel="받은" source={credits.granted} />
+        <Source title="유료 구매" receivedLabel="구매한" source={credits.bought} />
       </dl>
-      {credits.reservedBought > 0 && (
-        <p className="text-xs text-secondary">산 것에서 예약 중 {credits.reservedBought}회 — 쓴 것도 안 쓴 것도 아닙니다.</p>
-      )}
+      <ul aria-label="그 밖의 수" className="flex flex-wrap gap-2 text-xs">
+        <Chip>예약 중 {credits.reserved}장</Chip>
+        <Chip>환불 확보 중 {credits.held}장</Chip>
+        <Chip>환불한 풀이권 {credits.bought.refunded}장</Chip>
+        <Chip>풀이 {credits.usedAll}회</Chip>
+        {credits.outsideUsed > 0 && <Chip>몫 밖 풀이 {credits.outsideUsed}회</Chip>}
+      </ul>
       {member.orderNumbers.length > 0 && (
         <ul aria-label="주문" className="flex flex-wrap gap-2">
           {member.orderNumbers.map((orderNumber) => (
@@ -189,15 +207,10 @@ function Credits({
         <FailureLine retry>무상 지급분을 읽지 못했습니다.</FailureLine>
       ) : ledger.value === null ? null : (
         <>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Count title="무상 지급분" value={ledger.value.granted} unit="장" />
-            <Count title="무상 지급분에서 쓴 것" value={ledger.value.used} />
-            <Count title="무상 지급분 예약 중" value={ledger.value.reserved} />
-            <Count title="회수할 수 있는 수" value={ledger.value.revocable} unit="장" />
-          </dl>
-          <p className="text-xs text-secondary">
-            <span className="rounded-full bg-surface-soft px-2.5 py-1 font-semibold">현금 환불 대상 아님</span> 무상 지급분은
-            환불 셈에 들지 않습니다.
+          <p className="flex flex-wrap items-center gap-2 text-xs text-secondary">
+            <span className="rounded-full bg-surface-soft px-2.5 py-1 font-semibold">현금 환불 대상 아님</span>
+            운영 지급 중 회수할 수 있는 것 {ledger.value.revocable}장
+            {ledger.value.reserved > 0 && ` · 예약 중 ${ledger.value.reserved}장`}
           </p>
           <GrantPanel
             userId={member.userId}
@@ -321,16 +334,27 @@ function HistoryRow({ line }: { line: HistoryLine }) {
   );
 }
 
-function Count({ title, value, unit = '회' }: { title: string; value: number; unit?: '회' | '장' }) {
+function Source({ title, receivedLabel, source }: { title: string; receivedLabel: string; source: CreditSource }) {
   return (
-    <div className="rounded-row bg-surface-soft px-3 py-2">
-      <dt className="text-xs text-muted">{title}</dt>
-      <dd className="mt-0.5 text-lg font-bold tabular-nums">
-        {value}
-        {unit}
-      </dd>
+    <div className="grid grid-cols-[4.5rem_1fr_1fr_1fr] items-baseline gap-2 py-2 first:pt-0 last:pb-0 sm:grid-cols-[6rem_1fr_1fr_1fr]">
+      <dt className="text-sm font-semibold">{title}</dt>
+      <Figure label={receivedLabel} value={source.received} />
+      <Figure label="사용" value={source.used} />
+      <Figure label="남은" value={source.left} />
     </div>
   );
+}
+
+function Figure({ label, value }: { label: string; value: number }) {
+  return (
+    <dd className="text-sm">
+      <span className="text-xs text-muted">{label}</span> <span className="font-semibold tabular-nums">{value}장</span>
+    </dd>
+  );
+}
+
+function Chip({ children }: { children: ReactNode }) {
+  return <li className="rounded-full bg-surface-soft px-2.5 py-1 text-secondary">{children}</li>;
 }
 
 /**

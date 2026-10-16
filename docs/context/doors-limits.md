@@ -24,10 +24,10 @@ _Avoid_: 관리자 권한, 백도어
 
 ## 6. 한도와 출시 범위
 
-**풀이권** — `my_reading_credits` · `reading_credit_limit_for` · `readingCredits` : 한 사람이 쓸
+**풀이권** — `my_reading_credits` · `reading_credits_for` · `reading_credit_limit_for` · `readingCredits` : 한 사람이 쓸
 수 있는 **결과 생성 요청**의 수. 한도(5)는 모두의 약속이다. 잔액은 브라우저에서 읽고
 움직인 자리가 알린다 — `available = 한도 − 성공한 시도 − 도는 시도 − pending 요청`
-(ADR 0038·0078). 검사에 걸린 글은 풀이권을 안 깎는다. 다만 토큰은 나간다.
+(ADR 0038·0078). 셈은 `reading_credits_for` 하나이고 본인 화면과 운영자 회원 화면이 그것을 부른다(ADR 0185 추기). 검사에 걸린 글은 풀이권을 안 깎는다. 다만 토큰은 나간다.
 화면은 풀이권을 **「장」으로 센다**(「풀이권 1장」) — 「회」는 풀이의 횟수(「풀이 1회」), 「편」은 풀이 한 건(「풀이 한 편당」)에만 쓴다(운영자 결정 2026-10-12, 대장 all-02 — 같은 날의 「개」(credits-08)를 대체했다).
 
 **풀이권 예외** — `reading_credit_grant` 표 : 한 사람에게만 한도 위에 **얹는 몫**. 한도는

@@ -3558,10 +3558,21 @@ export type Database = {
       operator_member: {
         Args: { p_query?: string }
         Returns: {
+          available: number
           bought_credits: number
+          bundle_left: number
+          free_credits: number
+          free_left: number
+          free_used: number
+          granted_credits: number
+          granted_left: number
+          granted_used: number
+          held_credits: number
           nickname: string
           order_numbers: string[]
+          outside_used: number
           refunded_credits: number
+          reserved_all: number
           reserved_bought: number
           status: string
           used_all: number
@@ -3925,6 +3936,16 @@ export type Database = {
           bought_credits: number
           free_credits: number
           granted_credits: number
+        }[]
+      }
+      reading_credits_for: {
+        Args: { p_user: string }
+        Returns: {
+          available: number
+          credit_limit: number
+          requested: number
+          reserved: number
+          used: number
         }[]
       }
       reading_credits_used: {

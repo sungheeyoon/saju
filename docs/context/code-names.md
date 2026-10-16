@@ -92,7 +92,7 @@
 | 전송 한도 | `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` · `CHAT_POLICY` · `RATE_LIMITED_TEXT` | 함수 · 표 · `src/lib/chat` |
 | 신고 스냅샷 | `chat_report_snapshot` · `report_chat_message` · `purge_closed_chat_messages` · `reportChatMessage` | 표 · 함수 · 액션 |
 | 접속 상태 | `user_activity` · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` · `activityText` | 표 · 함수 · `src/lib/presence` |
-| 풀이권 | `my_reading_credits` · `reading_credit_limit_for` · `readReadingCredits` | 함수 · 읽는 문 |
+| 풀이권 | `my_reading_credits` · `reading_credits_for` · `reading_credit_limit_for` · `readReadingCredits` | 함수 · 읽는 문 |
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | 무상 풀이권 지급 장부 | `reading_credit_grant_entry` · `book_reading_credit_grant` · `operator_grant_reading_credits` · `operator_revoke_reading_credits` · `operator_member_grant_ledger` · `operator_member_credit_history` · `bookCreditGrant` · `grantPlan` · `GrantPanel` · `credits_granted` · `credits_revoked` | 표 · 함수 · `app/ops/members/` · 소식 갈래 |
 | 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |
