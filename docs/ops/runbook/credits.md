@@ -82,15 +82,16 @@ npm run db:remote -- --purpose "풀이권 장부와 셈의 대조" \
 나눠 돌려주면 누적으로 셈한다 — `결제액 × 지금까지 걷은 회차 합 ÷ 산 회차`(원 미만 버림)에서 이미 돌려준 금액을 뺀다. **DB 가 이 셈을
 한다** — 사람이 셈하지 않는다. 세 걸음이다.
 
-1. **준비** — 걷을 회차 · 사유를 고르고 「환불 준비」. 그 회차가 잠겨 이용자가 못 쓰고(한도에서 빠진다), 금액이 정해져 「환불 진행
+1. **준비** — 걷을 회차 · 사유를 고르고 「환불 준비」 → 확인창의 대상(주문 번호 · 닉네임 · 계정 앞자리) · 회차 · 금액을 보고 「N장 · …원 환불 준비」. 창에 보인 금액이 지금 셈과 다르면 DB 가 거절한다. 그 회차가 잠겨 이용자가 못 쓰고(한도에서 빠진다), 금액이 정해져 「환불 진행
    중」 판이 선다(`operator_hold_reading_refund`, 접속기록 `credits.refund_hold`). 주문 하나에 진행 중인 것은 하나다
 2. **PortOne 콘솔에서 그 판의 「취소할 금액」을 취소한다** — 판의 결제 번호 · 거래 번호로 결제를 찾는다. 화면은 PG 취소를 부르지 않는다
 3. **확정** — 콘솔이 준 취소 번호를 적고 「장부에 확정」(`operator_book_reading_refund`, `credits.refund_book`). 같은 번호로 다시 눌러도
    한 번만 적힌다
 
 콘솔 취소 전에 멈추려면 「준비 취소」(`operator_release_reading_refund`, `credits.refund_release`)로 잠근 회차를 푼다. **콘솔에서 취소한
-뒤에는 준비 취소하지 않는다** — 확정한다. 화면의 준비 취소는 풀기 전에 PortOne 결제 조회로 확보 뒤의 취소를 보고, 취소가 성공 · 요청
-중이면 「취소 번호로 확정」을, 조회가 안 되면(열쇠 없음 · 실패 · 결과 불명) 「확인하지 못해 막았다」를 세운다 — 그때는 아래 「준비 취소를
+뒤에는 준비 취소하지 않는다** — 확정한다. 화면의 준비 취소는 풀기 전에 PortOne 결제 조회로 취소 상태 · 금액을 장부와 견주고, 요청 중인
+취소가 있거나 성공한 취소액이 장부보다 크면 「취소 번호로 확정」을, 조회가 안 되면(열쇠 없음 · 실패 · 결과 불명 · 장부보다 작음)
+「확인하지 못해 막았다」를 세운다 — 그때는 아래 「준비 취소를
 손으로」. 화면을 닫아도 진행 중인 것은 남고, 주문을 다시 찾으면 그 판이 다시 선다. **산 사람이 탈퇴해도 진행 중인 확보는 남는다** —
 주문 번호로 찾으면 「탈퇴한 계정의 주문」 판이 서고 같은 방법으로 확정 · 준비 취소한다(아래 「떠난 사람의 결제 기록」). 진행 중인 확보가
 있는 동안 그 주문에는 SQL 환불(`refund_reading_order`)도 막힌다. 진행 중으로 오래 남은 것이 있는지는 아래로 본다(개인을 가리키지 않는다):
@@ -100,14 +101,34 @@ npm run db:remote -- --purpose "진행 중인 환불 수" \
   "select count(*), min(held_at) from public.reading_refund_hold where state = 'held'"
 ```
 
-**준비 취소를 손으로**(화면이 PortOne 을 조회하지 못할 때만 — break-glass). ① PortOne 콘솔에서 그 결제(판의 결제 번호 `rdo_…`)의
-취소 내역을 열어 **확보 시각(판의 「… 준비」) 뒤의 취소가 성공 · 요청 중으로 하나도 없는지** 본다. 하나라도 있으면 풀지 말고 그 취소
-번호로 화면에서 확정한다. ② 없으면 break-glass 대장에 적고 운영 SQL 로 푼다 — 무엇을 확인했는지가 사유다(10자 이상, 확보 줄의
-`release_note` 에 「by hand: 」를 붙여 남는다). 확보 번호는 같은 주문의 진행 중인 것이다(`operator_reading_refund_hold` 의 첫 칸).
+**준비 취소를 손으로**(화면이 PortOne 을 조회하지 못할 때만 — break-glass). 화면과 같은 규칙으로 본다 — **시각이 아니라 상태와
+금액이다**(ADR 0184 결정 6).
+
+1. PortOne 콘솔에서 그 결제(판의 결제 번호 `rdo_…`)의 취소 내역을 연다. **`요청`(REQUESTED) 등 성공 · 실패 밖의 취소가 하나라도 있으면
+   풀지 않는다** — 언제 요청했든 돈이 나가는 중이다. 끝날 때까지 기다렸다가 다시 본다.
+2. **성공한 취소액의 합**(콘솔의 「취소 금액」)을 아래 실행 전 확인의 `장부_환불액` 과 견준다. **정확히 같을 때만** 푼다. 크면 장부에
+   안 적힌 취소가 있다 — 풀지 말고 그 취소 번호로 화면에서 확정한다. 작으면 장부가 PG 보다 많이 적었다 — 멈추고 조율자에게 올린다.
+3. 같으면 break-glass 대장에 적고 아래 차례로 푼다 — 무엇을 확인했는지 · 누가 했는지가 사유다(10자 이상, 확보 줄의 `release_note` 에
+   「by hand: 」를 붙여 남는다). 사유 · 실행자가 남는 이 함수만 쓴다 — 확보 줄을 `update` 로 고치지 않는다.
 
 ```sql
-select public.release_reading_refund_by_hand('<hold-id>', 'PortOne 콘솔 <YYYY-MM-DD HH:MM> 확인 — 확보 뒤 취소 없음');
+-- 실행 전 확인 — 대상 · 금액을 먼저 본다(회원은 계정 앞 8자만, 닉네임은 /ops/orders 의 판에서). 닫힌 확보면 0줄이다
+select hold_id, provider_order_id, owner_ref, credits, amount, booked_refund, held_at, departed
+from public.reading_refund_hold h
+cross join lateral (select left(h.user_id::text, 8) as owner_ref, h.id as hold_id,
+  coalesce((select o.refunded_amount from public.reading_order o where o.id = h.order_id),
+           (select k.refunded_amount from retention.reading_payment k where k.order_id = h.order_id)) as booked_refund,
+  not exists (select 1 from public.reading_order o where o.id = h.order_id) as departed) x
+where h.id = '<hold-id>' and h.state = 'held';
+
+begin;
+select public.release_reading_refund_by_hand('<hold-id>', '<이름> PortOne 콘솔 <YYYY-MM-DD HH:MM> 확인 — 요청 중 없음, 성공 취소 합 <N>원 = 장부');
+-- 결과 확인 — state = released · release_note 가 위 사유면 commit, 아니면 rollback
+select state, closed_at, release_note from public.reading_refund_hold where id = '<hold-id>';
+commit;
 ```
+
+떠난 사람의 결제는 `booked_refund` 에 떠난 뒤의 환불 합(`retention.reading_refund_after_leave`)도 더해야 한다 — 화면의 판이 그 합을 쓴다.
 
 화면이 못 하는 것 둘만 아래 SQL 차례로 한다 — **쓴 회차까지 돌려주는 경우**(생성 실패 · 계약과 다른 제공, `failure`)와 **금액이 산식과
 다른 경우**(중복결제 일부 등). 이 길도 진행 중인 환불이 잠근 회차는 걷지 못한다. 정상 제공한 회차는 단순 변심으로 돌려주지 않는다.
@@ -125,9 +146,25 @@ select public.release_reading_refund_by_hand('<hold-id>', 'PortOne 콘솔 <YYYY-
    `duplicate` 중복결제 · `failure` 미제공 · `other`)이고 자유 글을 받지 않는다. 같은 PG 환불 번호로 두 번 불러도 한 번만 적힌다.
    안 쓴 것보다 많이 걷으려 하면 거절된다
 
+**실행 전 확인** — 영향받는 주문 · 회원(계정 앞 8자) · 금액을 먼저 select 로 보고, 트랜잭션 안에서 부른 뒤 결과를 select 로 본다.
+맞으면 commit, 아니면 rollback. 사유는 분류 하나로 남고 실행자는 break-glass 대장과 PG 환불 번호로 잇는다 — 이 함수는 실행자 칸이 없다.
+
 ```sql
+-- 실행 전 확인 — 대상 주문 · 회원 · 금액 · 진행 중인 확보(있으면 이 환불은 거절된다)
+select o.provider_order_id, left(o.user_id::text, 8) as owner_ref, o.status, o.amount, o.refunded_amount,
+       b.credits, b.refunded_credits,
+       exists (select 1 from public.reading_refund_hold h where h.order_id = o.id and h.state = 'held') as hold_open
+from public.reading_order o join public.reading_bundle b on b.order_id = o.id
+where o.id = '<order-id>';
+
+begin;
 -- break-glass 대장 번호를 목적에 — 금액(원) · 걷을 회차 · 사유 · PG 환불 번호
 select public.refund_reading_order('<order-id>', <amount>, <credits>, 'unused', '<pg-refund-id>');
+-- 결과 확인 — refunded_amount 가 <amount> 만큼, refunded_credits 가 <credits> 만큼 늘었으면 commit, 아니면 rollback
+select o.status, o.refunded_amount, b.refunded_credits
+from public.reading_order o join public.reading_bundle b on b.order_id = o.id
+where o.id = '<order-id>';
+commit;
 ```
 
 6. 위 「주문 조회」의 상태별 집계로 `partially_refunded` · `refunded` 가 는 것을 본다

@@ -1707,6 +1707,7 @@ export type Database = {
           reason: string
           release_note: string | null
           remaining_amount: number
+          request_id: string
           state: string
           user_id: string
         }
@@ -1726,6 +1727,7 @@ export type Database = {
           reason: string
           release_note?: string | null
           remaining_amount: number
+          request_id: string
           state?: string
           user_id: string
         }
@@ -1745,6 +1747,7 @@ export type Database = {
           reason?: string
           release_note?: string | null
           remaining_amount?: number
+          request_id?: string
           state?: string
           user_id?: string
         }
@@ -3453,7 +3456,13 @@ export type Database = {
         Returns: string
       }
       operator_hold_reading_refund: {
-        Args: { p_credits: number; p_order_id: string; p_reason: string }
+        Args: {
+          p_credits: number
+          p_expected_amount: number
+          p_order_id: string
+          p_reason: string
+          p_request_id: string
+        }
         Returns: {
           amount: number
           credits: number
@@ -3472,6 +3481,8 @@ export type Database = {
           last_used_at: string
           order_id: string
           ordered_at: string
+          owner_nickname: string
+          owner_ref: string
           provider: string
           provider_order_id: string
           provider_payment_id: string
@@ -3487,10 +3498,13 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: {
           amount: number
+          booked_refund: number
           credits: number
           departed: boolean
           held_at: string
           hold_id: string
+          owner_nickname: string
+          owner_ref: string
           paid_amount: number
           provider_order_id: string
           provider_payment_id: string

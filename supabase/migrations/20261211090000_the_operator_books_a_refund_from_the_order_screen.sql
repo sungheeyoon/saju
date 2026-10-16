@@ -39,8 +39,9 @@
 --
 -- ## 준비 취소는 PG 의 취소 내역을 본 뒤에
 --
--- 콘솔에서 이미 취소한 확보를 풀면 돈은 나갔는데 회차가 돌아온다. 앱의 「준비 취소」는 PortOne 결제 조회로 확보 뒤의 취소가
--- 없음을 확인한 뒤에만 이 문을 부른다(`app/ops/orders/release-check.ts`). 조회할 수 없는 환경(열쇠 없음)에서는 화면이 막고,
+-- 콘솔에서 이미 취소한 확보를 풀면 돈은 나갔는데 회차가 돌아온다. 앱의 「준비 취소」는 PortOne 결제 조회로 진행 중인 취소가
+-- 없고 성공한 취소액이 장부의 환불액(`operator_reading_refund_hold` 의 `booked_refund`)과 같음을 확인한 뒤에만 이 문을 부른다
+-- (`app/ops/orders/release-check.ts`). 조회할 수 없는 환경(열쇠 없음)에서는 화면이 막고,
 -- 운영자가 콘솔을 보고 사유를 남겨 서버 열쇠로 푼다(`release_reading_refund_by_hand`, 런북 `docs/ops/runbook/credits.md`).
 
 -- ---------------------------------------------------------------------------
@@ -120,6 +121,8 @@ create table public.reading_refund_hold (
   reason text not null check (reason in ('withdrawal', 'unused', 'duplicate', 'failure', 'other')),
   /** held 진행 중 · booked 장부에 확정 · released 준비 취소 */
   state text not null default 'held' check (state in ('held', 'booked', 'released')),
+  /** 화면이 확인창을 열 때 지은 요청 번호 — 응답이 끊겨 같은 번호로 다시 오면 같은 확보를 돌려준다 */
+  request_id uuid not null unique,
   /** 확보한 운영자 — 계정이 지워져도 줄은 남는다 */
   held_by uuid,
   held_at timestamptz not null default now(),
@@ -315,8 +318,14 @@ $$;
 /**
  * 주문 하나를 들고 그 계정의 주문 전부를 묶음별로 — 몸은 `20261011090000` 그대로다. 안 쓴 수(`unused`)에서 진행 중인 확보가
  * 잡은 회차를 뺐다 — 화면이 고를 수 있는 회차가 이것이다. 확보 자체는 `operator_reading_refund_hold` 가 낸다.
+ *
+ * 칸 둘을 더했다 — 그 계정의 닉네임과 계정 내부 번호의 앞 8자(`owner_ref`). 환불의 확인창이 대상을 「주문 번호 · 닉네임 ·
+ * 계정 앞자리」로 말해 동명이인을 가른다(ADR 0184). 이메일은 여전히 안 낸다. 칸이 늘어 지우고 다시 짓는다 — 옛 앱은 더한 칸을
+ * 무시한다.
  */
-create or replace function public.operator_reading_refund_basis(p_order_id uuid)
+drop function public.operator_reading_refund_basis(uuid);
+
+create function public.operator_reading_refund_basis(p_order_id uuid)
 returns table (
   order_id uuid,
   asked boolean,
@@ -335,7 +344,9 @@ returns table (
   reserved integer,
   unused integer,
   first_used_at timestamptz,
-  last_used_at timestamptz
+  last_used_at timestamptz,
+  owner_nickname text,
+  owner_ref text
 )
 language plpgsql
 volatile
@@ -380,7 +391,9 @@ begin
          else b.credits - b.refunded_credits - coalesce(u.used, 0) - coalesce(u.reserved, 0)
               - public.reading_bundle_held(b.id) end,
     u.first_at,
-    u.last_at
+    u.last_at,
+    (select a.nickname from public.app_user a where a.id = o.user_id),
+    left(o.user_id::text, 8)
   from public.reading_order o
   left join public.reading_bundle b on b.order_id = o.id
   left join lateral (
@@ -395,6 +408,9 @@ begin
   order by o.approved_at nulls last, o.created_at, o.id;
 end;
 $$;
+
+revoke execute on function public.operator_reading_refund_basis(uuid) from public, anon, authenticated, service_role;
+grant execute on function public.operator_reading_refund_basis(uuid) to authenticated;
 
 /** 몸은 `20261208090000` 그대로 — 남은 회차에서 진행 중인 환불이 잡은 회차를 뺐다 */
 create or replace function public.my_reading_orders()
@@ -623,7 +639,9 @@ revoke execute on all functions in schema retention from public, anon, authentic
 /**
  * 주문 하나에 진행 중인 환불 — 없으면 빈 답. 화면을 닫았다 다시 열어도 이것으로 이어서 확정한다. 산 사람이 떠나 주문이
  * 지워졌어도 확보가 든 값으로 선다(`departed`). 잔여(`remaining_amount`)는 결제액에서 이미 돌려준 것과 이번 확보 금액을 뺀
- * 것이다 — PG 부분취소 화면의 「취소 후 잔액」.
+ * 것이다 — PG 부분취소 화면의 「취소 후 잔액」. 장부의 환불액(`booked_refund`)은 그 주문에 **이미 적힌** 환불의 합이다(이번
+ * 확보는 안 든다) — 지금 주문이면 `reading_order.refunded_amount`, 떠난 뒤면 보관된 결제의 환불액 + 떠난 뒤의 환불 합. 준비
+ * 취소가 PortOne 의 성공한 취소액과 이것을 견준다. 보관된 결제마저 없으면 `null` 이고 준비 취소는 막힌다.
  */
 create function public.operator_reading_refund_hold(p_order_id uuid)
 returns table (
@@ -636,7 +654,10 @@ returns table (
   provider_payment_id text,
   paid_amount integer,
   remaining_amount integer,
-  departed boolean
+  booked_refund integer,
+  departed boolean,
+  owner_nickname text,
+  owner_ref text
 )
 language plpgsql
 volatile
@@ -653,7 +674,14 @@ begin
   return query
   select h.id, h.credits, h.amount, h.reason, h.held_at, h.provider_order_id, h.provider_payment_id,
          h.paid_amount, h.remaining_amount,
-         not exists (select 1 from public.reading_order o where o.id = h.order_id)
+         coalesce(
+           (select o.refunded_amount from public.reading_order o where o.id = h.order_id),
+           (select k.refunded_amount + coalesce((select sum(a.amount)::integer from retention.reading_refund_after_leave a
+                                                 where a.order_id = k.order_id), 0)
+            from retention.reading_payment k where k.order_id = h.order_id)),
+         not exists (select 1 from public.reading_order o where o.id = h.order_id),
+         (select a.nickname from public.app_user a where a.id = h.user_id),
+         left(h.user_id::text, 8)
   from public.reading_refund_hold h
   where h.order_id = p_order_id and h.state = 'held';
 end;
@@ -663,7 +691,8 @@ $$;
  * 환불을 준비한다 — 돌려줄 회차를 잠그고 금액을 확정해 진행 중으로 둔다. 걷는 회차는 하나 이상이고 그 묶음의 안 쓴 것
  * (예약 중 · 다른 확보는 빼고)을 넘지 못한다. 사람 자물쇠 안에서 잠그므로 풀이 시작과 나란히 와도 한쪽만 그 회차를 갖는다.
  */
-create function public.operator_hold_reading_refund(p_order_id uuid, p_credits integer, p_reason text)
+create function public.operator_hold_reading_refund(
+  p_order_id uuid, p_credits integer, p_reason text, p_expected_amount integer, p_request_id uuid)
 returns table (hold_id uuid, credits integer, amount integer)
 language plpgsql
 volatile
@@ -677,6 +706,7 @@ declare
   free integer;
   owed integer;
   made uuid;
+  earlier record;
 begin
   if not public.is_operator() then
     raise exception '운영자만 쓰는 자리입니다.' using errcode = '42501';
@@ -691,6 +721,24 @@ begin
   select * into o from public.reading_order where id = p_order_id for update;
   if not found then
     raise exception '주문을 찾지 못했습니다.' using errcode = 'no_data_found';
+  end if;
+
+  if p_request_id is null then
+    raise exception '요청 번호가 없습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+  end if;
+
+  -- 같은 요청의 재시도 — 주문 자물쇠 뒤에 찾는다(나란히 온 재시도는 첫째의 커밋 뒤에 본다). 같은 확보를 돌려준다
+  select h.id, h.order_id, h.credits, h.amount, h.reason into earlier
+  from public.reading_refund_hold h where h.request_id = p_request_id;
+  if found then
+    if earlier.order_id <> o.id or earlier.credits <> p_credits or earlier.reason <> p_reason then
+      raise exception '이 요청 번호는 다른 환불 준비에 쓰였습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+    end if;
+    hold_id := earlier.id;
+    credits := earlier.credits;
+    amount := earlier.amount;
+    return next;
+    return;
   end if;
 
   if o.status not in ('approved', 'partially_refunded') then
@@ -722,12 +770,17 @@ begin
     raise exception '돌려줄 금액이 없습니다.' using errcode = '22023';
   end if;
 
+  -- 확인창에 보인 금액과 지금의 셈이 다르면 적지 않는다 — 그 사이 다른 환불이 끼었거나 화면이 낡았다
+  if p_expected_amount is distinct from owed then
+    raise exception '환불 금액이 %원으로 바뀌었습니다. 새로 읽고 다시 확인해 주세요.', owed using errcode = '22023';
+  end if;
+
   insert into public.reading_refund_hold (
     order_id, bundle_id, user_id, provider_order_id, provider_payment_id, paid_amount, remaining_amount,
-    credits, amount, reason, held_by)
+    credits, amount, reason, request_id, held_by)
   values (
     o.id, b.id, o.user_id, o.provider_order_id, o.provider_payment_id, o.amount, o.amount - o.refunded_amount - owed,
-    p_credits, owed, p_reason, (select auth.uid()))
+    p_credits, owed, p_reason, p_request_id, (select auth.uid()))
   returning id into made;
 
   hold_id := made;
@@ -911,7 +964,7 @@ begin
 end;
 $$;
 
-comment on function public.operator_hold_reading_refund(uuid, integer, text) is
+comment on function public.operator_hold_reading_refund(uuid, integer, text, integer, uuid) is
   '환불 준비 — 회차를 잠그고 금액을 확정해 진행 중으로 둔다 (G-110 ②, ADR 0184).';
 comment on function public.operator_book_reading_refund(uuid, text) is
   '환불 확정 — PG 콘솔에서 취소한 뒤 그 취소 번호로 확보를 장부에 적는다 (G-110 ②, ADR 0184).';
@@ -924,12 +977,12 @@ revoke execute on function public.release_reading_refund_by_hand(uuid, text) fro
 grant execute on function public.release_reading_refund_by_hand(uuid, text) to service_role;
 
 revoke execute on function public.operator_reading_refund_hold(uuid),
-  public.operator_hold_reading_refund(uuid, integer, text),
+  public.operator_hold_reading_refund(uuid, integer, text, integer, uuid),
   public.operator_book_reading_refund(uuid, text),
   public.operator_release_reading_refund(uuid)
   from public, anon, authenticated, service_role;
 grant execute on function public.operator_reading_refund_hold(uuid),
-  public.operator_hold_reading_refund(uuid, integer, text),
+  public.operator_hold_reading_refund(uuid, integer, text, integer, uuid),
   public.operator_book_reading_refund(uuid, text),
   public.operator_release_reading_refund(uuid)
   to authenticated;

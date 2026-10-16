@@ -4,6 +4,7 @@ import { readingBundleValidUntil, refundOwed } from '@/src/lib/reading/bundle';
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
 import { noteDenial } from '../denial';
+import type { Owner } from './refund-confirm';
 
 /**
  * 주문 하나와 그 계정의 주문 전부, 그리고 진행 중인 환불이 **환불 셈의 입력으로 내려오는 문** (G-110 ②, ADR 0184).
@@ -33,6 +34,8 @@ export type OrderLine = {
   readonly refundedAmount: number;
   readonly orderedAt: string;
   readonly approvedAt: string | null;
+  /** 산 사람 — 확인창이 대상을 가르는 값(닉네임 · 계정 앞자리). 이메일은 안 받는다 */
+  readonly owner: Owner;
   /** 묶음 — 승인된 적 없는 주문이면 `null` */
   readonly bundle: {
     readonly credits: number;
@@ -64,6 +67,10 @@ export type RefundHold = {
   readonly remainingAmount: number;
   /** 산 사람이 떠나 주문이 지워졌다 — 확정은 보관된 결제에 대해 한다 */
   readonly departed: boolean;
+  /** 장부에 이미 적힌 그 주문의 환불액(이번 확보는 안 든다) — 비면 견줄 장부가 없다 */
+  readonly bookedRefund: number | null;
+  /** 산 사람 — 떠났으면 닉네임은 없고 계정 앞자리만 남는다 */
+  readonly owner: Owner;
 };
 
 export type RefundBasis = {
@@ -86,6 +93,8 @@ export const refundHoldOf = (row: RpcRow<'operator_reading_refund_hold'>): Refun
   paidAmount: row.paid_amount,
   remainingAmount: row.remaining_amount,
   departed: row.departed,
+  bookedRefund: row.booked_refund ?? null,
+  owner: { nickname: row.owner_nickname ?? null, ref: row.owner_ref },
 });
 
 /** 문의 한 줄을 화면의 값으로 옮긴다 — 비는 칸은 여기서 한 번 `null` 로 받는다(위 머리말) */
@@ -102,6 +111,7 @@ export const orderLineOf = (row: RpcRow<'operator_reading_refund_basis'>): Order
     refundedAmount: row.refunded_amount,
     orderedAt: row.ordered_at,
     approvedAt,
+    owner: { nickname: row.owner_nickname ?? null, ref: row.owner_ref },
     bundle:
       credits === null || approvedAt === null
         ? null

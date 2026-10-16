@@ -23,6 +23,8 @@ const row = (over: Partial<RpcRow<'operator_reading_refund_basis'>> = {}): RpcRo
   unused: 17,
   first_used_at: '2026-10-16T06:00:00Z',
   last_used_at: '2026-10-16T07:00:00Z',
+  owner_nickname: '하늘',
+  owner_ref: '2658fc70',
   ...over,
 });
 
@@ -67,7 +69,10 @@ describe('주문 화면의 문', () => {
         provider_payment_id: null as unknown as string,
         paid_amount: 12900,
         remaining_amount: 4300,
+        booked_refund: 0,
         departed: true,
+        owner_nickname: null as unknown as string,
+        owner_ref: '2658fc70',
       }),
     ).toEqual({
       holdId: 'h-1',
@@ -80,6 +85,8 @@ describe('주문 화면의 문', () => {
       paidAmount: 12900,
       remainingAmount: 4300,
       departed: true,
+      bookedRefund: 0,
+      owner: { nickname: null, ref: '2658fc70' },
     });
   });
 });

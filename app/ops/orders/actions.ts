@@ -7,6 +7,7 @@ import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { noteDenial, type DeniedAction } from '../denial';
 import { isRefundReason } from './labels';
+import type { PrepareRequest } from './refund-confirm';
 import { cancellationCheck } from './portone-cancellations';
 import { RELEASE_CANCELLED_NOTE, RELEASE_UNKNOWN_NOTE } from './release-check';
 
@@ -32,12 +33,11 @@ const refused = async (
   return { ok: false, message: userFacingDbMessage(error, where) };
 };
 
-/** 확보 — 돌려줄 회차를 잠그고 금액을 정한다. 금액은 DB 가 셈한다 */
-export async function holdRefund(input: {
-  readonly orderId: string;
-  readonly credits: number;
-  readonly reason: string;
-}): Promise<Answer<{ readonly amount: number }>> {
+/**
+ * 확보 — 돌려줄 회차를 잠그고 금액을 정한다. 내는 값은 확인창에 보인 고정본이다(`preparePlan`): DB 가 금액을 다시 셈해 보인
+ * 금액과 다르면 거절하고, 같은 요청 번호로 다시 오면(응답이 끊긴 재시도) 같은 확보를 돌려준다.
+ */
+export async function holdRefund(input: PrepareRequest): Promise<Answer<{ readonly amount: number }>> {
   if (!isRefundReason(input.reason)) return { ok: false, message: '환불 사유를 골라 주세요.' };
   if (!Number.isInteger(input.credits) || input.credits < 1) {
     return { ok: false, message: '걷을 회차를 1장 이상 골라 주세요.' };
@@ -50,6 +50,8 @@ export async function holdRefund(input: {
       p_order_id: input.orderId,
       p_credits: input.credits,
       p_reason: input.reason,
+      p_expected_amount: input.expectedAmount,
+      p_request_id: input.requestId,
     }),
   );
   if (error) return refused(supabase, error, 'credits.refund_hold', 'operator_hold_reading_refund');
@@ -79,7 +81,8 @@ export async function bookRefund(input: {
 
 /**
  * 준비 취소 — 확정 전의 확보를 풀어 잠근 회차를 돌려놓는다. **풀기 전에 PortOne 에 그 결제의 취소 내역을 묻는다** —
- * 확보 뒤의 취소가 성공 · 요청 중이거나, 조회가 실패하거나 결과를 알 수 없으면(열쇠가 없는 환경 포함) 막는다(ADR 0184).
+ * 진행 중인 취소가 있거나, 성공한 취소액이 장부의 환불액과 다르거나, 조회가 실패 · 결과를 알 수 없으면(열쇠가 없는 환경
+ * 포함) 막는다(ADR 0184). 장부의 환불액은 DB 가 낸다 — 화면이 대지 않는다.
  */
 export async function releaseRefund(input: { readonly orderId: string; readonly holdId: string }): Promise<Answer> {
   const supabase = await supabaseOnServer();
@@ -92,7 +95,12 @@ export async function releaseRefund(input: { readonly orderId: string; readonly 
   const hold = (held.data ?? []).find((row) => row.hold_id === input.holdId);
   if (!hold) return { ok: false, message: '진행 중인 환불을 찾지 못했습니다. 화면을 새로 열어 주세요.' };
 
-  const check = await cancellationCheck(hold.provider_order_id, new Date(hold.held_at));
+  // 생성 타입은 `returns table` 칸을 늘 있다고 적는다 — 보관된 결제마저 없으면 비고, 그때는 견줄 장부가 없어 막는다
+  const booked: number | null = hold.booked_refund ?? null;
+  const check =
+    booked === null
+      ? ({ kind: 'unknown', why: 'no ledger refund to compare' } as const)
+      : await cancellationCheck(hold.provider_order_id, booked);
   if (check.kind === 'cancelled') return { ok: false, message: RELEASE_CANCELLED_NOTE };
   if (check.kind === 'unknown') {
     console.error('refund release blocked', check.why);

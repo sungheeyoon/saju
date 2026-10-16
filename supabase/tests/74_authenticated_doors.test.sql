@@ -70,7 +70,7 @@ select set_eq(
            ('open_reading_order(p_bundle_credits integer, p_provider text, p_idempotency_key text)'),
            ('operator_audit_export_status()'),
            ('operator_book_reading_refund(p_hold_id uuid, p_provider_refund_id text)'),
-           ('operator_hold_reading_refund(p_order_id uuid, p_credits integer, p_reason text)'),
+           ('operator_hold_reading_refund(p_order_id uuid, p_credits integer, p_reason text, p_expected_amount integer, p_request_id uuid)'),
            ('operator_reading_refund_basis(p_order_id uuid)'),
            ('operator_reading_refund_hold(p_order_id uuid)'),
            ('operator_release_reading_refund(p_hold_id uuid)'),

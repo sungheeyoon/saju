@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { CARD } from '../../ui/surfaces';
 import { orderStatusLabel, seoulTime, won } from './labels';
 import { refundForAllUnused, type OrderLine, type RefundHold } from './read';
+import { ownerLabel } from './refund-confirm';
 import { HoldPanel, PrepareForm } from './refund-form';
 
 /**
@@ -23,6 +24,7 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
           </span>
         </p>
         <p className="mt-1 break-all font-mono text-xs text-muted">{line.orderNumber}</p>
+        <p className="mt-1 text-xs text-secondary">회원 {ownerLabel(line.owner)}</p>
       </div>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
@@ -67,6 +69,8 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
           </p>
           <PrepareForm
             orderId={line.orderId}
+            orderNumber={line.orderNumber}
+            owner={line.owner}
             paid={line.amount}
             refundedAmount={line.refundedAmount}
             credits={bundle.credits}
