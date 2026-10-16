@@ -2,12 +2,12 @@
 
 > **법률 자문이 아니다. 변호사 검토 전의 근거 모음이다.** 이용약관 · 환불정책의 줄마다 무엇을 근거로 적었는지 — 조문 원문 · 코드의
 > 자리 — 를 한 곳에 모은다. 「표에 적었으니 적법하다」는 뜻이 아니다. 법적 판단은 변호사가 하고, 묻고 싶을 때 묻는 선택 검토로
-> 남는다(`docs/legal/counsel-request.md`, ADR 0187).
+> 남는다(`docs/legal/counsel-request.md`, ADR 0186).
 
 화면의 이용약관 원문은 `src/lib/brand/terms.ts` 의 `termsFor` 이고 `/terms` 가, 환불정책은 `src/lib/brand/refund.ts` 의
 `refundPolicyFor` 이고 `/refund` 가 그대로 그린다(ADR 0172). 초안과 그 표지는 `docs/legal/terms-draft.md` · `docs/legal/refund-policy.md` 다.
 처리방침의 근거는 `docs/legal/privacy-grounds.md` 가 따로 든다. **약관 · 환불정책 문장을 바꾸는 PR 은 이 문서의 그 줄도 같은 PR 에서
-고친다**(ADR 0187).
+고친다**(ADR 0186).
 
 조사 범위는 약관 · 환불정책이 이미 인용한 조문까지다 — 새 물음을 더하지 않는다(운영자 2026-10-15 「조사 범위를 더 늘리지 않는다」).
 
