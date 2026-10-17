@@ -31,11 +31,11 @@ const isActiveAccount = (status: string): boolean => status === 'active';
 type SuspensionReason = 'report' | 'policy' | 'payment' | 'eligibility' | 'other';
 
 const SUSPENSION_REASON_TEXT: Readonly<Record<SuspensionReason, string>> = {
-  report: '신고 검토 결과',
+  report: '신고 내용 확인',
   policy: '운영정책 위반',
   payment: '결제 부정 이용',
   eligibility: '이용 자격(만 19세 이상) 미충족',
-  other: '운영 정책에 따른 조치',
+  other: '기타 운영 사유',
 };
 
 /**
@@ -53,35 +53,36 @@ const suspensionReasonText = (reason: string | null): string | null =>
   reason === null ? null : (SUSPENSION_REASON_TEXT[reason as SuspensionReason] ?? null);
 
 /**
- * 정지 화면의 본문 — 운영자 확정 문구 그대로다(2026-10-17, 후보 C 이용제한형, 대장 `all-03`).
+ * 정지 화면의 본문 — 운영자 확정 문구 그대로다(2026-10-17, 후보 C 이용제한형과 그날의 답, 대장 `all-03`).
  *
- * 「{닉네임}님은 {갈래} 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 {고객 문의 이메일}로 소명해 주세요.」
- * 갈래를 모르면 「{갈래} 사유로 」를, 닉네임을 모르면(문을 못 읽었을 때) 「{닉네임}님은 」을 뺀다. 고객 문의 이메일은 화면이
+ * 「{닉네임} 님은 {갈래} 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 {고객 문의 이메일}으로 소명해 주세요.」
+ * 갈래를 모르면 「{갈래} 사유로 」를, 닉네임을 모르면(문을 못 읽었을 때 — 확정 문구에서 뺀 모양) 「{닉네임} 님은 」을 뺀다. 고객 문의 이메일은 화면이
  * `SUPPORT_EMAIL`(`src/lib/brand`)을 읽어 넘긴다 — `account` 는 `brand` 를 부르지 않는다(경고 안내와 같다).
  */
 function suspendedDetail(suspension: Suspension | null, supportEmail: string): string {
-  const who = suspension?.nickname ? `${suspension.nickname}님은 ` : '';
+  const who = suspension?.nickname ? `${suspension.nickname} 님은 ` : '';
   const phrase = suspensionReasonText(suspension?.reason ?? null);
   const why = phrase === null ? '' : `${phrase} 사유로 `;
-  return `${who}${why}이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 ${supportEmail}로 소명해 주세요.`;
+  return `${who}${why}이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 ${supportEmail}으로 소명해 주세요.`;
 }
 
 /**
  * 살아 있지 않은 계정에게 하는 말.
  *
  * **이유를 갈라서 말한다.** 운영자가 건 제재와 본인이 낸 요청은 같은 것을 막지만 같은
- * 일이 아니다 — 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는 거짓이다.
+ * 일이 아니다 — 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는 거짓이다.
  *
  * 이름과 문구는 `docs/product/prd/account.md` §5.3 의 표다(2026-09-23) — 이용 정지 · 탈퇴 대기. 제목 자리라
  * 마침표가 빠진다(GLOSSARY 「화면 문구 규칙」). 정지의 본문은 2026-10-17 에 사유 갈래와 소명 경로를 싣는 문장이 됐다
- * (`suspendedDetail`, G-111-8) — 제목은 그대로다.
+ * (`suspendedDetail`, G-111-8) — 같은 날 제목도 「이용이 정지된 계정입니다」에서 「이용이 제한된 계정이에요」로
+ * 바뀌었다(운영자 답). 운영 화면의 「이용 정지」는 내부 낱말로 그대로다. DB 가 던지는 거절 「이용이 정지된 계정입니다.」는 이 제목이 아니다.
  */
 const ACCOUNT_HALTED_TEXT: Record<
   Exclude<AccountStatus, 'active'>,
   { readonly title: string; readonly detail: (suspension: Suspension | null, supportEmail: string) => string }
 > = {
   suspended: {
-    title: '이용이 정지된 계정입니다',
+    title: '이용이 제한된 계정이에요',
     detail: suspendedDetail,
   },
   deletion_requested: {

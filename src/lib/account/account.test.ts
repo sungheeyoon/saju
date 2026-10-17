@@ -115,29 +115,29 @@ describe('정지 화면의 본문 — 운영자 확정 문구 그대로다 (G-11
 
   it('갈래 다섯은 확정 낱말로 선다', () => {
     expect(detailOf('report')).toBe(
-      '하늘님은 신고 검토 결과 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com로 소명해 주세요.',
+      '하늘 님은 신고 내용 확인 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.',
     );
-    expect(detailOf('policy')).toContain('하늘님은 운영정책 위반 사유로 이용제한 중이에요.');
-    expect(detailOf('payment')).toContain('하늘님은 결제 부정 이용 사유로 이용제한 중이에요.');
-    expect(detailOf('eligibility')).toContain('하늘님은 이용 자격(만 19세 이상) 미충족 사유로 이용제한 중이에요.');
-    expect(detailOf('other')).toContain('하늘님은 운영 정책에 따른 조치 사유로 이용제한 중이에요.');
+    expect(detailOf('policy')).toContain('하늘 님은 운영정책 위반 사유로 이용제한 중이에요.');
+    expect(detailOf('payment')).toContain('하늘 님은 결제 부정 이용 사유로 이용제한 중이에요.');
+    expect(detailOf('eligibility')).toContain('하늘 님은 이용 자격(만 19세 이상) 미충족 사유로 이용제한 중이에요.');
+    expect(detailOf('other')).toContain('하늘 님은 기타 운영 사유 사유로 이용제한 중이에요.');
   });
 
   it('갈래가 없으면 갈래 구만 빠진다 — 직접 UPDATE · 이력 전의 정지 · 모르는 갈래', () => {
     const bare =
-      '하늘님은 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com로 소명해 주세요.';
+      '하늘 님은 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.';
     expect(detailOf(null)).toBe(bare);
     expect(detailOf('deletion_withdrawn')).toBe(bare);
   });
 
   it('문을 못 읽었으면 닉네임 · 갈래 구를 빼고도 소명 경로는 선다', () => {
     const notice = accountNoticeOf({ kind: 'halted', status: 'suspended', suspension: null }, EMAIL)!;
-    expect(notice.detail).toBe('이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com로 소명해 주세요.');
+    expect(notice.detail).toBe('이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.');
     expect(accountNoticeOf({ kind: 'halted', status: 'suspended' }, EMAIL)!.detail).toBe(notice.detail);
   });
 
-  it('제목은 그대로다 — 「이용이 정지된 계정입니다」', () => {
-    expect(haltedText('suspended', EMAIL)?.title).toBe('이용이 정지된 계정입니다');
+  it('제목은 「이용이 제한된 계정이에요」다 — 운영자 답 2026-10-17', () => {
+    expect(haltedText('suspended', EMAIL)?.title).toBe('이용이 제한된 계정이에요');
   });
 
   it('탈퇴 대기의 문장은 정지 안내를 싣지 않는다', () => {

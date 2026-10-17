@@ -503,11 +503,11 @@ test.describe('동의로 열리는 흐름', () => {
     await leaver.page.getByRole('button', { name: '탈퇴 신청하기' }).click();
 
     /*
-      **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는
+      **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는
       거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`). 이름은 PRD §5.3 의 표.
     */
     await expect(leaver.page.getByText('탈퇴를 신청한 계정입니다')).toBeVisible();
-    await expect(leaver.page.getByText('이용이 정지된 계정입니다')).toHaveCount(0);
+    await expect(leaver.page.getByText('이용이 제한된 계정이에요')).toHaveCount(0);
 
     // 새 관문을 두지 않았으므로 다른 화면도 같은 값을 보고 같은 말을 한다.
     for (const path of ['/me/people', '/me/discovery', '/me/requests']) {
