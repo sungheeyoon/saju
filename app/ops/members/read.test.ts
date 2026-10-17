@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { RpcRow } from '@/src/lib/db';
 
-import { QUERY_MAX, memberOf, queryOf, warningOf } from './read';
+import { QUERY_MAX, memberOf, queryOf } from './read';
 
 describe('회원 찾기의 찾는 말 (G-110 ③)', () => {
   it('앞뒤 빈칸을 걷는다', () => {
@@ -24,7 +24,7 @@ describe('회원 찾기의 찾는 말 (G-110 ③)', () => {
   });
 });
 
-describe('회원 한 명 · 경고 한 줄 — 생성 타입이 null 아님으로 적는 칸', () => {
+describe('회원 한 명 — 생성 타입이 null 아님으로 적는 칸', () => {
   it('닉네임이 비면 null 로 받는다', () => {
     const row = {
       user_id: '00000000-0000-4000-8000-0000000000aa',
@@ -64,18 +64,5 @@ describe('회원 한 명 · 경고 한 줄 — 생성 타입이 null 아님으�
       },
       orderNumbers: [],
     });
-  });
-
-  it('이용 정지 결정은 안내번호 · 갈래 · 확인이 비고 셈에 안 든다', () => {
-    const row = {
-      report_id: '00000000-0000-4000-8000-000000000001',
-      reviewed_at: '2026-10-10T03:00:00Z',
-      review_outcome: 'suspension',
-      warning_ref: null,
-      warning_category: null,
-      warning_acknowledged_at: null,
-      counted: false,
-    } as unknown as RpcRow<'operator_member_warnings'>;
-    expect(warningOf(row)).toMatchObject({ outcome: 'suspension', ref: null, category: null, counted: false });
   });
 });

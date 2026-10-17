@@ -10,7 +10,7 @@
 -- 목록에서도 지운다.
 --
 -- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개였고, `clear_my_photo` 를 걷어 83 개, `photo_of` 를 걷어 82 개,
--- `set_my_photo` 를 걷어 81 개다. 2026-10-09 에 홈의 「만드는 중」(`my_running_readings`, ADR 0157)이, 2026-10-11 에 사진을 그 자리에서 바꾸는 문(`replace_my_photo`, `20261202090000`)이, 사진의 보일 자리를 정하는 문(`set_my_photo_focus`, `20261203090000`)이 하나씩 더했다. 2026-10-12 에 풀이권 상품 화면의 문 둘(`my_reading_sale_is_open` · `my_reading_order`, `20261207090000`, ADR 0171)이 더했다. 같은 날 결제 내역 화면의 문(`my_reading_orders`, `20261208090000`, ADR 0174)이 더했다. 2026-10-16 에 운영자의 오늘 · 이번 주 숫자 문(`operator_today_figures`, `20261210090000`, ADR 0183)이, 같은 날 운영자가 주문 화면에서 환불을 확보 · 확정 · 준비 취소하고 진행 중인 것을 읽는 문 넷(`operator_hold_reading_refund` · `operator_book_reading_refund` · `operator_release_reading_refund` · `operator_reading_refund_hold`, `20261211090000`, ADR 0184)이, 같은 날 운영자의 회원 찾기 문 둘(`operator_member` · `operator_member_warnings`, `20261212090000`, ADR 0185)이 더했다 — 회원 찾기 둘은 사람 id 를 받지만 운영자만 부른다(`is_operator()`, 아니면 `42501`). 2026-10-17 에 무상 풀이권 지급 · 회수와 그 장부 · 이력을 읽는 문 넷(`operator_grant_reading_credits` · `operator_revoke_reading_credits` · `operator_member_grant_ledger` · `operator_member_credit_history`, `20261214090000`, ADR 0187)이 더했다 — 같은 꼴로 운영자만 부른다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서 불리는 판정(`chat_room_readable` ·
+-- `set_my_photo` 를 걷어 81 개다. 2026-10-09 에 홈의 「만드는 중」(`my_running_readings`, ADR 0157)이, 2026-10-11 에 사진을 그 자리에서 바꾸는 문(`replace_my_photo`, `20261202090000`)이, 사진의 보일 자리를 정하는 문(`set_my_photo_focus`, `20261203090000`)이 하나씩 더했다. 2026-10-12 에 풀이권 상품 화면의 문 둘(`my_reading_sale_is_open` · `my_reading_order`, `20261207090000`, ADR 0171)이 더했다. 같은 날 결제 내역 화면의 문(`my_reading_orders`, `20261208090000`, ADR 0174)이 더했다. 2026-10-16 에 운영자의 오늘 · 이번 주 숫자 문(`operator_today_figures`, `20261210090000`, ADR 0183)이, 같은 날 운영자가 주문 화면에서 환불을 확보 · 확정 · 준비 취소하고 진행 중인 것을 읽는 문 넷(`operator_hold_reading_refund` · `operator_book_reading_refund` · `operator_release_reading_refund` · `operator_reading_refund_hold`, `20261211090000`, ADR 0184)이, 같은 날 운영자의 회원 찾기 문 둘(`operator_member` · `operator_member_warnings`, `20261212090000`, ADR 0185)이 더했다 — 회원 찾기 둘은 사람 id 를 받지만 운영자만 부른다(`is_operator()`, 아니면 `42501`). 2026-10-17 에 무상 풀이권 지급 · 회수와 그 장부 · 이력을 읽는 문 넷(`operator_grant_reading_credits` · `operator_revoke_reading_credits` · `operator_member_grant_ledger` · `operator_member_credit_history`, `20261214090000`, ADR 0187)이 더했다 — 같은 꼴로 운영자만 부른다. 같은 날 회원 화면의 정지 · 해제와 처분 이력을 읽는 문 셋(`operator_suspend_member` · `operator_unsuspend_member` · `operator_member_sanctions`, `20261216090000`, ADR 0189)이 더했다 — 같은 꼴이다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서 불리는 판정(`chat_room_readable` ·
 -- `discovery_shown_to_me` · `set_person_listed`), 모양 검사(`is_*` · `reject_bad_chart`). 걷을지는 이 파일이 아니라
 -- 마이그레이션이 정한다 — 옛 사진 문 셋은 `clear_my_photo` 를 `20261110090000` 이, `photo_of` 를 `20261112090000` 이,
 -- `set_my_photo` 를 `20261115090000` 이 걷었다.
@@ -75,6 +75,7 @@ select set_eq(
            ('operator_member(p_query text)'),
            ('operator_member_credit_history(p_user_id uuid, p_filter text, p_limit integer)'),
            ('operator_member_grant_ledger(p_user_id uuid)'),
+           ('operator_member_sanctions(p_user_id uuid)'),
            ('operator_member_warnings(p_user_id uuid)'),
            ('operator_reading_refund_basis(p_order_id uuid)'),
            ('operator_reading_refund_hold(p_order_id uuid)'),
@@ -86,6 +87,7 @@ select set_eq(
            ('operator_reports(p_reviewed boolean, p_reason text, p_has_snapshot boolean, p_page integer, p_warning_ref text, p_order text)'),
            ('operator_review_report(p_report_id uuid, p_outcome text, p_note text, p_sanctioned_user_id uuid, p_warning_category text, p_seen_version integer, p_request_id uuid)'),
            ('operator_service_survey_counts()'),
+           ('operator_suspend_member(p_user_id uuid, p_reason text, p_note text, p_seen_version integer, p_request_id uuid)'),
            ('operator_service_survey_overview()'),
            ('operator_service_survey_texts()'),
            ('operator_survey_by_version()'),
@@ -93,6 +95,7 @@ select set_eq(
            ('operator_survey_overview()'),
            ('operator_survey_tags()'),
            ('operator_today_figures()'),
+           ('operator_unsuspend_member(p_user_id uuid, p_reason text, p_note text, p_seen_version integer, p_request_id uuid)'),
            ('pair_relation_of(p_person_a uuid, p_person_b uuid)'),
            ('person_for_pair(p_person uuid, p_local_label text, p_note text, p_calendar text, p_original_date date, p_solar_date date, p_birth_time time without time zone, p_gender text, p_city text, p_late_night_rule text, p_time_basis text, p_chart jsonb, p_chart_engine_version text)'),
            ('photo_at(p_user_id uuid, p_position integer)'),

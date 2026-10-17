@@ -3708,6 +3708,16 @@ export type Database = {
           version: number
         }[]
       }
+      operator_member_sanctions: {
+        Args: { p_user_id: string }
+        Returns: {
+          is_operator: boolean
+          lines: Json
+          status: string
+          version: number
+          warnings_12m: number
+        }[]
+      }
       operator_member_warnings: {
         Args: { p_user_id: string }
         Returns: {
@@ -3953,6 +3963,19 @@ export type Database = {
           tag: string
         }[]
       }
+      operator_suspend_member: {
+        Args: {
+          p_note: string
+          p_reason: string
+          p_request_id: string
+          p_seen_version: number
+          p_user_id: string
+        }
+        Returns: {
+          change_id: string
+          replayed: boolean
+        }[]
+      }
       operator_today_figures: {
         Args: never
         Returns: {
@@ -3964,6 +3987,19 @@ export type Database = {
           revenue: number
           signups: number
           since: string
+        }[]
+      }
+      operator_unsuspend_member: {
+        Args: {
+          p_note: string
+          p_reason: string
+          p_request_id: string
+          p_seen_version: number
+          p_user_id: string
+        }
+        Returns: {
+          change_id: string
+          replayed: boolean
         }[]
       }
       pair_relation_of: {
@@ -4286,6 +4322,20 @@ export type Database = {
           p_wants_new: string[]
         }
         Returns: string
+      }
+      screen_change_member_status: {
+        Args: {
+          p_note: string
+          p_reason: string
+          p_request_id: string
+          p_seen_version: number
+          p_status: string
+          p_user_id: string
+        }
+        Returns: {
+          change_id: string
+          replayed: boolean
+        }[]
       }
       send_chat_message: {
         Args: { p_body: string; p_client_id: string; p_match_id: string }
