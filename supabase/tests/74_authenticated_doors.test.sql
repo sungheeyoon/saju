@@ -74,7 +74,7 @@ select set_eq(
            ('operator_grant_reading_credits(p_user_id uuid, p_credits integer, p_reason text, p_note text, p_report_id uuid, p_seen_version integer, p_request_id uuid)'),
            ('operator_hold_reading_refund(p_order_id uuid, p_credits integer, p_reason text, p_expected_amount integer, p_request_id uuid)'),
            ('operator_member(p_query text)'),
-           ('operator_member_credit_history(p_user_id uuid, p_filter text, p_limit integer)'),
+           ('operator_member_credit_history(p_user_id uuid, p_filter text, p_limit integer, p_before_at timestamp with time zone, p_before_key text)'),
            ('operator_member_grant_ledger(p_user_id uuid)'),
            ('operator_member_sanctions(p_user_id uuid)'),
            ('operator_member_warnings(p_user_id uuid)'),

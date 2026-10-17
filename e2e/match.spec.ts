@@ -507,6 +507,8 @@ test.describe('동의로 열리는 흐름', () => {
       거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`). 이름은 PRD §5.3 의 표.
     */
     await expect(leaver.page.getByText('탈퇴를 신청한 계정입니다')).toBeVisible();
+    // 처분은 크론이 신청 하루 뒤부터 하고 3일을 넘기면 운영자에게 알린다(`docs/ops/runbook/erasure.md`) — 운영자 확정 2026-10-17
+    await expect(leaver.page.getByText('저장된 자료는 3일 안에 지워져요', { exact: false })).toBeVisible();
     await expect(leaver.page.getByText('이용이 제한된 계정이에요')).toHaveCount(0);
 
     // 새 관문을 두지 않았으므로 다른 화면도 같은 값을 보고 같은 말을 한다.

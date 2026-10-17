@@ -159,17 +159,40 @@ export const historyFilterOf = (value: string | string[] | undefined): HistoryFi
   return HISTORY_FILTERS.find((filter) => filter.value === text)?.value ?? 'all';
 };
 
-/** 한 번에 보이는 줄 수와 「더 보기」의 위 끝 — DB 는 500 까지 받는다 */
+/** 한 쪽의 줄 수 — 「더 보기」는 앞 쪽의 마지막 줄 다음부터 이만큼이다. 위 끝은 없다(첫 줄까지 거슬러 읽는다) */
 export const HISTORY_PAGE = 30;
-export const HISTORY_MAX = 300;
 
-export const historyLimitOf = (value: string | string[] | undefined): number => {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  if (!Number.isInteger(n) || n < HISTORY_PAGE) return HISTORY_PAGE;
-  return Math.min(HISTORY_MAX, Math.ceil(n / HISTORY_PAGE) * HISTORY_PAGE);
-};
+/**
+ * 「그 줄 다음」 — 앞 쪽의 마지막 줄의 시각(DB 가 낸 글자 그대로, 마이크로초까지)과 열쇠(`<종류>:<원본 id>`). 주소의
+ * `before` · `key` 로 오간다.
+ */
+export type HistoryCursor = { readonly at: string; readonly key: string };
+
+const CURSOR_KEY = /^(purchase|refund|use|grant|revoke):[0-9a-f-]{1,64}$/i;
+
+const textOf = (value: string | string[] | undefined): string => (Array.isArray(value) ? value[0] : value)?.trim() ?? '';
+
+/** 주소의 커서 — 둘 다 모양이 맞을 때만, 아니면 맨 앞 쪽(`null`) */
+export function historyCursorOf(
+  at: string | string[] | undefined,
+  key: string | string[] | undefined,
+): HistoryCursor | null {
+  const atText = textOf(at);
+  const keyText = textOf(key);
+  if (atText.length === 0 || atText.length > 40 || Number.isNaN(Date.parse(atText))) return null;
+  if (!CURSOR_KEY.test(keyText)) return null;
+  return { at: atText, key: keyText };
+}
+
+/** 다음 쪽의 커서 — 이 쪽의 마지막 줄. 더 없거나 빈 쪽이면 `null` */
+export function nextCursor(lines: readonly Pick<HistoryLine, 'at' | 'key'>[], more: boolean): HistoryCursor | null {
+  const last = lines.at(-1);
+  return more && last !== undefined ? { at: last.at, key: last.key } : null;
+}
 
 export type HistoryLine = {
+  /** 그 차례 안에서 줄 하나를 가르는 열쇠 — 다음 쪽의 커서가 된다 */
+  readonly key: string;
   readonly at: string;
   readonly kind: string;
   readonly source: string;

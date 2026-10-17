@@ -3,7 +3,14 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
 import { noteDenial } from '../denial';
-import type { GrantLedger, HistoryFilter, HistoryLine } from './credit-grant';
+import {
+  HISTORY_PAGE,
+  nextCursor,
+  type GrantLedger,
+  type HistoryCursor,
+  type HistoryFilter,
+  type HistoryLine,
+} from './credit-grant';
 import { DENIED } from './read';
 
 /**
@@ -29,6 +36,7 @@ export const ledgerOf = (row: RpcRow<'operator_member_grant_ledger'>): MemberGra
 });
 
 export const historyLineOf = (row: RpcRow<'operator_member_credit_history'>): HistoryLine => ({
+  key: row.line_key,
   at: row.at,
   kind: row.kind,
   source: row.source,
@@ -63,20 +71,25 @@ export async function memberGrantLedger(
 
 export type MemberHistory = {
   readonly lines: readonly HistoryLine[];
-  /** 더 있다 — 하나 더 청해 안다 */
-  readonly more: boolean;
+  /** 다음 쪽의 커서 — 더 있으면(하나 더 청해 안다) 이 쪽의 마지막 줄, 없으면 `null` */
+  readonly next: HistoryCursor | null;
 };
 
-/** 풀이권 이력 — 구매 · 환불 · 사용 · 지급 · 회수, 최근 것부터 `limit` 줄 */
+/** 풀이권 이력 한 쪽 — 구매 · 환불 · 사용 · 지급 · 회수, 최근 것부터. 커서가 있으면 그 줄 다음부터 `HISTORY_PAGE` 줄 */
 export async function memberCreditHistory(
   userId: string,
   filter: HistoryFilter,
-  limit: number,
+  before: HistoryCursor | null,
 ): Promise<typeof DENIED | SkippableRead<MemberHistory>> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc(
     'operator_member_credit_history',
-    rpcArgs<'operator_member_credit_history'>({ p_user_id: userId, p_filter: filter, p_limit: limit + 1 }),
+    rpcArgs<'operator_member_credit_history'>({
+      p_user_id: userId,
+      p_filter: filter,
+      p_limit: HISTORY_PAGE + 1,
+      ...(before === null ? {} : { p_before_at: before.at, p_before_key: before.key }),
+    }),
   );
   if (error?.code === '42501') {
     await noteDenial(supabase, 'members.credit_history');
@@ -84,5 +97,6 @@ export async function memberCreditHistory(
   }
   if (error) return unread(error, 'operator_member_credit_history');
   const rows = data ?? [];
-  return read({ lines: rows.slice(0, limit).map(historyLineOf), more: rows.length > limit });
+  const lines = rows.slice(0, HISTORY_PAGE).map(historyLineOf);
+  return read({ lines, next: nextCursor(lines, rows.length > HISTORY_PAGE) });
 }

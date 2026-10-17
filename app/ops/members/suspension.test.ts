@@ -108,6 +108,16 @@ describe('처분 이력 — 문의 jsonb 를 줄로', () => {
     expect(lines.map(sanctionReasonLabel)).toEqual(['소명 인정', null, '괴롭힘이나 위협', '탈퇴 대기 해제']);
   });
 
+  it('결과를 바꾼 신고가 건 정지는 상태 이력 줄로 「이용 정지 · 신고 처분」이고 그 신고를 가리킨다', () => {
+    // DB 는 그 신고의 지금 결과가 이용 정지 결정이 아니면 이 줄을 남긴다(`20261218090000`)
+    const changed = sanctionEntriesOf([
+      { id: 'f', source: 'status', at: '2026-10-17T02:00:00Z', kind: 'suspended', from_status: 'active', reason: 'report', report_id: 'r9', recorded: true, actor_nickname: '운영' },
+    ]);
+    expect(changed.map(sanctionKindLabel)).toEqual(['이용 정지']);
+    expect(changed.map(sanctionReasonLabel)).toEqual(['신고 처분']);
+    expect(changed[0]).toMatchObject({ reportId: 'r9', recorded: true, note: null });
+  });
+
   it('공통 함수 밖의 줄은 기록되지 않은 줄로 읽힌다', () => {
     expect(lines.map((line) => line.recorded)).toEqual([true, false, true, true]);
     expect(lines[2]).toMatchObject({ reportId: 'r1', warningRef: 'W-1', counted: true, note: null });
