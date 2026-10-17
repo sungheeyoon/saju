@@ -89,7 +89,8 @@ async function openRoomMenu(person: Person): Promise<void> {
 /** 신고 목록의 거르기 판은 폰에서 접혀 있다 — 머리 단추가 보이면 편다(넓은 화면에는 그 단추가 없다) */
 async function openReportFilters(page: Page): Promise<void> {
   const toggle = page.getByRole('button', { name: /^거르기/ });
-  if (await toggle.isVisible()) await toggle.click();
+  // 걸러 연 주소(예: `?review=all`)에서는 판이 이미 열려 있다 — 닫힌 때만 연다
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
 }
 
 async function pair(openAs: (seed: { selfPerson: true }) => Promise<Person>) {
@@ -661,19 +662,18 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       ops.page.getByText('신고 당시 저장된 대화 일부입니다. 전체 대화는 열 수 없습니다.'),
     ).toBeVisible();
 
-    // 읽기 전용이다 — 누름은 신고 id 복사 하나뿐이고 폼도 없고, 방으로 가는 길도, 이메일도 없다
+    // 처분은 이 화면의 폼 하나다(ADR 0188) — 신고 id 를 복사해 SQL 로 가는 길은 걷혔고, 방으로 가는 길도, 이메일도 없다
     const main = ops.page.getByRole('main');
-    await expect(main.getByRole('button')).toHaveCount(1);
-    await expect(main.getByRole('button', { name: '신고 id 복사' })).toBeVisible();
-    await expect(main.locator('form')).toHaveCount(0);
+    await expect(main.getByRole('form', { name: '처분' })).toBeVisible();
+    await expect(main.getByRole('button', { name: '신고 id 복사' })).toHaveCount(0);
     await expect(main.locator('a[href^="/me/chat"]')).toHaveCount(0);
     await expect(main.getByText(a.account.email)).toHaveCount(0);
     await expect(main.getByText(b.account.email)).toHaveCount(0);
   });
 
   /**
-   * **처리 필요 · 처리 완료로 가른다**(ADR 0107). 검토는 운영자가 CLI 로 부르는 문(`review_report`)이 적고 화면은 읽기만
-   * 한다 — 여기서도 그 문을 SQL 로 부른다. 재는 것 셋: 추가 확인 필요는 처리 필요에 남는다 · 배지는 처리 상태와 결과를
+   * **처리 필요 · 처리 완료로 가른다**(ADR 0107). 처분을 미리 세우려고 런북의 검토 문(`review_report`)을 SQL 로 부른다 —
+   * 화면의 처분은 같은 공통 함수를 지난다(ADR 0188). 처음 열면 처리 필요(급한 순)만 서므로 「전체」로 연다. 재는 것 셋: 추가 확인 필요는 처리 필요에 남는다 · 배지는 처리 상태와 결과를
    * 함께 말한다 · 상세는 결과를 「이용 정지 결정」으로, 제재 대상을 「당시 제재 대상」으로 적는다.
    */
   test('운영자 목록은 처리 필요와 처리 완료로 가르고, 추가 확인 필요는 처리 필요에 남는다', async ({ openAs }) => {
@@ -696,7 +696,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
       ops.page.getByRole('listitem').filter({ has: ops.page.locator(`a[href="/ops/reports/${id}"]`) });
     const filters = ops.page.getByRole('navigation', { name: '신고 거르기' });
 
-    await ops.page.goto('/ops/reports');
+    await ops.page.goto('/ops/reports?review=all');
     await openReportFilters(ops.page);
     await expect(filters.getByText('처리 상태', { exact: true })).toBeVisible();
     await expect(rowOf(fresh).getByText('처리 필요', { exact: true })).toBeVisible();
@@ -704,7 +704,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(rowOf(decided).getByText('처리 완료 · 이용 정지 결정', { exact: true })).toBeVisible();
 
     await filters.getByRole('link', { name: '처리 필요', exact: true }).click();
-    await expect(ops.page).toHaveURL(/\/ops\/reports\?review=open$/);
+    // 처리 필요가 처음 여는 목록이라 주소에 안 적힌다
+    await expect(ops.page).toHaveURL(/\/ops\/reports$/);
     await expect(rowOf(fresh)).toBeVisible();
     await expect(rowOf(held)).toBeVisible();
     await expect(rowOf(decided)).toHaveCount(0);
@@ -718,17 +719,17 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const value = (title: string) => ops.page.locator(`dt:text-is("${title}") + dd`);
 
     await ops.page.goto(`/ops/reports/${decided}`);
-    await expect(value('처리 상태')).toContainText('처리 완료');
-    await expect(value('검토 결과')).toHaveText('이용 정지 결정');
+    await expect(value('결과')).toHaveText('처리 완료 · 이용 정지 결정');
     await expect(value('판단 근거')).toHaveText('같은 말 반복');
-    await expect(value('검토한 운영자')).toBeVisible();
-    await expect(value('당시 제재 대상')).toHaveText('신고받은 사용자');
+    await expect(value('실행자 · 시각')).toBeVisible();
+    await expect(value('제재 대상')).toContainText('신고받은 사용자');
+    await expect(value('제재 대상')).toContainText('지금 이용 정지');
     await expect(ops.page.getByText('지금 계정 상태 · 이용 정지')).toBeVisible();
 
+    // 추가 확인 필요는 처리 필요다 — 결과 대신 처분 폼이 선다
     await ops.page.goto(`/ops/reports/${held}`);
-    await expect(value('처리 상태')).toContainText('처리 필요');
-    await expect(value('검토 결과')).toHaveText('추가 확인 필요');
-    await expect(value('당시 제재 대상')).toHaveCount(0);
+    await expect(ops.page.getByRole('form', { name: '처분' })).toBeVisible();
+    await expect(value('제재 대상')).toHaveCount(0);
   });
   /**
    * **경고는 갈래 · 날 · 이의 제기의 길 · 안내번호만 들고 경고받은 사람의 화면 맨 위에 선다**(ADR 0108, G-57). 재는 것:
