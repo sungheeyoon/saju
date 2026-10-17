@@ -14,7 +14,9 @@
 --    실행자 · 관련 신고 · 요청 번호를 받는다. 신고의 이용 정지 결정이 이 함수로 정지하고, ③ 의 정지 · 해제 화면과 런북도 이것을
 --    쓴다. `app_user.status` 가 바뀔 때마다 트리거가 이력 한 줄을 적는다 — 공통 함수를 거치지 않은 변경(직접 UPDATE)은 실행자 ·
 --    사유가 빈 줄로 남고 장애 알림 길(`notify_ops`)로 한 줄이 간다. 이용자 스스로의 탈퇴 신청은 제 갈래로 적고 알리지 않는다.
--- 4. **운영자 문 둘** — 처분(`operator_review_report`)과 신고 상세의 대상 회원 요약(`operator_report_target`). 목록 문은 급한
+-- 4. **운영자 권한은 이용 중인 계정만**(`is_operator`) — 정지 · 탈퇴 대기가 된 운영자 계정은 운영자 문을 못 쓴다. 전에는
+--    `public.operator` 의 줄만 보아서, 스스로 탈퇴를 신청했거나 직접 UPDATE 로 정지된 운영자도 처분 · 지급을 했다.
+-- 5. **운영자 문 둘** — 처분(`operator_review_report`)과 신고 상세의 대상 회원 요약(`operator_report_target`). 목록 문은 급한
 --    순과 기한 지남을, 상세 문은 처리 버전 · 처분 이력 · 남은 정지를 더 낸다.
 --
 -- ## 바꾸지 않는 것
@@ -359,7 +361,8 @@ begin
   if p_request_id is not null then
     select * into earlier from public.account_status_change c where c.request_id = p_request_id;
     if found then
-      if earlier.user_id <> p_user_id or earlier.to_status <> p_status or earlier.reason is distinct from p_reason then
+      if earlier.user_id <> p_user_id or earlier.to_status <> p_status or earlier.reason is distinct from p_reason
+         or earlier.actor_user_id is distinct from p_actor then
         raise exception '이 요청 번호는 다른 처리에 쓰였습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
       end if;
       return earlier.id;
@@ -482,7 +485,9 @@ begin
     if found then
       if earlier.report_id <> p_report_id or earlier.outcome is distinct from p_outcome
          or earlier.sanctioned_user_id is distinct from p_sanctioned_user_id
-         or (p_warning_category is not null and earlier.warning_category is distinct from p_warning_category) then
+         or (p_warning_category is not null and earlier.warning_category is distinct from p_warning_category)
+         -- 재시도는 같은 사람의 것이다 — 남의 요청 번호를 들고 와 그 처분을 제 「성공」으로 받지 못한다
+         or earlier.actor_user_id is distinct from p_actor then
         raise exception '이 요청 번호는 다른 처분에 쓰였습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
       end if;
       written := case when exists (select 1 from public.report r where r.id = p_report_id) then 'report' else 'retention' end;
@@ -514,12 +519,19 @@ begin
       sanctioned_by = case when p_sanctioned_user_id is not null then p_actor end,
       warning_category = case when warning then coalesce(p_warning_category, r.reason) end,
       warning_ref = case when warning then coalesce(r.warning_ref, public.new_warning_ref(r.id)) else r.warning_ref end,
-      -- 경고로 **들어오면** 새 안내다 — 확인과 발송을 비운다. 경고를 경고로 다시 적거나 경고에서 나가면 그대로 둔다
-      warning_acknowledged_at = case when warning and r.review_outcome is distinct from 'warning' then null
+      -- 경고로 **들어오거나** 경고의 대상 · 갈래가 바뀌면 새 안내다 — 확인과 발송을 비운다. 같은 경고를 다시 적거나 경고에서
+      -- 나가면 그대로 둔다(옮긴 경고가 앞 사람의 「확인함」을 물려받지 않게)
+      warning_acknowledged_at = case when warning and (r.review_outcome is distinct from 'warning'
+                                     or r.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or r.warning_category is distinct from coalesce(p_warning_category, r.reason)) then null
                                      else r.warning_acknowledged_at end,
-      warning_emailed_at = case when warning and r.review_outcome is distinct from 'warning' then null
+      warning_emailed_at = case when warning and (r.review_outcome is distinct from 'warning'
+                                     or r.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or r.warning_category is distinct from coalesce(p_warning_category, r.reason)) then null
                                 else r.warning_emailed_at end,
-      warning_email_result = case when warning and r.review_outcome is distinct from 'warning' then null
+      warning_email_result = case when warning and (r.review_outcome is distinct from 'warning'
+                                     or r.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or r.warning_category is distinct from coalesce(p_warning_category, r.reason)) then null
                                   else r.warning_email_result end
   where r.id = p_report_id
   returning r.warning_category into category;
@@ -536,11 +548,17 @@ begin
         sanctioned_by = case when p_sanctioned_user_id is not null then p_actor end,
         warning_category = case when warning then coalesce(p_warning_category, k.reason) end,
         warning_ref = case when warning then coalesce(k.warning_ref, public.new_warning_ref(k.report_id)) else k.warning_ref end,
-        warning_acknowledged_at = case when warning and k.review_outcome is distinct from 'warning' then null
+        warning_acknowledged_at = case when warning and (k.review_outcome is distinct from 'warning'
+                                     or k.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or k.warning_category is distinct from coalesce(p_warning_category, k.reason)) then null
                                        else k.warning_acknowledged_at end,
-        warning_emailed_at = case when warning and k.review_outcome is distinct from 'warning' then null
+        warning_emailed_at = case when warning and (k.review_outcome is distinct from 'warning'
+                                     or k.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or k.warning_category is distinct from coalesce(p_warning_category, k.reason)) then null
                                   else k.warning_emailed_at end,
-        warning_email_result = case when warning and k.review_outcome is distinct from 'warning' then null
+        warning_email_result = case when warning and (k.review_outcome is distinct from 'warning'
+                                     or k.sanctioned_user_id is distinct from p_sanctioned_user_id
+                                     or k.warning_category is distinct from coalesce(p_warning_category, k.reason)) then null
                                     else k.warning_email_result end
     where k.report_id = p_report_id
     returning k.warning_category into category;
@@ -756,7 +774,8 @@ begin
           union all
           select c.at, c.to_status, c.reason, c.report_id
           from public.account_status_change c
-          where c.user_id = a.id and c.to_status in ('suspended', 'active')
+          -- 신고의 이용 정지 결정이 건 정지는 위 신고 줄이 이미 말한다 — 한 번의 정지가 두 칸을 먹지 않게
+          where c.user_id = a.id and c.to_status in ('suspended', 'active') and c.reason is distinct from 'report'
         ) x
         order by x.at desc
         limit 3
@@ -1038,3 +1057,163 @@ grant execute on function public.operator_reports(boolean, text, boolean, intege
 grant execute on function public.operator_report(uuid) to authenticated;
 grant execute on function public.operator_review_report(uuid, text, text, uuid, text, integer, uuid) to authenticated;
 grant execute on function public.operator_report_target(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 10. 운영자 권한은 이용 중인 계정만 — 정지 · 탈퇴 대기인 운영자 계정은 운영자 문을 못 쓴다(G-111-10)
+-- ---------------------------------------------------------------------------
+
+/**
+ * 지금 부른 사람이 운영자인가 — 운영자 표에 있고 **계정이 이용 중일 때만.** 운영자 계정을 정지하는 길은 공통 함수가 막지만
+ * (권한을 먼저 걷는다, `docs/ops/runbook/operators.md`), 스스로의 탈퇴 신청이나 직접 UPDATE 로 계정이 멈춘 운영자가 처분 ·
+ * 지급을 이어 하지 못하게 판정하는 자리 하나에서 닫는다. 밖에서는 못 묻는 것은 그대로다.
+ */
+create or replace function public.is_operator()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.operator o
+    join public.app_user a on a.id = o.user_id
+    where o.user_id = (select auth.uid()) and a.status = 'active'
+  );
+$$;
+
+revoke execute on function public.is_operator() from anon, public, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 11. 무상 지급의 공통 함수도 실행자가 운영자인지 재고, 같은 요청의 재시도는 같은 사람의 것만 받는다 — 처분 · 상태의 공통
+--     함수와 같은 규율(ADR 0188). 몸은 `20261214090000` 그대로이고 두 검사만 더했다
+-- ---------------------------------------------------------------------------
+
+create or replace function public.book_reading_credit_grant(
+  p_actor uuid,
+  p_user_id uuid,
+  p_kind text,
+  p_credits integer,
+  p_reason text,
+  p_note text,
+  p_request_id uuid,
+  p_report_id uuid default null,
+  p_seen_version integer default null)
+returns table (entry_id uuid, replayed boolean)
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  memo constant text := btrim(coalesce(p_note, ''));
+  earlier public.reading_credit_grant_entry;
+  left_now integer;
+  made uuid;
+begin
+  if p_actor is null then
+    raise exception '실행한 운영자가 없습니다.' using errcode = '22023';
+  end if;
+  -- 실행자는 운영자다 — 처분 · 상태의 공통 함수와 같은 검사(런북에서 UUID 를 잘못 넣어도 아무나 실행자로 남지 않게)
+  if not exists (select 1 from public.operator o where o.user_id = p_actor) then
+    raise exception '운영자만 지급 · 회수합니다.' using errcode = '42501';
+  end if;
+
+  if p_request_id is null then
+    raise exception '요청 번호가 없습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+  end if;
+
+  if p_kind is null or p_kind not in ('grant', 'revoke') then
+    raise exception 'credit grant: kind is grant or revoke' using errcode = '22023';
+  end if;
+
+  if (p_kind = 'grant' and (p_reason is null or p_reason not in ('outage', 'operator')))
+     or (p_kind = 'revoke' and (p_reason is null or p_reason not in ('mistake', 'duplicate', 'other'))) then
+    raise exception '사유를 골라 주세요.' using errcode = '22023';
+  end if;
+
+  if p_credits is null or p_credits < 1 or (p_kind = 'grant' and p_credits > 10) then
+    raise exception '%', case p_kind when 'grant' then '한 번에 1장에서 10장까지 지급합니다.'
+                                     else '회수할 수량을 1장 이상 골라 주세요.' end
+      using errcode = '22023';
+  end if;
+
+  if length(memo) not between 1 and 200 then
+    raise exception '메모를 200자 안으로 적어 주세요.' using errcode = '22023';
+  end if;
+
+  if not exists (select 1 from public.app_user a where a.id = p_user_id) then
+    raise exception '회원을 찾지 못했습니다.' using errcode = 'no_data_found';
+  end if;
+
+  if p_report_id is not null and p_kind <> 'grant' then
+    raise exception '관련 신고는 지급에만 답니다.' using errcode = '22023';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext('reading:user:' || p_user_id::text));
+
+  -- 같은 요청의 재시도 — 자물쇠 뒤에 찾는다(나란히 온 재시도는 첫째의 커밋 뒤에 본다). 같은 줄을 돌려준다
+  select * into earlier from public.reading_credit_grant_entry e where e.request_id = p_request_id;
+  if found then
+    if earlier.user_id <> p_user_id or earlier.kind <> p_kind or earlier.credits <> p_credits
+       or earlier.reason <> p_reason or earlier.actor_user_id is distinct from p_actor then
+      raise exception '이 요청 번호는 다른 지급 · 회수에 쓰였습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+    end if;
+    entry_id := earlier.id;
+    replayed := true;
+    return next;
+    return;
+  end if;
+
+  -- 관련 신고는 **새 지급일 때만** 잰다 — 첫 지급 뒤 신고가 보관으로 옮겨져도(신고한 사람이 떠남) 같은 요청의 재시도는 위에서
+  -- 첫 결과를 돌려받는다
+  if p_report_id is not null and not exists (
+       select 1 from public.report r
+       where r.id = p_report_id and p_user_id in (r.reporter_user_id, r.reported_user_id)) then
+    raise exception '관련 신고가 이 회원의 신고가 아닙니다.' using errcode = '22023';
+  end if;
+
+  if p_seen_version is not null
+     and p_seen_version <> (select count(*) from public.reading_credit_grant_entry e where e.user_id = p_user_id) then
+    raise exception '그 사이 이 회원의 무상 풀이권이 바뀌었습니다. 새로 읽고 다시 확인해 주세요.' using errcode = '55000';
+  end if;
+
+  if p_kind = 'revoke' then
+    perform public.settle_reading_credit_uses(p_user_id);
+    left_now := public.reading_credit_grant_left(p_user_id);
+    if p_credits > left_now then
+      raise exception '회수할 수 있는 지급분보다 많습니다 — 지금 %장입니다.', left_now using errcode = '22023';
+    end if;
+  end if;
+
+  insert into public.reading_credit_grant_entry (
+    user_id, kind, credits, reason, note, report_id, request_id, actor_user_id)
+  values (p_user_id, p_kind, p_credits, p_reason, memo, p_report_id, p_request_id, p_actor)
+  returning id into made;
+
+  perform public.sync_reading_credit_grant(p_user_id);
+
+  insert into public.notification (user_id, kind, credit_entry_id)
+  values (p_user_id, case p_kind when 'grant' then 'credits_granted' else 'credits_revoked' end, made);
+
+  -- 지급마다 한 줄 — 종류에 장부 줄 id 를 붙여 하루 한 줄(`ops_alert` 의 유일 제약)에 묻히지 않는다. 계정 id · 수량 · 갈래만
+  if p_kind = 'grant' then
+    perform public.notify_ops(
+      'credit-grant:' || made::text,
+      format('무상 풀이권 %s장을 지급했다 — 계정 %s · %s',
+             p_credits, p_user_id, case p_reason when 'outage' then '장애 보상' else '운영 지급' end));
+  end if;
+
+  entry_id := made;
+  replayed := false;
+  return next;
+
+exception
+  when unique_violation then
+    -- 같은 요청 번호가 다른 계정에 나란히 왔다 — 자물쇠가 계정마다라 위의 재시도 찾기를 지났다
+    raise exception '이 요청 번호는 다른 지급 · 회수에 쓰였습니다. 화면을 새로 열어 주세요.' using errcode = '22023';
+end;
+$$;
+
+revoke execute on function public.book_reading_credit_grant(uuid, uuid, text, integer, text, text, uuid, uuid, integer)
+  from public, anon, authenticated, service_role;
