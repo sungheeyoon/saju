@@ -1,4 +1,5 @@
 import { accountFailureOf, accountNoticeOf, type AccountState } from '@/src/lib/account';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 
 import { FailureLine } from '../ui/failure-line';
 
@@ -25,7 +26,7 @@ export function AccountNotice({ state }: { state: AccountState }) {
     );
   }
 
-  const text = accountNoticeOf(state);
+  const text = accountNoticeOf(state, SUPPORT_EMAIL);
   if (text === null) return null;
 
   return (

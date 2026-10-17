@@ -37,7 +37,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 #### break-glass — 사람만, 대장 먼저
 
 1. **까닭을 가른다.** 화면(`/ops/reports`)으로 되는 일이면 화면으로 한다. break-glass 는 장애(화면이 안 열리는데 지금
-   봐야 한다) · 수사기관의 적법한 요청(`docs/ops/runbook/erasure.md` 「수사기관의 요청이 오면」) · 떠난 사람의 신고(`retention.report`, 화면에 없다)뿐이다
+   봐야 한다) · 수사기관의 적법한 요청(`docs/ops/runbook/erasure.md` 「수사기관의 요청이 오면」) · 떠난 사람의 신고(`retention.report`, 화면에 없다) ·
+   정지된 계정의 탈퇴 요청의 본인 확인(보낸 주소가 로그인 이메일인가를 참 · 거짓으로만, `docs/ops/runbook/erasure.md` 「정지된 계정의 탈퇴 요청」 — R-1, ADR 0190)뿐이다
 2. **대장에 먼저 적는다** — 저장소 밖의 운영 문서(수사기관 요청 대장과 같은 자리). 칸은 다섯이다:
    **목적**(무엇을 왜) · **실행자** · **대상**(신고 id · 계정 UUID — 이메일이 아니라) · **시각**(시작 · 끝) · **결과**(무엇을
    봤고 어디에 썼나, 밖으로 나갔으면 누구에게)
