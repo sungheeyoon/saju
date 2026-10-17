@@ -120,7 +120,7 @@ describe('정지 화면의 본문 — 운영자 확정 문구 그대로다 (G-11
     expect(detailOf('policy')).toContain('하늘 님은 운영정책 위반 사유로 이용제한 중이에요.');
     expect(detailOf('payment')).toContain('하늘 님은 결제 부정 이용 사유로 이용제한 중이에요.');
     expect(detailOf('eligibility')).toContain('하늘 님은 이용 자격(만 19세 이상) 미충족 사유로 이용제한 중이에요.');
-    expect(detailOf('other')).toContain('하늘 님은 기타 운영 사유 사유로 이용제한 중이에요.');
+    expect(detailOf('other')).toContain('하늘 님은 기타 운영 사유로 이용제한 중이에요.');
   });
 
   it('갈래가 없으면 갈래 구만 빠진다 — 직접 UPDATE · 이력 전의 정지 · 모르는 갈래', () => {

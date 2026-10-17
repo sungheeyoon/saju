@@ -35,7 +35,7 @@ const SUSPENSION_REASON_TEXT: Readonly<Record<SuspensionReason, string>> = {
   policy: '운영정책 위반',
   payment: '결제 부정 이용',
   eligibility: '이용 자격(만 19세 이상) 미충족',
-  other: '기타 운영 사유',
+  other: '기타 운영',
 };
 
 /**
