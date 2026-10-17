@@ -303,6 +303,8 @@ export function sanctionLinesOf(value: unknown): readonly SanctionLine[] {
 export function sanctionLabel(line: SanctionLine): string {
   if (line.kind === 'warning') return line.reason === null ? '경고' : `경고 · ${reasonLabel(line.reason)}`;
   if (line.kind === 'suspension') return '이용 정지 결정';
+  // 탈퇴 대기에서 돌아온 것은 정지를 푼 것이 아니다
+  if (line.reason === 'deletion_withdrawn') return statusReasonLabel('deletion_withdrawn');
   const what = line.kind === 'suspended' ? '이용 정지' : '정지 해제';
   if (line.reason === null) return `${what} · ${UNRECORDED}`;
   return `${what} · ${statusReasonLabel(line.reason)}`;

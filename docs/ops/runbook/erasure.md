@@ -299,10 +299,12 @@ select jobname, schedule, active from cron.job where jobname = 'account-disposal
 | 대화방 · 메시지 | **남는다.** 그 사람의 자리만 비고 상대가 닫힌 날부터 90일까지 본다. 상대 화면의 이름은 「탈퇴한 사용자」 |
 | Match 행 | **남는다** — 대화방을 매단 자리로만. 상대도 떠나면 방째 사라진다 |
 | 신고 · 신고 스냅샷 | **따로 6개월 남는다.** 지워지기 전에 `retention.report` 로 옮겨지고 일반 표에서는 사라진다 — 위 「떠난 사람의 신고 기록」(ADR 0098) |
+| 신고의 처분 이력(`report_review_entry`) | **신고를 따라간다.** 신고가 보관으로 옮겨져도 남고, 보관된 신고가 파기될 때 함께 지워진다(ADR 0188) |
+| 계정 상태 이력(`account_status_change`) · 무상 지급 장부(`reading_credit_grant_entry`) | **지운다** — 계정과 함께(ADR 0187 · 0188). 신고로 정지한 것은 신고의 처분 이력에 따로 남는다 |
 
 - **처리 기한은 신청 뒤 3일이고 크론이 센다**(위). 화면과 처리방침의 「영업일 3일」 문장은 #165 가
   `notice-v6` 으로 한 번에 고친다 — 그 사이에는 약속보다 빨리 지우는 쪽이다.
-- **되돌리려면 처분 전에** 상태를 `active` 로 되돌린다 — 닫힌 대화방은 다시 안 열린다(ADR 0091).
+- **되돌리려면 처분 전에** 상태를 공통 함수로 `active` 로 되돌린다 — `select public.change_account_status('<운영자 UUID>', '<계정 UUID>', 'active', 'deletion_withdrawn', '<짧은 메모>');`(ADR 0188, 직접 UPDATE 는 알림이 간다). 닫힌 대화방은 다시 안 열린다(ADR 0091).
   처분 뒤에는 되돌릴 길이 없다.
 
 ```sql

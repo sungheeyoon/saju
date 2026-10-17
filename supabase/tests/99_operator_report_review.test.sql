@@ -14,7 +14,7 @@
 --      경고가 그 수에 들었는가
 --   9. **접속기록** — 처분 · 대상 요약마다 한 줄, 판단 근거는 안 적는다
 begin;
-select plan(47);
+select plan(55);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -141,6 +141,11 @@ select throws_ok(
   '22023', '이 요청 번호는 다른 처분에 쓰였습니다. 화면을 새로 열어 주세요.', '같은 요청 번호에 다른 처분은 거절한다');
 
 select pg_temp.acting((select colleague from folks));
+select throws_ok(
+  format($$select pg_temp.review(%L, 'warning', %L, 0, %L)$$, (select warned from cases), (select reported from folks),
+         pg_temp.id('first')),
+  '22023', '이 요청 번호는 다른 처분에 쓰였습니다. 화면을 새로 열어 주세요.',
+  '남의 요청 번호를 같은 내용으로 다시 내도 제 성공으로 받지 못한다 — 재시도는 같은 사람의 것');
 select throws_ok(
   format($$select pg_temp.review(%L, 'no_action', null, 0, %L)$$, (select warned from cases), pg_temp.id('stale')),
   '55000', '다른 운영자가 먼저 처리했습니다.', '읽은 버전이 지금과 다르면 거절한다 — 다른 운영자가 먼저 적었다');
@@ -336,6 +341,52 @@ select is(
   (select array[c.reason, (c.actor = f.stranger)::text] from pg_temp.changes((select stranger from folks)) c, folks f),
   array['deletion_request', 'true'],
   '이용자가 실은 설정 값은 받지 않는다 — 탈퇴 신청은 제 갈래 · 제 이름으로 적힌다');
+
+-- 운영자 권한은 이용 중인 계정만 — 계정이 멈춘 운영자는 운영자 문을 못 쓴다
+update public.app_user set status = 'suspended' where id = (select colleague from folks);
+set local role authenticated;
+select pg_temp.acting((select colleague from folks));
+select throws_ok($$select * from public.operator_reports()$$, '42501', null,
+  '정지된 운영자 계정은 신고 목록을 못 읽는다');
+select throws_ok(
+  format($$select pg_temp.review(%L, 'no_action', null, 0, %L)$$, (select runbook from cases), gen_random_uuid()),
+  '42501', null, '정지된 운영자 계정은 처분하지 못한다');
+reset role;
+
+-- 경고를 다른 사람에게 옮기면 새 안내다 — 앞 사람의 「확인함」을 물려받지 않는다
+create temporary table moved as select pg_temp.report(f.reporter, f.reported, 'other') as id from folks f;
+select public.write_report_review(f.operator, (select id from moved), 'warning', '근거', f.reported, null, null, gen_random_uuid())
+from folks f;
+update public.report set warning_acknowledged_at = now() where id = (select id from moved);
+select public.write_report_review(f.operator, (select id from moved), 'warning', '근거', f.reported, null, null, gen_random_uuid())
+from folks f;
+select ok((select warning_acknowledged_at is not null from public.report where id = (select id from moved)),
+  '같은 사람 · 같은 갈래로 다시 적으면 확인은 그대로다');
+select public.write_report_review(f.operator, (select id from moved), 'warning', '근거', f.reporter, null, null, gen_random_uuid())
+from folks f;
+select ok((select warning_acknowledged_at is null from public.report where id = (select id from moved)),
+  '경고를 다른 사람에게 옮기면 새로 경고받은 사람에게 안내가 다시 선다');
+
+-- 무상 지급도 실행자는 운영자이고, 재시도는 같은 사람의 것만
+select throws_ok(
+  format($$select * from public.book_reading_credit_grant(%L, %L, 'grant', 1, 'operator', '메모', %L)$$,
+         (select stranger from folks), (select third from folks), gen_random_uuid()),
+  '42501', null, '운영자가 아닌 실행자로는 지급하지 못한다');
+insert into ids values ('grant', gen_random_uuid());
+select public.book_reading_credit_grant(f.operator, f.third, 'grant', 1, 'operator', '메모', pg_temp.id('grant')) from folks f;
+select throws_ok(
+  format($$select * from public.book_reading_credit_grant(%L, %L, 'grant', 1, 'operator', '메모', %L)$$,
+         (select colleague from folks), (select third from folks), pg_temp.id('grant')),
+  '22023', null, '남의 지급 요청 번호로는 재시도를 받지 못한다');
+
+-- 탈퇴 대기의 해제는 제 갈래로 — 정지 해제가 아니다
+select public.change_account_status(f.operator, f.stranger, 'active', 'deletion_withdrawn', '탈퇴 철회 문의') from folks f;
+select is(
+  (select array[a.status, coalesce(a.deletion_requested_at::text, '없음'), c.reason]
+   from public.app_user a, pg_temp.changes(a.id) c
+   where a.id = (select stranger from folks) and c.to_status = 'active'),
+  array['active', '없음', 'deletion_withdrawn'],
+  '탈퇴 대기의 해제는 시각을 비우고 제 갈래로 남는다');
 
 select * from finish();
 rollback;

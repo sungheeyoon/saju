@@ -170,5 +170,7 @@ describe('정지할 수 없는 대상 · 이력의 말', () => {
     expect(sanctionLabel({ at: 'x', kind: 'suspended', reason: null, reportId: null })).toBe('이용 정지 · 실행자 · 사유 없음');
     expect(sanctionLabel({ at: 'x', kind: 'suspended', reason: 'report', reportId: 'r' })).toBe('이용 정지 · 신고 처분');
     expect(sanctionLabel({ at: 'x', kind: 'warning', reason: 'harassment', reportId: 'r' })).toBe('경고 · 괴롭힘이나 위협');
+    expect(sanctionLabel({ at: 'x', kind: 'active', reason: 'deletion_withdrawn', reportId: null })).toBe('탈퇴 대기 해제');
+    expect(sanctionLabel({ at: 'x', kind: 'active', reason: 'appeal', reportId: null })).toBe('정지 해제 · 소명 인정');
   });
 });
