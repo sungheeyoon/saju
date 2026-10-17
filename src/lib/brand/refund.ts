@@ -97,7 +97,6 @@ export function refundPolicyFor(info: BusinessInfo): LegalDocument {
             title: '탈퇴할 때',
             blocks: [
               bullets(
-                '탈퇴하기 전에 남은 유료 풀이권 수와 환불 신청 방법을 보여 드려요.',
                 `탈퇴해도 돌려받을 권리는 사라지지 않아요. 그 묶음의 유효기간(산 날부터 5년) 안에 ${contact}로 주문 번호나 결제 내역을 알려 주시면 같은 금액을 돌려드려요.`,
                 '무료 풀이권은 탈퇴와 함께 사라져요.',
               ),
