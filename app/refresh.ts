@@ -128,7 +128,12 @@ export type Changed =
    * 운영자가 신고를 처분했거나 처분이 거절됐다 — 신고 상세의 결과 · 처리 버전 · 이력 · 대상 상태가 갈린다(ADR 0188). 거절이어도
    * 다른 운영자가 먼저 적었을 수 있어 지금 화면을 다시 그린다
    */
-  | 'report-reviewed';
+  | 'report-reviewed'
+  /**
+   * 운영자가 회원을 이용 정지 · 해제했거나 그 누름이 거절됐다 — 회원 화면의 상태 · 처분 이력 · 읽은 버전이 갈린다(ADR 0189).
+   * 거절이어도 다른 운영자가 먼저 바꿨을 수 있어 지금 화면을 다시 그린다
+   */
+  | 'member-status-changed';
 
 /**
  * 바뀐 것 → 무를 화면.
@@ -155,6 +160,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'refund-moved': [THIS_SCREEN],
   'credits-granted': [THIS_SCREEN],
   'report-reviewed': [THIS_SCREEN],
+  'member-status-changed': [THIS_SCREEN],
 };
 
 /** 표를 시험이 읽는다 — 적힌 경로가 실재하는 라우트인가를 거기서 잰다 */

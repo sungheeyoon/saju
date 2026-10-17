@@ -1,5 +1,6 @@
 import { REPORT_REASONS } from '@/src/lib/account';
 
+import { statusReasonLabel, UNRECORDED } from '../members/suspension';
 import { NO_NICKNAME, reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './labels';
 
 /**
@@ -298,22 +299,11 @@ export function sanctionLinesOf(value: unknown): readonly SanctionLine[] {
   });
 }
 
-const STATUS_CHANGE_REASON: Record<string, string> = {
-  report: '신고 처분',
-  policy: '운영정책 위반',
-  payment: '결제 부정',
-  eligibility: '이용 자격',
-  other: '기타',
-  appeal: '소명 인정',
-  mistake: '잘못 정지',
-  deletion_withdrawn: '탈퇴 대기 해제',
-};
-
 /** 처분 이력 한 칸의 말 — 「경고 · 괴롭힘이나 위협」 · 「이용 정지 · 결제 부정」 · 「정지 해제 · 소명 인정」 */
 export function sanctionLabel(line: SanctionLine): string {
   if (line.kind === 'warning') return line.reason === null ? '경고' : `경고 · ${reasonLabel(line.reason)}`;
   if (line.kind === 'suspension') return '이용 정지 결정';
   const what = line.kind === 'suspended' ? '이용 정지' : '정지 해제';
-  if (line.reason === null) return `${what} · 실행자 · 사유 없음`;
-  return `${what} · ${STATUS_CHANGE_REASON[line.reason] ?? line.reason}`;
+  if (line.reason === null) return `${what} · ${UNRECORDED}`;
+  return `${what} · ${statusReasonLabel(line.reason)}`;
 }

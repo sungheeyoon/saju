@@ -28,7 +28,10 @@ export type DeniedAction =
   | 'members.find'
   | 'members.warnings'
   | 'members.credits'
-  | 'members.credit_history';
+  | 'members.credit_history'
+  | 'members.sanctions'
+  | 'members.suspend'
+  | 'members.unsuspend';
 
 export async function noteDenial(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,

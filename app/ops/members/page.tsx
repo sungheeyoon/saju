@@ -5,23 +5,17 @@ import type { ReactNode } from 'react';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
+import { NO_NICKNAME, WARNING_LABEL, accountStatusLabel, evidenceTime } from '../reports/labels';
+import { DENIED, QUERY_MAX, operatorMember, queryOf, type CreditSource, type Member } from './read';
+import { memberSanctions, type MemberSanctions } from './sanctions';
 import {
-  NO_NICKNAME,
-  WARNING_LABEL,
-  accountStatusLabel,
-  evidenceTime,
-  reasonLabel,
-  reviewOutcomeLabel,
-} from '../reports/labels';
-import {
-  DENIED,
-  QUERY_MAX,
-  operatorMember,
-  queryOf,
-  type CreditSource,
-  type Member,
-  type MemberWarning,
-} from './read';
+  UNRECORDED,
+  sanctionKindLabel,
+  sanctionReasonLabel,
+  statusAction,
+  type SanctionEntry,
+} from './suspension';
+import { StatusPanel } from './status-panel';
 import { memberCreditHistory, memberGrantLedger, type MemberGrantLedger, type MemberHistory } from './credits';
 import {
   HISTORY_FILTERS,
@@ -44,7 +38,7 @@ import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
   title: '회원',
-  description: '닉네임이나 계정 id 로 회원을 찾아 상태 · 풀이권 · 경고 이력을 봅니다.',
+  description: '닉네임이나 계정 id 로 회원을 찾아 상태 · 풀이권 · 처분 이력을 봅니다.',
 };
 
 /**
@@ -53,9 +47,10 @@ export const metadata = {
  * 신고 화면(`/ops/reports`)과 같은 경계다 — 「나는 운영자인가」를 안 묻고 자료를 청해 **거절당하면 없는 화면이 된다**
  * (`notFound`). 찾는 말 없이 열어도 문을 한 번 부른다(`read.ts`).
  *
- * **읽기 전용이다.** 찾는 칸은 주소(`?q=`)로 가는 GET 폼이고, 누름은 계정 id 를 복사하는 하나뿐이다. 보여 주는 것은 상태 ·
- * 풀이권(본인 화면과 같은 잔액과 출처별 장부, 운영자 2026-10-17) · 경고 이력뿐이고, 이메일 · 출생정보 · 풀이 · 저장한 사람 · 주문 금액은 문이 안
- * 내준다. 찾고 볼 때마다 접속기록에 남는다.
+ * 찾는 칸은 주소(`?q=`)로 가는 GET 폼이다. 쓰는 누름은 둘 — 무상 풀이권 지급 · 회수(ADR 0187)와 이용 정지 · 해제(ADR 0189)
+ * — 이고 둘 다 확인창을 지나 DB 의 문이 다시 잰다. 보여 주는 것은 상태 · 풀이권(본인 화면과 같은 잔액과 출처별 장부, 운영자
+ * 2026-10-17) · 풀이권 이력 · 처분 이력뿐이고, 이메일 · 출생정보 · 풀이 · 저장한 사람 · 주문 금액은 문이 안 내준다. 찾고 볼 때마다
+ * 접속기록에 남는다.
  */
 export default async function OperatorMembersPage({
   searchParams,
@@ -75,11 +70,15 @@ export default async function OperatorMembersPage({
   const member = found.ok ? found.value?.member ?? null : null;
   const filter = historyFilterOf(params.history);
   const limit = historyLimitOf(params.n);
-  const [ledger, history] =
+  const [ledger, history, sanctions] =
     member === null
-      ? [null, null]
-      : await Promise.all([memberGrantLedger(member.userId), memberCreditHistory(member.userId, filter, limit)]);
-  if (ledger === DENIED || history === DENIED) notFound();
+      ? [null, null, null]
+      : await Promise.all([
+          memberGrantLedger(member.userId),
+          memberCreditHistory(member.userId, filter, limit),
+          memberSanctions(member.userId),
+        ]);
+  if (ledger === DENIED || history === DENIED || sanctions === DENIED) notFound();
   const reportId = reportIdOf(params.report);
 
   return (
@@ -87,7 +86,7 @@ export default async function OperatorMembersPage({
       <header className="border-b border-border pb-6">
         <p className="eyebrow">운영</p>
         <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">회원</h1>
-        <p className="mt-1 text-sm text-secondary">닉네임이나 계정 id 로 회원을 찾아 상태 · 풀이권 · 경고 이력을 봅니다.</p>
+        <p className="mt-1 text-sm text-secondary">닉네임이나 계정 id 로 회원을 찾아 상태 · 풀이권 · 처분 이력을 봅니다.</p>
       </header>
 
       <form action="/ops/members" className={`${CARD} flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3`}>
@@ -121,26 +120,42 @@ export default async function OperatorMembersPage({
         <p className={`${CARD} text-sm text-secondary`}>찾는 회원이 없습니다.</p>
       ) : (
         <>
-          <Account member={found.value.member} />
+          <Account member={found.value.member} sanctions={sanctions} />
           <Credits member={found.value.member} ledger={ledger} reportId={reportId} />
           {history !== null && (
             <History userId={found.value.member.userId} history={history} filter={filter} limit={limit} />
           )}
-          <Warnings warnings={found.value.warnings} />
+          {sanctions !== null && <Sanctions sanctions={sanctions} />}
         </>
       )}
     </main>
   );
 }
 
-function Account({ member }: { member: Member }) {
+/**
+ * 계정 칸 — 닉네임 · 상태 딱지 · 잔액 · 계정 id, 그리고 상태에 따라 하나: 이용 중이면 「이용 정지」, 이용 정지면 「정지 해제」,
+ * 운영자 계정이면 단추 없이 「운영자 계정」 딱지(G-111-10), 탈퇴 대기면 한 줄. 단추의 상태 · 읽은 버전은 처분 이력 문이 낸다 —
+ * 그 문을 못 읽었으면 단추를 세우지 않는다(버전 없이 낼 수 없다).
+ */
+function Account({
+  member,
+  sanctions,
+}: {
+  member: Member;
+  sanctions: SkippableRead<MemberSanctions | null> | null;
+}) {
+  const standing = sanctions !== null && sanctions.ok ? sanctions.value : null;
+  const action = standing === null ? null : statusAction(standing);
   return (
     <section aria-label="계정" className={`${CARD} flex flex-col gap-3`}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="text-xl font-bold tracking-[-0.02em]">{member.nickname ?? NO_NICKNAME}</span>
         <span className="rounded-full bg-surface-soft px-2.5 py-1 text-xs font-semibold text-secondary">
-          {accountStatusLabel(member.status)}
+          {accountStatusLabel(standing?.status ?? member.status)}
         </span>
+        {action?.kind === 'operator' && (
+          <span className="rounded-full bg-accent-wash px-2.5 py-1 text-xs font-semibold text-foreground">운영자 계정</span>
+        )}
       </div>
       <p className="flex flex-wrap items-baseline gap-x-2">
         <span className="text-sm font-semibold text-secondary">사용 가능한 풀이권</span>
@@ -152,6 +167,17 @@ function Account({ member }: { member: Member }) {
         </p>
         <CopyValue value={member.userId} label="계정 id 복사" />
       </div>
+      {standing !== null && action !== null && (action.kind === 'suspend' || action.kind === 'unsuspend') && (
+        <div className="border-t border-border pt-3">
+          <StatusPanel
+            kind={action.kind}
+            userId={member.userId}
+            nickname={member.nickname}
+            version={standing.version}
+          />
+        </div>
+      )}
+      {action?.kind === 'none' && <p className="border-t border-border pt-3 text-xs text-secondary">{action.note}</p>}
     </section>
   );
 }
@@ -358,28 +384,33 @@ function Chip({ children }: { children: ReactNode }) {
 }
 
 /**
- * 경고 이력 — 이 계정이 제재 대상으로 적힌 경고 · 이용 정지 결정, 최근 것부터. 판단 근거는 문이 안 낸다 — 신고 내용 화면이
- * 든다. 「12개월 셈」은 경고 3회째의 셈에 드는 경고다(ADR 0108). 이의 제기를 인정한 경고는 여기 안 선다.
+ * 처분 이력 — 신고의 경고 · 이용 정지 결정과 계정 상태 이력(정지 · 해제)을 한 목록에, 최근 것부터(G-111 ③, ADR 0189). 판단 근거는
+ * 문이 안 낸다 — 신고 내용 화면이 든다. 상태 이력의 메모는 운영자에게만 보인다. 실행자는 닉네임이다(G-111-9). 공통 함수 밖에서
+ * 바뀐 줄(직접 UPDATE)은 「실행자 · 사유 없음」 딱지를 단다. 「12개월 셈」은 경고 3회째의 셈에 드는 경고다(ADR 0108).
  *
  * **지금 계정의 신고에서 센 것뿐이다** — 신고한 사람이 떠나 분리 보관(`retention.report`)으로 옮겨진 경고는 문이 안 읽는다
- * (ADR 0185 의 3). 그래서 횟수 · 빈 상태를 「현재 신고」로 한정해 말하고, 보관분은 런북 SQL 로 센다는 줄을 늘 둔다 — 「경고가
- * 없다」고 단정하지 않는다.
+ * (ADR 0185 의 3). 그래서 횟수 · 빈 상태를 「현재 신고」로 한정해 말하고, 보관분은 런북 SQL 로 센다는 줄을 늘 둔다.
  */
-function Warnings({ warnings }: { warnings: readonly MemberWarning[] }) {
-  const counted = warnings.filter((warning) => warning.counted).length;
+function Sanctions({ sanctions }: { sanctions: SkippableRead<MemberSanctions | null> }) {
   return (
-    <section aria-labelledby="member-warnings" className={`${CARD} flex flex-col gap-3`}>
-      <h2 id="member-warnings" className="flex flex-wrap items-baseline gap-x-2 text-base font-semibold">
-        경고 이력
-        <span className="text-xs font-normal text-muted">현재 신고 기준 최근 12개월 경고 {counted}회</span>
+    <section aria-labelledby="member-sanctions" className={`${CARD} flex flex-col gap-3`}>
+      <h2 id="member-sanctions" className="flex flex-wrap items-baseline gap-x-2 text-base font-semibold">
+        처분 이력
+        {sanctions.ok && sanctions.value !== null && (
+          <span className="text-xs font-normal text-muted">
+            현재 신고 기준 최근 12개월 경고 {sanctions.value.warnings12m}회
+          </span>
+        )}
       </h2>
       <p className="text-xs text-muted">탈퇴한 신고자의 분리 보관 경고는 런북 SQL 로 따로 셉니다.</p>
-      {warnings.length === 0 ? (
-        <p className="text-sm text-secondary">현재 신고에 적힌 경고가 없습니다.</p>
+      {!sanctions.ok ? (
+        <FailureLine retry>처분 이력을 읽지 못했습니다.</FailureLine>
+      ) : sanctions.value === null || sanctions.value.entries.length === 0 ? (
+        <p className="text-sm text-secondary">현재 신고와 계정에 적힌 처분이 없습니다.</p>
       ) : (
         <ul className="flex flex-col divide-y divide-border">
-          {warnings.map((warning) => (
-            <WarningRow key={warning.reportId} warning={warning} />
+          {sanctions.value.entries.map((entry) => (
+            <SanctionRow key={`${entry.source}-${entry.id}`} entry={entry} />
           ))}
         </ul>
       )}
@@ -387,37 +418,47 @@ function Warnings({ warnings }: { warnings: readonly MemberWarning[] }) {
   );
 }
 
-function WarningRow({ warning }: { warning: MemberWarning }) {
+function SanctionRow({ entry }: { entry: SanctionEntry }) {
+  const reason = sanctionReasonLabel(entry);
   return (
     <li className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-semibold">{reviewOutcomeLabel(warning.outcome)}</span>
-        {warning.category !== null && <span className="text-sm text-secondary">{reasonLabel(warning.category)}</span>}
-        <span className="text-xs tabular-nums text-muted">{evidenceTime(warning.reviewedAt)}</span>
+        <span className="font-semibold">{sanctionKindLabel(entry)}</span>
+        {reason !== null && <span className="text-sm text-secondary">{reason}</span>}
+        <span className="text-xs tabular-nums text-muted">{evidenceTime(entry.at)}</span>
       </p>
+      {entry.note !== null && <p className="break-words text-sm text-secondary">{entry.note}</p>}
       <p className="flex flex-wrap items-center gap-2 text-xs">
-        {warning.ref !== null && (
+        {!entry.recorded && (
+          <span className="rounded-full bg-danger-wash px-2.5 py-1 font-semibold text-danger">{UNRECORDED}</span>
+        )}
+        {entry.actorNickname !== null && (
+          <span className="rounded-full bg-surface-soft px-2.5 py-1 text-secondary">실행자 {entry.actorNickname}</span>
+        )}
+        {entry.warningRef !== null && (
           <span className="rounded-full bg-surface-soft px-2.5 py-1 font-mono text-secondary">
-            {WARNING_LABEL.ref} {warning.ref}
+            {WARNING_LABEL.ref} {entry.warningRef}
           </span>
         )}
-        {warning.outcome === 'warning' && (
+        {entry.source === 'report' && entry.kind === 'warning' && (
           <span className="rounded-full bg-surface-soft px-2.5 py-1 text-secondary">
-            {warning.acknowledgedAt === null
+            {entry.acknowledgedAt === null
               ? `이용자 ${WARNING_LABEL.notYet}`
-              : `${WARNING_LABEL.acknowledged} ${evidenceTime(warning.acknowledgedAt)}`}
+              : `${WARNING_LABEL.acknowledged} ${evidenceTime(entry.acknowledgedAt)}`}
           </span>
         )}
-        {warning.counted && (
+        {entry.counted && (
           <span className="rounded-full bg-accent-wash px-2.5 py-1 font-semibold text-foreground">12개월 셈</span>
         )}
       </p>
-      <Link
-        href={`/ops/reports/${warning.reportId}`}
-        className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline"
-      >
-        신고 내용 보기
-      </Link>
+      {entry.reportId !== null && (
+        <Link
+          href={`/ops/reports/${entry.reportId}`}
+          className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline"
+        >
+          신고 내용 보기
+        </Link>
+      )}
     </li>
   );
 }

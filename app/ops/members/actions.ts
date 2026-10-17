@@ -5,8 +5,10 @@ import { rpcArgs } from '@/src/lib/db';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
+import { UUID } from '../../uuid';
 import { noteDenial } from '../denial';
 import { GRANT_MAX, NOTE_MAX, isGrantReason, type GrantRequest } from './credit-grant';
+import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from './suspension';
 
 /**
  * 무상 풀이권 지급 · 회수의 누름 (G-111 ①, ADR 0187).
@@ -66,5 +68,49 @@ export async function bookCreditGrant(input: GrantRequest): Promise<Answer> {
   }
 
   refresh('credits-granted');
+  return { ok: true, replayed: data?.[0]?.replayed === true };
+}
+
+/**
+ * 이용 정지 · 해제의 누름 (G-111 ③, ADR 0189).
+ *
+ * 내는 값은 확인창에 보인 고정본이다(`statusPlan`). 판정 — 운영자인가 · 갈래 · 메모 · 지금 상태 · 운영자 계정 · 읽은 버전 · 같은
+ * 요청 번호 — 은 전부 DB 의 문 안에 있다. 여기서 먼저 거르는 것은 문을 부를 것도 없는 모양뿐이다. 거절이어도 지금 화면을 다시
+ * 그린다 — 다른 운영자가 먼저 바꿨으면 그 상태 · 버전 · 이력이 선다.
+ */
+const statusProblem = (input: StatusRequest): string | null => {
+  if (input.kind !== 'suspend' && input.kind !== 'unsuspend') return '화면을 새로 열어 주세요.';
+  if (!isStatusReason(input.kind, input.reason)) return '사유를 골라 주세요.';
+  const note = input.note.trim();
+  if (note.length === 0 || note.length > STATUS_NOTE_MAX) return `메모를 ${STATUS_NOTE_MAX}자 안으로 적어 주세요.`;
+  if (!Number.isInteger(input.seenVersion) || input.seenVersion < 0) return '읽은 버전이 없습니다. 화면을 새로 열어 주세요.';
+  if (!UUID.test(input.userId) || !UUID.test(input.requestId)) return '화면을 새로 열어 주세요.';
+  return null;
+};
+
+export async function changeMemberStatus(input: StatusRequest): Promise<Answer> {
+  const problem = statusProblem(input);
+  if (problem !== null) return { ok: false, message: problem };
+
+  const supabase = await supabaseOnServer();
+  const door = input.kind === 'suspend' ? 'operator_suspend_member' : 'operator_unsuspend_member';
+  const { data, error } = await supabase.rpc(
+    door,
+    rpcArgs<'operator_suspend_member'>({
+      p_user_id: input.userId,
+      p_reason: input.reason,
+      p_note: input.note.trim(),
+      p_seen_version: input.seenVersion,
+      p_request_id: input.requestId,
+    }),
+  );
+
+  // 거절이어도 지금 화면을 다시 그려 싣는다 — 다른 운영자가 먼저 바꿨으면 그 상태 · 버전이 선다
+  refresh('member-status-changed');
+
+  if (error) {
+    if (error.code === '42501') await noteDenial(supabase, input.kind === 'suspend' ? 'members.suspend' : 'members.unsuspend');
+    return { ok: false, message: userFacingDbMessage(error, door) };
+  }
   return { ok: true, replayed: data?.[0]?.replayed === true };
 }
