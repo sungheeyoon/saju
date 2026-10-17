@@ -509,7 +509,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
 
     // 정지된 쪽은 자기 상태 말고는 아무것도 못 본다(§5.3)
     await suspended.b.page.goto(suspended.room);
-    await expect(suspended.b.page.getByText('이용이 정지된 계정입니다')).toBeVisible();
+    await expect(suspended.b.page.getByText('이용이 제한된 계정이에요')).toBeVisible();
     await expect(suspended.b.page.getByText(`정지 전 ${suspended.tag}`)).toHaveCount(0);
 
     const leaving = await pair(openAs);
@@ -821,7 +821,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     warn(report(aId, cId, 'impersonation'), cId);
     sql(`update public.app_user set status = 'suspended' where id = '${cId}'`);
     await c.page.goto('/me');
-    await expect(c.page.getByText('이용이 정지된 계정입니다')).toBeVisible();
+    await expect(c.page.getByText('이용이 제한된 계정이에요')).toBeVisible();
     await expect(notice(c)).toHaveCount(0);
   });
 });

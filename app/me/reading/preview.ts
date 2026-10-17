@@ -1,6 +1,7 @@
 import { ReadingEvidenceError, readingEvidenceOf, readingPromptOf } from '@/src/lib/reading';
 
 import { accountNoticeOf, selfPersonIdOf } from '@/src/lib/account';
+import { SUPPORT_EMAIL } from '@/src/lib/brand';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readAccount } from '../account';
@@ -49,7 +50,7 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
   /** 판정은 화면과 **같은 함수**가 한다(ADR 0048) — 여기서만 다르게 갈리면 그 차이는 어디에도 안 적힌다 */
   const { state } = await readAccount(supabase);
 
-  const notice = accountNoticeOf(state);
+  const notice = accountNoticeOf(state, SUPPORT_EMAIL);
   if (notice !== null) return { ok: false, message: `${notice.title}. ${notice.detail}` };
   if (state.kind === 'onboarding') return { ok: false, message: '내 사주를 먼저 등록해 주세요.' };
 

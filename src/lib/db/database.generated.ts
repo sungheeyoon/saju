@@ -3528,6 +3528,13 @@ export type Database = {
         }[]
       }
       my_summary_is_current: { Args: { p_actor: string }; Returns: boolean }
+      my_suspension: {
+        Args: never
+        Returns: {
+          nickname: string
+          reason: string
+        }[]
+      }
       my_warning_notice: {
         Args: never
         Returns: {

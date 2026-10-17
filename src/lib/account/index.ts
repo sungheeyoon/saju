@@ -23,33 +23,90 @@ type AccountStatus = 'active' | 'suspended' | 'deletion_requested';
 const isActiveAccount = (status: string): boolean => status === 'active';
 
 /**
+ * 정지의 갈래 다섯 — 이름은 DB 의 갈래와 같다(`account_status_change.reason` 의 정지 몫, ADR 0188 · 0189).
+ *
+ * 이용자에게 보이는 낱말은 운영자가 2026-10-17 에 확정했다(G-111-8, ADR 0190). 운영 화면의 갈래 이름(`app/ops/members/suspension.ts`)과는
+ * 다른 자리다 — 그쪽은 운영자가 읽는 이름이다.
+ */
+type SuspensionReason = 'report' | 'policy' | 'payment' | 'eligibility' | 'other';
+
+const SUSPENSION_REASON_TEXT: Readonly<Record<SuspensionReason, string>> = {
+  report: '신고 내용 확인',
+  policy: '운영정책 위반',
+  payment: '결제 부정 이용',
+  eligibility: '이용 자격(만 19세 이상) 미충족',
+  other: '기타 운영',
+};
+
+/**
+ * 지금 정지에 대해 본인의 문(`my_suspension`)이 내준 것 — 닉네임과 갈래, 그것뿐이다(ADR 0190).
+ *
+ * 메모 · 실행자 · 관련 신고는 문이 애초에 안 내준다. 갈래가 비면 이력에 갈래가 없는 정지다(직접 UPDATE · 이력 전의 정지) —
+ * 문장은 갈래 구를 빼고 선다. 모르는 갈래도 같다.
+ */
+export type Suspension = {
+  readonly nickname: string | null;
+  readonly reason: string | null;
+};
+
+const suspensionReasonText = (reason: string | null): string | null =>
+  reason === null ? null : (SUSPENSION_REASON_TEXT[reason as SuspensionReason] ?? null);
+
+/**
+ * 정지 화면의 본문 — 운영자 확정 문구 그대로다(2026-10-17, 후보 C 이용제한형과 그날의 답, 대장 `all-03`).
+ *
+ * 「{닉네임} 님은 {갈래} 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 {고객 문의 이메일}으로 소명해 주세요.」
+ * 갈래를 모르면 「{갈래} 사유로 」를, 닉네임을 모르면(문을 못 읽었을 때 — 확정 문구에서 뺀 모양) 「{닉네임} 님은 」을 뺀다. 고객 문의 이메일은 화면이
+ * `SUPPORT_EMAIL`(`src/lib/brand`)을 읽어 넘긴다 — `account` 는 `brand` 를 부르지 않는다(경고 안내와 같다).
+ */
+function suspendedDetail(suspension: Suspension | null, supportEmail: string): string {
+  const who = suspension?.nickname ? `${suspension.nickname} 님은 ` : '';
+  const phrase = suspensionReasonText(suspension?.reason ?? null);
+  const why = phrase === null ? '' : `${phrase} 사유로 `;
+  return `${who}${why}이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 ${supportEmail}으로 소명해 주세요.`;
+}
+
+/**
  * 살아 있지 않은 계정에게 하는 말.
  *
  * **이유를 갈라서 말한다.** 운영자가 건 제재와 본인이 낸 요청은 같은 것을 막지만 같은
- * 일이 아니다 — 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는 거짓이다.
+ * 일이 아니다 — 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는 거짓이다.
  *
  * 이름과 문구는 `docs/product/prd/account.md` §5.3 의 표다(2026-09-23) — 이용 정지 · 탈퇴 대기. 제목 자리라
- * 마침표가 빠진다(GLOSSARY 「화면 문구 규칙」).
+ * 마침표가 빠진다(GLOSSARY 「화면 문구 규칙」). 정지의 본문은 2026-10-17 에 사유 갈래와 소명 경로를 싣는 문장이 됐다
+ * (`suspendedDetail`, G-111-8) — 같은 날 제목도 「이용이 정지된 계정입니다」에서 「이용이 제한된 계정이에요」로
+ * 바뀌었다(운영자 답). 운영 화면의 「이용 정지」는 내부 낱말로 그대로다. DB 가 던지는 거절 「이용이 정지된 계정입니다.」는 이 제목이 아니다.
  */
 const ACCOUNT_HALTED_TEXT: Record<
   Exclude<AccountStatus, 'active'>,
-  { readonly title: string; readonly detail: string }
+  { readonly title: string; readonly detail: (suspension: Suspension | null, supportEmail: string) => string }
 > = {
   suspended: {
-    title: '이용이 정지된 계정입니다',
-    detail: '저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.',
+    title: '이용이 제한된 계정이에요',
+    detail: suspendedDetail,
   },
   deletion_requested: {
     title: '탈퇴를 신청한 계정입니다',
-    detail:
+    detail: () =>
       '탈퇴 신청이 접수되었습니다. 인연 찾기 노출과 새 요청·풀이 생성은 이미 멈췄고, 저장된 자료는 운영자가 처리할 때까지 그대로 있습니다. 되돌리려면 운영자에게 알려 주세요.',
   },
 } as const;
 
-/** 화면이 상태 하나로 문장을 얻는 자리 — `active` 면 할 말이 없다 */
-export function haltedText(status: string): { title: string; detail: string } | null {
+/**
+ * 화면이 상태 하나로 문장을 얻는 자리 — `active` 면 할 말이 없다.
+ *
+ * @param suspension 정지면 본인의 문이 내준 닉네임 · 갈래. 못 읽었으면 `null` — 문장이 그 구를 빼고 선다
+ * @param supportEmail 소명을 받는 고객 문의 이메일(`SUPPORT_EMAIL`)
+ */
+export function haltedText(
+  status: string,
+  supportEmail: string,
+  suspension: Suspension | null = null,
+): { title: string; detail: string } | null {
   if (isActiveAccount(status)) return null;
-  return ACCOUNT_HALTED_TEXT[status as Exclude<AccountStatus, 'active'>] ?? ACCOUNT_HALTED_TEXT.suspended;
+  const text =
+    ACCOUNT_HALTED_TEXT[status as Exclude<AccountStatus, 'active'>] ?? ACCOUNT_HALTED_TEXT.suspended;
+  return { title: text.title, detail: text.detail(suspension, supportEmail) };
 }
 
 /**
@@ -85,6 +142,8 @@ const ACCOUNT_UNREADABLE_TEXT: Record<
  */
 type ScreenAccount = {
   readonly status: string;
+  /** 정지면 본인의 문(`my_suspension`)이 내준 것 — 정지가 아니거나 안 물었으면 비운다 */
+  readonly suspension?: Suspension | null;
   /**
    * 자기 사주를 등록했는가.
    *
@@ -114,7 +173,7 @@ export type AccountState =
    */
   | { readonly kind: 'active'; readonly selfPersonId: string | null }
   | { readonly kind: 'onboarding' }
-  | { readonly kind: 'halted'; readonly status: string }
+  | { readonly kind: 'halted'; readonly status: string; readonly suspension?: Suspension | null }
   | { readonly kind: 'missing' }
   | { readonly kind: 'unreachable' };
 
@@ -127,8 +186,10 @@ export type AccountState =
 export function accountStateOf(read: AccountRead): AccountState {
   if (!read.ok) return { kind: read.reason };
 
-  const { status, selfPersonId } = read.account;
-  if (!isActiveAccount(status)) return { kind: 'halted', status };
+  const { status, selfPersonId, suspension } = read.account;
+  if (!isActiveAccount(status)) {
+    return suspension === undefined ? { kind: 'halted', status } : { kind: 'halted', status, suspension };
+  }
   if (selfPersonId === null) return { kind: 'onboarding' };
   return { kind: 'active', selfPersonId: selfPersonId ?? null };
 }
@@ -163,8 +224,9 @@ export const selfPersonIdOf = (state: AccountState): string | null =>
  */
 export function accountNoticeOf(
   state: AccountState,
+  supportEmail: string,
 ): { readonly title: string; readonly detail: string } | null {
-  if (state.kind === 'halted') return haltedText(state.status);
+  if (state.kind === 'halted') return haltedText(state.status, supportEmail, state.suspension ?? null);
   if (state.kind === 'missing' || state.kind === 'unreachable') {
     return ACCOUNT_UNREADABLE_TEXT[state.kind];
   }

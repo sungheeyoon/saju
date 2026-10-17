@@ -1,4 +1,4 @@
-import { accountStateOf, type AccountState } from '@/src/lib/account';
+import { accountStateOf, type AccountState, type Suspension } from '@/src/lib/account';
 import type { Database } from '@/src/lib/db';
 
 import type { supabaseOnServer } from '../auth/server-client';
@@ -89,8 +89,28 @@ export async function readAccount(
   return {
     state: accountStateOf({
       ok: true,
-      account: { status: row.status, selfPersonId: 'self_person_id' in row ? row.self_person_id : undefined },
+      account: {
+        status: row.status,
+        selfPersonId: 'self_person_id' in row ? row.self_person_id : undefined,
+        suspension: row.status === 'suspended' ? await readSuspension(supabase) : undefined,
+      },
     }),
     row,
   };
+}
+
+/**
+ * 지금 정지의 닉네임 · 갈래 — **정지된 사람만** 한 번 더 묻는다(`my_suspension`, ADR 0190).
+ *
+ * 부속 정보다. 못 읽었으면 `null` 을 주고 정지 화면은 닉네임 · 갈래 구를 뺀 문장으로 선다 — 정지라는 사실은 이미 `status` 가
+ * 말했다. 원문은 기록에 간다.
+ */
+async function readSuspension(supabase: ServerClient): Promise<Suspension | null> {
+  const { data, error } = await supabase.rpc('my_suspension');
+  if (error !== null) {
+    recordDbFailure(error, 'my_suspension');
+    return null;
+  }
+  const found = data?.[0];
+  return found === undefined ? null : { nickname: found.nickname, reason: found.reason };
 }

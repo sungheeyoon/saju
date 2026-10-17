@@ -8,6 +8,8 @@ import {
   type AccountState,
 } from '.';
 
+const EMAIL = 'help@example.com';
+
 describe('accountStateOf — 다섯 자리를 전부 밟는다', () => {
   it('살아 있고 자기 사주가 있으면 active', () => {
     expect(accountStateOf({ ok: true, account: { status: 'active', selfPersonId: 'p1' } })).toEqual({
@@ -48,7 +50,7 @@ describe('accountStateOf — 다섯 자리를 전부 밟는다', () => {
       accountStateOf({ ok: false, reason: 'unreachable' }),
     ]) {
       expect(state.kind).not.toBe('halted');
-      expect(accountNoticeOf(state)?.title).not.toBe(haltedText('suspended')?.title);
+      expect(accountNoticeOf(state, EMAIL)?.title).not.toBe(haltedText('suspended', EMAIL)?.title);
     }
   });
 
@@ -66,8 +68,8 @@ describe('accountStateOf — 다섯 자리를 전부 밟는다', () => {
 
 describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
   it('active 와 onboarding 은 할 말이 없다', () => {
-    expect(accountNoticeOf({ kind: 'active', selfPersonId: 'p1' })).toBeNull();
-    expect(accountNoticeOf({ kind: 'onboarding' })).toBeNull();
+    expect(accountNoticeOf({ kind: 'active', selfPersonId: 'p1' }, EMAIL)).toBeNull();
+    expect(accountNoticeOf({ kind: 'onboarding' }, EMAIL)).toBeNull();
   });
 
   it('나머지 셋은 반드시 말한다 — 빈 화면이 되지 않게', () => {
@@ -78,7 +80,7 @@ describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
       { kind: 'unreachable' },
     ];
     for (const state of blocked) {
-      const notice = accountNoticeOf(state);
+      const notice = accountNoticeOf(state, EMAIL);
       expect(notice, JSON.stringify(state)).not.toBeNull();
       expect(notice!.title.length).toBeGreaterThan(0);
       expect(notice!.detail.length).toBeGreaterThan(0);
@@ -90,8 +92,8 @@ describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
    * 둘을 가른 까닭이 이 한 줄이라, 문구가 도로 같아지면 가른 값이 사라진다.
    */
   it('못 읽은 까닭 둘이 서로 다른 지시를 준다', () => {
-    const missing = accountNoticeOf({ kind: 'missing' })!;
-    const unreachable = accountNoticeOf({ kind: 'unreachable' })!;
+    const missing = accountNoticeOf({ kind: 'missing' }, EMAIL)!;
+    const unreachable = accountNoticeOf({ kind: 'unreachable' }, EMAIL)!;
     expect(missing.detail).not.toBe(unreachable.detail);
     expect(missing.detail).toContain('로그인');
     expect(unreachable.detail).not.toMatch(/^다시 로그인/);
@@ -100,10 +102,57 @@ describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
   /** 제목은 마침표를 안 찍고 설명문은 찍는다 — docs/context/copy.md 화면 문구 규칙 */
   it('마침표는 자리가 정한다', () => {
     for (const state of [{ kind: 'missing' }, { kind: 'unreachable' }] as AccountState[]) {
-      const notice = accountNoticeOf(state)!;
+      const notice = accountNoticeOf(state, EMAIL)!;
       expect(notice.title.endsWith('.')).toBe(false);
       expect(notice.detail.endsWith('.')).toBe(true);
     }
+  });
+});
+
+describe('정지 화면의 본문 — 운영자 확정 문구 그대로다 (G-111-8, 2026-10-17)', () => {
+  const detailOf = (reason: string | null, nickname: string | null = '하늘') =>
+    accountNoticeOf({ kind: 'halted', status: 'suspended', suspension: { nickname, reason } }, EMAIL)!.detail;
+
+  it('갈래 다섯은 확정 낱말로 선다', () => {
+    expect(detailOf('report')).toBe(
+      '하늘 님은 신고 내용 확인 사유로 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.',
+    );
+    expect(detailOf('policy')).toContain('하늘 님은 운영정책 위반 사유로 이용제한 중이에요.');
+    expect(detailOf('payment')).toContain('하늘 님은 결제 부정 이용 사유로 이용제한 중이에요.');
+    expect(detailOf('eligibility')).toContain('하늘 님은 이용 자격(만 19세 이상) 미충족 사유로 이용제한 중이에요.');
+    expect(detailOf('other')).toContain('하늘 님은 기타 운영 사유로 이용제한 중이에요.');
+  });
+
+  it('갈래가 없으면 갈래 구만 빠진다 — 직접 UPDATE · 이력 전의 정지 · 모르는 갈래', () => {
+    const bare =
+      '하늘 님은 이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.';
+    expect(detailOf(null)).toBe(bare);
+    expect(detailOf('deletion_withdrawn')).toBe(bare);
+  });
+
+  it('문을 못 읽었으면 닉네임 · 갈래 구를 빼고도 소명 경로는 선다', () => {
+    const notice = accountNoticeOf({ kind: 'halted', status: 'suspended', suspension: null }, EMAIL)!;
+    expect(notice.detail).toBe('이용제한 중이에요. 저장된 자료는 그대로 있어요. 이의가 있으면 help@example.com으로 소명해 주세요.');
+    expect(accountNoticeOf({ kind: 'halted', status: 'suspended' }, EMAIL)!.detail).toBe(notice.detail);
+  });
+
+  it('제목은 「이용이 제한된 계정이에요」다 — 운영자 답 2026-10-17', () => {
+    expect(haltedText('suspended', EMAIL)?.title).toBe('이용이 제한된 계정이에요');
+  });
+
+  it('탈퇴 대기의 문장은 정지 안내를 싣지 않는다', () => {
+    const leaving = accountNoticeOf(
+      { kind: 'halted', status: 'deletion_requested', suspension: { nickname: '하늘', reason: 'policy' } },
+      EMAIL,
+    )!;
+    expect(leaving.title).toBe('탈퇴를 신청한 계정입니다');
+    expect(leaving.detail).not.toContain('이용제한');
+  });
+
+  it('정지를 읽은 상태는 그 값을 그대로 들고 간다', () => {
+    expect(
+      accountStateOf({ ok: true, account: { status: 'suspended', suspension: { nickname: '하늘', reason: 'payment' } } }),
+    ).toEqual({ kind: 'halted', status: 'suspended', suspension: { nickname: '하늘', reason: 'payment' } });
   });
 });
 

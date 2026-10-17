@@ -96,6 +96,7 @@
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | 신고 처분 · 계정 상태 이력 | `report_review_entry` · `write_report_review` · `operator_review_report` · `operator_report_target` · `report_is_overdue` · `account_status_change` · `change_account_status` · `writeReview` · `reviewPlan` · `ReviewPanel` · `report-reviewed` | 표 · 함수 · `app/ops/reports/` (ADR 0188) |
 | 회원 정지 · 해제 · 처분 이력 | `operator_suspend_member` · `operator_unsuspend_member` · `screen_change_member_status` · `operator_member_sanctions` · `changeMemberStatus` · `statusPlan` · `StatusPanel` · `memberSanctions` · `member-status-changed` | 함수 · `app/ops/members/` (ADR 0189) |
+| 내 정지 — 갈래 · 소명 경로 | `my_suspension` · `Suspension` · `suspendedDetail` · `haltedText` | 함수 · `src/lib/account` · `app/me/account.ts` (ADR 0190) |
 | 무상 풀이권 지급 장부 | `reading_credit_grant_entry` · `book_reading_credit_grant` · `operator_grant_reading_credits` · `operator_revoke_reading_credits` · `operator_member_grant_ledger` · `operator_member_credit_history` · `bookCreditGrant` · `grantPlan` · `GrantPanel` · `credits_granted` · `credits_revoked` | 표 · 함수 · `app/ops/members/` · 소식 갈래 |
 | 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |
 | 사용 이력 | `reading_credit_use` · `operator_reading_refund_basis` | 표 · 함수 |
