@@ -6,6 +6,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { noteDenial, noteWriteRefusal, type RefusedTarget, type WriteAction } from '../denial';
+import { bookRefusalTarget } from './book-refusal';
 import { isRefundReason } from './labels';
 import type { PrepareRequest } from './refund-confirm';
 import { cancellationCheck } from './portone-cancellations';
@@ -67,15 +68,19 @@ export async function holdRefund(input: PrepareRequest): Promise<Answer<{ readon
   return { ok: true, value: { amount: data?.[0]?.amount ?? 0 } };
 }
 
-/** 확정 — PortOne 콘솔에서 취소한 뒤 그 취소 번호로 확보를 장부에 적는다. 같은 번호로 다시 눌러도 한 번만 적힌다 */
+/**
+ * 확정 — PortOne 콘솔에서 취소한 뒤 그 취소 번호로 확보를 장부에 적는다. 같은 번호로 다시 눌러도 한 번만 적힌다.
+ * 주문 id 는 문에 가지 않는다 — 거절 줄에 실을 때만 쓰고, 그때도 그 주문의 진행 중인 확보인지 본 뒤다(`bookRefusalTarget`).
+ */
 export async function bookRefund(input: {
+  readonly orderId: string;
   readonly holdId: string;
   readonly refundId: string;
 }): Promise<Answer<{ readonly status: string }>> {
   const refundId = input.refundId.trim();
   const supabase = await supabaseOnServer();
   if (refundId === '') {
-    await noteWriteRefusal(supabase, 'credits.refund_book', '22023');
+    await noteWriteRefusal(supabase, 'credits.refund_book', '22023', await bookRefusalTarget(supabase, '22023', input));
     return { ok: false, message: 'PG 취소 번호를 적어 주세요.' };
   }
 
@@ -83,7 +88,10 @@ export async function bookRefund(input: {
     'operator_book_reading_refund',
     rpcArgs<'operator_book_reading_refund'>({ p_hold_id: input.holdId, p_provider_refund_id: refundId }),
   );
-  if (error) return refused(supabase, error, 'credits.refund_book', 'operator_book_reading_refund', {});
+  if (error) {
+    const target = await bookRefusalTarget(supabase, error.code, input);
+    return refused(supabase, error, 'credits.refund_book', 'operator_book_reading_refund', target);
+  }
 
   refresh('refund-moved');
   return { ok: true, value: { status: data } };

@@ -1,13 +1,13 @@
--- 운영자의 거절된 쓰기가 접속기록에 한 줄로 남는다 (`20261219090000`, G-111 R-4, ADR 0191)
+-- 운영자의 거절된 쓰기가 접속기록에 한 줄로 남는다 (`20261219090000` · `20261220090000`, G-111 R-4, ADR 0191)
 --
 --   1. **운영자의 거절은 `refused`** — 앱이 거절을 받은 뒤 부르는 `note_operator_refusal` 이 대상 id 와 `refused=<SQLSTATE>` 만 적는다
 --   2. **운영자가 아니면 안 적는다** — 그 거절은 `note_operator_denial` 의 `denied` 다
 --   3. **모양** — 쓰기 동작 여덟 밖이거나, 코드가 SQLSTATE · `other` 가 아니거나 `42501` 이면 `22023`
 --   4. **표가 막는다** — `refused` 는 앱의 운영자 쓰기에만, 거른 조건 칸이 `refused=<코드>` 로 끝날 때만 선다
---   5. **한 시간에 서른 줄** — 넘으면 조용히 끝난다
+--   5. **한 시간에 서른 줄** — 넘으면 그 줄은 버리고 장애 알림을 하루 한 번(`20261220090000`)
 --   6. **열린 곳** — `authenticated` 만. anon · 서버 열쇠에는 안 열린다
 begin;
-select plan(12);
+select plan(16);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -37,6 +37,14 @@ language sql security definer as $$
   where a.actor_user_id = who order by a.id
 $$;
 grant execute on function pg_temp.lines(uuid) to authenticated;
+
+/** 이 파일의 운영자에 대한 빗장 알림만 센다 */
+create or replace function pg_temp.cap_alerts(who uuid)
+returns table (kind text, detail text)
+language sql security definer as $$
+  select o.kind, o.detail from public.ops_alert o where o.kind = 'operator-refusal-cap:' || who::text order by o.id
+$$;
+grant execute on function pg_temp.cap_alerts(uuid) to authenticated;
 
 set local role authenticated;
 
@@ -79,9 +87,22 @@ select is((select count(*)::integer from pg_temp.lines((select stranger from fol
 -- ── 5. 한 시간에 서른 줄 ─────────────────────────────────────────────────────
 
 select pg_temp.acting((select busy from folks));
-select count(*) from (select public.note_operator_refusal('credits.revoke', '55000') from generate_series(1, 35)) x;
+select count(*) from (select public.note_operator_refusal('credits.revoke', '55000') from generate_series(1, 30)) x;
+select is((select count(*)::integer from pg_temp.lines((select busy from folks))), 30, '서른 줄까지는 적는다');
+select is((select count(*)::integer from pg_temp.cap_alerts((select busy from folks))), 0, '서른 줄까지는 알리지 않는다');
+
+select public.note_operator_refusal('credits.revoke', '55000');
 select is((select count(*)::integer from pg_temp.lines((select busy from folks))), 30,
-  '한 사람이 한 시간에 서른 줄을 넘게 적지 못한다');
+  '서른한째는 적지 않는다 — 한 사람이 한 시간에 서른 줄을 넘게 적지 못한다');
+select results_eq(
+  format($$select kind, detail from pg_temp.cap_alerts(%L)$$, (select busy from folks)),
+  format($$values ('operator-refusal-cap:%1$s', '운영자 %1$s 의 거절된 쓰기 기록이 한 시간 30줄에 닿아 그 뒤를 접속기록에 적지 않는다')$$,
+         (select busy from folks)),
+  '서른한째에 알림 한 줄 — 운영자 id 와 수만');
+
+select public.note_operator_refusal('credits.revoke', '55000');
+select is((select count(*)::integer from pg_temp.cap_alerts((select busy from folks))), 1,
+  '서른둘째는 같은 날 알림을 더하지 않는다');
 
 reset role;
 

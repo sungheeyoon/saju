@@ -250,7 +250,7 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
 
   const book = () =>
     run(async () => {
-      const answer = await actionAnswer(bookRefund({ holdId: hold.holdId, refundId: frozenRefundId }));
+      const answer = await actionAnswer(bookRefund({ orderId, holdId: hold.holdId, refundId: frozenRefundId }));
       return answer.ok
         ? { ok: true, done: `장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}` }
         : { ok: false, message: answer.message };
