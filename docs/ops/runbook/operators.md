@@ -26,6 +26,9 @@ from auth.users where email = '<그 사람의 구글 계정>';
 select u.email, o.note, o.added_at
 from public.operator o join auth.users u on u.id = o.user_id;
 
+-- 운영자 권한은 계정이 이용 중일 때만 선다(`is_operator()`, ADR 0188) — 정지 · 탈퇴 대기인 운영자 계정은 운영 화면이 없는 화면이 된다.
+-- 운영자를 내릴 때는 정지보다 이 줄을 먼저 지운다(화면 · 공통 함수는 운영자 계정을 정지하지 않는다, G-111-10)
+
 -- 내린다 — 이 줄이 사라지면 `/ops/survey` 는 그 사람에게 없는 화면이 된다
 delete from public.operator where user_id =
   (select id from auth.users where email = '<그 사람의 구글 계정>');

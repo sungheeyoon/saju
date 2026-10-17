@@ -64,6 +64,53 @@ export type Database = {
         }
         Relationships: []
       }
+      account_status_change: {
+        Row: {
+          actor_user_id: string | null
+          at: string
+          from_status: string
+          id: string
+          note: string | null
+          reason: string | null
+          report_id: string | null
+          request_id: string | null
+          to_status: string
+          user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          at?: string
+          from_status: string
+          id?: string
+          note?: string | null
+          reason?: string | null
+          report_id?: string | null
+          request_id?: string | null
+          to_status: string
+          user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          at?: string
+          from_status?: string
+          id?: string
+          note?: string | null
+          reason?: string | null
+          report_id?: string | null
+          request_id?: string | null
+          to_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_status_change_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_user: {
         Row: {
           contact_consent: boolean | null
@@ -2070,6 +2117,48 @@ export type Database = {
           },
         ]
       }
+      report_review_entry: {
+        Row: {
+          actor_user_id: string | null
+          at: string
+          carried_over: boolean
+          id: string
+          note: string | null
+          outcome: string | null
+          report_id: string
+          request_id: string | null
+          sanctioned_user_id: string | null
+          version: number
+          warning_category: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          at?: string
+          carried_over?: boolean
+          id?: string
+          note?: string | null
+          outcome?: string | null
+          report_id: string
+          request_id?: string | null
+          sanctioned_user_id?: string | null
+          version: number
+          warning_category?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          at?: string
+          carried_over?: boolean
+          id?: string
+          note?: string | null
+          outcome?: string | null
+          report_id?: string
+          request_id?: string | null
+          sanctioned_user_id?: string | null
+          version?: number
+          warning_category?: string | null
+        }
+        Relationships: []
+      }
       service_survey: {
         Row: {
           credits_left: number | null
@@ -2729,6 +2818,18 @@ export type Database = {
       cancel_match_request: { Args: { p_request_id: string }; Returns: string }
       cancel_reading_order: {
         Args: { p_order_id: string; p_reason: string }
+        Returns: string
+      }
+      change_account_status: {
+        Args: {
+          p_actor: string
+          p_note: string
+          p_reason: string
+          p_report_id?: string
+          p_request_id?: string
+          p_status: string
+          p_user_id: string
+        }
         Returns: string
       }
       chat_message_max_length: { Args: never; Returns: number }
@@ -3674,6 +3775,7 @@ export type Database = {
           context_before: number
           created_at: string
           detail: string
+          held_suspension_side: string
           is_open: boolean
           reason: string
           report_id: string
@@ -3683,8 +3785,10 @@ export type Database = {
           reporter_nickname: string
           reporter_status: string
           reporter_user_id: string
+          review_log: Json
           review_note: string
           review_outcome: string
+          review_version: number
           reviewed_at: string
           reviewer_nickname: string
           sanctioned_side: string
@@ -3703,9 +3807,23 @@ export type Database = {
           side: string
         }[]
       }
+      operator_report_target: {
+        Args: { p_report_id: string }
+        Returns: {
+          is_operator: boolean
+          nickname: string
+          recent: Json
+          side: string
+          status: string
+          user_id: string
+          warned_here: boolean
+          warnings_12m: number
+        }[]
+      }
       operator_reports: {
         Args: {
           p_has_snapshot?: boolean
+          p_order?: string
           p_page?: number
           p_reason?: string
           p_reviewed?: boolean
@@ -3715,6 +3833,9 @@ export type Database = {
           chosen_excerpt: string
           created_at: string
           is_open: boolean
+          open_count: number
+          overdue: boolean
+          overdue_count: number
           pages: number
           reason: string
           report_id: string
@@ -3726,6 +3847,21 @@ export type Database = {
           reviewed_at: string
           snapshot_messages: number
           warning_ref: string
+        }[]
+      }
+      operator_review_report: {
+        Args: {
+          p_note: string
+          p_outcome: string
+          p_report_id: string
+          p_request_id: string
+          p_sanctioned_user_id: string
+          p_seen_version: number
+          p_warning_category: string
+        }
+        Returns: {
+          replayed: boolean
+          review_version: number
         }[]
       }
       operator_revoke_reading_credits: {
@@ -4062,6 +4198,7 @@ export type Database = {
         Args: { p_outcome: string; p_reviewed_at: string }
         Returns: boolean
       }
+      report_is_overdue: { Args: { p_created_at: string }; Returns: boolean }
       report_payment_trouble: {
         Args: { p_kind: string; p_payment_id: string; p_reason: string }
         Returns: boolean
@@ -4423,6 +4560,24 @@ export type Database = {
           p_time_basis: string
         }
         Returns: number
+      }
+      write_report_review: {
+        Args: {
+          p_actor: string
+          p_current_only?: boolean
+          p_note: string
+          p_outcome: string
+          p_report_id: string
+          p_request_id: string
+          p_sanctioned_user_id: string
+          p_seen_version: number
+          p_warning_category: string
+        }
+        Returns: {
+          replayed: boolean
+          review_version: number
+          written: string
+        }[]
       }
     }
     Enums: {

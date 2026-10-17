@@ -5,6 +5,7 @@ import { read, unread, type SkippableRead } from '../../db-error';
 import { noteDenial } from '../denial';
 import { argsOf, isReportId, type ReportFilters } from './filters';
 import { sideOf, type Side } from './labels';
+import { reviewLogOf, sanctionLinesOf, type Party, type ReviewLogLine, type SanctionLine } from './review';
 import { chosenOnce, type SnapshotMessage } from './snapshot';
 
 /**
@@ -13,9 +14,8 @@ import { chosenOnce, type SnapshotMessage } from './snapshot';
  * `/ops/survey` 의 문(`../survey/read.ts`)과 같은 규율이다. **운영자인지 여기서 안 묻는다** — 묻는
  * 자리는 DB 의 `is_operator()` 하나고, 이 문은 자료를 청해서 **거절당하는 것으로 안다**(`42501`).
  *
- * 읽기만 한다. 이 폴더에는 `actions.ts` 가 없다 — 검토 완료 · 제재는 1차판에 없고, 검토 기록은
- * 운영자가 CLI 로 부르는 검토 문(`review_report`)이 적는다(ADR 0105 · 0107). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
- * 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
+ * 읽기만 한다 — 처분은 `actions.ts` 가 처분 문(`operator_review_report`)으로 적는다(G-111 ②, ADR 0188). **문이 읽을 때마다
+ * DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) — 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
  *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인
  * 말 · 검토 시각 · 스냅샷 칸은 실제로 비므로 여기서 한 번 `null` 로 받아 옮긴다.
@@ -54,12 +54,17 @@ export type ReportRow = {
    * 고른 메시지가 없으면 `null`. 이 칸이 생기기 전의 DB 는 칸 자체가 없다 — 그때도 `null` 이다
    */
   readonly chosenExcerpt: string | null;
+  /** 처리 필요이고 접수 뒤 3영업일을 넘겼다 — 셈은 DB 의 `report_is_overdue` 하나다 */
+  readonly overdue: boolean;
 };
 
 type ReportPage = {
   readonly rows: readonly ReportRow[];
   /** 거른 결과 전체의 쪽 수 — 한 쪽의 크기는 DB 만 안다 */
   readonly pages: number;
+  /** 머리의 두 수 — 거르기와 무관한 처리 필요 · 그중 기한 지남. 줄이 없으면 모른다(`null`) */
+  readonly openCount: number | null;
+  readonly overdueCount: number | null;
 };
 
 /** 목록 문의 한 줄을 화면의 값으로 옮긴다 — 비는 칸은 여기서 한 번 `null` 로 받는다(위 머리말) */
@@ -75,6 +80,7 @@ export const reportRowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   snapshotMessages: row.snapshot_messages ?? null,
   warningRef: row.warning_ref ?? null,
   chosenExcerpt: row.chosen_excerpt ?? null,
+  overdue: row.overdue === true,
 });
 
 /**
@@ -94,7 +100,12 @@ export async function operatorReports(
   if (answer.error) return unread(answer.error, 'operator_reports');
 
   const rows = answer.data ?? [];
-  return read({ rows: rows.map(reportRowOf), pages: rows[0]?.pages ?? 0 });
+  return read({
+    rows: rows.map(reportRowOf),
+    pages: rows[0]?.pages ?? 0,
+    openCount: rows[0]?.open_count ?? null,
+    overdueCount: rows[0]?.overdue_count ?? null,
+  });
 }
 
 export type AccountNow = Account & { readonly status: string | null };
@@ -138,6 +149,12 @@ type ReportDetail = {
   readonly warning: WarningRecord | null;
   /** 대화 신고가 아니면 `null` — 「대화 근거 없음」 */
   readonly snapshot: Snapshot | null;
+  /** 처리 버전 — 처분 이력 줄 수. 처분 폼이 함께 낸다(ADR 0188) */
+  readonly version: number;
+  /** 처분 이력 — 최근 것부터, 지금 결과까지 */
+  readonly reviewLog: readonly ReviewLogLine[];
+  /** 이 신고의 이용 정지 결정을 바꿨는데 그 계정이 아직 정지면 그 자리 — 해제는 회원 화면에서(G-111 ③) */
+  readonly heldSuspension: Side | null;
 };
 
 /**
@@ -219,5 +236,40 @@ export async function operatorReport(
               })),
             ),
           },
+    version: row.review_version ?? 0,
+    reviewLog: reviewLogOf(row.review_log ?? null),
+    heldSuspension: sideOf(row.held_suspension_side ?? null),
   });
+}
+
+/** 대상 회원 요약의 한 계정 — 처분 이력 최근 셋과 함께 */
+export type PartySummary = Party & { readonly recent: readonly SanctionLine[] };
+
+/**
+ * 신고 상세의 **대상 회원 요약** — 두 계정의 지금 상태 · 운영자 계정인가 · 현재 신고 기준 최근 12개월 경고 수 · 처분 이력 최근 셋.
+ * 처분 폼의 「이번이 N회째」와 정지 거절의 까닭이 이것을 읽는다. 상세의 부속이라 못 읽으면 그 칸만 비운다(`SkippableRead`).
+ * 거절(`42501`)은 상세 문이 이미 404 로 받으므로 여기서는 못 읽은 것으로만 낸다.
+ */
+export async function reportParties(reportId: string): Promise<SkippableRead<readonly PartySummary[]>> {
+  const supabase = await supabaseOnServer();
+  const answer = await supabase.rpc('operator_report_target', { p_report_id: reportId });
+  if (answer.error) return unread(answer.error, 'operator_report_target');
+  return read(
+    (answer.data ?? []).flatMap((row): PartySummary[] => {
+      const side = sideOf(row.side ?? null);
+      if (side === null) return [];
+      return [
+        {
+          side,
+          userId: row.user_id,
+          nickname: row.nickname ?? null,
+          status: row.status ?? null,
+          isOperator: row.is_operator === true,
+          warnings12m: row.warnings_12m ?? 0,
+          warnedHere: row.warned_here === true,
+          recent: sanctionLinesOf(row.recent ?? null),
+        },
+      ];
+    }),
+  );
 }

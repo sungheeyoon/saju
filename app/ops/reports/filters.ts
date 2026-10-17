@@ -33,7 +33,13 @@ export type ReportFilters = {
   readonly page: number;
 };
 
-export const NO_FILTERS: ReportFilters = { review: 'all', reason: null, evidence: 'all', ref: null, page: 1 };
+/**
+ * 처리 상태를 안 고른 주소의 처리 상태 — 처리 필요(급한 순)다(G-111-6). 안내번호로 찾을 때만 전체다 — 안내번호는 경고로 처리를 마친
+ * 신고에 붙으므로, 처리 필요로 거르면 이의 제기 메일의 번호가 안 잡힌다.
+ */
+const defaultReview = (ref: string | null): ReviewFilter => (ref === null ? 'open' : 'all');
+
+export const NO_FILTERS: ReportFilters = { review: 'open', reason: null, evidence: 'all', ref: null, page: 1 };
 
 /**
  * 쪽의 윗끝 — 주소에 아무 수나 적어 DB 에 큰 `offset` 을 보내지 않게. 한 쪽이 30건이니
@@ -62,11 +68,12 @@ export function filtersOf(params: SearchParams): ReportFilters {
   const review = one(params.review);
   const evidence = one(params.evidence);
   const page = Number(one(params.page));
+  const ref = refOf(one(params.ref));
   return {
-    review: REVIEWS.find((known) => known === review) ?? 'all',
+    review: REVIEWS.find((known) => known === review) ?? defaultReview(ref),
     reason: reasonOf(one(params.reason)),
     evidence: EVIDENCES.find((known) => known === evidence) ?? 'all',
-    ref: refOf(one(params.ref)),
+    ref,
     page: Number.isInteger(page) && page >= 1 && page <= LAST_PAGE ? page : 1,
   };
 }
@@ -78,7 +85,7 @@ export function filtersOf(params: SearchParams): ReportFilters {
 export function hrefOf(filters: ReportFilters, change: Partial<ReportFilters>): string {
   const next = { ...filters, page: 1, ...change };
   const query = new URLSearchParams();
-  if (next.review !== 'all') query.set('review', next.review);
+  if (next.review !== defaultReview(next.ref)) query.set('review', next.review);
   if (next.reason !== null) query.set('reason', next.reason);
   if (next.evidence !== 'all') query.set('evidence', next.evidence);
   if (next.ref !== null) query.set('ref', next.ref);
@@ -87,7 +94,10 @@ export function hrefOf(filters: ReportFilters, change: Partial<ReportFilters>): 
   return said === '' ? '/ops/reports' : `/ops/reports?${said}`;
 }
 
-/** 목록 문의 인자 — 이름은 마이그레이션의 것이다(`operator_reports`). `p_reviewed` 는 「처리 완료인가」다 */
+/**
+ * 목록 문의 인자 — 이름은 마이그레이션의 것이다(`operator_reports`). `p_reviewed` 는 「처리 완료인가」다. 처리 필요는 급한 순
+ * (괴롭힘 · 위협 → 기한 지남 → 접수가 오래된 순, G-111-6), 나머지는 최신 순이다 — 차례는 DB 가 짓는다.
+ */
 export function argsOf(filters: ReportFilters) {
   return {
     p_reviewed: filters.review === 'all' ? null : filters.review === 'done',
@@ -95,11 +105,19 @@ export function argsOf(filters: ReportFilters) {
     p_has_snapshot: filters.evidence === 'all' ? null : filters.evidence === 'chat',
     p_page: filters.page - 1,
     p_warning_ref: filters.ref,
+    p_order: filters.review === 'open' ? 'urgent' : 'recent',
   };
 }
 
+/** 처리 필요(급한 순)로 읽는가 — 목록 머리 · 빈 상태의 말이 갈린다 */
+export const isUrgentList = (filters: ReportFilters): boolean => filters.review === 'open';
+
+/** 기본(처리 필요)에서 벗어나게 거른 것이 있나 — 쪽만 옮긴 것은 아니다 */
 export const isFiltered = (filters: ReportFilters): boolean =>
-  filters.review !== 'all' || filters.reason !== null || filters.evidence !== 'all' || filters.ref !== null;
+  filters.review !== defaultReview(filters.ref) ||
+  filters.reason !== null ||
+  filters.evidence !== 'all' ||
+  filters.ref !== null;
 
 /**
  * 신고 id 로 읽을 수 있는 모양인가 — **DB 에 묻기 전에** 가른다.
@@ -111,7 +129,8 @@ export const isFiltered = (filters: ReportFilters): boolean =>
 export const isReportId = (value: string): boolean => UUID.test(value);
 
 /**
- * 접힌 거르기 판(폰)의 머리에 서는 **지금 거른 것** — 판을 안 열어도 무엇을 보고 있는지 안다. 걸러지지 않았으면 「전체」.
+ * 접힌 거르기 판(폰)의 머리에 서는 **지금 거른 것** — 판을 안 열어도 무엇을 보고 있는지 안다. 아무것도 안 걸렀으면(처리 상태도
+ * 전체) 「전체」.
  * 글자는 판 안의 칸과 같은 것을 쓴다.
  */
 export function filterSummary(filters: ReportFilters): string {
