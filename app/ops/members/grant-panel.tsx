@@ -18,6 +18,7 @@ import {
   NOTE_MAX,
   NOT_REFUNDABLE,
   REVOKE_REASONS,
+  grantBlocked,
   grantPlan,
   memberLabel,
   revokeBlocked,
@@ -46,6 +47,7 @@ export function GrantPanel({
   ledger,
   reserved,
   reportId,
+  status,
 }: {
   readonly userId: string;
   readonly nickname: string | null;
@@ -54,6 +56,8 @@ export function GrantPanel({
   readonly reserved: number;
   /** 신고 화면에서 넘어왔으면 그 신고 — 지급의 「관련 신고」로 따라간다 */
   readonly reportId: string | null;
+  /** 계정 상태 — 탈퇴 대기면 지급 단추를 잠근다(G-111 R-7) */
+  readonly status: string;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<GrantKind | null>(null);
@@ -69,6 +73,7 @@ export function GrantPanel({
   const ids = useId();
 
   const blocked = revokeBlocked(ledger.revocable, reserved);
+  const grantShut = grantBlocked(status);
   const most = mode === 'revoke' ? ledger.revocable : GRANT_MAX;
   const chosen = Math.min(Math.max(credits, 1), Math.max(most, 1));
   const reasons = mode === 'revoke' ? REVOKE_REASONS : GRANT_REASONS;
@@ -130,7 +135,12 @@ export function GrantPanel({
   return (
     <div className="flex flex-col gap-4 border-t border-border pt-4">
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => openForm('grant')} disabled={saving} className={BUTTON_PRIMARY}>
+        <button
+          type="button"
+          onClick={() => openForm('grant')}
+          disabled={saving || grantShut !== null}
+          className={BUTTON_PRIMARY}
+        >
           무상 풀이권 지급
         </button>
         <button
@@ -143,6 +153,7 @@ export function GrantPanel({
         </button>
         <DoneNote>{saving ? '처리 중…' : done.note}</DoneNote>
       </div>
+      {grantShut !== null && <p className="text-xs text-secondary">{grantShut}</p>}
       {blocked !== null && <p className="text-xs text-secondary">{blocked}</p>}
 
       {mode !== null && input !== null && (

@@ -6,7 +6,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { UUID } from '../../uuid';
-import { noteDenial } from '../denial';
+import { noteWriteRefusal } from '../denial';
 import { GRANT_MAX, NOTE_MAX, isGrantReason, type GrantRequest } from './credit-grant';
 import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from './suspension';
 
@@ -14,8 +14,9 @@ import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from 
  * 무상 풀이권 지급 · 회수의 누름 (G-111 ①, ADR 0187).
  *
  * 내는 값은 확인창에 보인 고정본이다(`grantPlan`). 판정 — 운영자인가 · 상한 · 갈래 · 메모 · 관련 신고 · 회수할 수 있는 수 · 읽은
- * 버전 · 같은 요청 번호 — 은 전부 DB 의 문 안에 있다. 여기서 먼저 거르는 것은 문을 부를 것도 없는 모양뿐이다. 거절(`42501`)은
- * 그 트랜잭션의 접속기록이 되감기므로 `noteDenial` 이 따로 적는다. 성공하면 지금 화면을 서버가 다시 읽어 그린다 — 화면이 셈한
+ * 버전 · 같은 요청 번호 — 은 전부 DB 의 문 안에 있다. 여기서 먼저 거르는 것은 문을 부를 것도 없는 모양뿐이다. 거절은 그
+ * 트랜잭션의 접속기록이 되감기므로 `noteWriteRefusal` 이 따로 적는다 — 운영자가 아니면(`42501`) `denied`, 그 밖의 거절과 여기서
+ * 거른 모양은 `refused`(G-111 R-4). 성공하면 지금 화면을 서버가 다시 읽어 그린다 — 화면이 셈한
  * 값이 아니라 DB 의 새 장부 · 이력이 선다.
  */
 
@@ -31,10 +32,14 @@ const shapeProblem = (input: GrantRequest): string | null => {
 };
 
 export async function bookCreditGrant(input: GrantRequest): Promise<Answer> {
+  const action = input.kind === 'grant' ? 'credits.grant' : 'credits.revoke';
   const problem = shapeProblem(input);
-  if (problem !== null) return { ok: false, message: problem };
-
   const supabase = await supabaseOnServer();
+  if (problem !== null) {
+    await noteWriteRefusal(supabase, action, '22023', { userId: input.userId });
+    return { ok: false, message: problem };
+  }
+
   const { data, error } =
     input.kind === 'grant'
       ? await supabase.rpc(
@@ -63,7 +68,7 @@ export async function bookCreditGrant(input: GrantRequest): Promise<Answer> {
 
   const where = input.kind === 'grant' ? 'operator_grant_reading_credits' : 'operator_revoke_reading_credits';
   if (error) {
-    if (error.code === '42501') await noteDenial(supabase, input.kind === 'grant' ? 'credits.grant' : 'credits.revoke');
+    await noteWriteRefusal(supabase, action, error.code, { userId: input.userId, reportId: input.reportId ?? undefined });
     return { ok: false, message: userFacingDbMessage(error, where) };
   }
 
@@ -89,10 +94,14 @@ const statusProblem = (input: StatusRequest): string | null => {
 };
 
 export async function changeMemberStatus(input: StatusRequest): Promise<Answer> {
+  const action = input.kind === 'unsuspend' ? 'members.unsuspend' : 'members.suspend';
   const problem = statusProblem(input);
-  if (problem !== null) return { ok: false, message: problem };
-
   const supabase = await supabaseOnServer();
+  if (problem !== null) {
+    await noteWriteRefusal(supabase, action, '22023', { userId: input.userId });
+    return { ok: false, message: problem };
+  }
+
   const door = input.kind === 'suspend' ? 'operator_suspend_member' : 'operator_unsuspend_member';
   const { data, error } = await supabase.rpc(
     door,
@@ -109,7 +118,7 @@ export async function changeMemberStatus(input: StatusRequest): Promise<Answer> 
   refresh('member-status-changed');
 
   if (error) {
-    if (error.code === '42501') await noteDenial(supabase, input.kind === 'suspend' ? 'members.suspend' : 'members.unsuspend');
+    await noteWriteRefusal(supabase, action, error.code, { userId: input.userId });
     return { ok: false, message: userFacingDbMessage(error, door) };
   }
   return { ok: true, replayed: data?.[0]?.replayed === true };

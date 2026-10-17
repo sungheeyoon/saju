@@ -10,6 +10,7 @@ import {
   isGrantReason,
   memberLabel,
   nextCursor,
+  grantBlocked,
   revokeBlocked,
   samePlan,
   type HistoryLine,
@@ -98,6 +99,12 @@ describe('갈래 · 대상 · 회수 잠금', () => {
   it('대상은 닉네임과 계정 id 앞 8자', () => {
     expect(memberLabel('지영', member)).toBe('지영 · a1b2c3d4');
     expect(memberLabel(null, member)).toBe('닉네임 없음 · a1b2c3d4');
+  });
+
+  it('탈퇴 대기 계정에는 지급 단추를 잠그고 까닭 한 줄 — 정지 · 이용 중은 연다', () => {
+    expect(grantBlocked('deletion_requested')).toBe('탈퇴 대기 계정이라 지급할 수 없습니다.');
+    expect(grantBlocked('suspended')).toBeNull();
+    expect(grantBlocked('active')).toBeNull();
   });
 
   it('회수할 것이 없으면 까닭 한 줄 — 예약 중이 있으면 풀린 뒤라고 말한다', () => {

@@ -78,7 +78,7 @@ select throws_ok(
   format($$select pg_temp.review(%L, 'warning', %L)$$, (select warned from cases), (select operator from folks)),
   '23514', null, '제재 대상은 신고의 두 계정 중 하나다');
 select throws_ok(
-  format($$update public.report set reviewed_at = now(), reviewed_by = %1$L, review_outcome = 'warning',
+  format($$update public.report set reviewed_at = now(), reviewed_by = %1$L, review_outcome = 'warning', warned_at = now(),
              sanctioned_user_id = %2$L where id = %3$L$$,
          (select operator from folks), (select third from folks), (select warned from cases)),
   '23514', null, '표를 직접 고쳐도 경고에 실행한 운영자가 없으면 거절한다');

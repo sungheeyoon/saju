@@ -137,6 +137,14 @@ export const samePlan = (plan: GrantPlan | null, input: Omit<GrantRequest, 'seen
 export const afterFailure = (message: string, unreached: string): 'keep' | 'discard' =>
   message === unreached ? 'keep' : 'discard';
 
+/**
+ * 지급 단추를 잠글 까닭 — 탈퇴 대기 계정이면 한 줄(DB 의 거절과 같은 말), 아니면 `null`. 정지된 계정에는 지급한다(보상, G-111 R-7).
+ * 최종으로 막는 것은 DB 의 공통 함수다.
+ */
+export function grantBlocked(status: string): string | null {
+  return status === 'deletion_requested' ? '탈퇴 대기 계정이라 지급할 수 없습니다.' : null;
+}
+
 /** 회수 단추를 잠글 까닭 — 회수할 것이 없으면 한 줄, 있으면 `null` */
 export function revokeBlocked(revocable: number, reserved: number): string | null {
   if (revocable > 0) return null;
