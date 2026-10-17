@@ -14,7 +14,7 @@
 --      경고가 그 수에 들었는가
 --   9. **접속기록** — 처분 · 대상 요약마다 한 줄, 판단 근거는 안 적는다
 begin;
-select plan(44);
+select plan(47);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -315,6 +315,27 @@ select is(
    where c.id = (select id from lifted)),
   array['active', 'mistake', 'true'],
   '공통 함수로 푼 해제는 실행자 · 사유 갈래를 남긴다');
+
+-- 이력은 고치지 않는다 — 결과를 바꾸면 새 줄이 쌓이고, 앞 줄은 손대지 못한다
+select throws_ok(
+  format('update public.report_review_entry set note = %L where report_id = %L', '고쳐 쓴 근거', (select runbook from cases)),
+  '55000', null, '처분 이력 줄은 고치지 못한다');
+select throws_ok(
+  format('update public.account_status_change set reason = %L where id = %L', 'appeal', (select id from lifted)),
+  '55000', null, '계정 상태 이력 줄은 고치지 못한다');
+
+-- 이용자가 설정 값을 실어도 제 탈퇴 신청을 운영자의 일로 적지 못한다
+set local role authenticated;
+select pg_temp.acting((select stranger from folks));
+select set_config('saju.account_status_change', jsonb_build_object(
+  'id', gen_random_uuid(), 'user_id', f.stranger, 'from', 'active', 'to', 'deletion_requested', 'reason', 'mistake',
+  'actor', f.operator)::text, true) from folks f;
+select public.request_account_deletion();
+reset role;
+select is(
+  (select array[c.reason, (c.actor = f.stranger)::text] from pg_temp.changes((select stranger from folks)) c, folks f),
+  array['deletion_request', 'true'],
+  '이용자가 실은 설정 값은 받지 않는다 — 탈퇴 신청은 제 갈래 · 제 이름으로 적힌다');
 
 select * from finish();
 rollback;
