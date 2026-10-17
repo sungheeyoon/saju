@@ -3689,7 +3689,13 @@ export type Database = {
         }[]
       }
       operator_member_credit_history: {
-        Args: { p_filter: string; p_limit: number; p_user_id: string }
+        Args: {
+          p_before_at?: string
+          p_before_key?: string
+          p_filter: string
+          p_limit: number
+          p_user_id: string
+        }
         Returns: {
           actor_nickname: string
           at: string
@@ -3697,6 +3703,7 @@ export type Database = {
           cause: string
           delta: number
           kind: string
+          line_key: string
           note: string
           order_number: string
           reason: string

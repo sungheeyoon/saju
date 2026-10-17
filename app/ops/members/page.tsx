@@ -19,14 +19,13 @@ import { StatusPanel } from './status-panel';
 import { memberCreditHistory, memberGrantLedger, type MemberGrantLedger, type MemberHistory } from './credits';
 import {
   HISTORY_FILTERS,
-  HISTORY_MAX,
-  HISTORY_PAGE,
   historyAmount,
   historyCause,
+  historyCursorOf,
   historyFilterOf,
   historyKindLabel,
-  historyLimitOf,
   sourceLabel,
+  type HistoryCursor,
   type HistoryFilter,
   type HistoryLine,
 } from './credit-grant';
@@ -69,13 +68,13 @@ export default async function OperatorMembersPage({
 
   const member = found.ok ? found.value?.member ?? null : null;
   const filter = historyFilterOf(params.history);
-  const limit = historyLimitOf(params.n);
+  const before = historyCursorOf(params.before, params.key);
   const [ledger, history, sanctions] =
     member === null
       ? [null, null, null]
       : await Promise.all([
           memberGrantLedger(member.userId),
-          memberCreditHistory(member.userId, filter, limit),
+          memberCreditHistory(member.userId, filter, before),
           memberSanctions(member.userId),
         ]);
   if (ledger === DENIED || history === DENIED || sanctions === DENIED) notFound();
@@ -123,7 +122,7 @@ export default async function OperatorMembersPage({
           <Account member={found.value.member} sanctions={sanctions} />
           <Credits member={found.value.member} ledger={ledger} reportId={reportId} />
           {history !== null && (
-            <History userId={found.value.member.userId} history={history} filter={filter} limit={limit} />
+            <History userId={found.value.member.userId} history={history} filter={filter} paged={before !== null} />
           )}
           {sanctions !== null && <Sanctions sanctions={sanctions} />}
         </>
@@ -257,10 +256,13 @@ const reportIdOf = (value: string | string[] | undefined): string | null => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text) ? text.toLowerCase() : null;
 };
 
-const historyHref = (userId: string, filter: HistoryFilter, limit: number = HISTORY_PAGE): string => {
+const historyHref = (userId: string, filter: HistoryFilter, before: HistoryCursor | null = null): string => {
   const params = new URLSearchParams({ q: userId });
   if (filter !== 'all') params.set('history', filter);
-  if (limit > HISTORY_PAGE) params.set('n', String(limit));
+  if (before !== null) {
+    params.set('before', before.at);
+    params.set('key', before.key);
+  }
   return `/ops/members?${params.toString()}#member-history`;
 };
 
@@ -268,17 +270,21 @@ const historyHref = (userId: string, filter: HistoryFilter, limit: number = HIST
  * 풀이권 이력 — 구매 · 환불 · 사용 · 지급 · 회수를 한 목록에 최근 것부터(G-111 ①). 줄마다 종류 · 출처 · 수 · 증감 사유.
  * 수는 늘고 준 것만 부호가 있다 — 예약 · 반환은 차감이 아니다. 사용 줄은 무엇을 풀었는지 적지 않는다(ADR 0185 의 2). 구매 ·
  * 환불 줄은 주문 번호로 주문 화면에 간다 — 금액은 거기서만.
+ *
+ * 한 쪽은 30줄이고 「더 보기」는 이 쪽의 마지막 줄 다음 쪽이다(커서) — 위 끝 없이 첫 줄까지 거슬러 읽는다. 앞 쪽에서 왔으면
+ * 「처음으로」가 맨 앞 쪽으로 돌아간다.
  */
 function History({
   userId,
   history,
   filter,
-  limit,
+  paged,
 }: {
   userId: string;
   history: SkippableRead<MemberHistory>;
   filter: HistoryFilter;
-  limit: number;
+  /** 커서로 연 쪽인가 — 맨 앞 쪽이 아니다 */
+  paged: boolean;
 }) {
   return (
     <section aria-labelledby="member-history" className={`${CARD} flex flex-col gap-3`}>
@@ -308,19 +314,31 @@ function History({
       ) : (
         <>
           <ul className="flex flex-col divide-y divide-border">
-            {history.value.lines.map((line, index) => (
-              <HistoryRow key={`${line.at}-${line.kind}-${index}`} line={line} />
+            {history.value.lines.map((line) => (
+              <HistoryRow key={line.key} line={line} />
             ))}
           </ul>
-          {history.value.more && limit < HISTORY_MAX && (
+        </>
+      )}
+      {history.ok && (history.value.next !== null || paged) && (
+        <nav aria-label="이력 쪽" className="flex flex-wrap gap-x-4 gap-y-2">
+          {history.value.next !== null && (
             <Link
-              href={historyHref(userId, filter, limit + HISTORY_PAGE)}
-              className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline"
+              href={historyHref(userId, filter, history.value.next)}
+              className="text-sm font-semibold text-accent underline-offset-4 hover:underline"
             >
               더 보기
             </Link>
           )}
-        </>
+          {paged && (
+            <Link
+              href={historyHref(userId, filter)}
+              className="text-sm font-semibold text-secondary underline-offset-4 hover:underline"
+            >
+              처음으로
+            </Link>
+          )}
+        </nav>
       )}
     </section>
   );

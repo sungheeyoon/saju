@@ -5,10 +5,11 @@ import {
   grantPlan,
   historyAmount,
   historyCause,
+  historyCursorOf,
   historyFilterOf,
-  historyLimitOf,
   isGrantReason,
   memberLabel,
+  nextCursor,
   revokeBlocked,
   samePlan,
   type HistoryLine,
@@ -108,6 +109,7 @@ describe('갈래 · 대상 · 회수 잠금', () => {
 
 describe('이력의 말', () => {
   const line = (over: Partial<HistoryLine>): HistoryLine => ({
+    key: 'use:1',
     at: '2026-10-17T00:00:00Z',
     kind: 'use',
     source: 'free',
@@ -159,14 +161,29 @@ describe('이력의 말', () => {
     expect(historyCause(line({ kind: 'purchase', delta: 5 }))).toBe('구매');
   });
 
-  it('거르기 · 줄 수는 주소에서 읽고, 모르는 값은 기본으로', () => {
+  it('거르기는 주소에서 읽고, 모르는 값은 기본으로', () => {
     expect(historyFilterOf('grants')).toBe('grants');
     expect(historyFilterOf('money')).toBe('all');
     expect(historyFilterOf(undefined)).toBe('all');
-    expect(historyLimitOf(undefined)).toBe(30);
-    expect(historyLimitOf('60')).toBe(60);
-    expect(historyLimitOf('45')).toBe(60);
-    expect(historyLimitOf('9999')).toBe(300);
-    expect(historyLimitOf('abc')).toBe(30);
+  });
+
+  it('커서는 시각 · 열쇠가 다 맞을 때만 읽고, DB 의 시각 글자를 마이크로초까지 그대로 든다', () => {
+    const at = '2026-10-17T01:02:03.123456+00:00';
+    const key = 'grant:a1b2c3d4-0000-4000-8000-000000000000';
+    expect(historyCursorOf(at, key)).toEqual({ at, key });
+    expect(historyCursorOf(at, 'use:42')).toEqual({ at, key: 'use:42' });
+    expect(historyCursorOf(undefined, key)).toBeNull();
+    expect(historyCursorOf(at, undefined)).toBeNull();
+    expect(historyCursorOf('어제', key)).toBeNull();
+    expect(historyCursorOf(at, 'money:1')).toBeNull();
+    expect(historyCursorOf(at, "grant:1' or 1=1")).toBeNull();
+  });
+
+  it('다음 쪽의 커서는 더 있을 때 이 쪽의 마지막 줄이다 — 위 끝이 없다', () => {
+    // 300 줄째(열 번째 쪽의 끝)에서도 더 있으면 다음 쪽이 선다 — 옛 「더 보기」는 300 에서 멈췄다
+    const tenth = Array.from({ length: 30 }, (_, i) => line({ key: `grant:${300 - i}`, at: `2026-01-01T00:${String(i).padStart(2, '0')}:00Z` }));
+    expect(nextCursor(tenth, true)).toEqual({ at: '2026-01-01T00:29:00Z', key: 'grant:271' });
+    expect(nextCursor(tenth, false)).toBeNull();
+    expect(nextCursor([], true)).toBeNull();
   });
 });

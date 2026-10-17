@@ -149,6 +149,12 @@ describe('정지 화면의 본문 — 운영자 확정 문구 그대로다 (G-11
     expect(leaving.detail).not.toContain('이용제한');
   });
 
+  it('탈퇴 대기의 본문은 3일 안에 지워진다고 말한다 — 운영자 확정 2026-10-17, 크론이 신청 하루 뒤부터 처분한다', () => {
+    expect(haltedText('deletion_requested', EMAIL)?.detail).toBe(
+      '탈퇴 신청이 접수되었어요. 인연 찾기 노출과 새 요청·풀이 생성은 멈췄고, 저장된 자료는 3일 안에 지워져요. 되돌리려면 운영자에게 알려 주세요.',
+    );
+  });
+
   it('정지를 읽은 상태는 그 값을 그대로 들고 간다', () => {
     expect(
       accountStateOf({ ok: true, account: { status: 'suspended', suspension: { nickname: '하늘', reason: 'payment' } } }),
