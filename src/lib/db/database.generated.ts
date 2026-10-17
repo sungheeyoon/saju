@@ -2049,6 +2049,7 @@ export type Database = {
           reviewed_by: string | null
           sanctioned_by: string | null
           sanctioned_user_id: string | null
+          warned_at: string | null
           warning_acknowledged_at: string | null
           warning_category: string | null
           warning_email_result: string | null
@@ -2068,6 +2069,7 @@ export type Database = {
           reviewed_by?: string | null
           sanctioned_by?: string | null
           sanctioned_user_id?: string | null
+          warned_at?: string | null
           warning_acknowledged_at?: string | null
           warning_category?: string | null
           warning_email_result?: string | null
@@ -2087,6 +2089,7 @@ export type Database = {
           reviewed_by?: string | null
           sanctioned_by?: string | null
           sanctioned_user_id?: string | null
+          warned_at?: string | null
           warning_acknowledged_at?: string | null
           warning_category?: string | null
           warning_email_result?: string | null
@@ -3575,6 +3578,16 @@ export type Database = {
         Args: { p_action: string; p_report_id?: string }
         Returns: undefined
       }
+      note_operator_refusal: {
+        Args: {
+          p_action: string
+          p_code: string
+          p_order_id?: string
+          p_report_id?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       note_reading_checks: {
         Args: { p_findings: Json; p_run_id: string }
         Returns: boolean
@@ -4608,6 +4621,7 @@ export type Database = {
       wake_push_dispatch_when_due: { Args: never; Returns: boolean }
       wake_reading_recovery: { Args: never; Returns: undefined }
       watch_cron: { Args: never; Returns: number }
+      watch_reading_credit_grants: { Args: never; Returns: number }
       write_person_input: {
         Args: {
           p_actor: string

@@ -123,13 +123,14 @@ select is(
 
 -- ── 4. 내 것 · 확인 전 · 가장 오래된 하나 ─────────────────────────────────────
 
-update public.report set reviewed_at = reviewed_at - interval '1 day' where id = (select first from cases);
+update public.report set reviewed_at = reviewed_at - interval '1 day', warned_at = warned_at - interval '1 day'
+where id = (select first from cases);
 
 select is((select array[warning_ref, category] from pg_temp.notice_as((select warned from folks))),
   array[(select first from refs), 'harassment'],
   '가장 오래된 안 읽은 경고 하나가 선다');
 select is((select warned_on from pg_temp.notice_as((select warned from folks))),
-  (select (reviewed_at at time zone 'Asia/Seoul')::date from public.report where id = (select first from cases)),
+  (select (warned_at at time zone 'Asia/Seoul')::date from public.report where id = (select first from cases)),
   '날은 경고를 적은 날(한국 날짜)이다');
 select is((select count(*)::integer from pg_temp.notice_as((select warned from folks))), 1,
   '여럿이어도 한 번에 하나다');
@@ -166,7 +167,8 @@ select is((select count(*)::integer from pg_temp.notice_as((select suspended fro
 -- ── 6. 이의 제기 인정 ────────────────────────────────────────────────────────
 
 select pg_temp.review((select appealed from cases), 'warning', (select warned from folks));
-update public.report set reviewed_at = reviewed_at - interval '2 days' where id = (select appealed from cases);
+update public.report set reviewed_at = reviewed_at - interval '2 days', warned_at = warned_at - interval '2 days'
+where id = (select appealed from cases);
 select is((select category from pg_temp.notice_as((select warned from folks))), 'other',
   '나중에 적은 경고라도 경고한 날이 앞서면 먼저 선다');
 

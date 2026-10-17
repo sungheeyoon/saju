@@ -213,7 +213,7 @@ select set_eq(
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.provolatile = 'v'
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
-      and p.proname not like 'operator\_%' and p.proname <> 'note_operator_denial'$$,
+      and p.proname not like 'operator\_%' and p.proname not in ('note_operator_denial', 'note_operator_refusal')$$,
   $$select name from doors$$,
   '로그인한 사람이 부를 수 있는 쓰기 문이 이 파일의 목록과 같다 — 새 문은 여기에 한 줄을 적는다');
 

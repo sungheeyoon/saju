@@ -243,6 +243,7 @@ function Credits({
             ledger={ledger.value}
             reserved={ledger.value.reserved}
             reportId={reportId}
+            status={member.status}
           />
         </>
       )}

@@ -19,6 +19,10 @@
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
 | `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
 
+**지급 장부의 대조도 잡이 스스로 알린다** — `credit-grant-mismatch:<계정 id>`(크론 `credit-grant-watch`, 매일 05:41 UTC, G-111 R-8 ·
+ADR 0191). 무상 지급 장부의 합과 예외 몫(`reading_credit_grant.extra`)이 다른 계정마다 하루 한 줄이고 아무것도 고치지 않는다. 할 일은
+`docs/ops/runbook/credits.md` 「무상 풀이권 지급 · 회수」의 대조 절.
+
 재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached` · 로그인 전 사주 문단의 `taste-budget-warning` · `taste-budget-reached`(`docs/ops/runbook/ai.md` 「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」).
 
 **서버 오류는 앱이 알린다** — `request-error:<자리>:<라우트 파일>`(자리는 `render` · `route` · `action` · `proxy`). 앱의
@@ -58,7 +62,8 @@ group by 1, 2 order by 1, 2;
 찍는다. 2026-09-30 에 마이그레이션에서 센 것은 여덟이다 — `reading-recovery`(1분) · `match-request-expiry`(1분) ·
 `account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
 `cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, `docs/ops/runbook/security.md` 「반출 — 매일 S3」). 2026-10-03 에
-`taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다.
+`taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다. 2026-10-17 에 `credit-grant-watch`(매일 05:41 UTC,
+무상 지급 장부의 대조, ADR 0191 — `20261219090000`)가 더해졌다.
 Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
 ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**

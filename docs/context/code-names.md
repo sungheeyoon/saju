@@ -96,6 +96,9 @@
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | 신고 처분 · 계정 상태 이력 | `report_review_entry` · `write_report_review` · `operator_review_report` · `operator_report_target` · `report_is_overdue` · `account_status_change` · `change_account_status` · `writeReview` · `reviewPlan` · `ReviewPanel` · `report-reviewed` | 표 · 함수 · `app/ops/reports/` (ADR 0188) |
 | 회원 정지 · 해제 · 처분 이력 | `operator_suspend_member` · `operator_unsuspend_member` · `screen_change_member_status` · `operator_member_sanctions` · `changeMemberStatus` · `statusPlan` · `StatusPanel` · `memberSanctions` · `member-status-changed` | 함수 · `app/ops/members/` (ADR 0189) |
+| 경고한 때 — 12개월 경고 셈의 기준 | `warned_at`(`report` · `retention.report`) | 칸 (ADR 0191) |
+| 거절된 운영자 쓰기 | `refused`(접속기록의 결과) · `note_operator_refusal` · `noteWriteRefusal` | 칸의 값 · 함수 · `app/ops/denial.ts` (ADR 0191) |
+| 지급 장부 대조 | `watch_reading_credit_grants` · `credit-grant-watch` · `credit-grant-mismatch:<계정 id>` | 함수 · 크론 · 알림 종류 (ADR 0191) |
 | 내 정지 — 갈래 · 소명 경로 | `my_suspension` · `Suspension` · `suspendedDetail` · `haltedText` | 함수 · `src/lib/account` · `app/me/account.ts` (ADR 0190) |
 | 무상 풀이권 지급 장부 | `reading_credit_grant_entry` · `book_reading_credit_grant` · `operator_grant_reading_credits` · `operator_revoke_reading_credits` · `operator_member_grant_ledger` · `operator_member_credit_history` · `bookCreditGrant` · `grantPlan` · `GrantPanel` · `credits_granted` · `credits_revoked` | 표 · 함수 · `app/ops/members/` · 소식 갈래 |
 | 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |

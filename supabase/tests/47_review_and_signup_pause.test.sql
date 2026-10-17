@@ -49,7 +49,7 @@ select throws_ok(
   '23514', null, '이용 정지는 받은 쪽을 적어야 한다');
 
 select throws_ok(
-  format($$update public.report set reviewed_at = now(), reviewed_by = %1$L, review_outcome = 'warning',
+  format($$update public.report set reviewed_at = now(), reviewed_by = %1$L, review_outcome = 'warning', warned_at = now(),
              sanctioned_user_id = %2$L, sanctioned_by = %1$L where id = %3$L$$,
          (select operator from folks), (select third from folks), (select judged from cases)),
   '23514', null, '제재는 신고의 두 계정 중 하나에만 떨어진다');

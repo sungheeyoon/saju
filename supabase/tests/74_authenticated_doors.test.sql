@@ -68,6 +68,7 @@ select set_eq(
            ('my_warning_notice()'),
            ('nickname_is_available(p_nickname text)'),
            ('note_operator_denial(p_action text, p_report_id uuid)'),
+           ('note_operator_refusal(p_action text, p_code text, p_report_id uuid, p_user_id uuid, p_order_id uuid)'),
            ('open_reading_order(p_bundle_credits integer, p_provider text, p_idempotency_key text)'),
            ('operator_audit_export_status()'),
            ('operator_book_reading_refund(p_hold_id uuid, p_provider_refund_id text)'),

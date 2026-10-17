@@ -93,8 +93,10 @@ select public.review_report((select old from cases), (select operator from folks
 select public.review_report((select calm from cases), (select operator from folks), 'no_action', null, null);
 select public.review_report((select others from cases), (select operator from folks), 'warning', null, (select other from folks));
 select public.review_report((select counter from cases), (select operator from folks), 'warning', null, (select member from folks));
-update public.report set reviewed_at = now() - interval '13 months' where id = (select old from cases);
-update public.report set reviewed_at = now() - interval '1 month' where id = (select counter from cases);
+update public.report set reviewed_at = now() - interval '13 months', warned_at = now() - interval '13 months'
+where id = (select old from cases);
+update public.report set reviewed_at = now() - interval '1 month', warned_at = now() - interval '1 month'
+where id = (select counter from cases);
 
 -- ── 1. 찾는다 ────────────────────────────────────────────────────────────────
 

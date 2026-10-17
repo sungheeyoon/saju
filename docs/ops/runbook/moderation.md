@@ -27,7 +27,9 @@
 
 **계정 상태는 공통 함수(`change_account_status`)로만 바꾼다**(ADR 0188). 사유 갈래 · 메모 · 실행자가 계정 상태 이력
 (`account_status_change`)에 한 줄로 남는다. `app_user.status` 를 직접 UPDATE 하면 실행자 · 사유가 빈 이력 줄이 남고 장애
-알림이 한 줄 간다 — 쓰지 않는다. 함수가 지금 상태를 다시 재므로(이용 중인 계정만 정지, 정지인 계정만 해제, 운영자 계정은 정지
+알림이 한 줄 간다 — 쓰지 않는다. **DB 가 직접 UPDATE 를 막지는 않는다**(운영자 결정 2026-10-17, G-111 R-3 · ADR 0191) — 화면을
+못 쓸 때의 break-glass 를 열어 두고, 기록(이력 줄 · 알림 · 접속기록)으로 지킨다. 트리거를 끄면 그 기록도 빠진다 — 그것은 소유자만
+할 수 있고 `docs/ops/runbook/security.md` 「기록이 추가만 되는 것」의 한계와 같다. 함수가 지금 상태를 다시 재므로(이용 중인 계정만 정지, 정지인 계정만 해제, 운영자 계정은 정지
 거절) 아래 「SQL 실행 전 확인」의 `do` 블록 없이 한 문장으로 보낸다. 메모는 1 ~ 200자이고 이메일 · 실명 · 연락처는 적지
 않는다 — break-glass 면 대장 번호를 적는다.
 
@@ -221,7 +223,8 @@ order by count(*) desc;
    출생 정보를 스토킹 · 신상 파악에 쓰거나 개인정보 · 사진을 퍼뜨리는 것 · 다른 사람의 명의로 본인확인을 하거나 계정을 넘기는 것 ·
    만 19세 미만으로 보이는 정황(이용 자격, ADR 0101). 중대하면 앞선 경고가 없어도 `suspension` 으로 가고, 까닭을 판단 근거에 적는다
 2. **대상 계정의 최근 12개월 경고를 센다** — 두 표에서 UUID 로. 12개월보다 오래된 경고는 표에 남아도 셈에 안 든다(운영자 결정
-   2026-09-24). 신고한 사람이 떠나 옮겨진 신고(`retention.report`)의 경고도 대상의 것이다. 이메일 · 닉네임 · 판단 근거 · 본문을
+   2026-09-24). **12개월은 경고한 때(`warned_at`)부터다** — 처음 경고로 적은 때이고, 갈래만 고치거나 같은 경고를 다시 적어도 그대로다.
+   다른 계정으로 옮기면 옮긴 때가 그 계정의 경고한 때다(G-111 R-6, ADR 0191). `reviewed_at` 은 마지막으로 본 시각이라 셈에 안 쓴다. 신고한 사람이 떠나 옮겨진 신고(`retention.report`)의 경고도 대상의 것이다. 이메일 · 닉네임 · 판단 근거 · 본문을
    꺼내지 않으므로 보통 질의다(`--purpose "경고 셈 <신고 id 앞 8자>"`)
 3. **이번이 3회째 이상이면 이용 정지 결정을 검토한다.** 같은 일을 가리키는 신고 여럿에 적은 경고는 한 번으로 본다 — 날짜와 신고
    id 로 가른다. 검토 끝에 경고로 두는 것도 된다. 경고로 적으면 판단 근거에 「경고 N회째 — 정지 검토함」처럼 남긴다. **횟수는
@@ -230,16 +233,16 @@ order by count(*) desc;
 ```sql
 -- 대상 계정의 최근 12개월 경고 — 표 · 신고 id · 안내번호 · 갈래 · 경고한 때 · 이용자가 확인했는가. 판단 근거는 안 꺼낸다
 select '지금 계정' as 표, id as 신고, warning_ref as 안내번호, warning_category as 갈래,
-       reviewed_at at time zone 'Asia/Seoul' as 경고한_때, warning_acknowledged_at is not null as 확인함
+       warned_at at time zone 'Asia/Seoul' as 경고한_때, warning_acknowledged_at is not null as 확인함
 from public.report
 where review_outcome = 'warning' and sanctioned_user_id = '<대상 계정 UUID>'
-  and reviewed_at > now() - interval '12 months'
+  and warned_at > now() - interval '12 months'
 union all
 select '떠난 사람의 신고', report_id, warning_ref, warning_category,
-       reviewed_at at time zone 'Asia/Seoul', warning_acknowledged_at is not null
+       warned_at at time zone 'Asia/Seoul', warning_acknowledged_at is not null
 from retention.report
 where review_outcome = 'warning' and sanctioned_user_id = '<대상 계정 UUID>'
-  and reviewed_at > now() - interval '12 months'
+  and warned_at > now() - interval '12 months'
 order by 경고한_때;
 ```
 
@@ -273,7 +276,7 @@ where review_outcome = 'warning';
 
 ```sql
 -- 안내번호로 떠난 사람의 신고에서 찾는다 — 신고 id 와 경고한 때만
-select report_id, review_outcome, reviewed_at at time zone 'Asia/Seoul' as 경고한_때
+select report_id, review_outcome, warned_at at time zone 'Asia/Seoul' as 경고한_때
 from retention.report where warning_ref = upper('<안내번호>');
 ```
 
