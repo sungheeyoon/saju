@@ -123,7 +123,12 @@ export type Changed =
   /** 운영자가 환불을 확보 · 확정 · 준비 취소했다 — 주문 화면(`/ops/orders`)의 진행 상태 · 걷은 회차가 갈린다(ADR 0184) */
   | 'refund-moved'
   /** 운영자가 무상 풀이권을 지급 · 회수했다 — 회원 화면(`/ops/members`)의 장부 · 이력이 갈린다(ADR 0187) */
-  | 'credits-granted';
+  | 'credits-granted'
+  /**
+   * 운영자가 신고를 처분했거나 처분이 거절됐다 — 신고 상세의 결과 · 처리 버전 · 이력 · 대상 상태가 갈린다(ADR 0188). 거절이어도
+   * 다른 운영자가 먼저 적었을 수 있어 지금 화면을 다시 그린다
+   */
+  | 'report-reviewed';
 
 /**
  * 바뀐 것 → 무를 화면.
@@ -149,6 +154,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
   'refund-moved': [THIS_SCREEN],
   'credits-granted': [THIS_SCREEN],
+  'report-reviewed': [THIS_SCREEN],
 };
 
 /** 표를 시험이 읽는다 — 적힌 경로가 실재하는 라우트인가를 거기서 잰다 */

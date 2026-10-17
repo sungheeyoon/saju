@@ -15,6 +15,7 @@ import type { supabaseOnServer } from '../auth/server-client';
 export type DeniedAction =
   | 'reports.list'
   | 'reports.detail'
+  | 'reports.review'
   | 'survey.overview'
   | 'today.figures'
   | 'credits.refund_basis'

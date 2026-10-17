@@ -10,22 +10,35 @@
 **바꾸기 전에 아래 「SQL 실행 전 확인」을 밟는다** — 이 절의 정지 · 해제와 「신고와 차단」의 검토 문(`review_report`) 모두.
 
 계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(`docs/ops/runbook/access.md`
-「개인정보는 화면으로만」). **신고로 정지하는 것이면 아래 UPDATE 대신 「신고와 차단」의 검토 문을 `suspension` 으로 부른다** —
-검토 기록과 정지가 한 트랜잭션이다(ADR 0107). 아래 정지 SQL 은 신고와 무관한 정지에만 쓴다. 해제는 어느 쪽이든 아래 SQL 이고,
-해제해도 「이용 정지 결정」 기록은 그대로 남는다.
+「개인정보는 화면으로만」). **신고로 정지하는 것이면 신고 상세 화면에서 「이용 정지 결정」으로 처분한다**(화면이 안 되면 「신고와 차단」의 검토 문을
+`suspension` 으로) — 처분 기록과 정지가 한 트랜잭션이다(ADR 0107 · 0188). 아래 정지 SQL 은 신고와 무관한 정지에만 쓴다. 해제는
+어느 쪽이든 아래 SQL 이고, 해제해도 「이용 정지 결정」 기록은 그대로 남는다.
+
+**계정 상태는 공통 함수(`change_account_status`)로만 바꾼다**(ADR 0188). 사유 갈래 · 메모 · 실행자가 계정 상태 이력
+(`account_status_change`)에 한 줄로 남는다. `app_user.status` 를 직접 UPDATE 하면 실행자 · 사유가 빈 이력 줄이 남고 장애
+알림이 한 줄 간다 — 쓰지 않는다. 함수가 지금 상태를 다시 재므로(이용 중인 계정만 정지, 정지인 계정만 해제, 운영자 계정은 정지
+거절) 아래 「SQL 실행 전 확인」의 `do` 블록 없이 한 문장으로 보낸다. 메모는 1 ~ 200자이고 이메일 · 실명 · 연락처는 적지
+않는다 — break-glass 면 대장 번호를 적는다.
 
 ```sql
--- 이용 정지
-update public.app_user set status = 'suspended' where id = '<계정 UUID>';
+-- 이용 정지 — 갈래: policy(운영정책 위반) · payment(결제 부정) · eligibility(이용 자격) · other
+select public.change_account_status('<운영자 UUID>', '<계정 UUID>', 'suspended', 'policy', '<짧은 메모>');
 
--- 해제
-update public.app_user
-set status = 'active', deletion_requested_at = null
-where id = '<계정 UUID>';
+-- 해제 — 갈래: appeal(소명 인정) · mistake(잘못 정지) · other
+select public.change_account_status('<운영자 UUID>', '<계정 UUID>', 'active', 'appeal', '<짧은 메모>');
+
+-- 탈퇴 대기(deletion_requested)의 해제 — deletion_requested_at 도 함께 비운다
+select public.change_account_status('<운영자 UUID>', '<계정 UUID>', 'active', 'deletion_withdrawn', '<짧은 메모>');
 ```
 
-> 탈퇴 대기(`deletion_requested`)를 해제할 때도 같은 문을 쓴다. 검사식이 상태와 시각을
-> 함께 묶고 있으므로 `deletion_requested_at` 을 같이 비워야 한다.
+돌려주는 값은 이력 줄 id 다. 거절은 — 운영자 표에 없는 실행자 `42501`, 계정이 없으면 `P0002`, 이미 그 상태 · 운영자 계정
+`55000`, 탈퇴 대기를 정지 `23514`, 갈래 · 메모가 틀리면 `22023`.
+
+```sql
+-- 한 계정의 상태 이력 — 갈래 · 실행자가 비었으면 공통 함수 밖의 변경이다
+select at, from_status, to_status, reason, actor_user_id, report_id
+from public.account_status_change where user_id = '<계정 UUID>' order by at desc;
+```
 
 ```sql
 -- 지금 살아 있지 않은 계정들 — 이메일 없이
@@ -56,15 +69,17 @@ order by a.deletion_requested_at desc nulls last;
    DB 에서 같은 모양으로 한 번 돌려 본다.
 
    ```sql
-   -- 이용 정지 — 이용 중인 그 계정 한 줄만 바뀌어야 한다
+   -- 예 — 경고를 적되, 그 신고가 아직 처리 필요일 때만
    do $$
-   declare n integer;
    begin
-     update public.app_user set status = 'suspended' where id = '<계정 UUID>' and status = 'active';
-     get diagnostics n = row_count;
-     if n <> 1 then raise exception '정지: 바뀐 줄 % — 되감는다', n; end if;
+     if not exists (select 1 from public.report where id = '<신고 id>' and (reviewed_at is null or review_outcome = 'needs_more')) then
+       raise exception '검토: 처리 필요인 신고가 아니다(없거나 이미 결론) — 되감는다';
+     end if;
+     perform public.review_report('<신고 id>', '<운영자 UUID>', 'warning', '<짧은 판단 근거>', '<대상 계정 UUID>');
    end $$;
    ```
+
+   정지 · 해제는 공통 함수가 지금 상태를 재므로 이 블록이 필요 없다(위 「이용 정지와 해제」).
 
    **보내는 모양 — 블록은 따옴표 친 heredoc 으로 넘긴다.** 큰따옴표 안에 `do $$ … $$` 를 적으면 bash 가 `$$` 를 프로세스 번호로
    바꾼다(`do 318693 begin …` 이 된다, 2026-10-16 로컬에서 잼). `$do$` 같은 태그도 큰따옴표 안에서는 변수로 읽힌다.
@@ -81,17 +96,14 @@ order by a.deletion_requested_at desc nulls last;
    `raise exception` 은 `failed to execute query: …` 로 돌아오고 접속기록 결과 줄에 `sql` 실패로 적힌다. 원격(`--linked`)이
    `do` 블록을 받는지는 아직 운영에서 보내 보지 않았다 — 처음 보낼 때 결과를 이 절에 적는다.
 
-   **검토 문(`review_report`)은 아직 「검사 뒤에만 반영」이 아니다** — 실행한 뒤 확인하고, 틀렸으면 다시 고쳐 적는다. 버전 검사와
-   공통 처리 함수는 G-111 ② 에서 서고, 그때 이 길도 바뀐다.
+   **검토 문(`review_report`)은 버전을 견주지 않는다** — 지금 결과를 덮어쓴다(덮어쓴 앞 결과는 처분 이력에 남는다, ADR 0188).
+   다른 운영자가 먼저 적었는지는 화면만 거절한다 — SQL 로 적을 때는 위 블록처럼 지금 결과를 재고 부른다.
    검토 문은 스스로 한 트랜잭션이다 — 돌려준 값(`report` · `retention`)을 보고, 1 의 select 를 다시 돌려 결과 · 제재
    대상 · (정지 결정이면) 계정 상태가 뜻한 대로인지 본다. 어긋났으면 같은 문을 바른 값으로 다시 부르고, 정지가 잘못 걸렸으면 위
    해제로 푼다.
 3. **사유 · 실행자를 남긴다** — 지금 남는 자리는 둘이다. `db:remote` 의 **목적**(실행자 · 시각 · SQL 해시와 함께 접속기록에 남는다)에
    「무엇을 · 왜」를 적는다 — 예: `"이용 정지 <계정 앞 8자> — 결제 부정"`(목적에 `@` · 이메일 · 실명은 못 넣는다). 검토 문은
-   판단 근거 칸에 적는다. 정지 · 해제의 UPDATE 에는 사유를 받는 칸이 아직 없다.
-
-**G-111 의 공통 함수가 서면 바뀐다** — 계정 상태를 바꾸는 공통 함수(사유 갈래 · 메모 · 실행자 · 이력, `docs/product/gaps/records/g-111.md`
-③)가 서면 이 절의 정지 · 해제는 그 함수 호출만 쓰고, 직접 UPDATE 는 쓰지 않는다(쓰면 실행자 · 사유가 빈 이력 줄과 알림이 남는다).
+   판단 근거 칸에, 정지 · 해제는 공통 함수의 갈래 · 메모 칸에 적는다 — 실행자는 넘긴 운영자 UUID 로 이력에 남는다(ADR 0188).
 환불 SQL 의 실행 전 확인은 `docs/ops/runbook/credits.md` 에 #727 이 넣는다.
 
 ---
@@ -134,7 +146,8 @@ group by reported_user_id, reason
 order by count(*) desc;
 ```
 
-**검토를 적는다 — 문 하나, 신고 id 로**(`public.review_report`, ADR 0107). 화면에서 읽고 판단한 뒤, 위 「SQL 실행 전 확인」을 밟고 적는다. 표를 직접
+**검토는 신고 상세 화면에서 처분한다**(ADR 0188) — 판단 근거 · 확인창 · 처리 버전 · 처분 이력이 화면의 길이다. 아래 SQL 은 화면이
+안 될 때와 떠난 사람의 신고(화면에 없다)의 길이다. **검토를 적는다 — 문 하나, 신고 id 로**(`public.review_report`, ADR 0107). 화면에서 읽고 판단한 뒤, 위 「SQL 실행 전 확인」을 밟고 적는다. 표를 직접
 UPDATE 하지 않는다. 결과는 넷 중 하나다 — `no_action`(조치 없음) · `warning`(경고) · `suspension`(이용 정지 결정) ·
 `needs_more`(추가 확인 필요). 판단 근거는 500자 안에서 **이메일 · 실명 · 연락처 없이** 적는다. 검토한 사람은 `public.operator` 의
 운영자 UUID 다 — 한 번 보고 적어 둔다(`select user_id, note, added_at from public.operator;`, 이메일 없이). 운영자 표에 없는
@@ -155,7 +168,7 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'suspension', '<�
 ```
 
 대상은 보통 신고받은 계정(화면의 「신고받은 계정」 아래 회색 글자)이고, 신고한 쪽이 받는 드문 경우는 그 계정이다. 돌려주는 값은
-적은 표다 — `report`(지금 계정의 신고) · `retention`(떠난 사람의 신고). 다시 부르면 덮어쓴다(추가 확인 필요 → 결론).
+적은 표다 — `report`(지금 계정의 신고) · `retention`(떠난 사람의 신고). 다시 부르면 덮어쓴다(추가 확인 필요 → 결론) — 앞 결과는 처분 이력(`report_review_entry`)에 한 줄로 남는다(ADR 0188).
 **결정을 바꾸면 정지는 따로 푼다** — 이용 정지 결정을 다른 결과로 다시 적어도 계정 정지는 그대로 남는다(문은 정지를 걸기만 한다). 풀려면
 「이용 정지와 해제」의 해제를 따로 밟는다.
 **경고의 갈래는 이용자에게 가는 말이다** — 신고한 사람이 고른 사유가 운영자가 본 위반과 다르면(제재 대상이 신고한 쪽이면 더 그렇다)
@@ -453,7 +466,7 @@ where p.pronamespace = 'public'::regnamespace
 5. **이용 정지.** 다른 쌍(A · C)을 세우고 C 를 정지한다(「이용 정지와 해제」의 한 줄). 방의 `closed_reason`
    이 `suspension`, `closed_by_user_id` 가 C. A 는 방과 대화를 보고 C 는 아무것도 못 본다.
    ```sql
-   update public.app_user set status = 'suspended' where id = '<C>';
+   select public.change_account_status('<운영자 UUID>', '<C>', 'suspended', 'other', '운영 검증 — 테스트 계정');
    select closed_reason, closed_by_user_id, closed_at from public.chat_room
    where user_low = least('<A>', '<C>') and user_high = greatest('<A>', '<C>');
    ```

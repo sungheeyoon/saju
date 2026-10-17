@@ -13,20 +13,32 @@ import { openByReported } from './same-account';
 import { chosenOnce } from './snapshot';
 
 describe('신고 목록의 주소', () => {
-  it('빈 주소는 걸러지지 않은 첫 쪽이다', () => {
+  it('빈 주소는 처리 필요의 첫 쪽이다 (G-111-6)', () => {
     expect(filtersOf({})).toEqual(NO_FILTERS);
+    expect(NO_FILTERS.review).toBe('open');
     expect(hrefOf(NO_FILTERS, {})).toBe('/ops/reports');
   });
 
+  it('처리 상태 「전체」는 주소에 적힌다 — 빈 주소는 처리 필요다', () => {
+    expect(hrefOf(NO_FILTERS, { review: 'all' })).toBe('/ops/reports?review=all');
+    expect(filtersOf({ review: 'all' }).review).toBe('all');
+  });
+
+  it('안내번호로 찾으면 처리 상태를 안 고른 한 전체에서 찾는다 — 경고는 처리를 마친 신고에 붙는다', () => {
+    expect(filtersOf({ ref: 'W-7K3F' }).review).toBe('all');
+    expect(isFiltered(filtersOf({ ref: 'W-7K3F' }))).toBe(true);
+    expect(hrefOf(filtersOf({ ref: 'W-7K3F' }), {})).toBe('/ops/reports?ref=W-7K3F');
+  });
+
   it('주소의 칸 셋과 쪽을 읽고 같은 주소로 다시 짓는다', () => {
-    const filters = filtersOf({ review: 'open', reason: 'harassment', evidence: 'chat', page: '3' });
-    expect(filters).toEqual({ review: 'open', reason: 'harassment', evidence: 'chat', ref: null, page: 3 });
+    const filters = filtersOf({ review: 'done', reason: 'harassment', evidence: 'chat', page: '3' });
+    expect(filters).toEqual({ review: 'done', reason: 'harassment', evidence: 'chat', ref: null, page: 3 });
     expect(hrefOf(filters, { page: 3 })).toBe(
-      '/ops/reports?review=open&reason=harassment&evidence=chat&page=3',
+      '/ops/reports?review=done&reason=harassment&evidence=chat&page=3',
     );
   });
 
-  it('모르는 값은 걸러지지 않은 것으로 읽는다 — 오류로 세우지 않는다', () => {
+  it('모르는 값은 기본(처리 필요)으로 읽는다 — 오류로 세우지 않는다', () => {
     expect(filtersOf({ review: 'maybe', reason: 'spam', evidence: 'yes', page: 'x' })).toEqual(NO_FILTERS);
     expect(filtersOf({ page: '0' }).page).toBe(1);
     expect(filtersOf({ page: '-2' }).page).toBe(1);
@@ -44,13 +56,14 @@ describe('신고 목록의 주소', () => {
     expect(hrefOf(third, { page: 4 })).toBe('/ops/reports?page=4');
   });
 
-  it('목록 문의 인자는 전체면 null, 쪽은 0 부터다', () => {
+  it('목록 문의 인자는 전체면 null, 쪽은 0 부터, 처리 필요는 급한 순이다', () => {
     expect(argsOf(NO_FILTERS)).toEqual({
-      p_reviewed: null,
+      p_reviewed: false,
       p_reason: null,
       p_has_snapshot: null,
       p_page: 0,
       p_warning_ref: null,
+      p_order: 'urgent',
     });
     expect(argsOf({ review: 'done', reason: 'other', evidence: 'none', ref: 'W-7K3F', page: 2 })).toEqual({
       p_reviewed: true,
@@ -58,10 +71,12 @@ describe('신고 목록의 주소', () => {
       p_has_snapshot: false,
       p_page: 1,
       p_warning_ref: 'W-7K3F',
+      p_order: 'recent',
     });
-    expect(argsOf({ ...NO_FILTERS, review: 'open', evidence: 'chat' })).toMatchObject({
-      p_reviewed: false,
+    expect(argsOf({ ...NO_FILTERS, review: 'all', evidence: 'chat' })).toMatchObject({
+      p_reviewed: null,
       p_has_snapshot: true,
+      p_order: 'recent',
     });
   });
 
@@ -147,8 +162,9 @@ describe('스냅샷의 고른 표시', () => {
 });
 
 describe('접힌 거르기 판의 머리', () => {
-  it('걸러지지 않았으면 「전체」다', () => {
-    expect(filterSummary(NO_FILTERS)).toBe('전체');
+  it('처리 상태까지 전체면 「전체」, 기본은 「처리 필요」다', () => {
+    expect(filterSummary({ ...NO_FILTERS, review: 'all' })).toBe('전체');
+    expect(filterSummary(NO_FILTERS)).toBe('처리 필요');
   });
 
   it('거른 것을 판 안의 글자 그대로 잇는다', () => {

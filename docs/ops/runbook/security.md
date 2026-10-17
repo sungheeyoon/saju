@@ -117,7 +117,7 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 
 | 자리 | 기록 종류 — 누가 · 언제 · 무엇 | 보존 | 근거 · 확인 날짜 |
 | --- | --- | --- | --- |
-| 앱의 운영자 화면 `/ops/reports` | **DB 의 `audit.operator_access`** — 운영자 id · 시각 · 동작(목록 · 상세 · 스냅샷) · 대상 신고 id(목록이면 거른 조건) · 성공/거절. 문이 읽을 때 같은 트랜잭션에서 적고, 거절은 앱의 문이 따로 적는다 | DB 에 쌓이고 **매일 S3 로 반출, Object Lock 400일** — 아래 「반출」. AWS 가 켜지기 전에는 DB 에만 있다 | ADR 0105 · pgTAP `46_operator_access_log` |
+| 앱의 운영자 화면 `/ops/reports` | **DB 의 `audit.operator_access`** — 운영자 id · 시각 · 동작(목록 · 상세 · 스냅샷 · 대상 회원 요약 `reports.target` · 처분 `reports.review`) · 대상 신고 id(목록이면 거른 조건) · 성공/거절. 처분은 거른 조건 칸에 `version=<n>`(재시도면 ` replayed`), 대상 요약은 `reported=<id> reporter=<id>` 만 — 판단 근거 · 닉네임은 안 적는다(ADR 0188). 문이 읽거나 적을 때 같은 트랜잭션에서 적고, 거절은 앱의 문이 따로 적는다 | DB 에 쌓이고 **매일 S3 로 반출, Object Lock 400일** — 아래 「반출」. AWS 가 켜지기 전에는 DB 에만 있다 | ADR 0105 · 0188 · pgTAP `46_operator_access_log` · `99_operator_report_review` |
 | `npm run db:remote` | **같은 표** — 실행자(git 이름, 에이전트면 `(agent)`) · 시각 · **목적 · SQL 의 sha256**. 원문은 안 적는다. 끝난 뒤 **결과 줄 하나**(`cli.result` — 앞 줄의 번호 · 성공/실패 · 오류 분류 `sql` · `connection` · `unknown`, `20261014090000`)가 더해진다 | 위와 같다 | `scripts/db-remote.mjs` · `db-remote.test.ts` |
 | `/ops/orders` | **같은 표** — 주문을 찾으면 `credits.refund_basis` · `credits.refund_status`(진행 중인 환불), 환불을 준비 · 확정 · 준비 취소하면 `credits.refund_hold` · `credits.refund_book` · `credits.refund_release` 한 줄씩(운영자 id · 시각 · 거른 조건 칸에 주문 id 만 · 성공/거절). 이메일 · 금액은 안 적는다. 거절은 앱의 문이 같은 동작 이름으로 따로 적는다(2026-10-16 부터) | 위와 같다 | ADR 0184 · pgTAP `96_operator_refund_order` · `48_reading_bundle_ledger` |
 | `/ops/survey` | **같은 표** — 설문 문 일곱이 읽을 때마다 문마다 한 줄(동작 `survey.*` · 운영자 id · 시각 · 성공/거절). 대상 · 거른 조건 칸은 비고 **설문 답 · 글 원문은 안 적는다.** 거절은 앱의 문이 `survey.overview` 한 줄로 적는다(2026-10-01 부터) | 위와 같다 | ADR 0105 추기 2026-10-01 · pgTAP `78_operator_survey_access_log` |
@@ -271,7 +271,7 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
 
 | 무엇 | 언제 | 어떻게 |
 | --- | --- | --- |
-| 신고 | **영업일마다** 처리 필요(안 봤거나 추가 확인 필요) 목록을 본다. **접수 뒤** 늦어도 3영업일 안에 1차 판단 — 추가 확인 필요로 보류해도 시계는 접수부터다(ADR 0107) | `/ops/reports?review=open` → 판단 → `docs/ops/runbook/moderation.md` 「신고와 차단」의 검토 문. 3영업일 넘긴 것은 같은 절의 둘째 질의 |
+| 신고 | **영업일마다** 처리 필요(안 봤거나 추가 확인 필요) 목록을 본다. **접수 뒤** 늦어도 3영업일 안에 1차 판단 — 추가 확인 필요로 보류해도 시계는 접수부터다(ADR 0107) | `/ops/reports?review=open` → 판단 → 신고 상세의 처분 칸(ADR 0188). 화면이 안 되면 `docs/ops/runbook/moderation.md` 「신고와 차단」의 검토 문. 3영업일 넘긴 것은 같은 절의 둘째 질의 |
 | 접속기록 | **매월 1회 이상** | 아래 「월 점검」 |
 | 자리를 비울 때 | **3영업일을 넘기면 새 가입을 닫는다** — 신고를 볼 사람이 없는 동안 새 사람을 들이지 않는다 | `docs/ops/runbook/signup.md` 「가입을 닫고 연다」 |
 
