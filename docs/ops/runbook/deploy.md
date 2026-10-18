@@ -50,6 +50,7 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
    운영 주소가 선다
 4. **smoke — 다섯 화면.** 각각 제 제목이 서고 500 · 빈 화면 · 브라우저 콘솔의 CSP 위반이 없어야 통과다.
+   이 걸음을 부를 스크립트는 아직 저장소에 없다 — 에이전트가 그때마다 headless Chromium 스크립트를 쓴다(G-115).
    - 홈(`/`) · 로그인(`/auth`) — 에이전트가 로그인 없이 headless 로 본다
    - 궁합 `/compat` 의 두 사람을 고르는 칸 · 사람 목록(`/me/people`) · 운영자 신고 화면(`/ops/reports`) — **로그인 필요 — 운영자.**
      에이전트는 로그인 없이 닿는 데까지만 본다(`/compat` 의 로그인 안내, 나머지 둘은 `/auth?next=…` 로 넘기는지). 운영 계정의
