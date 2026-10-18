@@ -9,13 +9,14 @@
  * 배포 에이전트가 배포마다 headless Chromium 스크립트를 새로 써서 판정이 갈릴 틈이 있었다(#759 · #763). 판정은 4 단계 그대로다.
  *
  * - **다섯 모두** — 닿은 응답이 200 이고 · 돈 주소의 호스트에 머물고 · h1 이 그 화면의 제 제목(`SCREENS`)이고 · CSP 위반과
- *   잡히지 않은 예외(`pageerror`)가 없어야 통과다. 200 이 아니면 404 · 오류 경계도 실패다 — 500 만 막던 판정은 `/auth` 라우트가
+ *   잡히지 않은 예외(`pageerror`)가 없고 · 닿은 응답에 강제 CSP 헤더(`Content-Security-Policy`)가 서야 통과다(헤더는 운영자 결정
+ *   2026-10-18 「실패로 친다」). 200 이 아니면 404 · 오류 경계도 실패다 — 500 만 막던 판정은 `/auth` 라우트가
  *   빠진 배포를 통과시켰다(2026-10-18 검토).
  * - **로그인 없이 서는 둘**(`/` · `/auth`) — 제 주소에 머물고 빈 화면이 아니어야 한다.
  * - **로그인이 드는 셋**(`/compat` · `/me/people` · `/ops/reports`) — 로그인 없이 `/auth?next=<그 주소>` 로 넘어가는지만 본다. 운영
  *   계정의 비밀번호 · 세션은 쓰지 않는다 — 로그인한 화면은 운영자가 본다(ADR 0105).
  *
- * CSP 가 아닌 콘솔 오류는 표에 세어 적기만 하고 판정에 넣지 않는다. CSP 헤더가 응답에 섰는지도 찍기만 한다.
+ * CSP 가 아닌 콘솔 오류는 표에 세어 적기만 하고 판정에 넣지 않는다.
  * 결과는 이슈에 그대로 붙이는 Markdown 표다. 하나라도 실패면 끝 코드 1 이다. Playwright 라 `package.json` 의 명령이
  * `scripts/heavy.mjs` 를 지난다 — `node scripts/deploy-smoke.mjs` 를 바로 부르면 그 잠금을 안 지난다.
  */
@@ -82,7 +83,7 @@ export function argsOf(args) {
  *
  * @param {{ path: string, login: boolean, h1: string }} screen
  * @param {{ status: number | null, finalOrigin: string, finalPath: string, finalNext: string | null, title: string, h1: string,
- *   textLength: number, csp: string[], consoleErrors: string[], pageErrors: string[], error?: string }} seen
+ *   textLength: number, csp: string[], cspHeader: boolean, consoleErrors: string[], pageErrors: string[], error?: string }} seen
  * @param {string} base
  * @returns {{ pass: boolean, reasons: string[] }}
  */
@@ -103,6 +104,8 @@ export function judge(screen, seen, base) {
     if (seen.textLength < EMPTY_TEXT) reasons.push('빈 화면');
   }
   if (seen.h1.trim() !== screen.h1) reasons.push(`제 제목이 아니다(h1 「${seen.h1.trim() || '없음'}」)`);
+  // 강제 헤더(`Content-Security-Policy`)여야 한다 — 보고만 하는 헤더는 막지 않는다(운영자 결정 2026-10-18)
+  if (!seen.cspHeader) reasons.push('강제 CSP 헤더가 없다');
   if (seen.csp.length > 0) reasons.push(`CSP 위반 ${seen.csp.length}`);
   if (seen.pageErrors.length > 0) reasons.push(`잡히지 않은 예외 ${seen.pageErrors.length}`);
   return { pass: reasons.length === 0, reasons };

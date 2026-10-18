@@ -23,6 +23,7 @@ const seenOpen = {
   h1: '나는 어떤 사람일까?',
   textLength: 400,
   csp: [] as string[],
+  cspHeader: true,
   consoleErrors: [] as string[],
   pageErrors: [] as string[],
 };
@@ -86,6 +87,10 @@ describe('로그인 없이 서는 화면', () => {
     ]);
   });
 
+  it('응답에 강제 CSP 헤더가 없으면 실패다 — 운영자 결정 2026-10-18', () => {
+    expect(judge(open, { ...seenOpen, cspHeader: false }, BASE).reasons).toEqual(['강제 CSP 헤더가 없다']);
+  });
+
   it('CSP 가 아닌 콘솔 오류는 판정에 넣지 않는다', () => {
     expect(judge(open, { ...seenOpen, consoleErrors: ['x'] }, BASE).pass).toBe(true);
   });
@@ -114,6 +119,10 @@ describe('로그인이 드는 화면 — 로그인 없이 /auth?next= 로 넘어
   it('넘어간 /auth 가 404 면 실패다 — 로그인 화면 라우트가 빠진 배포', () => {
     const missing = { ...seenLogin, status: 404, h1: '페이지를 찾을 수 없어요' };
     expect(judge(login, missing, BASE).reasons).toEqual(['404', '제 제목이 아니다(h1 「페이지를 찾을 수 없어요」)']);
+  });
+
+  it('넘어간 /auth 응답에 강제 CSP 헤더가 없으면 실패다', () => {
+    expect(judge(login, { ...seenLogin, cspHeader: false }, BASE).reasons).toEqual(['강제 CSP 헤더가 없다']);
   });
 
   it('넘어간 /auth 가 다른 호스트면 실패다', () => {
