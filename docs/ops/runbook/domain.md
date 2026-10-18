@@ -5,7 +5,7 @@
 ## 도메인을 옮길 때 — 주소를 든 자리 아홉
 
 **새 도메인은 `mannalmap.com` 이다**(2026-10-07, 서비스 이름 「만날지도」 — ADR 0149). 아래 표의 `<새 도메인>` 은 `mannalmap.com` 이다.
-**운영 주소는 `https://mannalmap.com` 이다**(운영자, 2026-10-08) — 저장소에서 운영 주소를 적는 자리는 이 줄 하나다. `www.mannalmap.com` 은 맨 도메인으로 308 이고 인증서가 섰다.
+**운영 주소는 `https://mannalmap.com` 이다**(운영자, 2026-10-08) — 저장소에서 운영 주소를 적는 자리는 이 줄 하나다. `www.mannalmap.com` 은 맨 도메인으로 308 이고 인증서가 섰다. 이 줄의 꼴을 `scripts/deploy-smoke.mjs` 가 읽는다 — 꼴을 바꾸면 그 시험(`scripts/deploy-smoke.test.ts`)이 붉어진다.
 옛 별칭 `saju-snowy.vercel.app` 은 아직 넘김 없이 같은 화면을 200 으로 낸다(2026-10-08 `curl` 로 쟀다) — 8 이 남았다.
 
 | # | 상태 (2026-10-08) |
