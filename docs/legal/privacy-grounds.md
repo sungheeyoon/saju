@@ -286,18 +286,67 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 - `PUSH_TTL_SECONDS = 3600`(`src/lib/push/index.ts:22`)은 「못 닿은 알림을 길어야 이만큼 들고 있으라」는 **요청**이다. 회사의
   보유기간이 아니다 — 처리방침은 「보관하도록 요청합니다」로 적고 「1시간 뒤 삭제」로 쓰지 않는다.
 
-**회사마다**(모두 2026-10-15 에 공식 문서를 열어 읽었다):
+**회사마다**(모두 2026-10-15 에 공식 문서를 열어 읽었고, 「확인 전」 칸은 2026-10-18 에 다시 찾았다 — 표 아래 「2026-10-18」):
 
 | 칸 | Google — FCM `fcm.googleapis.com` | Mozilla — autopush `*.push.services.mozilla.com` | Microsoft — `*.notify.windows.com` | Apple — `*.push.apple.com` |
 | --- | --- | --- | --- | --- |
 | 어느 기기 · 브라우저 | Chrome, 그리고 안드로이드의 다른 Chromium 브라우저(삼성 인터넷 · Opera 등) — 우리 표의 근거는 `src/lib/push/index.ts:197`. 회사 문서로는 확인 전 | Firefox | **Windows 의 Edge(118 이상)만** — 「Forces Microsoft Edge to use its built-in WNS push client to connect to the Windows Push Notification Service」, 지원 판 「Windows: ≥ 118 · macOS: Not supported · Android: Not supported · iOS: Not supported」 — https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/forcebuiltinpushmessagingclient (ms.date 2026-05-20). 다른 플랫폼의 Edge 가 어느 서비스로 가는지는 확인 전 | Safari, 홈 화면에 추가한 웹 앱(iOS · iPadOS 16.4 이상) |
 | 받는 법인 | Google LLC. 「Google LLC의 privacy team」, 국내대리인 「구글코리아 유한회사」 — https://policies.google.com/privacy/additional?hl=ko&gl=kr | 「Mozilla Corporation」 — https://www.mozilla.org/en-US/privacy/firefox/ | 「Microsoft Corporation」(EEA · 영국 · 스위스는 Microsoft Ireland Operations Limited) — https://www.microsoft.com/ko-kr/privacy/privacystatement | 한국 보충 고지의 이전 표에 「Apple Inc. … 미국」, 근거 「개인정보 보호법 제28조의8 제1항 제3호 (위탁)」 — https://www.apple.com/kr/legal/privacy/kr/ |
 | 연락처 | 「이메일: googlekrsupport@google.com」, 국내대리인 「data-access-requests@google.com」 · 02-722-7778(같은 곳) | 「compliance@mozilla.com」, Data Subject Access Request Portal(같은 곳). 한국 창구 확인 전 | 개인정보 보호 팀 문의 양식(같은 곳). 주소 「One Microsoft Way, Redmond, Washington 98052, USA」. 한국 창구 확인 전(바닥글의 한국마이크로소프트 연락처는 개인정보 창구가 아니다) | 「개인정보 보호 팀 전화번호: +82 02 6712 6700 웹사이트: apple.com/kr/privacy/contact」(같은 곳) |
-| 처리 국가 | FCM 은 「global service」 — 「any of the Google Cloud Platform locations or Google data center locations」(https://firebase.google.com/support/privacy). 한국 고지는 「국외에 소재하는 Google의 데이터 센터」 — **나라 이름은 확인 전** | 「Mozilla (and our servers) are based in the United States.」 | 회사 전체로 「일반적으로 주요 저장소 위치는 사용자의 지역 또는 미국」. **푸시 서비스의 처리 국가는 확인 전** | 「일반적으로 미국의 Apple Inc.에 저장됩니다」 |
-| 알림의 보관 | 「the maximum period of time that FCM stores and attempts to deliver the message」 = 보낸 쪽이 정한 TTL(최대 28일) — https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan. 우리는 1시간 | **확인 전**(공식 문서 없음. 소스 코드의 최대 TTL 30일과 지원 문서의 검색 요약만 있다 — 인용하지 않는다) | **확인 전**(WNS 문서는 Windows 앱의 캐시만 말한다) | 「it may store the notification for 30 days or fewer, depending on the value you specify … removes the notification from storage permanently」 — 위 Apple 웹 푸시 문서. 우리는 1시간 |
-| 그 밖의 기록 · 보유기간 | 확인 전 | 확인 전 | 확인 전 | 확인 전 |
-| 사이트 운영자에게 걸리는 약관 | 확인 전(Firebase 를 쓰지 않고 브라우저 구독 주소로만 보내는 경우의 약관은 문서에 없다) | 확인 전 | 확인 전 | 「You don't need to join the Apple Developer Program to send web push notifications.」 운영자 약관은 확인 전 |
+| 처리 국가 | FCM 은 「global service」 — 「Unless a service or feature offers data location selection, Firebase may process and store your data anywhere Google or its agents maintain facilities.」 · 「They could process data at any of the Google Cloud Platform locations or Google data center locations」(https://firebase.google.com/support/privacy, Last modified September 15, 2026 — 2026-10-18 확인). 한국 고지는 「국외에 소재하는 Google의 데이터 센터」 — **나라 이름은 확인 전**(아래 「2026-10-18」의 1) | 「Mozilla (and our servers) are based in the United States.」 | 회사 전체로 「일반적으로 주요 저장소 위치는 사용자의 지역 또는 미국」. **푸시 서비스(WNS)의 처리 국가는 확인 전**(아래 2) | 「일반적으로 미국의 Apple Inc.에 저장됩니다」 |
+| 알림의 보관 | 「the maximum period of time that FCM stores and attempts to deliver the message」 = 보낸 쪽이 정한 TTL(최대 28일) — https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan. 우리는 1시간 | **확인 전**(아래 3) — autopush 개발 문서는 최대 TTL 을 적지 않는다 | **확인 전**(아래 4) — WNS 문서의 오프라인 보관 규칙은 Windows 앱 알림의 것이다 | 「it may store the notification for 30 days or fewer, depending on the value you specify … removes the notification from storage permanently」 — 위 Apple 웹 푸시 문서. 우리는 1시간 |
+| 그 밖의 기록 · 보유기간 | **푸시에 따로 적은 기간은 확인 전**. 회사 전체(한국 고지)는 「사용자가 삭제할 때까지 보관되거나 … Google 계정을 삭제할 때까지 보관되기도 합니다」(아래 5) | **푸시에 따로 적은 기간은 확인 전**. Firefox 고지의 일반 원칙 「In general, we do not retain personal data for more than 25 months」(아래 5) | **푸시에 따로 적은 기간은 확인 전**. 회사 전체 「Microsoft retains personal data for as long as necessary to provide the products and services you use」(아래 5) | **푸시에 따로 적은 기간은 확인 전**. 회사 전체 「Apple retains personal data only for so long as necessary to fulfill the purposes for which it was collected」(아래 5) |
+| 사이트 운영자에게 걸리는 약관 | **확인 전**(아래 6) — Firebase 를 쓰지 않고 브라우저 구독 주소로만 보내는 경우의 약관은 문서에 없다 | **확인 전**(아래 6) — 약관 같은 말은 「Mozilla reserves the right to change the endpoint at any time.」 하나 | **확인 전**(아래 6) | 「You don't need to join the Apple Developer Program to send web push notifications.」 **운영자 약관은 확인 전**(아래 6) |
 | 그 회사가 보는 것 | 확인 전 | 저장 칸 「data Payload … headers … ttl … timestamp」, `Topic` 은 「replace previously sent, unreceived subscription updates」 — https://mozilla-services.github.io/autopush-rs/architecture.html · http.html | 확인 전 | TTL · Authorization(VAPID) · Content-Encoding · Topic · Urgency 머리를 읽는다, 페이로드는 서버가 암호화 — Apple 웹 푸시 문서 |
+
+**2026-10-18 — 「확인 전」 칸을 다시 찾았다.** 회사의 개인정보 처리방침 · 개발자 문서 · 약관만 열었다(블로그 · 커뮤니티 답 · 검색 요약은 쓰지
+않았다). 칸마다 찾은 곳과 없던 까닭이다 — 회사 전체의 원칙은 그 회사의 푸시 서비스에 대해 따로 적은 말이 아니라서 칸을 「확인 전」으로 둔다.
+
+1. **Google 의 처리 국가 — 확인 전.** 찾은 곳: Firebase 개인정보 문서(위 표의 인용). FCM 을 「global service」로 두고 Google Cloud 위치 · Google
+   데이터 센터 위치 「어디서든」이라고만 적는다 — 그 위치 목록은 따로 공개돼 있지만 FCM 이 그 가운데 어디서 처리하는지는 적지 않는다. 한국
+   보충 고지(https://policies.google.com/privacy/additional?hl=ko&gl=kr)도 「국외에 소재하는 Google의 데이터 센터」까지다. 없던 까닭: 나라
+   이름을 적은 공식 문서가 없다. 법인 소재지(미국)로 대신하지 않는다(ADR 0180 의 8).
+2. **Microsoft 의 처리 국가 — 확인 전.** 찾은 곳: 개인정보 처리방침(https://www.microsoft.com/en-us/privacy/privacystatement, Last Updated
+   September 2026) — 「Microsoft maintains major data centers in Australia, Austria, Brazil, Canada, Finland, France, Germany, Hong Kong,
+   India, Ireland, Japan, Korea, Luxembourg, Malaysia, the Netherlands, Singapore, South Africa, the United Kingdom, and the United
+   States.」 · 「Typically, the primary storage location is in your region or in the United States, often with a backup to a data center in
+   another region.」 WNS 개요(https://learn.microsoft.com/en-us/windows/apps/develop/notifications/push-notifications/wns-overview, ms.date
+   2026-08-30) · Edge 정책 문서(위 표) · Edge 개인정보 백서(https://learn.microsoft.com/en-us/microsoft-edge/privacy-whitepaper/). 없던 까닭:
+   처리방침은 회사 전체의 말이고, WNS · Edge 문서에는 처리 위치가 없다. 백서에는 푸시 줄이 없다.
+3. **Mozilla 의 알림 보관 — 확인 전.** 찾은 곳: autopush 개발 문서(https://mozilla-services.github.io/autopush-rs/http.html) — TTL 의 예
+   「would create or replace a message that is valid for the next 24 hours」뿐이고 최대 TTL 을 적지 않는다. 같은 곳 architecture.html 은 저장소
+   (「Autopush uses Google Cloud Bigtable as a key / value data storage system.」)를 말하고 보관 기간은 말하지 않는다. Firefox 개인정보 고지
+   (https://www.mozilla.org/en-US/privacy/firefox/, effective May 4, 2026)에는 푸시 줄이 없다. Mozilla 지원 문서
+   (https://support.mozilla.org/kb/push-notifications-firefox — `mozilla.org/firefox/push` 가 이리로 넘긴다)는 2026-10-18 에 자바스크립트
+   확인 화면만 내줘 읽지 못했다 — 다음에 찾을 곳은 여기다. 없던 까닭: 열린 공식 문서에 기간이 없다.
+4. **Microsoft 의 알림 보관 — 확인 전.** 찾은 곳: WNS 개요(2 와 같은 곳) — 「When the device is offline, by default WNS will store one of each
+   notification type (tile, badge, toast) for each channel URI and no raw notifications.」 이 문장은 Windows 앱의 알림 갈래(tile · badge · toast
+   · raw)에 대한 것이고, Edge 가 받는 웹 푸시가 어느 갈래로 다뤄지는지 · 얼마나 두는지는 WNS · Edge 문서 어디에도 없다. 없던 까닭: 웹 푸시에
+   대한 공식 문장이 없다.
+5. **그 밖의 기록 · 보유기간 — 넷 다 푸시에 따로 적은 기간은 확인 전.** 회사 전체의 원칙만 있다.
+   - Google — 한국 보충 고지(1 과 같은 곳): 「사용자가 삭제할 때까지 보관되거나(…), 특정 기간이 지나면 삭제되도록 사용자가 설정하는 경우 해당
+     기간까지 보관되거나(…), Google 계정을 삭제할 때까지 보관되기도 합니다.」 Firebase 문서의 FCM 줄 「Firebase retains Firebase installation
+     IDs until the Firebase customer makes an API call to delete the ID.」는 Firebase SDK 를 쓰는 앱의 것이다 — 우리는 Firebase 를 쓰지 않고
+     브라우저의 구독 주소로만 보낸다(ADR 0156).
+   - Mozilla — Firefox 고지(3 과 같은 곳): 「In general, we do not retain personal data for more than 25 months, but actual retention periods
+     may vary depending on the type of data and the purpose(s) for which it was collected」. autopush 문서의 「Router records expire after 60
+     days without check-in.」은 모바일 기기 등록(Mobile Device Check-in)의 것이다 — 데스크톱 Firefox 의 구독에 대한 말은 없다.
+   - Microsoft — 처리방침(2 와 같은 곳): 「Microsoft retains personal data for as long as necessary to provide the products and services you
+     use and to fulfill the transactions you request …」
+   - Apple — 개인정보 처리방침(https://www.apple.com/legal/privacy/en-ww/, Updated July 30, 2025): 「Apple retains personal data only for so
+     long as necessary to fulfill the purposes for which it was collected, including as described in this Privacy Policy or in our
+     service-specific privacy notices, or as required by law.」 한국 보충 고지의 이전 표는 「목적이 달성되고 더 이상 데이터를 유지할 법적 필요가
+     없을 때까지 보유 및 사용」. 웹 푸시 문서는 알림의 보관(위 표)만 말한다.
+6. **사이트 운영자에게 걸리는 약관 — 넷 다 확인 전.**
+   - Google — Firebase 문서는 「Firebase terms include Data Processing and Security Terms」라고 하지만 Firebase 프로젝트 없이 브라우저 구독 주소로만
+     보내는 경우 어느 약관이 걸리는지는 적지 않는다.
+   - Mozilla — autopush 문서(3 과 같은 곳)에 약관 · 사용 조건 줄이 없다. 비슷한 말은 「Mozilla reserves the right to change the endpoint at any
+     time.」 하나다.
+   - Microsoft — WNS 개요의 앱 등록 · 인증(Store Dashboard 의 Package SID · 비밀 열쇠)은 Windows 앱의 절차다. 우리는 VAPID 로 보내 그 절차를
+     밟지 않는다(ADR 0156). Edge 의 웹 푸시 안내(아래 「Microsoft 의 호스트」)에도 약관 줄이 없다.
+   - Apple — 웹 푸시 문서(https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers)에
+     「You don't need to join the Apple Developer Program to send web push notifications.」와 송신 조건(「Don't send more than 100 unacknowledged
+     push requests over the connection.」 · 「Don't refresh your JWT more frequently than once per hour.」)만 있고 약관 · 계약의 이름은 없다.
 
 **Microsoft 의 호스트** — Edge 정책 문서가 Windows 의 Edge 가 WNS 로 간다는 것을 말한다(위 표). 호스트 `*.notify.windows.com` 은 ADR 0156
 이 실제 구독 주소를 보고 넣었다(`src/lib/push/index.ts:199`). Edge 의 웹 푸시 안내(https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/push)는
