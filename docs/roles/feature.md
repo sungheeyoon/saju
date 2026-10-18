@@ -40,3 +40,4 @@
 - 새 식별자 · 표 · 문구의 이름을 짓거나 낯선 도메인 낱말을 만나면 → [용어집 색인](../../GLOSSARY.md)이 가리키는 [그 영역 파일](../context/)
 - 이슈 문장 · 문서가 코드와 어긋나면 → [조율자 세션](../agents/delegation/coordinator.md) — 버그 · 문서 노후 · 결정 미반영 가르기
 - 새 비밀(환경 변수)을 들이면 → [비밀의 갈래](../../scripts/secret-env.mjs)
+- DB 함수(RPC)의 입력 경계(길이 · 범위 · 허용 값)를 시험에 옮기면 → [그 함수의 최신 마이그레이션](../../supabase/migrations/) — 옛 정의의 값은 바뀌었을 수 있다. `grep -l 'function public.<이름>' supabase/migrations/* | sort | tail -1`
