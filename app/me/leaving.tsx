@@ -60,7 +60,7 @@ export function RequestDeletion() {
           setAsking(false);
           setFailure(null);
         }}
-        title="탈퇴를 신청할까요?"
+        title="정말 탈퇴할까요?"
         confirmLabel={working ? '보내는 중…' : '탈퇴 신청하기'}
         onConfirm={leave}
         danger

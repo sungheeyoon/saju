@@ -483,7 +483,7 @@ test.describe('동의로 열리는 흐름', () => {
     await leaver.page.goto('/me/settings');
     await leaver.page.getByRole('button', { name: '탈퇴', exact: true }).click();
     /* 한 번 더 묻는 것은 확인 창 한 벌이고 첫 초점은 「취소」다(운영자 2026-10-18 G-97 ③, ADR 0166) */
-    const asked = leaver.page.getByRole('dialog');
+    const asked = leaver.page.getByRole('dialog', { name: '정말 탈퇴할까요?' });
     await expect(asked).toBeVisible();
     await expect(asked.getByRole('button', { name: '취소' })).toBeFocused();
 
