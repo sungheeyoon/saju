@@ -1,5 +1,6 @@
 import { REPORT_REASONS } from '@/src/lib/account';
 
+import { firstLine } from '../first-line';
 import { statusReasonLabel, UNRECORDED } from '../members/suspension';
 import { NO_NICKNAME, reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './labels';
 
@@ -94,7 +95,7 @@ export type ReviewPlan = {
 };
 
 /** 처분 바꾸기인가 — 처리 완료(조치 없음 · 경고 · 이용 정지 결정)인 신고에 다시 적는 것 */
-export const isChange = (now: ReportNow): boolean => !now.isOpen;
+const isChange = (now: ReportNow): boolean => !now.isOpen;
 
 const FIRST_LABEL: Record<Outcome, string> = {
   no_action: '조치 없음으로 처리',
@@ -137,11 +138,8 @@ export const actionLabel = (now: ReportNow, outcome: Outcome): string =>
 export const needsConfirm = (now: ReportNow, outcome: Outcome): boolean => isChange(now) || sanctions(outcome);
 
 /** 처분 전 — 처음이면 「처리 필요」, 추가 확인 필요면 그 이름, 처리 완료면 그 결과 */
-export const beforeLabel = (now: ReportNow): string =>
+const beforeLabel = (now: ReportNow): string =>
   now.outcome === null ? REVIEW_LABEL.open : reviewOutcomeLabel(now.outcome);
-
-/** 판단 근거 · 메모의 첫 줄 */
-export const firstLine = (text: string): string => text.trim().split('\n')[0]?.trim() ?? '';
 
 /** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(닉네임이 비슷한 다른 사람과 가른다) */
 export const partyLabel = (party: Pick<Party, 'nickname' | 'userId'>): string =>

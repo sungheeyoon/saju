@@ -1,3 +1,4 @@
+import { firstLine } from '../first-line';
 import { refundReasonLabel } from '../orders/labels';
 
 /**
@@ -36,11 +37,8 @@ export const isGrantReason = (kind: GrantKind, value: string): boolean =>
   REASONS[kind].some((reason) => reason.value === value);
 
 /** 지급 · 회수의 갈래 이름 — 모르는 값은 그대로 */
-export const grantReasonLabel = (value: string): string =>
+const grantReasonLabel = (value: string): string =>
   [...GRANT_REASONS, ...REVOKE_REASONS].find((reason) => reason.value === value)?.label ?? value;
-
-/** 메모의 첫 줄 — 확인창의 사유 칸에 갈래와 함께 선다 */
-export const firstLine = (note: string): string => note.trim().split('\n')[0]?.trim() ?? '';
 
 /** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(동명이인을 가른다) */
 export const memberLabel = (nickname: string | null, userId: string): string =>
@@ -255,6 +253,7 @@ export function historyCause(line: HistoryLine): string {
 /**
  * 증감 칸 — 풀이권의 증감이라 늘 「장」이다(「회」는 실제 풀이 횟수에만 쓴다). 확정 사용은 「−1장」, 예약은 부호 없이 「예약 중」,
  * 반환은 숫자 없이 빈 칸이다 — 사유 칸의 「반환 · 차감 없음」이 말한다(−1 · +1 로 읽히지 않게).
+ * 증감이 0 인 환불 줄(금액만 돌려주고 걷은 회차가 없는 환불)도 빈 칸이다 — 「+0장」으로 읽히지 않게(G-113, 운영자 결정 2026-10-18).
  */
 export function historyAmount(line: HistoryLine): string {
   if (line.kind === 'use') {
@@ -262,5 +261,6 @@ export function historyAmount(line: HistoryLine): string {
     if (line.state === 'reserved') return '예약 중';
   }
   if (line.delta === null) return '';
+  if (line.kind === 'refund' && line.delta === 0) return '';
   return line.delta >= 0 ? `+${line.delta}장` : `−${Math.abs(line.delta)}장`;
 }
