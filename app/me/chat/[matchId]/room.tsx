@@ -105,7 +105,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const reportable = useMemo(() => reportableOf(thread.messages), [thread.messages]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
-  useReadMarker(log, room.matchId, already, !closed, days);
+  /* 신고 · 차단 창이 대화를 덮은 동안은 읽음을 남기지 않는다 — 창 뒤에 든 말은 본 것이 아니다. 닫으면 그때 화면에 든 것으로 다시 잰다 */
+  useReadMarker(log, room.matchId, already, !closed && opened === null, days);
 
   return (
     <section
@@ -124,7 +125,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         onBlock={() => setOpened('block')}
       />
 
-      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 창이 대화를 덮어도 그대로다(`useReadMarker`) */}
+      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 창이 대화를 덮은 동안은 멈춘다(`useReadMarker`) */}
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={log}
