@@ -77,6 +77,11 @@ export const refusalCode = (code: string | undefined): string =>
  * `42501` 은 지금처럼 `noteDenial`(운영자가 아닌 사람의 `denied`)이고, 그 밖의 거절 — 버전 충돌 `55000` · 상태 거절 `23514` · 모양
  * `22023` 등 — 은 `note_operator_refusal` 이 `refused` 한 줄로 적는다. 거절한 트랜잭션의 줄은 되감기므로 따로 적는다. 적지 못해도
  * 화면의 답은 그대로다 — 못 적은 것은 서버 기록에만 남긴다. 문을 부르기 전에 액션이 모양으로 거른 것도 `22023` 으로 적는다.
+ *
+ * **`42501` 밖의 코드는 두 문을 다 부른다.** 그 코드가 운영자의 것이라는 보장이 없다 — 액션이 문을 부르기 전에 모양으로 거른 것,
+ * PostgREST 가 함수 몸 전에 인자를 거절한 것(`22P02` 등)은 운영자가 아닌 사람이 server action 을 바로 POST 해도 온다. 두 문은
+ * 서로의 반대만 적는다 — `note_operator_refusal` 은 운영자만, `note_operator_denial` 은 운영자가 아닌 사람만(로그인 안 한 사람은
+ * 둘 다 안 적는다). 그래서 누가 불렀든 한 줄이다(`99_operator_write_refusals` 「두 문을 함께」).
  */
 export async function noteWriteRefusal(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
@@ -88,15 +93,18 @@ export async function noteWriteRefusal(
     await noteDenial(supabase, action, idOf(target.reportId) ?? null);
     return;
   }
-  const { error } = await supabase.rpc(
-    'note_operator_refusal',
-    rpcArgs<'note_operator_refusal'>({
-      p_action: action,
-      p_code: refusalCode(code),
-      p_report_id: idOf(target.reportId),
-      p_user_id: idOf(target.userId),
-      p_order_id: idOf(target.orderId),
-    }),
-  );
-  if (error) console.error('note_operator_refusal', error);
+  const refusal = async () => {
+    const { error } = await supabase.rpc(
+      'note_operator_refusal',
+      rpcArgs<'note_operator_refusal'>({
+        p_action: action,
+        p_code: refusalCode(code),
+        p_report_id: idOf(target.reportId),
+        p_user_id: idOf(target.userId),
+        p_order_id: idOf(target.orderId),
+      }),
+    );
+    if (error) console.error('note_operator_refusal', error);
+  };
+  await Promise.all([refusal(), noteDenial(supabase, action, idOf(target.reportId) ?? null)]);
 }

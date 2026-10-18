@@ -6,8 +6,9 @@
 --   4. **표가 막는다** — `refused` 는 앱의 운영자 쓰기에만, 거른 조건 칸이 `refused=<코드>` 로 끝날 때만 선다
 --   5. **한 시간에 서른 줄** — 넘으면 그 줄은 버리고 장애 알림을 하루 한 번(`20261220090000`)
 --   6. **열린 곳** — `authenticated` 만. anon · 서버 열쇠에는 안 열린다
+--   7. **두 문을 함께** — 앱이 `note_operator_denial` 과 함께 불러도 누가 불렀든 한 줄(운영자는 `refused`, 아니면 `denied`)
 begin;
-select plan(16);
+select plan(18);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -103,6 +104,27 @@ select results_eq(
 select public.note_operator_refusal('credits.revoke', '55000');
 select is((select count(*)::integer from pg_temp.cap_alerts((select busy from folks))), 1,
   '서른둘째는 같은 날 알림을 더하지 않는다');
+
+-- ── 7. 두 문을 함께 ──────────────────────────────────────────────────────────
+-- 앱은 42501 밖의 거절에 두 문을 다 부른다 — 누가 불렀는지 모르는 거절(문을 부르기 전에 거른 모양 등)이라서다
+-- (`app/ops/denial.ts` 의 `noteWriteRefusal`). 두 문이 서로의 반대만 적어야 누가 불렀든 한 줄이다.
+
+select pg_temp.acting((select stranger from folks));
+select count(*) from (
+  select public.note_operator_denial(w), public.note_operator_refusal(w, '22023')
+  from unnest(array['reports.review', 'members.suspend', 'members.unsuspend', 'credits.grant', 'credits.revoke',
+                    'credits.refund_hold', 'credits.refund_book', 'credits.refund_release']) w) x;
+select results_eq(
+  format($$select outcome, count(*)::integer from pg_temp.lines(%L) group by outcome$$, (select stranger from folks)),
+  $$values ('denied', 8)$$,
+  '운영자가 아니면 쓰기 여덟 모두 denied 한 줄씩 — refused 는 없다');
+
+select pg_temp.acting((select operator from folks));
+select public.note_operator_denial('members.suspend'), public.note_operator_refusal('members.suspend', '22023', null, (select member from folks));
+select results_eq(
+  format($$select outcome, count(*)::integer from pg_temp.lines(%L) group by outcome$$, (select operator from folks)),
+  $$values ('refused', 5)$$,
+  '운영자는 refused 한 줄만 더한다 — denied 는 없다');
 
 reset role;
 
