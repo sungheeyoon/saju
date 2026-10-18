@@ -179,7 +179,7 @@
 | 요청이 답 없이 만료되는 때 | **7일** | `match_request_ttl()` |
 | 한 시간 · 하루에 저장할 수 있는 사람 | **20명 · 100명** (사용자당, 나는 안 든다 · 궁합만 보려고 만든 사람은 든다) | `person_save_hourly_limit()` · `person_save_daily_limit()` |
 | 하루에 낼 수 있는 신고 | **20건** (사용자당) — 아직 검토되지 않은 같은 대상 · 같은 사유는 또 못 낸다 | `report_daily_limit()` |
-| 하루에 서비스 전체가 만들 수 있는 로그인 전 사주 문단 | **2,000회** — 실패한 호출도 든다. **80%** 에 운영자에게 알린다. 같은 입력의 재사용은 안 든다(ADR 0143, 운영 배포는 G-68) | `taste_daily_model_calls()` |
+| 하루에 서비스 전체가 만들 수 있는 로그인 전 사주 문단 | **2,000회** — 실패한 호출도 든다. **80%** 에 운영자에게 알린다. 같은 입력의 재사용은 안 든다(ADR 0143) | `taste_daily_model_calls()` |
 | 로그인 전 사주 문단의 방문자 빗장 | 브라우저 하나가 **한 시간에 새 입력 5** · IP 하나가 **1분 3 · 하루 20회** 생성 · IP 하나의 요청 **1분 30회** · 같은 입력의 시도 **3번** | `taste_browser_new_per_hour()` · `taste_ip_calls_per_minute()` · `taste_ip_calls_per_day()` · `taste_ip_requests_per_minute()` · `taste_attempt_limit()` |
 
 **규칙 — 선다**
