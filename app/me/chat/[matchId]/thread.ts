@@ -70,6 +70,13 @@ export function readUpTo(seen: Iterable<number>, visible: boolean, marked: numbe
 }
 
 /**
+ * 지금 읽음을 남겨도 되나 — 열린 방이고, **대화를 덮는 창 · 시트(모달)가 하나도 없을 때만**(ADR 0155 덧 2026-10-18). 모달 뒤에
+ * 든 말은 본 것이 아니다 — IntersectionObserver 는 가려짐을 모른다. 닫으면 그때 화면에 든 것으로 다시 잰다.
+ */
+export const readsNow = (room: { readonly closed: boolean; readonly dialogOpen: boolean; readonly sheetOpen: boolean }): boolean =>
+  !room.closed && !room.dialogOpen && !room.sheetOpen;
+
+/**
  * 방에 들어왔을 때 이미 읽은 데까지 — 서버가 안 읽은 수를 0 으로 주면 가진 상대 말 전부가 읽힌 것이다. 아니면 모른다
  * (0 — 화면에 들어온 것부터 남긴다. 함수는 앞으로만 움직이므로 다시 남겨도 뒤로 가지 않는다).
  */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ChatMessage } from './messages';
-import { mergeMessages, needsNewer, newestSeq, oldestSeq, readAlready, readNewer, readUpTo, type ReadPage } from './thread';
+import { mergeMessages, needsNewer, newestSeq, oldestSeq, readAlready, readNewer, readsNow, readUpTo, type ReadPage } from './thread';
 
 const message = (seq: number, mine = false): ChatMessage => ({
   messageId: `m${seq}`,
@@ -105,5 +105,29 @@ describe('읽음을 어디까지 남기나', () => {
     const messages = [message(1), message(2, true), message(5), message(8, true)];
     expect(readAlready(messages, 0)).toBe(5);
     expect(readAlready(messages, 2)).toBe(0);
+  });
+});
+
+describe('읽음을 남겨도 되나 — 대화를 덮는 창 · 시트가 없을 때만', () => {
+  const room = { closed: false, dialogOpen: false, sheetOpen: false };
+
+  it('열린 방에 덮은 것이 없으면 남긴다', () => {
+    expect(readsNow(room)).toBe(true);
+  });
+
+  it('신고 · 차단 창이 열린 동안은 남기지 않는다', () => {
+    expect(readsNow({ ...room, dialogOpen: true })).toBe(false);
+  });
+
+  it('상대 프로필 시트가 열린 동안은 남기지 않는다', () => {
+    expect(readsNow({ ...room, sheetOpen: true })).toBe(false);
+  });
+
+  it('시트에서 창으로 넘어가는 동안(둘 다 열림)도 남기지 않는다', () => {
+    expect(readsNow({ ...room, dialogOpen: true, sheetOpen: true })).toBe(false);
+  });
+
+  it('닫힌 방은 남기지 않는다', () => {
+    expect(readsNow({ ...room, closed: true })).toBe(false);
   });
 });

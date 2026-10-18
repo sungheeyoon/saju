@@ -21,7 +21,7 @@ import { RoomHeader } from './room-header';
 import { RoomStart } from './room-start';
 import type { RoomView } from './room-view';
 import styles from './room.module.css';
-import { readAlready } from './thread';
+import { readAlready, readsNow } from './thread';
 import { useReadMarker } from './use-read-marker';
 import { useOutbox } from './use-outbox';
 import { useRoomHeight } from './use-room-height';
@@ -105,8 +105,11 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const reportable = useMemo(() => reportableOf(thread.messages), [thread.messages]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
-  /* 신고 · 차단 창이 대화를 덮은 동안은 읽음을 남기지 않는다 — 창 뒤에 든 말은 본 것이 아니다. 닫으면 그때 화면에 든 것으로 다시 잰다 */
-  useReadMarker(log, room.matchId, already, !closed && opened === null, days);
+  /*
+    신고 · 차단 창이나 상대 프로필 시트가 대화를 덮은 동안은 읽음을 남기지 않는다 — 창 · 시트 뒤에 든 말은 본 것이 아니다. 닫으면
+    그때 화면에 든 것으로 다시 잰다. 시트의 「⋯」에서 창으로 넘어갈 때는 창이 먼저 서고 시트가 내려간 뒤 닫혀 틈이 없다
+  */
+  useReadMarker(log, room.matchId, already, readsNow({ closed, dialogOpen: opened !== null, sheetOpen: profile.shown }), days);
 
   return (
     <section
@@ -125,7 +128,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         onBlock={() => setOpened('block')}
       />
 
-      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 창이 대화를 덮은 동안은 멈춘다(`useReadMarker`) */}
+      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 창이나 프로필 시트가 대화를 덮은 동안은 멈춘다(`useReadMarker`) */}
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={log}
