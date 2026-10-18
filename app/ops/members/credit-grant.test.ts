@@ -168,6 +168,11 @@ describe('이력의 말', () => {
     expect(historyCause(line({ kind: 'purchase', delta: 5 }))).toBe('구매');
   });
 
+  it('증감이 0 인 환불 줄은 빈 칸이다 — 「+0장」이 서지 않는다(G-113, 운영자 결정 2026-10-18)', () => {
+    expect(historyAmount(line({ kind: 'refund', source: 'bundle', delta: 0, reason: 'unused' }))).toBe('');
+    expect(historyCause(line({ kind: 'refund', source: 'bundle', delta: 0, reason: 'unused' }))).toBe('환불 — 안 쓴 몫 환불');
+  });
+
   it('거르기는 주소에서 읽고, 모르는 값은 기본으로', () => {
     expect(historyFilterOf('grants')).toBe('grants');
     expect(historyFilterOf('money')).toBe('all');
