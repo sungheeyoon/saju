@@ -1,5 +1,5 @@
 /**
- * **무거운 실행을 기계 전체에서 한 번에 하나만** 돌린다 — `next build` · Playwright e2e · 흐름 검사(`package.json` 의 그 스크립트들이
+ * **무거운 실행을 기계 전체에서 한 번에 하나만** 돌린다 — `next build` · Playwright e2e · 흐름 검사 · 배포 smoke(`package.json` 의 그 스크립트들이
  * 이 파일을 지난다). `node scripts/heavy.mjs <명령…>`.
  *
  * 2026-10-08 에 워크트리 셋이 e2e 와 빌드를 나란히 돌리자 WSL 의 메모리(6GB)와 스왑이 다 차서 에이전트가 10분씩 멈췄고, 로그인

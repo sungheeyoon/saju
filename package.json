@@ -40,6 +40,7 @@
     "merge:sim": "node scripts/merge-sim.mjs",
     "read-budget": "node scripts/read-budget.mjs",
     "test:flow": "node scripts/heavy.mjs node scripts/run-checks.mjs",
+    "smoke:deploy": "node scripts/heavy.mjs node scripts/deploy-smoke.mjs",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
