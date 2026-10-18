@@ -122,14 +122,16 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER).fill(hello);
     await a.page.getByRole('button', { name: CHAT_SEND_LABEL }).click();
     await expect(talkOf(a).getByText(hello)).toBeVisible();
-    // 보낸 뒤 입력 칸은 비고, 신고를 골라도 내 메시지에는 고를 깃발이 없다 — 상대 말이 0건이어도 사유 칸은 곧장 선다(ADR 0158)
+    // 보낸 뒤 입력 칸은 비고, 신고 창에는 내 메시지를 고를 줄이 없다 — 상대 말이 0건이어도 사유 칸은 곧장 선다(ADR 0158 · G-97)
     await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveValue('');
     await openRoomMenu(a);
     await a.page.getByRole('button', { name: '신고', exact: true }).click();
-    await expect(a.page.getByLabel('신고 사유')).toBeVisible();
-    await expect(a.page.getByRole('button', { name: '신고하기' })).toBeVisible();
-    await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
-    await expect(a.page.getByText('신고할 메시지를 골라 주세요')).toBeVisible();
+    const reportDialog = a.page.getByRole('dialog', { name: `나${tag} 님 신고` });
+    await expect(reportDialog.getByLabel('신고 사유')).toBeVisible();
+    await expect(reportDialog.getByRole('button', { name: '신고하기' })).toBeVisible();
+    await expect(reportDialog.getByRole('group', { name: '신고할 메시지를 골라 주세요' })).toHaveCount(0);
+    await a.page.keyboard.press('Escape');
+    await expect(reportDialog).toBeHidden();
 
     // 상대의 목록에 안 읽은 수가 서고, 들어가면 읽은 것이 된다
     await b.page.goto('/me/chat');
@@ -354,7 +356,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
   });
 
   /** 화면 자판에는 Shift 가 없다 — 손가락으로만 쓰는 기기에서 Enter 는 줄바꿈이고 보내기는 단추로만 한다(카카오톡과 같다, `composer.tsx`) */
-  test('쓰던 글은 신고 판을 열었다 닫아도 · 다른 화면에 다녀와도 칸에 남고, 보내면 사라진다', async ({ openAs }) => {
+  test('쓰던 글은 신고 창을 열었다 닫아도 · 다른 화면에 다녀와도 칸에 남고, 보내면 사라진다', async ({ openAs }) => {
     const { a, room } = await pair(openAs);
     await a.page.goto(room);
     const field = a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER);
@@ -363,8 +365,9 @@ test.describe('매칭된 한 쌍의 채팅', () => {
 
     await openRoomMenu(a);
     await a.page.getByRole('button', { name: '신고', exact: true }).click();
-    await expect(field).toHaveCount(0);
+    await expect(a.page.getByRole('dialog').getByLabel('신고 사유')).toBeVisible();
     await a.page.getByRole('button', { name: '작성 그만두기', exact: true }).click();
+    await expect(a.page.getByRole('dialog')).toBeHidden();
     await expect(field).toHaveValue(draft);
 
     await a.page.goto('/me/chat');
@@ -472,13 +475,15 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(report).toBeHidden();
     await expect(opener).toBeFocused();
 
-    // 신고를 고르면 메뉴가 닫히고 사유 칸이 한 번 선다
+    // 신고를 고르면 메뉴가 닫히고 사유 칸이 한 번 선다 — 신고 창이다(G-97). 적은 것이 없으면 Esc 로 닫힌다
     await opener.click();
     await report.click();
     await expect(report).toBeHidden();
     await expect(a.page.getByLabel('신고 사유')).toHaveCount(1);
+    await a.page.keyboard.press('Escape');
+    await expect(a.page.getByLabel('신고 사유')).toBeHidden();
 
-    // 열린 방의 차단을 고르면 메뉴가 닫히고 확인 칸이 한 번 선다
+    // 열린 방의 차단을 고르면 메뉴가 닫히고 차단을 묻는 창이 한 번 선다
     await opener.click();
     await block.click();
     await expect(block).toBeHidden();
@@ -557,9 +562,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(talkOf(a).getByText(mine)).toBeVisible();
     await expect(a.page.getByRole('status')).toHaveText(LEFT_ROOM_TEXT);
     await expect(a.page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toHaveCount(0);
-    // 떠난 사람에게는 신고가 안 선다 — 신고당할 계정이 없다. 「⋯」도, 메시지를 고를 깃발도 없다
+    // 떠난 사람에게는 신고가 안 선다 — 신고당할 계정이 없다. 「⋯」가 없어 신고 창도 안 선다
     await expect(roomMenuOf(a)).toHaveCount(0);
-    await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
   });
 
   test('신고 한 건이 고른 메시지와 앞뒤 문맥의 스냅샷과 함께 남는다', async ({ openAs }) => {
@@ -571,8 +575,10 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await b.page.goto(room);
     await openRoomMenu(b);
     await b.page.getByRole('button', { name: '신고', exact: true }).click();
-    const chosen = talkOf(b).getByRole('listitem').filter({ hasText: `셋 ${tag}` });
-    await chosen.getByRole('button', { name: '이 메시지 신고' }).click();
+    // 창 안에서 상대의 말을 고른다 — 최근 것부터 선다(G-97)
+    const picker = b.page.getByRole('dialog').getByRole('group', { name: '신고할 메시지를 골라 주세요' });
+    await picker.getByRole('button', { name: new RegExp(`셋 ${tag}`) }).click();
+    await expect(picker.getByRole('button', { name: new RegExp(`셋 ${tag}`) })).toHaveAttribute('aria-pressed', 'true');
     await b.page.getByRole('button', { name: '신고하기' }).click();
     await expect(b.page.getByRole('status').filter({ hasText: '신고를 접수했습니다' })).toBeVisible();
 
@@ -610,8 +616,10 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await b.page.goto(room);
     await openRoomMenu(b);
     await b.page.getByRole('button', { name: '신고', exact: true }).click();
-    const chosen = talkOf(b).getByRole('listitem').filter({ hasText: `셋 ${tag}` });
-    await chosen.getByRole('button', { name: '이 메시지 신고' }).click();
+    // 창 안에서 상대의 말을 고른다 — 최근 것부터 선다(G-97)
+    const picker = b.page.getByRole('dialog').getByRole('group', { name: '신고할 메시지를 골라 주세요' });
+    await picker.getByRole('button', { name: new RegExp(`셋 ${tag}`) }).click();
+    await expect(picker.getByRole('button', { name: new RegExp(`셋 ${tag}`) })).toHaveAttribute('aria-pressed', 'true');
     await b.page.getByRole('button', { name: '신고하기' }).click();
     await expect(b.page.getByRole('status').filter({ hasText: '신고를 접수했습니다' })).toBeVisible();
 

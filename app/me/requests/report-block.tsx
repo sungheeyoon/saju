@@ -12,12 +12,12 @@ import {
 import { BLOCK_NOTE } from '@/src/lib/consent';
 
 import type { SaveResult } from '../../save-result';
-import { BUTTON_DANGER, BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY, BUTTON_TERTIARY, BUTTON_TERTIARY_DANGER, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
+import { BUTTON_PRIMARY_SMALL, BUTTON_TERTIARY, BUTTON_TERTIARY_DANGER, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
 import { ConfirmDialog, openConfirmDialog, pressedOutside } from '../../ui/confirm-dialog';
 import { useDetailsMenu } from '../../ui/details-menu';
 import { Icon } from '../../ui/icons';
 import { useLeaveGuard } from '../../ui/leave-guard';
-import { CONFIRM_ROW, DIALOG, MENU_PANEL } from '../../ui/surfaces';
+import { DIALOG, MENU_PANEL } from '../../ui/surfaces';
 import { blockUser, reportUser } from './actions';
 import { announceRequestsToAnswerMoved } from './unread-signal';
 import { actionAnswer } from '../../ui/action-answer';
@@ -196,65 +196,8 @@ export function ReportForm({
 }
 
 /**
- * 차단 — 판 안에 서는 두 걸음(대화방의 입력 자리): 알림 글과 확인 단추. 되돌릴 수 없어서 위험 색의 주 단추다.
- * 창으로 묻는 자리는 `BlockDialog` 다. 단추의 차례와 첫 초점은 확인 창과 같다 — 실행이 오른쪽(좁으면 위), 서자마자 초점은 「취소」.
- *
- * 차단은 그 사람의 요청을 거둔다 — 답할 요청 수가 줄 수 있어 인연 탭의 딱지에 알린다(`BlockDialog` 와 같다).
- */
-export function BlockConfirm({
-  userId,
-  onCancel,
-  onBlocked,
-}: {
-  userId: string;
-  onCancel: () => void;
-  onBlocked?: () => void;
-}) {
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-  const cancel = useRef<HTMLButtonElement>(null);
-
-  /* 고른 「차단」 메뉴는 닫혀 사라졌다 — 초점을 되돌릴 수 없는 누름이 아니라 「취소」에 둔다 */
-  useEffect(() => {
-    cancel.current?.focus();
-  }, []);
-
-  const block = () => {
-    setFailure(null);
-    startWorking(async () => {
-      // 액션의 응답이 이 화면을 다시 그린다(`requests-changed` 의 `THIS_SCREEN`) — 방은 닫히고, 궁합은 닫힌다
-      const result = await actionAnswer(blockUser(userId));
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
-      announceRequestsToAnswerMoved();
-      onBlocked?.();
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-tile bg-danger-wash p-4 ring-1 ring-danger/30">
-      <p className="flex items-center gap-2 text-body font-bold text-danger">
-        <Icon name="block" className="size-[18px]" />
-        차단
-      </p>
-      <p className="text-note leading-6 text-foreground">{BLOCK_NOTE}</p>
-      {failure !== null && <FailureLine>{failure}</FailureLine>}
-      <div className={CONFIRM_ROW}>
-        <button type="button" onClick={block} disabled={working} className={BUTTON_DANGER}>
-          {working ? '차단하는 중…' : '차단하기'}
-        </button>
-        <button ref={cancel} type="button" onClick={onCancel} disabled={working} className={BUTTON_SECONDARY}>
-          취소
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * **차단을 한 번 더 묻는 창** — 인연 궁합 머리 · 오늘의 인연 카드의 「⋯」와 요청 카드의 「차단」이 같은 창을 연다.
+ * **차단을 한 번 더 묻는 창** — 대화방 머리 · 인연 궁합 머리 · 오늘의 인연 카드의 「⋯」와 요청 카드의 「차단」이 같은 창을 연다.
+ * 대화방도 입력 자리의 판을 걷고 이 창이다(G-97, 2026-10-18).
  * 모양 · 몸짓은 확인 창 한 벌(`ConfirmDialog`)이다 — 첫 초점은 「취소」.
  *
  * 차단은 그 사람의 요청을 거둔다 — 답할 요청 수가 줄 수 있어 인연 탭의 딱지에 알린다.
@@ -309,11 +252,26 @@ export function BlockDialog({
   );
 }
 
+/** 신고 창에서 고를 수 있는 상대의 말 한 줄 — 대화방이 보이는 말에서 지어 넘긴다 */
+export type ReportableMessage = { readonly id: string; readonly body: string; readonly time: string };
+
+/**
+ * 대화방의 신고 창만 드는 것 — 고를 수 있는 상대의 말(최근 것부터)과 고른 말을 신고하는 문. 고른 말이 있으면 그 문으로
+ * (`report_chat_message` — 앞뒤 문맥 스냅샷), 없으면 사람 신고(`report_user`)다.
+ */
+export type MessagePick = {
+  readonly messages: readonly ReportableMessage[];
+  readonly reportMessage: (messageId: string, reason: ReportReason, detail: string) => Promise<SaveResult>;
+};
+
 /**
  * **신고 창** — 사유 · 덧붙일 말을 적는 창. 머리 오른쪽 X 가 닫고(적는 동안은 「작성 그만두기」), 보내면 접수 문장과
  * 「차단으로 넘어가기」가 선다.
  *
  * 적은 것이 있으면 Esc · 바깥 누름으로 바로 닫히지 않는다 — 손이 미끄러져 사유가 사라지지 않게. 그때 닫는 길은 X 하나다.
+ *
+ * **대화방은 창 안에서 메시지를 고른다**(`pick`, G-97 2026-10-18). 창이 대화를 덮으므로 말풍선 곁 깃발로는 고를 수 없다 —
+ * 상대의 말을 최근 것부터 창 안의 목록으로 세운다. 고르기는 그대로 선택이고(ADR 0158), 고른 줄을 다시 누르면 풀린다.
  */
 export function ReportDialog({
   userId,
@@ -321,6 +279,7 @@ export function ReportDialog({
   open,
   onClose,
   onBlock,
+  pick,
 }: {
   userId: string;
   nickname: string;
@@ -328,11 +287,14 @@ export function ReportDialog({
   onClose: () => void;
   /** 「차단으로 넘어가기」 — 없으면 안 선다 */
   onBlock?: () => void;
+  /** 대화방만 — 고를 상대의 말이 하나도 없으면 목록이 안 선다 */
+  pick?: MessagePick;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [reported, setReported] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [picked, setPicked] = useState<string | null>(null);
   /* 폼은 열 때마다 새로 선다 — 지난번에 적다 만 사유가 남지 않게 */
   const [round, setRound] = useState(0);
 
@@ -355,6 +317,7 @@ export function ReportDialog({
         event.stopPropagation();
         setReported(false);
         setDirty(false);
+        setPicked(null);
         setRound((now) => now + 1);
         onClose();
       }}
@@ -396,8 +359,15 @@ export function ReportDialog({
         ) : (
           <>
             <p className="text-small leading-5 text-secondary">{REPORT_NOTE}</p>
+            {pick !== undefined && pick.messages.length > 0 && (
+              <MessagePicker messages={pick.messages} picked={picked} onPick={setPicked} />
+            )}
             <ReportForm
-              send={(reason, detail) => actionAnswer(reportUser(userId, reason, detail))}
+              send={(reason, detail) =>
+                pick !== undefined && picked !== null
+                  ? actionAnswer(pick.reportMessage(picked, reason, detail))
+                  : actionAnswer(reportUser(userId, reason, detail))
+              }
               onDone={() => setReported(true)}
               onBlock={onBlock}
               onDirty={setDirty}
@@ -410,8 +380,66 @@ export function ReportDialog({
 }
 
 /**
- * **한 사람을 신고 · 차단하는 「⋯」와 그 창 둘** — 인연 궁합 머리와 오늘의 인연 카드가 쓴다. 대화방은 입력 자리에 칸을
- * 세우므로(`room.tsx`) 메뉴와 폼만 빌려 간다.
+ * 신고 창 안의 메시지 고르기 — 상대의 말이 최근 것부터 선다. 줄마다 누르는 단추(`aria-pressed`)이고 하나만 고른다. 고른 줄을
+ * 다시 누르면 풀린다 — 안 골라도 「신고하기」가 된다(ADR 0158). 이름은 대화방 판의 제목이던 그 문장이다(대장 23).
+ *
+ * 목록은 낮은 칸 안에서만 스크롤한다 — 폰에서도 사유 칸과 「신고하기」가 창 안에 함께 선다.
+ */
+function MessagePicker({
+  messages,
+  picked,
+  onPick,
+}: {
+  messages: readonly ReportableMessage[];
+  picked: string | null;
+  onPick: (messageId: string | null) => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p id={labelId} className="text-small font-semibold text-secondary">
+        신고할 메시지를 골라 주세요
+      </p>
+      <div
+        role="group"
+        aria-labelledby={labelId}
+        className="flex max-h-44 flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl bg-surface p-1.5 ring-1 ring-border"
+      >
+        {messages.map((message) => {
+          const chosen = picked === message.id;
+          return (
+            <button
+              key={message.id}
+              type="button"
+              aria-pressed={chosen}
+              onClick={() => onPick(chosen ? null : message.id)}
+              className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
+                chosen ? 'bg-danger-wash ring-1 ring-danger/45' : 'hover:bg-surface-soft active:bg-surface-sunken'
+              }`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 break-words text-note leading-5 text-foreground">{message.body}</span>
+                <span className="mt-0.5 block text-fine tabular-nums text-secondary">{message.time}</span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={`grid size-8 shrink-0 place-items-center rounded-full ring-1 ${
+                  chosen ? 'bg-danger text-surface ring-danger' : 'bg-surface text-danger ring-danger/45'
+                }`}
+              >
+                <Icon name="flag" className="size-4" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * **한 사람을 신고 · 차단하는 「⋯」와 그 창 둘** — 인연 궁합 머리와 오늘의 인연 카드가 쓴다. 대화방은 메시지 고르기(`pick`)와
+ * 닫힌 방의 갈래가 있어 메뉴와 두 창을 따로 빌려 간다(`room.tsx`).
  *
  * 신고는 사람에게 건다(`report_user`) — 마주친 적 있는 사람이어야 하고(후보로 봤거나 · 요청을 주고받았거나 · 매칭),
  * 그 판정은 DB 가 한다. 신고가 끝나면 접수 문장과 「차단으로 넘어가기」가 함께 선다 — 신고만으로는 그 사람이 안 사라진다.

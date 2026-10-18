@@ -15,16 +15,16 @@ import type { RoomView } from './room-view';
 import { THEIR_SEQ } from './use-read-marker';
 import { MESSAGE_ID } from './use-scroll-keeper';
 
-/** 대화 칸의 말풍선 한 줄 — 말풍선 · 상대 얼굴 · 시각, 그리고 그 자리에 서는 신고 깃발이나 못 보낸 말의 단추 */
+/**
+ * 대화 칸의 말풍선 한 줄 — 말풍선 · 상대 얼굴 · 시각, 그리고 못 보낸 말이면 그 자리의 단추. 신고할 말은 신고 창 안에서
+ * 고른다(G-97, 2026-10-18) — 말풍선 곁에 깃발이 서지 않는다.
+ */
 export function BubbleRow({
   bubble,
   room,
   sending = null,
   onRetry = null,
   onDrop = null,
-  pickable,
-  chosen,
-  onPick,
   onFace = null,
 }: {
   bubble: Bubble;
@@ -38,9 +38,6 @@ export function BubbleRow({
   onRetry?: (() => void) | null;
   /** 이 화면에서만 걷는다 — 서버에 간 적이 없다고 분명한 말에만 선다 */
   onDrop?: (() => void) | null;
-  pickable: boolean;
-  chosen: boolean;
-  onPick: () => void;
   /** 곁 사진을 누르면 상대 프로필 시트 — 닫힌 방은 `null`(누를 자리가 없다) */
   onFace?: (() => void) | null;
 }) {
@@ -81,26 +78,10 @@ export function BubbleRow({
           <span aria-hidden="true" className="w-9 shrink-0" />
         ))}
       <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
-        <p
-          className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55] ${
-            chosen ? 'outline-[3px] outline-offset-2 outline-danger' : ''
-          }`}
-        >
+        <p className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55]`}>
           <BubbleBody body={bubble.body} />
         </p>
-        {pickable ? (
-          <button
-            type="button"
-            onClick={onPick}
-            aria-pressed={chosen}
-            aria-label="이 메시지 신고"
-            className={`grid size-11 shrink-0 place-items-center rounded-full ring-1 active:scale-95 ${
-              chosen ? 'bg-danger text-surface ring-danger' : 'bg-surface text-danger ring-danger/45'
-            }`}
-          >
-            <Icon name="flag" className="size-[18px]" />
-          </button>
-        ) : sending === 'failed' ? (
+        {sending === 'failed' ? (
           <SendFailedMenu onRetry={onRetry} onDrop={onDrop} />
         ) : (
           bubble.last &&

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bubbleDaysOf, flaggable } from './bubbles';
+import { bubbleDaysOf, flaggable, reportableOf } from './bubbles';
 import type { ChatMessage } from './messages';
 
 const message = (seq: number, createdAt: string, mine: boolean, fromLeftPartner = false): ChatMessage => ({
@@ -55,9 +55,26 @@ describe('bubbleDaysOf', () => {
 });
 
 describe('flaggable', () => {
-  it('상대의 말에만 깃발이 선다 — 내 말 · 떠난 사람의 말은 아니다', () => {
+  it('상대의 말만 신고에서 고를 수 있다 — 내 말 · 떠난 사람의 말은 아니다', () => {
     expect(flaggable({ mine: false, fromLeftPartner: false })).toBe(true);
     expect(flaggable({ mine: true, fromLeftPartner: false })).toBe(false);
     expect(flaggable({ mine: false, fromLeftPartner: true })).toBe(false);
+  });
+});
+
+describe('reportableOf', () => {
+  it('신고 창의 목록은 상대의 말만, 최근 것부터 선다 — 내 말 · 떠난 사람의 말은 빠진다', () => {
+    const list = reportableOf([
+      message(1, '2026-10-17T11:00:00Z', false),
+      message(2, '2026-10-17T11:01:00Z', true),
+      message(3, '2026-10-17T11:02:00Z', false, true),
+      message(4, '2026-10-17T11:13:00Z', false),
+    ]);
+    expect(list.map((one) => one.id)).toEqual(['m4', 'm1']);
+    expect(list[0]).toEqual({ id: 'm4', body: '본문 4', time: '오후 8:13' });
+  });
+
+  it('고를 말이 없으면 빈 목록이다 — 창은 목록 없이 사람 신고로 선다', () => {
+    expect(reportableOf([message(1, '2026-10-17T11:00:00Z', true)])).toEqual([]);
   });
 });
