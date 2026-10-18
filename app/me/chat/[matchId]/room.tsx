@@ -3,21 +3,20 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { REPORT_DONE } from '@/src/lib/account';
 import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 
 import { withCameFrom } from '../../../came-from';
 import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { PartnerSheet, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
-import { BlockConfirm, ReportBlockMenu } from '../../requests/report-block';
+import { BlockDialog, ReportBlockMenu, ReportDialog } from '../../requests/report-block';
+import { reportChatMessage } from '../actions';
 import { Composer } from '../composer';
 import { dropDraft } from '../draft';
 import { droppable, withPending } from './pending';
-import { bubbleDaysOf, flaggable, type ShownMessage } from './bubbles';
+import { bubbleDaysOf, reportableOf, type ShownMessage } from './bubbles';
 import { BubbleRow } from './bubble-row';
 import { CompatChip } from './compat-chip';
-import { ReportPanel } from './report';
 import { RoomHeader } from './room-header';
 import { RoomStart } from './room-start';
 import type { RoomView } from './room-view';
@@ -29,7 +28,8 @@ import { useRoomHeight } from './use-room-height';
 import { useScrollKeeper } from './use-scroll-keeper';
 import { useThread, type MergeKind } from './use-thread';
 
-type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageId: string | null };
+/** 방 위에 선 창 — 신고 창이나 차단을 묻는 창. 입력 자리는 그대로 남는다 */
+type Opened = 'report' | 'block' | null;
 
 /**
  * **방 하나 — 머리와 입력이 붙어 있고 대화만 스크롤한다.**
@@ -44,19 +44,17 @@ type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageI
  * 상대 말이 회색 한 벌이다 — 지어낸 색은 그 사람에 대해 거짓을 말한다.
  *
  * 신고 · 차단은 머리의 「⋯」 안에 있다 — 말풍선마다 「신고」가 서 있으면 대화가 신고 목록처럼 읽힌다. 인연 궁합 ·
- * 오늘의 인연 카드와 같은 「⋯」다(`ReportBlockMenu`, ADR 0158). 신고를 누르면 입력 자리에 사유 칸이 곧장 서고, 상대
- * 말풍선 곁에 깃발이 선다 — 하나를 고르면 메시지 신고, 안 고르면 사람 신고다. 차단은 입력 자리에 알림 글과 확인 단추가 선다.
+ * 오늘의 인연 카드와 같은 「⋯」다(`ReportBlockMenu`, ADR 0158). **둘 다 창이다**(G-97, 2026-10-18) — 입력 자리를 판으로
+ * 바꾸지 않아 쓰던 글이 그대로다. 신고 창은 사유 칸이 곧장 서고, 그 안에 상대의 말이 최근 것부터 줄로 선다 — 하나를 고르면
+ * 메시지 신고(`report_chat_message` — 앞뒤 문맥 스냅샷), 안 고르면 사람 신고다. 차단은 다른 자리와 같은 차단 창이다.
  */
 export function ChatRoomView({ room }: { room: RoomView }) {
   const router = useRouter();
   const frame = useRef<HTMLElement>(null);
   useRoomHeight(frame);
-  const [slot, setSlot] = useState<Slot>({ kind: 'compose' });
-  const [reported, setReported] = useState(false);
+  const [opened, setOpened] = useState<Opened>(null);
   const closed = room.notice !== null;
   const hasPartner = room.partnerUserId !== null;
-  const picking = slot.kind === 'report';
-  const picked = slot.kind === 'report' ? slot.messageId : null;
   const theirTone = room.tones?.theirs.element ?? null;
   /*
     **상대 프로필 시트** — 머리의 사진 · 이름과 상대 말풍선 곁 사진이 연다(운영자 결정 2026-10-11, ADR 0155 덧). 시트라 방의
@@ -103,6 +101,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const shown = useMemo(() => withPending(thread.messages, pending), [thread.messages, pending]);
   const pendingById = useMemo(() => new Map(pending.map((one) => [one.id, one])), [pending]);
   const days = useMemo(() => bubbleDaysOf(shown), [shown]);
+  /* 신고 창에서 고를 상대의 말 — 보내는 중인 내 말은 들지 않는다 */
+  const reportable = useMemo(() => reportableOf(thread.messages), [thread.messages]);
   /* 들어올 때 이미 읽은 차례 — 처음 그린 값으로 한 번 정한다 */
   const [already] = useState(() => readAlready(room.messages, room.unread));
   useReadMarker(log, room.matchId, already, !closed, days);
@@ -120,14 +120,11 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         onOpenPartner={openPartner}
         matchLink={matchLink}
         chipTone={chipTone}
-        onReport={() => {
-          setReported(false);
-          setSlot({ kind: 'report', messageId: null });
-        }}
-        onBlock={() => setSlot({ kind: 'block' })}
+        onReport={() => setOpened('report')}
+        onBlock={() => setOpened('block')}
       />
 
-      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 칸이 입력 자리를 차지해도 그대로다(`useReadMarker`) */}
+      {/* 읽음은 화면에 들어온 상대 말까지만 남는다 — 신고 · 차단 창이 대화를 덮어도 그대로다(`useReadMarker`) */}
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={log}
@@ -171,10 +168,6 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                       */
                       onRetry={closed && one?.mightBeKept !== true ? null : () => outbox.retry(bubble.id)}
                       onDrop={one !== undefined && droppable(one) ? () => outbox.drop(bubble.id) : null}
-                      /* 신고는 상대의 말에만 선다(`flaggable`). 고른 깃발을 다시 누르면 고르기가 풀린다 — 고르기는 선택이다 */
-                      pickable={picking && flaggable(bubble)}
-                      chosen={picked === bubble.id}
-                      onPick={() => setSlot({ kind: 'report', messageId: picked === bubble.id ? null : bubble.id })}
                       onFace={partner === null ? null : openPartner}
                     />
                   );
@@ -197,26 +190,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border p-2.5 sm:p-4">
-        {reported && slot.kind === 'compose' && (
-          <p role="status" className="rounded-2xl bg-surface-soft px-4 py-2.5 text-small text-secondary">
-            {REPORT_DONE}
-          </p>
-        )}
-        {/* 차단이 끝나 다시 읽으면 방이 닫혀 있다 — 그때는 확인 칸 대신 닫힌 까닭이 선다 */}
-        {slot.kind === 'block' && !closed && room.partnerUserId !== null ? (
-          <BlockConfirm userId={room.partnerUserId} onCancel={() => setSlot({ kind: 'compose' })} />
-        ) : slot.kind === 'report' && room.partnerUserId !== null ? (
-          <ReportPanel
-            partnerUserId={room.partnerUserId}
-            messageId={slot.messageId}
-            onBlock={closed ? undefined : () => setSlot({ kind: 'block' })}
-            onCancel={() => setSlot({ kind: 'compose' })}
-            onDone={() => {
-              setReported(true);
-              setSlot({ kind: 'compose' });
-            }}
-          />
-        ) : closed ? (
+        {/* 차단이 끝나 다시 읽으면 방이 닫혀 있다 — 입력 칸 대신 닫힌 까닭이 선다 */}
+        {closed ? (
           /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD 「앱 내 채팅」) */
           <p role="status" className="flex items-center gap-2.5 rounded-row bg-surface-soft px-4 py-3 text-note text-secondary">
             <Icon name="lock" className="size-4" />
@@ -241,22 +216,42 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           toMatch={
             matchLink === null ? null : <CompatChip compat={room.compat ?? { kind: 'quiet' }} href={matchLink} tone={chipTone} fill />
           }
-          /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 입력 자리에 신고 · 차단 칸을 세운다 */
+          /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 신고 · 차단 창을 연다 */
           menu={
             <ReportBlockMenu
               canBlock
               onReport={() => {
                 profile.close();
-                setReported(false);
-                setSlot({ kind: 'report', messageId: null });
+                setOpened('report');
               }}
               onBlock={() => {
                 profile.close();
-                setSlot({ kind: 'block' });
+                setOpened('block');
               }}
             />
           }
         />
+      )}
+      {room.partnerUserId !== null && (
+        <>
+          <ReportDialog
+            userId={room.partnerUserId}
+            nickname={room.name}
+            open={opened === 'report'}
+            onClose={() => setOpened((now) => (now === 'report' ? null : now))}
+            onBlock={closed ? undefined : () => setOpened('block')}
+            pick={{ messages: reportable, reportMessage: reportChatMessage }}
+          />
+          {/* 닫힌 방에는 차단할 것이 없다 — 「⋯」에도 차단이 안 선다 */}
+          {!closed && (
+            <BlockDialog
+              userId={room.partnerUserId}
+              nickname={room.name}
+              open={opened === 'block'}
+              onClose={() => setOpened((now) => (now === 'block' ? null : now))}
+            />
+          )}
+        </>
       )}
     </section>
   );

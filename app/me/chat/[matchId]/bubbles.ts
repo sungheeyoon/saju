@@ -34,11 +34,27 @@ export type Bubble = {
 };
 
 /**
- * 깃발을 꽂을 수 있는 말 — 상대의 말만이다. 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다(ADR 0094).
- * 깃발이 하나도 안 서도 신고 판은 사람 신고로 보낼 수 있다(ADR 0158).
+ * 신고에서 고를 수 있는 말 — 상대의 말만이다. 자기 자신은 신고할 수 없고, 떠난 사람은 신고당할 계정이 없다(ADR 0094).
+ * 고를 말이 하나도 없어도 신고 창은 사람 신고로 보낼 수 있다(ADR 0158).
  */
 export function flaggable(message: { readonly mine: boolean; readonly fromLeftPartner: boolean }): boolean {
   return !message.mine && !message.fromLeftPartner;
+}
+
+/**
+ * 신고 창의 고르기 목록 — 방이 지금 든 메시지(오래된 것부터) 가운데 고를 수 있는 말을 **최근 것부터** 세운다. 창이 대화를
+ * 덮어 말풍선 곁 깃발로는 못 고르므로 창 안에 줄로 선다(G-97, 2026-10-18). 「이전 메시지 더 보기」로 불러 둔 말도 든다.
+ */
+export function reportableOf(
+  messages: readonly (ChatMessage & Partial<Labels>)[],
+): readonly { readonly id: string; readonly body: string; readonly time: string }[] {
+  return messages
+    .filter(flaggable)
+    .map((raw) => {
+      const message = labelled(raw);
+      return { id: message.messageId, body: message.body, time: message.time };
+    })
+    .reverse();
 }
 
 export type BubbleDay = {
