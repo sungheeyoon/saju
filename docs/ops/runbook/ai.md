@@ -64,6 +64,14 @@ npm run db:remote -- --purpose "검사 기록 날짜별 수" \
 - `shipped` · `blocked` — 이 코드가 걸리고도 내보낸 시도 · 막힌 시도. 막힌 시도는 같은 시도의 다른 코드가 막았을 수 있다
 - `checked` — 그날 그 종류에서 검사를 적은 시도 전부(분모), `share` — 그 가운데 이 코드가 걸린 몫(%)
 
+뷰는 **걸린 코드가 있는 줄만** 낸다(`where c.code <> 'checked'`) — 아무것도 안 걸린 날 · 종류는 뷰에 없다. 「검사가 적히기는 했나」
+(G-93)는 분모 줄을 표에서 바로 본다.
+
+```bash
+npm run db:remote -- --purpose "검사를 적은 시도 수" \
+  "select day, kind, shipped, blocked from public.check_finding_daily_count where code = 'checked' order by day desc, kind;"
+```
+
 코드가 어느 갈래인지는 ADR 0163 의 갈래 표가 든다. 몫이 큰 품질 코드가 프롬프트를 고칠 자리다 — 고치면 실호출로 다시 잰다
 (`docs/agents/test-map/what-to-run.md` 의 프롬프트 줄). 한 시도의 설명까지 볼 때(문의 응대 — 판단은 사람이 ADR 0148 대로)는 그 시도 id 하나로만 읽는다 —
 `select check_findings from public.reading_run where id = '<시도 id>';` `reading_run` 은 이용자의 시도라 일상 집계에 열지 않는다
@@ -171,8 +179,8 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 ## 로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용 (ADR 0143)
 
 로그인 전 첫 화면의 사주 문단은 사람마다 모델이 쓴다. 계정이 없으므로 빗장은 브라우저와 IP 에 걸고, 칸은 모델을 **부르기 전에**
-`reserve_taste` 가 한 트랜잭션으로 예약한다. 앱은 main 에 들었고(#441 · #443) DB 둘(`20261118090000` · `20261119090000`)은 운영에
-올라 있다 — 「배포」 답 뒤 운영 배포 전까지(G-68) 이 절의 표와 뷰는 비어 있다. 회원에게는 이 문단을 만들지 않는다(로그인한 요청은
+`reserve_taste` 가 한 트랜잭션으로 예약한다. 앱(#441 · #443)과 DB 둘(`20261118090000` · `20261119090000`)이 운영에
+올라 있다 — 앱은 2026-10-03 에 배포됐다(남은 것은 첫 사주풀이 1번의 판정, G-68). 회원에게는 이 문단을 만들지 않는다(로그인한 요청은
 서버가 닫는다).
 
 ### 비밀 둘 — 없으면 문단이 닫힌다
