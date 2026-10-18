@@ -20,7 +20,7 @@
 | 새 워크트리에서 vitest 가 `server-only` 를 못 찾거나 dev 서버가 `node_modules` 를 거절한다 | 워크트리에는 `node_modules` 가 없다. 심볼릭 링크는 Turbopack 이 거절한다(2026-09-28) | 단위 · 타입 · 린트만이면 `ln -s <메인>/node_modules .`. dev 서버 · 흐름 · e2e 면 복사한다 — macOS `cp -Rc`(APFS 복제), Linux `cp -a --reflink=auto`(ext4 는 통째 — 759MB · 4초) |
 | 워크트리에 `node_modules` 가 **있는데도** vitest 가 `server-only` 를 못 찾는다 | 그 폴더가 캐시만 든 껍데기다(`.vite` 하나뿐, 2026-10-10) — 이름이 있어 위 줄을 안 밟고, vitest 는 위 폴더로 올라가 찾다 선다 | `ls node_modules` 로 패키지가 있는지 보고, 껍데기면 지우고 위 줄대로 링크하거나 복사한다 |
 | 워크트리에서 `npm run db:remote` · `supabase migration list` · `db push` 가 `LegacyProjectNotLinkedError` 로 선다 | 원격 프로젝트 연결(project-ref)은 `supabase/` 아래 `.temp` 폴더에 있고 gitignore 라 git 이 안 든다 — 새 워크트리에는 없다(2026-10-10 · 2026-10-14) | 메인 체크아웃의 그 `.temp` 를 열어 `project-ref` 가 운영 프로젝트인지 본 뒤 워크트리의 `supabase/` 아래로 복사한다(`cp -a` 로 폴더째) |
-| 에이전트 워크트리에서 `cannot be shown …` 으로 거절된다 — 변수 · heredoc(특히 `git` 글자가 든 것) · `xargs` · `git` 출력을 받는 파이프 · `&&` 로 이은 `git` · `gh` 명령 | Claude Code 의 워크트리 격리가 실행 때 정해지는 명령을 막는다 — 2026-10-14 라운드의 에이전트 다섯이 다 겪었다 | `git` · `gh` 명령은 하나씩 따로 부르고 값은 글자로 옮긴다. 커밋 · PR 본문처럼 긴 글은 스크래치패드에 파일로 써서 `-F` · `--body-file` 로 준다. 여러 파일이나 이어진 걸음은 스크래치패드의 스크립트 파일(`node` · `sh`)에 절대 경로를 주고 그 파일을 돌린다 |
+| 에이전트 워크트리에서 `cannot be shown …` 으로 거절된다 — 변수 · heredoc(특히 `git` 글자가 든 것) · `xargs` · `git` 출력을 받는 파이프 · `&&` 로 이은 `git` · `gh` 명령 | Claude Code 의 워크트리 격리가 실행 때 정해지는 명령을 막는다 — 2026-10-14 라운드의 에이전트 다섯이 다 겪었다 | `git` · `gh` 명령은 하나씩 따로 부르고 값은 글자로 옮긴다. 커밋 · PR 본문처럼 긴 글은 파일로 써서 `-F` · `--body-file` 로 준다. 여러 파일이나 이어진 걸음은 스크립트 파일(`node` · `sh`)에 절대 경로를 주고 그 파일을 돌린다. 그 파일을 두는 자리는 `docs/agents/delegation/done.md` 「끝났다는 것」의 「임시 파일」 줄 — 제 워크트리 안이다 |
 | `npm run build` 가 `FileSystemPath("").join("../../../node_modules/tailwindcss/index.css") leaves the filesystem root` 로 선다 | `.claude/worktrees/` 아래 워크트리 · 복사한 `node_modules` 에서 났다(2026-10-07). 2026-10-10 #604 에서는 `.claude/worktrees/` 아래에 `cp -a --reflink=auto` 로 복사한 `node_modules` 로 빌드가 됐다 — 원인은 확인 전 | CI `core` 차선의 빌드를 보거나, 저장소 밖 홈 디스크의 워크트리(`git worktree add --detach ~/saju-wt/<이름>`)에서 빌드하고 끝나면 걷는다 — `/tmp` 는 아래 줄 |
 | dev 서버가 OOM 으로 죽고 도구 출력이 `ENOSPC` 로 멈춘다 | 이 WSL 의 `/tmp` 는 3.9GB tmpfs(메모리)다 — 워크트리마다 `node_modules`(약 760MB)를 복사하면 찬다(2026-10-08) | 워크트리는 홈 디스크(저장소 밖이면 `~/saju-wt/<이름>`)에 두고, 끝나면 `git worktree remove` 로 걷는다 |
 | 대기 고리가 끝나지 않고 `jq: command not found` 가 찍힌다 | 이 기계에 `jq` 가 없다(2026-10-07) | `gh … --json <칸> -q '<jq 식>'` |
@@ -62,3 +62,12 @@
    보통의 `click()` 이 막혀 그 상태를 못 찍는다.
 6. **`ui-dev` 를 띄운 채 e2e 를 돌리면 `PLAYWRIGHT_PORT=<ui-dev 포트>`(기본 3100)를 준다** — Playwright 가 그 서버를 재사용한다
    (`reuseExistingServer`). 주지 않으면 제 포트에 하나를 더 띄우려다 「한 디렉터리에 dev 서버 하나」(위 표)에 걸린다(2026-10-10).
+7. **로그인 상태로 찍는 임시 spec 은 이름을 `playwright.config.ts` 의 `AUTHED` 꼴에 맞춘다** — 예: 이름 끝을 `signed-in.spec.ts` 로.
+   맞지 않으면 로그인 없는 프로젝트에서 돌아 운영 화면 대신 로그인 화면을 찍는다(2026-10-17).
+8. **Docker 가 없으면(위 표의 `LegacyDockerLifecycleInspectError`) 꾸민 데이터로 찍는다** — 1 의 스택 없이 `next dev` 에 가짜 Supabase
+   값(`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` 처럼 로컬 주소 — `remoteDevRefusal` 이 통과시킨다)을 주고, `/me/**` 아래의 임시
+   주소에 고친 진짜 부품과 꾸민 데이터를 넣어 찍는다(2026-10-18 #753 · #754). 함정 셋 —
+   ① 임시 주소가 `app/` 아래 있는 동안 경계 시험 셋(`app/auth/signed-in.boundary.test.ts` · `scripts/ci-plan.test.ts` · `app/action-calls.boundary.test.ts`)이
+   붉다 — 찍고 나서 지운 뒤 시험을 돈다 ② 지운 뒤 `.next` 도 지운다 — 남은 생성 타입이 없는 주소를 가리켜 타입 검사가 붉다
+   ③ `/me` 의 시안 주소에서는 하단 독이 선다 — 대화방(독을 걷은 판)을 가린다. 그 판의 그림은 독이 없는 진짜 화면과 견주어 읽는다.
+   PR 에 「꾸민 데이터로 찍었다」를 적는다.
