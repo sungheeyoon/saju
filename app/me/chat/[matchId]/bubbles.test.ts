@@ -55,7 +55,7 @@ describe('bubbleDaysOf', () => {
 });
 
 describe('flaggable', () => {
-  it('상대의 말에만 깃발이 선다 — 내 말 · 떠난 사람의 말은 아니다', () => {
+  it('상대의 말만 신고에서 고를 수 있다 — 내 말 · 떠난 사람의 말은 아니다', () => {
     expect(flaggable({ mine: false, fromLeftPartner: false })).toBe(true);
     expect(flaggable({ mine: true, fromLeftPartner: false })).toBe(false);
     expect(flaggable({ mine: false, fromLeftPartner: true })).toBe(false);
