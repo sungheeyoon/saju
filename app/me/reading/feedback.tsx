@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 
 import {
   FEEDBACK_COMMENT,
@@ -61,6 +61,9 @@ export function ReadingFeedback({
   const [comment, setComment] = useState(given?.comment ?? '');
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  /** 다 고르기 전에 「의견 보내기」를 눌러 봤나 — 곁의 말이 도움말에서 경고로 바뀌는 때(ADR 0160 의 3) */
+  const [tried, setTried] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
   /* 첫 질문의 대상(나를 · 이 사람을 · 두 사람을)은 풀이의 kind 가 고른다 — 열과 보낼 수 있는 조건은 그대로다 */
   const questions = feedbackQuestions(target.kind);
 
@@ -82,8 +85,21 @@ export function ReadingFeedback({
   */
   const ready = usefulness !== null && fit !== null && feltLength !== null;
 
+  /**
+   * **단추를 잠그지 않는다**(운영자 결정 2026-10-18 G-97 ④, ADR 0160 의 3) — 다 고르기 전에 누르면 곁의 말을 경고 색으로 세우고
+   * 아직 안 고른 첫 질문으로 데려간다.
+   */
+  const refuse = () => {
+    setTried(true);
+    const gap = usefulness === null ? `useful-${runId}` : fit === null ? `fit-${runId}` : `length-${runId}`;
+    form.current?.querySelector<HTMLInputElement>(`input[name="${gap}"]`)?.focus();
+  };
+
   const send = () => {
-    if (!ready) return;
+    if (!ready) {
+      refuse();
+      return;
+    }
     setFailure(null);
 
     startSaving(async () => {
@@ -112,8 +128,9 @@ export function ReadingFeedback({
   };
 
   return (
-    /* 폼이다 — 고르는 칸에서 Enter 가 곧 「의견 보내기」다(셋을 다 골랐을 때). 적는 칸의 Enter 는 줄바꿈이다 */
+    /* 폼이다 — 고르는 칸에서 Enter 가 곧 「의견 보내기」다(덜 골랐으면 빈 질문으로 데려간다). 적는 칸의 Enter 는 줄바꿈이다 */
     <form
+      ref={form}
       onSubmit={(event) => {
         event.preventDefault();
         if (!saving) send();
@@ -214,17 +231,23 @@ export function ReadingFeedback({
 
         <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-7 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-7">
           {/*
-            **잠겨 있을 때만 까닭이 단추 옆에 선다**(2026-10-10 화면 점검 B20) — 셋을 다 골라야 열리는데 어느 것이 필수인지 말이
-            없어 왜 안 눌리는지 몰랐다. 다 고르면 말은 걷힌다. 확정(대장 26, 운영자 2026-10-10)
+            **다 고르기 전에만 까닭이 단추 옆에 선다**(2026-10-10 화면 점검 B20) — 셋을 다 골라야 보내지는데 어느 것이 필수인지 말이
+            없어 왜 안 눌리는지 몰랐다. 다 고르면 말은 걷힌다. 확정(대장 26, 운영자 2026-10-10). 단추는 가라앉되 누름을 받고(`aria-disabled`),
+            누른 뒤에는 같은 말이 경고 색 알림이 된다(운영자 2026-10-18)
           */}
           {!ready && (
-            <p id={`feedback-locked-${runId}`} className="text-small leading-5 text-secondary">
+            <p
+              id={`feedback-locked-${runId}`}
+              role={tried ? 'alert' : undefined}
+              className={`text-small leading-5 ${tried ? 'font-medium text-danger' : 'text-secondary'}`}
+            >
               필수 질문 3개에 답하면 보낼 수 있어요.
             </p>
           )}
           <button
             type="submit"
-            disabled={!ready || saving}
+            disabled={saving}
+            aria-disabled={!ready || undefined}
             aria-describedby={ready ? undefined : `feedback-locked-${runId}`}
             className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
           >

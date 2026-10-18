@@ -15,6 +15,7 @@ import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { openDiscoveryParticipation } from '../discovery/participation';
 import { myCircle } from '../home/circle';
 import { MyPeople, circlePeopleOf } from '../home/circle-view';
+import { isFirstVisit } from '../home/first-visit';
 import { selfReadingOf } from '../home/map/model';
 import { ReceivedReadings } from '../home/received-readings';
 import { runningReadings } from '../home/running';
@@ -30,6 +31,7 @@ import { FailureLine } from '../../ui/failure-line';
  * 로그인한 사람이 도착하는 자리 — **홈.**
  *
  * 인사 → (만드는 중인 풀이) → 줄인 내 사주 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례로 내려온다(ADR 0129 「2026-09-29 u2」 · ADR 0157).
+ * 처음 온 사람(받은 풀이 · 저장한 사람이 없다)은 받은 사주풀이 칸 없이 카드 → 저장한 사람이다(G-99 안 A, 운영자 2026-10-18).
  * 관계 지도는 궁합 탭(`/compat`)에 선다. 인연 · 궁합은 머리글의 탭이, 풀이 보관함은 받은 사주풀이의 머리가 든다.
  *
  * 저장된 입력으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는 함수는 같다(`chartOf`)
@@ -133,6 +135,56 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
     openDiscoveryParticipation(profile, selfPersonId, stood, self?.versions ?? null),
   ]);
 
+  const selfCard =
+    stood === null ? (
+      <FailureLine retry>내 사주를 불러오지 못했어요.</FailureLine>
+    ) : !stood.ok ? (
+      <section className="flex flex-col gap-2 rounded-paper border border-border bg-surface p-5 sm:p-6">
+        <p className="text-sm">{stood.message}</p>
+        <p className="text-small text-muted">{UNREADABLE_INPUT_NOTE}</p>
+      </section>
+    ) : (
+      <SelfCard
+        personId={selfPersonId}
+        label={stood.query.name}
+        query={stood.query}
+        saju={stood.saju}
+        reading={selfReadingOf(readings)}
+        making={makingSelf(running)}
+        compact
+      />
+    );
+
+  const myPeople = (
+    <MyPeople
+      selfPersonId={selfPersonId}
+      readings={readings}
+      circle={circle}
+      people={circlePeopleOf(circle, inputs)}
+      making={makingPeopleOf(running)}
+    />
+  );
+
+  /*
+    **처음 온 사람의 홈**(운영자 결정 2026-10-18 G-99 안 A) — 받은 풀이 · 저장한 사람이 하나도 없으면 「내가 받은 사주풀이」는 빈 점선
+    한 권뿐이라 카드의 「사주풀이 받기」를 두 번 권했다. 그 칸을 걷고 저장한 사람을 카드 바로 아래로 올린다 — 내 사주 카드 →
+    저장한 사람 → 다른 사람 사주 보기. 풀이 보관함으로 가는 길도 그 칸의 머리와 함께 빠진다 — 보관함이 비어 있다. 넓은 화면에서도
+    카드는 다시 온 사람의 홈과 같은 폭(왼쪽 7)이다. 무엇이든 하나 생기면 아래 차례다(`home/first-visit.ts`)
+  */
+  if (isFirstVisit({ readings, running, people: circle.people.length })) {
+    return (
+      <>
+        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+          <div className="min-w-0">{selfCard}</div>
+        </div>
+        {myPeople}
+        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+          <OtherSaju />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {/* 만드는 중인 풀이 — 있을 때만, 내 사주 카드보다 앞에 선다(ADR 0157). 시작한 일이 어디쯤인지가 먼저다 */}
@@ -144,37 +196,14 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
       */}
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
-          {stood === null ? (
-            <FailureLine retry>내 사주를 불러오지 못했어요.</FailureLine>
-          ) : !stood.ok ? (
-            <section className="flex flex-col gap-2 rounded-paper border border-border bg-surface p-5 sm:p-6">
-              <p className="text-sm">{stood.message}</p>
-              <p className="text-small text-muted">{UNREADABLE_INPUT_NOTE}</p>
-            </section>
-          ) : (
-            <SelfCard
-              personId={selfPersonId}
-              label={stood.query.name}
-              query={stood.query}
-              saju={stood.saju}
-              reading={selfReadingOf(readings)}
-              making={makingSelf(running)}
-              compact
-            />
-          )}
+          {selfCard}
           <OtherSaju />
         </div>
 
         <ReceivedReadings readings={readings} makingSelf={makingSelf(running)} />
       </div>
 
-      <MyPeople
-        selfPersonId={selfPersonId}
-        readings={readings}
-        circle={circle}
-        people={circlePeopleOf(circle, inputs)}
-        making={makingPeopleOf(running)}
-      />
+      {myPeople}
     </>
   );
 }
