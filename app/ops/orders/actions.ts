@@ -110,7 +110,9 @@ export async function releaseRefund(input: { readonly orderId: string; readonly 
     rpcArgs<'operator_reading_refund_hold'>({ p_order_id: input.orderId }),
   );
   if (held.error) {
+    // 운영자가 아니면 그 읽기의 `denied`, 그 밖의 실패(`22P02` · `57014` …)는 준비 취소가 거절된 것이다
     if (held.error.code === '42501') await noteDenial(supabase, 'credits.refund_status');
+    else await noteWriteRefusal(supabase, 'credits.refund_release', held.error.code, { orderId: input.orderId });
     return { ok: false, message: userFacingDbMessage(held.error, 'operator_reading_refund_hold') };
   }
   const hold = (held.data ?? []).find((row) => row.hold_id === input.holdId);

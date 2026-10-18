@@ -26,9 +26,17 @@ describe('거절된 쓰기의 접속기록 (G-111 R-4)', () => {
   it('버전 충돌 · 상태 거절 · 모양은 refused 의 문으로 — 코드와 id 만', async () => {
     const { calls, supabase } = recorder();
     await noteWriteRefusal(supabase, 'members.suspend', '55000', { userId: MEMBER });
-    expect(calls).toEqual([
-      { fn: 'note_operator_refusal', args: { p_action: 'members.suspend', p_code: '55000', p_user_id: MEMBER } },
-    ]);
+    expect(calls[0]).toEqual({
+      fn: 'note_operator_refusal',
+      args: { p_action: 'members.suspend', p_code: '55000', p_user_id: MEMBER },
+    });
+  });
+
+  it('42501 밖의 코드는 denied 의 문도 부른다 — 누가 불렀는지 모르니 반대만 적는 두 문이 한 줄을 세운다', async () => {
+    const { calls, supabase } = recorder();
+    await noteWriteRefusal(supabase, 'reports.review', '22023', { reportId: MEMBER });
+    expect(calls.map((call) => call.fn)).toEqual(['note_operator_refusal', 'note_operator_denial']);
+    expect(calls[1].args).toEqual({ p_action: 'reports.review', p_report_id: MEMBER });
   });
 
   it('모양이 틀린 id 는 싣지 않는다 — 거절을 적는 부름이 다시 거절되지 않게', async () => {

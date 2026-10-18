@@ -33,6 +33,12 @@ describe('확정의 거절 줄이 가리킬 주문 (G-111 R-4)', () => {
     expect(await bookRefusalTarget(supabase, '22023', { orderId: 'x', holdId: HOLD })).toEqual({});
   });
 
+  it('읽기가 42501 이면 그 읽기도 denied 로 남긴다 — 확정 문을 부르기 전(취소 번호가 빈 때)의 운영자가 아닌 사람', async () => {
+    const { calls, supabase } = reading({ data: null, error: { code: '42501' } });
+    expect(await bookRefusalTarget(supabase, '22023', { orderId: ORDER, holdId: HOLD })).toEqual({});
+    expect(calls).toEqual(['operator_reading_refund_hold', 'note_operator_denial']);
+  });
+
   it('42501 이면 읽지 않는다 — 그 줄은 denied 다', async () => {
     const { calls, supabase } = reading({ data: [{ hold_id: HOLD }], error: null });
     expect(await bookRefusalTarget(supabase, '42501', { orderId: ORDER, holdId: HOLD })).toEqual({});
