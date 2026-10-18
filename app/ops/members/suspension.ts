@@ -1,3 +1,4 @@
+import { firstLine } from '../first-line';
 import { NO_NICKNAME, accountStatusLabel, reasonLabel, reviewOutcomeLabel } from '../reports/labels';
 
 /**
@@ -12,14 +13,14 @@ import { NO_NICKNAME, accountStatusLabel, reasonLabel, reviewOutcomeLabel } from
 export const NOTE_MAX = 200;
 
 /** 신고와 무관한 정지의 갈래(G-111-8) — 신고로 정지하는 것은 신고 상세의 처분이다 */
-export const SUSPEND_REASONS = [
+const SUSPEND_REASONS = [
   { value: 'policy', label: '운영정책 위반' },
   { value: 'payment', label: '결제 부정' },
   { value: 'eligibility', label: '이용 자격' },
   { value: 'other', label: '기타' },
 ] as const;
 
-export const UNSUSPEND_REASONS = [
+const UNSUSPEND_REASONS = [
   { value: 'appeal', label: '소명 인정' },
   { value: 'mistake', label: '잘못 정지' },
   { value: 'other', label: '기타' },
@@ -54,9 +55,6 @@ export const statusReasonLabel = (value: string): string => STATUS_REASON_LABEL[
 /** 공통 함수 밖의 변경(직접 UPDATE) — 실행자 · 갈래가 빈 상태 이력 줄의 딱지 */
 export const UNRECORDED = '실행자 · 사유 없음';
 
-/** 메모의 첫 줄 — 확인창의 사유 칸에 갈래와 함께 선다 */
-export const firstLine = (note: string): string => note.trim().split('\n')[0]?.trim() ?? '';
-
 /** 처분 이력 문이 낸 그 계정의 지금 — 단추를 고르고 읽은 버전을 든다 */
 export type Standing = {
   readonly status: string;
@@ -71,7 +69,7 @@ export type Standing = {
  * 계정 칸에 무엇을 세우나 — 이용 중이면 「이용 정지」, 이용 정지면 「정지 해제」, 운영자 계정이면 단추 없이 딱지(G-111-10),
  * 탈퇴 대기면 단추 없이 한 줄(해제는 런북).
  */
-export type StatusAction =
+type StatusAction =
   | { readonly kind: StatusKind }
   | { readonly kind: 'operator' }
   | { readonly kind: 'none'; readonly note: string };
@@ -95,7 +93,7 @@ export type StatusRequest = {
   readonly requestId: string;
 };
 
-export type StatusInput = Omit<StatusRequest, 'seenVersion' | 'requestId'>;
+type StatusInput = Omit<StatusRequest, 'seenVersion' | 'requestId'>;
 
 export type StatusPlan = {
   readonly request: StatusRequest;
