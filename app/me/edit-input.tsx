@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useId, useRef, useState, useTransition } from 'react';
 
 import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 
-import { BirthFields } from '../birth-form';
+import { BirthFields, focusBirthGap } from '../birth-form';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import {
   INPUT_EDIT_REPLACED_NOTE,
@@ -99,14 +99,41 @@ export function EditInputForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [query, setQuery] = useState(current);
+  const [query, setQueryNow] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [confirming, setConfirming] = useState(false);
+  /** 저장을 눌러 봤나 — 곁의 말이 도움말에서 경고로 바뀌는 때(ADR 0160 의 3). 칸을 고치면 다시 도움말이다 */
+  const [tried, setTried] = useState(false);
+  const fields = useRef<HTMLDivElement>(null);
+  const noteId = useId();
+
+  const setQuery = (next: Query) => {
+    setTried(false);
+    setQueryNow(next);
+  };
 
   const missing = missingAnswer(query);
   const nameChanged = editableName && query.name.trim() !== current.name.trim();
   const pillarsSame = samePillarInput(current, query);
+  /** 저장할 것이 없다 — 빈 칸이 있거나 아무것도 안 바뀌었다. 단추는 가라앉되 누름을 받는다 */
+  const unchanged = pillarsSame && !nameChanged;
+  const blocked = missing !== null || unchanged;
+  const warn = tried && blocked;
+
+  /**
+   * **단추를 잠그지 않는다**(운영자 결정 2026-10-18 G-97 ④, ADR 0160 의 3) — 저장할 것이 없으면 누른 그때 곁의 말을 경고 색으로
+   * 세운다. 빈 칸이면 그 칸으로 데려간다(사람 추가의 「등록」과 같은 몸짓).
+   */
+  const press = () => {
+    if (blocked) {
+      setTried(true);
+      if (missing !== null) focusBirthGap(fields.current);
+      return;
+    }
+    if (confirmsRequests && !pillarsSame) setConfirming(true);
+    else save();
+  };
 
   const save = () => {
     setConfirming(false);
@@ -135,14 +162,20 @@ export function EditInputForm({
         </div>
       )}
 
-      <BirthFields value={query} onChange={setQuery} showName={editableName} surface="flat" />
+      <div ref={fields}>
+        <BirthFields value={query} onChange={setQuery} showName={editableName} surface="flat" />
+      </div>
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로
         저장된 입력을 안 바꾸는데, 그걸 안 말해 주면 「고쳤는데 그대로다」로 보인다.
       */}
       {pillarsSame && (
-        <p className={TYPE_META}>
+        <p
+          id={unchanged && missing === null ? noteId : undefined}
+          role={warn && unchanged && missing === null ? 'alert' : undefined}
+          className={warn && unchanged && missing === null ? WARN_NOTE : TYPE_META}
+        >
           {nameChanged
             ? '이름만 바뀌었어요. 이름은 여덟 글자에 들어가지 않아서 출생 정보와 사주는 그대로예요.'
             : '바뀐 것이 없어요.'}
@@ -155,10 +188,12 @@ export function EditInputForm({
             type="button"
             /*
               여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다.
-              「이름 저장」은 이름만 바뀐 때뿐이다 — 아무것도 안 바뀐 잠긴 단추가 그 이름이면 출생 정보 폼이 이름만 저장하는 것처럼 읽힌다.
+              「이름 저장」은 이름만 바뀐 때뿐이다 — 아무것도 안 바뀐 가라앉은 단추가 그 이름이면 출생 정보 폼이 이름만 저장하는 것처럼 읽힌다.
             */
-            onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
-            disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
+            onClick={press}
+            disabled={saving}
+            aria-disabled={blocked || undefined}
+            aria-describedby={blocked ? noteId : undefined}
             className={BUTTON_PRIMARY}
           >
             {saving ? '저장하는 중…' : pillarsSame && nameChanged ? '이름 저장' : '변경 사항 저장'}
@@ -167,7 +202,11 @@ export function EditInputForm({
             작성 그만두기
           </button>
         </div>
-        {missing !== null && <p className={TYPE_META}>{missing}</p>}
+        {missing !== null && (
+          <p id={noteId} role={warn ? 'alert' : undefined} className={warn ? WARN_NOTE : TYPE_META}>
+            {missing}
+          </p>
+        )}
       </div>
 
       {failure !== null && (
@@ -178,6 +217,9 @@ export function EditInputForm({
     </section>
   );
 }
+
+/** 저장할 것이 없는데 누른 뒤의 곁의 말 — 사람 추가의 빠진 칸 말과 같은 모양(`app/me/people/manage.tsx`) */
+const WARN_NOTE = 'text-sm font-medium text-danger';
 
 /**
  * 내 출생 정보를 바꾸기 직전의 확인 — **경고는 되돌릴 수 없는 누름 직전에 선다**(ADR 0028).

@@ -482,6 +482,10 @@ test.describe('동의로 열리는 흐름', () => {
 
     await leaver.page.goto('/me/settings');
     await leaver.page.getByRole('button', { name: '탈퇴', exact: true }).click();
+    /* 한 번 더 묻는 것은 확인 창 한 벌이고 첫 초점은 「취소」다(운영자 2026-10-18 G-97 ③, ADR 0166) */
+    const asked = leaver.page.getByRole('dialog', { name: '정말 탈퇴할까요?' });
+    await expect(asked).toBeVisible();
+    await expect(asked.getByRole('button', { name: '취소' })).toBeFocused();
 
     /*
       **누르기 전에 읽는 말이 실제와 같아야 한다.**
@@ -500,7 +504,7 @@ test.describe('동의로 열리는 흐름', () => {
       leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
     ).toBeVisible();
 
-    await leaver.page.getByRole('button', { name: '탈퇴 신청하기' }).click();
+    await asked.getByRole('button', { name: '탈퇴 신청하기' }).click();
 
     /*
       **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는

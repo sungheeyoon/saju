@@ -228,7 +228,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, api } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
+    /* 처음 온 사람(풀이 · 저장한 사람 없음)의 홈에는 받은 사주풀이 칸이 없다(G-99 안 A) — 홈이 선 것은 저장한 사람 머리로 본다 */
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
 
     const { error } = await api.auth.signOut({ scope: 'global' });
     expect(error).toBeNull();
@@ -246,7 +247,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, account } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
+    /* 처음 온 사람(풀이 · 저장한 사람 없음)의 홈에는 받은 사주풀이 칸이 없다(G-99 안 A) — 홈이 선 것은 저장한 사람 머리로 본다 */
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
 
     sql(`delete from auth.users where email = '${account.email}'`);
 
@@ -267,7 +269,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       sql(`select coalesce(extract(epoch from last_active_at)::text, '') from public.user_activity where user_id = '${id}'`);
 
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
+    /* 처음 온 사람(풀이 · 저장한 사람 없음)의 홈에는 받은 사주풀이 칸이 없다(G-99 안 A) — 홈이 선 것은 저장한 사람 머리로 본다 */
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
     await expect.poll(lastActive).not.toBe('');
 
     sql(`update public.user_activity set last_active_at = now() - interval '1 hour' where user_id = '${id}'`);
@@ -436,6 +439,25 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       expect(others.y + others.height).toBeLessThanOrEqual(fold);
       expect(box.y + box.height).toBeLessThanOrEqual(fold);
     }
+  });
+
+  /**
+   * **처음 온 사람의 홈은 받은 사주풀이 칸이 없고 저장한 사람이 카드 바로 아래다**(운영자 결정 2026-10-18 G-99 안 A). 풀이 · 저장한
+   * 사람이 하나도 없으면 그 칸은 빈 점선 한 권(「사주풀이 받기」)뿐이라 카드의 같은 단추를 두 번 권했다. 차례는 카드 → 저장한 사람 →
+   * 다른 사람 사주 보기다. 무엇이든 하나 생기면 다시 온 사람의 홈(위 시험)이다.
+   */
+  test('처음 온 사람의 홈은 받은 사주풀이 칸 없이 카드 · 저장한 사람 · 다른 사람 사주 보기 차례다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    await page.goto('/me');
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+
+    await expect(page.getByRole('region', { name: /^내가 받은 사주풀이/ })).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('link', { name: /사주풀이 받기/ })).toHaveCount(1);
+    const order = await page.locator('main').innerText();
+    expect(order.indexOf('사주 자세히 보기')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('사주 자세히 보기')).toBeLessThan(order.indexOf('저장한 사람'));
+    expect(order.indexOf('저장한 사람')).toBeLessThan(order.indexOf('다른 사람 사주 보기'));
+    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/saju');
   });
 
   test('홈의 내 사주와 사주풀이는 다른 화면이고 풀이 화면을 여는 것만으로 만들지 않는다', async ({
@@ -868,14 +890,25 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /* **세 가지를 다 고르기 전에는 못 보낸다** — 안 고른 것이 어느 값으로든 저장되면 안 된다 */
     const send = page.getByRole('button', { name: '의견 보내기' });
-    await expect(send).toBeDisabled();
+    const locked = page.getByText('필수 질문 3개에 답하면 보낼 수 있어요.');
+    await expect(send).toHaveAttribute('aria-disabled', 'true');
 
+    /*
+      **단추는 가라앉되 누름을 받는다**(운영자 2026-10-18 G-97 ④, ADR 0160 의 3) — 덜 고른 채 누르면 곁의 말이 경고 알림이 되고
+      아직 안 고른 첫 질문으로 데려간다. 잠긴 모양의 단추는 Playwright 가 기다리므로 `force` 로 누른다
+    */
     await page.getByRole('radio', { name: '5 — 많이 됐어요' }).check();
-    await expect(send).toBeDisabled();
+    await expect(locked).not.toHaveAttribute('role', 'alert');
+    await send.click({ force: true });
+    await expect(page.getByRole('alert').filter({ hasText: '필수 질문 3개에 답하면 보낼 수 있어요.' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: '1 — 많이 달라요' })).toBeFocused();
+    await expect(page.getByText('답해 주셔서 고마워요')).toHaveCount(0);
+
     await page.getByRole('radio', { name: '1 — 많이 달라요' }).check();
-    await expect(send).toBeDisabled();
+    await expect(send).toHaveAttribute('aria-disabled', 'true');
     await page.getByRole('radio', { name: '길어요' }).check();
-    await expect(send).toBeEnabled();
+    await expect(send).not.toHaveAttribute('aria-disabled', /.*/);
+    await expect(locked).toHaveCount(0);
 
     await page.getByRole('checkbox', { name: '너무 추상적이에요' }).check();
     await page
@@ -2198,8 +2231,19 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByLabel('이름')).toHaveCount(0);
     await expect(page.getByText('내 이름은 프로필 닉네임으로 보여요.')).toBeVisible();
 
+    /*
+      **고친 것이 없어도 저장은 누름을 받는다**(운영자 2026-10-18 G-97 ④, ADR 0160 의 3) — 가라앉은 모양이고, 누르면 「바뀐 것이 없어요.」가
+      경고 알림이 된다. 잠긴 모양의 단추는 Playwright 가 기다리므로 `force` 로 누른다
+    */
+    const save = page.getByRole('button', { name: '변경 사항 저장' });
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await save.click({ force: true });
+    await expect(page.getByRole('alert').filter({ hasText: '바뀐 것이 없어요.' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: '출생 정보를 바꿀까요?' })).toBeHidden();
+
     await fillBirthDate(page, '1990-06-20');
-    await page.getByRole('button', { name: '변경 사항 저장' }).click();
+    await expect(save).not.toHaveAttribute('aria-disabled', /.*/);
+    await save.click();
 
     // 내 사주는 여덟 글자를 바꾸기 전에 한 번 묻는다 — 걸린 인연 요청이 취소되기 때문이다.
     await expect(page.getByRole('dialog', { name: '출생 정보를 바꿀까요?' })).toBeVisible();
