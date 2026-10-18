@@ -364,11 +364,9 @@ export function ReportDialog({
             )}
             <ReportForm
               send={(reason, detail) =>
-                actionAnswer(
-                  pick !== undefined && picked !== null
-                    ? pick.reportMessage(picked, reason, detail)
-                    : reportUser(userId, reason, detail),
-                )
+                pick !== undefined && picked !== null
+                  ? actionAnswer(pick.reportMessage(picked, reason, detail))
+                  : actionAnswer(reportUser(userId, reason, detail))
               }
               onDone={() => setReported(true)}
               onBlock={onBlock}
@@ -402,7 +400,7 @@ function MessagePicker({
       <p id={labelId} className="text-small font-semibold text-secondary">
         신고할 메시지를 골라 주세요
       </p>
-      <ul
+      <div
         role="group"
         aria-labelledby={labelId}
         className="flex max-h-44 flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl bg-surface p-1.5 ring-1 ring-border"
@@ -410,32 +408,31 @@ function MessagePicker({
         {messages.map((message) => {
           const chosen = picked === message.id;
           return (
-            <li key={message.id}>
-              <button
-                type="button"
-                aria-pressed={chosen}
-                onClick={() => onPick(chosen ? null : message.id)}
-                className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
-                  chosen ? 'bg-danger-wash ring-1 ring-danger/45' : 'hover:bg-surface-soft active:bg-surface-sunken'
+            <button
+              key={message.id}
+              type="button"
+              aria-pressed={chosen}
+              onClick={() => onPick(chosen ? null : message.id)}
+              className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
+                chosen ? 'bg-danger-wash ring-1 ring-danger/45' : 'hover:bg-surface-soft active:bg-surface-sunken'
+              }`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 break-words text-note leading-5 text-foreground">{message.body}</span>
+                <span className="mt-0.5 block text-fine tabular-nums text-secondary">{message.time}</span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={`grid size-8 shrink-0 place-items-center rounded-full ring-1 ${
+                  chosen ? 'bg-danger text-surface ring-danger' : 'bg-surface text-danger ring-danger/45'
                 }`}
               >
-                <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2 break-words text-note leading-5 text-foreground">{message.body}</span>
-                  <span className="mt-0.5 block text-fine tabular-nums text-secondary">{message.time}</span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={`grid size-8 shrink-0 place-items-center rounded-full ring-1 ${
-                    chosen ? 'bg-danger text-surface ring-danger' : 'bg-surface text-danger ring-danger/45'
-                  }`}
-                >
-                  <Icon name="flag" className="size-4" />
-                </span>
-              </button>
-            </li>
+                <Icon name="flag" className="size-4" />
+              </span>
+            </button>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
