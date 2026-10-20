@@ -28,7 +28,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 이슈나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
+- [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 #770 댓글이나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
 - [ ] 운영자만 할 수 있는 새 일 → 운영자 할 일 이슈(#304)
 
