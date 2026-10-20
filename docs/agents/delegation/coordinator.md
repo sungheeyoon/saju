@@ -52,7 +52,8 @@
   브리프, `docs/notes/2026-09-28-overnight-audit.md` 「팀」)이다. **감사의 기준은 `origin/main` 이다** — 메인 체크아웃은 뒤처질 수
   있으니 fetch 한 뒤 `origin/main` 의 파일:줄로 적는다(2026-10-10).
 - **남은 일을 말하기 전에 간극 대장의 `보류` 줄을 본다.** 운영자가 미룬 것(`docs/product/gaps.md` 의 `보류`)은 그 줄의
-  조건이 올 때까지 다시 권하거나 묻지 않는다.
+  조건이 올 때까지 다시 권하거나 묻지 않는다. 남은 줄을 「결정 대기」 · 「결정이 필요하다」로 묶어 보고하기 전에 그 줄의
+  상태와 「끝났다고 말할 조건」 칸을 읽는다 — 운영자 실기기 · 운영 확인이 남은 줄 다섯을 문구 결정으로 보고했다(2026-10-20).
 - **조율자의 문서 · 세션 기록도 PR 로 넣는다** — main 에는 관리자까지 PR 로만 든다(`docs/agents/delegation/permissions.md` 「main 은 PR 로만」, ADR 0121).
   노트를 올리기 전에 `npx vitest run scripts/code-rules.test.ts` 를 돈다 — 없는 ADR 번호와 차례에 빠진 노트로 조율자의
   직접 커밋이 main 을 붉혔다(#297). 라운드 노트에 무엇을 적고 무엇은 번호로만 가리키나는 `docs/agents/delegation/notes.md` 「세션 기록」이 든다.

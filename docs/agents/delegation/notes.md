@@ -12,7 +12,7 @@
 새 노트는 차례(`docs/notes/README.md`)의 「최근」 맨 위에 줄을 더하고, 적은 `ADR NNNN` 이 main 에 있는지 `scripts/code-rules.test.ts` 로 먼저 본다.
 
 **라운드 노트는 다른 문서에 없는 것만 적는다(운영자 답 2026-10-05).** 권한 봉투(`docs/agents/delegation/unattended.md` 「무인 라운드」) · 조율자의 판단과
-그 까닭 · 배운 것 · 헤맨 것이다. 머지 목록은 PR, 배포 SHA 와 smoke 값은 배포 기록(`docs/ops/runbook/deploy.md` 「묶음 배포」의 5 가 적게 하는 그 일의 이슈),
+그 까닭 · 배운 것 · 헤맨 것이다. 머지 목록은 PR, 배포 SHA 와 smoke 값은 배포 기록(`docs/ops/runbook/deploy.md` 「묶음 배포」의 5 가 적게 하는 #770 의 댓글, 그 전에는 배포마다 연 확인 이슈),
 남은 일과 닫힌 일은 `docs/product/gaps.md` 가 원본이다 — 노트는 PR 번호 · `G-nn` 으로 가리키기만 한다. 까닭: 2026-10-05 밤
 노트(#480)가 PR 본문 · changelog · 간극 대장의 기록과 거의 겹쳤다.
 
@@ -21,3 +21,5 @@
 지금을 말하는 문서는 지금 자리로 고친다 — 입구 문서 · 역할 문서 · 위임 규약 · PRD · 간극 대장 · 운영 소스 주석(시험이 잰다,
 `docs/agents/code-rules/locks.md` 「린트가 잠근 것 · 시험이 잠근 것」). ADR 본문 · 노트 · changelog 의 지난 줄 · 마이그레이션
 주석은 그날의 기록이라 옛 경로째 둔다 — 기록은 낡는 것이 맞다(ADR 0090 「잠그지 않은 것」, 2026-10-06 #504).
+닫은 `G-nn` 의 기록 파일(`docs/product/gaps/records/`)을 지울 때도 같다 — 지금을 말하는 문서의 링크만 고치고, 그 파일을 적은
+ADR · 마이그레이션 주석은 둔다(2026-10-18 #765).

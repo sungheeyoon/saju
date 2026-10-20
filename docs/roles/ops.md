@@ -17,7 +17,7 @@
 - [배포](../ops/runbook/deploy.md#배포) — 머지는 배포가 아니다 · 묶음 배포 · 앱과 DB 는 따로 간다(ADR 0110)
 - [권한 등급](../agents/delegation/permissions.md) — 등급 3 을 밟은 뒤 적을 값 · 운영 개인정보 · 공식 운영의 잠금
 - [개인정보는 화면으로만](../ops/runbook/access.md#개인정보는-화면으로만--원격-sql-의-경계-adr-0105) — 원격 질의의 경계와 `db:remote` 의 목적
-- [로컬 환경의 함정](../agents/delegation/local-env.md#로컬-환경의-함정) — 프로덕션 확인용 시험 계정 · 키체인 · `BLOCKED`
+- [로컬 환경의 함정](../agents/delegation/local-env.md#로컬-환경의-함정) — 프로덕션 확인용 시험 계정 · 키체인 · `BLOCKED` · 워크트리의 `db:remote` 가 `LegacyProjectNotLinkedError` 로 설 때 · 격리가 막는 파이프와 `git worktree add`
 
 ## 하지 않는 것 · 묻는 것
 
@@ -28,7 +28,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 이슈나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
+- [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 #770 댓글이나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
 - [ ] 운영자만 할 수 있는 새 일 → 운영자 할 일 이슈(#304)
 
