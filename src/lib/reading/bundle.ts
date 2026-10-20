@@ -82,7 +82,7 @@ export function readingOrderIdOf(orderNumber: string): string | null {
 }
 
 /**
- * **위약금을 떼는 환불 사유** — 산 날부터 7일(약관 제15조①)이 지난 뒤의 「안 쓴 몫 환불」(`unused`) 하나다(ADR 0192). 7일 안의
+ * **위약금을 떼는 환불 사유** — 청약철회 기간(약관 제15조① — 계약내용을 받은 날부터 7일)이 지난 뒤의 「안 쓴 몫 환불」(`unused`) 하나다(ADR 0192). 7일 안의
  * 청약철회(`withdrawal`) · 중복 결제 · 미제공 · 그 밖(심사 결제 · 정지 · 해지 · 서비스 종료)은 떼지 않는다. 7일 안인지는 운영자가
  * 사유를 고르며 가린다 — 이 함수도 DB 도 날짜를 세지 않는다. DB 의 `operator_hold_reading_refund` 가 같은 갈래를 쓴다.
  */

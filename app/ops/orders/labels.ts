@@ -2,14 +2,14 @@
  * 주문 화면의 이름표 — 운영자만 보는 글이다(G-110 ②).
  *
  * 환불 사유는 DB 가 받는 다섯(`reading_order_refund.reason`)이고 자유 글을 받지 않는다(ADR 0106). 금액은 ADR 0148 의 산식이고,
- * 「안 쓴 몫 환불」만 그 금액에서 10% 를 위약금으로 뺀다(ADR 0192, `isPenalizedRefund`) — 산 날부터 7일(약관 제15조①)이 지났는지는
+ * 「안 쓴 몫 환불」만 그 금액에서 10% 를 위약금으로 뺀다(ADR 0192, `isPenalizedRefund`) — 청약철회 기간(약관 제15조① — 계약내용을 받은 날, 제공이 더 늦으면 제공받은 날부터 7일)이 지났는지는
  * 운영자가 사유로 가린다. 처음 고른 것은 빼지 않는 청약철회다. 걷는 것은 안 쓴 회차뿐이다 — 쓴 회차까지 돌려줘야 하는 미제공은 이
  * 화면이 아니라 런북 「수동 환불」의 SQL 이다.
  */
 
 export const REFUND_REASONS = [
-  { value: 'withdrawal', label: '청약철회(7일 안)' },
-  { value: 'unused', label: '안 쓴 몫 환불(7일 뒤 · 10% 공제)' },
+  { value: 'withdrawal', label: '청약철회(기간 내)' },
+  { value: 'unused', label: '안 쓴 몫 환불(청약철회 기간 경과 후 · 10% 공제)' },
   { value: 'duplicate', label: '중복 결제' },
   { value: 'failure', label: '미제공(장애)' },
   { value: 'other', label: '그 밖(심사 결제 · 정지 · 서비스 종료 등)' },
