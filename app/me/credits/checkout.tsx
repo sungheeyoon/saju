@@ -145,7 +145,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
         )}
 
         <ul aria-label="유의사항" className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-fine leading-[1.125rem] text-secondary">
-          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 풀이권 비율에 따라 수수료 없이 환불합니다.</li>
+          <li>미사용 유료 풀이권은 유효기간 안에 환불을 신청할 수 있으며, 남은 풀이권 비율에 따라 환불합니다. 구매일로부터 7일이 지나면 환불 금액의 10%를 공제합니다.</li>
           <li>{refundLine}</li>
           <li>
             정상적으로 제공된 풀이는 단순 변심으로 환불되지 않습니다. 풀이가 제공되지 않거나 표시·광고 또는 계약 내용과

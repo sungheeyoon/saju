@@ -64,7 +64,8 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
       ) : (
         <div className="flex flex-col gap-4 border-t border-border pt-5">
           <p className="text-sm text-secondary">
-            안 쓴 {bundle.unused}장을 다 걷으면 {won(refundForAllUnused(line))}입니다.
+            안 쓴 {bundle.unused}장을 다 걷으면 {won(refundForAllUnused(line, false))}, 7일 뒤(10% 공제)면{' '}
+            {won(refundForAllUnused(line, true))}입니다.
             {bundle.reserved > 0 && ` 예약 중 ${bundle.reserved}장은 풀린 뒤에 걷을 수 있습니다.`}
           </p>
           <PrepareForm
@@ -75,6 +76,7 @@ export function Asked({ line, hold }: { line: OrderLine; hold: RefundHold | null
             refundedAmount={line.refundedAmount}
             credits={bundle.credits}
             refundedCredits={bundle.refundedCredits}
+            penalizedCredits={bundle.penalizedCredits}
             unused={bundle.unused}
           />
         </div>

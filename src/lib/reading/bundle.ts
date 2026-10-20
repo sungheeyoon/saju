@@ -3,7 +3,7 @@
  *
  * 값을 적는 자리는 DB 다 — 주문 금액은 `reading_bundle_price` 가 정하고, 쓴 수 · 예약 중 수는
  * `operator_reading_refund_basis` 가 내준다. 여기는 그 값을 두고 **판단만** 한다: 1회권과 견준 할인율,
- * 환불 금액(ADR 0148 — 운영자 주문 화면이 미리 보이고, 확정 금액은 DB 의 `operator_hold_reading_refund` 가 같은 산식으로 정한다).
+ * 환불 금액(ADR 0148 · 0192 — 운영자 주문 화면이 미리 보이고, 확정 금액은 DB 의 `operator_hold_reading_refund` 가 같은 산식으로 정한다).
  *
  * 가격은 2026-09-23 에 사람이 정한 값이다. 주문 금액은 DB 의 가격표가 정하고, 사람이 읽는 가격 · 개수는 모두 이 표에서
  * 온다 — 결제 화면, 약관 제12조 · 제16조, 환불정책의 예시(`src/lib/brand/bundle-prices.ts`). 둘이 같은지는
@@ -81,6 +81,16 @@ export function readingOrderIdOf(orderNumber: string): string | null {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/**
+ * **위약금을 떼는 환불 사유** — 산 날부터 7일(약관 제15조①)이 지난 뒤의 「안 쓴 몫 환불」(`unused`) 하나다(ADR 0192). 7일 안의
+ * 청약철회(`withdrawal`) · 중복 결제 · 미제공 · 그 밖(심사 결제 · 정지 · 해지 · 서비스 종료)은 떼지 않는다. 7일 안인지는 운영자가
+ * 사유를 고르며 가린다 — 이 함수도 DB 도 날짜를 세지 않는다. DB 의 `operator_hold_reading_refund` 가 같은 갈래를 쓴다.
+ */
+export const isPenalizedRefund = (reason: string): boolean => reason === 'unused';
+
+/** 위약금의 비율(%) — 위약금을 떼는 환불에서 산식의 금액 가운데 이만큼을 뺀다(ADR 0192) */
+export const REFUND_PENALTY_PERCENT = 10;
+
 /** 환불 금액을 셈할 묶음 하나의 값 — `operator_reading_refund_basis` 의 한 줄에서 온다 */
 export type RefundLedger = {
   /** 실제 결제액(원) */
@@ -91,13 +101,37 @@ export type RefundLedger = {
   readonly refundedCredits: number;
   /** 이미 돌려준 금액(원) */
   readonly refundedAmount: number;
+  /** 이미 걷은 회차 가운데 위약금을 뗀 사유(`isPenalizedRefund`)로 걷은 것 */
+  readonly penalizedCredits: number;
+};
+
+/** 이번 환불 금액의 셈 — 화면이 식을 그대로 보인다: `gross − penalty − 이미 돌려준 금액 = owed` */
+export type RefundBreakdown = {
+  /** `결제액 × (이미 걷은 회차 + 이번 회차) ÷ 산 회차`, 원 아래 버림 — 지금까지의 누적 */
+  readonly gross: number;
+  /** `결제액 × 위약금을 뗀 회차의 누적 ÷ 산 회차 × 10%`, 원 아래 버림 — 지금까지의 누적 */
+  readonly penalty: number;
+  /** 이번에 돌려줄 금액 */
+  readonly owed: number;
 };
 
 /**
- * 이번에 `take` 장을 걷을 때 돌려줄 금액(원) — ADR 0148 의 누적 산식이다: `결제액 × (이미 걷은 회차 + 이번 회차) ÷ 산 회차`를
- * 원 아래 버림한 뒤 이미 돌려준 금액을 뺀다. 그래서 나눠 돌려줘도 묶음을 다 걷으면 합이 결제액과 같고 넘지 않는다.
+ * 이번에 `take` 장을 걷을 때의 셈 — ADR 0148 의 누적 산식에 ADR 0192 의 위약금을 누적으로 얹는다.
+ *
+ *     owed = ⌊결제액 × (걷은 회차 + take) ÷ 산 회차⌋ − ⌊결제액 × (위약금 회차 + 이번이 위약금이면 take) ÷ (산 회차 × 10)⌋ − 이미 돌려준 금액
+ *
+ * 두 버림 모두 **누적 값**에 한 번씩만 한다 — 나눠 돌려줘도 한 번에 돌려줄 때와 합이 같고, 위약금이 두 번 빠지거나 덜 빠지지 않는다.
+ * 위약금도 원 아래를 버리므로 이용자 쪽으로 기운다. 묶음을 다 걷으면 합은 `결제액 − ⌊결제액 × 위약금 회차 ÷ (산 회차 × 10)⌋` 이고
+ * 결제액을 넘지 않는다. 이 식은 앞의 환불이 모두 이 식으로 적혔다는 데 기댄다(SQL 차례의 손 금액은 그 밖이다).
  * 걷을 수 있는 회차(안 쓴 것)를 가리는 것은 이 함수가 아니다 — DB 가 거절한다.
  */
-export function refundOwed(ledger: RefundLedger, take: number): number {
-  return Math.floor((ledger.paid * (ledger.refundedCredits + take)) / ledger.credits) - ledger.refundedAmount;
+export function refundBreakdown(ledger: RefundLedger, take: number, penalized: boolean): RefundBreakdown {
+  const gross = Math.floor((ledger.paid * (ledger.refundedCredits + take)) / ledger.credits);
+  const penalizedCredits = ledger.penalizedCredits + (penalized ? take : 0);
+  const penalty = Math.floor((ledger.paid * penalizedCredits * REFUND_PENALTY_PERCENT) / (ledger.credits * 100));
+  return { gross, penalty, owed: gross - penalty - ledger.refundedAmount };
 }
+
+/** 이번에 `take` 장을 걷을 때 돌려줄 금액(원) — `refundBreakdown` 의 `owed` */
+export const refundOwed = (ledger: RefundLedger, take: number, penalized: boolean): number =>
+  refundBreakdown(ledger, take, penalized).owed;

@@ -1,4 +1,4 @@
-import { refundOwed } from '@/src/lib/reading/bundle';
+import { isPenalizedRefund, refundOwed } from '@/src/lib/reading/bundle';
 
 import { won } from './labels';
 
@@ -32,7 +32,8 @@ export type PreparePlan = {
 };
 
 /**
- * 확인창을 여는 순간의 환불 준비 — 금액은 ADR 0148 산식(`refundOwed`)이다. `requestId` 는 부르는 쪽이 넘긴다: 같은 회차 · 사유로
+ * 확인창을 여는 순간의 환불 준비 — 금액은 ADR 0148 산식(`refundOwed`)이고, 사유가 「안 쓴 몫 환불」이면 10% 위약금을 뗀다(ADR 0192).
+ * DB 의 `operator_hold_reading_refund` 가 같은 셈으로 다시 셈해 다르면 거절한다. `requestId` 는 부르는 쪽이 넘긴다: 같은 회차 · 사유로
  * 다시 여는 재시도는 앞의 번호를 그대로 쓴다(`samePlan`).
  */
 export function preparePlan(
@@ -42,14 +43,22 @@ export function preparePlan(
     readonly credits: number;
     readonly refundedCredits: number;
     readonly refundedAmount: number;
+    readonly penalizedCredits: number;
   },
   take: number,
   reason: string,
   requestId: string,
 ): PreparePlan {
   const expectedAmount = refundOwed(
-    { paid: order.paid, credits: order.credits, refundedCredits: order.refundedCredits, refundedAmount: order.refundedAmount },
+    {
+      paid: order.paid,
+      credits: order.credits,
+      refundedCredits: order.refundedCredits,
+      refundedAmount: order.refundedAmount,
+      penalizedCredits: order.penalizedCredits,
+    },
     take,
+    isPenalizedRefund(reason),
   );
   return Object.freeze({
     request: Object.freeze({ orderId: order.orderId, credits: take, reason, expectedAmount, requestId }),

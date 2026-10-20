@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, useTransition } from 'react';
 
-import { refundOwed } from '@/src/lib/reading/bundle';
+import { isPenalizedRefund, refundBreakdown } from '@/src/lib/reading/bundle';
 
 import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
@@ -60,6 +60,7 @@ export function PrepareForm({
   refundedAmount,
   credits,
   refundedCredits,
+  penalizedCredits,
   unused,
 }: {
   readonly orderId: string;
@@ -69,6 +70,8 @@ export function PrepareForm({
   readonly refundedAmount: number;
   readonly credits: number;
   readonly refundedCredits: number;
+  /** 걷은 회차 가운데 위약금을 뗀 것 — 누적 위약금의 셈(ADR 0192) */
+  readonly penalizedCredits: number;
   /** 지금 잠글 수 있는 회차 — 1 이상일 때만 이 폼이 선다 */
   readonly unused: number;
 }) {
@@ -83,8 +86,12 @@ export function PrepareForm({
   const guard = useRef(oneAtATime());
   const ids = useId();
 
-  const order = { orderId, paid, credits, refundedCredits, refundedAmount };
-  const amount = refundOwed({ paid, credits, refundedCredits, refundedAmount }, take);
+  const order = { orderId, paid, credits, refundedCredits, refundedAmount, penalizedCredits };
+  const { penalty, owed: amount } = refundBreakdown(
+    { paid, credits, refundedCredits, refundedAmount, penalizedCredits },
+    take,
+    isPenalizedRefund(reason),
+  );
 
   const open = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -161,6 +168,7 @@ export function PrepareForm({
         <p className="mt-1 text-2xl font-bold tabular-nums tracking-[-0.02em]">{won(amount)}</p>
         <p className="mt-1 text-xs tabular-nums text-secondary">
           {won(paid)} × {refundedCredits + take} ÷ {credits}
+          {penalty > 0 && ` − 위약금 ${won(penalty)}`}
           {refundedAmount > 0 && ` − 이미 돌려준 ${won(refundedAmount)}`}
         </p>
       </div>

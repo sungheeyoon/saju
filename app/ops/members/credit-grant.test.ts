@@ -170,7 +170,7 @@ describe('이력의 말', () => {
 
   it('증감이 0 인 환불 줄은 빈 칸이다 — 「+0장」이 서지 않는다(G-113, 운영자 결정 2026-10-18)', () => {
     expect(historyAmount(line({ kind: 'refund', source: 'bundle', delta: 0, reason: 'unused' }))).toBe('');
-    expect(historyCause(line({ kind: 'refund', source: 'bundle', delta: 0, reason: 'unused' }))).toBe('환불 — 안 쓴 몫 환불');
+    expect(historyCause(line({ kind: 'refund', source: 'bundle', delta: 0, reason: 'unused' }))).toBe('환불 — 안 쓴 몫 환불(7일 뒤 · 10% 공제)');
   });
 
   it('거르기는 주소에서 읽고, 모르는 값은 기본으로', () => {
