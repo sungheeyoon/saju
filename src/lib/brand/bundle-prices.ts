@@ -1,4 +1,4 @@
-import { READING_BUNDLES, discountAgainstSingles } from '../reading/bundle';
+import { READING_BUNDLES, discountAgainstSingles, refundOwed } from '../reading/bundle';
 
 /**
  * **약관 · 환불정책이 말하는 묶음의 숫자** — 값은 `READING_BUNDLES` 하나에서 온다(ADR 0176).
@@ -36,6 +36,13 @@ export const exactDiscounts = (): string => {
     .join(' · ');
 };
 
-/** 그 묶음에서 `used` 장을 쓰고 나머지를 돌려받을 때의 금액 — 낸 돈 × 안 쓴 장수 ÷ 산 장수, 원 아래는 버린다 */
-export const refundOf = (credits: BundleCredits, used: number): number =>
-  Math.floor((bundlePrice(credits) * (credits - used)) / credits);
+/**
+ * 그 묶음에서 `used` 장을 쓰고 나머지를 한 번에 돌려받을 때의 금액 — 낸 돈 × 안 쓴 장수 ÷ 산 장수, 원 아래는 버린다. 7일이 지났으면
+ * 그 값에서 10% 를 위약금으로 뺀다(원 아래 버림, ADR 0192). 셈은 운영자 화면 · DB 와 같은 `refundOwed` 다.
+ */
+export const refundOf = (credits: BundleCredits, used: number, afterSevenDays: boolean): number =>
+  refundOwed(
+    { paid: bundlePrice(credits), credits, refundedCredits: 0, refundedAmount: 0, penalizedCredits: 0 },
+    credits - used,
+    afterSevenDays,
+  );

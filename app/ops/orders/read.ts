@@ -40,6 +40,8 @@ export type OrderLine = {
   readonly bundle: {
     readonly credits: number;
     readonly refundedCredits: number;
+    /** 걷은 회차 가운데 위약금을 뗀 사유(「안 쓴 몫 환불」)로 걷은 것 — 다음 환불의 누적 위약금이 이것을 센다(ADR 0192) */
+    readonly penalizedCredits: number;
     readonly used: number;
     /** 예약 중 — 풀릴 때까지 안 쓴 것이 아니다 */
     readonly reserved: number;
@@ -118,6 +120,7 @@ export const orderLineOf = (row: RpcRow<'operator_reading_refund_basis'>): Order
         : {
             credits,
             refundedCredits: row.refunded_credits,
+            penalizedCredits: row.penalized_credits,
             used: row.used,
             reserved: row.reserved,
             unused: row.unused,
@@ -126,8 +129,11 @@ export const orderLineOf = (row: RpcRow<'operator_reading_refund_basis'>): Order
   };
 };
 
-/** 지금 걷을 수 있는 회차(진행 중인 확보는 빠졌다)를 다 걷을 때의 금액 — 묶음이 없거나 걷을 것이 없으면 0 */
-export const refundForAllUnused = (line: OrderLine): number =>
+/**
+ * 지금 걷을 수 있는 회차(진행 중인 확보는 빠졌다)를 다 걷을 때의 금액 — 묶음이 없거나 걷을 것이 없으면 0.
+ * `penalized` 면 10% 위약금을 뗀 금액이다(ADR 0192).
+ */
+export const refundForAllUnused = (line: OrderLine, penalized: boolean): number =>
   line.bundle === null || line.bundle.unused === 0
     ? 0
     : refundOwed(
@@ -136,8 +142,10 @@ export const refundForAllUnused = (line: OrderLine): number =>
           credits: line.bundle.credits,
           refundedCredits: line.bundle.refundedCredits,
           refundedAmount: line.refundedAmount,
+          penalizedCredits: line.bundle.penalizedCredits,
         },
         line.bundle.unused,
+        penalized,
       );
 
 /**

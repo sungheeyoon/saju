@@ -3771,6 +3771,7 @@ export type Database = {
           ordered_at: string
           owner_nickname: string
           owner_ref: string
+          penalized_credits: number
           provider: string
           provider_order_id: string
           provider_payment_id: string

@@ -5,7 +5,8 @@
 -- 1. **운영자만** — 산 사람 자신도 못 부르고, 그 거절이 따로 남는다(`42501`)
 -- 2. **확보한 회차는 이용자가 못 쓴다** — 한도(`reading_credit_limit_for`)가 그만큼 줄고, 다음 쓰임의 몫 고르기
 --    (`pick_reading_credit_share`)가 그 묶음을 건너뛰며, 서버 열쇠의 환불도 그 회차를 걷지 못한다. 풀면 돌아온다
--- 3. **금액은 확보할 때 정한다** — ADR 0148 의 누적 산식. 나눠 돌려줘도 누적으로 셈한다
+-- 3. **금액은 확보할 때 정한다** — ADR 0148 의 누적 산식. 나눠 돌려줘도 누적으로 셈한다. 여기 확보는 위약금이 없는 사유(청약철회)로
+--    한다 — 「안 쓴 몫 환불」의 10% 위약금(ADR 0192)은 `99_refund_penalty` 가 잰다
 -- 4. **진행 중은 주문마다 하나 · 안 쓴 것만 · 닫힌 주문 거절**
 -- 5. **확정은 한 번** — 같은 취소 번호면 재시도, 다른 번호 · 빈 번호 · 준비 취소된 확보는 거절. 확정된 확보는 풀지 못한다
 -- 6. **접속기록** — 진행 상태 · 확보 · 확정 · 준비 취소가 동작마다 남는다(주문 id 만)
@@ -81,7 +82,7 @@ insert into seen values ('limit', public.reading_credit_limit_for((select buyer 
 set local role authenticated;
 select pg_temp.acting((select buyer from folks));
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused', 4300, gen_random_uuid())$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'withdrawal', 4300, gen_random_uuid())$$,
          (select order_id from ord where label = 'three')),
   '42501', null, '산 사람 자신도 환불을 준비하지 못한다');
 select throws_ok(
@@ -95,7 +96,7 @@ select lives_ok(
 
 select pg_temp.acting((select op from folks));
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 2, 'unused', 8000, gen_random_uuid())$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 2, 'withdrawal', 8000, gen_random_uuid())$$,
          (select order_id from ord where label = 'three')),
   '22023', '환불 금액이 8600원으로 바뀌었습니다. 새로 읽고 다시 확인해 주세요.',
   '확인창에 보인 금액이 지금의 셈과 다르면 잠그지 않는다');
@@ -105,11 +106,11 @@ select is(
   array[left((select buyer from folks)::text, 8), 'true'],
   '주문 셈이 그 계정의 닉네임과 계정 앞 8자를 함께 낸다 — 확인창이 대상을 가른다');
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 3, 'unused', 12900, gen_random_uuid())$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 3, 'withdrawal', 12900, gen_random_uuid())$$,
          (select order_id from ord where label = 'three')),
   '22023', '걷을 수 있는 회차는 2장입니다.', '쓴 회차는 잠그지 못한다 — 안 쓴 것은 둘이다');
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused', 5000, gen_random_uuid())$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'withdrawal', 5000, gen_random_uuid())$$,
          (select order_id from ord where label = 'pending')),
   '55000', '환불할 수 없는 상태의 주문입니다.', '결제 전 주문은 환불하지 못한다');
 
@@ -125,11 +126,11 @@ set local role authenticated;
 select pg_temp.acting((select op from folks));
 insert into seen
 select 'hold-a', h.amount, h.hold_id
-from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 2, 'unused', 8600, 'a0000000-0000-4000-8000-000000000001'::uuid) h;
+from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 2, 'withdrawal', 8600, 'a0000000-0000-4000-8000-000000000001'::uuid) h;
 select is((select n from seen where label = 'hold-a'), 8600, '안 쓴 둘을 잠그고 금액을 정한다 — 12,900 × 2 ÷ 3 = 8,600원');
 select is(
   (select hold_id from public.operator_hold_reading_refund(
-     (select order_id from ord where label = 'three'), 2, 'unused', 8600, 'a0000000-0000-4000-8000-000000000001'::uuid)),
+     (select order_id from ord where label = 'three'), 2, 'withdrawal', 8600, 'a0000000-0000-4000-8000-000000000001'::uuid)),
   (select id from seen where label = 'hold-a'),
   '응답이 끊겨 같은 요청 번호로 다시 오면 같은 확보를 돌려준다');
 select is(
@@ -137,12 +138,12 @@ select is(
   1,
   '재시도는 확보를 하나 더 짓지 않는다');
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused', 4300, 'a0000000-0000-4000-8000-000000000001'::uuid)$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'withdrawal', 4300, 'a0000000-0000-4000-8000-000000000001'::uuid)$$,
          (select order_id from ord where label = 'three')),
   '22023', '이 요청 번호는 다른 환불 준비에 쓰였습니다. 화면을 새로 열어 주세요.',
   '같은 요청 번호에 다른 회차는 거절한다');
 select throws_ok(
-  format($$select * from public.operator_hold_reading_refund(%L, 1, 'unused', 4300, gen_random_uuid())$$,
+  format($$select * from public.operator_hold_reading_refund(%L, 1, 'withdrawal', 4300, gen_random_uuid())$$,
          (select order_id from ord where label = 'three')),
   '55000', '이 주문에는 진행 중인 환불이 있습니다.', '같은 주문에 진행 중인 확보는 하나뿐이다');
 select is(
@@ -206,7 +207,7 @@ set local role authenticated;
 select pg_temp.acting((select op from folks));
 insert into seen
 select 'hold-b', h.amount, h.hold_id
-from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 1, 'unused', 4300, gen_random_uuid()) h;
+from public.operator_hold_reading_refund((select order_id from ord where label = 'three'), 1, 'withdrawal', 4300, gen_random_uuid()) h;
 select is((select n from seen where label = 'hold-b'), 4300, '하나를 다시 준비한다 — 12,900 × 1 ÷ 3 = 4,300원');
 select throws_ok(
   format($$select public.operator_book_reading_refund(%L, '  ')$$, (select id from seen where label = 'hold-b')),
@@ -271,7 +272,7 @@ set local role authenticated;
 select pg_temp.acting((select op from folks));
 insert into seen
 select 'hold-one', h.amount, h.hold_id
-from public.operator_hold_reading_refund((select order_id from ord where label = 'one'), 1, 'unused', 4900, gen_random_uuid()) h;
+from public.operator_hold_reading_refund((select order_id from ord where label = 'one'), 1, 'withdrawal', 4900, gen_random_uuid()) h;
 
 set local role service_role;
 select throws_ok(
@@ -309,7 +310,7 @@ set local role authenticated;
 select pg_temp.acting((select op from folks));
 insert into seen
 select 'hold-l0', h.amount, h.hold_id
-from public.operator_hold_reading_refund((select order_id from ord where label = 'leaver'), 1, 'unused', 4300, gen_random_uuid()) h;
+from public.operator_hold_reading_refund((select order_id from ord where label = 'leaver'), 1, 'withdrawal', 4300, gen_random_uuid()) h;
 select lives_ok(
   format($$select public.operator_release_reading_refund(%L)$$, (select id from seen where label = 'hold-l0')),
   '준비 — 앞의 확보 하나는 준비 취소로 닫힌다');

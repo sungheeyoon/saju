@@ -25,6 +25,7 @@ const row = (over: Partial<RpcRow<'operator_reading_refund_basis'>> = {}): RpcRo
   last_used_at: '2026-10-16T07:00:00Z',
   owner_nickname: '하늘',
   owner_ref: '2658fc70',
+  penalized_credits: 0,
   ...over,
 });
 
@@ -32,7 +33,15 @@ describe('주문 화면의 문', () => {
   it('결제된 주문은 묶음 · 유효기간(산 날부터 5년)과 함께 옮긴다', () => {
     const line = orderLineOf(row());
     expect(line.orderNumber).toBe('rdo_0f1e2d3c4b5a49688776655443322110');
-    expect(line.bundle).toEqual({ credits: 20, refundedCredits: 0, used: 3, reserved: 0, unused: 17, validUntil: '2031-10-16' });
+    expect(line.bundle).toEqual({
+      credits: 20,
+      refundedCredits: 0,
+      penalizedCredits: 0,
+      used: 3,
+      reserved: 0,
+      unused: 17,
+      validUntil: '2031-10-16',
+    });
   });
 
   it('결제 전 주문은 묶음이 없다 — 비는 칸을 null 로 받는다', () => {
@@ -45,16 +54,26 @@ describe('주문 화면의 문', () => {
     const line = orderLineOf(pending);
     expect(line.bundle).toBeNull();
     expect(line.paymentId).toBeNull();
-    expect(refundForAllUnused(line)).toBe(0);
+    expect(refundForAllUnused(line, false)).toBe(0);
   });
 
-  it('안 쓴 것을 다 걷는 금액은 환불정책의 예시와 같다 — 20장 묶음에서 3장 썼으면 50,150원', () => {
-    expect(refundForAllUnused(orderLineOf(row()))).toBe(50150);
+  it('안 쓴 것을 다 걷는 금액은 환불정책의 예시와 같다 — 20장 묶음에서 3장 썼으면 7일 안 50,150원 · 7일 뒤 45,135원', () => {
+    expect(refundForAllUnused(orderLineOf(row()), false)).toBe(50150);
+    expect(refundForAllUnused(orderLineOf(row()), true)).toBe(45135);
   });
 
   it('이미 나눠 돌려준 주문은 누적으로 셈한다 — 남은 몫을 다 걷으면 합이 결제액이다', () => {
     const line = orderLineOf(row({ status: 'partially_refunded', refunded_amount: 2950, refunded_credits: 1, unused: 16 }));
-    expect(2950 + refundForAllUnused(line)).toBe(Math.floor((59000 * 17) / 20));
+    expect(2950 + refundForAllUnused(line, false)).toBe(Math.floor((59000 * 17) / 20));
+  });
+
+  it('앞서 위약금을 뗀 회차는 다음 셈의 누적 위약금에 든다 — 한 번에 걷을 때와 합이 같다', () => {
+    // 7일 뒤 1장을 먼저 돌려받았다 — 2,950 − 295 = 2,655원
+    const line = orderLineOf(
+      row({ status: 'partially_refunded', refunded_amount: 2655, refunded_credits: 1, penalized_credits: 1, unused: 16 }),
+    );
+    expect(line.bundle?.penalizedCredits).toBe(1);
+    expect(2655 + refundForAllUnused(line, true)).toBe(45135);
   });
 
   it('진행 중인 환불은 확보한 금액 · 결제액 · 취소 후 잔액 · 결제 번호와 함께 옮기고, 떠난 사람의 것인지 든다', () => {

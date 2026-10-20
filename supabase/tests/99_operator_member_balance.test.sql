@@ -134,7 +134,7 @@ select results_eq(
   '예약 하나 — 무료 몫의 빈자리에서 빠진다');
 
 select lives_ok(
-  $$select * from public.operator_hold_reading_refund((select order_id from ord), 1, 'unused', 4300,
+  $$select * from public.operator_hold_reading_refund((select order_id from ord), 1, 'withdrawal', 4300,
                                                       'b0000000-0000-4000-8000-000000000001'::uuid)$$,
   '운영자가 묶음에서 하나를 환불로 확보한다');
 select is(pg_temp.theirs(), pg_temp.mine(), '환불 확보 중 — 같은 잔액');

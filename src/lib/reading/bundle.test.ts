@@ -7,8 +7,11 @@ import {
   discountAgainstSingles,
   READING_BUNDLES,
   readingBundleValidUntil,
+  isPenalizedRefund,
   readingOrderIdOf,
+  refundBreakdown,
   refundOwed,
+  type RefundLedger,
 } from './bundle';
 
 describe('풀이권 묶음', () => {
@@ -72,27 +75,95 @@ describe('유효기간이 끝나는 날 (ADR 0173 · 0174)', () => {
   });
 });
 
-describe('환불 금액 (ADR 0148)', () => {
-  const fresh = (paid: number, credits: number) => ({ paid, credits, refundedCredits: 0, refundedAmount: 0 });
+describe('환불 금액 (ADR 0148 · 0192)', () => {
+  const fresh = (paid: number, credits: number) => ({ paid, credits, refundedCredits: 0, refundedAmount: 0, penalizedCredits: 0 });
 
-  it('환불정책의 예시 다섯과 같다 — 낸 돈 × 안 쓴 장수 ÷ 산 장수', () => {
-    expect(refundOwed(fresh(59000, 20), 17)).toBe(50150);
-    expect(refundOwed(fresh(59000, 20), 8)).toBe(23600);
-    expect(refundOwed(fresh(19900, 5), 4)).toBe(15920);
-    expect(refundOwed(fresh(12900, 3), 2)).toBe(8600);
-    expect(refundOwed(fresh(4900, 1), 1)).toBe(4900);
+  /** 걷은 것을 장부에 적는다 — DB 의 `refund_reading_order` 가 하는 일 */
+  const booked = (ledger: RefundLedger, take: number, penalized: boolean, owed: number): RefundLedger => ({
+    ...ledger,
+    refundedCredits: ledger.refundedCredits + take,
+    refundedAmount: ledger.refundedAmount + owed,
+    penalizedCredits: ledger.penalizedCredits + (penalized ? take : 0),
+  });
+
+  /** 나눠 걷기 — 회차 · 위약금 여부를 차례로 걷고 돌려준 금액들을 낸다 */
+  const inSteps = (paid: number, credits: number, steps: readonly (readonly [number, boolean])[]): number[] => {
+    let ledger = fresh(paid, credits);
+    return steps.map(([take, penalized]) => {
+      const owed = refundOwed(ledger, take, penalized);
+      ledger = booked(ledger, take, penalized, owed);
+      return owed;
+    });
+  };
+  const sum = (amounts: readonly number[]) => amounts.reduce((a, b) => a + b, 0);
+
+  it('7일 안의 금액은 환불정책의 예시 다섯과 같다 — 낸 돈 × 안 쓴 장수 ÷ 산 장수', () => {
+    expect(refundOwed(fresh(59000, 20), 17, false)).toBe(50150);
+    expect(refundOwed(fresh(59000, 20), 8, false)).toBe(23600);
+    expect(refundOwed(fresh(19900, 5), 4, false)).toBe(15920);
+    expect(refundOwed(fresh(12900, 3), 2, false)).toBe(8600);
+    expect(refundOwed(fresh(4900, 1), 1, false)).toBe(4900);
+  });
+
+  it('7일 뒤의 금액은 그 값에서 10% 를 뺀 것이다 — 20장 묶음에서 3 · 10 · 15장 쓴 예시', () => {
+    expect([17, 10, 5].map((take) => refundOwed(fresh(59000, 20), take, false))).toEqual([50150, 29500, 14750]);
+    expect([17, 10, 5].map((take) => refundOwed(fresh(59000, 20), take, true))).toEqual([45135, 26550, 13275]);
+    expect(refundBreakdown(fresh(59000, 20), 17, true)).toEqual({ gross: 50150, penalty: 5015, owed: 45135 });
+  });
+
+  it('위약금은 원 아래를 버린다 — 이용자 쪽으로', () => {
+    // 19,900 × 4 ÷ 5 = 15,920 · 위약금 1,592
+    expect(refundOwed(fresh(19900, 5), 4, true)).toBe(14328);
+    // 19,900 × 1 ÷ 3 = 6,633.3 → 6,633 · 위약금 663.3 → 663
+    expect(refundBreakdown(fresh(19900, 3), 1, true)).toEqual({ gross: 6633, penalty: 663, owed: 5970 });
   });
 
   it('나눠 돌려주면 누적으로 셈해 묶음을 다 걷은 합이 결제액과 같다', () => {
-    let ledger = fresh(19900, 3);
-    const paidBack: number[] = [];
-    for (let i = 0; i < 3; i += 1) {
-      const owed = refundOwed(ledger, 1);
-      paidBack.push(owed);
-      ledger = { ...ledger, refundedCredits: ledger.refundedCredits + 1, refundedAmount: ledger.refundedAmount + owed };
-    }
+    const paidBack = inSteps(19900, 3, [[1, false], [1, false], [1, false]]);
     expect(paidBack).toEqual([6633, 6633, 6634]);
-    expect(paidBack.reduce((a, b) => a + b, 0)).toBe(19900);
+    expect(sum(paidBack)).toBe(19900);
+  });
+
+  it('위약금을 떼며 나눠 돌려줘도 한 번에 돌려줄 때와 합이 같다 — 두 번 빠지지도 덜 빠지지도 않는다', () => {
+    const once = refundOwed(fresh(59000, 20), 17, true);
+    expect(sum(inSteps(59000, 20, Array.from({ length: 17 }, () => [1, true] as const)))).toBe(once);
+    expect(sum(inSteps(59000, 20, [[1, true], [16, true]]))).toBe(once);
+    expect(sum(inSteps(19900, 3, [[1, true], [1, true], [1, true]]))).toBe(refundOwed(fresh(19900, 3), 3, true));
+    expect(sum(inSteps(19900, 3, [[1, true], [1, true], [1, true]]))).toBe(19900 - 1990);
+  });
+
+  it('버림은 누적 값에 한 번씩이다 — DB 시험(99_refund_penalty)과 같은 수', () => {
+    // 회마다 버리면 3,000 · 3,000 · 3,000 으로 1원이 덜 간다
+    expect(inSteps(10001, 3, [[1, true], [1, true], [1, true]])).toEqual([3000, 3001, 3000]);
+    expect(inSteps(59000, 20, [[1, true], [16, true]])).toEqual([2655, 42480]);
+  });
+
+  it('위약금 없는 환불과 섞어도 위약금은 위약금을 뗀 회차에만 한 번 든다', () => {
+    // 7일 안에 5장을 철회하고, 7일 뒤 남은 12장을 돌려받는다
+    const mixed = inSteps(59000, 20, [[5, false], [12, true]]);
+    expect(mixed).toEqual([14750, 35400 - 3540]);
+    // 순서를 바꿔도 합은 같다 — 위약금은 12장 몫(35,400 의 10%)뿐이다
+    expect(sum(inSteps(59000, 20, [[12, true], [5, false]]))).toBe(sum(mixed));
+    expect(sum(mixed)).toBe(50150 - 3540);
+  });
+
+  it('어떻게 나눠 걷든 돌려준 합은 결제액을 넘지 않는다', () => {
+    for (const [paid, credits] of [[4900, 1], [12900, 3], [19900, 5], [59000, 20], [19900, 3], [10001, 7]] as const) {
+      for (let first = 1; first <= credits; first += 1) {
+        for (const penalties of [[false, false], [true, true], [true, false], [false, true]] as const) {
+          const steps: [number, boolean][] = [[first, penalties[0]]];
+          if (credits - first > 0) steps.push([credits - first, penalties[1]]);
+          const amounts = inSteps(paid, credits, steps);
+          expect(amounts.every((one) => one >= 0)).toBe(true);
+          expect(sum(amounts)).toBeLessThanOrEqual(paid);
+        }
+      }
+    }
+  });
+
+  it('위약금을 떼는 사유는 「안 쓴 몫 환불」 하나다', () => {
+    expect(isPenalizedRefund('unused')).toBe(true);
+    for (const reason of ['withdrawal', 'duplicate', 'failure', 'other']) expect(isPenalizedRefund(reason)).toBe(false);
   });
 });
 
