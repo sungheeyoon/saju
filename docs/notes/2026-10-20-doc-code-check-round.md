@@ -1,0 +1,42 @@
+# 2026-10-18 ~ 10-20 대조 라운드 — 문서와 코드 대조 · smoke 명령 · 조율자가 틀린 다섯
+
+> **세션 기록이다.** 요구사항도 규칙도 아니다 — 코드와 어긋나면 코드가 맞다. 머지 목록은 PR(#765 ~ #768), 결정은 ADR 0187,
+> 남은 일은 `docs/product/gaps.md` 가 원본이다. 배포는 `b54d4280`(확인 이슈 #769). 앞 라운드는 `2026-10-18-dialogs-round.md` 다.
+
+## 권한 봉투
+
+운영자 결정은 둘 — 0 회차 환불 줄의 증감 칸은 빈 칸(G-113, #766), smoke 는 강제 CSP 헤더가 없으면 실패(2026-10-18, #767).
+배포는 「배포」 답 뒤.
+
+## 조율자의 판단과 까닭
+
+- 대장 줄과 열린 운영 이슈를 검토 에이전트 셋이 코드와 대조했다 — 코드 결함 0, 노후 문서 13곳을 #765 하나로 고쳤다. G-93 의 끝 조건은
+  뷰 `reading_check_daily` 가 아니라 `check_finding_daily_count` 의 `code='checked'` 를 본다 — 뷰는 `checked` 를 빼서 그 수를 못 잰다.
+- #767(`npm run smoke:deploy`, G-115)은 두 번째 검토를 붙였고, 그 검토가 「404 · 오류 경계도 통과」 결함을 잡아 판정을 고친 뒤 머지했다.
+  첫 판정은 런북의 「제 제목」을 「제목이 있다」로 읽었다.
+- #768 — G-115 의 changelog 줄이 고치기 전 판정을 적고 있던 것을 운영자가 짚었다.
+- 묶음 배포가 smoke:deploy 의 첫 실전이었다 — 다섯 통과(#769).
+
+## 조율자가 틀린 것 (운영자가 짚음)
+
+1. 「격리 제한이 문서에 없다」 — 이미 `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」에 있었다. 길이 없어 못 찾았다.
+2. #529 를 닫으려면 푸시 제외 결정이 필요하다고 했다 — 닫는 조건은 실기기 확인 둘뿐이다.
+3. `ci-main-red` 이 없는 것을 「main 초록」으로 보고했다 — HEAD 의 `verify` run 을 봐야 한다.
+4. G-115 changelog 의 낡은 판정(위 #768).
+5. G-68 · G-82 · G-89 · G-108 · G-75 를 「결정 대기」로 묶어 보고했다 — 대장을 열어 보니 문구 결정이 아니라 운영자 실기기 · 운영 확인이었다.
+   운영자가 문구 조사를 시킨 뒤에야 알았다.
+
+2 와 5 는 같은 실수다 — 보고 전에 그 줄 · 이슈의 끝 조건을 안 읽었다.
+
+## retro
+
+| 헤맨 것 | 놓은 자리 |
+| --- | --- |
+| 격리가 `$()` · `&&` · 변수를 막는 줄을 못 찾음 | `docs/start.md` 「모두가 먼저 보는 것」 5 가 그 줄을 이름으로 가리킨다. 표의 증상에 `$()` 를 더함 |
+| `gh issue view --comments` 는 본문을 뺀다 | `docs/agents/issue-tracker.md` 의 읽는 줄 |
+| G 줄을 닫을 때 기록 파일을 가리키던 ADR · 주석 | `docs/agents/delegation/notes.md` 「경로가 옮겨지면」에 한 문장, `docs/roles/docs.md` 「닿을 때 여는 것」이 가리킴 |
+| `db:remote` 의 `LegacyProjectNotLinkedError` 로 가는 길 | `docs/roles/ops.md` · `docs/roles/db.md` 의 「로컬 환경의 함정」 링크 설명 |
+| 「제 제목」을 「제목이 있다」로 읽음 | `docs/ops/runbook/deploy.md` 「배포」 4 단계의 첫 문장 |
+| 기록 파일의 「표에서 옮김」 절이 결정 뒤에 낡음 | `docs/product/gaps.md` 머리말 |
+| 「main 초록」 = HEAD 의 `verify` run | `docs/agents/delegation/working.md` 「잰 것보다 세게 말하지 않는다」 |
+| 「결정 대기」라 부르기 전에 끝 조건 칸 | `docs/agents/delegation/coordinator.md` 「조율자 세션」의 `보류` 줄 |

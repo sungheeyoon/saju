@@ -49,7 +49,7 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
    없다(CLI 62.2.0, #704). 다르면 판정하지 않은 코드가 Production 이다 — 1 로 돌아간다
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
    운영 주소가 선다
-4. **smoke — 다섯 화면.** 각각 응답 200 으로 제 제목이 서고 빈 화면 · 브라우저 콘솔의 CSP 위반이 없고 강제 CSP 헤더가 서야 통과다.
+4. **smoke — 다섯 화면.** 각각 응답 200 으로 제 제목(그 화면의 제목 — 제목이 있기만 한 것이 아니다, 2026-10-18)이 서고 빈 화면 · 브라우저 콘솔의 CSP 위반이 없고 강제 CSP 헤더가 서야 통과다.
    **`npm run smoke:deploy`** 가 운영 주소(`docs/ops/runbook/domain.md` 맨 위의 그 줄을 읽는다 — 다른 주소면 `-- --url <주소>` 하나만 받고, 꼴이 틀리면 끝 코드 1)에 대고
    아래 다섯을 로그인 없이 headless Chromium 으로 보고, 5 에 그대로 붙일 Markdown 표를 찍는다. 하나라도 실패면 끝 코드 1 이다.
    판정은 `scripts/deploy-smoke.mjs` 의 `judge` 한 곳이다 — 다섯 모두 닿은 응답이 200 · 같은 호스트 · h1 이 그 화면의 제 제목

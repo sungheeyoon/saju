@@ -5,7 +5,8 @@ Issues and PRDs for this repository live as GitHub Issues. Use the `gh` CLI for 
 ## Conventions
 
 - Create issues with `gh issue create --title "..." --body-file <file>`.
-- Read an issue and its comments with `gh issue view <number> --comments`.
+- Read an issue body with `gh issue view <number>` (or `--json body -q .body`), and its comments with
+  `gh issue view <number> --comments` — `--comments` prints the comments without the body (2026-10-18).
 - List issues with `gh issue list`, including labels and comments when the task needs them.
 - Comment with `gh issue comment <number> --body "..."`.
 - Apply or remove labels with `gh issue edit <number> --add-label "..."` and
