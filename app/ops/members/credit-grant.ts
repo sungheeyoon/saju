@@ -40,10 +40,6 @@ export const isGrantReason = (kind: GrantKind, value: string): boolean =>
 const grantReasonLabel = (value: string): string =>
   [...GRANT_REASONS, ...REVOKE_REASONS].find((reason) => reason.value === value)?.label ?? value;
 
-/** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(동명이인을 가른다) */
-export const memberLabel = (nickname: string | null, userId: string): string =>
-  `${nickname ?? '닉네임 없음'} · ${userId.slice(0, 8)}`;
-
 /** 서버에 내는 값 — 확인창에 보인 그대로 */
 export type GrantRequest = {
   readonly kind: GrantKind;
@@ -123,17 +119,6 @@ export const samePlan = (plan: GrantPlan | null, input: Omit<GrantRequest, 'seen
   plan.request.reason === input.reason &&
   plan.request.note === input.note.trim() &&
   plan.request.reportId === input.reportId;
-
-/**
- * 실패한 누름 뒤에 고정본을 어떻게 하나.
- *
- * - **결과를 모른다**(응답이 끊겼다 — `ACTION_UNREACHED_NOTE`): 서버에서 섰을 수 있다. 고정본(요청 번호 · 읽은 버전)을 지켜 두고
- *   화면을 다시 읽는다 — 같은 값으로 다시 누르면 같은 요청 번호로 가서 섰으면 첫 결과(「이미 지급했습니다」), 안 섰으면 그때 한 번.
- * - **서버가 분명히 거절했다**(버전 충돌 · 상한 · 회수할 수 있는 수 · 권한 …): 그 고정본으로는 다시 내도 같은 거절이다. 버리고 화면을
- *   다시 읽는다 — 다음 누름은 새 읽은 버전 · 새 요청 번호로 새 확인을 연다.
- */
-export const afterFailure = (message: string, unreached: string): 'keep' | 'discard' =>
-  message === unreached ? 'keep' : 'discard';
 
 /**
  * 지급 단추를 잠글 까닭 — 탈퇴 대기 계정이면 한 줄(DB 의 거절과 같은 말), 아니면 `null`. 정지된 계정에는 지급한다(보상, G-111 R-7).

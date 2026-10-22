@@ -10,6 +10,7 @@ import {
   discountAgainstSingles,
   READING_BUNDLE_VALID_YEARS,
   READING_BUNDLES,
+  won,
 } from '@/src/lib/reading/bundle';
 
 import { actionAnswer } from '../../ui/action-answer';
@@ -19,7 +20,6 @@ import { TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { openReadingOrder } from './actions';
 import type { PortoneCheckout } from './payment';
 import { loadPortOne } from './portone-sdk';
-import { won } from './won';
 
 /**
  * **풀이권 고르기 · 동의 체크 · 「결제하기」 · 유의사항** (G-21, ADR 0171 · 0175).

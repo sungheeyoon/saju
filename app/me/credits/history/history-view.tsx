@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { BUTTON_TERTIARY } from '../../../ui/buttons';
 import { CARD, COLUMN, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../../ui/surfaces';
-import { won } from '../won';
+import { won } from '@/src/lib/reading/bundle';
 import type { PaidOrder } from './orders';
 
 function OrderCard({ order }: { order: PaidOrder }) {

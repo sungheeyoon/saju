@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   doneNote,
   isStatusReason,
-  memberLabel,
   samePlan,
   sanctionEntriesOf,
   sanctionKindLabel,
@@ -80,9 +79,7 @@ describe('실행 전 확인 — 창을 연 순간의 고정본', () => {
     expect(samePlan(null, input)).toBe(false);
   });
 
-  it('대상은 닉네임 · 계정 id 앞 8자, 재시도면 이미 처리했다고 말한다', () => {
-    expect(memberLabel('달빛', USER)).toBe('달빛 · 3f2a9c1e');
-    expect(memberLabel(null, USER)).toBe('닉네임 없음 · 3f2a9c1e');
+  it('재시도면 이미 처리했다고 말한다', () => {
     expect(doneNote('suspend', false)).toBe('이용 정지했습니다.');
     expect(doneNote('unsuspend', true)).toBe('이미 처리했습니다.');
   });
