@@ -63,6 +63,11 @@ select public.beta_is_over(), * from public.current_beta_schedule();
 
 파기는 저절로 안 된다. 아래를 손으로 돈다.
 
+**확인 전 — Supabase Free 의 저활동 일시정지.** Free 는 한 주 동안 데이터베이스 활동이 적은 프로젝트를 멈춘다
+(<https://supabase.com/docs/guides/platform/free-project-pausing>, 2026-10-22 확인). 멈춘 동안 `pg_cron` 의 보존 · 파기 잡(`docs/ops/runbook/jobs.md`
+「도는 잡이 정말 도나」의 목록)이 도는지는 그 문서가 말하지 않는다. 종료일 뒤 요청이 줄면 닿을 수 있는 자리라, 그때 운영자가 대시보드의
+프로젝트 상태와 `cron.job_run_details` 의 마지막 실행으로 본다.
+
 ### 베타 종료 — 전부
 
 ```sql

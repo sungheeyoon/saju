@@ -76,14 +76,15 @@ order by a.notice_ack_at desc nulls first;
 
 ```sql
 -- 오늘 하루, 열 명. 코드는 **대문자**로 넣는다(검사식이 그것만 받는다).
+-- 코드는 순번이 아니라 무작위 글자로 짓는다 — 순번이면 받은 코드 하나로 다음 코드를 짐작한다.
 -- 하루의 경계는 서울 자정이다 — 「오늘」이 사용자가 읽는 오늘과 같아야 한다.
 -- `valid_until` 을 안 적으면 하루짜리다.
 insert into public.signup_code (code, note, valid_on, max_uses)
-values ('SAJU1001', '1차 테스터 · 오픈채팅방 공지', (now() at time zone 'Asia/Seoul')::date, 10);
+values ('K7QXM4TR', '1차 테스터 · 오픈채팅방 공지', (now() at time zone 'Asia/Seoul')::date, 10);
 
 -- 오늘부터 내일까지, 합쳐서 스무 명.
 insert into public.signup_code (code, note, valid_on, valid_until, max_uses)
-values ('SAJU1002', '2차 테스터 · 오픈채팅방 공지',
+values ('P9WD3HZN', '2차 테스터 · 오픈채팅방 공지',
         (now() at time zone 'Asia/Seoul')::date,
         (now() at time zone 'Asia/Seoul')::date + 1, 20);
 
@@ -113,11 +114,11 @@ order by u.signed_up_at desc nulls last;
 
 ```sql
 -- 아직 아무도 안 쓴 코드만 지워진다. 쓰인 코드는 FK 가 막는다 — 그게 맞다.
-delete from public.signup_code where code = 'SAJU1001';
+delete from public.signup_code where code = 'K7QXM4TR';
 
 -- 쓰인 코드는 하루를 어제로 옮겨 닫는다. 정원은 1 아래로 못 내린다(검사식 `max_uses between 1 and 1000`) —
 -- `max_uses = 0` 은 검사식이 거절한다(20260911090000 의 `signup_code`)
-update public.signup_code set valid_on = (now() at time zone 'Asia/Seoul')::date - 1, valid_until = (now() at time zone 'Asia/Seoul')::date - 1 where code = 'SAJU1001';
+update public.signup_code set valid_on = (now() at time zone 'Asia/Seoul')::date - 1, valid_until = (now() at time zone 'Asia/Seoul')::date - 1 where code = 'K7QXM4TR';
 ```
 
 > **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠다. **원격

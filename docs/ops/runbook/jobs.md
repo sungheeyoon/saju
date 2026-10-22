@@ -27,7 +27,8 @@ ADR 0191). 무상 지급 장부의 합과 예외 몫(`reading_credit_grant.extra
 
 **서버 오류는 앱이 알린다** — `request-error:<자리>:<라우트 파일>`(자리는 `render` · `route` · `action` · `proxy`). 앱의
 `instrumentation.ts` 의 `onRequestError` 가 열쇠로 `report_request_error` 를 부르고(Production 만, `app/request-error.ts`),
-라우트 파일 · 자리마다 하루 한 줄이다. 알림에는 라우트 무늬와 digest 만 있다 — Vercel 로그에서 그 digest 로 오류 줄을 찾는다.
+라우트 파일 · 자리마다 하루 한 줄이다. 알림에는 라우트 무늬와 digest 만 있다 — Vercel 로그에서 그 digest 로 오류 줄을 찾는다. **Hobby 플랜의 런타임 로그는 짧게만 남는다**
+(`docs/ops/runbook/erasure.md` 「DB 밖」 표의 「Vercel 로그」 줄) — 알림을 받으면 미루지 말고 연다. 로그가 이미 없으면 digest 와 라우트 무늬만 남는다.
 알림을 보내다 실패하면 삼키고 로그에 `request-error: report_request_error` 한 줄을 남긴다. Next 는 오류 응답 전에 이 부름을 기다리므로 부름은 1.5초에 끊고, 한 인스턴스 안에서도 같은 날 같은 라우트 · 자리는 한 번만 부른다.
 
 **감시기가 못 보는 것 셋** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것, 그리고 **복구기의 Vault 배선이
@@ -63,7 +64,9 @@ group by 1, 2 order by 1, 2;
 `account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
 `cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, `docs/ops/runbook/security.md` 「반출 — 매일 S3」). 2026-10-03 에
 `taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다. 2026-10-17 에 `credit-grant-watch`(매일 05:41 UTC,
-무상 지급 장부의 대조, ADR 0191 — `20261219090000`)가 더해졌다.
+무상 지급 장부의 대조, ADR 0191 — `20261219090000`)가 더해졌다. 2026-10-08(#526) 에 머지된 `20261121090000` 이 `push-dispatch`(매분) ·
+`push-delivery-retention-purge`(매일 04:43 UTC)를 세웠다(ADR 0156) — 2026-10-22 에 다시 센 이 목록이 빠뜨린 둘이다. 웹 푸시를 켜는 걸음과
+확인은 `docs/ops/runbook/push.md`.
 Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
 ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**

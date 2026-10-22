@@ -24,13 +24,13 @@
 | `docs/product/prd/foundation.md` | 「0. 지금 어디까지 왔나」 · 「1. 기본 토대」 · 「2. 자원」 | §0.1–0.2 사용자의 길 · 단계별 대조 · §1.1–1.5 풀이 · 궁합 파이프라인 · 입력 · 점수 · 한 줄 요약 · §2 무엇이 몇 개인가 |
 | `docs/product/prd/screens.md` | 「3. 화면」 | 모든 화면의 규칙 · 화면 무리 색인 · §3.2 버튼은 동사로 갈린다 |
 | `docs/product/prd/screens/first.md` | — | 화면 표(사주 보기) · §3.1 사주 보기 쪽 — 첫 화면 · 로그인 전 결과 · 사주 결과 |
-| `docs/product/prd/screens/public.md` | — | 화면 표(가입 · 처리방침 · 서비스 소개 · 자주 묻는 질문 · 공유 풀이 · 로그인 · 로그인 실패 · 테스트 종료) |
+| `docs/product/prd/screens/public.md` | — | 화면 표(가입 · 처리방침 · 이용약관 · 환불정책 · 서비스 소개 · 자주 묻는 질문 · 공유 풀이 · 로그인 · 로그인 실패 · 테스트 종료) |
 | `docs/product/prd/screens/home.md` | — | 화면 표(홈 · 풀이 보관함 · 한 사람 풀이 · 사람) · §3.0 홈 |
 | `docs/product/prd/screens/compat.md` | — | 화면 표(궁합 보기 · 궁합 결과) · §3.1 궁합 보기 쪽 — 회원 궁합 선택 · 두 걸음 |
 | `docs/product/prd/screens/matching.md` | — | 화면 표(매칭 · 인연 기록 · 채팅 · 소식 · 인연 궁합 결과) |
 | `docs/product/prd/screens/settings.md` | — | 화면 표(프로필 · 계정 관리 · 서비스 설문) |
 | `docs/product/prd/screens/credits.md` | — | 화면 표(풀이권 구매 · 결제 뒤 · 결제 내역) |
-| `docs/product/prd/screens/ops.md` | — | 화면 표(검산 · 설문 요약 · 신고 열람) |
+| `docs/product/prd/screens/ops.md` | — | 화면 표(검산 · 오늘의 숫자 · 설문 요약 · 주문 · 신고 열람 · 회원 찾기) |
 | `docs/product/prd/reading.md` | 「4. 풀이」 | §4.1–4.8 대상 · 풀이 화면 · 사람 · 같은 명식 · 두 사람의 궁합 · 풀이 평가 · 서비스 설문 · 링크 공유 |
 | `docs/product/prd/account.md` | 「5. 계정」 | §5.0–5.3 들어오는 문 · 이름과 얼굴 · 닉네임 · 계정이 멈추는 자리 |
 | `docs/product/prd/matching.md` | 「6. 인연」 | §6.1–6.5 추천 덱 · 매칭 카드(§6.1.1) · 보관 20명(§6.1.2) · 요청과 동의 · 열리는 것 · 소식 · 차단과 신고 |
