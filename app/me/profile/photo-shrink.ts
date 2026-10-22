@@ -89,7 +89,7 @@ export async function shrink(file: File): Promise<Shrunk> {
 /** 저장소로 보낼 두 벌 — 같은 형식, 작은 벌과 큰 벌 */
 export type Baked = { ok: true; contentType: string; card: Blob; large: Blob } | { ok: false; message: string };
 
-/** 큰 벌이 상한을 넘을 때 한 번 더 굽는 품질 — 처음은 `shrink` 와 같은 0.85 */
+/** 큰 벌이 상한을 넘을 때 한 번 더 굽는 품질 — 처음(`shrink` 와 같은 0.85)보다 한 단계 낮게 잡은 잠정값이다(G-120 기록) */
 const SECOND_QUALITY = 0.72;
 
 /**
