@@ -1007,6 +1007,23 @@ describe('화면 무리 — PRD 화면 파일과 문구 대장이 같은 무리�
     expect(wrong).toEqual([]);
   });
 
+  it('「확인 전」 절의 줄은 출처 링크와 확인 날짜를 든다 — 실사례가 없으면 「실사례 없음」 (ADR 0196)', () => {
+    const files = [LEDGER, ...groupsIn(LEDGER_DIR).map((name) => `${LEDGER_DIR}/${name}`)];
+    const wrong: string[] = [];
+    for (const file of files) {
+      for (const section of readFileSync(join(ROOT, file), 'utf8').split(/^(?=## )/m)) {
+        if (!/^## [a-z]+-\d{2} 확인 전/.test(section)) continue;
+        const rows = section.split('\n').filter((line) => line.startsWith('| ') && !/^\| (---|자리) /.test(line));
+        if (rows.length === 0) wrong.push(`${file}: ${section.split('\n')[0]} — 줄이 없다`);
+        for (const row of rows) {
+          const sourced = /https?:\/\//.test(row) && /\d{4}-\d{2}-\d{2}/.test(row);
+          if (!sourced && !row.includes('실사례 없음')) wrong.push(`${file}: ${row.slice(0, 40)} — 출처 링크 · 확인 날짜가 없다`);
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it('ui 역할의 「고칠 화면의 무리」 선택지는 무리마다 하나이고 그 무리의 PRD 화면 파일을 들며, 대장 무리 파일은 「닿을 때 여는 것」이 폴더로 든다 (ADR 0169)', () => {
     const group = readBudgetOf('ui', ROOT).choices.find((one) => one.name.startsWith('고칠 화면의 무리'));
     expect(group).toBeDefined();
