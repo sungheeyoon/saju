@@ -6,11 +6,11 @@
 --   2. **감시기가 최근에 성공했으면 주소로 GET 한 번** — 요청은 큐에 들어갈 뿐이라 네트워크를 안 탄다
 --   3. **감시기가 25분 넘게 성공하지 못했으면 안 보낸다** — 감시기의 실패도 신호의 끊김으로 바깥이 본다
 --   4. **10분마다, 감시기와 5분 엇갈려 돈다**
---   5. **로그인한 사람은 부를 수 없다**
+--   5. **로그인한 사람도 방문자도 부를 수 없다**
 --
 -- Vault 와 실행 기록은 이 파일이 만든 것만 쓴다. 롤백이 되돌린다.
 begin;
-select plan(6);
+select plan(7);
 
 delete from vault.secrets where name = 'ops_heartbeat_url';
 delete from cron.job_run_details
@@ -50,6 +50,10 @@ select is(
 select function_privs_are('public', 'ping_ops_heartbeat', array[]::text[],
   'authenticated', array[]::text[],
   '로그인한 사람은 부를 수 없다 — 부르는 것만으로 밖으로 요청을 만든다');
+
+select function_privs_are('public', 'ping_ops_heartbeat', array[]::text[],
+  'anon', array[]::text[],
+  '로그인 전 방문자도 부를 수 없다');
 
 select * from finish();
 rollback;
