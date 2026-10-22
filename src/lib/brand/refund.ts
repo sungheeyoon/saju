@@ -1,4 +1,5 @@
-import { bundlePrice, refundOf, won } from './bundle-prices';
+import { won } from '../reading/bundle';
+import { bundlePrice, refundOf } from './bundle-prices';
 import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, type LegalSection, bullets, para, table } from './legal-text';
 

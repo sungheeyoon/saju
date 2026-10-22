@@ -1,6 +1,4 @@
-import { isPenalizedRefund, refundOwed } from '@/src/lib/reading/bundle';
-
-import { won } from './labels';
+import { isPenalizedRefund, refundOwed, won } from '@/src/lib/reading/bundle';
 
 /**
  * **환불 세 동작의 「실행 전 확인」** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다(G-110 ②, ADR 0184).
@@ -11,8 +9,6 @@ import { won } from './labels';
 
 /** 확인창이 가리키는 대상 — 동명이인을 가르려고 닉네임에 계정 내부 번호 앞자리를 붙인다 */
 export type Owner = { readonly nickname: string | null; readonly ref: string };
-
-export const ownerLabel = (owner: Owner): string => `${owner.nickname ?? '닉네임 없음'} · ${owner.ref}`;
 
 /** 환불 준비에 내는 값 — 확인창에 보인 그대로 */
 export type PrepareRequest = {

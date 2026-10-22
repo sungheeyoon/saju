@@ -8,7 +8,6 @@ import {
   historyCursorOf,
   historyFilterOf,
   isGrantReason,
-  memberLabel,
   nextCursor,
   grantBlocked,
   revokeBlocked,
@@ -94,11 +93,6 @@ describe('갈래 · 대상 · 회수 잠금', () => {
     expect(isGrantReason('grant', 'mistake')).toBe(false);
     expect(isGrantReason('revoke', 'other')).toBe(true);
     expect(isGrantReason('revoke', 'operator')).toBe(false);
-  });
-
-  it('대상은 닉네임과 계정 id 앞 8자', () => {
-    expect(memberLabel('지영', member)).toBe('지영 · a1b2c3d4');
-    expect(memberLabel(null, member)).toBe('닉네임 없음 · a1b2c3d4');
   });
 
   it('탈퇴 대기 계정에는 지급 단추를 잠그고 까닭 한 줄 — 정지 · 이용 중은 연다', () => {

@@ -1,4 +1,4 @@
-import { READING_BUNDLES, discountAgainstSingles, refundOwed } from '../reading/bundle';
+import { READING_BUNDLES, discountAgainstSingles, refundOwed, won } from '../reading/bundle';
 
 /**
  * **약관 · 환불정책이 말하는 묶음의 숫자** — 값은 `READING_BUNDLES` 하나에서 온다(ADR 0176).
@@ -8,9 +8,6 @@ import { READING_BUNDLES, discountAgainstSingles, refundOwed } from '../reading/
 
 /** 파는 묶음의 장수 */
 type BundleCredits = (typeof READING_BUNDLES)[number]['credits'];
-
-/** 원 단위 금액 — 「4,900원」 */
-export const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
 
 /** 그 장수 묶음의 가격(원) */
 export const bundlePrice = (credits: BundleCredits): number => {

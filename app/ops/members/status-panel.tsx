@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { accountLabel } from '../account-label';
 import { oneAtATime } from '../orders/refund-confirm';
 import { changeMemberStatus } from './actions';
 import { afterFailure } from './credit-grant';
@@ -16,7 +17,6 @@ import {
   NOTE_MAX,
   doneNote,
   isStatusReason,
-  memberLabel,
   reasonsOf,
   samePlan,
   statusPlan,
@@ -201,7 +201,7 @@ export function StatusPanel({
         >
           <dl className={FACTS}>
             <dt className="text-muted">대상</dt>
-            <dd>{memberLabel(nickname, userId)}</dd>
+            <dd>{accountLabel(nickname, userId)}</dd>
             <dt className="text-muted">처분</dt>
             <dd>{plan.changeLine}</dd>
             <dt className="text-muted">사유</dt>

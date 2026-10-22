@@ -16,6 +16,7 @@ import {
 import { ConfirmDialog } from '../../../ui/confirm-dialog';
 import { FailureLine } from '../../../ui/failure-line';
 import { FIELD } from '../../../ui/fields';
+import { accountLabel } from '../../account-label';
 import { afterFailure } from '../../members/credit-grant';
 import { oneAtATime } from '../../orders/refund-confirm';
 import { writeReview } from '../actions';
@@ -27,7 +28,6 @@ import {
   WARNING_CATEGORIES,
   actionLabel,
   doneNote,
-  partyLabel,
   reviewPlan,
   samePlan,
   sanctions,
@@ -191,7 +191,7 @@ export function ReviewPanel({
                   />
                   <span className="flex flex-col leading-5">
                     <span>{SIDE_NAME[party.side]}</span>
-                    <span className="text-xs font-normal text-muted">{partyLabel(party)}</span>
+                    <span className="text-xs font-normal text-muted">{accountLabel(party.nickname, party.userId)}</span>
                   </span>
                 </label>
               ))}

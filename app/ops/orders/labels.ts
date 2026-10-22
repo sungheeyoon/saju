@@ -33,9 +33,6 @@ const STATUS_LABEL: Readonly<Record<string, string>> = {
 
 export const orderStatusLabel = (status: string): string => STATUS_LABEL[status] ?? status;
 
-/** 원 — 「12,900원」 */
-export const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
-
 const SEOUL_TIME = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   year: 'numeric',

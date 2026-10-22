@@ -40,10 +40,6 @@ export const isGrantReason = (kind: GrantKind, value: string): boolean =>
 const grantReasonLabel = (value: string): string =>
   [...GRANT_REASONS, ...REVOKE_REASONS].find((reason) => reason.value === value)?.label ?? value;
 
-/** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(동명이인을 가른다) */
-export const memberLabel = (nickname: string | null, userId: string): string =>
-  `${nickname ?? '닉네임 없음'} · ${userId.slice(0, 8)}`;
-
 /** 서버에 내는 값 — 확인창에 보인 그대로 */
 export type GrantRequest = {
   readonly kind: GrantKind;
