@@ -1617,9 +1617,11 @@ export type Database = {
           body_written: boolean
           chart_a: Json
           chart_b: Json | null
+          claimed_at: string | null
           created_at: string
           evidence: string | null
           generation: Json | null
+          lease_id: string | null
           prompt: string | null
           prompt_version: string | null
           requested_model: string | null
@@ -1639,9 +1641,11 @@ export type Database = {
           body_written?: boolean
           chart_a: Json
           chart_b?: Json | null
+          claimed_at?: string | null
           created_at?: string
           evidence?: string | null
           generation?: Json | null
+          lease_id?: string | null
           prompt?: string | null
           prompt_version?: string | null
           requested_model?: string | null
@@ -1661,9 +1665,11 @@ export type Database = {
           body_written?: boolean
           chart_a?: Json
           chart_b?: Json | null
+          claimed_at?: string | null
           created_at?: string
           evidence?: string | null
           generation?: Json | null
+          lease_id?: string | null
           prompt?: string | null
           prompt_version?: string | null
           requested_model?: string | null
@@ -2868,7 +2874,7 @@ export type Database = {
         }[]
       }
       claim_reading_job: {
-        Args: { p_response_id: string }
+        Args: { p_lease_id?: string; p_response_id: string }
         Returns: {
           birth_a: Json
           birth_b: Json
@@ -3124,6 +3130,7 @@ export type Database = {
         Args: {
           p_failure_code: string
           p_failure_detail?: string
+          p_lease_id?: string
           p_run_id: string
           p_usage?: Json
         }
@@ -4168,6 +4175,7 @@ export type Database = {
       reading_failure_alert_floor: { Args: never; Returns: number }
       reading_failure_alert_share: { Args: never; Returns: number }
       reading_job_deadline: { Args: never; Returns: string }
+      reading_job_lease: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
@@ -4238,7 +4246,10 @@ export type Database = {
         }
         Returns: undefined
       }
-      release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      release_reading_job: {
+        Args: { p_lease_id?: string; p_run_id: string }
+        Returns: boolean
+      }
       release_reading_refund_by_hand: {
         Args: { p_hold_id: string; p_note: string }
         Returns: undefined
@@ -4331,6 +4342,7 @@ export type Database = {
         Args: {
           p_evidence: string
           p_generation: Json
+          p_lease_id?: string
           p_metaphor: string
           p_model: string
           p_output: string
