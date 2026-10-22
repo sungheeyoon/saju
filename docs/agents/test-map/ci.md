@@ -29,8 +29,9 @@
 | 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 — 시험 · 그 도우미가 템플릿 · 이어 붙임 · 정규식으로 그 주소를 요청할 수도 있거나(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의 경로가 글자로 들었거나(`mentionOf` — glob · 정규식 문자열 · 경로 상수), 그 입구를 들이는 파일이 있거나(다시 내보내는 page), 다른 화면이 그 입구를 가리키고(링크든 경로 상수 · `router.push` · `redirect` 든) 그 화면을 여는 시험이 있으면(`linkReach` — 무엇을 누르는지는 가르지 않는다, ADR 0195 덧) 전부, 그것도 없으면 그 파일은 `core` 이고 까닭에 시험 공백(간극 대장 G-116 — 그 기록과 계획의 `untestedEntries()` · `linkedOnlyEntries()` 를 시험이 견준다)이 실린다. 다른 파일이 켠 차선은 그대로다(운영자 2026-10-22, ADR 0195) |
 | Next 메타데이터(`app/**/icon.*` · `opengraph-image.*` · `sitemap.*` …) | `core` + `anon` |
 | 관문이 import 하는 `app/` 파일(ADR 0119 추기) | 전부 |
-| 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」). **입구가 아닌 화면 컴포넌트**(`app/**` 의 시험 아닌 `.tsx` 와 React 를 들이거나 `'use client'` 인 `.ts` — hook 같은 것, 지운 파일은 빼고)도 같은 줄이다(ADR 0195) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 인데 탐색이 놓쳤을 수 있으면 전부(정말 없는 입구는 위 줄처럼 시험 공백) |
-| 알려진 `core` 자리 — `src/**` · 입구도 화면 컴포넌트도 서버 파일도 아닌 `app/**`(React 도 `'use client'` 도 없는 `.ts` — 셈 · 상수) · `scripts/**` · 워크플로 밖의 `.github/**` · `public/**` · 뿌리 설정(`ROOT_CONFIGS`, 의존성 목록은 시험 실행 의존성이 그대로일 때) | `core` |
+| 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」). **입구가 아닌 화면 컴포넌트**(`app/**` 의 시험 아닌 `.tsx` · css module(`.module.css`)과 React 를 들이거나 `'use client'` 인 `.ts` — hook 같은 것, 지운 파일은 빼고)도 같은 줄이다(ADR 0195 · 덧 2026-10-22 css module) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 인데 탐색이 놓쳤을 수 있으면 전부(정말 없는 입구는 위 줄처럼 시험 공백) |
+| 서비스 워커(`public/sw.js` — `ci-plan.mjs` 의 `SERVICE_WORKER`, 앱이 등록하는 주소와 시험이 견준다) | `core` + **서비스 워커를 여는 시험**(주석을 뺀 코드에 `serviceWorker` 가 든 spec · 흐름 검사, `workerTests` — 지금 `e2e/push.spec.ts` 의 `push`)의 차선. 그런 시험이 0 이면 전부(「닿는 시험 모름」). `flow` 는 안 켠다 — `check-push.mjs` 는 서비스 워커를 띄우지 않는다. 웹 푸시를 운영에 켰는지와 따로다(ADR 0195 덧) |
+| 알려진 `core` 자리 — `src/**` · 입구도 화면 컴포넌트도 서버 파일도 아닌 `app/**`(React 도 `'use client'` 도 없는 `.ts` — 셈 · 상수, 뿌리 layout 이 들이는 `app/globals.css` — 좁히면 사실상 전부다) · `scripts/**` · 워크플로 밖의 `.github/**` · 서비스 워커 밖의 `public/**` · 뿌리 설정(`ROOT_CONFIGS`, 의존성 목록은 시험 실행 의존성이 그대로일 때) | `core` |
 | **그 밖 — 모르는 파일** | 전부(베타에서도) |
 
 예: `app/me/(shelf)/readings/compat/page.tsx` 하나 → `core` + `authed (signed-in:desktop)` · `authed (signed-in:mobile)`.
@@ -100,6 +101,9 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 **차선 수와 시간은 이 문서에 적지 않는다** — 로그인 차선은 `ci-plan.mjs` 의 `AUTHED_LANES` 가, 그 실행이 고른 차선은
 plan job 의 step summary(`summaryOf`)가, 차선마다 걸린 시간은 `gh run view <run id>` 의 job 시간이 답한다.
 지난 PR 의 계획(`tier` · 까닭 · 차선)은 `gh run view <run id> --log --job <plan job id>` 로 읽는다 — `gh api …/logs` 는 제어 문자로 거절된다.
+가정한 변경 묶음의 계획은 저장소 뿌리에서 `planFor` 에 넣어 본다(단계는 PRD 의 「(지금)」 — `currentStageOf`):
+`node --input-type=module -e "import {readFileSync} from 'node:fs'; import {planFor} from './scripts/ci-plan.mjs'; import {STAGE_FILE,currentStageOf} from './scripts/release-stage.mjs'; const p = planFor({ files: ['public/sw.js'], stage: currentStageOf(readFileSync(STAGE_FILE,'utf8')) }); console.log(p.tier, p.cause ?? '', p.authedLanes, p.lanes, p.reason)"`
+— 파일은 디스크(HEAD)에서 읽는다. 의존성 목록은 `baseSourceOf` 를 안 주면 base 를 못 읽어 전부로 나온다.
 
 **새 `scripts/*.mjs` 를 더한 PR 은 전부다** — `NOT_HARNESS` 밖은 시험 도구로 센다. 시험이 부르지 않는 CI · 개발 도구를 어떻게 빼나는
 `ci-plan.mjs` 머리말 「시험 도구가 혼자 쓰는 파일」이 답한다.
