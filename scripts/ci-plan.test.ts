@@ -159,19 +159,29 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
         .filter((line) => !/^\s*#/.test(line))
         .join('\n');
       expect(job, name).not.toMatch(/continue-on-error/);
+      // 단계의 첫 키가 무엇이든(`- name:` · `- if:` …) `run:` 이 든 단계는 다 센다
+      const field = (step: string, key: string) => new RegExp(`^(?: {8})?${key}: (.+)$`, 'm').exec(step)?.[1].trim();
       return job
         .split(/^ {6}- /m)
         .slice(1)
-        .filter((step) => /^run: /.test(step))
-        .map((step) => ({ run: /^run: (.+)$/m.exec(step)![1].trim(), cond: /^ {8}if: (.+)$/m.exec(step)?.[1] ?? null, id: /^ {8}id: (.+)$/m.exec(step)?.[1] }));
+        .filter((step) => field(step, 'run') !== undefined)
+        .map((step) => ({ run: field(step, 'run'), cond: field(step, 'if') ?? null, id: field(step, 'id') }));
     };
-    const GUARD = "${{ !cancelled() && steps.install.outcome == 'success'";
-    for (const [name, first] of [['core', 'npm test'], ['policy', 'npx vitest run scripts/']] as const) {
-      const [install, head, ...rest] = stepsOf(name);
+    const GUARD = "${{ !cancelled() && steps.install.outcome == 'success' }}";
+    const BUILD = "${{ !cancelled() && steps.install.outcome == 'success' && needs.plan.outputs.build != 'false' }}";
+    const expected = {
+      core: ['npm ci', ...CORE_STEPS],
+      policy: ['npm ci', 'npx vitest run scripts/', 'npm run typecheck', 'npx eslint scripts/'],
+    };
+    for (const [name, runs] of Object.entries(expected)) {
+      const steps = stepsOf(name);
+      // 명령 목록 전체를 견준다 — 가드 없는 단계가 끼어들면 여기서 걸린다
+      expect(steps.map((step) => step.run), name).toEqual(runs);
+      const [install, head, ...rest] = steps;
       expect(install, name).toEqual({ run: 'npm ci', cond: null, id: 'install' });
-      expect(head, name).toEqual({ run: first, cond: null, id: undefined });
-      expect(rest.length, name).toBeGreaterThanOrEqual(2);
-      for (const step of rest) expect(step.cond?.startsWith(GUARD), `${name}: ${step.run}`).toBe(true);
+      expect(head, name).toEqual({ run: runs[1], cond: null, id: undefined });
+      // 조건은 글자 그대로 — `|| always()` 같은 꼬리가 붙으면 다르다
+      for (const step of rest) expect(step.cond, `${name}: ${step.run}`).toBe(step.run === 'npm run build' ? BUILD : GUARD);
     }
   });
 
