@@ -20,7 +20,8 @@
 
 **클라이언트가 액션을 부르는 자리는 `actionAnswer(부름)` 을 지난다**(`app/ui/action-answer.ts`, ADR 0164) — 값으로 답하는 액션도 부름 자체는
 던질 수 있다(망 · 배포 직후 액션 id 불일치 · 받지 않은 예외). 받지 않으면 오류 경계로 올라가 입력이 사라진다. 래퍼는 던진 것을
-`{ ok: false, message }` 로 접고 `redirect()` 의 이동 표지는 다시 던진다. 이미 제 문장으로 받는 `try … catch` · `.catch(…)` 는 그대로다.
+`{ ok: false, message, unreached: true }` 로 접고 `redirect()` 의 이동 표지는 다시 던진다. 「답을 못 받았다(서버에서 섰는지 모른다)」는 그 표지로 가른다(`isUnreached`) —
+문장을 견주지 않는다. 이미 제 문장으로 받는 `try … catch` · `.catch(…)` 는 그대로다.
 `app/action-calls.boundary.test.ts` 가 `'use client'` 파일의 부름을 세고, 아직 안 받는 자리는 목록으로 줄어들기만 한다. **화면 안에서 한 칸을
 못 읽은 줄**과 폼의 실패 줄은 `FailureLine`(`app/ui/failure-line.tsx` — 붉은 줄 · `role="alert"` · 읽기 실패면 「다시 시도하기」 · 세션이 끝난 문장이면
 「다시 로그인」)이다. 부품 밖의 `role="alert"` 는 `app/failure-lines.boundary.test.ts` 의 목록뿐이다.

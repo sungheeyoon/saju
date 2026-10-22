@@ -1,23 +1,23 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition } from 'react';
+import { useId, useState } from 'react';
 
 import { isPenalizedRefund, refundBreakdown, won } from '@/src/lib/reading/bundle';
 
-import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
+import { actionAnswer, isUnreached, type ActionUnreached } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { useOneAtATime } from '../../ui/one-at-a-time';
 import { accountLabel } from '../account-label';
 import { bookRefund, holdRefund, releaseRefund } from './actions';
 import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime } from './labels';
 import type { RefundHold } from './read';
 import {
   BOOK_LABEL,
-  oneAtATime,
   preparePlan,
   releaseLabel,
   samePlan,
@@ -28,12 +28,6 @@ import {
 const ROW = 'flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3';
 const LABEL = 'shrink-0 text-xs font-semibold text-muted sm:w-24';
 const FACTS = 'grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm';
-
-/**
- * 응답을 못 받은 누름 — 서버에서 섰는지 모른다. 액션이 무른 응답이 오지 않았으므로 화면을 다시 읽어 실제 결과를 세운다(같은
- * 요청 번호 · 취소 번호로 다시 내도 한 번만 적힌다).
- */
-const unreached = (message: string): boolean => message === ACTION_UNREACHED_NOTE;
 
 /** 확인창 안의 대상 줄 — 주문 번호 · 회원(닉네임 · 계정 앞자리) */
 function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
@@ -82,8 +76,7 @@ export function PrepareForm({
   const [plan, setPlan] = useState<PreparePlan | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run } = useOneAtATime();
   const ids = useId();
 
   const order = { orderId, paid, credits, refundedCredits, refundedAmount, penalizedCredits };
@@ -108,22 +101,18 @@ export function PrepareForm({
 
   const confirm = () => {
     if (plan === null) return;
-    guard.current.run(
-      () =>
-        new Promise<void>((done) => {
-          startSaving(async () => {
-            const answer = await actionAnswer(holdRefund(plan.request));
-            if (answer.ok) {
-              setConfirming(false);
-              setPlan(null);
-            } else {
-              setFailure(answer.message);
-              if (unreached(answer.message)) router.refresh();
-            }
-            done();
-          });
-        }),
-    );
+    run(async () => {
+      const answer = await actionAnswer(holdRefund(plan.request));
+      if (answer.ok) {
+        setConfirming(false);
+        setPlan(null);
+      } else {
+        setFailure(answer.message);
+        // 답을 못 받았으면 서버에서 섰는지 모른다 — 액션이 다시 그린 화면도 안 왔으므로 화면을 다시 읽어 실제 결과를 세운다(같은
+        // 요청 번호로 다시 내도 한 번만 적힌다). 고른 값 · 요청 번호는 어느 실패에도 남는다(ADR 0184)
+        if (isUnreached(answer)) router.refresh();
+      }
+    });
   };
 
   return (
@@ -228,27 +217,21 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
   const [dialog, setDialog] = useState<'book' | 'release' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run: runOnce } = useOneAtATime();
   const ids = useId();
 
-  const run = (call: () => Promise<{ ok: boolean; message?: string; done?: string }>) =>
-    guard.current.run(
-      () =>
-        new Promise<void>((done) => {
-          startSaving(async () => {
-            const answer = await call();
-            if (answer.ok) {
-              setDialog(null);
-              if (answer.done) setBooked(answer.done);
-            } else if (answer.message !== undefined) {
-              setFailure(answer.message);
-              if (unreached(answer.message)) router.refresh();
-            }
-            done();
-          });
-        }),
-    );
+  const run = (call: () => Promise<{ readonly ok: true; readonly done?: string } | { readonly ok: false; readonly message: string } | ActionUnreached>) =>
+    runOnce(async () => {
+      const answer = await call();
+      if (answer.ok) {
+        setDialog(null);
+        if (answer.done) setBooked(answer.done);
+      } else {
+        setFailure(answer.message);
+        // 답을 못 받았으면 화면을 다시 읽어 실제 결과를 세운다 — 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다
+        if (isUnreached(answer)) router.refresh();
+      }
+    });
 
   const openBook = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -260,15 +243,13 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
   const book = () =>
     run(async () => {
       const answer = await actionAnswer(bookRefund({ orderId, holdId: hold.holdId, refundId: frozenRefundId }));
-      return answer.ok
-        ? { ok: true, done: `장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}` }
-        : { ok: false, message: answer.message };
+      return answer.ok ? { ok: true, done: `장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}` } : answer;
     });
 
   const release = () =>
     run(async () => {
       const answer = await actionAnswer(releaseRefund({ orderId, holdId: hold.holdId }));
-      return answer.ok ? { ok: true } : { ok: false, message: answer.message };
+      return answer.ok ? { ok: true } : answer;
     });
 
   const facts = (

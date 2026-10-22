@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { oneAtATime, preparePlan, releaseLabel, samePlan } from './refund-confirm';
+import { preparePlan, releaseLabel, samePlan } from './refund-confirm';
 
 const order = { orderId: 'o-1', paid: 12900, credits: 3, refundedCredits: 0, refundedAmount: 0, penalizedCredits: 0 };
 
@@ -47,35 +47,5 @@ describe('환불 준비의 확인창 — 보인 값이 곧 낸 값이다', () =>
 
   it('준비 취소 단추는 돌려놓는 회차를 말한다', () => {
     expect(releaseLabel(2)).toBe('준비 취소 — 2장 돌려놓기');
-  });
-});
-
-describe('중복 클릭', () => {
-  it('처리 중에 다시 누른 것은 버리고, 끝나면 다시 받는다', async () => {
-    const guard = oneAtATime();
-    let calls = 0;
-    let finish: () => void = () => {};
-    const work = () =>
-      new Promise<void>((resolve) => {
-        calls += 1;
-        finish = resolve;
-      });
-
-    expect(guard.run(work)).toBe(true);
-    expect(guard.run(work)).toBe(false);
-    expect(guard.run(work)).toBe(false);
-    expect(calls).toBe(1);
-
-    finish();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(guard.run(work)).toBe(true);
-    expect(calls).toBe(2);
-  });
-
-  it('실패해도 자물쇠가 풀린다', async () => {
-    const guard = oneAtATime();
-    expect(guard.run(() => Promise.reject(new Error('x')))).toBe(true);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(guard.run(async () => {})).toBe(true);
   });
 });
