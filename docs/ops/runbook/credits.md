@@ -187,7 +187,7 @@ npm run db:remote -- --purpose "환불수수료 셈 전 진행 중인 unused 확
 1. **준비** — 걷을 회차 · 사유를 고르고 「환불 준비」 → 확인창의 대상(주문 번호 · 닉네임 · 계정 앞자리) · 회차 · 금액을 보고 「N장 · …원 환불 준비」. 창에 보인 금액이 지금 셈과 다르면 DB 가 거절한다. 그 회차가 잠겨 이용자가 못 쓰고(한도에서 빠진다), 금액이 정해져 「환불 진행
    중」 판이 선다(`operator_hold_reading_refund`, 접속기록 `credits.refund_hold`). 주문 하나에 진행 중인 것은 하나다
 2. **PG 콘솔에서 그 판의 「취소할 금액」을 취소한다** — 판의 결제 번호 · 거래 번호로 결제를 찾는다. 화면은 PG 취소를 부르지 않는다.
-   PG 는 포트원을 거치지 않고 직접 계약하므로 계약한 PG사의 관리자 화면이다(ADR 0193) — 아래의 「PortOne 결제 조회」 · 「PortOne 콘솔」은 지금 코드의 모양이고, PG사 규격으로 다시 짓는다
+   PG 와 연동 방식은 미정이다(ADR 0194 — PortOne 경유 · KG파이낸셜 · KPN · 갤럭시아머니트리 후보). 아래의 「PortOne 결제 조회」 · 「PortOne 콘솔」은 지금 코드(PortOne 경유 전제)의 모양이고, PG사 직접으로 정해지면 그 PG사의 관리자 화면 · 규격으로 다시 짓는다
 3. **확정** — 콘솔이 준 취소 번호를 적고 「장부에 확정」(`operator_book_reading_refund`, `credits.refund_book`). 같은 번호로 다시 눌러도
    한 번만 적힌다
 
@@ -297,8 +297,8 @@ update retention.reading_payment set hold_reason = null, held_at = null where or
 
 #### 결제 알림 — PortOne 웹훅 (G-23 ⑥)
 
-**PG 는 포트원을 거치지 않고 PG사와 직접 계약한다(ADR 0193)** — 이 절은 지금 코드(PortOne V2 전제)의 동작이고, 계약한 PG사의
-결과 통지 규격을 받은 뒤 문과 함께 다시 쓴다. 아래 「켜는 날」의 PortOne 콘솔 걸음은 밟지 않는다.
+**PG 와 연동 방식은 미정이다(ADR 0194 — PortOne 경유 · KG파이낸셜 · KPN · 갤럭시아머니트리 후보)** — 이 절은 지금 코드(PortOne V2 전제)의 동작이다. 아래 「켜는 날」의
+PortOne 콘솔 걸음은 PortOne 경유로 정해진 뒤에 밟는다. PG사 직접으로 정해지면 그 PG사의 결과 통지 규격을 받은 뒤 문과 함께 다시 쓴다.
 
 **문은 섰고 꺼져 있다.** `POST /api/portone/webhook`(`app/api/portone/webhook/`)이 PortOne V2 의 결제 알림을 받는다. 켜는 값
 셋(`PORTONE_WEBHOOK_SECRET` · `PORTONE_API_SECRET` · `PORTONE_STORE_ID`)이 없으면 503 이고, 판매가 닫혀 있는 동안에는 주문이 없어
@@ -363,8 +363,8 @@ PortOne 콘솔의 웹훅 내역에 실패가 쌓인다. DB 가 내려가 승인�
 
 #### 심사 계정 — 카드사 심사 때만 결제창이 선다 (G-21, ADR 0171)
 
-**결제창은 PG사 규격을 받은 뒤 다시 짓는다(ADR 0193)** — 지금 코드의 결제창은 PortOne 브라우저 SDK 이고, PG 는 포트원을 거치지 않고
-PG사와 직접 계약한다. 아래의 `PORTONE_*` 값 · PortOne 콘솔 걸음은 밟지 않는다 — 심사 계정을 넣는 SQL(2)과 걷는 걸음은 PG 와 무관하게 그대로다.
+**PG 와 연동 방식은 미정이다(ADR 0194 — PortOne 경유 · KG파이낸셜 · KPN · 갤럭시아머니트리 후보)** — 지금 코드의 결제창은 PortOne 브라우저 SDK 다. 아래의 `PORTONE_*` 값 ·
+PortOne 콘솔 걸음은 PortOne 경유로 정해진 뒤에 밟고, PG사 직접으로 정해지면 결제창을 그 PG사의 규격으로 다시 짓는다 — 심사 계정을 넣는 SQL(2)과 걷는 걸음은 PG 와 무관하게 그대로다.
 
 **판매는 닫힌 채다.** `reading_sale_reviewer` 에 든 계정만 `/me/credits` 에서 「결제하기」가 서고 주문이 열린다 — 다른 계정은 가격과 결제 전
 고지만 보고 「풀이권 판매 준비 중이에요.」를 본다. 결제 단추는 Vercel **Production** 에 `PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY`(PortOne 콘솔 →
