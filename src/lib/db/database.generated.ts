@@ -1866,6 +1866,7 @@ export type Database = {
           model: string | null
           person_a: string | null
           person_b: string | null
+          prepared_at: string | null
           prompt_version: string | null
           status: string
           usage: Json | null
@@ -1884,6 +1885,7 @@ export type Database = {
           model?: string | null
           person_a?: string | null
           person_b?: string | null
+          prepared_at?: string | null
           prompt_version?: string | null
           status?: string
           usage?: Json | null
@@ -1902,6 +1904,7 @@ export type Database = {
           model?: string | null
           person_a?: string | null
           person_b?: string | null
+          prepared_at?: string | null
           prompt_version?: string | null
           status?: string
           usage?: Json | null
@@ -2666,6 +2669,7 @@ export type Database = {
       reading_spend_daily: {
         Row: {
           attempts: number | null
+          budget_counted: number | null
           day: string | null
           failed: number | null
           input_tokens: number | null
