@@ -220,7 +220,7 @@ async function submitFrozen(
   const continued = continuation !== null && kind === 'self';
   const prompt = continued ? `${made.input.prompt}\n\n${continuationBlockOf(continuation)}` : made.input.prompt;
 
-  const { error: prepareError } = await keyed.rpc('prepare_reading_job', {
+  const { data: preparedNow, error: prepareError } = await keyed.rpc('prepare_reading_job', {
     p_run_id: job.run_id,
     p_prompt: prompt,
     p_evidence: made.input.evidenceText,
@@ -249,6 +249,13 @@ async function submitFrozen(
     await close('unexpected', prepareError.message);
     return;
   }
+
+  /**
+   * **문이 거짓이면 보내지 않는다.** 시도가 이미 닫혔거나(만료 · 복구기의 `prepare-timeout`) 작업이 이미 지나갔다는 뜻이다 —
+   * 그때 보내면 모델은 돌고 그 시도에는 제출 직전 표시(`prepared_at`)가 없어 하루 상한이 못 센다(ADR 0198). 닫는 것은 이미
+   * 닫은 쪽의 일이라 여기서는 돌아가기만 한다.
+   */
+  if (preparedNow !== true) return;
 
   const submitted = await submitBackgroundReading(prompt, job.run_id, {
     summaryLast: writesSummaryLast(kind),

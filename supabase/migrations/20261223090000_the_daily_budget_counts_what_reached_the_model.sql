@@ -22,7 +22,10 @@
 --
 -- 남는 것 — 도는 예약은 여전히 센다. 계정 하나가 동시에 잡는 예약은 풀이권 잔액 · 대상마다 하나 · 시간당 20 에 묶인다.
 --
--- 앱은 안 바뀐다 — 서명도 그대로다. 몸은 운영의 살아 있는 정의에서 떴다(2026-10-22).
+-- 서명은 그대로다. 몸은 운영의 살아 있는 정의에서 떴다(2026-10-22). 문은 시도 행을 먼저 잠근다 — 닫는 쪽과 같은 차례다.
+--
+-- 앱 한 줄 — 문이 거짓을 내면(시도가 이미 닫힘 · 작업이 이미 지나감) 제출하지 않는다(`app/me/reading/pipeline.ts` 의 `submitFrozen`).
+-- 전에는 반환값을 버리고 보냈다 — 그 시도는 표시가 없어 상한에 안 잡힌 채 모델이 돈다. 서명이 그대로라 배포 순서에 안 걸린다.
 --
 -- 재는 자리는 `supabase/tests/99_reading_budget_counts_what_reached_the_model.test.sql` · `23_reading_budget.test.sql`.
 
@@ -56,6 +59,12 @@ CREATE OR REPLACE FUNCTION public.prepare_reading_job(p_run_id uuid, p_prompt te
  SET search_path TO ''
 AS $function$
 begin
+  /*
+    시도 행을 먼저 잠근다 — 닫는 쪽(`fail_reading_job` · 만료)은 시도 행 → (트리거로) 작업 행 차례다. 이 문이 작업 행 → 시도 행
+    차례로 잡으면 둘이 엇갈려 교착할 수 있다. 같은 차례로 맞춘다.
+  */
+  perform 1 from public.reading_run r where r.id = p_run_id for update;
+
   update public.reading_job j
   set prompt = p_prompt,
       evidence = p_evidence,

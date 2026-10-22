@@ -23,7 +23,8 @@
 | --- | --- |
 | 무엇을 세나 | 오늘 연 시도 가운데 **제출 직전 문을 지난 것**(`reading_run.prepared_at`) + **아직 도는 예약**(`running` 이고 `reading_run_timeout()` 안) |
 | 실패는 | 빼지 않는다. 모델이 토큰을 쓴 뒤 실패한 시도(`model-timeout` · 검사 실패)는 제출 직전 문을 지났으므로 센다 |
-| 표시는 누가 다나 | `prepare_reading_job` — 열쇠(`service_role`)에만 열려 있다. 모델에 보내는 길은 그 문 뒤의 하나뿐이다(`submitFrozen`) |
+| 표시는 누가 다나 | `prepare_reading_job` — 열쇠(`service_role`)에만 열려 있다. 모델에 보내는 길은 그 문 뒤의 하나뿐이다(`submitFrozen`). **앱은 그 문이 참을 낼 때만 보낸다** — 전에는 반환값을 버려, 이미 닫힌 시도(거짓)도 보냈고 그러면 표시 없이 모델이 돈다. 이 결정과 함께 고친다 |
+| 잠금 차례 | 문은 시도 행을 먼저 잠그고 작업 행을 고친다 — 닫는 쪽(시도 행 → 트리거로 작업 행)과 같은 차례라 엇갈려 교착하지 않는다 |
 | 옛 시도 | 모두 `prepared_at = created_at` 로 채워 옛 셈과 같게 센다 |
 | 지출 표 | `reading_spend_daily` 끝에 `budget_counted` — 오늘 줄의 그 칸이 상한이 보는 수다. `attempts` 는 연 시도 전부 그대로 |
 
