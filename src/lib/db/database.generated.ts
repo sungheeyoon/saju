@@ -4341,7 +4341,7 @@ export type Database = {
           p_improve_text: string
           p_liked: string[]
           p_price_factors: string[]
-          p_price_options: string[]
+          p_price_options?: string[]
           p_price_pair: string
           p_price_solo: string
           p_submit?: boolean

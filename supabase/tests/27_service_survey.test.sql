@@ -1,6 +1,6 @@
 -- 서비스 설문 — **탭에서 언제든, 초안과 제출은 갈린다.**
 --
--- 여기서 재는 것 다섯.
+-- 여기서 재는 것 여섯.
 --
 -- 1. **동의 뒤에만 받는다.** 끄면 남긴 답도 함께 사라진다 — 값만 꺼 두면 근거 없이 남는다.
 -- 2. **안 물어본 문항의 답은 저장되지 않는다.** 안 읽은 종류의 값은 실려 와도 안 받는다 —
@@ -8,8 +8,9 @@
 -- 3. **초안은 집계에 안 든다.** 작성 도중의 문장을 제출한 의견처럼 읽으면 안 된다.
 -- 4. **처음 제출한 때와 그때의 일정은 안 움직인다.** 답을 고쳐도 그렇다.
 -- 5. **표는 밖에서 한 줄도 안 보인다.** 운영자 집계 셋도 운영자가 아니면 거절한다.
+-- 6. **보여 준 금액 목록은 서버가 싣는다.** 보낸 목록은 읽지 않는다 — 보낸 쪽이 고칠 수 있는 기록은 기록이 아니다.
 begin;
-select plan(25);
+select plan(29);
 
 create or replace function pg_temp.save(run uuid)
 returns uuid language sql security definer as $$
@@ -153,6 +154,41 @@ select is(
   (select array[price_solo, price_pair] from public.my_service_survey()),
   array['9900', null],
   '읽은 종류만 값이 남는다');
+
+-- ── 보여 준 금액 목록은 서버가 싣는다 ───────────────────────────────────────
+
+/**
+ * 문은 `authenticated` 에 열려 있다 — 로그인한 사람이 RPC 를 바로 불러 목록을 바꿔 보내도 남는 것은 판본의 목록이다.
+ * `20261222090000` 전에는 보낸 목록이 그대로 남았다.
+ */
+select lives_ok(
+  $$select public.save_service_survey(
+      array['self_reading'], array[]::text[], array[]::text[], null,
+      array[]::text[], array[]::text[], '9900', null, array[]::text[], null,
+      array['9900', '99000', '<script>'], false)$$,
+  '목록을 바꿔 보내도 저장은 된다');
+
+set local role postgres;
+select is(
+  (select price_options from public.service_survey where user_id = (select kim from folks)),
+  array['free', '990', '1990', '4900', '9900', '12000', 'over_12000', 'unsure']::text[],
+  '바꿔 보낸 목록은 버리고 판본의 목록을 남긴다');
+set local role authenticated;
+
+select lives_ok(
+  $$select public.save_service_survey(
+      p_liked => array['self_reading'], p_unknown => array[]::text[], p_improve => array[]::text[],
+      p_improve_text => null, p_wants => array[]::text[], p_wants_new => array[]::text[],
+      p_price_solo => '9900', p_price_pair => null, p_price_factors => array[]::text[],
+      p_free_text => null)$$,
+  '목록을 안 보내도 저장된다 — 앱은 더 보내지 않는다');
+
+set local role postgres;
+select is(
+  (select price_options from public.service_survey where user_id = (select kim from folks)),
+  array['free', '990', '1990', '4900', '9900', '12000', 'over_12000', 'unsure']::text[],
+  '안 보내도 판본의 목록이 남는다');
+set local role authenticated;
 
 -- ── 초안은 집계에 안 든다 ───────────────────────────────────────────────────
 
