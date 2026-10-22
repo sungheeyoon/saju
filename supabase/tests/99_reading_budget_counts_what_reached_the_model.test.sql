@@ -115,7 +115,7 @@ select is(
 
 /** 모델에 간 시도로 상한을 채우면 다음 누름은 막힌다 — 벽 자체는 그대로다 */
 insert into public.reading_run (user_id, kind, status, failure_code, idempotency_key, finished_at, prepared_at)
-select (select filler from folks), 'self', 'failed', 'model-timeout', 'sent-' || g, now(), now()
+select (select filler from folks), 'self', 'failed', 'model-timeout', 'sent-to-model-' || g, now(), now()
 from generate_series(1, public.reading_daily_budget() - 1) g;
 
 set local role authenticated;
