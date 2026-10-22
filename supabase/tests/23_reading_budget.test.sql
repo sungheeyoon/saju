@@ -24,15 +24,19 @@ as $$
     jsonb_build_object('provider', 'openai-responses-api', 'usage', spent), now());
 $$;
 
-/** 오늘 이미 쓴 것처럼 시도 행을 직접 쌓는다 — 백 번을 실제로 부르지 않으려고 */
+/**
+ * 오늘 이미 쓴 것처럼 시도 행을 직접 쌓는다 — 백 번을 실제로 부르지 않으려고. **모델에 간 뒤 실패한 시도**다 —
+ * 제출 직전 문을 지난 표시(`prepared_at`)를 단다. 그 표시가 없는 끝난 시도는 하루 상한이 안 센다(ADR 0198,
+ * `99_reading_budget_counts_what_reached_the_model`).
+ */
 create or replace function pg_temp.spend(who uuid, how_many integer)
 returns void
 language sql
 security definer
 as $$
-  insert into public.reading_run (user_id, kind, status, failure_code, idempotency_key)
+  insert into public.reading_run (user_id, kind, status, failure_code, idempotency_key, prepared_at)
   -- 열쇠는 사람마다 유일하다. 이 손잡이를 두 번 부르므로 부를 때마다 새 값을 짓는다.
-  select who, 'self', 'failed', 'model-timeout', 'filler-' || gen_random_uuid()::text
+  select who, 'self', 'failed', 'model-timeout', 'filler-' || gen_random_uuid()::text, now()
   from generate_series(1, how_many) as i;
 $$;
 

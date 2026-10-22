@@ -193,6 +193,29 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
   });
 
   /**
+   * **제출 직전 문이 거짓이면 보내지 않는다** — 시도가 이미 닫혔거나 작업이 이미 지나갔다. 보내면 모델은 돌고 그 시도에는
+   * 제출 직전 표시가 없어 하루 상한이 못 센다(ADR 0198). 닫는 것도 이미 닫은 쪽의 일이다.
+   */
+  it.each([
+    ['거짓', { data: false, error: null }],
+    ['빈 답', { data: null, error: null }],
+  ])('제출 직전 문이 %s 이면 모델에 안 보낸다', async (_label, answer) => {
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'take_reading_job') return { data: [job], error: null };
+      if (name === 'prepare_reading_job') return answer;
+      return { data: null, error: null };
+    });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(prepared(), '문을 안 불렀다').toBeDefined();
+    expect(submit, '닫힌 시도를 모델에 보냈다').not.toHaveBeenCalled();
+    expect(adopted()).toBeUndefined();
+    expect(closed()).toBeUndefined();
+  });
+
+  /**
    * **집는 일이 적는 일보다 먼저다.** 집지 않고 적으면 두 프로세스가 같은 작업을 들고
    * 나란히 제출한다 — 집는 문이 원자적인 까닭이 그것이다.
    */

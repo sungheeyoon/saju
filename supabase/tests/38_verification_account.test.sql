@@ -34,7 +34,7 @@ where v.day = (now() at time zone 'Asia/Seoul')::date and v.kind = 'self';
 
 select cmp_ok(
   (select attempts from today), '>=', 3,
-  '전체 시도는 검증 계정의 것까지 센다 — 상한이 보는 수와 같다');
+  '전체 시도는 검증 계정의 것까지 센다 — 상한도 검증 계정을 센다(상한이 보는 수는 `budget_counted`, ADR 0198)');
 
 select is(
   (select verification_attempts from today), 2,
