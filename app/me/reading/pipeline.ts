@@ -20,7 +20,7 @@ import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import { readingInputOf } from './generator';
 import { failReadingJob } from './fail-job';
 import { GENERATION } from './generation';
-import { submitBackgroundReading } from './model';
+import { SUBMIT_UNANSWERED, submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
 import { claimedTaste } from '../../taste/taste-carry';
 import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../../taste/keyed-taste-claims';
@@ -174,7 +174,10 @@ async function submitFrozen(
 ): Promise<void> {
   const { kind } = job;
 
-  /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
+  /**
+   * 여기서 닫는 실패는 **떠나보내기 전**이거나 provider 가 거절한 제출(상태 코드 · 스트림의 `error` 사건)이라 쓴 토큰을 모른다 —
+   * `null` 로 적는다(ADR 0039). 답을 못 받은 제출은 여기서 안 닫는다(아래)
+   */
   const close = (code: string, detail: string): Promise<void> =>
     failReadingJob(keyed, 'submit', { runId: job.run_id, code, detail, usage: null });
 
@@ -254,6 +257,15 @@ async function submitFrozen(
     summaryLast: writesSummaryLast(kind),
     continuation: continued,
   });
+  /**
+   * **답을 못 받은 제출은 닫지 않는다.** provider 가 받았으면 응답이 돌고 있고, 그 webhook 이 이름표(`metadata.reading_run_id`)로
+   * 이 시도를 되찾는다 — 되찾기는 `submitting` 인 시도만 받으므로 여기서 닫으면 그 결과는 버려진다(`submit-unanswered.test.ts`).
+   * 안 닿았으면 아무것도 안 오고, 복구기가 기한(`reading_job_deadline()`)에 `model-timeout` 으로 닫는다. 까닭은 기록에만 남긴다.
+   */
+  if (!submitted.ok && submitted.code === SUBMIT_UNANSWERED) {
+    console.error('submit: 답 없음 — 시도를 열어 둔다', job.run_id, submitted.detail);
+    return;
+  }
   if (!submitted.ok) {
     await close(submitted.code, submitted.detail);
     return;
@@ -548,8 +560,8 @@ export async function beginReading(
  *
  * ## 못 보내도 막다른 길이 아니다
  *
- * 여기서 실패하면 시도는 `submitFrozen` 이 닫고(실패로), 결과 화면에는 만드는 버튼이
- * 돌아온다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
+ * 여기서 실패하면 시도는 `submitFrozen` 이 닫거나(실패로) — 제출이 답을 못 받았으면 열어 두었다가 webhook 이 되찾거나
+ * 복구기가 기한에 닫는다 — 닫힌 뒤 결과 화면에는 만드는 버튼이 돌아온다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
  */
 export async function sendAcceptedMatchReading(requestId: string): Promise<void> {
   let keyed: ReturnType<typeof keyedClient>;
