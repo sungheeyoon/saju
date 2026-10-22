@@ -253,7 +253,7 @@ describe('ADR 참조 (docs/agents/code-rules/comments.md)', () => {
  * ADR 머리(제목 아래 인용 블록)의 「후속 결정」 줄 — `> 후속 결정: ADR NNNN — …` 는 그 ADR 이 통째로 대체됐다는 표지이고,
  * `> 후속 결정(일부): …` 는 일부만 대체됐다는 표지다. 괄호 안에 「일부」가 없으면 통째다.
  */
-function supersededWhole(text: string): boolean {
+function adrHead(text: string): string[] {
   // 머리는 제목 한 줄과 그 앞뒤의 빈 줄 · 인용 줄이다 — 제목 위에 인용을 둔 옛 ADR 도 있다(ADR 0018)
   const head: string[] = [];
   let title = false;
@@ -265,10 +265,35 @@ function supersededWhole(text: string): boolean {
     if (line.trim() !== '' && !line.startsWith('>')) break;
     head.push(line);
   }
-  return head.some((line) => {
+  return head;
+}
+
+function supersededWhole(text: string): boolean {
+  return adrHead(text).some((line) => {
     const match = /^> 후속 결정(?:\(([^)]*)\))?:/.exec(line);
     return match !== null && !(match[1] ?? '').includes('일부');
   });
+}
+
+/** 머리의 인용 문단 — 빈 줄 · `>` 한 줄 · 「후속 결정」 줄이 문단을 끊는다. 문단은 첫 줄과 이어 붙인 글을 든다 */
+function adrHeadParagraphs(text: string): { first: string; body: string }[] {
+  const paragraphs: { first: string; body: string }[] = [];
+  let lines: string[] = [];
+  const flush = () => {
+    if (lines.length > 0) paragraphs.push({ first: lines[0], body: lines.join(' ') });
+    lines = [];
+  };
+  for (const line of adrHead(text)) {
+    if (!line.startsWith('>') || line.trim() === '>') {
+      flush();
+      continue;
+    }
+    const content = line.replace(/^>\s?/, '');
+    if (content.startsWith('후속 결정')) flush();
+    lines.push(content);
+  }
+  flush();
+  return paragraphs;
 }
 
 describe('현재 결정 색인 (docs/adr/README.md)', () => {
@@ -292,6 +317,41 @@ describe('현재 결정 색인 (docs/adr/README.md)', () => {
   it('통째로 대체되지 않은 ADR 은 모두 색인에 선다 — 새 ADR 은 색인에 줄을 더한다', () => {
     const shown = new Set(listed);
     expect([...ADR_NUMBERS].filter((number) => !whole.has(number) && !shown.has(number)).sort()).toEqual([]);
+  });
+
+  it('대체당한 표지는 머리의 「후속 결정」 꼴 하나다 — `> 대체됨:` 같은 다른 꼴은 위 두 시험이 못 본다', () => {
+    // 문단 첫머리의 이름표(첫 `:` · `—` · `(` 앞)에 「대체」가 서면 대체당한 표지다. 「이 결정이 대체하는 것 —」은 대체하는 쪽의 말이다
+    const odd: string[] = [];
+    for (const name of ADR_FILES) {
+      for (const { first } of adrHeadParagraphs(readFileSync(join(ADR_DIR, name), 'utf8'))) {
+        const label = first.replace(/\*\*/g, '').split(/[:—(]/)[0];
+        if (label.includes('대체') && !label.startsWith('이 결정이 대체하는 것') && !first.startsWith('후속 결정')) {
+          odd.push(`${name.slice(0, 4)}: ${first.slice(0, 40)}`);
+        }
+      }
+    }
+    expect(odd).toEqual([]);
+  });
+
+  it('머리에 「이 결정이 대체하는 것 —」으로 든 ADR 은 제 머리에 그 번호의 「후속 결정」 줄을 단다', () => {
+    const heads = new Map(ADR_FILES.map((name) => [name.slice(0, 4), readFileSync(join(ADR_DIR, name), 'utf8')]));
+    const missing: string[] = [];
+    let pairs = 0;
+    for (const [number, text] of heads) {
+      for (const { body } of adrHeadParagraphs(text)) {
+        const at = body.indexOf('이 결정이 대체하는 것 —');
+        if (at < 0) continue;
+        const targets = new Set([...body.slice(at).matchAll(/ADR (\d{4})/g)].map((match) => match[1]));
+        for (const target of targets) {
+          if (target === number) continue;
+          pairs += 1;
+          const line = new RegExp(`^> 후속 결정(?:\\([^)]*\\))?: ADR ${number}\\b`);
+          if (!adrHead(heads.get(target) ?? '').some((headLine) => line.test(headLine))) missing.push(`${number} → ${target}`);
+        }
+      }
+    }
+    expect(pairs).toBeGreaterThan(10);
+    expect(missing).toEqual([]);
   });
 });
 
