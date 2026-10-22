@@ -209,25 +209,26 @@ bash scripts/aws-wizard.sh
 | --- | --- | --- |
 | 1 준비물 | — | CLI 둘, Vercel 팀 · 프로젝트 이름(기본 `sungheeyoons-projects` · `saju`) |
 | 2 계정 · 루트 MFA | 1 | 콘솔 |
-| 3 관리자 · CLI 로그인 | 1 | 콘솔에서 IAM 사용자 `saju-admin`(AdministratorAccess · SignInLocalDevelopmentAccess · MFA) → `aws login --profile saju-admin`. **루트로 로그인했으면 멈춘다** — 루트는 역할을 맡을 수 없어 9 의 검증 역할이 안 되고, CLI 에 루트를 쓰지 않는다 |
+| 3 관리자 · CLI 로그인 | 1 | 콘솔에서 IAM 사용자 `saju-admin`(AdministratorAccess · SignInLocalDevelopmentAccess · MFA) → `aws login --profile saju-admin`. **IAM 사용자가 아니면 멈춘다**(루트 · SSO 같은 역할 세션) — 루트는 역할을 맡을 수 없고, 9 의 검증 역할은 이 사용자 하나만 믿는다 |
 | 4 감사 버킷 | 2 | `saju-audit-<무작위 8자>` · 서울 · Object Lock(Versioning 함께) · Block Public Access 넷 · SSE-S3 기본 |
 | 5 Governance 1일 | 3 | 기본 보존이 없을 때만 건다. 이미 Governance · Compliance 면 손대지 않는다 |
 | 6 Vercel OIDC | 5-1 | 콘솔 — Issuer Mode **Team** |
 | 7 OIDC 제공자 | 5-2 | `oidc.vercel.com/<팀>` · audience `https://vercel.com/<팀>` |
 | 8 반출 역할 | 5-3 · 5-4 | `saju-audit-export` — 신뢰는 이 프로젝트의 `environment:production` 만, 권한은 `s3:PutObject` 를 `operator-access/*` 에 하나(인라인 `saju-audit-export-put`) |
 | 9 검증 역할 | 9 | `saju-audit-verify` — `saju-admin` 사용자만 맡는다(`sts:AssumeRole`), `s3:GetObject`(`operator-access/*`) · `s3:ListBucket`(prefix 그것만). 이 기계의 `~/.aws/config` 에 프로필 `saju-audit-verify`(`source_profile = saju-admin`)를 맞춘다 |
-| 10 Vercel 변수 | 6 | Production 에 셋 — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ROLE_ARN`(코드의 `configOf` 가 읽는 이름). 다른 값이 있으면 묻고, 접근 키 두 변수가 남아 있으면 오설정이라 알리기만 한다(지우지 않는다) |
+| 10 Vercel 변수 | 6 | **기본 보존(Governance · Compliance)이 없으면 멈춘다** — 기본 보존은 올리는 순간에만 붙어, 보존 없이 켜면 그동안의 객체가 영영 보존 없이 남는다. Production 에 셋(`--no-sensitive` — 비밀이 아니다) — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ROLE_ARN`(코드의 `configOf` 가 읽는 이름). 다른 값이 있으면 묻고, 접근 키 두 변수가 남아 있으면 오설정이라 알리기만 한다(지우지 않는다) |
 | 11 Redeploy | 6 | 콘솔 — 최신 Production 을 Redeploy, Ready |
-| 12 첫 반출 · 검증 | 3 · 7 · 9 | `vercel crons run /api/cron/audit-export` 로 한 번 돌리고 → 상태 질의 → 객체 수(검증 프로필) → `npm run audit:verify` → 객체 한 벌 버전째 지우기가 **막히는지** |
-| 13 Compliance 400일 | 4 | **Governance 를 건 다음 날 이후에 12 가 초록일 때만**, 버킷 이름을 그대로 쳐야 옮긴다 |
+| 12 첫 반출 · 검증 | 3 · 7 · 9 | `vercel crons run /api/cron/audit-export` 로 한 번 돌리고 → 상태 질의 → 객체 수(검증 프로필) → `npm run audit:verify` → 시험 객체 하나를 `wizard-probe/` 에 올려 버전째 지우기가 **`AccessDenied` 로 막히는지**. 감사 객체(`operator-access/`)는 지워 보지 않는다 — 보존이 끝난 옛 객체면 정말 지워진다. 다른 오류면 막혔다고 보지 않고 멈춘다 |
+| 13 Compliance 400일 | 4 | **Governance 를 걸고 24시간 뒤에 12 가 초록일 때만**(날짜 글자가 아니라 시각으로 — 그 사이에 매일의 정기 반출이 한 번 돈다), 버킷 이름을 그대로 쳐야 옮긴다 |
 
 - **두 번 돌려도 하나다.** 걸음마다 AWS 의 지금 상태를 읽고 있으면 다시 쓴다 — 버킷(상태 파일을 잃었으면 `saju-audit-` 로
   시작하는 버킷을 찾는다) · 제공자(ARN) · 역할(이름) · 권한 정책(이름이 같으면 덮어쓴다) · Vercel 변수(마법사가 넣은 값과 같으면
-  건너뛴다). 그래서 **첫날 1 ~ 12 를 돌리고, 다음 날 같은 줄을 다시 치면 12 를 다시 재고 13 으로 간다** — runbook 3 의 「하루 돌려」다
+  건너뛴다). 그래서 **첫날 1 ~ 12 를 돌리고, 24시간 뒤 같은 줄을 다시 치면 12 를 다시 재고 13 으로 간다** — runbook 3 의 「하루 돌려」다
 - **멈추면 다시 친다.** 오류 · Ctrl-C · 「남은 것」이 있으면 같은 줄을 다시 치면 된 걸음은 건너뛴다. 버킷 이름은 만들기 **전에**
   상태에 적어, 만든 직후 멈춰도 다음 실행이 같은 버킷을 쓴다. Redeploy 전에 멈추면 다음 실행이 Redeploy 를 다시 묻는다
 - **값은 저장소 밖** — `~/.config/saju/aws-wizard.env`(버킷 이름 · 역할 ARN · 계정 번호 · 걸음의 날짜). 비밀은 없다 — 마법사는
   열쇠를 만들지 않는다. 그래도 문서 · 채팅 · 커밋 · 이슈에 옮기지 않는다
+- **시험 객체** — `wizard-probe/<시각>.txt` 는 12 의 지우기 시험이 남긴 것이다. Governance 1일 보존이라 하루 뒤 지울 수 있다(남겨도 된다 — 반출 · 검증 역할은 그 prefix 에 닿지 않는다)
 - **접근 키(대안)는 마법사가 안 한다** — 아래 5 의 「대안」을 손으로 밟는다
 - **사진 버킷은 자리만 있다** — 사진 저장(같은 계정 · 다른 버킷 · 다른 권한)은 열람 방식이 정해진 뒤 마법사의 9 와 10 사이에
   걸음을 더한다(스크립트의 「사진 버킷 — 자리만」 주석). 그 전에는 아무것도 만들지 않는다
@@ -248,7 +249,8 @@ bash scripts/aws-wizard.sh
 | --- | --- | --- |
 | 「Stage N/13 에서 멈췄다」 + 그 위에 `An error occurred (…)` | AWS 쪽 오류(일시 장애 · 권한 · 로그인 만료) | 같은 줄을 다시 친다. 또 멈추면 오류 이름으로 — `ExpiredToken` · 자격 없음이면 `aws login --profile saju-admin`, `AccessDenied` 면 `saju-admin` 에 AdministratorAccess 가 붙었는지 콘솔에서 본다 |
 | 「준비물이 모자라」 · 「2.32 보다 낮다」 | CLI 가 없거나 낮다 · Vercel 로그인 안 됨 | 연 주소대로 깔거나 올리고, `vercel login` 뒤 다시 친다 |
-| 「루트로 로그인됐다」 | `aws login` 에서 루트를 골랐다 | `aws logout --profile saju-admin` 뒤 다시 쳐서 `saju-admin` 으로 고른다 |
+| 「루트로 로그인됐다」 · 「IAM 사용자가 아닌 신원」 | `aws login` 에서 루트나 다른 신원을 골랐다 | `aws logout --profile saju-admin` 뒤 다시 쳐서 `saju-admin` 으로 고른다 |
+| 「기본 보존이 없다 — 반출을 켜지 않는다」 | 5 에서 Governance 를 거절했다 | 다시 쳐서 5 에서 y |
 | 「버킷 이름 … 을 이 계정이 못 쓴다」 | 이름이 남의 것이다 | 상태 파일의 `AUDIT_EXPORT_BUCKET=` 줄을 지우고 다시 친다 — 새 이름을 짓는다 |
 | 「Object Lock 이 꺼져 있다」 | 마법사 밖에서 만든 `saju-audit-*` 버킷이다 | 그 버킷은 반출에 쓰지 않는다. 비어 있으면 콘솔에서 지우고, 상태 파일의 `AUDIT_EXPORT_BUCKET=` 줄을 지운 뒤 다시 친다(남겨 두면 상태를 잃었을 때 다시 찾힌다) |
 | 상태 파일을 잃었다 | 다른 기계 · 지움 | 그대로 다시 친다 — 자원은 이름으로 다시 찾는다. 콘솔 걸음(2 · 6 · 11)은 한 번 더 묻는다 |
@@ -256,8 +258,10 @@ bash scripts/aws-wizard.sh
 | `misconfigured` + `missing:…` · `conflict:credentials` | 변수가 모자라거나 역할과 접근 키가 함께 있다 | 위 「켜는 값」 표 — 접근 키 둘을 대시보드에서 지우고 Redeploy |
 | `failed` + `upload:accessdenied` 등 `upload:…` | 역할을 못 받거나(OIDC 가 꺼짐 · 신뢰의 `sub` · `aud` 가 다름) 넣기가 거절됐다(권한 정책의 버킷 · prefix) | 6 이 Team 으로 켜졌는지, 7 의 팀 슬러그 · 8 의 프로젝트 이름이 맞는지 보고 다시 친다 — 신뢰 · 권한 정책은 다시 칠 때마다 맞춰진다. 그 뒤 Redeploy(OIDC 를 켠 뒤의 배포라야 토큰이 든다) |
 | 객체가 없다 · `audit:verify` 가 붉다 | 반출이 아직 안 돌았거나 기록과 파일이 어긋난다 | 다음 날 03:37 뒤 다시 친다. 붉음이 이어지면 아래 9 의 출력(키와 어긋남의 이름)으로 본다 — **Compliance 로 가지 않는다** |
-| 「지워졌다 — 보존이 안 걸렸다」 | 기본 보존이 객체에 안 걸렸다(시험 객체 하나가 지워졌다 — 반출 기록은 DB 에 남는다) | `get-object-lock-configuration` 으로 Governance 1일인지 본다. 지워진 범위는 DB 의 반출 기록에 남아 있다 — 같은 범위를 다시 올리는 도구는 없으니 그 객체 키와 날짜를 #304 7 의 댓글에 적고, 보존을 맞춘 뒤 다시 친다 |
-| 13 이 「아직이다」 | Governance 를 건 날과 같은 날이거나 12 가 초록이 아니다 | 다음 날 다시 친다 — runbook 3 → 4 의 차례다 |
+| 「지워졌다 — 보존이 안 걸렸다」 | 새로 올린 시험 객체에 기본 보존이 안 붙었다(지워진 것은 시험 객체뿐이다) | `aws --profile saju-admin s3api get-object-lock-configuration --bucket <버킷>` 으로 Governance 1일인지 본다. 그동안 올라간 감사 객체도 보존이 없을 수 있다 — `get-object-retention` 으로 보고 객체마다 `put-object-retention` 으로 건 뒤 다시 친다 |
+| 「지우기 시험이 보존이 아닌 까닭으로 실패했다」 | 네트워크 · 자격 만료 · 없는 버전 — `AccessDenied` 가 아니다 | 아래 찍힌 오류대로 고치고(대개 `aws login --profile saju-admin`) 다시 친다 |
+| 13 이 「아직이다」 | Governance 를 건 지 24시간이 안 됐거나 12 가 초록이 아니다 | 24시간 뒤 다시 친다 — runbook 3 → 4 의 차례다 |
+| 10 에서 `vercel env add` 가 물음 · 거절로 선다 | 팀 정책이 Production 변수를 Sensitive 로 강제한다(확인 전) | 대시보드에서 셋을 손으로 넣고(Sensitive 여도 된다 — 값은 `~/.config/saju/aws-wizard.env` 의 같은 이름 줄) Production 을 Redeploy 한 뒤 다시 친다 — 덮어쓸지 물으면 아니라고 답한다 |
 | Compliance 를 잘못 걸었다 | — | **되돌릴 수 없다**(루트도). 그래서 13 은 이름을 쳐야 간다. 400일 동안 객체가 쌓이는 비용만 남는다 |
 
 **사람이 켜는 걸음 — AWS (한 번)** — 마법사가 차례대로 밟는 원본이다

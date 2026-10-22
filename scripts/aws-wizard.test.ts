@@ -67,11 +67,18 @@ if (TOOL === 'aws') {
       const rule = JSON.parse(flag('--object-lock-configuration')).Rule.DefaultRetention;
       bucket.mode = rule.Mode; bucket.days = rule.Days; save(); break;
     }
-    case 's3api list-objects-v2': out(String(bucket.objects.length)); break;
-    case 's3api list-object-versions': out(bucket.objects[0] ? bucket.objects[0].key + '\t' + bucket.objects[0].version : 'None\tNone'); break;
-    case 's3api delete-object':
-      if (bucket.mode && !process.env.FAKE_DELETE_ALLOWED) fail('AccessDenied', 'locked');
-      bucket.objects = bucket.objects.filter((o) => o.version !== flag('--version-id')); save(); break;
+    case 's3api list-objects-v2': out(String(bucket.objects.filter((o) => o.key.startsWith(flag('--prefix'))).length)); break;
+    case 's3api put-object': {
+      const version = 'p' + (bucket.objects.length + 1);
+      bucket.objects.push({ key: flag('--key'), version, retained: Boolean(bucket.mode) }); save(); out(version); break;
+    }
+    case 's3api delete-object': {
+      if (process.env.FAKE_DELETE_ERROR) fail('ServiceUnavailable', 'try later');
+      const target = bucket.objects.find((o) => o.version === flag('--version-id'));
+      if (!target) fail('NoSuchVersion', 'none');
+      if (target.retained && !process.env.FAKE_DELETE_ALLOWED) fail('AccessDenied', 'locked');
+      bucket.objects = bucket.objects.filter((o) => o !== target); save(); break;
+    }
     case 'iam get-open-id-connect-provider': {
       const p = world.providers[flag('--open-id-connect-provider-arn')];
       if (!p) fail('NoSuchEntity', 'none');
@@ -104,10 +111,10 @@ if (TOOL === 'aws') {
   else if (argv[0] === 'env' && argv[1] === 'add') {
     const name = argv[2];
     if (world.vercelEnv[name] !== undefined && !has('--force')) { process.stderr.write('already exists\n'); process.exit(1); }
-    world.vercelEnv[name] = fs.readFileSync(0, 'utf8'); save();
+    world.vercelEnv[name] = flag('--value') ?? fs.readFileSync(0, 'utf8'); save();
   } else if (argv[0] === 'crons' && argv[1] === 'run') {
     const b = world.buckets[world.vercelEnv.AUDIT_EXPORT_BUCKET];
-    if (b) { const n = b.objects.length + 1; b.objects.push({ key: 'operator-access/2026/10/23/' + n + '.jsonl', version: 'v' + n }); save(); }
+    if (b) { const n = b.objects.length + 1; b.objects.push({ key: 'operator-access/2026/10/23/' + n + '.jsonl', version: 'v' + n, retained: Boolean(b.mode) }); save(); }
   } else { process.exit(2); }
 } else if (TOOL === 'npm') {
   fs.appendFileSync(path.join(dir, 'npm-env.log'), (process.env.AWS_PROFILE || '-') + ' ' + (process.env.AUDIT_VERIFY_BUCKET || '-') + '\n');
@@ -127,7 +134,7 @@ type World = {
       versioning: string;
       mode: string | null;
       days: number | null;
-      objects: { key: string; version: string }[];
+      objects: { key: string; version: string; retained?: boolean }[];
     }
   >;
   foreign?: string[];
@@ -343,7 +350,7 @@ describe('AWS 마법사 — 처음 도는 날', () => {
 
     // 검증은 읽기 프로필로, 지우기는 막혔고, 같은 날이라 Compliance 는 아직
     expect(t.npmEnv()).toContain(`saju-audit-verify ${bucket}`);
-    expect(world.buckets[bucket].objects).toHaveLength(1);
+    expect(world.buckets[bucket].objects.map((o) => o.key.split('/')[0]).sort()).toEqual(['operator-access', 'wizard-probe']);
     expect(count(calls, /"Mode":"COMPLIANCE"/)).toBe(0);
     expect(out).toContain('Stage 13 — Compliance 400일 전환');
   }, 30_000);
@@ -364,7 +371,7 @@ describe('AWS 마법사 — 처음 도는 날', () => {
         'AWS_ACCOUNT_ID',
         'AWS_ADMIN_ARN',
         'AUDIT_EXPORT_BUCKET',
-        'GOVERNANCE_SET_AT',
+        'GOVERNANCE_SET_EPOCH',
         'VERCEL_OIDC_READY',
         'AUDIT_EXPORT_ROLE_ARN',
         'AUDIT_VERIFY_ROLE_ARN',
@@ -372,7 +379,7 @@ describe('AWS 마법사 — 처음 도는 날', () => {
         'VERCEL_SET_AUDIT_EXPORT_REGION',
         'VERCEL_SET_AUDIT_EXPORT_ROLE_ARN',
         'REDEPLOY_PENDING',
-        'GOVERNANCE_VERIFIED_AT',
+        'GOVERNANCE_VERIFIED_EPOCH',
       ]),
     );
     expect(t.state()).not.toMatch(/SECRET|ACCESS_KEY|AKIA/);
@@ -386,8 +393,8 @@ describe('AWS 마법사 — 다시 돌리면', () => {
     const first = t.calls().length;
 
     // 다음 날 — Governance 를 건 날을 어제로
-    t.setState('GOVERNANCE_SET_AT', '2000-01-01');
-    t.setState('GOVERNANCE_VERIFIED_AT', '2000-01-01');
+    t.setState('GOVERNANCE_SET_EPOCH', '0');
+    t.setState('GOVERNANCE_VERIFIED_EPOCH', '0');
     const second = await t.run();
     expect(second.code, second.out).toBe(0);
     const again = t.calls().slice(first);
@@ -419,8 +426,8 @@ describe('AWS 마법사 — 다시 돌리면', () => {
   it('버킷 이름을 틀리게 치면 Compliance 로 가지 않는다', async () => {
     const t = setUp();
     await t.run();
-    t.setState('GOVERNANCE_SET_AT', '2000-01-01');
-    t.setState('GOVERNANCE_VERIFIED_AT', '2000-01-01');
+    t.setState('GOVERNANCE_SET_EPOCH', '0');
+    t.setState('GOVERNANCE_VERIFIED_EPOCH', '0');
     const { code, out } = await t.run({ typed: (b) => `${b}x` });
     expect(code).toBe(0);
     expect(count(t.calls(), /"Mode":"COMPLIANCE"/)).toBe(0);
@@ -430,7 +437,7 @@ describe('AWS 마법사 — 다시 돌리면', () => {
   it('검증이 붉으면 다음 날이어도 Compliance 로 가지 않는다', async () => {
     const t = setUp();
     await t.run({ env: { FAKE_VERIFY_EXIT: '1' } });
-    t.setState('GOVERNANCE_SET_AT', '2000-01-01');
+    t.setState('GOVERNANCE_SET_EPOCH', '0');
     const { code, out } = await t.run({ env: { FAKE_VERIFY_EXIT: '1' } });
     expect(code).toBe(0);
     expect(count(t.calls(), /"Mode":"COMPLIANCE"/)).toBe(0);
@@ -444,10 +451,44 @@ describe('AWS 마법사 — 다시 돌리면', () => {
     expect(out).toContain('지워졌다 — 보존이 안 걸렸다');
     expect(count(t.calls(), /"Mode":"COMPLIANCE"/)).toBe(0);
   }, 30_000);
+
+  it('지우기 시험은 감사 객체를 건드리지 않는다 — 시험 객체만 올려 지워 본다', async () => {
+    const t = setUp();
+    await t.run();
+    t.setState('GOVERNANCE_SET_EPOCH', '0');
+    t.setState('GOVERNANCE_VERIFIED_EPOCH', '0');
+    await t.run();
+    const deletes = t.calls().filter((c) => c.includes('delete-object'));
+    expect(deletes.length).toBe(2);
+    for (const d of deletes) expect(d).toMatch(/--key wizard-probe\//);
+    const [bucket] = Object.keys(t.world().buckets);
+    expect(t.world().buckets[bucket].objects.filter((o) => o.key.startsWith('operator-access/'))).toHaveLength(2);
+  }, 60_000);
+
+  it('지우기가 보존이 아닌 까닭(일시 장애)으로 실패하면 막혔다고 보지 않는다', async () => {
+    const t = setUp();
+    const { code, out } = await t.run({ env: { FAKE_DELETE_ERROR: '1' } });
+    expect(code).toBe(1);
+    expect(out).toContain('보존이 아닌 까닭으로 실패했다');
+    expect(t.state()).not.toContain('GOVERNANCE_VERIFIED_EPOCH');
+  }, 30_000);
+
+  it('Governance 를 거절하면 반출을 켜지 않는다 — Vercel 변수를 넣지 않는다', async () => {
+    const t = setUp();
+    const { code, out } = await t.run({ no: /Governance 1일로 걸까/ });
+    expect(code).toBe(1);
+    expect(out).toContain('기본 보존이 없다 — 반출을 켜지 않는다');
+    expect(count(t.calls(), /vercel env add/)).toBe(0);
+  }, 30_000);
 });
 
 describe('AWS 마법사 — 중간에 멈추면', () => {
-  for (const op of ['iam create-role', 's3api put-public-access-block', 'iam create-open-id-connect-provider']) {
+  for (const op of [
+    'iam create-role',
+    's3api put-public-access-block',
+    'iam create-open-id-connect-provider',
+    's3api get-object-lock-configuration',
+  ]) {
     it(`${op} 가 한 번 실패하면 멈추고, 다시 돌리면 이어서 끝낸다 — 겹쳐 만든 것이 없다`, async () => {
       const t = setUp();
       const first = await t.run({ env: { FAKE_AWS_FAIL: op } });
@@ -558,6 +599,14 @@ describe('AWS 마법사 — 이미 있는 것을 다시 쓴다', () => {
 });
 
 describe('AWS 마법사 — 멈추는 자리', () => {
+  it('IAM 사용자가 아닌 역할 세션이면 검증 역할을 좁힐 수 없어 멈춘다', async () => {
+    const t = setUp({ loggedIn: true, callerArn: `arn:aws:sts::${ACCOUNT}:assumed-role/Admin/someone` });
+    const { code, out } = await t.run();
+    expect(code).toBe(1);
+    expect(out).toContain('IAM 사용자가 아닌 신원');
+    expect(count(t.calls(), /create-|put-/)).toBe(0);
+  }, 30_000);
+
   it('루트로 로그인했으면 아무것도 만들지 않고 멈춘다', async () => {
     const t = setUp({
       loggedIn: true,

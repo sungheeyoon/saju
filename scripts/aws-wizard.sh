@@ -216,6 +216,8 @@ VERIFY_PROFILE="saju-audit-verify"
 EXPORT_ROLE="saju-audit-export"
 VERIFY_ROLE="saju-audit-verify"
 EXPORT_PREFIX="operator-access"
+# 지우기 시험 객체의 자리 — 반출(쓰기 역할)도 검증(읽기 역할)도 닿지 않는다
+PROBE_PREFIX="wizard-probe"
 CRON_PATH="/api/cron/audit-export"
 BUCKET_STEM="saju-audit-"
 
@@ -234,6 +236,9 @@ state() { _existing "$1" || true; }
 remember() { write_env "$1" "$2"; }
 
 today() { date +%F; }
+now() { date +%s; }
+# 「하루 돌려」 — 날짜 글자가 아니라 시각으로 잰다. 24시간이면 매일의 정기 반출(03:37 전후)이 그 사이에 한 번 돈다
+DAY=86400
 
 # 오류로 멈추면 어디서 멈췄는지와 다시 도는 법만 말한다
 # 알림은 처음의 표준 출력(3)으로 — 실패한 명령이 `>/dev/null` 안에 있어도 보이게
@@ -265,13 +270,16 @@ bucket_state() {
   if grep -qE '404|Not Found|NoSuchBucket' <<<"$err"; then echo missing; else echo taken; fi
 }
 
-# Object Lock 의 지금 기본 보존 — "MODE DAYS"(기본 보존이 없으면 "None None"), Object Lock 이 꺼졌으면 "off"
+# Object Lock 의 지금 기본 보존 — "MODE DAYS"(기본 보존이 없으면 "None None"), Object Lock 이 꺼졌으면 "off".
+# 못 읽으면(일시 장애 · 자격) 꺼짐으로 보지 않고 실패한다 — 부르는 쪽은 `x=$(lock_state …)` 로 받아 멈춘다
 lock_state() {
   local out enabled mode days
   if ! out=$(awsa s3api get-object-lock-configuration --bucket "$1" \
       --query 'ObjectLockConfiguration.[ObjectLockEnabled,Rule.DefaultRetention.Mode,Rule.DefaultRetention.Days]' \
-      --output text 2>/dev/null); then
-    echo off; return
+      --output text 2>&1); then
+    if grep -q 'ObjectLockConfigurationNotFoundError' <<<"$out"; then echo off; return; fi
+    printf '%s\n' "$out" >&2
+    return 1
   fi
   read -r enabled mode days <<<"$out"
   [[ "$enabled" == "Enabled" ]] || { echo off; return; }
@@ -368,6 +376,9 @@ else
 fi
 [[ "$caller_arn" != *":root" ]] || stop "루트로 로그인됐다 — 루트는 역할을 맡을 수 없고, CLI 에서 쓰지 않는다." \
   "aws logout --profile $ADMIN_PROFILE 뒤 다시 돌려 $ADMIN_PROFILE 사용자로 로그인한다."
+# 검증 역할(Stage 9)은 이 사용자 하나만 믿는다 — 역할 세션(SSO 등)이면 누구를 믿을지 좁힐 수 없어 멈춘다
+[[ "$caller_arn" == arn:aws:iam::*:user/* ]] || stop "IAM 사용자가 아닌 신원으로 로그인됐다 — 검증 역할을 그 사람 하나로 좁힐 수 없다." \
+  "aws logout --profile $ADMIN_PROFILE 뒤 다시 돌려 $ADMIN_PROFILE 사용자로 로그인한다."
 account_id=$(awsa sts get-caller-identity --query Account --output text)
 remember AWS_ACCOUNT_ID "$account_id"
 remember AWS_ADMIN_ARN "$caller_arn"
@@ -404,8 +415,9 @@ case "$(bucket_state "$bucket")" in
       "상태 파일의 AUDIT_EXPORT_BUCKET 줄을 지우고 다시 돌리면 새 이름을 짓는다: $ENV_FILE" ;;
 esac
 remember AUDIT_EXPORT_BUCKET "$bucket"
-[[ "$(lock_state "$bucket")" != "off" ]] || stop "버킷 $bucket 에 Object Lock 이 꺼져 있다 — 반출 버킷으로 못 쓴다." \
-  "복구: docs/ops/runbook/security.md 「마법사가 멈췄을 때」의 「Object Lock 이 꺼진 버킷」"
+lock=$(lock_state "$bucket")
+[[ "$lock" != "off" ]] || stop "버킷 $bucket 에 Object Lock 이 꺼져 있다 — 반출 버킷으로 못 쓴다." \
+  "복구: docs/ops/runbook/security.md 「마법사가 멈췄을 때」의 「Object Lock 이 꺼져 있다」"
 versioning=$(awsa s3api get-bucket-versioning --bucket "$bucket" --query Status --output text)
 [[ "$versioning" == "Enabled" ]] || stop "Versioning 이 $versioning 이다 — Object Lock 버킷이면 Enabled 여야 한다."
 awsa s3api put-public-access-block --bucket "$bucket" --public-access-block-configuration \
@@ -414,20 +426,21 @@ step "Block Public Access 넷을 켰다 · 암호화는 S3 기본(SSE-S3)"
 
 # ── 5 ────────────────────────────────────────────────────────────────────
 stage "Object Lock — Governance 1일로 시험한다"
-read -r mode days <<<"$(lock_state "$bucket")"
+lock=$(lock_state "$bucket")
+read -r mode days <<<"$lock"
 case "$mode" in
   COMPLIANCE)
     step "이미 Compliance ${days}일이다 — 건드리지 않는다" ;;
   GOVERNANCE)
     step "이미 Governance ${days}일이다 — 그대로 둔다"
-    [[ -n "$(state GOVERNANCE_SET_AT)" ]] || remember GOVERNANCE_SET_AT "$(today)" ;;
+    [[ -n "$(state GOVERNANCE_SET_EPOCH)" ]] || remember GOVERNANCE_SET_EPOCH "$(now)" ;;
   *)
     say "기본 보존을 Governance 1일로 둔다 — 하루 돌려 검증한 뒤(Stage 12) Compliance 로 옮긴다(Stage 13)."
     say "Governance 는 s3:BypassGovernanceRetention 으로 풀 수 있어, 잘못 올린 시험 객체를 지울 수 있다."
     if confirm "기본 보존을 Governance 1일로 걸까?"; then
       awsa s3api put-object-lock-configuration --bucket "$bucket" --object-lock-configuration \
         '{"ObjectLockEnabled":"Enabled","Rule":{"DefaultRetention":{"Mode":"GOVERNANCE","Days":1}}}' >/dev/null
-      remember GOVERNANCE_SET_AT "$(today)"
+      remember GOVERNANCE_SET_EPOCH "$(now)"
       step "Governance 1일을 걸었다"
     else
       REMAINING+=("Stage 5 — 기본 보존 Governance 1일이 안 걸렸다")
@@ -458,7 +471,7 @@ provider_arn="arn:aws:iam::${account_id}:oidc-provider/${issuer_host}"
 if clients=$(awsa iam get-open-id-connect-provider --open-id-connect-provider-arn "$provider_arn" \
     --query ClientIDList --output text 2>/dev/null); then
   step "제공자가 이미 있다 — 다시 쓴다"
-  if ! grep -qwF "$audience" <<<"$clients"; then
+  if ! tr '\t' '\n' <<<"$clients" | grep -qxF "$audience"; then
     awsa iam add-client-id-to-open-id-connect-provider --open-id-connect-provider-arn "$provider_arn" \
       --client-id "$audience" >/dev/null
     step "audience 를 더했다"
@@ -478,12 +491,8 @@ remember AUDIT_EXPORT_ROLE_ARN "$export_role_arn"
 
 # ── 9 ────────────────────────────────────────────────────────────────────
 stage "검증 역할 — $VERIFY_ROLE (읽기 · 사람만)"
-if [[ "$caller_arn" == arn:aws:iam::*:user/* ]]; then
-  verify_principal="$caller_arn"
-else
-  # SSO 같은 역할 세션이면 계정을 믿고, 누가 맡을지는 계정 안의 IAM 정책에 맡긴다
-  verify_principal="arn:aws:iam::${account_id}:root"
-fi
+# Stage 3 이 IAM 사용자만 들인다 — 그 사용자 하나만 믿는다
+verify_principal="$caller_arn"
 verify_trust='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"'"$verify_principal"'"},"Action":"sts:AssumeRole"}]}'
 verify_policy='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:GetObject","Resource":"arn:aws:s3:::'"$bucket/$EXPORT_PREFIX"'/*"},{"Effect":"Allow","Action":"s3:ListBucket","Resource":"arn:aws:s3:::'"$bucket"'","Condition":{"StringLike":{"s3:prefix":"'"$EXPORT_PREFIX"'/*"}}}]}'
 say "반출의 쓰기 역할과 따로 — Vercel 에는 넣지 않고, 이 기계의 프로필 $VERIFY_PROFILE 로만 맡는다."
@@ -502,6 +511,12 @@ step "프로필 $VERIFY_PROFILE 을 맞췄다(~/.aws/config)"
 
 # ── 10 ───────────────────────────────────────────────────────────────────
 stage "Vercel — Production 환경변수 셋"
+# 반출을 켜기 전에 보존이 걸려 있어야 한다 — 기본 보존은 올리는 순간에만 붙어, 그 전에 올라간 객체는 영영 보존 없이 남는다
+lock=$(lock_state "$bucket")
+read -r mode days <<<"$lock"
+[[ "$mode" == "GOVERNANCE" || "$mode" == "COMPLIANCE" ]] \
+  || stop "버킷에 기본 보존이 없다 — 반출을 켜지 않는다(runbook 「반출」 3: Governance 를 건 뒤에 켠다)." \
+    "다시 돌려 Stage 5 에서 y 로 답한다."
 vercel_scope=(--project "$VERCEL_PROJECT" --scope "$VERCEL_TEAM")
 existing=$(vercel env ls production "${vercel_scope[@]}" 2>/dev/null || true)
 if grep -qE 'AUDIT_EXPORT_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)' <<<"$existing"; then
@@ -525,9 +540,9 @@ for name in AUDIT_EXPORT_BUCKET AUDIT_EXPORT_REGION AUDIT_EXPORT_ROLE_ARN; do
       REMAINING+=("Stage 10 — $name 를 덮어쓰지 않았다(값이 맞는지 대시보드에서 본다)")
       continue
     fi
-    printf '%s' "${wanted[$name]}" | vercel env add "$name" production "${vercel_scope[@]}" --force >/dev/null
+    vercel env add "$name" production "${vercel_scope[@]}" --value "${wanted[$name]}" --no-sensitive --yes --force >/dev/null
   else
-    printf '%s' "${wanted[$name]}" | vercel env add "$name" production "${vercel_scope[@]}" >/dev/null
+    vercel env add "$name" production "${vercel_scope[@]}" --value "${wanted[$name]}" --no-sensitive --yes >/dev/null
   fi
   remember "VERCEL_SET_${name}" "${wanted[$name]}"
   remember REDEPLOY_PENDING "yes"
@@ -552,22 +567,25 @@ fi
 
 # ── 12 ───────────────────────────────────────────────────────────────────
 stage "첫 반출 · Governance 검증"
-gov_set="$(state GOVERNANCE_SET_AT)"
-gov_ok="$(state GOVERNANCE_VERIFIED_AT)"
-read -r mode days <<<"$(lock_state "$bucket")"
-if [[ -n "$gov_ok" && -n "$gov_set" && "$gov_ok" > "$gov_set" ]]; then
-  step "$gov_ok 에 검증했다(Governance 를 건 다음 날 이후) — 건너뛴다"
+gov_set="$(state GOVERNANCE_SET_EPOCH)"
+gov_ok="$(state GOVERNANCE_VERIFIED_EPOCH)"
+# Governance 를 건 뒤 24시간이 지나서 검증이 초록이었나 — 13 의 문이다
+matured() { [[ -n "$gov_ok" && -n "$gov_set" ]] && (( gov_ok - gov_set >= DAY )); }
+lock=$(lock_state "$bucket")
+read -r mode days <<<"$lock"
+if matured; then
+  step "Governance 를 걸고 24시간 뒤에 검증했다 — 건너뛴다"
 elif [[ "$mode" == "COMPLIANCE" && -n "$gov_ok" ]]; then
-  step "이미 Compliance 다($gov_ok 에 검증) — 건너뛴다. 달마다의 검증은 runbook 「반출」 9"
+  step "이미 Compliance 다 — 건너뛴다. 달마다의 검증은 runbook 「반출」 9"
 elif [[ "$(state REDEPLOY_PENDING)" == "yes" || "$(state VERCEL_OIDC_READY)" != "yes" || "$mode" == "None" ]]; then
   warn "Stage 5 · 6 · 11 이 남아 아직 잴 수 없다"
   REMAINING+=("Stage 12 — 5 · 6 · 11 을 끝낸 뒤 다시 돌린다")
 else
   say "반출 크론을 지금 한 번 돌리고(매일 서울 03:37 전후에도 돈다), 셋을 본다 —"
-  say "객체가 섰나 · 검증(audit:verify)이 초록인가 · 지우기가 막히나."
+  say "객체가 섰나 · 검증(audit:verify)이 초록인가 · 보존이 지우기를 막나."
   if confirm "반출 크론을 지금 한 번 돌릴까?"; then
     vercel crons run "$CRON_PATH" "${vercel_scope[@]}" >/dev/null \
-      || warn "크론을 못 돌렸다 — 내일 03:37 뒤의 정기 실행을 보고 다시 돌린다"
+      || warn "크론을 못 돌렸다 — 03:37 뒤의 정기 실행을 보고 다시 돌린다"
   fi
   step "반출 상태(개인을 가리키지 않는 보통 질의 — 접속기록에 목적과 해시가 남는다):"
   (cd "$REPO_ROOT" && npm run --silent db:remote -- --purpose "접속기록 반출 상태" \
@@ -587,18 +605,30 @@ else
       REMAINING+=("Stage 12 — audit:verify 가 붉다")
     else
       step "객체 ${count}개 · 검증 초록"
-      read -r key version <<<"$(awsa s3api list-object-versions --bucket "$bucket" --prefix "${EXPORT_PREFIX}/" \
-        --max-items 1 --query 'Versions[0].[Key,VersionId]' --output text)"
-      say "객체 한 벌을 버전째 지워 본다 — 보존이 걸렸으면 AccessDenied 로 막힌다."
+      # 지우기 시험은 감사 객체를 건드리지 않는다 — 보존이 끝난 옛 객체면 정말 지워진다. 시험 객체 하나를
+      # 시험 자리에 새로 올려(올리는 순간 기본 보존이 붙는다) 그것을 버전째 지워 본다
+      say "시험 객체 하나를 ${PROBE_PREFIX}/ 에 올리고 버전째 지워 본다 — 보존이 걸렸으면 AccessDenied 로 막힌다."
       if confirm "지우기 시험을 할까?"; then
-        if awsa s3api delete-object --bucket "$bucket" --key "$key" --version-id "$version" >/dev/null 2>&1; then
+        probe_body=$(mktemp)
+        printf 'saju aws-wizard retention probe\n' >"$probe_body"
+        probe_key="${PROBE_PREFIX}/$(now).txt"
+        probe_version=$(awsa s3api put-object --bucket "$bucket" --key "$probe_key" --body "$probe_body" \
+          --checksum-algorithm SHA256 --query VersionId --output text)
+        rm -f "$probe_body"
+        [[ -n "$probe_version" && "$probe_version" != "None" ]] \
+          || stop "시험 객체의 버전을 못 받았다 — Versioning 을 본다."
+        if delete_err=$(awsa s3api delete-object --bucket "$bucket" --key "$probe_key" \
+            --version-id "$probe_version" 2>&1 >/dev/null); then
           stop "지워졌다 — 보존이 안 걸렸다. Compliance 로 가지 않는다." \
-            "복구: docs/ops/runbook/security.md 「마법사가 멈췄을 때」의 「지우기가 됐다」"
+            "복구: docs/ops/runbook/security.md 「마법사가 멈췄을 때」의 「지워졌다 — 보존이 안 걸렸다」"
         fi
+        grep -q 'AccessDenied' <<<"$delete_err" \
+          || stop "지우기 시험이 보존이 아닌 까닭으로 실패했다 — 막혔는지 알 수 없다." "$delete_err"
         step "지우기가 막혔다(보존 ${mode} ${days}일)"
-        remember GOVERNANCE_VERIFIED_AT "$(today)"
-        if [[ ! "$(today)" > "$gov_set" ]]; then
-          REMAINING+=("Stage 12 — 오늘 Governance 를 걸었다. 내일 정기 반출 뒤 다시 돌려 한 번 더 잰다")
+        remember GOVERNANCE_VERIFIED_EPOCH "$(now)"
+        gov_ok="$(state GOVERNANCE_VERIFIED_EPOCH)"
+        if ! matured; then
+          REMAINING+=("Stage 12 — Governance 를 건 지 24시간이 안 됐다. 그 뒤 정기 반출이 한 번 돈 다음 다시 돌려 한 번 더 잰다")
         fi
       else
         REMAINING+=("Stage 12 — 지우기 시험")
@@ -609,14 +639,13 @@ fi
 
 # ── 13 ───────────────────────────────────────────────────────────────────
 stage "Compliance 400일로 옮기기 — 되돌릴 수 없다"
-gov_set="$(state GOVERNANCE_SET_AT)"
-gov_ok="$(state GOVERNANCE_VERIFIED_AT)"
-read -r mode days <<<"$(lock_state "$bucket")"
+lock=$(lock_state "$bucket")
+read -r mode days <<<"$lock"
 if [[ "$mode" == "COMPLIANCE" ]]; then
   step "이미 Compliance ${days}일이다 — 건너뛴다"
-elif [[ "$mode" != "GOVERNANCE" || -z "$gov_ok" || -z "$gov_set" || ! "$gov_ok" > "$gov_set" ]]; then
-  say "아직이다 — Governance 를 건 다음 날 이후에 Stage 12 가 초록이어야 옮긴다(runbook 「반출」 3 → 4)."
-  REMAINING+=("Stage 13 — Compliance 400일 전환(Stage 12 가 다음 날 이후 초록인 뒤)")
+elif [[ "$mode" != "GOVERNANCE" ]] || ! matured; then
+  say "아직이다 — Governance 를 걸고 24시간 뒤에 Stage 12 가 초록이어야 옮긴다(runbook 「반출」 3 → 4)."
+  REMAINING+=("Stage 13 — Compliance 400일 전환(Governance 24시간 뒤 Stage 12 가 초록인 다음)")
 else
   warn "이 뒤에 올라오는 객체는 루트도 400일 동안 못 지우고, 보존을 줄일 수 없다."
   note "Governance 동안 올라간 객체는 Governance 그대로다 — 필요하면 객체마다 올린다(runbook 「반출」 4)."
@@ -626,7 +655,8 @@ else
   if [[ "$typed" == "$bucket" ]]; then
     awsa s3api put-object-lock-configuration --bucket "$bucket" --object-lock-configuration \
       '{"ObjectLockEnabled":"Enabled","Rule":{"DefaultRetention":{"Mode":"COMPLIANCE","Days":400}}}' >/dev/null
-    read -r mode days <<<"$(lock_state "$bucket")"
+    lock=$(lock_state "$bucket")
+    read -r mode days <<<"$lock"
     [[ "$mode" == "COMPLIANCE" && "$days" == "400" ]] || stop "다시 읽은 기본 보존이 $mode $days 이다."
     remember COMPLIANCE_SET_AT "$(today)"
     step "Compliance 400일을 걸었다"
