@@ -8,27 +8,28 @@
  * `docs/ops/runbook/photo-store.md` 「옛 사진 옮기기」. **사람만 돌린다** — 얼굴은 개인정보이고, 이 도구는 열쇠로 DB 의 바이트를
  * 받는다(화면에 안 찍는다). 대장에 먼저 적는다(`docs/ops/runbook/access.md` 「개인정보는 화면으로만」).
  *
- * 한 장마다: 새 열쇠(`photos/{user}/{uuid}`)를 짓고 **원본 바이트를 그대로 두 벌**(`card` · `large`)로 쓴 뒤
+ * 한 장마다: DB 에서 표와 열쇠(`photo_move_begin`)를 받고 **원본 바이트를 그대로 두 벌**(`card` · `large`)로 쓴 뒤
  * `photo_bytes_moved` 로 적는다. 다시 굽지 않는다 — 옛 사진은 긴 변 512px 로 이미 줄여 저장됐고 **옮긴다고 화질이 돌아오지
- * 않는다.** 판본(`?v=`)은 그대로다. 그 사이 사람이 그 장을 바꿨으면 DB 가 적지 않고 올린 객체를 지울 줄에 넣는다(청소기가 지운다).
+ * 않는다.** 그래서 옛 장의 `card` 는 긴 변 512px 로 규격(480)보다 조금 크다 — 그대로 둔다. 판본(`?v=`)은 그대로다. 그 사이 사람이 그 장을 바꿨으면 DB 가 적지 않고 올린 객체를 지울 줄에 넣는다(청소기가 지운다).
  *
  * 두 번 돌려도 된다 — 이미 옮긴 장은 `photo_bytes_to_move` 에 안 나온다.
  */
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 /**
  * 옮기기 한 번 — DB 의 두 문과 저장소의 쓰기를 밖에서 받는다(시험이 가짜로 잰다, `photo-move.test.ts`).
  *
  * @param {{
+ *   begin: (userId: string) => Promise<string>,
  *   toMove: (limit: number) => Promise<{ user_id: string, position: number, version: number, content_type: string, base64: string }[]>,
  *   moved: (userId: string, position: number, version: number, key: string) => Promise<boolean>,
  * }} db
  * @param {(key: string, body: Uint8Array, contentType: string) => Promise<void>} put
- * @param {{ limit?: number, newId?: () => string, rounds?: number }} [options]
+ * @param {{ limit?: number, rounds?: number }} [options]
  * @returns {Promise<{ moved: number, skipped: number }>}
  */
-export async function movePhotos(db, put, { limit = 50, newId = randomUUID, rounds = 1000 } = {}) {
+export async function movePhotos(db, put, { limit = 50, rounds = 1000 } = {}) {
   let moved = 0;
   let skipped = 0;
   for (let round = 0; round < rounds; round += 1) {
@@ -36,7 +37,8 @@ export async function movePhotos(db, put, { limit = 50, newId = randomUUID, roun
     if (rows.length === 0) break;
     let progress = 0;
     for (const row of rows) {
-      const key = `photos/${row.user_id}/${newId()}`;
+      /* 표를 먼저 받는다 — 두 벌을 쓰다 죽어도 표가 남아 청소기가 한 시간 뒤 지운다 */
+      const key = await db.begin(row.user_id);
       const body = Uint8Array.from(Buffer.from(row.base64, 'base64'));
       await put(`${key}/card`, body, row.content_type);
       await put(`${key}/large`, body, row.content_type);
@@ -90,6 +92,11 @@ async function main() {
     }));
 
   const db = {
+    begin: async (userId) => {
+      const { data, error } = await supabase.rpc('photo_move_begin', { p_user_id: userId });
+      if (error) throw Object.assign(new Error('photo_move_begin'), { code: error.code });
+      return data;
+    },
     toMove: async (n) => {
       const { data, error } = await supabase.rpc('photo_bytes_to_move', { p_limit: n });
       if (error) throw Object.assign(new Error('photo_bytes_to_move'), { code: error.code });

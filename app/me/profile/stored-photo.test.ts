@@ -72,42 +72,41 @@ describe('storePhoto — 표를 받고, 두 벌을 쓰고, DB 에 적는다', ()
     expect(objects.size).toBe(0);
   });
 
-  it('한 벌을 못 쓰면 쓴 벌을 지우고 표를 버린다 — 고아가 안 남는다', async () => {
+  it('한 벌을 못 쓰면 DB 에 안 적고 표를 지울 줄로 넘긴다 — 쓴 벌은 청소기가 지운다', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { store, objects } = memoryPhotoStore({ put: new Set([`${KEY}/large`]) });
+    const { store } = memoryPhotoStore({ put: new Set([`${KEY}/large`]) });
     const { doors, log } = fakeDoors();
 
     await expect(storePhoto(store, doors, variants)).resolves.toEqual({ ok: false, message: STORE_FAILED });
-    expect(objects.size).toBe(0);
     expect(log.saved).toEqual([]);
     expect(log.dropped).toEqual([KEY]);
   });
 
-  it('DB 가 거절하면(여섯 장 · 낡은 누름) 두 벌을 지우고 표를 버리고 DB 의 문장을 낸다', async () => {
-    const { store, objects } = memoryPhotoStore();
+  it('DB 가 거절하면(여섯 장 · 낡은 누름) 표를 지울 줄로 넘기고 DB 의 문장을 낸다', async () => {
+    const { store } = memoryPhotoStore();
     const { doors, log } = fakeDoors({ save: { ok: false, message: '사진은 6장까지입니다.' } });
 
     await expect(storePhoto(store, doors, variants)).resolves.toEqual({ ok: false, message: '사진은 6장까지입니다.' });
-    expect(objects.size).toBe(0);
     expect(log.dropped).toEqual([KEY]);
   });
 
-  it('DB 부름이 던지면(응답이 끊김) 치우고 다시 던진다 — 액션의 받는 자리가 문장을 세운다', async () => {
+  it('DB 는 적었는데 응답만 끊겨도 보이는 사진의 바이트를 지우지 않는다 — 표가 걷혀 넘기기가 빈손이다', async () => {
     const { store, objects } = memoryPhotoStore();
+    const remove = vi.spyOn(store, 'remove');
     const { doors, log } = fakeDoors({ saveThrows: true });
 
     await expect(storePhoto(store, doors, variants)).rejects.toThrow('network');
-    expect(objects.size).toBe(0);
+    expect(remove).not.toHaveBeenCalled();
+    expect(objects.size).toBe(2);
     expect(log.dropped).toEqual([KEY]);
   });
 
-  it('지우기도 표 버리기도 실패하면 던지지 않는다 — 표가 남아 청소기가 한 시간 뒤 옮긴다', async () => {
+  it('표 넘기기가 실패해도 던지지 않는다 — 표가 남아 청소기가 한 시간 뒤 옮긴다', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { store, objects } = memoryPhotoStore({ remove: new Set([`${KEY}/card`, `${KEY}/large`]) });
+    const { store } = memoryPhotoStore();
     const { doors } = fakeDoors({ save: { ok: false, message: '사진은 6장까지입니다.' }, dropThrows: true });
 
     await expect(storePhoto(store, doors, variants)).resolves.toEqual({ ok: false, message: '사진은 6장까지입니다.' });
-    expect(objects.size).toBe(2);
   });
 
   it('DB 가 낸 열쇠가 모양 밖이면 저장소에 안 쓴다', async () => {

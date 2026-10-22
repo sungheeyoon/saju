@@ -9,7 +9,7 @@
 -- 5. **옛 사진을 옮기는 문** — 판본을 안 바꾸고, 그 사이 바뀐 장은 안 덮고 올린 객체를 지울 줄에 넣는다
 -- 6. **한 줄은 바이트 또는 열쇠 하나** · 청소기 · 옮기는 문은 로그인한 사람에게 닫혀 있다
 begin;
-select plan(32);
+select plan(35);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -143,13 +143,23 @@ select pg_temp.acting((select kim from who));
 insert into kept values ('live', public.begin_my_photo_upload());
 select public.add_my_photo_object((select v from kept where k = 'live'), 'image/webp');
 
-/** 아직 쓰이는 열쇠가 지울 줄에 섞였다고 친다 — 옮기는 사이의 경합 */
+/**
+ * 아직 쓰이는 열쇠가 지울 줄에 섞였다고 친다 — 옮기는 사이의 경합. 시험은 한 트랜잭션이라 `now()` 가 시작 시각에 멈춰 있다 —
+ * 줄의 차례(`next_try_at`, 기본 `clock_timestamp()`)를 그보다 앞으로 당겨야 차례가 온 줄이 된다
+ */
 reset role;
 insert into public.photo_object_trash (object_key) select v from kept where k = 'live';
+update public.photo_object_trash set next_try_at = now() - interval '1 minute';
 set local role service_role;
 
-select ok(not exists (select 1 from public.photo_trash_batch(100) b where b.object_key = (select v from kept where k = 'live')),
+create temporary table due as select b.object_key from public.photo_trash_batch(100) b;
+grant select on due to authenticated, service_role;
+
+select ok(exists (select 1 from due where object_key = (select v from kept where k = 'first')),
+  '4. 차례가 온 열쇠는 낸다');
+select ok(not exists (select 1 from due where object_key = (select v from kept where k = 'live')),
   '4. 아직 쓰이는 열쇠는 내지 않는다');
+select ok(not pg_temp.trashed((select v from kept where k = 'live')), '4. 쓰이는 열쇠의 줄은 지울 줄에서 걷는다');
 
 select public.photo_trash_settle(array[(select v from kept where k = 'first')], array[(select v from kept where k = 'second')], 'delete:accessdenied');
 select ok(not pg_temp.trashed((select v from kept where k = 'first')), '4. 지운 것은 걷는다');
@@ -167,13 +177,17 @@ select ok(public.photo_trash_settle(null, array[(select v from kept where k = 's
 create temporary table moving as
 select m.user_id, m.position, m.version from public.photo_bytes_to_move(200) m
 where m.user_id = (select kim from who);
-grant select on moving to service_role;
+grant select on moving to authenticated, service_role;
 
 select is((select count(*)::int from moving), 1, '5. 바이트로 사는 장을 낸다');
 
+insert into kept values ('moved', public.photo_move_begin((select kim from who)));
+select ok((select v from kept where k = 'moved') like format('photos/%s/%%', (select kim from who)) and pg_temp.ticketed((select v from kept where k = 'moved')),
+  '5. 옮기기도 그 사람의 접두사로 표를 먼저 받는다');
+
 select ok(public.photo_bytes_moved((select kim from who), (select position from moving), (select version from moving),
-                                   format('photos/%s/11111111-1111-4111-8111-111111111111', (select kim from who))),
-  '5. 판본이 그대로면 옮긴다');
+                                   (select v from kept where k = 'moved')),
+  '5. 판본이 그대로면 옮기고 표를 걷는다');
 
 reset role;
 set local role authenticated;
@@ -193,7 +207,7 @@ select ok(pg_temp.trashed(format('photos/%s/22222222-2222-4222-8222-222222222222
 
 reset role;
 select public.forget_user((select kim from who));
-select ok(pg_temp.trashed(format('photos/%s/11111111-1111-4111-8111-111111111111', (select kim from who))),
+select ok(pg_temp.trashed((select v from kept where k = 'moved')) and not pg_temp.ticketed((select v from kept where k = 'moved')),
   '2. 계정을 지우면 남은 열쇠가 지울 줄에 간다');
 
 -- ── 6. 모양과 문 ─────────────────────────────────────────────────────────────
@@ -208,6 +222,7 @@ select ok(
   and not has_function_privilege('authenticated', 'public.photo_trash_settle(text[], text[], text)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_sweep_tickets()', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_bytes_to_move(integer)', 'execute')
+  and not has_function_privilege('authenticated', 'public.photo_move_begin(uuid)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_bytes_moved(uuid, integer, bigint, text)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_object_keys(text, integer)', 'execute')
   and has_function_privilege('service_role', 'public.photo_trash_batch(integer)', 'execute'),

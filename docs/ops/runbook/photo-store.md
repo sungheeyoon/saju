@@ -141,7 +141,9 @@ AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGI
 ... npm run photo:move -- --execute
 ```
 
-- **화질은 돌아오지 않는다** — 옛 장은 긴 변 512px 로 줄여 저장됐고, 도구는 그 바이트를 그대로 두 벌로 쓴다
+- **화질은 돌아오지 않는다** — 옛 장은 긴 변 512px 로 줄여 저장됐고, 도구는 그 바이트를 그대로 두 벌로 쓴다(그래서 옛 장의 `card` 는
+  규격 480 보다 조금 크다)
+- 한 장마다 DB 에서 표와 열쇠를 먼저 받는다(`photo_move_begin`) — 도구가 두 벌을 쓰다 죽어도 표가 남아 청소기가 한 시간 뒤 지운다
 - 판본(`?v=`)은 그대로다 — 옮기는 동안 화면이 깨지지 않는다(열람 방식이 들어온 뒤에 돌린다 — 「사진 저장소를 켠다」 6)
 - 그 사이 사람이 그 장을 바꿨으면 DB 가 안 적고 올린 객체를 지울 줄에 넣는다 — 건너뛴 수로 찍힌다. 다시 돌리면 이어진다
 - 저장소에 못 쓰면(권한 · 망) 그 장을 DB 에 적기 전에 멈춘다
@@ -167,8 +169,8 @@ from public.photo_object_trash where attempts >= 5;
 ```
 
 `npm run db:remote -- --purpose "사진 지울 줄 점검" "<위 SQL>"`. 분류가 `delete:accessdenied` 면 앱 역할의 권한 정책(`DeleteObject`)과
-버킷 이름을, `delete:nosuchbucket` 이면 `PHOTO_STORE_BUCKET` 을 본다. 고친 뒤 다음 청소가 이어 지운다(간격은 길어야 이레 —
-`next_try_at` 을 `now()` 로 당기면 다음 청소에 든다).
+버킷 이름을, `delete:nosuchbucket` 이면 `PHOTO_STORE_BUCKET` 을 본다. 고친 뒤 다음 청소가 이어 지운다(다섯 번까지는 날마다, 그 뒤 간격이
+길어져 길어야 이레 — `next_try_at` 을 `now()` 로 당기면 다음 청소에 든다).
 
 ## DB 와 파일의 복구 범위
 

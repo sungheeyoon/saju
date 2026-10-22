@@ -22,13 +22,15 @@
 --
 -- 줄이 열쇠를 잃는 모든 길(지우기 · 바꾸기 · 계정 삭제의 cascade · 옛 문의 바꾸기)에서 트리거가 옛 열쇠를 지울 줄에 넣는다.
 -- 저장소를 지우는 일은 DB 가 못 하므로(ADR 0040 이 bytea 를 고른 까닭) 청소기(`app/api/cron/photo-sweep`)가 줄을 받아
--- 지우고 결과를 적는다(`photo_trash_batch` · `photo_trash_settle`). 실패하면 늘어나는 간격으로 다시 하고, 다섯 번째부터
--- 운영 알림(`notify_ops`)을 낸다. 표에는 사람 id 칸이 없다 — 열쇠의 접두사가 전부다.
+-- 지우고 결과를 적는다(`photo_trash_batch` · `photo_trash_settle`). 실패하면 늘어나는 간격으로 다시 하고(청소가 하루 한 번이라
+-- 처음 며칠은 날마다), 다섯 번째부터 운영 알림(`notify_ops`)을 낸다. 지울 줄에는 사람 id 칸이 없지만 **열쇠의 접두사가 계정 id 다**
+-- — 탈퇴한 사람의 id 가 그 줄이 지워질 때까지 남는다(표의 `user_id` 도 같다). 켜는 날의 확인 거리다(G-120).
 --
 -- ## 4. 옛 사진을 옮기는 문 셋 — 열쇠에만
 --
--- `photo_bytes_to_move` · `photo_bytes_moved` · `photo_object_keys` — `scripts/photo-move.mjs` · `scripts/photo-verify.mjs`
--- 가 부른다. **판본(`updated_at`)을 안 바꾼다** — 같은 그림이 자리만 옮기므로 화면의 `?v=` 가 그대로 맞다. 그 사이 사람이
+-- `photo_move_begin` · `photo_bytes_to_move` · `photo_bytes_moved` · `photo_object_keys` — `scripts/photo-move.mjs` ·
+-- `scripts/photo-verify.mjs` 가 부른다. 옮기기도 올리기와 같이 **표를 먼저 받는다** — 도구가 두 벌을 쓰다 죽어도 표가 남아 청소기가
+-- 지운다. **판본(`updated_at`)을 안 바꾼다** — 같은 그림이 자리만 옮기므로 화면의 `?v=` 가 그대로 맞다. 그 사이 사람이
 -- 그 장을 바꿨으면(판본이 다르면) 옮기지 않고 올린 객체를 지울 줄에 넣는다.
 --
 -- ## 그대로인 것
@@ -374,8 +376,8 @@ end;
 $$;
 
 /**
- * 지운 결과를 적는다 — 지운 것은 걷고, 못 지운 것은 간격을 늘려(1 · 2 · 4 · … 시간, 길어야 이레) 다시 둔다. 다섯 번째
- * 실패부터 운영 알림 — 종류마다 하루 한 줄이다(`notify_ops`).
+ * 지운 결과를 적는다 — 지운 것은 걷고, 못 지운 것은 간격을 늘려(1 · 2 · 4 · … 시간, 길어야 이레) 다시 둔다. 청소가 하루 한
+ * 번이라 처음 다섯 번은 날마다 다시 하는 셈이고, 다섯 번째 실패(닷새째)부터 운영 알림 — 종류마다 하루 한 줄이다(`notify_ops`).
  *
  * @returns 이번에 알렸으면 참
  */
@@ -411,6 +413,21 @@ $$;
 -- 4. 옛 사진을 옮기는 문 — 열쇠(service_role)에만
 -- ---------------------------------------------------------------------------
 
+/** 옮기는 도구의 표 — 그 사람의 접두사로 열쇠를 짓고 표를 적는다. 하루 한도는 안 센다(사람이 올린 것이 아니다) */
+create function public.photo_move_begin(p_user_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  key text := format('photos/%s/%s', p_user_id, gen_random_uuid());
+begin
+  insert into public.photo_upload_ticket (object_key, user_id) values (key, p_user_id);
+  return key;
+end;
+$$;
+
 /** 아직 바이트로 사는 장 — 사람 · 자리 차례로. 옮기는 도구가 받는다 */
 create function public.photo_bytes_to_move(p_limit integer)
 returns table (user_id uuid, "position" integer, version bigint, content_type text, base64 text)
@@ -428,7 +445,7 @@ $$;
 
 /**
  * 옮긴 장을 적는다 — 그 자리의 판본이 그대로이고 아직 바이트일 때만 열쇠로 바꾸고 바이트를 걷는다. **판본은 안 바꾼다.**
- * 못 적으면(그 사이 바뀜 · 지워짐) 올린 객체를 지울 줄에 넣고 거짓.
+ * 표(`photo_move_begin`)는 어느 쪽이든 걷는다. 못 적으면(그 사이 바뀜 · 지워짐) 올린 객체를 지울 줄에 넣고 거짓.
  */
 create function public.photo_bytes_moved(p_user_id uuid, p_position integer, p_version bigint, p_object_key text)
 returns boolean
@@ -440,6 +457,8 @@ begin
   if p_object_key is null or p_object_key not like format('photos/%s/%%', p_user_id) then
     raise exception 'photo_bytes_moved: 열쇠가 그 사람의 접두사가 아니다' using errcode = '22023';
   end if;
+
+  delete from public.photo_upload_ticket t where t.object_key = p_object_key;
 
   update public.profile_photo p
   set object_key = p_object_key, bytes = null
@@ -476,12 +495,14 @@ $$;
 revoke execute on function public.photo_sweep_tickets() from public, anon, authenticated;
 revoke execute on function public.photo_trash_batch(integer) from public, anon, authenticated;
 revoke execute on function public.photo_trash_settle(text[], text[], text) from public, anon, authenticated;
+revoke execute on function public.photo_move_begin(uuid) from public, anon, authenticated;
 revoke execute on function public.photo_bytes_to_move(integer) from public, anon, authenticated;
 revoke execute on function public.photo_bytes_moved(uuid, integer, bigint, text) from public, anon, authenticated;
 revoke execute on function public.photo_object_keys(text, integer) from public, anon, authenticated;
 grant execute on function public.photo_sweep_tickets() to service_role;
 grant execute on function public.photo_trash_batch(integer) to service_role;
 grant execute on function public.photo_trash_settle(text[], text[], text) to service_role;
+grant execute on function public.photo_move_begin(uuid) to service_role;
 grant execute on function public.photo_bytes_to_move(integer) to service_role;
 grant execute on function public.photo_bytes_moved(uuid, integer, bigint, text) to service_role;
 grant execute on function public.photo_object_keys(text, integer) to service_role;

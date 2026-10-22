@@ -4150,6 +4150,7 @@ export type Database = {
         }[]
       }
       photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }
+      photo_move_begin: { Args: { p_user_id: string }; Returns: string }
       photo_object_keys: {
         Args: { p_after: string; p_limit: number }
         Returns: {
