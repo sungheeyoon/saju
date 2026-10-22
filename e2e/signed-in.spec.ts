@@ -3115,9 +3115,14 @@ test.describe('가입 관문', () => {
       await route.continue();
     });
     const bodies = new Map<string, Buffer>();
+    /*
+      다시 열기(`reload`) 직전에 온 응답은 바이트를 읽기 전에 버려진다 — 그 장은 다시 연 화면이 다시 받으므로 건너뛴다.
+      사진이 관문을 안 지난 뒤로(ADR 0200) 응답이 빨라져 다시 열기와 늘 겹친다.
+    */
     page.on('response', async (response) => {
       if (!/\/me\/photo\/[^/]+\/\d\?v=/.test(response.url()) || response.status() !== 200) return;
-      bodies.set(new URL(response.url()).pathname + new URL(response.url()).search, await response.body());
+      const body = await response.body().catch(() => null);
+      if (body !== null) bodies.set(new URL(response.url()).pathname + new URL(response.url()).search, body);
     });
     const shownBytes = async (slot: typeof lead) => {
       const src = (await slot.locator('img').getAttribute('src')) ?? '';
