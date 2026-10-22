@@ -8,6 +8,7 @@ import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
 import { CONTINUATION_ANSWER_PROPERTY } from '@/src/lib/reading/continuation';
 
 import { GENERATION } from './generation';
+import { RETRIEVE_REQUEST } from './lease';
 
 import type { ModelCall, ModelRetrieval, ModelSubmission, ModelUsage } from './generator';
 
@@ -269,7 +270,7 @@ const client = () => new OpenAI();
  * 나가므로, 망이 끊긴 제출을 SDK 가 다시 보내면 provider 쪽에 background 응답이 하나씩 더 서고 토큰이 그만큼 나간다 —
  * 시도 하나에 모델 실행 셋까지(`submit-unanswered.test.ts`). 다시 보낼지는 시도를 여는 쪽(사람의 누름 · 복구기)이 정한다.
  * 30초는 스트림의 첫 머리가 오는 시간이다 — 상한은 머리에서 멈추고 본문을 읽는 동안에는 안 걸린다. 회수(`retrieve`)는
- * 같은 것을 다시 읽을 뿐이라 기본값 그대로다.
+ * 같은 것을 다시 읽을 뿐이라 다시 보내도 되고, 그 상한은 임대의 셈이 정한다(`RETRIEVE_REQUEST`, ADR 0201).
  */
 const SUBMIT_REQUEST = { maxRetries: 0, timeout: 30_000 } as const;
 
@@ -401,10 +402,14 @@ async function* textOf(
  * **끝나는 길이 넷이다** — `completed` 는 글을 들고 오고, `failed`·`cancelled`·
  * `incomplete` 는 이유를 들고 온다. 나머지(`queued`·`in_progress`)는 아직 도는 중이라
  * 실패가 아니다.
+ *
+ * **조회가 안 닿은 것은 실패가 아니다**(`unreachable`, ADR 0201) — 망이 끊김 · 시간 상한 · provider 가 다시 하라고 한 상태
+ * (`408` · `409` · `429` · `5xx`)는 다시 보내도 다 쓴 뒤에도 그렇다. 결과는 provider 에 그대로 있으니 일감을 놓고 다음 바퀴가
+ * 다시 가져온다. 그 밖의 거절(`401` · `404` …)은 다시 해도 같으므로 지금처럼 닫는다.
  */
 export async function retrieveBackgroundReading(responseId: string): Promise<ModelRetrieval> {
   try {
-    const response = await client().responses.retrieve(responseId);
+    const response = await client().responses.retrieve(responseId, undefined, RETRIEVE_REQUEST);
 
     if (response.status === 'queued' || response.status === 'in_progress') {
       return { ok: 'pending' };
@@ -456,10 +461,18 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
       runId: (response.metadata?.reading_run_id as string | undefined) ?? null,
     };
   } catch (failure) {
-    // 회수 자체가 안 됐다. 무엇을 썼는지 물어볼 데가 없다 — 0 이 아니라 `null` 이다.
+    if (passing(failure)) return { ok: 'unreachable', detail: messageOf(failure) };
+    // 회수가 거절됐다. 무엇을 썼는지 물어볼 데가 없다 — 0 이 아니라 `null` 이다.
     return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure), usage: null };
   }
 }
+
+/** 지나가는 장애인가 — SDK 가 스스로 다시 보내는 갈래(`shouldRetry`)와 같은 상태들과, 답이 없었던 것 */
+const passing = (failure: unknown): boolean =>
+  failure instanceof OpenAI.APIConnectionError
+  || (failure instanceof OpenAI.APIError
+    && typeof failure.status === 'number'
+    && (failure.status === 408 || failure.status === 409 || failure.status === 429 || failure.status >= 500));
 
 /**
  * 이 요청이 정말 provider 가 보낸 것인가.

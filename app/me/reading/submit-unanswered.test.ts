@@ -19,8 +19,14 @@ vi.mock('../../auth/server-client', () => ({
 
 const keyedRpc = vi.fn();
 class NoKeyError extends Error {}
+/** 회수는 부름마다 상한을 건다(`.abortSignal`) — 가짜 문은 그것을 받아 그대로 답한다 */
 vi.mock('../../keyed-client', () => ({
-  keyedClient: () => ({ rpc: keyedRpc }),
+  keyedClient: () => ({
+    rpc: (...args: unknown[]) => {
+      const answer = keyedRpc(...args) as Promise<unknown>;
+      return Object.assign(answer, { abortSignal: () => answer });
+    },
+  }),
   NoKeyError,
 }));
 
@@ -125,14 +131,16 @@ const keyedDoor = async (name: string, args: Record<string, unknown> = {}) => {
         error: null,
       };
     }
-    case 'release_reading_job':
-      if (db.job.status === 'retrieving') db.job.status = 'submitted';
-      return { data: null, error: null };
+    case 'release_reading_job': {
+      const releases = db.job.status === 'retrieving';
+      if (releases) db.job.status = 'submitted';
+      return { data: releases, error: null };
+    }
     case 'fail_reading_job':
       if (running) {
         db.run = { status: 'failed', failureCode: args.p_failure_code as string, usage: args.p_usage ?? null };
       }
-      return { data: null, error: null };
+      return { data: running, error: null };
     case 'save_reading':
       db.run.status = 'succeeded';
       return { data: 'reading-1', error: null };

@@ -53,10 +53,10 @@ select throws_ok(
 reset role;
 
 select ok(
-  not has_function_privilege('authenticated', 'public.fail_reading_job(uuid, text, text, jsonb)', 'execute'),
+  not has_function_privilege('authenticated', 'public.fail_reading_job(uuid, text, text, jsonb, uuid)', 'execute'),
   '열쇠가 닫는 문은 로그인한 사람에게 닫혀 있다');
 select ok(
-  has_function_privilege('service_role', 'public.fail_reading_job(uuid, text, text, jsonb)', 'execute'),
+  has_function_privilege('service_role', 'public.fail_reading_job(uuid, text, text, jsonb, uuid)', 'execute'),
   '열쇠는 여전히 시도를 닫는다');
 
 -- ── 2. 차단 뒤의 사진 ───────────────────────────────────────────────────────

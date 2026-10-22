@@ -86,6 +86,8 @@ export type ModelRetrieval =
       runId: string | null;
     }
   | { ok: 'pending' }
+  /** 조회가 안 닿았다 — 망 · 시간 상한 · provider 의 일시 장애. 실패가 아니라 다음 바퀴가 다시 가져온다(ADR 0201) */
+  | { ok: 'unreachable'; detail: string }
   /** **실패도 쓴 양을 들고 온다** — 다 돌고 나서 끝난 갈래가 있다(ADR 0039) */
   | { ok: false; code: string; detail: string; usage: ModelUsage | null };
 

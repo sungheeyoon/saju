@@ -18,6 +18,7 @@ import type { StoredInput } from '@/src/lib/input/stored';
 
 import { failReadingJob } from './fail-job';
 import type { ModelUsage } from './generator';
+import { DB_CALL_MS } from './lease';
 import { retrieveBackgroundReading } from './model';
 import { rpcArgs } from '@/src/lib/db';
 
@@ -40,12 +41,37 @@ import { rpcArgs } from '@/src/lib/db';
  * **건너뜀의 까닭(`why`)은 부르는 쪽이 안 읽는다** — webhook 은 처리 표시만 하고 복구기는 세지 않는다. 그래서 집기 ·
  * 되찾기의 DB 실패는 그 자리에서 기록에 남긴다(`recordDbFailure`, 자리 이름과 작업 식별자만 — 출생 정보는 안 싣는다).
  * 실패한 문은 일감의 상태를 안 바꿨으므로 복구기가 다음 바퀴에 그 일감을 다시 본다.
+ *
+ * ## 집은 일감은 임대다 (ADR 0201)
+ *
+ * 집을 때마다 새 임대 식별자를 짓고, 놓기 · 저장 · 실패에 그것을 싣는다 — DB 가 지금 쥔 작업자일 때만 한다. 여기서 죽거나
+ * 놓기를 못 해도 임대(2분)가 지나면 다음 바퀴가 다시 집는다. **일시 장애는 닫지 않고 놓는다**(`released`) — 조회가 안
+ * 닿았거나(`unreachable`) DB 가 답하지 못한 것(`passingDbFailure`). 모델이 낸 실패 · 검사가 막음 · DB 의 실제 거절은 지금처럼 닫는다.
+ * 망을 지나는 부름마다 상한이 있다(`app/me/reading/lease.ts`).
  */
 type CollectOutcome =
   | { done: 'saved' }
   | { done: 'failed'; code: string }
   | { done: 'pending' }
+  | { done: 'released'; why: string }
   | { done: 'skipped'; why: string };
+
+/**
+ * **DB 가 답하지 못한 실패인가** — 그러면 일감을 놓고 다음 바퀴에 다시 한다. 닿지 못함 · 끊음(코드 없음), PostgREST 가 DB 에
+ * 못 닿음(`PGRST000`~`003`), 연결 · 자원 · 종료(`08` · `53` · `57P`), 시간 상한 · 직렬화 · 교착 · 잠금(`57014` · `40001` ·
+ * `40P01` · `55P03`). 모두 트랜잭션이 되돌아갔거나 · 됐는지 모르는 것이다 — 됐으면 DB 가 두 번째 저장을 막는다(「이미 끝난
+ * 시도입니다」). 그 밖(우리가 쓴 거절 · 검사식 · 권한)은 다시 해도 같으므로 닫는다.
+ */
+export function passingDbFailure(error: { readonly code?: string | null }): boolean {
+  const code = error.code ?? '';
+  if (code === '') return true;
+  if (/^PGRST00[0-3]$/.test(code)) return true;
+  if (/^(08|53|57P)/.test(code)) return true;
+  return ['57014', '40001', '40P01', '55P03'].includes(code);
+}
+
+/** 망을 지나는 DB 부름 하나의 상한 — 부를 때마다 새로 잰다 */
+const bound = (): AbortSignal => AbortSignal.timeout(DB_CALL_MS);
 
 const secretOf = (birth: StoredInput): BirthSecret => ({
   originalDate: birth.original_date,
@@ -75,8 +101,13 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     return { done: 'skipped', why: '열쇠가 없습니다' };
   }
 
+  /** 이 회수의 임대 식별자 — 집기 · 놓기 · 저장 · 실패가 같은 값을 싣는다 */
+  const lease = crypto.randomUUID();
+
   const claim = async (): Promise<ClaimedJob | undefined> => {
-    const { data, error } = await keyed.rpc('claim_reading_job', { p_response_id: responseId });
+    const { data, error } = await keyed
+      .rpc('claim_reading_job', { p_response_id: responseId, p_lease_id: lease })
+      .abortSignal(bound());
     if (error) {
       recordDbFailure(error, `collect: claim_reading_job ${responseId}`);
       throw new Error(error.message);
@@ -103,10 +134,9 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
       const runId = orphan.ok === true ? orphan.runId : null;
 
       if (runId !== null) {
-        const { data: adopted, error: adoptError } = await keyed.rpc('adopt_reading_job', {
-          p_run_id: runId,
-          p_response_id: responseId,
-        });
+        const { data: adopted, error: adoptError } = await keyed
+          .rpc('adopt_reading_job', { p_run_id: runId, p_response_id: responseId })
+          .abortSignal(bound());
         /* 되찾기가 터진 것은 「되찾을 것이 없다」가 아니다 — 집기와 같이 기록에 남기고 건너뛴다(ADR 0078) */
         if (adoptError) {
           recordDbFailure(adoptError, `collect: adopt_reading_job ${runId} ${responseId}`);
@@ -124,6 +154,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   /**
    * **실패는 한 자리에서 닫는다.** 갈래가 넷인데(회수 실패·모델 실패·검사가 막음·저장
    * 실패) 자리를 나누면 하나는 알림을 안 넣는다.
+   *
+   * 못 닫았으면(남이 다시 집었거나 · 이미 끝났거나 · 부름이 안 닿았다) 닫았다고 말하지 않는다.
    */
   const close = async (
     code: string,
@@ -131,20 +163,33 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     /** 쓴 토큰 — **실패에도 나간 돈이 있다**(ADR 0039). 모르면 `null` 이고 안 적는다 */
     usage: ModelUsage | null = null,
   ): Promise<CollectOutcome> => {
-    await failReadingJob(keyed, 'collect', { runId: job.run_id, code, detail, usage });
-    return { done: 'failed', code };
+    const closed = await failReadingJob(keyed, 'collect', { runId: job.run_id, code, detail, usage, leaseId: lease }, bound());
+    return closed ? { done: 'failed', code } : { done: 'skipped', why: `닫지 못했습니다: ${code}` };
+  };
+
+  /**
+   * **놓는다** — 집으면서 `retrieving` 으로 표시했으므로 되돌려 놓아야 다음 바퀴가 곧바로 다시 집는다. 못 놓아도(부름이 안 닿음 ·
+   * 남이 이미 다시 집음 · 그 사이 끝남) 임대가 지나면 풀린다 — 그래서 기록에만 남긴다.
+   */
+  const release = async (): Promise<void> => {
+    const { error } = await keyed
+      .rpc('release_reading_job', { p_run_id: job.run_id, p_lease_id: lease })
+      .abortSignal(bound());
+    if (error) recordDbFailure(error, `collect: release_reading_job ${job.run_id}`);
   };
 
   const retrieved = await retrieveBackgroundReading(responseId);
 
-  /**
-   * **아직 도는 중이면 그대로 둔다.** 집으면서 `retrieving` 으로 표시했으므로 되돌려
-   * 놓아야 복구기가 다음 바퀴에 다시 집는다 — 안 되돌리면 그 일감은 영영 안 집힌다.
-   */
+  /** **아직 도는 중이면 그대로 둔다** — 놓고 다음 바퀴를 기다린다 */
   if (retrieved.ok === 'pending') {
-    const { error: notReleased } = await keyed.rpc('release_reading_job', { p_run_id: job.run_id });
-    if (notReleased) console.error('collect: release_reading_job', notReleased.code, notReleased.message);
+    await release();
     return { done: 'pending' };
+  }
+
+  /** 조회가 안 닿았다 — 결과는 provider 에 그대로 있다. 닫지 않고 놓는다 */
+  if (retrieved.ok === 'unreachable') {
+    await release();
+    return { done: 'released', why: retrieved.detail };
   }
 
   if (retrieved.ok === false) return close(retrieved.code, retrieved.detail, retrieved.usage);
@@ -160,10 +205,9 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   const findings: CheckFinding[] = [];
   const noteChecks = async (): Promise<void> => {
     /* 부속이다 — 못 적어도 저장 · 실패는 그대로다. 원문만 기록에 남긴다(ADR 0078) */
-    const { error: notNoted } = await keyed.rpc('note_reading_checks', {
-      p_run_id: job.run_id,
-      p_findings: findings.map(findingForRecord),
-    });
+    const { error: notNoted } = await keyed
+      .rpc('note_reading_checks', { p_run_id: job.run_id, p_findings: findings.map(findingForRecord) })
+      .abortSignal(bound());
     if (notNoted) console.error('collect: note_reading_checks', notNoted.code, notNoted.message);
   };
 
@@ -233,8 +277,18 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_model: retrieved.modelId ?? job.requested_model,
     p_generation: { ...job.generation, usage: retrieved.usage },
     p_viewed_at: job.viewed_at,
-  }));
+    p_lease_id: lease,
+  })).abortSignal(bound());
 
+  /**
+   * **DB 가 답하지 못했으면 닫지 않고 놓는다** — 저장이 됐을 수도 있다(답만 끊김). 됐으면 일감은 이미 지워져 놓기 · 다음 집기가
+   * 아무것도 안 하고, 안 됐으면 다음 바퀴가 다시 가져와 저장한다. 실제 거절(검사식 · 대상 없음 · 남이 쥠 · 끝난 시도)은 닫는다.
+   */
+  if (saveError && passingDbFailure(saveError)) {
+    recordDbFailure(saveError, `collect: save_reading ${job.run_id}`);
+    await release();
+    return { done: 'released', why: saveError.message };
+  }
   if (saveError) return close('save-rejected', saveError.message, retrieved.usage);
   await noteChecks();
 
