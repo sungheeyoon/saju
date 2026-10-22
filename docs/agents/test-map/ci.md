@@ -95,6 +95,10 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 
 **차선 수와 시간은 이 문서에 적지 않는다** — 로그인 차선은 `ci-plan.mjs` 의 `AUTHED_LANES` 가, 그 실행이 고른 차선은
 plan job 의 step summary(`summaryOf`)가, 차선마다 걸린 시간은 `gh run view <run id>` 의 job 시간이 답한다.
+지난 PR 의 계획(`tier` · 까닭 · 차선)은 `gh run view <run id> --log --job <plan job id>` 로 읽는다 — `gh api …/logs` 는 제어 문자로 거절된다.
+
+**새 `scripts/*.mjs` 를 더한 PR 은 전부다** — `NOT_HARNESS` 밖은 시험 도구로 센다. 시험이 부르지 않는 CI · 개발 도구를 어떻게 빼나는
+`ci-plan.mjs` 머리말 「시험 도구가 혼자 쓰는 파일」이 답한다.
 
 `authed` 는 `db:start` 를 하고 e2e 차선 하나를 돈다. pgTAP 과 **생성 타입 diff** 는 그중 **`notice` 차선만** 본다
 (`verify.yml` 의 `if: matrix.lane == 'notice'` — e2e 가 남긴 계정이 전역으로 세는 pgTAP 을 흐리므로 e2e 앞, 가장 짧은 차선에 둔다).
