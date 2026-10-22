@@ -3,10 +3,10 @@
 이 문서는 **무엇을 고쳤을 때 무엇을 돌리는가** 하나만 답한다. 어디에 놓는가는
 `docs/architecture.md`, 어떻게 적는가는 `CODING_STANDARDS.md`. CI 가 무엇을 돌리는가의
 **규칙은 `scripts/ci-plan.mjs` 한 곳**이고(ADR 0082), 이 문서는 그 규칙을 사람이 읽는 표로
-옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). **파일 수 · 시험 수는
-적지 않는다 — 실행이 찍는다**(`docs/agents/delegation/working.md` 「값을 적는 자리는 하나다」). 적어 두었던 수는 PR 몇 개 만에 낡아
+옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). **파일 수 · 시험 수 · CI 차선 수 · CI 시간은
+적지 않는다 — 실행과 목록이 찍는다**(`docs/agents/delegation/working.md` 「값을 적는 자리는 하나다」). 적어 두었던 수는 PR 몇 개 만에 낡아
 한 문서 안에서도 서로 달랐다(2026-09-28). 단위는 `npm test` 의 끝 줄, pgTAP 은 `npm run test:db` 의 끝 줄과
-`select plan(N)` 의 합, e2e 는 `npx playwright test --list`, 파일 수는 `find … -name '*.test.ts'` 가 찍는다.
+`select plan(N)` 의 합, e2e 는 `npx playwright test --list`, 파일 수는 `find … -name '*.test.ts'` 가, CI 의 차선 · 시간은 `docs/agents/test-map/ci.md` 「CI」 가 가리키는 자리(`AUTHED_LANES` · step summary · `gh run view`)가 찍는다.
 
 ## 차례
 
