@@ -57,3 +57,15 @@ PR 의 필수는 이제 한 job 이 아니라 **독립 차선**이다 — `core`
 
 `full-ci` 라벨 · main 푸시 · 일정 · 손으로 켠 실행 · 빈 diff · `supabase/**` · 단계 모름은 지금처럼 전부다. 공개 출시로 옮기면
 좁히기 없이 위의 세 단계로 돌아간다.
+
+## 덧 (2026-10-22) — 한 차선 안에서 앞 검사가 붉어도 뒤 검사는 돈다
+
+`core` 는 `npm test` → typecheck → lint → build 차례이고, 단계의 기본 조건이 `success()` 라 `npm test` 하나가 붉으면 뒤 셋이
+건너뛰어졌다. 열린 PR 들이 ADR 번호를 나눠 쥔 날(`scripts/code-rules.test.ts` 「번호가 빈틈없이 이어진다」)에는 뒤 번호 PR 이
+앞 번호가 머지될 때까지 내내 붉고, 그동안 그 PR 의 타입 · 린트 · 빌드가 한 번도 안 돌았다(#791 · #792 · #796).
+
+**`core` · `policy` 의 둘째 검사부터는 `!cancelled() && steps.install.outcome == 'success'` 로 돈다** — 앞 검사의 실패와 상관없이,
+설치(`npm ci`)가 섰을 때만, 실행이 끊겼으면 안 돈다. `core` 의 빌드는 그 위에 계획의 조건(`build != 'false'`, ADR 0178)을 그대로
+든다. **아무것도 느슨해지지 않는다** — `continue-on-error` 는 없어서 붉은 단계가 하나라도 있으면 job 은 실패이고, `gate` 는 그
+실패로 선다. 바뀐 것은 건너뛰던 단계가 도는 것 하나다. `authed` · `flow` 는 그대로 둔다 — 스택(`db:start`)이 서지 않으면 뒤 단계가
+뜻이 없다. `scripts/ci-plan.test.ts` 「core · policy 의 검사는 앞 검사가 붉어도 돌고」가 잰다.

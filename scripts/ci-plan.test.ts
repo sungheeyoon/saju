@@ -138,8 +138,41 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     expect(runsOf('core')).toEqual(['npm ci', ...CORE_STEPS]);
     expect(CORE_STEPS).toContain('npm run build');
     // 빌드는 계획의 `build` 가 `false` 일 때만 건너뛴다 — 값이 비면 돈다(문구만 바뀐 PR, ADR 0178)
-    expect(yml).toMatch(/^ {6}- run: npm run build\n {8}if: needs\.plan\.outputs\.build != 'false'$/m);
+    expect(yml).toMatch(
+      /^ {6}- run: npm run build\n {8}if: \$\{\{ !cancelled\(\) && steps\.install\.outcome == 'success' && needs\.plan\.outputs\.build != 'false' \}\}$/m,
+    );
     expect(runsOf('anon')).toEqual(['npm ci', 'npx playwright install --with-deps chromium', 'npm run test:e2e']);
+  });
+
+  /**
+   * **앞 검사가 붉어도 뒤 검사는 돈다**(2026-10-22, ADR 0097 덧). 기본 `if` 는 `success()` 라 `npm test` 가 붉으면 타입 · 린트 ·
+   * 빌드가 건너뛰어졌다 — ADR 번호를 나눠 쥔 뒤 번호 PR(#791 · #792 · #796)은 빌드가 한 번도 안 돌았다. 넓히기만 한다 —
+   * 붉은 단계를 삼키는 `continue-on-error` 는 없고, 첫 검사는 기본 조건 그대로이며, 설치가 섰을 때만 돈다.
+   */
+  it('core · policy 의 검사는 앞 검사가 붉어도 돌고, 붉음을 삼키지 않는다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    const stepsOf = (name: string) => {
+      const block = new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)\\n  [a-z]+:\\n`).exec(yml)?.[1] ?? '';
+      // 주석 줄은 뺀다 — 머리 주석이 `continue-on-error` 를 이름으로 말한다
+      const job = block
+        .split('\n')
+        .filter((line) => !/^\s*#/.test(line))
+        .join('\n');
+      expect(job, name).not.toMatch(/continue-on-error/);
+      return job
+        .split(/^ {6}- /m)
+        .slice(1)
+        .filter((step) => /^run: /.test(step))
+        .map((step) => ({ run: /^run: (.+)$/m.exec(step)![1].trim(), cond: /^ {8}if: (.+)$/m.exec(step)?.[1] ?? null, id: /^ {8}id: (.+)$/m.exec(step)?.[1] }));
+    };
+    const GUARD = "${{ !cancelled() && steps.install.outcome == 'success'";
+    for (const [name, first] of [['core', 'npm test'], ['policy', 'npx vitest run scripts/']] as const) {
+      const [install, head, ...rest] = stepsOf(name);
+      expect(install, name).toEqual({ run: 'npm ci', cond: null, id: 'install' });
+      expect(head, name).toEqual({ run: first, cond: null, id: undefined });
+      expect(rest.length, name).toBeGreaterThanOrEqual(2);
+      for (const step of rest) expect(step.cond?.startsWith(GUARD), `${name}: ${step.run}`).toBe(true);
+    }
   });
 
   it('「(지금)」이 둘이거나 없으면 모르는 단계다', () => {

@@ -9,7 +9,7 @@
 
 **차선은 여섯이고 서로 따로 선다**(2026-10-01) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
 `ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit`.
-단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. 옛 이름은 `fast` → `core`,
+단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. **`core` · `policy` 안에서는 앞 검사가 붉어도 뒤 검사가 돈다**(`!cancelled()`, 설치가 섰을 때만 — ADR 0097 덧 2026-10-22) — 붉은 단계가 하나라도 있으면 job 과 `gate` 는 그대로 실패다. 옛 이름은 `fast` → `core`,
 `verify`(job) → `anon` 이다. 워크플로 이름 `verify` 와 npm 스크립트 `npm run verify` 는 그대로다.
 
 **공개 출시 전(지금) — 그 주소에 실제로 닿는 차선만 머지를 막는다**(#161, ADR 0097 · 0119 추기 2026-10-01)

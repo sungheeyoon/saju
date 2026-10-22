@@ -377,7 +377,7 @@ export const UNTESTED_GAP = 'G-116';
 /** 앱이 등록하는 서비스 워커 — 시험은 그 주소를 적지 않고 브라우저의 서비스 워커를 연다(위 「css module 과 서비스 워커」). 시험이 앱의 등록 주소와 견준다 */
 export const SERVICE_WORKER = 'public/sw.js';
 
-/** `core` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」) */
+/** `core` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」). 앞이 붉어도 뒤가 돈다(ADR 0097 덧) */
 export const CORE_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm run build'];
 
 /**
