@@ -34,10 +34,36 @@ export type DeniedAction =
   | 'members.suspend'
   | 'members.unsuspend';
 
-export async function noteDenial(
+/** 운영자가 아니라고 DB 가 답했다(`42501`) — 운영자 문이 화면에 내는 거절. 화면은 404 를 세운다 */
+export const DENIED = 'denied';
+export type Denied = typeof DENIED;
+
+/** 문이 운영자가 아닌 사람을 거절한 코드인가 — 이 코드를 가르는 자리는 이 파일뿐이다(`denial.boundary.test.ts`) */
+export const isDenialCode = (code: string | undefined): boolean => code === '42501';
+
+type Answer = { readonly error: { readonly code?: string } | null };
+
+/**
+ * 운영자 문의 답들 가운데 하나라도 거절(`42501`)이면 **거절을 적고** `DENIED` 를, 아니면 `null` 을 낸다.
+ *
+ * 운영자 문이 거절을 알아차리는 길은 이것 하나다 — `DENIED` 를 내는 길과 거절을 적는 길이 한 부름이라, 새 문이 적기를 빠뜨릴 수
+ * 없다(ADR 0105 · 0191). 문 여럿을 함께 부른 화면은 답 전부를 넘긴다 — 거절은 머리 문의 이름으로 한 줄이다.
+ */
+export async function deniedAmong(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
   action: DeniedAction,
+  answers: readonly Answer[],
   reportId: string | null = null,
+): Promise<Denied | null> {
+  if (!answers.some((answer) => isDenialCode(answer.error?.code))) return null;
+  await noteDenial(supabase, action, reportId);
+  return DENIED;
+}
+
+async function noteDenial(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  action: DeniedAction,
+  reportId: string | null,
 ): Promise<void> {
   const { error } = await supabase.rpc(
     'note_operator_denial',
@@ -89,7 +115,7 @@ export async function noteWriteRefusal(
   code: string | undefined,
   target: RefusedTarget = {},
 ): Promise<void> {
-  if (code === '42501') {
+  if (isDenialCode(code)) {
     await noteDenial(supabase, action, idOf(target.reportId) ?? null);
     return;
   }

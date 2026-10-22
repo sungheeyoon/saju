@@ -2,7 +2,7 @@ import type { FeltLength, IssueTag } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import { noteDenial } from '../denial';
+import { deniedAmong, type Denied } from '../denial';
 
 /**
  * 설문 집계가 **브라우저로 내려오는 문.**
@@ -16,11 +16,10 @@ import { noteDenial } from '../denial';
  * 것으로 안다.**
  *
  * **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(ADR 0105 추기 2026-10-01) — 성공은 일곱 문 안에서 문마다, 거절은
- * 아래에서 `noteDenial` 이 머리 문의 이름(`survey.overview`) 한 줄로. 기록에는 설문 답 · 글이 안 들어간다.
+ * 아래에서 `deniedAmong` 이 머리 문의 이름(`survey.overview`) 한 줄로. 기록에는 설문 답 · 글이 안 들어간다.
  */
 
-/** 운영자가 아니라고 DB 가 답했다 — `42501` */
-export const DENIED = 'denied';
+export { DENIED } from '../denial';
 
 export type SurveyOverview = {
   /** 들어온 답 */
@@ -110,7 +109,7 @@ type Row = Record<string, unknown>;
  *
  * @returns 거절이면 `DENIED`.
  */
-export async function operatorSurvey(): Promise<typeof DENIED | SkippableRead<OperatorSurvey>> {
+export async function operatorSurvey(): Promise<Denied | SkippableRead<OperatorSurvey>> {
   const supabase = await supabaseOnServer();
 
   const [overview, versions, tags, comments, service, serviceCounts, serviceTexts] =
@@ -125,10 +124,8 @@ export async function operatorSurvey(): Promise<typeof DENIED | SkippableRead<Op
     ]);
 
   const asked = [overview, versions, tags, comments, service, serviceCounts, serviceTexts];
-  if (asked.some((answer) => answer.error?.code === '42501')) {
-    await noteDenial(supabase, 'survey.overview');
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'survey.overview', asked);
+  if (denied) return denied;
   const failed = asked.find((answer) => answer.error !== null)?.error;
   if (failed) return unread(failed, 'operator_survey');
 
