@@ -52,7 +52,8 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 
 **인증 설정 — 바꾼 것 없음(2026-09-24).** 운영 값: OTP 만료 3600초(`mailer_otp_exp`, advisor 의 한도 안),
 TOTP MFA 켜짐, 전화 공급자 꺼짐, 익명 로그인 꺼짐, refresh 회전 켜짐. `supabase/config.toml` 은 advisor 가
-보는 값과 어긋남이 없다.
+보는 값과 어긋남이 없다. **JWT 수명은 확인 전** — 대시보드 Auth → JWT expiry 의 값을 읽어 여기 적는다(로컬
+`supabase/config.toml` 의 `jwt_expiry` 는 3600초). 다른 기기에서 나간 세션의 쿠키가 사진을 여는 창의 크기다(ADR 0200).
 
 ### 성능 advisor — 외래키 인덱스와 안 쓰인 인덱스 (G-23 ⑪ 곁)
 

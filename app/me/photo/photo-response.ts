@@ -10,6 +10,13 @@ import { recordDbFailure } from '../../db-error';
  * 안 나온다. 여기서 조건을 다시 적으면 답하는 자리가 둘이 되고, 둘은 언젠가 어긋난다.
  * 볼 수 있는가는 **사람 단위**다 — 자리 번호는 어느 장인가만 고른다(G-60).
  *
+ * ## 관문(`proxy.ts`)을 안 지난다
+ *
+ * 사진 주소는 관문의 matcher 밖이다(ADR 0200) — 한 장에 DB 왕복 하나다. 정지 · 탈퇴 신청 · 베타 종료는 `may_see_photo` 의
+ * `is_active_account` 가, 로그인하지 않은 사람은 문의 grant 가 닫는다. 토큰이 만료됐으면 이 클라이언트가 `photo_at` 을 부르기
+ * 전에 스스로 갱신하고 새 쿠키를 응답에 싣는다 — 라우트는 화면과 달리 쿠키를 쓸 수 있다. 여기서 `signedInUser` 를 부르면
+ * 안 된다 — 서명만 보는 그 확인은 관문과 한 벌이다(`app/auth/signed-in.boundary.test.ts`).
+ *
  * ## 왜 `<img src>` 로 나가나
  *
  * 바이트를 화면에 직접 실을 수도 있다(data URI). 그러면 후보 카드 여덟 장이 한 HTML 에
