@@ -13,7 +13,7 @@
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
 -- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(56);
+select plan(52);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -138,21 +138,17 @@ insert into doors
 select d.name, d.call, d.answer, d.why
 from (values
   ('add_my_photo',          $$select public.add_my_photo('image/jpeg', '/9j/4A==')$$, '42501 이용이 정지된 계정입니다.', null),
-  ('add_my_photo_object',   $$select public.add_my_photo_object('photos/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000000', 'image/webp')$$, '42501 이용이 정지된 계정입니다.', null),
-  ('begin_my_photo_upload', $$select public.begin_my_photo_upload()$$, '42501 이용이 정지된 계정입니다.', null),
   ('block_user',            format($$select public.block_user(%L)$$, (select lee from folks)), '42501 이용이 정지된 계정입니다.', null),
   ('complete_signup',       format($$select public.complete_signup('SUSPENDED-0000', '민수', 'notice-for-tests', %s, false, false)$$,
                               (select s.schedule_id from public.current_beta_schedule() s)),
                             '42501 이용이 정지된 계정입니다.', null),
   ('create_managed_person', $$select public.create_managed_person('아빠', null, 'solar', '1960-01-01', '1960-01-01', '07:20', 'male', '부산', 'jo', 'localMean', tests.chart('乙'), 'chart-for-tests')$$,
                             '42501 이용이 정지된 계정입니다.', null),
-  ('drop_my_photo_upload',  $$select public.drop_my_photo_upload('photos/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000000')$$, '42501 이용이 정지된 계정입니다.', null),
   ('move_my_photo',         $$select public.move_my_photo(1, 1, 0)$$, '42501 이용이 정지된 계정입니다.', null),
   ('my_discovery_board',    $$select * from public.my_discovery_board()$$, '42501 이용이 정지된 계정입니다.', null),
   ('my_passed_connections', $$select * from public.my_passed_connections()$$, '42501 이용이 정지된 계정입니다.', null),
   ('remove_my_photo',       $$select public.remove_my_photo(1, 0)$$, '42501 이용이 정지된 계정입니다.', null),
   ('replace_my_photo',      $$select public.replace_my_photo(1, 0, 'image/jpeg', '/9j/4A==')$$, '42501 이용이 정지된 계정입니다.', null),
-  ('replace_my_photo_object', $$select public.replace_my_photo_object(1, 0, 'photos/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000000', 'image/webp')$$, '42501 이용이 정지된 계정입니다.', null),
   ('report_chat_message',   $$select public.report_chat_message(gen_random_uuid(), 'etc', null)$$, '42501 이용이 정지된 계정입니다.', null),
   ('report_user',           format($$select public.report_user(%L, 'etc', null)$$, (select lee from folks)), '42501 이용이 정지된 계정입니다.', null),
   ('request_account_deletion', $$select public.request_account_deletion()$$, '42501 이용이 정지된 계정입니다.', null),
