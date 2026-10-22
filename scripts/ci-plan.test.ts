@@ -53,9 +53,8 @@ import {
   TEST_RUNNERS,
   UNTESTED_GAP,
   looseAddressesOf,
-  MOVES,
-  clickProfileOf,
   linkReach,
+  linkedOnlyEntries,
   linksIn,
   mentionOf,
   testRunnerChangeOf,
@@ -698,94 +697,77 @@ describe('CI 계획 — 닿는 시험이 0 인 입구는 정말 없을 때만 co
     expect(mixed.reason).toContain('시험 공백');
   });
 
-  it(`간극 대장 ${UNTESTED_GAP} 의 기록이 닿는 시험이 정말 없는 입구를 빠짐없이 든다 — 시험을 더하면 그 줄을 지운다`, () => {
+  it(`간극 대장 ${UNTESTED_GAP} 의 기록이 닿는 시험이 정말 없는 입구와 링크로만 닿는 입구를 빠짐없이 든다 — 시험을 더하면 그 줄을 지운다`, () => {
     const record = readFileSync(resolve(ROOT, `docs/product/gaps/records/g-${UNTESTED_GAP.slice(2)}.md`), 'utf8');
-    const section = record.split(/^## /m).find((one) => one.startsWith('닿는 시험이 없는 입구')) ?? '';
-    expect(section).not.toBe('');
-    const listed = [...section.matchAll(/^- `(app\/[^`]+)`/gm)].map((one) => one[1]).sort();
-    expect(listed).toEqual(untestedEntries());
+    const listedUnder = (heading: string) => {
+      const section = record.split(/^## /m).find((one) => one.startsWith(heading)) ?? '';
+      expect(section, heading).not.toBe('');
+      return [...section.matchAll(/^- `(app\/[^`]+)`/gm)].map((one) => one[1]).sort();
+    };
+    expect(listedUnder('닿는 시험이 없는 입구')).toEqual(untestedEntries());
+    expect(listedUnder('링크로만 닿는 입구')).toEqual(linkedOnlyEntries());
     expect(readFileSync(resolve(ROOT, 'docs/product/gaps.md'), 'utf8')).toMatch(new RegExp(`^\\| ${UNTESTED_GAP} \\|`, 'm'));
   });
 });
 
 /**
- * **링크를 눌러 닿을 수 있는 입구도 「놓쳤을 수 있음」이다**(ADR 0195 덧, 외부 리뷰 2026-10-22). 주소를 한 글자도 적지 않고 링크를 눌러
- * 그 입구에 닿는 시험이 있으면 「정말 없음」이 아니다 — 그 입구로 가는 링크가 걸린 화면을 열고 그 링크를 고를 수 있으면 전부다.
+ * **다른 화면이 가리키는 입구도 「놓쳤을 수 있음」이다**(ADR 0195 덧, 외부 리뷰 2026-10-22). 주소를 한 글자도 적지 않고 링크를 눌러 그
+ * 입구에 닿는 시험이 있을 수 있다 — 그 입구를 가리키는(링크든 이동이든) 화면을 여는 시험이 있으면 전부다. 시험이 무엇을 누르는지는 가르지
+ * 않는다(독립 검토 2026-10-22 — 선택자 글자 · 좌표 누름 · 키 · 대소문자로 이름 좁힘이 샜다).
  */
-describe('CI 계획 — 링크를 눌러 닿을 수 있는 입구는 정말 없음이 아니다', () => {
-  it('앱 코드의 링크 이름은 글자로 확실히 읽히는 둘만 읽는다 — 나머지는 이름 모름(null) · 링크 아닌 이동(MOVES)', () => {
+describe('CI 계획 — 다른 화면이 가리키는 입구는 정말 없음이 아니다', () => {
+  it('앱 코드가 그 입구를 가리키는가 — 링크 · 이동 · 넓은 무늬 · 경로 글자. import 경로 · 주소창 조각 · 다른 주소는 아니다', () => {
     const help = 'app/help/page.tsx';
-    expect(linksIn("export const L = [{ href: '/help', label: '자주 묻는 질문' }];", help)).toEqual(['자주 묻는 질문']);
-    expect(linksIn('<Link href="/help" className={X}>\n  자주 묻는 질문\n</Link>', help)).toEqual(['자주 묻는 질문']);
-    expect(linksIn('<a href="/help" aria-label="도움말">?</a>', help)).toEqual(['도움말']);
-    expect(linksIn('<Link href="/help">{COPY.help}</Link>', help)).toEqual([null]);
-    expect(linksIn('<Link href="/help" onClick={() => close()}>도움</Link>', help)).toEqual([null]);
-    expect(linksIn("router.push('/help');", help)).toEqual([MOVES]);
-    expect(linksIn("export const HELP_PATH = '/help';", help)).toEqual([MOVES]);
-    expect(linksIn("const to = ['', 'help'].join('/');", help)).toEqual([MOVES]);
-    expect(linksIn('const to = `${base}/help`;', help)).toEqual([MOVES]);
-    // import 경로 · 주소창의 `?` · `#` 조각 · 다른 주소는 가는 길이 아니다
-    expect(linksIn("import { x } from '../help/open-hashed';\nimport y from '@/app/help/z';", help)).toEqual([]);
-    expect(linksIn('return `/${search}${hash}`;', help)).toEqual([]);
-    expect(linksIn('<Link href="/helper">x</Link>', help)).toEqual([]);
+    expect(linksIn("export const L = [{ href: '/help', label: '자주 묻는 질문' }];", help)).toBe(true);
+    expect(linksIn('<Link href="/help">{COPY.help}</Link>', help)).toBe(true);
+    expect(linksIn("router.push('/help');", help)).toBe(true);
+    expect(linksIn("export const HELP_PATH = '/help';", help)).toBe(true);
+    expect(linksIn("const to = ['', 'help'].join('/');", help)).toBe(true);
+    expect(linksIn('const to = `${base}/help`;', help)).toBe(true);
+    expect(linksIn("import { x } from '../help/open-hashed';\nimport y from '@/app/help/z';", help)).toBe(false);
+    expect(linksIn('<Link href="/helper">x</Link>', help)).toBe(false);
   });
 
-  it('시험의 누르는 몸짓 — 링크를 이름 말고 고르면 unnamed, 이름을 고르는 글자 · 템플릿 · 정규식은 그 이름에 견준다', () => {
-    const unnamed = (code: string) => clickProfileOf(code).unnamed;
-    expect(unnamed("await page.getByRole('link').first().click();")).toBe(true);
-    expect(unnamed("await page.getByRole('link', { exact: true }).click();")).toBe(true);
-    expect(unnamed("await nav.getByRole('link', { name: label }).click();")).toBe(true);
-    expect(unnamed("await page.locator('footer a').first().click();")).toBe(true);
-    expect(unnamed("await page.click('text=도움말');")).toBe(true);
-    expect(unnamed('await page.getByText(LABEL).click();')).toBe(true);
-    expect(unnamed('await rows.filter({ hasText: LABEL }).click();')).toBe(true);
-    expect(unnamed("await page.keyboard.press('Enter');")).toBe(true);
-    expect(unnamed("await page.getByRole('link', { name: '채팅', exact: true }).click();")).toBe(false);
-    expect(unnamed("await page.locator('summary').click();")).toBe(false);
-    // 문서에서 바로 골라 DOM 의 click() 을 부르면 이름 없이 누른다 — 고른 것만 보는 하이드레이션 확인은 아니다
-    expect(unnamed("await page.evaluate(() => document.querySelector('nav a[href=\"#fortune\"]')?.click());")).toBe(true);
-    expect(unnamed("await page.evaluate(() => document.querySelector('script[src*=\"/_next/\"]') !== null);")).toBe(false);
-    // 파일마다 읽어 합친다 — 한 파일의 `querySelector` 와 다른 파일의 누름을 잇지 않는다
-    expect(clickProfileOf(["await page.getByRole('link', { name: '채팅' }).click();", "document.querySelector('script');"]).unnamed).toBe(false);
-    const picks = (code: string, name: string) => clickProfileOf(code).names(name);
-    expect(picks("await page.getByRole('link', { name: '자주 묻는' }).click();", '자주 묻는 질문')).toBe(true);
-    expect(picks("await page.getByRole('link', { name: /질문$/ }).click();", '자주 묻는 질문')).toBe(true);
-    expect(picks('await page.getByRole(\'link\', { name: new RegExp(`자주${x}`) }).click();', '자주 묻는 질문')).toBe(true);
-    expect(picks("await page.getByRole('link', { name: '채팅' }).click();", '자주 묻는 질문')).toBe(false);
-    // 다듬는 정규식(`split(/\s+/)`) · 고르는 자리 밖의 템플릿은 이름을 고르지 않는다
-    expect(picks('const words = text.split(/\\s+/);', '자주 묻는 질문')).toBe(false);
-    expect(picks('const intro = `${SERVICE_NAME}는`;', '자주 묻는 질문')).toBe(false);
-    expect(picks('await page.getByText(`${SERVICE_NAME}는`).click();', '자주 묻는 질문')).toBe(true);
-    expect(clickProfileOf("await expect(page.getByRole('link', { name: '채팅' })).toBeVisible();").clicks).toBe(false);
+  it('주소창 조각은 확실한 꼴만 걷는다 — 경로 자리의 홀로 선 search · hash 는 경로일 수 있어 넓게 (독립 검토)', () => {
+    const help = 'app/help/page.tsx';
+    // `?` · `#` 뒤, 그리고 끝에 search 다음 hash 가 붙은 꼴은 주소창 조각이다
+    expect(linksIn('return `/${search}${hash}`;', help)).toBe(false);
+    expect(linksIn('return `/${location.search}${location.hash}`;', help)).toBe(false);
+    expect(linksIn('return `/?${search}`;', help)).toBe(false);
+    // 경로 자리의 홀로 선 식은 경로일 수 있다
+    expect(linksIn('return `/${hash}`;', help)).toBe(true);
+    expect(linksIn('return `/${search}`;', help)).toBe(true);
+    expect(linksIn('return `/ops/orders/${order.hash}`;', 'app/ops/orders/[id]/page.tsx')).toBe(true);
   });
 
-  it('주소를 적지 않고 링크를 눌러 닿는 시험이 있으면 놓쳤을 수 있다 — 외부 리뷰의 반례', () => {
+  it('주소를 적지 않고 링크를 눌러 닿을 수 있으면 놓쳤을 수 있다 — 외부 리뷰의 반례 · 독립 검토의 반례', () => {
     const page = 'app/help/page.tsx';
-    const opensHome = "await page.goto('/');\n";
     const everywhere = { route: /^\/.*$/, samples: ['/', '/x'] };
-    const judge = (code: string, reach: Partial<ReturnType<typeof linkReach>> = {}) =>
+    const judge = (code: string, routes = [everywhere]) =>
       testsOfEntry(page, {
         addresses: { 'e2e/x.spec.ts': addressesOf(code) },
         loose: { 'e2e/x.spec.ts': looseAddressesOf(code) },
         texts: { 'e2e/x.spec.ts': code },
-        clicks: { 'e2e/x.spec.ts': clickProfileOf(code) },
-        linkReach: () => ({ names: ['자주 묻는 질문'], unnamed: false, moves: false, routes: [everywhere], ...reach }),
+        linkReach: () => ({ routes }),
       }).unsure;
-    // 바닥글의 「자주 묻는 질문」을 누른다 — 주소는 한 글자도 없다
-    expect(judge(`${opensHome}await page.getByRole('link', { name: '자주 묻는 질문' }).click();`)).toEqual(['e2e/x.spec.ts']);
-    expect(judge(`${opensHome}await page.getByRole('contentinfo').getByRole('link').nth(1).click();`)).toEqual(['e2e/x.spec.ts']);
-    // 다른 링크만 이름으로 누르면 그 입구에 못 닿는다 — 좁힌다
-    expect(judge(`${opensHome}await page.getByRole('link', { name: '채팅', exact: true }).click();`)).toEqual([]);
-    // 이름을 모르는 링크면 무엇이든 누르는 시험이 닿을 수 있다 — 누르지 않으면 못 닿는다
-    expect(judge(`${opensHome}await page.getByRole('button', { name: '열기' }).click();`, { unnamed: true })).toEqual(['e2e/x.spec.ts']);
-    expect(judge(`${opensHome}await expect(page.getByRole('heading')).toBeVisible();`, { unnamed: true })).toEqual([]);
-    // 링크가 아닌 이동(경로 상수 · router.push · redirect)은 누르지 않아도 닿는다고 본다
-    expect(judge(opensHome, { moves: true })).toEqual(['e2e/x.spec.ts']);
-    // 그 링크가 걸린 화면을 열지 않으면 아니다
+    const opensHome = "await page.goto('/');\n";
+    // 무엇을 누르든(이름 · 선택자 글자 · 좌표 · 키) — 누르지 않아도(이동은 그리는 순간에도 옮긴다) 그 화면을 열면 든다
+    for (const act of [
+      "await page.getByRole('link', { name: '자주 묻는 질문' }).click();",
+      "await page.getByRole('link', { name: '채팅' }).click();",
+      "await page.locator('text=자주 묻는 질문').click();",
+      "await page.locator('xpath=//footer//a').click();",
+      'await page.mouse.click(10, 700);',
+      "await page.keyboard.press('NumpadEnter');",
+      'await page.evaluate(() => document.links[3].click());',
+      '',
+    ]) {
+      expect(judge(`${opensHome}${act}`), act).toEqual(['e2e/x.spec.ts']);
+    }
+    // 그 입구를 가리키는 화면을 열지 않거나, 앱 어디서도 가리키지 않으면 아니다
     const meOnly = { route: /^\/me(?:\/.*)?$/, samples: ['/me', '/me/x'] };
-    expect(judge("await page.goto('/ops/reports');\nawait page.getByRole('link').click();", { routes: [meOnly] })).toEqual([]);
-    // 그 입구로 가는 길이 앱 어디에도 없으면 링크로는 못 닿는다
-    expect(judge(`${opensHome}await page.getByRole('link').click();`, { routes: [] })).toEqual([]);
+    expect(judge("await page.goto('/ops/reports');\nawait page.getByRole('link').click();", [meOnly])).toEqual([]);
+    expect(judge(`${opensHome}await page.getByRole('link').click();`, [])).toEqual([]);
   });
 
   it('배열을 `/` 로 이은 주소도 요청할 수 있는 주소로 넓게 잡는다', () => {
@@ -796,7 +778,7 @@ describe('CI 계획 — 링크를 눌러 닿을 수 있는 입구는 정말 없�
     expect(looseAddressesOf('const pair = [a, b].join(\'/\');')).toEqual([]);
   });
 
-  it('실측 — 시험 공백이던 입구 아홉은 공용 바닥글 · 회원 머리 · 운영 머리의 링크로 닿을 수 있어 모두 전부다', () => {
+  it('실측 — 시험 공백이던 입구 아홉은 공용 바닥글 · 회원 머리 · 운영 머리가 가리켜 모두 전부다', () => {
     const nine = [
       'app/help/page.tsx',
       'app/me/credits/done/page.tsx',
@@ -814,11 +796,9 @@ describe('CI 계획 — 링크를 눌러 닿을 수 있는 입구는 정말 없�
       expect(plan.lanes, entry).toEqual(FULL);
       expect(plan.cause, entry).toBe('닿는 시험 모름');
     }
-    // 이름은 바닥글(`app/site-links.ts`) · 운영 머리(`app/ops/ops-header.tsx`)의 글자에서 읽는다
-    expect(linkReach('app/help/page.tsx').names).toContain('자주 묻는 질문');
-    expect(linkReach('app/ops/today/page.tsx').names).toEqual(['오늘']);
-    // 풀이권 화면은 경로 상수(`CREDITS_PATH`)로 가서 링크 아닌 이동이다
-    expect(linkReach('app/me/credits/page.tsx').moves).toBe(true);
+    expect(linkedOnlyEntries()).toEqual(nine);
+    // 운영 화면은 운영 머리(`app/ops/layout.tsx` 아래)만 가리킨다 — 모든 화면이 아니다
+    expect(linkReach('app/ops/today/page.tsx').routes.map((one) => one.route.source)).toContain(routeOf('app/ops/loading.tsx')!.source);
   });
 });
 
