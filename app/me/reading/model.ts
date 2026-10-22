@@ -263,6 +263,17 @@ export async function callModel<Produced = ReadingOutput>(
 const client = () => new OpenAI();
 
 /**
+ * **제출은 한 번만 보내고, 응답 머리를 30초까지만 기다린다.**
+ *
+ * SDK 기본값은 재시도 2 · 시간 상한 10분이다(`node_modules/openai/client.js`). 제출(`POST /responses`)은 멱등 머리 없이
+ * 나가므로, 망이 끊긴 제출을 SDK 가 다시 보내면 provider 쪽에 background 응답이 하나씩 더 서고 토큰이 그만큼 나간다 —
+ * 시도 하나에 모델 실행 셋까지(`submit-unanswered.test.ts`). 다시 보낼지는 시도를 여는 쪽(사람의 누름 · 복구기)이 정한다.
+ * 30초는 스트림의 첫 머리가 오는 시간이다 — 상한은 머리에서 멈추고 본문을 읽는 동안에는 안 걸린다. 회수(`retrieve`)는
+ * 같은 것을 다시 읽을 뿐이라 기본값 그대로다.
+ */
+const SUBMIT_REQUEST = { maxRetries: 0, timeout: 30_000 } as const;
+
+/**
  * 일을 떠나보낸다. **완성본을 기다리지 않는다.**
  *
  * `metadata.reading_run_id` 를 함께 싣는 것이 이 함수에서 가장 중요한 한 줄이다.
@@ -312,13 +323,23 @@ export async function submitBackgroundReading(
           schema: options.continuation ? CONTINUATION_SHAPE : options.summaryLast ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE,
         },
       },
-    });
+    }, SUBMIT_REQUEST);
 
+    /*
+      **머리(200)를 받은 뒤 이름표 전의 끊김도 답 없음이다** — provider 가 응답을 세웠을 수 있다. 본문이 오류로 끊기면 SDK 는
+      감싸지 않은 오류(`TypeError: terminated`)를 던지고, 조용히 끝나면 `done` 이 온다. 둘 다 시도를 열어 둔다(`pipeline.ts`).
+      스트림의 `error` 사건은 provider 가 답한 거절이라 닫는다.
+    */
     const events = stream[Symbol.asyncIterator]();
     for (;;) {
-      const next = await events.next();
+      let next: IteratorResult<OpenAI.Responses.ResponseStreamEvent>;
+      try {
+        next = await events.next();
+      } catch (cut) {
+        return { ok: false, code: SUBMIT_UNANSWERED, detail: messageOf(cut) };
+      }
       if (next.done === true) {
-        return { ok: false, code: 'model-submit-failed', detail: '이름표를 받기 전에 스트림이 끝났습니다' };
+        return { ok: false, code: SUBMIT_UNANSWERED, detail: '이름표를 받기 전에 스트림이 끝났습니다' };
       }
       const event = next.value;
       if (event.type === 'error') {
@@ -330,9 +351,17 @@ export async function submitBackgroundReading(
       }
     }
   } catch (failure) {
-    return { ok: false, code: 'model-submit-failed', detail: messageOf(failure) };
+    /*
+      **답이 없었던 실패는 따로 부른다** — 망이 끊김 · 머리를 기다리다 끊음(`APIConnectionError`, 시간 초과는 그 아래 갈래).
+      provider 가 받았는지 우리는 모른다. 상태 코드로 거절당한 것(`APIError` 의 나머지)은 받지 않은 것이 분명하다.
+    */
+    const unanswered = failure instanceof OpenAI.APIConnectionError;
+    return { ok: false, code: unanswered ? SUBMIT_UNANSWERED : 'model-submit-failed', detail: messageOf(failure) };
   }
 }
+
+/** 제출이 답을 못 받았다 — provider 가 받았을 수 있다(`pipeline.ts` 가 시도를 닫지 않는다) */
+export const SUBMIT_UNANSWERED = 'model-submit-unanswered';
 
 /**
  * 남은 사건에서 **본문 조각만** 흘린다 — 끝나는 사건이 오면 멈춘다.

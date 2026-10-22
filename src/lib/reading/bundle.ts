@@ -22,6 +22,9 @@ export const READING_BUNDLES = [
 
 const SINGLE_PRICE = READING_BUNDLES[0].price;
 
+/** 원 단위 금액 — 「4,900원」. 사람이 읽는 금액은 결제 · 주문 · 약관 어디서나 이것 하나로 적는다 */
+export const won = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
+
 /**
  * 산 풀이권의 유효기간(년) — 구매일로부터. 상품 화면의 유의사항(ADR 0175)이 이 값을 말한다(운영자 결정 2026-10-12, G-21).
  * 만료를 DB 가 걷는 일은 아직 없다 — 첫 판매 뒤 5년 안에 선다.

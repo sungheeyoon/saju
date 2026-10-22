@@ -61,8 +61,10 @@ export default async function OperatorSurveyPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const survey = await operatorSurvey();
-  if (survey === DENIED) notFound();
+  const answered = await operatorSurvey();
+  if (answered === DENIED) notFound();
+  /* 못 읽은 까닭은 문이 기록에 남겼다 — 화면은 실패 줄 하나만 세운다 */
+  const survey = answered.ok ? answered.value : null;
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">

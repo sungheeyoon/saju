@@ -151,7 +151,7 @@ export function Markdown({ source }: { source: string }) {
 
       case 'bullets':
         return (
-          <ul key={key} className="flex list-disc flex-col gap-2.5 pl-5 marker:text-[var(--ink,var(--muted))]">
+          <ul key={key} className="flex list-disc flex-col gap-2.5 pl-5 marker:text-[var(--ink,var(--text-muted))]">
             {block.items.map((item, index) => (
               <li key={index}>{inline(item, `${key}-${index}`)}</li>
             ))}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { recordDbFailure } from '../../db-error';
 
 /**
  * 사진 한 장을 내주는 자리 — **판정은 여기 없다.** 주소 둘(`/me/photo/{id}` · `/me/photo/{id}/{n}`)이 이것을 부른다.
@@ -32,11 +33,12 @@ export async function photoResponse(userId: string, position: number): Promise<N
     로그인하지 않은 사람에게는 이 문 자체가 닫혀 있어 함수가 「권한이 없다」로 거절한다
     (`28000` · `42501`). 그것을 500 으로 내보내면 「우리가 고장 났다」는 말이 되고, 실제로
     고장 났을 때 그 말이 아무것도 못 가리킨다. 못 보는 사람은 **없는 사람과 같은 답**을
-    받는다 — 갈라서 말하면 사람을 세는 문이 된다.
+    받는다 — 갈라서 말하면 사람을 세는 문이 된다. 고장 난 것만 기록에 남긴다 — 답에는 원문을 안 싣는다.
   */
   if (error) {
-    const denied = error.code === '42501' || error.code === '28000';
-    return new NextResponse(null, { status: denied ? 404 : 500 });
+    if (error.code === '42501' || error.code === '28000') return new NextResponse(null, { status: 404 });
+    recordDbFailure(error, `photo_at ${position}`);
+    return new NextResponse(null, { status: 500 });
   }
 
   const row = (data ?? [])[0];

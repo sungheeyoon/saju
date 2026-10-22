@@ -16,8 +16,25 @@ import { unstable_rethrow } from 'next/navigation';
  */
 export const ACTION_UNREACHED_NOTE = '처리하지 못했어요. 다시 시도해 주세요.';
 
-/** 부름이 던졌을 때의 값 — 액션이 값으로 내는 실패와 같은 모양이라 부르는 쪽이 한 갈래로 받는다 */
-export type ActionUnreached = { readonly ok: false; readonly message: string };
+/**
+ * 부름이 던졌을 때의 값 — 액션이 값으로 내는 실패와 같은 모양이라 부르는 쪽이 한 갈래로 받는다. `unreached` 표지가 「서버가
+ * 거절했다」와 「답을 못 받았다(서버에서 섰는지 모른다)」를 가른다 — 문장으로 가르지 않는다(`isUnreached`).
+ */
+export type ActionUnreached = { readonly ok: false; readonly message: string; readonly unreached: true };
+
+/** 답을 못 받은 실패인가 — 서버에서 섰을 수 있다. 액션이 값으로 낸 거절이면 `false` */
+export const isUnreached = (answer: { readonly ok: boolean; readonly message?: string }): answer is ActionUnreached =>
+  (answer as Partial<ActionUnreached>).unreached === true;
+
+/**
+ * 확인창에서 고정한 요청(값 · 읽은 버전 · 요청 번호)을 실패 뒤에 어떻게 하나.
+ *
+ * - **결과를 모른다**(답을 못 받았다): 서버에서 섰을 수 있다. 고정본을 지켜 두면 같은 값의 다음 누름이 같은 요청 번호로 가서 섰으면
+ *   첫 결과를, 안 섰으면 그때 한 번 적힌다.
+ * - **서버가 분명히 거절했다**(버전 충돌 · 상한 · 권한 …): 그 고정본으로는 다시 내도 같은 거절이다. 버린다 — 다음 누름은 새 읽은
+ *   버전 · 새 요청 번호로 새 확인을 연다.
+ */
+export const afterFailure = (answer: { readonly ok: false; readonly message: string }): 'keep' | 'discard' => (isUnreached(answer) ? 'keep' : 'discard');
 
 export function actionAnswer<T>(call: Promise<T>): Promise<T | ActionUnreached>;
 /** 실패 모양이 `{ ok: false, message }` 가 아닌 액션 — 부르는 쪽이 그 모양을 지어 준다 */
@@ -30,6 +47,6 @@ export async function actionAnswer<T>(
     return await call;
   } catch (thrown) {
     unstable_rethrow(thrown);
-    return unreached ? unreached(ACTION_UNREACHED_NOTE) : { ok: false, message: ACTION_UNREACHED_NOTE };
+    return unreached ? unreached(ACTION_UNREACHED_NOTE) : { ok: false, message: ACTION_UNREACHED_NOTE, unreached: true };
   }
 }

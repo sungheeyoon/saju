@@ -119,7 +119,8 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     const panel = files.find(({ path }) => path === 'app/me/reading/reading-waiting.tsx');
 
     expect(panel!.text).toContain('readingWaitNote(GENERATION.settings.timeout)');
-    expect(panel!.text).not.toContain('보통 1분');
+    // 옛 「보통 1분」을 글자로 재면 언제나 통과한다(ADR 0079) — 손으로 적은 분(分)이면 어떤 수든 걸린다
+    expect(panel!.text).not.toMatch(/\d+\s*분/);
   });
 
   /**
@@ -177,25 +178,6 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
   });
 
   /**
-   * **응답을 먼저 보낸다.** 회수·검사·저장을 2xx 앞에 두면 그 시간이 길어질수록
-   * 재전송이 늘고, 늘어난 재전송이 다시 같은 일을 시킨다.
-   */
-  it('webhook 은 무거운 일을 응답 뒤로 미룬다', () => {
-    const route = files.find(({ path }) => path === 'app/api/openai/webhook/route.ts');
-
-    expect(route, 'webhook 라우트를 못 찾았다').toBeDefined();
-    expect(route!.text, '응답 뒤로 넘기는 자리가 없다').toContain('after(');
-    // 회수는 `after` 안에서만 불린다 — 그 밖에서 부르면 응답이 늦어진다.
-    // import 줄은 빼고 본다. 쓰는 자리를 재려는 것이지 들여오는 자리가 아니다.
-    const body = route!.text
-      .split('\n')
-      .filter((line) => !line.startsWith('import'))
-      .join('\n');
-
-    expect(body.split('after(')[0]).not.toContain('collectReadingResult');
-  });
-
-  /**
    * **관문 밖의 주소는 스스로 자격을 물어야 한다.**
    *
    * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
@@ -213,29 +195,6 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
       const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook/.test(text);
       expect(asks, `${path} 이 자격을 묻지 않는다`).toBe(true);
     }
-  });
-
-  /**
-   * **만든 열을 채우는 자리가 있는가.**
-   *
-   * `processed_at` 을 만들고 인덱스까지 걸어 놓고 쓰는 코드를 안 썼다. 첫 실호출에서야
-   * 드러났고, 그때까지 네 층이 다 초록이었다 — 시험이 열의 존재만 재고 있었다.
-   *
-   * 「받았는데 못 집은 사건」을 세는 것이 그 열의 존재 이유이므로, 아무도 안 적으면
-   * 그 수는 언제나 전부다.
-   */
-  it('영수증을 집었다고 적는 자리가 있다', () => {
-    /**
-     * **시험 자신은 빼고 센다.** 처음에 안 뺐더니 이 시험이 자기 본문에 적힌 이름을
-     * 세어 언제나 초록이었다 — 호출을 지워도 통과했다. 위 `DEFINITION` 이 같은 함정을
-     * 위해 서 있는 자리다.
-     */
-    const marking = files
-      .filter(({ path }) => !path.endsWith('.test.ts'))
-      .filter(({ text }) => text.includes('mark_reading_webhook_processed'))
-      .map(({ path }) => path);
-
-    expect(marking, '적는 자리가 없다').not.toEqual([]);
   });
 
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {

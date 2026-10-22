@@ -2,14 +2,14 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import { noteDenial } from '../denial';
+import { deniedAmong, type Denied } from '../denial';
 
 /**
  * 회원 한 명이 **브라우저로 내려오는 문** (G-110 ③, ADR 0185).
  *
  * 신고 화면의 문(`../reports/read.ts`)과 같은 규율이다. **운영자인지 여기서 안 묻는다** — 묻는 자리는 DB 의
  * `is_operator()` 하나고, 자료를 청해서 거절당하는 것으로 안다(`42501`). **문이 읽을 때마다 DB 가 접속기록에 한 줄을
- * 적는다** — 성공은 문 안에서(`members.find`), 거절은 아래 `noteDenial` 이 머리 문의 이름 한 줄로.
+ * 적는다** — 성공은 문 안에서(`members.find`), 거절은 아래 `deniedAmong` 이 머리 문의 이름 한 줄로.
  * 기록에는 찾은 말(닉네임)이 안 들어간다 — 무엇으로 찾았나와 찾은 계정 id 만이다.
  *
  * 찾는 열쇠는 닉네임이나 계정 id 다 — 이메일은 문이 받지도 내지도 않는다. 닉네임은 유일하므로 찾으면 한 명이다.
@@ -17,15 +17,10 @@ import { noteDenial } from '../denial';
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계) — 닉네임 칸은 실제로 빈다.
  */
 
-/** 운영자가 아니라고 DB 가 답했다 — `42501` */
-export const DENIED = 'denied';
+export { DENIED } from '../denial';
 
 /** DB 가 받는 찾는 말의 길이 — 넘으면 `22023` 이라 묻기 전에 거른다 */
 export const QUERY_MAX = 64;
-
-type Asked = { readonly error: { readonly code?: string } | null };
-
-const denied = (answers: readonly Asked[]): boolean => answers.some((answer) => answer.error?.code === '42501');
 
 /** 출처 하나의 장부 — 받은(산) 수 · 확정 쓰임 · 빈자리(받은 − 확정 − 예약, 묶음은 걷은 것 · 확보 중인 것도 뺀다) */
 export type CreditSource = {
@@ -108,14 +103,12 @@ export const queryOf = (value: string | string[] | undefined): string | null => 
  */
 export async function operatorMember(
   query: string | null,
-): Promise<typeof DENIED | SkippableRead<MemberRecord | null>> {
+): Promise<Denied | SkippableRead<MemberRecord | null>> {
   const supabase = await supabaseOnServer();
   const found = await supabase.rpc('operator_member', rpcArgs<'operator_member'>({ p_query: query }));
 
-  if (denied([found])) {
-    await noteDenial(supabase, 'members.find');
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'members.find', [found]);
+  if (denied) return denied;
   if (found.error) return unread(found.error, 'operator_member');
 
   const row = found.data?.[0];

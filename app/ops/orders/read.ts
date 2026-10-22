@@ -3,7 +3,7 @@ import { readingBundleValidUntil, refundOwed } from '@/src/lib/reading/bundle';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import { noteDenial } from '../denial';
+import { deniedAmong, type Denied } from '../denial';
 import type { Owner } from './refund-confirm';
 
 /**
@@ -11,7 +11,7 @@ import type { Owner } from './refund-confirm';
  *
  * `operator_reading_refund_basis` 를 부른다 — 읽기 전에 풀린 예약을 정리하고, 읽을 때마다 접속기록에 `credits.refund_basis`
  * 한 줄(주문 id 만)을 남긴다(ADR 0106). 신고 화면의 문(`../reports/read.ts`)과 같은 규율이다: 운영자인지 여기서 안 묻고
- * 자료를 청해 **거절당하는 것으로 안다**(`42501`), 거절은 `noteDenial` 이 따로 적는다.
+ * 자료를 청해 **거절당하는 것으로 안다**(`42501`), 거절은 `deniedAmong` 이 따로 적는다.
  *
  * 이메일 · 닉네임은 문이 안 내준다 — 주문은 번호로만 가리킨다(런북 「수동 환불」).
  *
@@ -19,8 +19,7 @@ import type { Owner } from './refund-confirm';
  * 여기서 한 번 `null` 로 받아 옮긴다.
  */
 
-/** 운영자가 아니라고 DB 가 답했다 — `42501` */
-export const DENIED = 'denied';
+export { DENIED } from '../denial';
 
 export type OrderLine = {
   readonly orderId: string;
@@ -160,17 +159,15 @@ export const NO_ORDER = '00000000-0000-0000-0000-000000000000';
  */
 export async function refundBasis(
   orderId: string,
-): Promise<typeof DENIED | SkippableRead<RefundBasis | null>> {
+): Promise<Denied | SkippableRead<RefundBasis | null>> {
   const supabase = await supabaseOnServer();
   const answer = await supabase.rpc(
     'operator_reading_refund_basis',
     rpcArgs<'operator_reading_refund_basis'>({ p_order_id: orderId }),
   );
 
-  if (answer.error?.code === '42501') {
-    await noteDenial(supabase, 'credits.refund_basis');
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'credits.refund_basis', [answer]);
+  if (denied) return denied;
   if (answer.error) return unread(answer.error, 'operator_reading_refund_basis');
 
   const rows = answer.data ?? [];
@@ -182,10 +179,8 @@ export async function refundBasis(
     'operator_reading_refund_hold',
     rpcArgs<'operator_reading_refund_hold'>({ p_order_id: orderId }),
   );
-  if (held.error?.code === '42501') {
-    await noteDenial(supabase, 'credits.refund_status');
-    return DENIED;
-  }
+  const deniedHold = await deniedAmong(supabase, 'credits.refund_status', [held]);
+  if (deniedHold) return deniedHold;
   if (held.error) return unread(held.error, 'operator_reading_refund_hold');
   const hold = held.data?.[0];
   if (!asked && hold === undefined) return read(null);

@@ -306,6 +306,20 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
     expect(closed()?.[1]).toMatchObject({ p_failure_code: 'model-submit-failed' });
     expect(adopted(), '보내지도 못했는데 이름표를 적었다').toBeUndefined();
   });
+
+  /** 답을 못 받은 제출은 provider 가 받았을 수 있다 — 닫으면 그 응답의 webhook 이 되찾을 시도가 없다(`submit-unanswered.test.ts`) */
+  it('제출이 답을 못 받았으면 시도를 닫지 않는다', async () => {
+    submit.mockResolvedValue({ ok: false, code: 'model-submit-unanswered', detail: 'Connection error.' });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(closed()).toBeUndefined();
+    expect(adopted()).toBeUndefined();
+    expect(logged).toHaveBeenCalledWith('submit: 답 없음 — 시도를 열어 둔다', 'run-1', 'Connection error.');
+    logged.mockRestore();
+  });
 });
 
 /**

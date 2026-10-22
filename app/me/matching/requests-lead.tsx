@@ -4,7 +4,7 @@ import { CONSENT_FLOW_CAVEAT, CONSENT_FLOW_STEPS, REQUEST_STATUS_TEXT } from '@/
 
 import type { SkippableRead } from '../../db-error';
 import { Icon } from '../../ui/icons';
-import { CARD, ROW_CARD, TYPE_META } from '../../ui/surfaces';
+import { CARD, ROW_CARD, ROW_CARD_FACE, TYPE_META } from '../../ui/surfaces';
 import type { InboxRequest, Requests } from '../requests/inbox';
 import {
   BlockButton,
@@ -125,7 +125,7 @@ export const receivedOf = (requests: readonly InboxRequest[]) =>
   requests.filter((request) => request.direction === 'received' && request.status === 'pending');
 
 /** 접이칸 한 줄 — 제목 줄이 44px 을 넘고 끝의 셰브론이 펴지면 아래를 본다 */
-const FOLD = `${ROW_CARD} group py-0`;
+const FOLD = `${ROW_CARD_FACE} group px-4`;
 const FOLD_SUMMARY =
   'flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden';
 

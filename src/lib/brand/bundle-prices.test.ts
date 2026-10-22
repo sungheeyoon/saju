@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { bundlePrice, bundlePriceRows, exactDiscounts, refundOf, won } from './bundle-prices';
+import { won } from '../reading/bundle';
+import { bundlePrice, bundlePriceRows, exactDiscounts, refundOf } from './bundle-prices';
 import { businessInfoFrom } from './business';
 import type { LegalDocument, LegalTable } from './legal-text';
 import { refundPolicyFor } from './refund';

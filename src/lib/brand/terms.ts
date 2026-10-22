@@ -1,5 +1,6 @@
 import { SERVICE_NAME } from '.';
-import { bundlePrice, bundlePriceRows, exactDiscounts, refundOf, won } from './bundle-prices';
+import { won } from '../reading/bundle';
+import { bundlePrice, bundlePriceRows, exactDiscounts, refundOf } from './bundle-prices';
 import { type BusinessInfo, businessInfoLines, contactPlace } from './business';
 import { type LegalDocument, bullets, numbered, para, table } from './legal-text';
 

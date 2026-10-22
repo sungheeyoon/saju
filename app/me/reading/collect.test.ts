@@ -258,17 +258,36 @@ describe('가져온 글은 막는 검사를 넘어야 저장된다', () => {
  * 앞서는 `adopt_reading_job` 의 `error` 를 안 꺼내서, 조회가 터지면 「되찾을 것이 없었다」와
  * 같은 길로 흘렀다 — 기록에는 「집을 일감이 없습니다」가 남고 진짜 까닭은 어디에도 없었다.
  * 집기가 터질 때와 같은 자리에서 까닭을 싣고 건너뛴다(여기서 던지지 않는다, 머리말).
+ *
+ * **건너뜀의 까닭은 부르는 쪽이 안 읽는다** — webhook 은 처리 표시만, 복구기는 세지도 않는다. 그래서 DB 가 터진 것은
+ * 그 자리에서 기록에 남는다: 자리 이름 · 작업 식별자 · 오류 코드뿐이다.
  */
 describe('이름표를 잃은 일감을 되찾는다', () => {
-  it('되찾기가 터지면 그 까닭을 싣고 건너뛴다', async () => {
+  it('되찾기가 터지면 그 까닭을 싣고 건너뛰고 기록에 남긴다', async () => {
     keyedRpc.mockImplementation(async (name: string) => {
       if (name === 'claim_reading_job') return { data: [], error: null };
-      if (name === 'adopt_reading_job') return { data: null, error: { message: 'adopt failed' } };
+      if (name === 'adopt_reading_job') return { data: null, error: { code: 'XX000', message: 'adopt failed' } };
       return { data: null, error: null };
     });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
 
     await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'skipped', why: 'adopt failed' });
+    expect(logged).toHaveBeenCalledWith('collect: adopt_reading_job run-1 resp-1', 'XX000', 'adopt failed');
+    logged.mockRestore();
+  });
+
+  it('집기가 터지면 회수를 안 하고 건너뛰고 기록에 남긴다', async () => {
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: null, error: { code: '57014', message: 'claim timed out' } };
+      return { data: null, error: null };
+    });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'skipped', why: 'claim timed out' });
+    expect(retrieve).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith('collect: claim_reading_job resp-1', '57014', 'claim timed out');
+    logged.mockRestore();
   });
 });
 

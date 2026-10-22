@@ -1,23 +1,23 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition } from 'react';
+import { useId, useState } from 'react';
 
-import { isPenalizedRefund, refundBreakdown } from '@/src/lib/reading/bundle';
+import { isPenalizedRefund, refundBreakdown, won } from '@/src/lib/reading/bundle';
 
-import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
+import { actionAnswer, afterFailure, type ActionUnreached } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { useOneAtATime } from '../../ui/one-at-a-time';
+import { accountLabel } from '../account-label';
 import { bookRefund, holdRefund, releaseRefund } from './actions';
-import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime, won } from './labels';
+import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime } from './labels';
 import type { RefundHold } from './read';
 import {
   BOOK_LABEL,
-  oneAtATime,
-  ownerLabel,
   preparePlan,
   releaseLabel,
   samePlan,
@@ -29,12 +29,6 @@ const ROW = 'flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3';
 const LABEL = 'shrink-0 text-xs font-semibold text-muted sm:w-24';
 const FACTS = 'grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm';
 
-/**
- * 응답을 못 받은 누름 — 서버에서 섰는지 모른다. 액션이 무른 응답이 오지 않았으므로 화면을 다시 읽어 실제 결과를 세운다(같은
- * 요청 번호 · 취소 번호로 다시 내도 한 번만 적힌다).
- */
-const unreached = (message: string): boolean => message === ACTION_UNREACHED_NOTE;
-
 /** 확인창 안의 대상 줄 — 주문 번호 · 회원(닉네임 · 계정 앞자리) */
 function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
   return (
@@ -42,7 +36,7 @@ function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
       <dt className="text-muted">주문</dt>
       <dd className="break-all font-mono text-xs leading-5">{orderNumber}</dd>
       <dt className="text-muted">회원</dt>
-      <dd>{ownerLabel(owner)}</dd>
+      <dd>{accountLabel(owner.nickname, owner.ref)}</dd>
     </>
   );
 }
@@ -50,7 +44,8 @@ function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
 /**
  * **환불 준비** — 걷을 회차 · 사유를 고르고 「환불 준비」를 누르면 확인창이 선다(G-110 ②, ADR 0184). 창을 여는 순간 대상 · 회차 ·
  * 금액 · 사유 · 요청 번호를 고정하고(`preparePlan`), 그 고정본을 그대로 낸다. DB 는 금액을 다시 셈해 다르면 거절하고, 같은 요청
- * 번호로 다시 오면 같은 확보를 돌려준다. 실패하면 고른 값과 요청 번호가 남아 같은 창을 다시 연다.
+ * 번호로 다시 오면 같은 확보를 돌려준다. 실패해도 창은 열린 채 실패 줄을 세우고 고른 값이 남는다 — 요청 번호는 답을 못 받았을
+ * 때만 남는다(ADR 0184 덧).
  */
 export function PrepareForm({
   orderId,
@@ -82,8 +77,7 @@ export function PrepareForm({
   const [plan, setPlan] = useState<PreparePlan | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run } = useOneAtATime();
   const ids = useId();
 
   const order = { orderId, paid, credits, refundedCredits, refundedAmount, penalizedCredits };
@@ -108,22 +102,24 @@ export function PrepareForm({
 
   const confirm = () => {
     if (plan === null) return;
-    guard.current.run(
-      () =>
-        new Promise<void>((done) => {
-          startSaving(async () => {
-            const answer = await actionAnswer(holdRefund(plan.request));
-            if (answer.ok) {
-              setConfirming(false);
-              setPlan(null);
-            } else {
-              setFailure(answer.message);
-              if (unreached(answer.message)) router.refresh();
-            }
-            done();
-          });
-        }),
-    );
+    run(async () => {
+      const answer = await actionAnswer(holdRefund(plan.request));
+      if (answer.ok) {
+        setConfirming(false);
+        setPlan(null);
+      } else {
+        setFailure(answer.message);
+        // 어느 실패든 확인창은 열어 두고 실패 줄을 창 안에 세운다 — 결정이다(운영자 답 2026-10-22, ADR 0184 덧).
+        // 답을 못 받았으면 서버에서 섰는지 모른다 — 고정본(요청 번호)을 지켜 같은 요청으로 다시 낸다(섰으면 같은 확보가 온다).
+        // 분명한 거절이면(금액이 바뀜 · 요청 번호가 다른 준비에 쓰임 …) 그 요청 번호로는 다시 내도 같은 거절이다 — 번호만 새로 받는다.
+        // 고른 회차 · 사유는 남는다. 액션은 거절이면 화면을 다시 그리지 않으므로 어느 실패든 여기서 다시 읽는다 — 창을 닫고 다시
+        // 열면 새로 읽은 금액으로 고정한다
+        if (afterFailure(answer) === 'discard') {
+          setPlan(Object.freeze({ ...plan, request: Object.freeze({ ...plan.request, requestId: crypto.randomUUID() }) }));
+        }
+        router.refresh();
+      }
+    });
   };
 
   return (
@@ -228,27 +224,22 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
   const [dialog, setDialog] = useState<'book' | 'release' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run: runOnce } = useOneAtATime();
   const ids = useId();
 
-  const run = (call: () => Promise<{ ok: boolean; message?: string; done?: string }>) =>
-    guard.current.run(
-      () =>
-        new Promise<void>((done) => {
-          startSaving(async () => {
-            const answer = await call();
-            if (answer.ok) {
-              setDialog(null);
-              if (answer.done) setBooked(answer.done);
-            } else if (answer.message !== undefined) {
-              setFailure(answer.message);
-              if (unreached(answer.message)) router.refresh();
-            }
-            done();
-          });
-        }),
-    );
+  const run = (call: () => Promise<{ readonly ok: true; readonly done?: string } | { readonly ok: false; readonly message: string } | ActionUnreached>) =>
+    runOnce(async () => {
+      const answer = await call();
+      if (answer.ok) {
+        setDialog(null);
+        if (answer.done) setBooked(answer.done);
+      } else {
+        setFailure(answer.message);
+        // 어느 실패든 화면을 다시 읽는다 — 답을 못 받았으면 실제 결과를, 거절이면(준비가 이미 취소됨 · 다른 취소 번호로 적힘 …) 지금
+        // 확보를 세운다. 액션은 거절이면 다시 그리지 않는다. 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다(ADR 0184 덧)
+        router.refresh();
+      }
+    });
 
   const openBook = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -260,15 +251,13 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
   const book = () =>
     run(async () => {
       const answer = await actionAnswer(bookRefund({ orderId, holdId: hold.holdId, refundId: frozenRefundId }));
-      return answer.ok
-        ? { ok: true, done: `장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}` }
-        : { ok: false, message: answer.message };
+      return answer.ok ? { ok: true, done: `장부에 확정했습니다 — ${orderStatusLabel(answer.value.status)}` } : answer;
     });
 
   const release = () =>
     run(async () => {
       const answer = await actionAnswer(releaseRefund({ orderId, holdId: hold.holdId }));
-      return answer.ok ? { ok: true } : { ok: false, message: answer.message };
+      return answer.ok ? { ok: true } : answer;
     });
 
   const facts = (
@@ -302,7 +291,7 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
           <dt className="text-muted">사유</dt>
           <dd>{refundReasonLabel(hold.reason)}</dd>
           <dt className="text-muted">회원</dt>
-          <dd>{ownerLabel(hold.owner)}</dd>
+          <dd>{accountLabel(hold.owner.nickname, hold.owner.ref)}</dd>
           <dt className="text-muted">결제 번호</dt>
           <dd className="break-all font-mono text-xs leading-5">{hold.orderNumber}</dd>
           <dt className="text-muted">거래 번호</dt>
