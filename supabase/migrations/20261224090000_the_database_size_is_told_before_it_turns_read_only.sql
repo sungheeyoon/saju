@@ -1,4 +1,4 @@
--- DB 크기가 Free 의 읽기 전용 문턱(500MB)에 닿기 **전에** 운영자에게 알린다 (ADR 0199, 결정 대기 — 문턱 둘은 운영자가 정한다)
+-- DB 크기가 Free 의 읽기 전용 문턱(500MB)에 닿기 **전에** 운영자에게 알린다 (ADR 0199, 문턱 둘은 운영자 결정 2026-10-22)
 --
 -- 감시가 없었다(`pg_database_size` 를 부르는 자리 0, 2026-10-22). Supabase Free 는 DB 크기가 500MB 를 넘으면 읽기 전용이
 -- 되고(<https://supabase.com/docs/guides/platform/database-size> — 「Free Plan projects enter read-only mode when your
@@ -13,7 +13,7 @@
 --
 -- 1. `database_size_counted()` — Supabase 가 세는 것과 같은 값(클러스터의 모든 DB 의 `pg_database_size` 합).
 --    2026-10-22 운영 값 52MB(54,256,665 바이트 — `postgres` 37MB · `template0` · `template1` 각 7.5MB).
--- 2. 문턱 둘 — `database_size_warning_bytes()` 350MB · `database_size_critical_bytes()` 425MB. **운영자 결정 대기** — 이름
+-- 2. 문턱 둘 — `database_size_warning_bytes()` 350MB · `database_size_critical_bytes()` 425MB. **운영자 결정 2026-10-22** — 이름
 --    붙은 함수에 두어 한 줄로 고친다(`reading_failure_alert_floor` 와 같은 꼴).
 -- 3. `database_size_alert(p_bytes)` — 값을 받아 문턱을 견주고 `notify_ops` 로 하루 한 줄(`database-size-warning` ·
 --    `database-size-critical`). 값을 인자로 받는 것은 시험이 500MB 를 실제로 채우지 않고 재려는 것이다. 열쇠에도 안 연다 —
@@ -24,7 +24,7 @@
 --
 -- 새 제공자 · 새 비용은 없다. 재는 자리는 `supabase/tests/99_database_size_alert.test.sql`.
 
-/** 「경고」 문턱 — 350MB. 운영자 결정 대기(ADR 0199). 넘으면 하루 한 번 알린다 */
+/** 「경고」 문턱 — 350MB(ADR 0199, 운영자 결정 2026-10-22). 넘으면 하루 한 번 알린다 */
 create function public.database_size_warning_bytes()
 returns bigint
 language sql
@@ -32,7 +32,7 @@ immutable
 set search_path = ''
 as $$ select 350::bigint * 1024 * 1024 $$;
 
-/** 「위험」 문턱 — 425MB. 운영자 결정 대기(ADR 0199). 500MB 에서 읽기 전용이 되고 그 뒤에는 알림도 못 나간다 */
+/** 「위험」 문턱 — 425MB(ADR 0199, 운영자 결정 2026-10-22). 500MB 에서 읽기 전용이 되고 그 뒤에는 알림도 못 나간다 */
 create function public.database_size_critical_bytes()
 returns bigint
 language sql
