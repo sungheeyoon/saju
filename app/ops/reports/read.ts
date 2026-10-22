@@ -2,7 +2,7 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
-import { noteDenial } from '../denial';
+import { deniedAmong, type Denied } from '../denial';
 import { argsOf, isReportId, type ReportFilters } from './filters';
 import { sideOf, type Side } from './labels';
 import { reviewLogOf, sanctionLinesOf, type Party, type ReviewLogLine, type SanctionLine } from './review';
@@ -15,19 +15,13 @@ import { chosenOnce, type SnapshotMessage } from './snapshot';
  * 자리는 DB 의 `is_operator()` 하나고, 이 문은 자료를 청해서 **거절당하는 것으로 안다**(`42501`).
  *
  * 읽기만 한다 — 처분은 `actions.ts` 가 처분 문(`operator_review_report`)으로 적는다(G-111 ②, ADR 0188). **문이 읽을 때마다
- * DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) — 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
+ * DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) — 성공은 문 안에서, 거절은 아래 `deniedAmong` 이.
  *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인
  * 말 · 검토 시각 · 스냅샷 칸은 실제로 비므로 여기서 한 번 `null` 로 받아 옮긴다.
  */
 
-/** 운영자가 아니라고 DB 가 답했다 — `42501` */
-export const DENIED = 'denied';
-
-type Asked = { readonly error: { readonly code?: string } | null };
-
-const denied = (answers: readonly Asked[]): boolean =>
-  answers.some((answer) => answer.error?.code === '42501');
+export { DENIED } from '../denial';
 
 export type Account = {
   readonly userId: string;
@@ -89,14 +83,12 @@ export const reportRowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
  */
 export async function operatorReports(
   filters: ReportFilters,
-): Promise<typeof DENIED | SkippableRead<ReportPage>> {
+): Promise<Denied | SkippableRead<ReportPage>> {
   const supabase = await supabaseOnServer();
   const answer = await supabase.rpc('operator_reports', rpcArgs<'operator_reports'>(argsOf(filters)));
 
-  if (denied([answer])) {
-    await noteDenial(supabase, 'reports.list', null);
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'reports.list', [answer]);
+  if (denied) return denied;
   if (answer.error) return unread(answer.error, 'operator_reports');
 
   const rows = answer.data ?? [];
@@ -165,7 +157,7 @@ type ReportDetail = {
  */
 export async function operatorReport(
   reportId: string,
-): Promise<typeof DENIED | SkippableRead<ReportDetail | null>> {
+): Promise<Denied | SkippableRead<ReportDetail | null>> {
   if (!isReportId(reportId)) return read(null);
 
   const supabase = await supabaseOnServer();
@@ -174,10 +166,8 @@ export async function operatorReport(
     supabase.rpc('operator_report_snapshot', { p_report_id: reportId }),
   ]);
 
-  if (denied([head, copied])) {
-    await noteDenial(supabase, 'reports.detail', reportId);
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'reports.detail', [head, copied], reportId);
+  if (denied) return denied;
   if (head.error) return unread(head.error, 'operator_report');
   if (copied.error) return unread(copied.error, 'operator_report_snapshot');
 

@@ -58,7 +58,9 @@
 (`inbox`·`candidates`·`current`). 「query」·「fetch」·「repository」는 안 쓴다(용어집 _Avoid_).
 
 **문이 실패를 말하는 법은 셋이다** — 본체는 `dbFailure` 로 던지고, 부속 정보는
-`SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078).
+`SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078). 운영자 문(`app/ops/**`)은 넷째 값
+`DENIED` 를 더 낸다 — 운영자가 아니라는 DB 의 거절(`42501`)이고 화면은 404 다. 그 값은 거절을 접속기록에 적는 `deniedAmong`
+(`app/ops/denial.ts`)만 내고, `app/ops/denial.boundary.test.ts` 가 그 밖의 자리를 막는다(ADR 0105 · 0191).
 `if (error) return []` 는 셋을 하나로 합치므로 쓰지 않는다.
 
 **옛 자리는 없다.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로, 2026-09-24 에 홈의 엣지 읽기가 문(`app/me/home/circle.ts`)으로, 2026-09-25 에 세 화면의 일정 읽기가 문(`app/beta-schedule.ts`)으로, 같은 날 G-60 에서 프로필의 사진 읽기가 문(`app/me/profile/photos.ts`)으로, 2026-09-30 에 매칭의 참여를 여는 부름이 열쇠 모듈(`app/me/keyed-chart-writes.ts`, G-64)로, 2026-10-01 에 사주풀이 글 화면의 엣지 읽기가 문(`app/me/(shelf)/readings/subject.ts` 의 `savedPersonOf`)으로, 2026-10-12 에 저장한 사람 · 궁합 탭의 엣지 · 자리 수 읽기 셋이 「내 사람」 문(`app/me/home/circle.ts` 의 `myPeople` — 한 그림 안에서 한 번 읽는다)으로 옮겼다. 마지막 하나 — 브라우저가 자리 수를 읽던 `app/save-for-reading.tsx` — 는 2026-10-14 에 문(`app/person-slots.ts` 의 `readPersonSlots`)으로 갔다(G-109). 목록은 비었고 잠금은 그대로다 — 새 호출은 빨개진다.
