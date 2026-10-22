@@ -82,12 +82,12 @@ export async function POST(request: Request): Promise<Response> {
       /**
        * **집었다고 적는다.**
        *
-       * 「아직 도는 중」이면 안 적는다 — 그 사건으로 할 일이 남아 있다. 저장·실패·
-       * 건너뜀은 이 사건으로 할 수 있는 일이 끝난 것이라 적는다.
+       * 「아직 도는 중」이거나 일시 장애로 놓았으면(`released`, ADR 0201) 안 적는다 — 그 사건으로 할 일이 남아 있고, 복구기가
+       * 다음 바퀴에 다시 집는다. 저장·실패·건너뜀은 이 사건으로 할 수 있는 일이 끝난 것이라 적는다.
        *
        * 못 적으면 안 적힌 채로 남고, 그것이 맞다 — 무언가 잘못됐다는 표시다. 그 까닭은 기록에 남긴다.
        */
-      if (outcome.done !== 'pending') {
+      if (outcome.done !== 'pending' && outcome.done !== 'released') {
         const { error: unmarked } = await keyed.rpc('mark_reading_webhook_processed', { p_event_id: event.id });
         if (unmarked) console.error('webhook 처리 표시', unmarked.code);
       }

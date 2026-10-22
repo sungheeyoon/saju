@@ -486,6 +486,8 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   ]);
   const KEY_HOLDERS = [
     'app/api/cron/audit-export/route.ts',
+    /** 사진 저장소의 청소기 — 남은 표 · 지울 줄의 문 셋만 부른다(G-120, `20261227090000`) */
+    'app/api/cron/photo-sweep/route.ts',
     'app/api/cron/reading/route.ts',
     'app/api/openai/webhook/route.ts',
     'app/api/portone/webhook/route.ts',

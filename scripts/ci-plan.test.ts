@@ -573,8 +573,9 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
     const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
     for (const plan of noAddress) expect(plan.reason).toMatch(/가 부른다$|관문이 부른다$|입구를 못 찾는다$/);
     // 서버 파일은 옛 규칙의 65 개에서 42 개로 줄었고(ADR 0178), 화면 컴포넌트 21 개(`.tsx` 19 · hook 같은 `.ts` 둘)가 layout · 인증 ·
-    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다
-    expect(noAddress.length).toBeLessThanOrEqual(68);
+    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다. 2026-10-23 에 둘 —
+    // 사진 저장소의 켜는 값 · S3 손(`app/me/photo/store-env.ts` · `s3-store.ts`)을 청소 크론(`app/api/cron/photo-sweep`)이 부른다(G-120)
+    expect(noAddress.length).toBeLessThanOrEqual(70);
   });
 });
 
