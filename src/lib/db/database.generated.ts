@@ -3002,6 +3002,10 @@ export type Database = {
           schedule_id: number
         }[]
       }
+      database_size_alert: { Args: { p_bytes: number }; Returns: boolean }
+      database_size_counted: { Args: never; Returns: number }
+      database_size_critical_bytes: { Args: never; Returns: number }
+      database_size_warning_bytes: { Args: never; Returns: number }
       day_master_element_of: { Args: { p_user_id: string }; Returns: string }
       discovery_balance_band: {
         Args: { combined_balance: number }
