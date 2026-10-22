@@ -1,19 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition } from 'react';
+import { useId, useState } from 'react';
 
-import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
+import { actionAnswer, afterFailure } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, SEGMENT, SEGMENT_ON, SEGMENTS } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { useOneAtATime } from '../../ui/one-at-a-time';
 import { accountLabel } from '../account-label';
-import { oneAtATime } from '../orders/refund-confirm';
 import { bookCreditGrant } from './actions';
 import {
-  afterFailure,
   GRANT_MAX,
   GRANT_REASONS,
   NOTE_MAX,
@@ -37,7 +36,7 @@ const FACTS = 'grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm';
  *
  * 단추 둘 — 「무상 풀이권 지급」 · 「무상 지급분 회수」. 누르면 칸 안에 폼이 펼쳐진다(수량 · 사유 갈래 · 메모). 폼의 단추
  * 「3장 지급」 · 「2장 회수」를 누르면 확인창이 서고, 창을 여는 순간 값 · 읽은 버전 · 요청 번호를 고정해(`grantPlan`) 그 고정본을
- * 그대로 낸다. 처리 중에는 단추가 잠기고 두 번째 누름은 버린다(`oneAtATime`). 실패하면 창을 닫고 입력을 그대로 둔 채 실패 줄을
+ * 그대로 낸다. 처리 중에는 단추가 잠기고 두 번째 누름은 버린다(`useOneAtATime`). 실패하면 창을 닫고 입력을 그대로 둔 채 실패 줄을
  * 세운다 — 응답을 못 받았으면 화면을 다시 읽고, 같은 값으로 다시 누르면 같은 요청 번호로 가서 한 번만 적힌다. 성공하면 서버가
  * 이 화면을 다시 읽어 그린다(새 장부 · 이력).
  */
@@ -67,8 +66,7 @@ export function GrantPanel({
   const [plan, setPlan] = useState<GrantPlan | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run } = useOneAtATime();
   const done = useDoneNote();
   const ids = useId();
 
@@ -108,28 +106,23 @@ export function GrantPanel({
 
   const confirm = () => {
     if (plan === null) return;
-    guard.current.run(
-      () =>
-        new Promise<void>((finish) => {
-          startSaving(async () => {
-            const answer = await actionAnswer(bookCreditGrant(plan.request));
-            setConfirming(false);
-            if (answer.ok) {
-              const verb = plan.request.kind === 'grant' ? '지급' : '회수';
-              setMode(null);
-              setPlan(null);
-              setNote('');
-              done.say(answer.replayed ? `이미 ${verb}했습니다.` : `${verb}했습니다.`);
-            } else {
-              setFailure(answer.message);
-              // 결과를 모르면 고정본을 지키고, 분명한 거절이면 버린다 — 둘 다 지금 장부를 다시 읽는다(`afterFailure`)
-              if (afterFailure(answer.message, ACTION_UNREACHED_NOTE) === 'discard') setPlan(null);
-              router.refresh();
-            }
-            finish();
-          });
-        }),
-    );
+    run(async () => {
+      const answer = await actionAnswer(bookCreditGrant(plan.request));
+      setConfirming(false);
+      if (answer.ok) {
+        const verb = plan.request.kind === 'grant' ? '지급' : '회수';
+        setMode(null);
+        setPlan(null);
+        setNote('');
+        done.say(answer.replayed ? `이미 ${verb}했습니다.` : `${verb}했습니다.`);
+      } else {
+        setFailure(answer.message);
+        // 결과를 모르면 고정본을 지키고, 분명한 거절이면 버린다 — 둘 다 지금 장부를 다시 읽는다. 지급 액션은 거절이면 화면을
+        // 다시 그리지 않으므로 여기서 읽는다
+        if (afterFailure(answer) === 'discard') setPlan(null);
+        router.refresh();
+      }
+    });
   };
 
   return (

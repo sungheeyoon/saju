@@ -73,25 +73,3 @@ export const samePlan = (plan: PreparePlan | null, orderId: string, take: number
 export const BOOK_LABEL = '장부에 확정';
 
 export const releaseLabel = (credits: number): string => `준비 취소 — ${credits}장 돌려놓기`;
-
-/**
- * **한 번에 하나** — 처리 중에 다시 누른 것은 버린다. 상태(`useTransition`)는 다음 그림에야 단추를 잠그므로, 같은 그림 안의 두 번째
- * 누름은 이 자물쇠가 막는다.
- *
- * @returns 이번 누름을 실행했는가
- */
-export function oneAtATime(): { run: (work: () => Promise<void>) => boolean } {
-  let busy = false;
-  return {
-    run(work) {
-      if (busy) return false;
-      busy = true;
-      void work()
-        .catch(() => undefined)
-        .finally(() => {
-          busy = false;
-        });
-      return true;
-    },
-  };
-}

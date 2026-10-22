@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 
-import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../../ui/action-answer';
+import { actionAnswer, afterFailure } from '../../../ui/action-answer';
 import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
@@ -16,9 +16,8 @@ import {
 import { ConfirmDialog } from '../../../ui/confirm-dialog';
 import { FailureLine } from '../../../ui/failure-line';
 import { FIELD } from '../../../ui/fields';
+import { useOneAtATime } from '../../../ui/one-at-a-time';
 import { accountLabel } from '../../account-label';
-import { afterFailure } from '../../members/credit-grant';
-import { oneAtATime } from '../../orders/refund-confirm';
 import { writeReview } from '../actions';
 import { reviewOutcomeLabel } from '../labels';
 import {
@@ -49,7 +48,7 @@ const SEGMENT_FOCUS = 'grid cursor-pointer place-items-center text-center has-[:
  *
  * 처리 필요면 처분 폼이 서고, 처리 완료면 반영 결과(`children` — 서버가 그린다)와 「처분 바꾸기」가 선다. 폼은 결과 넷 · 제재 대상 ·
  * 경고 갈래 · 판단 근거다. 처분 단추를 누르는 순간 값 · 읽은 처리 버전 · 요청 번호를 고정하고(`reviewPlan`), 경고 · 이용 정지
- * 결정과 처분 바꾸기는 확인창을 거쳐 그 고정본을 그대로 낸다. 처리 중에는 단추가 잠기고 두 번째 누름은 버린다(`oneAtATime`).
+ * 결정과 처분 바꾸기는 확인창을 거쳐 그 고정본을 그대로 낸다. 처리 중에는 단추가 잠기고 두 번째 누름은 버린다(`useOneAtATime`).
  * 실패하면 창을 닫고 입력을 그대로 둔 채 실패 줄을 세운다 — 응답을 못 받았으면 화면을 다시 읽고, 같은 값으로 다시 누르면 같은
  * 요청 번호로 가서 한 번만 적힌다. 성공하면 서버가 이 화면을 다시 읽어 그린다(새 결과 · 버전 · 이력).
  */
@@ -74,8 +73,7 @@ export function ReviewPanel({
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const guard = useRef(oneAtATime());
+  const { saving, run } = useOneAtATime();
   const ids = useId();
 
   // 처리 필요로 돌아온 신고(다른 운영자가 추가 확인으로 바꿨다)는 폼이 다시 선다 — 그 밖에는 누른 사람이 연다
@@ -86,29 +84,23 @@ export function ReviewPanel({
   const input = { outcome, side, warningCategory: category, note };
 
   const submit = (frozen: ReviewPlan) => {
-    guard.current.run(
-      () =>
-        new Promise<void>((finish) => {
-          startSaving(async () => {
-            const answer = await actionAnswer(writeReview(frozen.request));
-            setConfirming(false);
-            if (answer.ok) {
-              setPlan(null);
-              setNote('');
-              setOutcome('no_action');
-              setEditing(false);
-              setDone(doneNote(!now.isOpen, frozen.request.outcome, answer.replayed));
-            } else {
-              setFailure(answer.message);
-              // 결과를 모르면 고정본을 지키고 화면을 다시 읽는다. 분명한 거절이면 고정본을 버린다 — 액션이 이미 지금 화면을 다시
-              // 그려 실었으므로 다음 누름은 새 버전 · 새 요청 번호다
-              if (afterFailure(answer.message, ACTION_UNREACHED_NOTE) === 'discard') setPlan(null);
-              else router.refresh();
-            }
-            finish();
-          });
-        }),
-    );
+    run(async () => {
+      const answer = await actionAnswer(writeReview(frozen.request));
+      setConfirming(false);
+      if (answer.ok) {
+        setPlan(null);
+        setNote('');
+        setOutcome('no_action');
+        setEditing(false);
+        setDone(doneNote(!now.isOpen, frozen.request.outcome, answer.replayed));
+      } else {
+        setFailure(answer.message);
+        // 결과를 모르면 고정본을 지키고 화면을 다시 읽는다. 분명한 거절이면 고정본을 버린다 — 액션이 이미 지금 화면을 다시
+        // 그려 실었으므로 다음 누름은 새 버전 · 새 요청 번호다
+        if (afterFailure(answer) === 'discard') setPlan(null);
+        else router.refresh();
+      }
+    });
   };
 
   const open = (event: React.FormEvent<HTMLFormElement>) => {

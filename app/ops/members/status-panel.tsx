@@ -1,18 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition } from 'react';
+import { useId, useState } from 'react';
 
-import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
+import { actionAnswer, afterFailure } from '../../ui/action-answer';
 import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, BUTTON_TERTIARY_DANGER, SEGMENT, SEGMENT_ON, SEGMENTS } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { useOneAtATime } from '../../ui/one-at-a-time';
 import { accountLabel } from '../account-label';
-import { oneAtATime } from '../orders/refund-confirm';
 import { changeMemberStatus } from './actions';
-import { afterFailure } from './credit-grant';
 import {
   NOTE_MAX,
   doneNote,
@@ -56,9 +55,8 @@ export function StatusPanel({
   const [plan, setPlan] = useState<StatusPlan | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
+  const { saving, run } = useOneAtATime();
   const router = useRouter();
-  const guard = useRef(oneAtATime());
   const done = useDoneNote();
   const ids = useId();
 
@@ -90,28 +88,22 @@ export function StatusPanel({
 
   const confirm = () => {
     if (plan === null) return;
-    guard.current.run(
-      () =>
-        new Promise<void>((finish) => {
-          startSaving(async () => {
-            const answer = await actionAnswer(changeMemberStatus(plan.request));
-            setConfirming(false);
-            if (answer.ok) {
-              setOpened(false);
-              setPlan(null);
-              setNote('');
-              done.say(doneNote(plan.request.kind, answer.replayed));
-            } else {
-              setFailure(answer.message);
-              // 분명한 거절이면 고정본을 버린다 — 액션이 거절이어도 지금 화면을 다시 그려 실었다. 결과를 모르면(응답이 끊겼다)
-              // 고정본을 지키고 화면을 다시 읽는다 — 액션의 응답이 안 왔으니 다시 그린 화면도 안 왔다
-              if (afterFailure(answer.message, ACTION_UNREACHED_NOTE) === 'discard') setPlan(null);
-              else router.refresh();
-            }
-            finish();
-          });
-        }),
-    );
+    run(async () => {
+      const answer = await actionAnswer(changeMemberStatus(plan.request));
+      setConfirming(false);
+      if (answer.ok) {
+        setOpened(false);
+        setPlan(null);
+        setNote('');
+        done.say(doneNote(plan.request.kind, answer.replayed));
+      } else {
+        setFailure(answer.message);
+        // 분명한 거절이면 고정본을 버린다 — 액션이 거절이어도 지금 화면을 다시 그려 실었다. 결과를 모르면(응답이 끊겼다)
+        // 고정본을 지키고 화면을 다시 읽는다 — 액션의 응답이 안 왔으니 다시 그린 화면도 안 왔다
+        if (afterFailure(answer) === 'discard') setPlan(null);
+        else router.refresh();
+      }
+    });
   };
 
   return (
