@@ -178,15 +178,6 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
   });
 
   /**
-   * **관문 밖의 주소는 스스로 자격을 물어야 한다.**
-   *
-   * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
-   * 두드리면 남의 시도를 닫는다. webhook 은 서명이, 크론 주소는 `CRON_SECRET` 을 보는 `cronAuthorized` 가 든다 —
-   * 둘 중 하나라도 빠지면 그 문은 열린 문이다. 결제 알림(G-23 ⑥)은 `settleWebhook` 이 무엇보다 먼저
-   * 서명을 본다 — 서명이 틀리면 아무것도 안 부르는 것은 `app/api/portone/webhook/settle.test.ts` 가 잰다. 웹 푸시의
-   * 배달 문은 제 비밀(`PUSH_DISPATCH_SECRET`)로 `bearerAuthorized` 를 부른다(ADR 0156).
-   */
-  /**
    * 자격을 묻지 않는 `/api` 문 — 하나뿐이고 까닭이 적힌다. 바깥 감시의 상태 문(G-118)은 감시 서비스가 머리글 없이
    * 두드리고, 일어나는 일은 로그인 없는 역할이 이미 부르는 공개 문 하나의 읽기와 한 낱말의 답뿐이다(`app/api/health/route.ts`).
    */
@@ -203,6 +194,15 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     }
   });
 
+  /**
+   * **관문 밖의 주소는 스스로 자격을 물어야 한다.**
+   *
+   * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
+   * 두드리면 남의 시도를 닫는다. webhook 은 서명이, 크론 주소는 `CRON_SECRET` 을 보는 `cronAuthorized` 가 든다 —
+   * 둘 중 하나라도 빠지면 그 문은 열린 문이다. 결제 알림(G-23 ⑥)은 `settleWebhook` 이 무엇보다 먼저
+   * 서명을 본다 — 서명이 틀리면 아무것도 안 부르는 것은 `app/api/portone/webhook/settle.test.ts` 가 잰다. 웹 푸시의
+   * 배달 문은 제 비밀(`PUSH_DISPATCH_SECRET`)로 `bearerAuthorized` 를 부른다(ADR 0156).
+   */
   it('관문 밖 주소는 저마다 자격을 묻는다', () => {
     const routes = files.filter(({ path }) => path.startsWith('app/api/') && path.endsWith('route.ts') && !(path in OPEN_ROUTES));
 
