@@ -5,7 +5,7 @@ import { rpcArgs } from '@/src/lib/db';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
-import { noteDenial, noteWriteRefusal, type RefusedTarget, type WriteAction } from '../denial';
+import { deniedAmong, noteWriteRefusal, type RefusedTarget, type WriteAction } from '../denial';
 import { bookRefusalTarget } from './book-refusal';
 import { isRefundReason } from './labels';
 import type { PrepareRequest } from './refund-confirm';
@@ -111,8 +111,8 @@ export async function releaseRefund(input: { readonly orderId: string; readonly 
   );
   if (held.error) {
     // 운영자가 아니면 그 읽기의 `denied`, 그 밖의 실패(`22P02` · `57014` …)는 준비 취소가 거절된 것이다
-    if (held.error.code === '42501') await noteDenial(supabase, 'credits.refund_status');
-    else await noteWriteRefusal(supabase, 'credits.refund_release', held.error.code, { orderId: input.orderId });
+    if (!(await deniedAmong(supabase, 'credits.refund_status', [held])))
+      await noteWriteRefusal(supabase, 'credits.refund_release', held.error.code, { orderId: input.orderId });
     return { ok: false, message: userFacingDbMessage(held.error, 'operator_reading_refund_hold') };
   }
   const hold = (held.data ?? []).find((row) => row.hold_id === input.holdId);

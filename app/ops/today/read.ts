@@ -2,7 +2,7 @@ import type { RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
-import { noteDenial } from '../denial';
+import { deniedAmong, type Denied } from '../denial';
 
 /**
  * 오늘 · 이번 주의 숫자가 **브라우저로 내려오는 문** (G-110 ①, ADR 0183).
@@ -12,11 +12,10 @@ import { noteDenial } from '../denial';
  * 여기서 지으면 「오늘」이 아홉 시간 어긋난다.
  *
  * **운영자인지 여기서 안 묻는다** — 자료를 청해 거절당하는 것으로 안다(`42501`). 문이 읽을 때마다 DB 가 접속기록에 한 줄
- * (`today.figures`)을 적고, 거절은 아래 `noteDenial` 이 같은 이름으로 적는다.
+ * (`today.figures`)을 적고, 거절은 아래 `deniedAmong` 이 같은 이름으로 적는다.
  */
 
-/** 운영자가 아니라고 DB 가 답했다 — `42501` */
-export const DENIED = 'denied';
+export { DENIED } from '../denial';
 
 export type Period = 'today' | 'week';
 
@@ -68,14 +67,12 @@ export const todayFiguresOf = (rows: readonly RpcRow<'operator_today_figures'>[]
  *
  * @returns 거절이면 `DENIED`.
  */
-export async function operatorTodayFigures(): Promise<TodayFigures | typeof DENIED> {
+export async function operatorTodayFigures(): Promise<TodayFigures | Denied> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('operator_today_figures');
-  if (error?.code === '42501') {
-    await noteDenial(supabase, 'today.figures');
-    return DENIED;
-  }
+  const denied = await deniedAmong(supabase, 'today.figures', [{ error }]);
+  if (denied) return denied;
   if (error) throw dbFailure(error, 'operator_today_figures');
 
   const figures = todayFiguresOf(data ?? []);
