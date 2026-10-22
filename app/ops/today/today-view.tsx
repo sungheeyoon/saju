@@ -1,4 +1,4 @@
-import { won } from '../../me/credits/won';
+import { won } from '@/src/lib/reading/bundle';
 import { CARD } from '../../ui/surfaces';
 import { sinceDay } from './labels';
 import type { Figures, TodayFigures } from './read';

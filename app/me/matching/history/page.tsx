@@ -8,7 +8,7 @@ import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { answerOfThrown, read, type SkippableRead } from '../../../db-error';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { PAPER, TYPE_DISPLAY, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { PAPER_FACE, TYPE_DISPLAY, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
 import { MakingShelf, PairCover } from '../../(shelf)/readings/shelf';
 import { readAccount } from '../../account';
 import { AccountNotice } from '../../account-notice';
@@ -95,7 +95,7 @@ export default async function MatchHistoryPage() {
         덱에서 요청이 오가야 생긴다.
       */}
       {empty && (
-        <section className={`${PAPER} flex flex-col items-center gap-6 py-10 text-center sm:py-14`}>
+        <section className={`${PAPER_FACE} flex flex-col items-center gap-6 px-6 py-10 text-center sm:px-8 sm:py-14`}>
           <h2 className={TYPE_DISPLAY}>아직 인연 기록이 없어요</h2>
           <Link href="/me/matching" className={BUTTON_PRIMARY}>
             <Icon name="people" className="size-[18px]" />

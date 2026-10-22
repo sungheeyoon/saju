@@ -30,7 +30,8 @@ export type ReleaseCheck =
 
 const unknown = (why: string): ReleaseCheck => ({ kind: 'unknown', why });
 
-const won = (value: unknown): number | null => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null);
+/** 0 이상의 정수 원이면 그 수, 아니면 `null` — PortOne 이 낸 금액 칸을 믿기 전에 모양을 본다 */
+const wholeWonOf = (value: unknown): number | null => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null);
 
 /**
  * @param body 결제 단건 조회의 본문 — 결제가 없으면(404) `null`
@@ -54,7 +55,7 @@ export function releaseCheckOf(body: unknown, bookedRefund: number): ReleaseChec
     if (typeof cancellation.status !== 'string') return unknown('cancellation has no status');
     if (cancellation.status === 'FAILED') continue;
     if (cancellation.status !== 'SUCCEEDED') return { kind: 'cancelled' };
-    const amount = won(cancellation.totalAmount);
+    const amount = wholeWonOf(cancellation.totalAmount);
     if (amount === null) return unknown('succeeded cancellation has no amount');
     succeeded += amount;
   }
@@ -63,7 +64,7 @@ export function releaseCheckOf(body: unknown, bookedRefund: number): ReleaseChec
   if (amounts !== undefined && amounts !== null && typeof amounts === 'object') {
     const reported = (amounts as Record<string, unknown>).cancelled;
     if (reported !== undefined) {
-      const cancelled = won(reported);
+      const cancelled = wholeWonOf(reported);
       if (cancelled === null || cancelled !== succeeded) return unknown('amount.cancelled differs from the cancellations');
     }
   }

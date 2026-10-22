@@ -5,7 +5,7 @@ import { ROOM_NO_MESSAGES_YET } from '@/src/lib/chat/copy';
 import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { BADGE, TYPE_TITLE } from '../../ui/surfaces';
+import { BADGE_FACE, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import type { ChatRoom } from './rooms';
 import type { RoomTones } from './tones';
@@ -133,7 +133,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
             {notice ?? room.lastMessageBody ?? ROOM_NO_MESSAGES_YET}
           </span>
           {unread > 0 && (
-            <span className={`${BADGE} shrink-0 px-1.5`}>
+            <span className={`${BADGE_FACE} shrink-0 px-1.5`}>
               {unread}
               <span className="sr-only">건 안 읽음</span>
             </span>

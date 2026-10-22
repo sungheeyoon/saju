@@ -1,6 +1,4 @@
-import { isPenalizedRefund, refundOwed } from '@/src/lib/reading/bundle';
-
-import { won } from './labels';
+import { isPenalizedRefund, refundOwed, won } from '@/src/lib/reading/bundle';
 
 /**
  * **환불 세 동작의 「실행 전 확인」** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다(G-110 ②, ADR 0184).
@@ -11,8 +9,6 @@ import { won } from './labels';
 
 /** 확인창이 가리키는 대상 — 동명이인을 가르려고 닉네임에 계정 내부 번호 앞자리를 붙인다 */
 export type Owner = { readonly nickname: string | null; readonly ref: string };
-
-export const ownerLabel = (owner: Owner): string => `${owner.nickname ?? '닉네임 없음'} · ${owner.ref}`;
 
 /** 환불 준비에 내는 값 — 확인창에 보인 그대로 */
 export type PrepareRequest = {
@@ -77,25 +73,3 @@ export const samePlan = (plan: PreparePlan | null, orderId: string, take: number
 export const BOOK_LABEL = '장부에 확정';
 
 export const releaseLabel = (credits: number): string => `준비 취소 — ${credits}장 돌려놓기`;
-
-/**
- * **한 번에 하나** — 처리 중에 다시 누른 것은 버린다. 상태(`useTransition`)는 다음 그림에야 단추를 잠그므로, 같은 그림 안의 두 번째
- * 누름은 이 자물쇠가 막는다.
- *
- * @returns 이번 누름을 실행했는가
- */
-export function oneAtATime(): { run: (work: () => Promise<void>) => boolean } {
-  let busy = false;
-  return {
-    run(work) {
-      if (busy) return false;
-      busy = true;
-      void work()
-        .catch(() => undefined)
-        .finally(() => {
-          busy = false;
-        });
-      return true;
-    },
-  };
-}

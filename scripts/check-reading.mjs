@@ -30,7 +30,7 @@ import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie } from
  * 둘이 같은 상수를 보면 문구가 바뀌어도 갈라지지 않는다. `notes.ts` 는 import 가
  * 하나도 없는 leaf 라 Node 가 그대로 읽는다.
  */
-import { READING_STALE_NOTE } from '../src/lib/reading/notes.ts';
+import { READING_REPLACES_NOTE, READING_STALE_NOTE } from '../src/lib/reading/notes.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -270,9 +270,17 @@ try {
      * 옮겼다. 이 층은 JS 를 안 돌리므로 **그 창이 화면에 실려 왔는가**까지 잰다 —
      * 실제로 열리고 취소되는 것은 e2e 가 손으로 눌러 본다.
      */
-    check('새로 만들면 대신한다는 경고가 확인 창에 실려 온다',
-      mine.includes('이전 것은 남기지 않습니다'));
-    check('그 경고가 버튼 옆에 늘 서 있지는 않다', !mine.includes('지금 풀이를 새로 받을 수 있어요'));
+    check('새로 만들면 대신한다는 경고가 확인 창에 실려 온다', mine.includes(READING_REPLACES_NOTE));
+    /*
+      「버튼 옆에 늘 서 있지 않다」를 옛 안내 글자(「지금 풀이를 새로 받을 수 있어요」)로 재던 자리다 — 제품을 떠난 글자라
+      언제나 통과했다(ADR 0079). 경고 문장이 한 번만 오고 그 자리가 `<dialog>` 안인지로 잰다.
+    */
+    const warnedAt = mine.indexOf(READING_REPLACES_NOTE);
+    const before = mine.slice(0, warnedAt);
+    check('그 경고가 버튼 옆에 늘 서 있지는 않다',
+      warnedAt >= 0
+        && mine.indexOf(READING_REPLACES_NOTE, warnedAt + 1) === -1
+        && before.lastIndexOf('<dialog') > before.lastIndexOf('</dialog>'));
     const spent = await a.rpc('my_reading_credits');
     check('만들면 풀이권이 하나 준다',
       spent.data?.[0]?.used === 1

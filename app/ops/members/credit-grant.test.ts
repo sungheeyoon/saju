@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import { afterFailure } from '../../ui/action-answer';
+
 import {
-  afterFailure,
   grantPlan,
   historyAmount,
   historyCause,
   historyCursorOf,
   historyFilterOf,
   isGrantReason,
-  memberLabel,
   nextCursor,
   grantBlocked,
   revokeBlocked,
@@ -67,21 +67,10 @@ describe('확인창은 연 순간의 값을 고정해 그대로 낸다', () => {
 });
 
 describe('실패 뒤의 고정본', () => {
-  const UNREACHED = '처리하지 못했어요. 다시 시도해 주세요.';
-
-  it('응답이 끊겨 결과를 모르면 고정본(요청 번호)을 지킨다 — 같은 값의 재시도가 같은 요청으로 간다', () => {
-    expect(afterFailure(UNREACHED, UNREACHED)).toBe('keep');
-  });
-
-  it('서버가 분명히 거절하면(버전 충돌 · 회수할 수 있는 수) 버린다 — 다음 누름은 새 버전 · 새 요청 번호로 새 확인을 연다', () => {
-    expect(afterFailure('그 사이 이 회원의 무상 풀이권이 바뀌었습니다. 새로 읽고 다시 확인해 주세요.', UNREACHED)).toBe('discard');
-    expect(afterFailure('회수할 수 있는 지급분보다 많습니다 — 지금 0장입니다.', UNREACHED)).toBe('discard');
-  });
-
   it('버린 뒤 같은 입력으로 다시 열면 새 읽은 버전이 든 새 고정본이다', () => {
     const input = { kind: 'revoke' as const, userId: member, credits: 1, reason: 'other', note: '메모', reportId: null };
     const stale = grantPlan(ledger, input, 'req-old');
-    const kept = afterFailure('충돌', UNREACHED) === 'keep' ? stale : null;
+    const kept = afterFailure({ ok: false, message: '충돌' }) === 'keep' ? stale : null;
     const next = samePlan(kept, input) ? kept : grantPlan({ ...ledger, version: 5 }, input, 'req-new');
     expect(next?.request.seenVersion).toBe(5);
     expect(next?.request.requestId).toBe('req-new');
@@ -94,11 +83,6 @@ describe('갈래 · 대상 · 회수 잠금', () => {
     expect(isGrantReason('grant', 'mistake')).toBe(false);
     expect(isGrantReason('revoke', 'other')).toBe(true);
     expect(isGrantReason('revoke', 'operator')).toBe(false);
-  });
-
-  it('대상은 닉네임과 계정 id 앞 8자', () => {
-    expect(memberLabel('지영', member)).toBe('지영 · a1b2c3d4');
-    expect(memberLabel(null, member)).toBe('닉네임 없음 · a1b2c3d4');
   });
 
   it('탈퇴 대기 계정에는 지급 단추를 잠그고 까닭 한 줄 — 정지 · 이용 중은 연다', () => {
