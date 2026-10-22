@@ -12,11 +12,11 @@ import {
 
 import { calculateChart, chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, queryFromSearchParams } from '@/src/lib/input/query';
-import { readingEvidenceOf } from '@/src/lib/reading';
+import { READING_REPLACES_NOTE, readingEvidenceOf } from '@/src/lib/reading';
 import { TASTE_RUN_VERSIONS, tasteEvidenceOf, tasteFingerprintOf } from '@/src/lib/reading/taste-run';
 import type { Saju } from '@/src/lib/saju';
-import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
-import { DISCOVERY_POLICY } from '@/src/lib/discovery';
+import { CHART_ENGINE_VERSION, EVIDENCE_CONTRACT, chartSnapshotOf } from '@/src/lib/saju';
+import { DISCOVERY_POLICY, DISCOVERY_V1 } from '@/src/lib/discovery';
 import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { PROMPT_VARIANTS } from '@/src/lab/reading/variants';
 
@@ -160,8 +160,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       await expect(banner.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
     }
     await expect(banner.getByRole('button', { name: '로그아웃' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
+    /*
+      **독과 톱니에 위 목록 말고는 없다.** 옛 「사주 보기」 탭 · 「인연 설정」 링크를 이름으로 재던 자리다 — 둘 다 제품을
+      떠난 글자라 언제나 통과했다(ADR 0079). 수로 세면 어떤 이름으로 돌아와도 걸린다.
+    */
+    await expect(mobileNav.getByRole('link')).toHaveCount(4);
+    await expect(settingsMenu.locator('xpath=..').getByRole('link')).toHaveCount(3);
   });
 
   test('소식에 들어가도 종은 먹색 면에 밝은 그림으로 남는다', async ({ page, signedIn }) => {
@@ -1065,9 +1069,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 만드는 버튼은 풀이 화면의 것이다(ADR 0055) — `/me` 는 명식만 든다 */
     await page.goto('/me/readings/self');
 
-    /* 있는 글 옆의 설명은 걷었다 — 버튼이 이미 자기 이름으로 말한다 */
-    await expect(page.getByText('지금 풀이를 새로 받을 수 있어요')).toHaveCount(0);
-    await expect(page.getByText('화면을 다시 열어도')).toHaveCount(0);
+    /*
+      **있는 글 옆에 경고가 늘 서 있지 않다** — 대신한다는 말은 누른 뒤의 창이 든다. 옛 안내 글자(「지금 풀이를 새로 받을 수
+      있어요」 · 「화면을 다시 열어도」)는 제품을 떠나 언제나 통과했다(ADR 0079). 창이 들 문장(제품 상수)이 누르기 전에는 안 보인다
+    */
+    await expect(page.getByText(READING_REPLACES_NOTE)).toBeHidden();
 
     const again = page.getByRole('button', { name: '사주풀이 다시 받기' });
     await again.click();
@@ -1296,11 +1302,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
     await expect(page.locator('a[href="/me"][aria-current="page"]:visible')).toHaveCount(1);
-    await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
 
+    /*
+      현관의 것은 지금 현관에 서는 것으로 잰다 — 입구 탭 · 「할 수 있는 것」 · 로그인 전 단추 이름. 옛 토글(「사주와 궁합」) ·
+      코드 띠 · 「로그인 필요」는 제품을 떠난 글자라 언제나 통과했다(ADR 0079).
+    */
     await expect(page.getByRole('tablist', { name: '무엇을 볼까요' })).toHaveCount(0);
-    await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
-    await expect(page.getByText('로그인 필요')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: '할 수 있는 것' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '무료로 내 사주 보기', exact: true })).toHaveCount(0);
 
     await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
     await submitReady(page);
@@ -1317,7 +1326,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat');
     await expect(page.getByRole('heading', { name: '궁합 새로 보기' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
+    /* 옛 토글의 이름(「사주와 궁합」)은 제품을 떠났다 — 지금 그 일을 하는 현관의 입구 탭으로 잰다(ADR 0079) */
+    await expect(page.getByRole('tablist', { name: '무엇을 볼까요' })).toHaveCount(0);
   });
 
   /**
@@ -2680,8 +2690,10 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const analysis = page.getByText('두 사주를 맞대어 본 표');
     await expect(analysis).toBeVisible();
     await expect(page.getByText('궁합 베타', { exact: true })).toBeVisible();
-    // 내부 판본 이름은 화면 어디에도 없다(ADR 0026).
-    await expect(page.locator('main')).not.toContainText('match-v0');
+    // 내부 판본 이름은 화면 어디에도 없다(ADR 0026). 옛 `match-v0` 대신 지금 판과 옛 판의 이름을 제품 상수에서 읽는다(ADR 0079)
+    for (const version of [DISCOVERY_POLICY.version, DISCOVERY_V1.version]) {
+      await expect(page.locator('main')).not.toContainText(version);
+    }
 
     const shown = await page.locator('main').innerText();
     expect(shown.indexOf('두 사주를 맞대어 본 표')).toBeLessThan(shown.indexOf('궁합 베타'));
@@ -2693,10 +2705,12 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await analysis.click();
     await expect(page.getByRole('heading', { name: '두 사주 사이의 관계' })).toBeVisible();
 
-    // 받지 않는 신청을 받는 것처럼 보이던 버튼도, 그것을 대신했던 링크도 없다.
-    await expect(page.getByRole('button', { name: '관심 있어요' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: '인연 찾기에서 요청하기' })).toHaveCount(0);
-    await expect(page.locator('main')).not.toContainText('상세 궁합은 두 분이 서로 동의해야');
+    /*
+      받지 않는 신청을 받는 것처럼 보이던 버튼도, 그것을 대신했던 링크도 없다 — 이 결과에서 인연 찾기로 가는 길이 없다.
+      옛 이름(「관심 있어요」 · 「인연 찾기에서 요청하기」 · 「상세 궁합은 두 분이 서로 동의해야」)은 제품을 떠난 글자라
+      언제나 통과했다(ADR 0079). 가는 곳(주소)으로 잰다
+    */
+    await expect(page.locator('main a[href^="/me/matching"]')).toHaveCount(0);
 
     // 그 자리는 이제 궁합풀이를 만드는 버튼이 쓴다 — 지표 **아래**다.
     const order = await page.locator('main').innerText();
@@ -2726,8 +2740,12 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await page.getByText('두 사주를 맞대어 본 표').click();
     await expect(page.getByRole('heading', { name: '두 사주 사이의 관계' })).toBeVisible();
 
+    /* 도구가 내놓던 것으로 잰다 — 내려받는 링크와 근거 자료가 싣는 판본 이름(제품 상수). 옛 단추 이름은 제품을 떠났다(ADR 0079) */
+    await expect(page.locator('main a[download]')).toHaveCount(0);
     const shown = await page.locator('main').innerText();
-    expect(shown).not.toContain('JSON 내려받기');
+    for (const name of [EVIDENCE_CONTRACT.version, ...Object.values(EVIDENCE_CONTRACT.ruleSets)]) {
+      expect(shown).not.toContain(name);
+    }
   });
 
   /**
