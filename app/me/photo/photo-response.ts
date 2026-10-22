@@ -53,11 +53,7 @@ export async function photoResponse(userId: string, position: number, variant: P
   }
 
   const row = (data ?? [])[0];
-  /*
-    바이트가 저장소에 사는 장(`object_key`, G-120)은 `base64` 가 빈다 — 그 장을 어떻게 내줄지(열람 방식)는 아직 안 정했다.
-    정하기 전에는 없는 장과 같은 404 다. 저장소가 꺼진 배포에는 그런 장이 없다.
-  */
-  if (row === undefined || !row.base64) return new NextResponse(null, { status: 404 });
+  if (row === undefined) return new NextResponse(null, { status: 404 });
 
   if (row.base64) return photoBytes(new Uint8Array(Buffer.from(row.base64, 'base64')), row.content_type);
 
