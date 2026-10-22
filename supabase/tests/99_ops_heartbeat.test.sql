@@ -10,7 +10,7 @@
 --
 -- Vault 와 실행 기록은 이 파일이 만든 것만 쓴다. 롤백이 되돌린다.
 begin;
-select plan(7);
+select plan(8);
 
 delete from vault.secrets where name = 'ops_heartbeat_url';
 delete from cron.job_run_details
@@ -37,11 +37,13 @@ from cron.job j where j.jobname = 'cron-watch';
 create temporary table queued_before as
 select count(*)::int as n from net.http_request_queue where url = 'http://127.0.0.1:9/heartbeat';
 
-select ok(
-  public.ping_ops_heartbeat()
-  and (select count(*)::int from net.http_request_queue where url = 'http://127.0.0.1:9/heartbeat')
-      = (select n from queued_before) + 1,
-  '감시기가 최근에 성공했으면 주소로 요청 한 줄이 큐에 선다');
+-- 부름과 세기를 한 문장에 두면 세는 쪽이 문장 시작의 스냅숏을 봐 방금 선 줄을 못 본다 — 따로 부른다
+select is(public.ping_ops_heartbeat(), true, '감시기가 최근에 성공했으면 보낸다');
+
+select is(
+  (select count(*)::int from net.http_request_queue where url = 'http://127.0.0.1:9/heartbeat'),
+  (select n from queued_before) + 1,
+  '그 주소로 요청 한 줄이 큐에 선다');
 
 select is(
   (select schedule from cron.job where jobname = 'ops-heartbeat'),
