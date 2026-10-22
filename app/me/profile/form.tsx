@@ -74,10 +74,13 @@ export function ProfileForm({
   current,
   photos,
   userId,
+  storedPhotos,
 }: {
   current: ProfileInput;
   photos: readonly MyPhoto[];
   userId: string;
+  /** 올린 사진이 저장소로 가나(G-120) */
+  storedPhotos: boolean;
 }) {
   const [profile, setProfile] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
@@ -173,6 +176,7 @@ export function ProfileForm({
       <PhotoGrid
         userId={userId}
         photos={photos}
+        stored={storedPhotos}
       />
 
       <form

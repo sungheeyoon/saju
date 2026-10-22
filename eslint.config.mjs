@@ -121,6 +121,7 @@ const NO_LOOSE_ENDS = ["error", { terms: ["todo", "fixme", "xxx", "hack"], locat
  */
 export const KEY_HOLDERS = [
   "app/api/cron/audit-export/route.ts",
+  "app/api/cron/photo-sweep/route.ts",
   "app/api/cron/reading/route.ts",
   "app/api/openai/webhook/route.ts",
   "app/api/portone/webhook/route.ts",

@@ -29,6 +29,15 @@ describe('사진 한 장을 내주는 자리', () => {
     expect(logged).not.toHaveBeenCalled();
   });
 
+  it('바이트가 저장소에 사는 장(base64 가 빔)은 열람 방식을 정하기 전까지 없는 장과 같은 404 다', async () => {
+    rpc.mockResolvedValue({ data: [{ content_type: 'image/webp', base64: null }], error: null });
+
+    const answer = await photoResponse('u-1', 1);
+
+    expect(answer.status).toBe(404);
+    expect(logged).not.toHaveBeenCalled();
+  });
+
   it('DB 가 고장 나면 500 이고 그 까닭이 기록에 남는다', async () => {
     rpc.mockResolvedValue({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } });
 

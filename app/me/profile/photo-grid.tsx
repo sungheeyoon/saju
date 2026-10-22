@@ -82,7 +82,16 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
  * 주소에 1분 캐시된다** — `?v=` 는 맞는데 눈에는 안 옮겨진 그림이 선다. 누름을 600ms 늦춘 e2e 에서
  * 대표 칸이 옛 장을 보였다(2026-09-25). 서버가 준 자리의 주소는 이미 받아 둔 그 장이라 곧바로 선다.
  */
-export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly MyPhoto[] }) {
+export function PhotoGrid({
+  userId,
+  photos,
+  stored,
+}: {
+  userId: string;
+  photos: readonly MyPhoto[];
+  /** 올린 사진이 저장소로 가나(G-120) — `usePhotoUploads` 가 보내는 길을 고른다 */
+  stored: boolean;
+}) {
   const router = useRouter();
   const [order, moveInView] = useOptimistic(
     photos,
@@ -130,6 +139,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     framer,
   } = usePhotoUploads({
     userId,
+    stored,
     photos,
     total,
     working,

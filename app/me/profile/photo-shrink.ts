@@ -1,4 +1,12 @@
-import { PHOTO_MAX_BYTES, PHOTO_MAX_EDGE, PHOTO_TYPES } from '@/src/lib/profile';
+import {
+  PHOTO_MAX_BYTES,
+  PHOTO_MAX_EDGE,
+  PHOTO_TYPES,
+  PHOTO_VARIANTS,
+  VARIANTS_REFUSED,
+  variantSize,
+  type PhotoVariant,
+} from '@/src/lib/profile';
 
 /** 줄인 사진 — 보낼 형식과 바이트, 아니면 사용자에게 서는 까닭 한 줄 */
 export type Shrunk = { ok: true; contentType: string; base64: string } | { ok: false; message: string };
@@ -76,4 +84,52 @@ export async function shrink(file: File): Promise<Shrunk> {
   if (oversize !== null) return { ok: false, message: oversize };
 
   return { ok: true, contentType, base64: base64Of(new Uint8Array(await chosen.arrayBuffer())) };
+}
+
+/** 저장소로 보낼 두 벌 — 같은 형식, 작은 벌과 큰 벌 */
+export type Baked = { ok: true; contentType: string; card: Blob; large: Blob } | { ok: false; message: string };
+
+/** 큰 벌이 상한을 넘을 때 한 번 더 굽는 품질 — 처음(`shrink` 와 같은 0.85)보다 한 단계 낮게 잡은 잠정값이다(G-120 기록) */
+const SECOND_QUALITY = 0.72;
+
+/**
+ * 저장소가 켜진 배포의 올리기 — **두 벌을 굽는다**(`card` · `large`, G-120). 줄이기 · 자르지 않기 · WebP 를 못 구우면 JPEG 는
+ * `shrink` 와 같다. 큰 벌이 상한을 넘으면 품질을 한 번 낮춰 다시 굽고, 그래도 넘으면 거절한다. 서버가 같은 상한을 다시 본다.
+ *
+ * 브라우저가 읽지 못한 사진(`createImageBitmap`)이면 던진다 — 부르는 쪽이 제 문장으로 받는다.
+ */
+export async function bakeVariants(file: File): Promise<Baked> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvasOf = (variant: PhotoVariant) => {
+      const size = variantSize(variant, bitmap.width, bitmap.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = size.width;
+      canvas.height = size.height;
+      const context = canvas.getContext('2d');
+      if (context === null) return null;
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    };
+    const large = canvasOf('large');
+    const card = canvasOf('card');
+    if (large === null || card === null) return { ok: false, message: SHRINK_FAILED };
+
+    const baked = (canvas: HTMLCanvasElement, type: string, quality: number) =>
+      new Promise<Blob | null>((done) => canvas.toBlob(done, type, quality));
+    const webp = await baked(large, 'image/webp', 0.85);
+    const type = webp?.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+
+    let big = type === 'image/webp' ? webp : await baked(large, type, 0.85);
+    if (big !== null && big.size > PHOTO_VARIANTS.large.maxBytes) big = await baked(large, type, SECOND_QUALITY);
+    const small = await baked(card, type, 0.85);
+    if (big === null || small === null) return { ok: false, message: SHRINK_FAILED };
+
+    if (big.size > PHOTO_VARIANTS.large.maxBytes || small.size > PHOTO_VARIANTS.card.maxBytes) {
+      return { ok: false, message: VARIANTS_REFUSED };
+    }
+    return { ok: true, contentType: type, card: small, large: big };
+  } finally {
+    bitmap.close();
+  }
 }
