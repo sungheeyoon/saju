@@ -72,6 +72,59 @@ Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cr
 ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
+### 바깥 감시 — 앱이 통째로 죽거나 DB 가 알림을 못 쓸 때 (G-118)
+
+위의 알림은 전부 DB 안의 `notify_ops` 한 길로 나간다 — `pg_cron` 이 멈추거나 · 감시기가 계속 실패하거나 · DB 가 읽기 전용이
+되거나(Free 500MB, ADR 0199) · 프로젝트가 멈추면 그 길이 함께 서고, 앱이 통째로 응답하지 않는 것(도메인 · 배포 · 플랜 한도)은
+그 길이 아예 모른다. 그래서 **바깥 서비스가 두 꼴로 본다** — 주소를 두드리는 uptime 감시, 그리고 DB 가 10분마다 보내는 신호가
+끊기면 알리는 dead-man heartbeat. **어느 서비스를 쓸지 · 비용은 운영자 결정이다**(간극 대장 G-118 — 후보와 추천은
+[기록](../../product/gaps/records/g-118.md)). 아래는 서비스와 상관없이 정한 것이다.
+
+**무엇을 보나** — `<운영 주소>` 는 `docs/ops/runbook/domain.md` 맨 위의 그 한 줄이다(여기 적지 않는다).
+
+| # | 꼴 | 대상 | 정상 | 주기 · 유예 | 이것이 잡는 것 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | uptime(HTTP) | `<운영 주소>/` | 200 | 5분 | 도메인 · DNS · 인증서 · Vercel 프로젝트 전체 — 이 화면은 빌드 때 그려져 CDN 이 내므로 **함수 · DB 는 못 본다** |
+| 2 | uptime(HTTP) | `<운영 주소>/api/health` | 200 · 본문 `{"status":"ok"}` | 5분 | 함수가 돈다 · 앱이 접속값으로 DB 에 닿는다(로그인 없는 역할로 공개 문 `current_beta_schedule` 하나, 5초에 끊는다). DB 를 못 읽으면 503 `{"status":"unavailable"}`. **이 문은 #804(결정 대기 — 자격을 묻지 않는 문)에 있고 아직 운영에 없다** |
+| 3 | heartbeat | 서비스가 주는 신호 주소 → Vault `ops_heartbeat_url` | 10분마다 GET 하나 | 기간 10분 · 유예 10분 | `pg_cron` 멈춤 · 감시기(`cron-watch`)의 25분 넘는 실패 · 읽기 전용 · 프로젝트 멈춤. 크론 `ops-heartbeat`(`5-59/10`, `ping_ops_heartbeat()`)가 **감시기가 25분 안에 성공했을 때만** 보낸다 — 마이그레이션은 draft #805 에 있고 아직 운영에 없다 |
+
+**어디로 알리나** — 바깥 서비스가 **직접** 보낸다(DB 를 안 지난다). 운영자 이메일 하나는 반드시 걸고, 지금 운영 채널(Slack ·
+Discord — Vault `ops_alert_url` 과 같은 채널)을 더한다. 채널의 웹훅이 끊긴 것은 이 감시도 모른다 — 이메일이 그 몫이다.
+
+**잡지 못하는 것** — 화면 하나만 깨진 것(서버 오류 알림 `request-error:*` 이 본다) · 로그인 · 풀이 같은 흐름의 실패(풀이 실패율 ·
+#770 의 운영자 확인이 본다) · 운영 채널 웹훅의 폐기.
+
+**보내는 것과 받는 것** — 두드리는 요청과 신호는 본문이 없고, 상태 문의 답은 한 낱말이다. 개인정보는 바깥 서비스로 가지 않는다
+(운영자 이메일 · 채널 주소는 서비스 계정의 설정이다).
+
+#### 서비스를 고른 날 — 붙이는 차례
+
+1. **서비스 계정**을 만들고 MFA 를 켠다(#304 의 MFA 줄에 이 서비스를 더한다). 알림 받을 곳에 운영자 이메일을 넣고, 채널을 쓰면 그 연동을 더한다.
+2. **uptime 둘** — 위 표 1 · 2 를 HTTP(S) 감시로 만든다. 2 는 본문 낱말(`"status":"ok"`)을 보는 감시가 있으면 그것으로, 없으면 상태 코드로.
+   방법 GET · 넘김 따라가지 않음(넘김이 생기면 그것이 바뀐 것이다) · 제한시간 30초 안팎.
+3. **heartbeat 하나** — 기간 10분 · 유예 10분으로 만들고 신호 주소를 받는다. 신호 주소는 **열쇠다**(가진 사람이 「살아 있다」를 꾸민다) —
+   저장소 · 이슈 · 노트에 적지 않는다.
+4. **Vault 에 넣는다**(heartbeat 마이그레이션이 운영에 오른 뒤 — `docs/ops/runbook/deploy.md` 「배포」의 `db push` 차례):
+
+   ```sql
+   select vault.create_secret('<신호 주소>', 'ops_heartbeat_url');
+   -- 들어갔나 — 값은 안 본다. 1 이어야 한다
+   select count(*) from vault.decrypted_secrets where name = 'ops_heartbeat_url' and decrypted_secret is not null;
+   -- 한 번 쏴 본다 — 감시기가 25분 안에 성공했으면 참
+   select public.ping_ops_heartbeat();
+   ```
+
+   주소를 바꿀 때는 `vault.update_secret((select id from vault.secrets where name = 'ops_heartbeat_url'), '<새 주소>')`.
+   새면 `docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 Vault `ops_heartbeat_url` 줄대로 바꾼다.
+
+**붙인 뒤 확인** — 값은 #304 의 그 줄 댓글에 날짜와 함께.
+
+- `curl -s -o /dev/null -w '%{http_code}\n' <운영 주소>/api/health` 가 200, 서비스 화면의 두 감시가 「up」
+- 2분 뒤 `select status_code, created from net._http_response order by created desc limit 3;` 에 200 이 있고, 서비스 화면의 heartbeat 가 「up」
+- **알림이 실제로 오나** — heartbeat 잡을 잠시 끈다: `select cron.alter_job((select jobid from cron.job where jobname = 'ops-heartbeat'), active := false);`
+  → 20~25분 안에 이메일(과 채널)로 「down」이 온다 → `active := true` 로 되돌리고 「up」이 오는 것을 본다. 끈 동안 감시기가
+  `cron-inactive:ops-heartbeat` 를 한 번 보내는 것은 정상이다
+
 ---
 
 ## 제품 지표
