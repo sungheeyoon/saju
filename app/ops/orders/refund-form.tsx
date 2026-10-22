@@ -5,7 +5,7 @@ import { useId, useState } from 'react';
 
 import { isPenalizedRefund, refundBreakdown, won } from '@/src/lib/reading/bundle';
 
-import { actionAnswer, isUnreached, type ActionUnreached } from '../../ui/action-answer';
+import { actionAnswer, afterFailure, type ActionUnreached } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
@@ -108,9 +108,14 @@ export function PrepareForm({
         setPlan(null);
       } else {
         setFailure(answer.message);
-        // 답을 못 받았으면 서버에서 섰는지 모른다 — 액션이 다시 그린 화면도 안 왔으므로 화면을 다시 읽어 실제 결과를 세운다(같은
-        // 요청 번호로 다시 내도 한 번만 적힌다). 고른 값 · 요청 번호는 어느 실패에도 남는다(ADR 0184)
-        if (isUnreached(answer)) router.refresh();
+        // 답을 못 받았으면 서버에서 섰는지 모른다 — 창 · 고정본(요청 번호)을 지켜 같은 요청으로 다시 낸다(섰으면 같은 확보가 온다).
+        // 분명한 거절이면(금액이 바뀜 · 요청 번호가 다른 준비에 쓰임 …) 그 고정본으로는 다시 내도 같은 거절이다 — 창을 닫고 버린다.
+        // 고른 회차 · 사유는 남는다. 액션은 거절이면 화면을 다시 그리지 않으므로 어느 실패든 여기서 다시 읽는다(ADR 0184 덧)
+        if (afterFailure(answer) === 'discard') {
+          setConfirming(false);
+          setPlan(null);
+        }
+        router.refresh();
       }
     });
   };
@@ -228,8 +233,9 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
         if (answer.done) setBooked(answer.done);
       } else {
         setFailure(answer.message);
-        // 답을 못 받았으면 화면을 다시 읽어 실제 결과를 세운다 — 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다
-        if (isUnreached(answer)) router.refresh();
+        // 어느 실패든 화면을 다시 읽는다 — 답을 못 받았으면 실제 결과를, 거절이면(준비가 이미 취소됨 · 다른 취소 번호로 적힘 …) 지금
+        // 확보를 세운다. 액션은 거절이면 다시 그리지 않는다. 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다(ADR 0184 덧)
+        router.refresh();
       }
     });
 
