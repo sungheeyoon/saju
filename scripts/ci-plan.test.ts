@@ -49,6 +49,14 @@ import {
   summaryOf,
   testsImportingCopy,
   testsNamingLiterally,
+  LANE_SCRIPTS,
+  TEST_RUNNERS,
+  UNTESTED_GAP,
+  looseAddressesOf,
+  mentionOf,
+  testRunnerChangeOf,
+  testsOfEntry,
+  untestedEntries,
 } from './ci-plan.mjs';
 import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
 import { filesUnder } from './source-files';
@@ -65,13 +73,14 @@ const FULL = { policy: false, core: true, anon: true, authed: true, flow: true, 
 const CORE_ONLY = { policy: false, core: true, anon: false, authed: false, flow: false, audit: false };
 
 describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
-  it('입구가 아닌 코드 PR 은 core 하나만 탄다 — 전체는 main 에서 돈다', () => {
+  it('입구가 아닌 코드 PR 은 core 하나만 탄다 — 전체는 main 에서 돈다(화면 컴포넌트 · CI 자체는 아래)', () => {
     for (const files of [
-      ['app/me/(shelf)/readings/shelf.tsx'],
+      ['app/me/(shelf)/readings/opening.ts'],
       ['src/lib/saju/strength/index.ts'],
+      // 지운 컴포넌트(못 읽음)는 안 건다 — 부르던 쪽이 함께 바뀌어 그쪽이 걸린다
       ['src/lib/matching/x.ts', 'app/me/matching/x.tsx', 'app/auth-free.ts'],
       ['app/me/(shelf)/readings/book.ts', 'app/auth/signed-in.test.ts', 'app/me/matching/page.test.ts'],
-      ['.github/workflows/verify.yml'],
+      ['.github/ISSUE_TEMPLATE/x.yml'],
     ]) {
       const plan = beta(files);
       expect(plan.tier, files[0]).toBe('core');
@@ -164,7 +173,10 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
   });
 
   it('#284 에서 layout 과 subject.ts 를 빼도 흐름 검사는 선다 — check-chat.mjs 와 탭의 주소가 부른다', () => {
-    const plan = beta(PR_284.filter((file) => !file.endsWith('/layout.tsx') && !file.endsWith('/subject.ts')));
+    const rest = PR_284.filter((file) => !file.endsWith('/layout.tsx') && !file.endsWith('/subject.ts'));
+    // 서가의 컴포넌트(shelf · frame)는 그 layout 이 부르므로 그것만으로도 전부다(입구가 아닌 화면 컴포넌트)
+    expect(beta(rest).cause).toBe('주소 없음');
+    const plan = beta(rest.filter((file) => !/\/(?:shelf|frame)\.tsx$/.test(file)));
     expect(plan.tier).toBe('narrow');
     expect(plan.lanes.flow).toBe(true);
   });
@@ -237,6 +249,9 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
 
 /** 저장소 안의 import 를 파일로 푼다 — `./` · `../` · `@/` 만. 패키지는 `null` */
 const ROOT = resolve(__dirname, '..');
+/** 저장소의 파일 — 없거나 폴더면 `null` */
+const diskOf = (file: string): string | null =>
+  existsSync(resolve(ROOT, file)) && statSync(resolve(ROOT, file)).isFile() ? readFileSync(resolve(ROOT, file), 'utf8') : null;
 const resolveImport = (name: string, from: string): string | null => {
   const base = name.startsWith('@/') ? resolve(ROOT, name.slice(2)) : name.startsWith('.') ? resolve(dirname(from), name) : null;
   if (base === null) return null;
@@ -263,6 +278,7 @@ const reachedFrom = (roots: string[]): Set<string> => {
 /** 시험이 import 를 따라가는 뿌리 — `.ts` · `.tsx` · `.mjs` */
 const codeUnder = (dir: string): string[] => filesUnder(dir).filter((file) => /\.(tsx?|mjs)$/.test(file));
 const isTestFile = (file: string) => /\.test\.tsx?$/.test(file);
+const escapeForRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구다 (2026-09-28, ADR 0119 추기)', () => {
   it('감사가 짚은 서버 문 — 이름이 입구가 아니어도 DB · service-role · 공개 client 를 부르면 입구다. 액션 · route · 관문이 부르면 전부, 아니면 쓰는 입구의 차선(ADR 0178)', () => {
@@ -301,6 +317,44 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
     for (const file of ['scripts/ci-plan.mjs', 'scripts/release-stage.mjs', 'scripts/merge-sim.mjs', 'scripts/read-budget.mjs', 'scripts/fake-clock.mjs', 'scripts/ui-shots.mjs', 'scripts/generate-lunar-table.mjs']) {
       expect(isSurface(file), file).toBe(false);
     }
+  });
+
+  /**
+   * CI · 운영 · 개발 도구 넷(#767 검수) — 시험이 import 하거나 부르지 않아 `core` 다. `pr-title` 은 계획 job 이 PR 마다 부르고 제 단위
+   * 시험이 있다, `deploy-smoke` 는 `npm run smoke:deploy`(사람이 배포 뒤), `brand-icons` · `push-vapid-keys` 는 사람이 손으로 돌린다
+   */
+  it('시험이 부르지 않는 도구 넷은 시험 도구가 아니다 — e2e · 흐름 검사 · Playwright 설정 · 그 도우미가 import 도 실행도 안 한다', () => {
+    const tools = ['scripts/pr-title.mjs', 'scripts/deploy-smoke.mjs', 'scripts/brand-icons.mjs', 'scripts/push-vapid-keys.mjs'];
+    for (const file of tools) {
+      expect(existsSync(resolve(ROOT, file)), file).toBe(true);
+      expect(isSurface(file), file).toBe(false);
+      expect(beta([file]).lanes, file).toEqual(CORE_ONLY);
+    }
+    const harness = [
+      ...codeUnder(resolve(ROOT, 'e2e')),
+      ...codeUnder(resolve(ROOT, 'scripts')).filter((file) => !isTestFile(file) && isSurface(relative(ROOT, file))),
+      resolve(ROOT, 'playwright.config.ts'),
+    ];
+    const code = (file: string) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
+        .join('\n');
+    // 부른다 = import 하거나, 그 파일 이름을 통째 문자열로 실행 인자에 넘긴다. 안내 문장 속의 이름(`push-local.mjs` 가 찍는
+    // 「node scripts/push-vapid-keys.mjs」)은 부르는 것이 아니다
+    const calls = harness.flatMap((file) =>
+      tools
+        .filter((tool) => {
+          const name = escapeForRegExp(tool.replace(/^scripts\//, ''));
+          const source = code(file);
+          return (
+            importsOf(source).some((one) => one.endsWith(tool.replace(/^scripts\//, '')) || one.endsWith(tool.replace(/^scripts\/|\.mjs$/g, ''))) ||
+            new RegExp(`['"\`](?:\\.{1,2}\\/|scripts\\/)?${name}['"\`]`).test(source)
+          );
+        })
+        .map((tool) => `${relative(ROOT, file)} → ${tool}`),
+    );
+    expect(calls).toEqual([]);
   });
 
   it('관문이 import 를 따라 닿는 app/ 파일은 서버에 안 닿아도 전부다 — 관문이 새로 부르기 시작한 PR 에서부터', () => {
@@ -444,7 +498,7 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
     expect(beta(['app/beta-schedule.ts']).reason).toContain('관문이 부른다');
   });
 
-  it('같은 PR 에서 새 page 가 새 서버 파일을 부르면 그 page 의 주소로 간다 — page 의 시험이 없으면 전부', () => {
+  it('같은 PR 에서 새 page 가 새 서버 파일을 부르면 그 page 의 주소로 간다 — page 의 시험이 정말 없으면 core 와 시험 공백', () => {
     const door = 'app/me/people/new-door.ts';
     const page = 'app/me/people/page.tsx';
     const pageSource = `import { x } from './new-door';\n${disk(page)}`;
@@ -456,7 +510,13 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
     expect(plan.lanes).toEqual(pagePlan.lanes);
     const lonely = 'app/me/nowhere-yet/page.tsx';
     const lonelyOf = (file: string) => (file === door ? "import 'server-only';\n" : file === lonely ? "import { x } from '../people/new-door';\n" : disk(file));
-    expect(planFor({ files: [door, lonely], stage: '운영 베타', sourceOf: lonelyOf }).cause).toBe('닿는 시험 없음');
+    const lonelyPlan = planFor({ files: [door, lonely], stage: '운영 베타', sourceOf: lonelyOf });
+    expect(lonelyPlan.lanes).toEqual(CORE_ONLY);
+    expect(lonelyPlan.reason).toContain(`\`${lonely}\` 는 core 로 셌다(시험 공백, 간극 대장 ${UNTESTED_GAP})`);
+    // 다른 파일이 켠 차선은 그대로다
+    const mixed = planFor({ files: [door, lonely, page], stage: '운영 베타', sourceOf: (file) => (file === page ? pageSource : lonelyOf(file)) });
+    expect(mixed.lanes).toEqual(pagePlan.lanes);
+    expect(mixed.reason).toContain('시험 공백');
   });
 
   it('실측 — app/ 의 시험 아닌 파일 중 「주소 없음」으로 전부가 되는 파일은 공용 위험 · 관문 · 고아 까닭뿐이다', () => {
@@ -465,8 +525,287 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
       .filter((file) => !isTestFile(file));
     const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
     for (const plan of noAddress) expect(plan.reason).toMatch(/가 부른다$|관문이 부른다$|입구를 못 찾는다$/);
-    // 옛 규칙의 65 개에서 줄었다 — 다시 넓어지면 이 수를 보고 까닭을 적는다
-    expect(noAddress.length).toBeLessThan(65);
+    // 서버 파일은 옛 규칙의 65 개에서 42 개로 줄었고(ADR 0178), 화면 컴포넌트 21 개(`.tsx` 19 · hook 같은 `.ts` 둘)가 layout · 인증 ·
+    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다
+    expect(noAddress.length).toBeLessThanOrEqual(68);
+  });
+});
+
+/**
+ * **입구가 아닌 화면 컴포넌트도 그것을 쓰는 입구의 차선을 탄다**(CI 갈래 검수 2026-10-22 의 1). 전에는 `core` 만 돌아 main 이 붉은
+ * #581(#579 — `anon` · `signed-in`) · #614(#612 — `push`) · #595(#593 — `signed-in`)가 다 여기서 샜다.
+ */
+describe('CI 계획 — 입구가 아닌 화면 컴포넌트는 그것을 쓰는 입구의 차선을 탄다', () => {
+  /** main 이 붉었던 PR 의 코드 파일과 그때 붉은 차선 */
+  const REDS: [string, string[], string[]][] = [
+    [
+      '#579 → #581',
+      ['app/compat-picker.tsx', 'app/compat-view.tsx', 'app/me/consent-controls.tsx', 'app/me/people/manage.tsx', 'app/me/survey/form.tsx', 'app/saju/fortune.tsx', 'app/saju/result-nav.tsx', 'app/ui/buttons.ts'],
+      ['anon', 'signed-in:desktop', 'signed-in:mobile'],
+    ],
+    ['#612 → #614', ['app/me/push/browser.ts', 'app/me/settings/push-row.tsx'], ['push']],
+    ['#593 → #595', ['app/match-index.tsx', 'app/me/compat/screen.tsx', 'app/me/onboarding.tsx', 'app/saju-hero.tsx'], ['signed-in:desktop', 'signed-in:mobile']],
+  ];
+
+  it('main 이 붉었던 세 PR 의 화면 파일만으로도 그때 붉은 차선이 머지 전에 선다', () => {
+    for (const [name, files, red] of REDS) {
+      const plan = beta(files);
+      const on = [...(plan.lanes.anon ? ['anon'] : []), ...plan.authedLanes];
+      if (plan.tier !== 'full') for (const lane of red) expect(on, `${name} :: ${lane}`).toContain(lane);
+    }
+    // #612 의 둘 중 컴포넌트(`push-row.tsx`) 하나로 push 가 선다 — 옛 규칙은 core 하나였다
+    expect(beta(['app/me/settings/push-row.tsx']).authedLanes).toContain('push');
+  });
+
+  it('지운 컴포넌트(못 읽음)는 안 건다 · layout 이 부르면 그 자리라 전부 · 아무도 안 부르면 전부', () => {
+    expect(planFor({ files: ['app/me/gone-card.tsx'], stage: '운영 베타', sourceOf: () => null }).lanes).toEqual(CORE_ONLY);
+    const shelf = beta(['app/me/(shelf)/readings/shelf.tsx']);
+    expect(shelf.lanes).toEqual(FULL);
+    expect(shelf.reason).toContain('(layout)가 부른다');
+    const orphan = 'app/me/orphan-card.tsx';
+    const plan = planFor({ files: [orphan], stage: '운영 베타', sourceOf: (one) => (one === orphan ? 'export const C = () => null;\n' : diskOf(one)) });
+    expect(plan.cause).toBe('주소 없음');
+    expect(plan.reason).toContain('입구를 못 찾는다');
+  });
+
+  it('React 를 들이거나 \'use client\' 인 .ts(hook 같은 것)도 화면 컴포넌트다 — 순수 로직 .ts 는 core 그대로 (운영자 2026-10-22)', () => {
+    for (const hook of ['app/me/chat/[matchId]/use-outbox.ts', 'app/me/matching/use-deck.ts', 'app/ui/leave-guard.ts']) {
+      const plan = beta([hook]);
+      expect(plan.tier, hook).toBe('narrow');
+      expect(plan.authedLanes.length, hook).toBeGreaterThan(0);
+    }
+    expect(beta(['app/me/(shelf)/readings/book.ts']).lanes).toEqual(CORE_ONLY);
+    // 주석 속 「'use client'」는 지시가 아니다 — 첫 칸에 선 문자열만 센다
+    expect(beta(['app/me/matching/history-href.ts']).lanes).toEqual(CORE_ONLY);
+    const client = 'app/me/people/use-thing.ts';
+    const page = 'app/me/people/page.tsx';
+    const sourceOf = (one: string) =>
+      one === client ? "'use client';\nexport const useThing = () => 1;\n" : one === page ? `import { useThing } from './use-thing';\n${diskOf(page)}` : diskOf(one);
+    expect(planFor({ files: [client], stage: '운영 베타', sourceOf }).lanes).toEqual(beta([page]).lanes);
+    const hook = (one: string) => (one === client ? "import { useState } from 'react';\nexport const useThing = () => useState(1);\n" : sourceOf(one));
+    expect(planFor({ files: [client], stage: '운영 베타', sourceOf: hook }).lanes).toEqual(beta([page]).lanes);
+  });
+
+  it('실측 — 저장소의 화면 컴포넌트는 core 하나로 떨어지지 않는다(쓰는 입구에 닿는 시험이 정말 없을 때 말고는)', () => {
+    const components = codeUnder(resolve(ROOT, 'app'))
+      .map((file) => relative(ROOT, file).split(sep).join('/'))
+      .filter((file) => file.endsWith('.tsx') && !isTestFile(file) && routeOf(file) === null && !isSurface(file));
+    expect(components.length).toBeGreaterThan(100);
+    const silent = components
+      .map((file) => [file, beta([file])] as const)
+      .filter(([, plan]) => plan.tier === 'core' && !plan.reason.includes('시험 공백'))
+      .map(([file]) => file);
+    expect(silent).toEqual([]);
+  });
+});
+
+/**
+ * **닿는 시험이 0 인 입구는 「정말 없음」과 「탐색이 놓쳤음」으로 가른다**(운영자 2026-10-22 「조건부 core」). 글자 그대로 요청하는 시험이
+ * 없어도 템플릿 · 이어 붙임 · 정규식 · 도우미가 그 주소를 요청할 수 있으면 전부, 그것도 없으면 core 와 간극 대장의 시험 공백이다.
+ */
+describe('CI 계획 — 닿는 시험이 0 인 입구는 정말 없을 때만 core 와 시험 공백이다', () => {
+  const patterns = (source: string) => looseAddressesOf(source).map((one) => one.pattern.source);
+
+  it('확실히 못 푼 주소를 넓게 잡는다 — 템플릿의 식 · 이어 붙임 · 식 뒤의 경로 · 정규식의 \\/ 경로. 주석 · 분수 · 나눗셈 글자는 아니다', () => {
+    const hit = (source: string, address: string) => looseAddressesOf(source).some((one) => one.pattern.test(address));
+    expect(hit('await page.goto(`/me/${tab}`);', '/me/credits')).toBe(true);
+    expect(hit("await page.goto('/me/' + tab);", '/me/credits')).toBe(true);
+    expect(hit('await fetch(`${BASE}/me/credits/history`);', '/me/credits/history')).toBe(true);
+    expect(hit('await expect(page).toHaveURL(/\\/me\\/credits$/);', '/me/credits')).toBe(true);
+    expect(hit('await expect(page).toHaveURL(/\\/me\\/credits$/);', '/me/credits/history')).toBe(false);
+    expect(hit('await expect(page).toHaveURL(/\\/me\\/readings\\/[0-9a-f-]+$/);', '/me/readings/x')).toBe(true);
+    expect(patterns('// await page.goto(`/me/${tab}`);')).toEqual([]);
+    expect(patterns('console.log(`${passed}/${total} 통과`);')).toEqual([]);
+    expect(patterns("getByText(/\\d+ \\/ 100/);")).toEqual([]);
+    // 글자 그대로의 주소는 여기 안 든다 — `addressesOf` 몫이다
+    expect(patterns("await page.goto('/me/credits');")).toEqual([]);
+  });
+
+  it('입구 하나의 시험 — 글자 그대로 닿으면 그 시험, 0 이면 요청할 수도 있는 시험 · 도우미, 그것도 없으면 정말 없음', () => {
+    const map = (addresses: Record<string, string[]>, loose: Record<string, string> = {}) => ({
+      addresses,
+      loose: Object.fromEntries(Object.entries(loose).map(([file, source]) => [file, looseAddressesOf(source)])),
+    });
+    const page = 'app/me/credits/page.tsx';
+    expect(testsOfEntry(page, map({ 'e2e/a.spec.ts': ['/me/credits'] }))).toEqual({ tests: ['e2e/a.spec.ts'], unsure: [] });
+    expect(testsOfEntry(page, map({ 'e2e/a.spec.ts': ['/me'] }, { 'e2e/a.spec.ts': 'await page.goto(`/me/${tab}`);' }))).toEqual({
+      tests: [],
+      unsure: ['e2e/a.spec.ts'],
+    });
+    expect(testsOfEntry(page, map({ 'e2e/a.spec.ts': ['/me'] }, { 'e2e/a.spec.ts': "await page.goto('/me');" }))).toEqual({ tests: [], unsure: [] });
+    // 그 아래 전부를 맡는 입구(`loading` …)는 무늬의 머리가 그 아래면 놓쳤을 수 있다
+    expect(testsOfEntry('app/me/credits/loading.tsx', map({}, { 'e2e/b.spec.ts': 'expect(url).toMatch(/\\/me\\/credits\\/history\\/[0-9]+/);' })).unsure).toEqual([
+      'e2e/b.spec.ts',
+    ]);
+    // 동적 마디 · route group 은 보기 주소에서 한 마디 · 없음이다
+    expect(testsOfEntry('app/ops/(desk)/orders/[id]/page.tsx', map({}, { 'scripts/check-x.mjs': 'await fetch(`${base}/ops/orders/${id}`);' })).unsure).toEqual([
+      'scripts/check-x.mjs',
+    ]);
+  });
+
+  it('경로가 글자로 들어 있기만 해도 놓쳤을 수 있다 — glob · 정규식 문자열 · 경로 상수 · 이어 붙임. 앞이 다른 마디면 아니다 (두 번째 검토)', () => {
+    const page = 'app/me/credits/page.tsx';
+    const judge = (source: string, imported = '') =>
+      testsOfEntry(page, { addresses: { 'e2e/x.spec.ts': addressesOf(source) }, loose: { 'e2e/x.spec.ts': looseAddressesOf(source) }, texts: { 'e2e/x.spec.ts': `${source}\n${imported}` } });
+    const unsure = (source: string, imported = '') => judge(source, imported).unsure.length > 0;
+    expect(unsure("await page.waitForURL('**/me/credits');")).toBe(true);
+    expect(unsure("const base = '/me';\nawait page.goto(base + '/credits');")).toBe(true);
+    expect(unsure('await expect(page).toHaveURL(/credits$/);')).toBe(true);
+    expect(unsure("import { CREDITS } from '../src/lib/x';\nawait page.goto(CREDITS);", "export const CREDITS = '/me/credits';")).toBe(true);
+    // 정규식 문자열의 끝 `$` 는 떼고 읽어 글자 그대로 닿는다
+    expect(judge("await expect(page).toHaveURL(new RegExp('/me/credits$'));").tests).toEqual(['e2e/x.spec.ts']);
+    // 다른 마디 뒤의 끝 마디 · 주석 속 경로는 아니다
+    expect(testsOfEntry('app/me/credits/history/page.tsx', { addresses: {}, loose: {}, texts: { 'e2e/m.spec.ts': "await page.goto('/me/matching/history');" } }).unsure).toEqual([]);
+    expect(mentionOf('app/page.tsx')).toBeNull();
+    expect(mentionOf('app/me/chat/[matchId]/page.tsx')!.test('`/me/chat/${id}`')).toBe(true);
+  });
+
+  it('시험 없는 입구를 다른 page 가 다시 내보내면 그 page 의 시험이 그것을 그린다 — 놓쳤을 수 있어 전부 (두 번째 검토)', () => {
+    const lonely = 'app/me/credits/page.tsx';
+    const page = 'app/me/people/page.tsx';
+    const sourceOf = (one: string) => (one === page ? `export { default } from '../credits/page';\n` : diskOf(one));
+    const plan = planFor({ files: [lonely], stage: '운영 베타', sourceOf });
+    expect(plan.lanes).toEqual(FULL);
+    expect(plan.cause).toBe('닿는 시험 모름');
+    expect(plan.reason).toContain(page);
+  });
+
+  it('탐색이 놓쳤을 수 있으면 전부다 — 서가 아래 새 page 는 글자 그대로 요청하는 시험이 없어도 정규식 `\\/me\\/readings\\/[0-9a-f-]+$` 이 요청할 수 있다', () => {
+    const page = 'app/me/readings/foo/bar/page.tsx';
+    expect(testsOfEntry(page).tests).toEqual([]);
+    expect(testsOfEntry(page).unsure.length).toBeGreaterThan(0);
+    const plan = beta([page]);
+    expect(plan.lanes).toEqual(FULL);
+    expect(plan.cause).toBe('닿는 시험 모름');
+  });
+
+  it('정말 없으면 그 파일만 core 다 — 다른 파일이 켠 차선은 그대로, 까닭에 간극 대장의 줄이 실린다', () => {
+    const untested = untestedEntries();
+    expect(untested).toContain('app/ops/members/page.tsx');
+    const one = beta(['app/ops/members/page.tsx']);
+    expect(one.lanes).toEqual(CORE_ONLY);
+    expect(one.reason).toContain(`시험 공백, 간극 대장 ${UNTESTED_GAP}`);
+    // 그 page 만 부르는 서버 파일도 같다
+    expect(beta(['app/ops/members/read.ts']).lanes).toEqual(CORE_ONLY);
+    const mixed = beta(['app/ops/members/page.tsx', 'app/me/(shelf)/readings/compat/page.tsx']);
+    expect(mixed.lanes).toEqual(beta(['app/me/(shelf)/readings/compat/page.tsx']).lanes);
+    expect(mixed.reason).toContain('시험 공백');
+  });
+
+  it(`간극 대장 ${UNTESTED_GAP} 의 기록이 닿는 시험이 정말 없는 입구를 빠짐없이 든다 — 시험을 더하면 그 줄을 지운다`, () => {
+    const record = readFileSync(resolve(ROOT, `docs/product/gaps/records/g-${UNTESTED_GAP.slice(2)}.md`), 'utf8');
+    const section = record.split(/^## /m).find((one) => one.startsWith('닿는 시험이 없는 입구')) ?? '';
+    const listed = [...section.matchAll(/^- `(app\/[^`]+)`/gm)].map((one) => one[1]).sort();
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed).toEqual(untestedEntries());
+    expect(readFileSync(resolve(ROOT, 'docs/product/gaps.md'), 'utf8')).toMatch(new RegExp(`^\\| ${UNTESTED_GAP} \\|`, 'm'));
+  });
+});
+
+/**
+ * **CI 자체와 시험 실행 의존성을 바꾼 PR 은 전부를 돈다**(운영자 2026-10-22 「이번에 전부로」). 전에는 `core`(와 `audit`)만 돌아 바뀐
+ * 워크플로 단계와 Playwright · Supabase CLI 가 PR 에서 한 번도 안 돌았다. 앱이 쓰는 패키지의 판은 일반 의존성이라 그대로 `core` · `audit` 이다.
+ */
+describe('CI 계획 — CI 자체 · 시험 실행 의존성은 전부다', () => {
+  const PKG = diskOf('package.json')!;
+  const LOCK = diskOf('package-lock.json')!;
+  type Manifest = {
+    dependencies: Record<string, string>;
+    devDependencies: Record<string, string>;
+    scripts: Record<string, string>;
+    packages: Record<string, { version: string }>;
+  };
+  const bump = (json: string, edit: (value: Manifest) => void) => {
+    const value = JSON.parse(json);
+    edit(value);
+    return JSON.stringify(value, null, 2);
+  };
+  const planOf = (file: string, after: string) =>
+    planFor({ files: [file], stage: '운영 베타', sourceOf: (one) => (one === file ? after : diskOf(one)), baseSourceOf: diskOf });
+
+  it('Playwright · Supabase CLI 의 판이나 차선 스크립트가 바뀌면 전부, 앱 패키지 · 다른 스크립트만이면 core 와 audit', () => {
+    const runner = planOf('package.json', bump(PKG, (json) => (json.devDependencies['@playwright/test'] = '^9.9.9')));
+    expect(runner.lanes).toEqual({ ...FULL, audit: true });
+    expect(runner.cause).toBe('시험 실행 의존성');
+    expect(planOf('package.json', bump(PKG, (json) => (json.devDependencies.supabase = '9.9.9'))).cause).toBe('시험 실행 의존성');
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts['test:e2e:push'] += ' --retries=3'))).cause).toBe('시험 실행 의존성');
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts['db:start'] += ',realtime'))).cause).toBe('시험 실행 의존성');
+    const app = planOf('package.json', bump(PKG, (json) => (json.dependencies.next = '99.0.0')));
+    expect(app.lanes).toEqual({ ...CORE_ONLY, audit: true });
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts.start += ' --keepAliveTimeout 1'))).lanes).toEqual({ ...CORE_ONLY, audit: true });
+    // e2e 가 앱을 띄우는 `dev` 도 차선 스크립트다(두 번째 검토의 반례)
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts.dev = 'next dev --broken-flag'))).cause).toBe('시험 실행 의존성');
+  });
+
+  it('잠금 파일 — 설치된 실행기(node_modules/<이름> 으로 끝나는 열쇠)의 판 · 출처 · 지문이 바뀌면 전부, 다른 패키지만이면 core 와 audit', () => {
+    const installed = Object.keys(JSON.parse(LOCK).packages).filter((key) => /(?:^|\/)node_modules\/(?:@playwright\/test|playwright|playwright-core|supabase)$/.test(key));
+    expect(installed.length).toBeGreaterThanOrEqual(3);
+    // 가짜 푸시 서비스가 직접 들이는 간접 의존성 — package.json 에 없어도 잠금 파일의 판이 바뀌면 전부다(두 번째 검토의 반례)
+    const ece = Object.keys(JSON.parse(LOCK).packages).filter((key) => /(?:^|\/)node_modules\/http_ece$/.test(key));
+    expect(ece.length).toBeGreaterThan(0);
+    for (const key of ece) expect(planOf('package-lock.json', bump(LOCK, (json) => (json.packages[key].version = '9.9.9'))).cause, key).toBe('시험 실행 의존성');
+    for (const key of installed) {
+      const plan = planOf('package-lock.json', bump(LOCK, (json) => (json.packages[key].version = '9.9.9')));
+      expect(plan.cause, key).toBe('시험 실행 의존성');
+    }
+    expect(planOf('package-lock.json', bump(LOCK, (json) => (json.packages['node_modules/next'].version = '99.0.0'))).lanes).toEqual({ ...CORE_ONLY, audit: true });
+  });
+
+  it('base 나 HEAD 를 못 읽거나 JSON 이 아니면 가를 수 없어 전부다', () => {
+    expect(testRunnerChangeOf(['package.json'], { sourceOf: diskOf, baseSourceOf: () => null })).toMatch(/가를 수 없다/);
+    expect(testRunnerChangeOf(['package-lock.json'], { sourceOf: () => '{', baseSourceOf: diskOf })).toMatch(/가를 수 없다/);
+    expect(beta(['package.json']).cause).toBe('시험 실행 의존성');
+    expect(testRunnerChangeOf(['package.json', 'package-lock.json'], { sourceOf: diskOf, baseSourceOf: diskOf })).toBeNull();
+  });
+
+  it('워크플로 · Node 판(.nvmrc)은 CI 자체라 전부다 — 워크플로 밖의 .github 는 아니다', () => {
+    for (const file of ['.github/workflows/verify.yml', '.github/workflows/main-red.yml', '.nvmrc']) {
+      expect(beta([file]).lanes, file).toEqual(FULL);
+      expect(beta([file]).cause, file).toBe('CI 자체');
+    }
+    expect(beta(['.github/ISSUE_TEMPLATE/x.yml']).lanes).toEqual(CORE_ONLY);
+    expect(beta(['.github/pull_request_template.md']).tier).toBe('policy');
+  });
+
+  it('잠금 — 차선 job 이 부르는 npm 스크립트는 모두 LANE_SCRIPTS 이고, 그 스크립트가 부르는 실행기와 시험만 들이는 패키지는 TEST_RUNNERS 에 있다', () => {
+    const yml = readFileSync(resolve(ROOT, '.github/workflows/verify.yml'), 'utf8');
+    const coreRuns = new Set(CORE_STEPS.map((step) => step.replace(/^npm run /, '')));
+    // 주석이 아닌 `run:` 줄만 — 머리 주석이 `npm run verify` 를 이름으로 말한다
+    const runs = yml
+      .split('\n')
+      .filter((line) => /^\s*(?:- )?run: /.test(line))
+      .flatMap((line) => [...line.matchAll(/npm run ([\w:-]+(?:\$\{\{[^}]*\}\})?)/g)].map((one) => one[1].replace(/\$\{\{[^}]*\}\}/, 'x')))
+      .filter((name) => !coreRuns.has(name));
+    // e2e 가 앱을 띄우는 명령(`playwright.config.ts` 의 `webServer.command`)도 차선이 부르는 스크립트다
+    const config = readFileSync(resolve(ROOT, 'playwright.config.ts'), 'utf8');
+    const served = [.../webServer:\s*\{\s*command:\s*`([^`]*)`/.exec(config)![1].matchAll(/npm run ([\w:-]+)/g)].map((one) => one[1]);
+    expect(served).toEqual(['dev']);
+    expect(runs.length).toBeGreaterThan(3);
+    expect([...runs, ...served].filter((name) => !LANE_SCRIPTS.test(name))).toEqual([]);
+    const scripts: Record<string, string> = JSON.parse(PKG).scripts;
+    const binaries = new Set(
+      Object.entries(scripts)
+        .filter(([name]) => LANE_SCRIPTS.test(name) && name !== 'dev')
+        .flatMap(([, command]) => command.split('&&').map((one) => one.trim().replace(/^node scripts\/heavy\.mjs /, '').split(' ')[0])),
+    );
+    expect([...binaries].sort()).toEqual(['node', 'playwright', 'supabase']);
+    expect(TEST_RUNNERS).toContain('@playwright/test');
+    expect(TEST_RUNNERS).toContain('supabase');
+    // `dev` 는 앱 자신(`next dev`)이다 — Next 의 판은 일반 의존성이라 core 와 audit 이고, 스크립트 줄이 바뀌면 전부다
+    expect(scripts.dev.split(' ')[0]).toBe('next');
+    // 시험(e2e · 흐름 검사 · Playwright 설정)과 그 도우미(`fake-push-service.mjs` 같은 시험 도구)만 들이는 패키지 — 앱(app · src · proxy)이
+    // 안 들이는 것. package.json 에 없는 간접 의존성(`http_ece`)도 든다
+    const packageOf = (name: string) => (name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0]);
+    const imported = (files: string[]) =>
+      new Set(files.flatMap((file) => importsOf(readFileSync(file, 'utf8'))).filter((name) => !/^(?:\.|@\/|node:)/.test(name)).map(packageOf));
+    const testOnly = imported([
+      ...codeUnder(resolve(ROOT, 'e2e')),
+      resolve(ROOT, 'playwright.config.ts'),
+      ...codeUnder(resolve(ROOT, 'scripts')).filter((file) => !isTestFile(file) && isSurface(relative(ROOT, file))),
+    ]);
+    expect(testOnly).toContain('http_ece');
+    const app = imported([...codeUnder(resolve(ROOT, 'app')), ...codeUnder(resolve(ROOT, 'src')), resolve(ROOT, 'proxy.ts')]);
+    expect([...testOnly].filter((name) => !app.has(name) && !TEST_RUNNERS.includes(name))).toEqual([]);
   });
 });
 
@@ -629,6 +968,9 @@ describe('CI 계획 — 공개 출시', () => {
   it('DB 검사식이 보는 엔진 파일은 엔진 단계에 안 든다', () => {
     /** 저장되는 여덟 글자의 모양과 판본 — 로그인 뒤 자리만 빨개지는 유일한 엔진 변경 */
     for (const file of ENGINE_DB_FACING) expect(pr([file]).tier, file).toBe('full');
+    // 운영 베타에서도 전부다 — 머리말 · 시험 지도의 「전부」와 같다(운영자 2026-10-22 「코드를 전부로」). 엔진의 다른 파일은 core 그대로
+    for (const file of ENGINE_DB_FACING) expect(beta([file]).cause, file).toBe('엔진의 DB 쪽');
+    expect(beta(['src/lib/saju/strength/index.ts']).lanes).toEqual(CORE_ONLY);
     // 이름으로 견주는 목록이다 — 파일을 옮기면 옛 이름은 아무것도 안 걸러 새 자리가 엔진 단계로 조용히 빠진다
     const root = resolve(__dirname, '..');
     expect([...ENGINE_DB_FACING, ...DEPENDENCY_LISTS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
@@ -690,7 +1032,8 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
 
   it('spec 만 바뀌면 그 spec 의 차선만 — #392 모양(컴포넌트 · spec · 간극 대장)도', () => {
     expect(lanesOf(['e2e/signed-in.spec.ts'])).toEqual(narrow(SIGNED_IN));
-    expect(lanesOf(['app/me/people/manage.tsx', 'e2e/signed-in.spec.ts', 'docs/product/gaps.md'])).toEqual(narrow(SIGNED_IN));
+    // 컴포넌트(manage.tsx)는 이제 그것을 쓰는 입구(`/me/people`)의 차선을 더한다
+    expect(lanesOf(['app/me/people/manage.tsx', 'e2e/signed-in.spec.ts', 'docs/product/gaps.md'])).toEqual(lanesOf(['app/me/people/page.tsx']));
     expect(lanesOf(['e2e/chat.spec.ts'])).toEqual(narrow(['chat:desktop', 'chat:mobile']));
     expect(lanesOf(['e2e/notice.spec.ts'])).toEqual(narrow(['notice']));
     expect(lanesOf(['e2e/saju.spec.ts'])).toEqual(narrow([], { anon: true }));
@@ -715,6 +1058,8 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
   /** 갈래마다 대표 — 갈래를 더하면 여기에도 더한다(마지막 줄이 짝을 견준다) */
   const RISK_SAMPLES: Record<string, string[]> = {
     DB: ['supabase/migrations/20261001000000_x.sql'],
+    '엔진의 DB 쪽': ENGINE_DB_FACING,
+    'CI 자체': ['.github/workflows/verify.yml', '.github/workflows/main-red.yml', '.github/workflows/new.yml', '.nvmrc'],
     'Next 공용 경계': [
       'app/global-error.tsx',
       'app/global-not-found.tsx',
@@ -751,17 +1096,21 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
       expect(beta([file]).lanes, file).toEqual(FULL);
       expect(beta([file]).cause, file).toBe('미분류');
     }
-    for (const file of ['src/lib/matching/pool.ts', 'app/ui/skeleton.tsx', 'scripts/ci-plan.mjs', '.github/workflows/verify.yml', 'public/brand/x.jpg', ...ROOT_CONFIGS]) {
-      expect(beta([file]).tier, file).toBe('core');
+    // 의존성 목록은 base 와 견줘 시험 실행 의존성이 그대로일 때만 core 다 — 여기서는 base 도 디스크의 것이다. `.nvmrc` 는 CI 자체다
+    const sameBase = (files: string[]) => planFor({ files, stage: '운영 베타', baseSourceOf: diskOf });
+    for (const file of ['src/lib/matching/pool.ts', 'app/ui/buttons.ts', 'scripts/ci-plan.mjs', '.github/ISSUE_TEMPLATE/x.yml', 'public/brand/x.jpg', ...ROOT_CONFIGS.filter((one) => one !== '.nvmrc')]) {
+      expect(sameBase([file]).tier, file).toBe('core');
     }
     // 이름으로 견주는 목록이다 — 지운 이름은 아무것도 안 건다
     expect(ROOT_CONFIGS.filter((file) => !existsSync(resolve(ROOT, file)))).toEqual([]);
   });
 
-  it('입구인데 주소를 못 뽑거나 닿는 시험이 없으면 전부다', () => {
+  it('입구가 아닌 서버 파일의 주소를 못 뽑으면 전부다 · 주소에 닿는 시험이 정말 없으면 core 와 시험 공백', () => {
     // 서버 액션(`app/me/discovery/actions.ts`)이 부르는 서버 파일은 그 액션의 자리라 전부다
     expect(beta(['app/me/candidates.ts']).cause).toBe('주소 없음');
-    expect(beta(['app/me/nowhere-yet/page.tsx']).cause).toBe('닿는 시험 없음');
+    const lonely = beta(['app/me/nowhere-yet/page.tsx']);
+    expect(lonely.lanes).toEqual(CORE_ONLY);
+    expect(lonely.reason).toContain(`시험 공백, 간극 대장 ${UNTESTED_GAP}`);
   });
 
   it('불변식 — authed 는 authedLanes 가 비지 않았는가이고, 정책 밖의 계획에는 core 가 선다', () => {
@@ -1815,7 +2164,8 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       baseSourceOf: (one) => (one === note ? noteBefore : disk(one)),
     });
     expect(notePlan.lanes).toEqual(CORE_ONLY);
-    // 입구가 아닌 컴포넌트의 JSX 글자 한 줄 → core(#572 전과 같다)
+    // 입구가 아닌 컴포넌트의 JSX 글자 한 줄 — 그 글자(「오늘의 인연」)를 match.spec 이 글자 그대로 찾아 문구만이 아니다. 지금 규칙은
+    // 그 컴포넌트를 쓰는 입구의 차선이다(입구가 아닌 화면 컴포넌트)
     const screen = 'app/me/matching/matching-experience.tsx';
     const screenBefore = readFileSync(resolve(ROOT, screen), 'utf8');
     const screenAfter = screenBefore.replace('>오늘의 인연<', '>오늘의 사람<');
@@ -1827,8 +2177,10 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       sourceOf: (one) => (one === screen ? screenAfter : disk(one)),
       baseSourceOf: (one) => (one === screen ? screenBefore : disk(one)),
     });
-    expect(screenPlan.tier).toBe('core');
-    expect(screenPlan.lanes).toEqual(CORE_ONLY);
+    expect(screenPlan.tier).toBe('narrow');
+    expect(screenPlan.lanes).toEqual(beta([screen]).lanes);
+    expect(screenPlan.authedLanes).toEqual(beta([screen]).authedLanes);
+    expect(screenPlan.authedLanes).toContain('match:desktop');
   });
 
   it('새 글자를 말하는 spec 도 차선을 켠다 — 「없어야」 하는 글자 · getByRole 의 이름과 겹칠 수 있다', () => {
@@ -1901,14 +2253,26 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     expect(both.lanes.anon).toBe(alone.lanes.anon);
   });
 
-  it('PR 계획 — 입구가 아닌 컴포넌트는 옛 글자를 말하는 spec 이 있어도 core 다(저장소의 match.spec 이 「수락해서 채팅방이 열렸어요.」를 말한다)', () => {
-    const screen = 'export const S = () => <p>수락해서 채팅방이 열렸어요.</p>;\n';
+  it('PR 계획 — 입구가 아닌 컴포넌트는 그것을 쓰는 입구의 차선이고, 옛 글자를 spec 이 글자 그대로 찾으면 문구로 좁히지 않는다(저장소의 match.spec 이 「수락해서 채팅방이 열렸어요.」를 말한다)', () => {
+    const file = 'app/me/requests/status-line.tsx';
+    const page = 'app/me/requests/page.tsx';
+    const before = 'export const S = () => <p>수락해서 채팅방이 열렸어요.</p>;\n';
+    const after = before.replace('열렸어요', '열렸습니다');
     const match = 'e2e/match.spec.ts';
-    const plan = planOf('app/me/requests/status-line.tsx', screen, screen.replace('열렸어요', '열렸습니다'), [], '운영 베타', [
-      [match, readFileSync(resolve(ROOT, match), 'utf8')],
-    ]);
-    expect(plan.tier).toBe('core');
-    expect(plan.lanes).toEqual(CORE_ONLY);
+    const pageSource = `import { S } from './status-line';\n${diskOf(page)}`;
+    const plan = planFor({
+      files: [file],
+      stage: '운영 베타',
+      ts,
+      mentions: [[match, readFileSync(resolve(ROOT, match), 'utf8')]],
+      sourceOf: (one) => (one === file ? after : one === page ? pageSource : diskOf(one)),
+      baseSourceOf: (one) => (one === file ? before : diskOf(one)),
+    });
+    expect(plan.tier).toBe('narrow');
+    expect(plan.lanes).toEqual(beta([page]).lanes);
+    expect(plan.authedLanes).toEqual(beta([page]).authedLanes);
+    // 아무도 안 부르는 컴포넌트는 쓰는 입구를 못 찾아 전부다
+    expect(planOf(file, before, after, [], '운영 베타', [[match, readFileSync(resolve(ROOT, match), 'utf8')]]).cause).toBe('주소 없음');
   });
 
   it('공개 출시에는 문구로 좁히지 않는다 — 화면 하나도 전부다', () => {

@@ -18,19 +18,19 @@
 
 | 바뀐 것 | 도는 차선 |
 | --- | --- |
-| 계획 밖 이벤트(일정 · 손으로 켠 실행) · `full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름 | 전부 — `core` · `anon` · `authed` 전부(`AUTHED_LANES`) · `flow` |
+| 계획 밖 이벤트(일정 · 손으로 켠 실행) · `full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름 · **시험 실행 의존성**(`package.json` · `package-lock.json` 을 base 와 견줘 `TEST_RUNNERS` — Playwright · Supabase CLI · 시험 도우미만 들이는 `http_ece` — 의 판이나 차선 job 과 e2e 가 부르는 스크립트 `LANE_SCRIPTS`(`dev` 포함)가 바뀜, 못 읽으면 가를 수 없어 전부. ADR 0195) | 전부 — `core` · `anon` · `authed` 전부(`AUTHED_LANES`) · `flow` |
 | main 푸시 — 푸시 전 SHA(`github.event.before`)부터의 변경 전체가 정책 · 주석만 바뀐 코드 파일뿐이고 푸시 전 SHA 의 verify 가 초록으로 끝났다(ADR 0154, 판정은 `ci-plan.mjs` 「문서만 바뀐 main 푸시」). 그 밖 · 0 SHA · 강제 갱신 · 앞 실행이 끊김 · 붉음 · 못 읽음은 전부 | `policy` 만(`audit` 도 건너뛴다). `ci-main-red` 는 이 초록으로 이슈를 닫지 않고 「마지막 초록」으로도 안 센다 |
 | 주석만 바뀐 코드 파일 — base(merge-base)와 구문 나무가 같고 뜻이 있는 주석이 그대로(ADR 0153, 판정은 `ci-plan.mjs` 「주석만 바뀐 코드 파일」, PR 에서만) | 정책으로 센다 — 아래 줄은 나머지 파일로 잰다 |
 | 문구만 바뀐 파일 — 화면 문구 자리(JSX 글자 · JSX 자식 식이 그대로 세우는 문자열과 템플릿의 글자 조각 · HTML 요소의 `aria-label` 글자 · `COPY_FILES` 의 상수와 표의 값)의 글자만 base 와 다르고 나무는 같다(ADR 0159 · 덧 G-90, 판정은 `ci-plan.mjs` 「문구만 바뀐 파일」, 운영 베타의 PR 에서만). 그 밖의 속성 · 조건 · 핸들러 · 구조 · 템플릿의 식 · 목록 밖 문자열이 섞이거나 판별이 불확실하면 지금 규칙. **바뀐 글자를 `e2e/**` · `scripts/check-*.mjs` 가 글자 그대로(통째 · 따옴표 조각 · 그 글자를 찾는 글자 있는 정규식) 찾으면 문구만이 아니다**(운영자 2026-10-10 — 배포도 기다린다). 문구 상수는 시험이 이름으로 읽는다. e2e 를 고친 PR 은 문구만이 아니다 | `core` + **바뀐 자리의 옛 글자나 새 글자를 말하는 시험**과 **바뀐 문구 파일을 들이는 시험**(`e2e/**` · `scripts/check-*.mjs`, 정규식은 파서로 읽고 쓰임 자리로 가른다)의 차선이 **그 파일의 지금 규칙 차선의 부분집합일 때만** 그것으로 센다 — 아니면(검색이 전부 · 지금 규칙에 없는 차선이 섞임) 아래 줄의 지금 규칙 그대로. 문구 판정은 좁히기만 한다(운영자 2026-10-09). 여러 파일이면 파일마다 정한 계획의 합. 동적으로 조합한 selector 는 머지 뒤 main 의 전체가 잡는다 |
-| **공용 위험**이 하나라도(`ci-plan.mjs` 의 `SHARED_RISK`) — 관문(`proxy.ts` · `src/lib/consent/**`) · 인증(`app/auth/**`) · `app/**/layout.tsx` · `app/**/route.ts` · 서버 액션(`actions.ts` · `SERVER_ACTIONS_ELSEWHERE`) · spec 이 아닌 `e2e/**` · 시험 도구(`HARNESS` · CI · 개발 도구가 아닌 `scripts/*.mjs`) · Next 공용 경계(`app/` 뿌리의 `global-error.tsx` · `global-not-found.tsx`, `app/**/forbidden.tsx` · `app/**/unauthorized.tsx` · 뿌리의 `instrumentation.ts` · `instrumentation-client.ts` · `middleware.ts`). `*.test.ts` 는 빼고 | 전부 — 까닭에 갈래 이름이 실린다 |
+| **공용 위험**이 하나라도(`ci-plan.mjs` 의 `SHARED_RISK`) — 관문(`proxy.ts` · `src/lib/consent/**`) · 인증(`app/auth/**`) · `app/**/layout.tsx` · `app/**/route.ts` · 서버 액션(`actions.ts` · `SERVER_ACTIONS_ELSEWHERE`) · spec 이 아닌 `e2e/**` · 시험 도구(`HARNESS` · CI · 개발 도구가 아닌 `scripts/*.mjs`) · Next 공용 경계(`app/` 뿌리의 `global-error.tsx` · `global-not-found.tsx`, `app/**/forbidden.tsx` · `app/**/unauthorized.tsx` · 뿌리의 `instrumentation.ts` · `instrumentation-client.ts` · `middleware.ts`) · 엔진의 DB 쪽(`ENGINE_DB_FACING` — `src/lib/saju/version.ts` · `pillars/index.ts`) · CI 자체(`.github/workflows/**` · `.nvmrc`, ADR 0195). `*.test.ts` 는 빼고 | 전부 — 까닭에 갈래 이름이 실린다 |
 | 정책만(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy` |
 | `e2e/*.spec.ts` | `core` + 그 spec 을 부르는 차선(`package.json` 의 `test:e2e:<차선>`). 로그인 무늬(`AUTHED` · `NOTICE`)인데 부르는 차선이 없으면 전부, 그 밖 spec 은 `anon` |
 | `scripts/check-*.mjs` | `core` + `flow` |
-| 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 전부 |
+| 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 — 시험 · 그 도우미가 템플릿 · 이어 붙임 · 정규식으로 그 주소를 요청할 수도 있거나(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의 경로가 글자로 들었거나(`mentionOf` — glob · 정규식 문자열 · 경로 상수), 그 입구를 들이는 파일이 있으면(다시 내보내는 page) 전부, 그것도 없으면 그 파일은 `core` 이고 까닭에 시험 공백(간극 대장 G-116 — 그 기록과 계획의 `untestedEntries()` 를 시험이 견준다)이 실린다. 다른 파일이 켠 차선은 그대로다(운영자 2026-10-22, ADR 0195) |
 | Next 메타데이터(`app/**/icon.*` · `opengraph-image.*` · `sitemap.*` …) | `core` + `anon` |
 | 관문이 import 하는 `app/` 파일(ADR 0119 추기) | 전부 |
-| 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 이면 전부 |
-| 알려진 `core` 자리 — `src/**` · 입구가 아닌 `app/**` · `scripts/**` · `.github/**` · `public/**` · 뿌리 설정(`ROOT_CONFIGS`) | `core` |
+| 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」). **입구가 아닌 화면 컴포넌트**(`app/**` 의 시험 아닌 `.tsx` 와 React 를 들이거나 `'use client'` 인 `.ts` — hook 같은 것, 지운 파일은 빼고)도 같은 줄이다(ADR 0195) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 인데 탐색이 놓쳤을 수 있으면 전부(정말 없는 입구는 위 줄처럼 시험 공백) |
+| 알려진 `core` 자리 — `src/**` · 입구도 화면 컴포넌트도 서버 파일도 아닌 `app/**`(React 도 `'use client'` 도 없는 `.ts` — 셈 · 상수) · `scripts/**` · 워크플로 밖의 `.github/**` · `public/**` · 뿌리 설정(`ROOT_CONFIGS`, 의존성 목록은 시험 실행 의존성이 그대로일 때) | `core` |
 | **그 밖 — 모르는 파일** | 전부(베타에서도) |
 
 예: `app/me/(shelf)/readings/compat/page.tsx` 하나 → `core` + `authed (signed-in:desktop)` · `authed (signed-in:mobile)`.
@@ -42,6 +42,11 @@
 그중 「주소 없음」이 65 → 42 개가 됐다(ADR 0178). 남은 42 개는 layout · 서버 액션 · `route.ts` · 관문 · `instrumentation.ts` 가 부르는
 파일이다 — 예: `app/me/requests/inbox.ts` 는 `/me/readings` 의 layout 과 요청 액션이 부른다. `app/me/match/screen.tsx` 는 그것을 쓰는
 page 의 주소로 `match` · `chat` · `anon` · `flow` 만, `room-compat.ts` 는 `chat` · `live` · `push` · `flow` 만이다.
+2026-10-22 에 입구가 아닌 화면 컴포넌트도 같은 길을 타게 하자(ADR 0195) 옛 규칙 `core` 이던 컴포넌트 157 개(`.tsx` 145 · hook 같은 `.ts` 열둘) 중 123 개가 좁힌 차선,
+21 개가 전부(길 위에 layout · 인증 · Next 공용 경계 — `app/ui/**` 의 `icons.tsx` · `logo.tsx` 같은 여덟), 11 개가 그대로 `core`(쓰는 입구에
+닿는 시험이 정말 없다)가 됐다. main 이 붉었던 #581 · #614 · #595 의 PR 은 화면 파일만으로 그때 붉은 차선(`anon` · `signed-in` · `push`)을
+머지 전에 돈다. 닿는 시험이 정말 없는 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)과 그것만 쓰는 서버 파일 여섯은
+전부 → `core` 다(G-116).
 
 **문구 변경의 머지와 배포**(운영자 2026-10-09, ADR 0159) — 사용자가 확인한 문구 변경은 필요한 PR 검사가 통과하면 재승인 없이
 squash-merge 하고 배포한다. 동작 변경이 없다고 판별된 경우 main 전체 CI 완료는 배포의 대기 조건으로 두지 않는다. 문서만 변경한
