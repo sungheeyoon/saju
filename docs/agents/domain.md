@@ -34,3 +34,5 @@ Which ADR holds now, by area, is `docs/adr/README.md` — it points, it does not
 - **새 ADR 은 색인(`docs/adr/README.md`)에 줄을 더하고, 대체하는 ADR 의 머리에 후속 결정 줄을 단다.** 머리 줄은
   `> 후속 결정: ADR NNNN — <무엇이 대체됐나>` 이고 그 ADR 이 통째로 서지 않을 때다 — 그러면 색인에서 그 번호를 걷는다.
   일부만 대체됐으면 `> 후속 결정(일부): …` 로 달고 색인에 그대로 둔다. `scripts/code-rules.test.ts` 가 둘을 잰다.
+  대체당한 쪽의 표지는 이 꼴 하나다 — `> 대체됨:` 같은 다른 꼴은 시험이 붉힌다. 대체하는 쪽은 머리에
+  `이 결정이 대체하는 것 — ADR NNNN …` 으로 적고, 시험이 거기 든 번호마다 머리에 짝 줄이 있는지 견준다.
