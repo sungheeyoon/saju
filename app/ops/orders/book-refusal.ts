@@ -1,7 +1,7 @@
 import { rpcArgs } from '@/src/lib/db';
 
 import type { supabaseOnServer } from '../../auth/server-client';
-import { noteDenial, type RefusedTarget } from '../denial';
+import { deniedAmong, isDenialCode, type RefusedTarget } from '../denial';
 
 /**
  * **확정의 거절 줄이 가리킬 주문** (G-111 R-4, ADR 0191).
@@ -20,16 +20,13 @@ export async function bookRefusalTarget(
   code: string | undefined,
   input: { readonly orderId: string; readonly holdId: string },
 ): Promise<RefusedTarget> {
-  if (code === '42501') return {};
+  if (isDenialCode(code)) return {};
   const held = await supabase.rpc(
     'operator_reading_refund_hold',
     rpcArgs<'operator_reading_refund_hold'>({ p_order_id: input.orderId }),
   );
+  if (await deniedAmong(supabase, 'credits.refund_status', [held])) return {};
   if (held.error) {
-    if (held.error.code === '42501') {
-      await noteDenial(supabase, 'credits.refund_status');
-      return {};
-    }
     // 싣지 못한 것은 서버 기록에만 — 거절의 답과 거절 줄은 그대로 간다
     console.error('book refusal target', held.error);
     return {};

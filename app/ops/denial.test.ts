@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { noteWriteRefusal, refusalCode } from './denial';
+import { DENIED, deniedAmong, noteWriteRefusal, refusalCode } from './denial';
 
 /** 부른 문과 인자만 받아 적는 가짜 — 답은 늘 성공 */
 const recorder = () => {
@@ -50,5 +50,20 @@ describe('거절된 쓰기의 접속기록 (G-111 R-4)', () => {
     expect(refusalCode('P0002')).toBe('P0002');
     expect(refusalCode('PGRST202')).toBe('other');
     expect(refusalCode(undefined)).toBe('other');
+  });
+});
+
+describe('운영자 문의 거절 (ADR 0105)', () => {
+  it('답 가운데 하나라도 42501 이면 머리 문의 이름으로 한 줄을 적고 DENIED 를 낸다', async () => {
+    const { calls, supabase } = recorder();
+    const answers = [{ error: null }, { error: { code: '42501' } }, { error: { code: '42501' } }];
+    expect(await deniedAmong(supabase, 'reports.detail', answers, MEMBER)).toBe(DENIED);
+    expect(calls).toEqual([{ fn: 'note_operator_denial', args: { p_action: 'reports.detail', p_report_id: MEMBER } }]);
+  });
+
+  it('거절이 아니면 아무것도 적지 않고 null — 다른 실패는 문이 제 갈래로 낸다', async () => {
+    const { calls, supabase } = recorder();
+    expect(await deniedAmong(supabase, 'today.figures', [{ error: null }, { error: { code: '57014' } }])).toBeNull();
+    expect(calls).toEqual([]);
   });
 });
