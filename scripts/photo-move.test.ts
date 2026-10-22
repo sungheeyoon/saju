@@ -8,11 +8,13 @@ const USER = '0f8b2f6e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
 /** 가짜 DB — 바이트 줄을 들고, 판본이 맞으면 열쇠로 바꾼다. `changed` 의 자리는 그 사이 사람이 바꾼 장이다 */
 function fakeDb(rows: { position: number; version: number; bytes: string }[], changed = new Set<number>()) {
   const live = rows.map((row) => ({ ...row, key: null as string | null }));
+  let issued = 0;
   const trashed: string[] = [];
   return {
     live,
     trashed,
     db: {
+      begin: async () => `photos/${USER}/00000000-0000-4000-8000-00000000000${(issued += 1)}`,
       toMove: async (limit: number) =>
         live
           .filter((row) => row.key === null)
@@ -38,14 +40,11 @@ function fakeDb(rows: { position: number; version: number; bytes: string }[], ch
 }
 
 describe('photo:move — 옛 사진을 저장소로', () => {
-  it('원본 바이트를 그대로 두 벌로 쓰고 열쇠를 적는다 — 다시 굽지 않는다', async () => {
+  it('DB 가 준 열쇠로 원본 바이트를 그대로 두 벌로 쓰고 적는다 — 다시 굽지 않는다', async () => {
     const { db, live } = fakeDb([{ position: 1, version: 10, bytes: 'one' }, { position: 2, version: 20, bytes: 'two' }]);
     const objects = new Map<string, string>();
-    let n = 0;
 
-    const result = await movePhotos(db, async (key, body) => void objects.set(key, Buffer.from(body).toString()), {
-      newId: () => `00000000-0000-4000-8000-00000000000${(n += 1)}`,
-    });
+    const result = await movePhotos(db, async (key, body) => void objects.set(key, Buffer.from(body).toString()));
 
     expect(result).toEqual({ moved: 2, skipped: 0 });
     expect(live.map((row) => row.key)).toEqual([

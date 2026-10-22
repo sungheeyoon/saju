@@ -12,9 +12,10 @@ import { storeErrorClassOf, type PhotoStore } from '../photo/store';
  * 3. 두 벌을 쓴다
  * 4. DB 에 적는다(더하기 · 바꾸기) — 표가 걷히고 줄이 열쇠를 든다
  *
- * 3 · 4 가 실패하면 **쓴 것을 지우려 하고, 표를 지울 줄로 넘긴다**(`drop_my_photo_upload`). 지우기도 넘기기도 못 하면(함수가
- * 죽음 · 망) 표가 남고, 청소기가 한 시간 뒤 지울 줄로 옮긴다 — 어느 길로도 저장소에 주인 없는 객체가 오래 남지 않는다.
- * 지울 줄에 넘긴 열쇠를 먼저 지웠어도 청소기가 한 번 더 지운다 — 없는 키를 지우는 것은 성공이다.
+ * 3 · 4 가 실패하면 **표를 지울 줄로 넘긴다**(`drop_my_photo_upload`) — 여기서 저장소를 바로 지우지 않는다. 4 의 실패가 「응답만
+ * 끊기고 DB 는 적었다」일 수 있다 — 그때 바로 지우면 보이는 사진의 바이트가 사라진다. 넘기기는 표가 남아 있을 때만(= DB 가 안
+ * 적었을 때만) 지울 줄에 넣으므로 그 경합이 없다. 넘기기도 못 하면(함수가 죽음 · 망) 표가 남고, 청소기가 한 시간 뒤 옮긴다 —
+ * 어느 길로도 주인 없는 객체는 다음 청소(하루 안)까지만 남는다.
  *
  * DB 를 부르는 손은 밖에서 받는다 — 시험이 메모리 저장소와 가짜 문으로 이 차례를 잰다(`stored-photo.test.ts`).
  */
@@ -42,7 +43,7 @@ export async function storePhoto<T>(
   if (!begun.ok) return begun;
   const key = begun.value;
   if (!isPhotoObjectKey(key)) {
-    await abandon(store, doors, key);
+    await abandon(doors, key);
     return { ok: false, message: STORE_FAILED };
   }
 
@@ -53,7 +54,7 @@ export async function storePhoto<T>(
     ]);
   } catch (error) {
     console.error('photo-store: 사진을 저장소에 쓰지 못했다', storeErrorClassOf('put', error));
-    await abandon(store, doors, key);
+    await abandon(doors, key);
     return { ok: false, message: STORE_FAILED };
   }
 
@@ -61,22 +62,15 @@ export async function storePhoto<T>(
   try {
     saved = await doors.save(key, checked.type);
   } catch (error) {
-    await abandon(store, doors, key);
+    await abandon(doors, key);
     throw error;
   }
-  if (!saved.ok) await abandon(store, doors, key);
+  if (!saved.ok) await abandon(doors, key);
   return saved;
 }
 
-/** 쓴 것을 지우려 하고 표를 지울 줄로 — 둘 다 실패해도 던지지 않는다(청소기가 받는다) */
-async function abandon<T>(store: PhotoStore, doors: StoredPhotoDoors<T>, key: string): Promise<void> {
-  if (isPhotoObjectKey(key)) {
-    try {
-      await store.remove([variantKey(key, 'card'), variantKey(key, 'large')]);
-    } catch (error) {
-      console.error('photo-store: 못 적은 사진을 지우지 못했다', storeErrorClassOf('delete', error));
-    }
-  }
+/** 표를 지울 줄로 — 실패해도 던지지 않는다(청소기가 한 시간 지난 표를 받는다). 저장소는 청소기만 지운다(머리말) */
+async function abandon<T>(doors: StoredPhotoDoors<T>, key: string): Promise<void> {
   try {
     await doors.drop(key);
   } catch (error) {
