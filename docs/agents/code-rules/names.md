@@ -4,7 +4,7 @@
 
 ## 이름
 
-| 무엇 | 규칙 | 잰 값 |
+| 무엇 | 규칙 | 2026-09-22 에 잰 값 |
 | --- | --- | --- |
 | 파일 — 엔진 밖 | **kebab-case** — `person-input.ts` · `db-error.boundary.test.ts` · `check-share.mjs` | app 178 · lib 61 · scripts 23 · e2e 8, 전부 |
 | 파일 — 엔진 안 `src/lib/saju/` | **camelCase** — `solarTerms.ts` · `timeCorrection/`. 옛 규약이고 그대로 둔다. 한 폴더에 두 규약을 섞지 않는다 | 119 중 camel 28, 하이픈 0 |
@@ -17,6 +17,9 @@
 | `enum` · `class` | `enum` 은 없다 — 문자열 리터럴 유니언이다. `class` 는 내장을 잇는 자리뿐(`InvalidSajuInputError extends Error`) — 상태를 가진 클래스는 없다 | 0 · 10 |
 | export | 이름 있는 export. `export default` 는 Next 가 요구하는 `app/` 과 루트 설정 파일에만 | src·scripts·e2e 0 |
 | 따옴표 | 홑따옴표 | import 1203 / 0 |
+
+오른쪽 칸은 규칙을 적던 날(2026-09-22, ADR 0086)의 수이고 다시 재지 않는다 — 지금 수는 `ls` · `git ls-files` 가 찍고, 규약을 지키는지는
+`scripts/code-rules.test.ts` 와 린트가 잰다(`docs/agents/delegation/working.md` 「값을 적는 자리는 하나다」).
 
 **식별자는 영어, 뜻은 용어집.** `GLOSSARY.md` 의 _Avoid_ 는 화면 문구만이 아니라 식별자에도
 적용된다 — DB 를 읽는 함수는 **문**이지 `query` · `fetch` · `repository` 가 아니고, 이름은

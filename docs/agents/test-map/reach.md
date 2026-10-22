@@ -51,7 +51,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 
 - **모델이 낸 글** — 실호출뿐이고 잠겨 있다. 프롬프트 본문이 바뀌면 사람이 한 번 돌리고 읽는다
 - **구글 로그인 화면** — 남의 화면. e2e 는 세션을 만들어 쥐여 주고 가입 관문부터 밟는다
-- **운영 DB** — `*.live.test.ts` 셋만, 손으로
+- **운영 DB** — 잠긴 `*.live.test.ts`(`docs/agents/test-map/live.md` 「잠긴 시험 넷」) 가운데 백필 둘만 닿는다, 손으로
 - **화면 단위** — jsdom 이 없다. 화면의 판단은 `.ts` 로 내린다
 - **`app/hash-query.ts` · `app/me/reading/preview.ts` 의 단위** — 브라우저 구독과 DB 를 읽는 문이라 위 「커버리지」 표대로 e2e · 흐름이 든다
 - **커버리지 문턱** — 위 표가 까닭이다

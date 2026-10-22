@@ -64,6 +64,8 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
    배포마다 새 확인 이슈를 열지 않는다(운영자 결정 2026-10-20). 로그인이 드는 셋과 그 묶음에서 로그인 · 실기기로만 보이는 변경은 #770 본문에
    체크 줄로 더한다 — 운영자가 모아서 한 번에 확인한다. 그 묶음에 든 「확인 전」 문구(대장 무리 파일의 「확인 전」 절)도 목록으로 함께
    올린다 — 배포를 막지 않고 보이기만 한다(ADR 0196). G-24 검증은 따로 `ops-verification` 이슈다. 실패가 있으면 「CSP 가 화면을 막을 때」의 1 처럼 앞 배포를 Promote 해 되돌린다.
+   **Hobby 의 Instant Rollback 은 바로 앞 배포 하나로만 간다**(<https://vercel.com/docs/instant-rollback>, 2026-10-22 확인 — 더 앞은 Pro) —
+   그보다 앞으로 가려면 그 커밋을 되돌리는 PR 을 넣고 다시 배포한다.
    **Promote 할 앞 배포는 지금 운영 DB 에서 서야 한다** — 좁히기(「규약 넷」의 3)가 지운 문을 부르는 앱은 그 자리가 실패한다.
    2026-10-11 G-96 좁히기(`20261204090000`) 뒤로 `ca4b1924`(#624 · #627 이 든 묶음 배포) 앞의 앱은 채팅 보내기가 실패한다(`PGRST202`) —
    이 바닥이 G-77 좁히기(`20261127090000`)의 `41a91368`(#526, 채팅 읽음)보다 뒤라 그것을 덮는다
@@ -78,9 +80,10 @@ ADR 0093).
 
 1. **앱 배포 ≠ DB 마이그레이션.** main 머지는 아무것도 내보내지 않고, 묶음 배포는 앱만 내보낸다. 마이그레이션이 든 PR 이
    머지돼도 원격 DB 는 그대로다 — 2026-09-12 에 마이그레이션 넷이 안 오른 채 최신 앱이 돌아 후보 카드의
-   점수는 SQL 이, 궁합풀이의 기준점은 TS 가 서로 다른 셈으로 냈다. 그리고 **마이그레이션을 쓴 그
-   순간부터 이 기계의 dev 화면은 깨져 있다** — dev 서버가 `.env.development.local` 로 운영 DB 를
-   보므로 새 함수를 부르는 화면이 `PGRST202` 로 죽는다. pgTAP 도 CI 도 못 잡는다(둘 다 로컬 DB 다).
+   점수는 SQL 이, 궁합풀이의 기준점은 TS 가 서로 다른 셈으로 냈다. dev 서버는 운영 접속값(`.env.development.local`)으로는
+   시작을 거절한다(`remoteDevRefusal`, `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」). 그래도 `DEV_ALLOW_REMOTE=1` 로 일부러
+   운영에 붙인 dev 화면은 **마이그레이션을 쓴 그 순간부터 깨져 있다** — 새 함수를 부르는 화면이 `PGRST202` 로 죽는다. pgTAP 도
+   CI 도 못 잡는다(둘 다 로컬 DB 다).
 2. **마이그레이션이 먼저, 앱이 나중.** 새 앱이 없는 함수를 부르는 창을 안 만든다. 그러려면
    마이그레이션이 **옛 앱에도 안전**해야 한다 — 새 열은 기본값을 들고, 새 인자는 `default` 를 든다.
    가입 훅처럼 **되돌릴 수 없는 걸음이 끼면 그 순서가 곧 안전이다**(`docs/ops/runbook/deploy-once.md` 「가입 코드 배포」).
@@ -106,7 +109,8 @@ CSP 는 2026-09-23 부터 강제다(`next.config.ts` 의 `contentSecurityPolicy`
 following Content Security Policy directive` 가 선다. 받는 서버(`report-uri`)는 두지 않았으므로 **운영에서
 알 길은 사용자의 제보와 콘솔뿐이다.**
 
-1. **먼저 되돌린다.** 이 커밋 앞의 배포를 Vercel 에서 **Promote** 하거나(가장 빠르다, 코드 안 바꿈), `next.config.ts`
+1. **먼저 되돌린다.** 이 커밋 앞의 배포를 Vercel 에서 **Promote** 하거나(가장 빠르다, 코드 안 바꿈 — Hobby 의 Instant Rollback 은
+   바로 앞 배포 하나로만 간다, 「묶음 배포」의 5), `next.config.ts`
    의 헤더 키 `Content-Security-Policy` 를 `Content-Security-Policy-Report-Only` 로 바꾸고 `frame-ancestors 'none'`
    한 줄짜리 강제 헤더를 다시 세워 가지 → PR → gate → `--auto` 로 넣는다(급하면 운영자가 보호를 잠시 끄고, 켤 때까지를 노트에
    적는다 — ADR 0121) — `frame-ancestors` 는 보고만 하는 정책에서 무시된다.
