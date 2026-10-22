@@ -174,7 +174,10 @@ async function submitFrozen(
 ): Promise<void> {
   const { kind } = job;
 
-  /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
+  /**
+   * 여기서 닫는 실패는 **떠나보내기 전**이거나 provider 가 거절한 제출(상태 코드 · 스트림의 `error` 사건)이라 쓴 토큰을 모른다 —
+   * `null` 로 적는다(ADR 0039). 답을 못 받은 제출은 여기서 안 닫는다(아래)
+   */
   const close = (code: string, detail: string): Promise<void> =>
     failReadingJob(keyed, 'submit', { runId: job.run_id, code, detail, usage: null });
 
@@ -557,8 +560,8 @@ export async function beginReading(
  *
  * ## 못 보내도 막다른 길이 아니다
  *
- * 여기서 실패하면 시도는 `submitFrozen` 이 닫고(실패로), 결과 화면에는 만드는 버튼이
- * 돌아온다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
+ * 여기서 실패하면 시도는 `submitFrozen` 이 닫거나(실패로) — 제출이 답을 못 받았으면 열어 두었다가 webhook 이 되찾거나
+ * 복구기가 기한에 닫는다 — 닫힌 뒤 결과 화면에는 만드는 버튼이 돌아온다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
  */
 export async function sendAcceptedMatchReading(requestId: string): Promise<void> {
   let keyed: ReturnType<typeof keyedClient>;

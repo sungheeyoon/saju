@@ -22,12 +22,18 @@
    스트림을 읽는 동안에는 안 걸린다(`fetchWithTimeout`).
 3. **답을 못 받은 제출은 닫지 않는다** — 망 끊김 · 머리 시간 초과(`OpenAI.APIConnectionError`)는 `model-submit-unanswered` 로
    부르고 파이프라인이 시도를 `submitting` 으로 둔다. provider 가 받았으면 그 webhook 이 이름표로 되찾아 저장하고, 안 닿았으면
-   복구기가 기한(`reading_job_deadline()`, 8분)에 `model-timeout` 으로 닫는다. 상태 코드로 거절당한 것(`APIError` 의 나머지) ·
-   스트림의 `error` 사건은 지금처럼 `model-submit-failed` 로 바로 닫는다.
+   복구기가 기한(`reading_job_deadline()`, 8분)에 `model-timeout` 으로 닫는다. **머리(200)를 받은 뒤 이름표(`response.created`)
+   전에 본문이 끊기거나 조용히 끝난 것도 답 없음이다** — SDK 는 그 끊김을 `APIConnectionError` 로 감싸지 않고 던진다
+   (`node_modules/openai/core/streaming.js` 113–120줄). 상태 코드로 거절당한 것(`APIError` 의 나머지) · 스트림의 `error`
+   사건은 provider 가 답한 거절이라 지금처럼 `model-submit-failed` 로 바로 닫는다.
 
 ## 치르는 값
 
-- provider 에 안 닿은 제출은 사람이 실패를 30초가 아니라 **8분 뒤에** 본다(복구기의 기한).
+- provider 에 안 닿은 제출은 사람이 실패를 30초가 아니라 **8분 뒤에** 본다(복구기의 기한 — 복구기가 1분마다 돌므로 8~9분).
+  그동안 「만드는 중」이 서는데 기다림 문구는 「길면 4분까지 걸려요」다(`readingWaitNote(GENERATION.settings.timeout)` —
+  `src/lib/reading/notes.ts` · `app/me/reading/generation.ts` 의 240초). 이 갈래에서는 문구가 어긋난다.
+- 재시도 0 은 연결 오류만이 아니라 **429 · 408 · 409 · 5xx 의 재시도도 끈다**(`node_modules/openai/client.js` `shouldRetry`).
+  그중 429 · 408 은 provider 가 받지 않은 것이 분명해 다시 보내도 응답이 둘 서지 않는 갈래다 — 지금은 바로 실패로 닫는다.
 - 3 을 빼고 1 · 2 만 두면, provider 가 받았는데 30초 안에 머리가 안 온 제출은 지금과 달리 **버려진다**(시험의 둘째 커밋이 그 갈래를 든다).
 - 멱등 머리(`Idempotency-Key`)로 재시도를 살리는 길은 Responses API 가 그 머리를 받는지 확인 전이라 고르지 않았다.
 

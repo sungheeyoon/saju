@@ -325,11 +325,21 @@ export async function submitBackgroundReading(
       },
     }, SUBMIT_REQUEST);
 
+    /*
+      **머리(200)를 받은 뒤 이름표 전의 끊김도 답 없음이다** — provider 가 응답을 세웠을 수 있다. 본문이 오류로 끊기면 SDK 는
+      감싸지 않은 오류(`TypeError: terminated`)를 던지고, 조용히 끝나면 `done` 이 온다. 둘 다 시도를 열어 둔다(`pipeline.ts`).
+      스트림의 `error` 사건은 provider 가 답한 거절이라 닫는다.
+    */
     const events = stream[Symbol.asyncIterator]();
     for (;;) {
-      const next = await events.next();
+      let next: IteratorResult<OpenAI.Responses.ResponseStreamEvent>;
+      try {
+        next = await events.next();
+      } catch (cut) {
+        return { ok: false, code: SUBMIT_UNANSWERED, detail: messageOf(cut) };
+      }
       if (next.done === true) {
-        return { ok: false, code: 'model-submit-failed', detail: '이름표를 받기 전에 스트림이 끝났습니다' };
+        return { ok: false, code: SUBMIT_UNANSWERED, detail: '이름표를 받기 전에 스트림이 끝났습니다' };
       }
       const event = next.value;
       if (event.type === 'error') {

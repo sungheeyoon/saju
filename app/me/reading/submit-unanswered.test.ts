@@ -152,9 +152,10 @@ const keyedDoor = async (name: string, args: Record<string, unknown> = {}) => {
 
 /**
  * `answers` 받고 답한다 · `drops` 받아 응답을 세운 뒤 끊는다 · `hangs` 받아 세우고 머리를 안 보낸다 ·
- * `unreached` 받지도 못하고 끊긴다 · `rejects` 상태 코드로 거절한다(응답을 안 세운다)
+ * `unreached` 받지도 못하고 끊긴다 · `rejects` 상태 코드로 거절한다(응답을 안 세운다) ·
+ * `cut` 받아 세우고 머리(200)를 보낸 뒤 첫 사건 전에 본문이 끊긴다 · `ends` 같은 자리에서 본문이 조용히 끝난다
  */
-type Link = 'answers' | 'drops' | 'hangs' | 'unreached' | 'rejects';
+type Link = 'answers' | 'drops' | 'hangs' | 'unreached' | 'rejects' | 'cut' | 'ends';
 let link: Link;
 /** provider 쪽에 선 응답 — 하나하나가 토큰이 나가는 모델 실행이다 */
 let created: { id: string; headers: Headers }[];
@@ -199,6 +200,15 @@ const fakeOpenAi = async (input: string | URL | Request, init?: RequestInit): Pr
     const id = `resp_${created.length + 1}`;
     created.push({ id, headers: new Headers(init?.headers) });
     if (link === 'answers') return sse(id);
+    if (link === 'cut' || link === 'ends') {
+      const body = new ReadableStream({
+        start(c) {
+          if (link === 'cut') c.error(new TypeError('terminated'));
+          else c.close();
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
     if (link === 'drops') throw new TypeError('fetch failed');
     /* 머리를 안 보낸다 — 클라이언트가 스스로 끊을 때까지 */
     return new Promise((_, reject) => {
@@ -337,6 +347,23 @@ describe('떠나보냈는데 답을 못 받은 제출', () => {
   });
 
   /** **상태 코드로 거절당한 제출은 바로 닫는다** — provider 가 답했고 응답을 안 세웠다. 다시 보내지도 않는다 */
+  /**
+   * **머리를 받은 뒤 첫 사건 전에 끊겨도 답 없음이다** — 200 은 provider 가 응답을 세웠다는 뜻일 수 있고, 이름표는 아직 못 받았다.
+   * 본문이 오류로 끊기든(SDK 가 감싸지 않은 `TypeError`) 조용히 끝나든 시도를 열어 두어 webhook 이 되찾는다.
+   */
+  it.each(['cut', 'ends'] as const)('머리를 받은 뒤 이름표 전에 본문이 %s 이면 시도를 열어 두어 webhook 이 되찾는다', async (how) => {
+    link = how;
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(created).toHaveLength(1);
+    expect(db.run.status).toBe('running');
+    expect(db.job).toMatchObject({ status: 'submitting', responseId: null });
+
+    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'saved' });
+  });
+
   it('상태 코드로 거절당하면 한 번만 보내고 바로 닫는다', async () => {
     link = 'rejects';
 
