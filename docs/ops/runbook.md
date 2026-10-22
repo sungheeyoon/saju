@@ -28,4 +28,5 @@
 | `docs/ops/runbook/deploy.md` | 「배포」 | 묶음 배포 · 규약 넷(앱과 DB 는 따로) · CSP 되돌리기 |
 | `docs/ops/runbook/deploy-once.md` | 「카드 점수 v2-beta 배포」 · 「가입 코드 배포」 | 한 번만 하는 배포 둘 — 마이그레이션 → 백필 → 앱 · 훅을 먼저 끈다 |
 | `docs/ops/runbook/push.md` | 「웹 푸시를 켠다」 | 새 메시지 알림을 운영에서 여는 날 — 배포 차례 · 열쇠와 Vault · Realtime 설정 · 확인 SQL |
+| `docs/ops/runbook/photo-store.md` | 「사진 저장소를 켠다」 · 「마법사가 쓸 값」 · 「옛 사진 옮기기」 · 「옮긴 뒤 재기」 · 「지울 줄이 안 줄 때」 · 「DB 와 파일의 복구 범위」 | 사진 버킷 · 역할 · 켜는 차례 · 옛 사진 옮기기와 재기 · 지울 줄이 안 줄 때 · DB 와 파일의 복구 범위 (G-120) |
 | `docs/ops/runbook/domain.md` | 「도메인을 옮길 때」 | 자기 도메인을 사는 날 — 주소를 든 자리 아홉 · 옛 주소를 끝까지 살려 두는 순서 |

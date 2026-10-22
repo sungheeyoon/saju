@@ -7,6 +7,7 @@ import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
+import { photoStoreIsOn } from '../photo/store-env';
 import { ProfileForm } from './form';
 import { myPhotos } from './photos';
 
@@ -59,6 +60,7 @@ export default async function ProfilePage() {
         current={{ nickname: account.nickname ?? '', intro: account.intro ?? '' }}
         photos={photos}
         userId={user.id}
+        storedPhotos={photoStoreIsOn()}
       />
     </main>
   );

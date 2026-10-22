@@ -108,3 +108,4 @@ export function initialOf(nickname: string): string {
 }
 
 export * from './focus';
+export * from './photo-variants';

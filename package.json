@@ -36,6 +36,8 @@
     "db:push": "node scripts/remote-lock.mjs npx supabase db push",
     "db:remote": "node scripts/remote-lock.mjs node scripts/db-remote.mjs",
     "audit:verify": "node scripts/audit-verify.mjs",
+    "photo:move": "node scripts/photo-move.mjs",
+    "photo:verify": "node scripts/photo-verify.mjs",
     "stack:slot": "node scripts/stack-slot.mjs",
     "merge:sim": "node scripts/merge-sim.mjs",
     "read-budget": "node scripts/read-budget.mjs",
