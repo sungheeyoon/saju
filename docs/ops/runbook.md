@@ -28,4 +28,4 @@
 | `docs/ops/runbook/deploy.md` | 「배포」 | 묶음 배포 · 규약 넷(앱과 DB 는 따로) · CSP 되돌리기 |
 | `docs/ops/runbook/deploy-once.md` | 「카드 점수 v2-beta 배포」 · 「가입 코드 배포」 | 한 번만 하는 배포 둘 — 마이그레이션 → 백필 → 앱 · 훅을 먼저 끈다 |
 | `docs/ops/runbook/push.md` | 「웹 푸시를 켠다」 | 새 메시지 알림을 운영에서 여는 날 — 배포 차례 · 열쇠와 Vault · Realtime 설정 · 확인 SQL |
-| `docs/ops/runbook/domain.md` | 「도메인을 옮길 때」 | 자기 도메인을 사는 날 — 주소를 든 자리 아홉 · 옛 주소를 끝까지 살려 두는 순서 |
+| `docs/ops/runbook/domain.md` | 「도메인을 옮길 때」 | 운영 주소의 원본 한 줄 · 도메인 걸음의 확인 기록(OAuth · 복구기 · 웹훅 · 옛 주소 넘김) · 주소를 든 자리 열 · 옛 주소를 끝까지 살려 두는 순서 |
