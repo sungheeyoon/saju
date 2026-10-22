@@ -263,6 +263,17 @@ export async function callModel<Produced = ReadingOutput>(
 const client = () => new OpenAI();
 
 /**
+ * **제출은 한 번만 보내고, 응답 머리를 30초까지만 기다린다.**
+ *
+ * SDK 기본값은 재시도 2 · 시간 상한 10분이다(`node_modules/openai/client.js`). 제출(`POST /responses`)은 멱등 머리 없이
+ * 나가므로, 망이 끊긴 제출을 SDK 가 다시 보내면 provider 쪽에 background 응답이 하나씩 더 서고 토큰이 그만큼 나간다 —
+ * 시도 하나에 모델 실행 셋까지(`submit-unanswered.test.ts`). 다시 보낼지는 시도를 여는 쪽(사람의 누름 · 복구기)이 정한다.
+ * 30초는 스트림의 첫 머리가 오는 시간이다 — 상한은 머리에서 멈추고 본문을 읽는 동안에는 안 걸린다. 회수(`retrieve`)는
+ * 같은 것을 다시 읽을 뿐이라 기본값 그대로다.
+ */
+const SUBMIT_REQUEST = { maxRetries: 0, timeout: 30_000 } as const;
+
+/**
  * 일을 떠나보낸다. **완성본을 기다리지 않는다.**
  *
  * `metadata.reading_run_id` 를 함께 싣는 것이 이 함수에서 가장 중요한 한 줄이다.
@@ -312,7 +323,7 @@ export async function submitBackgroundReading(
           schema: options.continuation ? CONTINUATION_SHAPE : options.summaryLast ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE,
         },
       },
-    });
+    }, SUBMIT_REQUEST);
 
     const events = stream[Symbol.asyncIterator]();
     for (;;) {

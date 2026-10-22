@@ -261,45 +261,48 @@ describe('떠나보냈는데 답을 못 받은 제출', () => {
   });
 
   /**
-   * **지금: SDK 기본값(재시도 2)이 끊긴 제출을 두 번 더 보낸다.** provider 쪽에 응답 셋이 서고(토큰 세 벌), 우리 쪽 시도는
-   * `model-submit-failed` 로 닫히며 쓴 토큰은 `null` 이다(ADR 0039 의 지출 기록에 안 남는다). 셋의 webhook 은 되찾기가
-   * 거절당해(시도가 이미 닫힘) 모두 건너뛰고, 복구기는 집을 일감이 없다 — 결과 셋이 아무 데도 안 붙는다.
+   * **재시도 0 — 끊긴 제출은 한 번만 나간다.** provider 쪽 응답은 하나다. 다만 그 하나는 여전히 버려진다 — 우리 쪽 시도는
+   * `model-submit-failed` 로 닫히고 쓴 토큰은 `null` 이다(ADR 0039 의 지출 기록에 안 남는다). webhook 은 되찾기가 거절당해
+   * (시도가 이미 닫힘) 건너뛰고, 복구기는 집을 일감이 없다.
+   *
+   * SDK 기본값(재시도 2)일 때는 같은 갈래에서 응답이 셋 섰고 셋 다 버려졌다(이 파일의 첫 커밋).
    */
-  it('망이 끊기면 SDK 가 같은 제출을 두 번 더 보내고, 응답 셋이 모두 버려진다', async () => {
+  it('망이 끊기면 제출은 한 번만 나가고, 그 응답은 버려진다', async () => {
     link = 'drops';
 
     await beginReading({ kind: 'self' });
     await settle();
 
-    expect(created.map(({ id }) => id)).toEqual(['resp_1', 'resp_2', 'resp_3']);
+    expect(created.map(({ id }) => id)).toEqual(['resp_1']);
     expect(db.run).toEqual({ status: 'failed', failureCode: 'model-submit-failed', usage: null });
 
-    for (const { id } of created) {
-      await expect(collectReadingResult(id)).resolves.toEqual({ done: 'skipped', why: '집을 일감이 없습니다' });
-    }
+    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'skipped', why: '집을 일감이 없습니다' });
     expect(db.run.status).toBe('failed');
     expect(await (await recoveryTick()).json()).toEqual({ open: 0, collected: 0, closed: 0 });
-  }, 20_000);
+  });
 
   /**
-   * **지금: 머리가 안 오면 SDK 는 10분을 기다린다** — 누름의 `after` 가 사는 300초(`maxDuration`) 안에 포기하지 않는다.
-   * 함수가 그 자리에서 끊기면 시도는 `submitting` 으로 남고, provider 의 webhook 이 이름표(`metadata.reading_run_id`)로 되찾아
-   * 저장한다. 이 갈래에서는 결과를 잃지 않는다.
+   * **시간 상한 30초 — 머리가 안 오면 30초에 끊고 시도를 닫는다.** 사람은 8분(복구기의 기한) 대신 30초 만에 실패를 본다.
+   * 대가: provider 가 받았던 제출이면 그 응답은 버려진다 — 닫힌 시도는 되찾기가 거절한다.
+   *
+   * SDK 기본값(10분)일 때는 누름의 `after` 가 사는 300초(`maxDuration`) 안에 포기하지 않았고, 함수가 끊긴 뒤 시도가
+   * `submitting` 으로 남아 webhook 이 이름표로 되찾아 저장했다(이 파일의 첫 커밋).
    */
-  it('머리가 안 오면 함수 수명 안에 포기하지 않고, 끊긴 뒤 webhook 이 이름표로 되찾아 저장한다', async () => {
+  it('머리가 안 오면 30초에 끊고 시도를 닫고, 늦게 온 응답은 버려진다', async () => {
     link = 'hangs';
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
     await beginReading({ kind: 'self' });
     await untilSubmitted(1);
-    await vi.advanceTimersByTimeAsync(300_000);
-
-    expect(created).toHaveLength(1);
-    expect(db.job).toMatchObject({ status: 'submitting', responseId: null });
+    await vi.advanceTimersByTimeAsync(29_000);
     expect(db.run.status).toBe('running');
 
-    /* 함수는 여기서 끊겼다 — 떠난 응답의 webhook 이 온다 */
-    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'saved' });
-    expect(db.run.status).toBe('succeeded');
+    await vi.advanceTimersByTimeAsync(1_000);
+    await settle();
+
+    expect(created).toHaveLength(1);
+    expect(db.run).toMatchObject({ status: 'failed', failureCode: 'model-submit-failed' });
+
+    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'skipped', why: '집을 일감이 없습니다' });
   });
 });
