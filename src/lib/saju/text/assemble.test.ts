@@ -1,9 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '@/src/lib/saju';
 import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
-import { absorbableByUnknownHour, type Relation } from '@/src/lib/saju/relations';
 import type { SajuInput } from '@/src/lib/saju/input';
 import { randomInputs, withoutHour } from '@/src/lib/saju/population';
 import {
@@ -84,13 +83,17 @@ const frozen = <T>(value: T): T => {
 
 type Member = { input: SajuInput; saju: Saju; readonly hourless: Saju };
 
-const POPULATION_SIZE = 1200;
+const POPULATION_SIZE = 900;
+/** 시간 미상 판까지 읽는 앞자리 — 「무작위 모집단의 발화가 모두 계약을 지킨다」가 든다 */
+const HOURLESS_SIZE = 400;
+/** 모집단을 한 번 짓는 데 드는 시간 — 시험 하나의 기본 5초가 아니라 이 상한을 든다(`docs/agents/test-map/kinds.md`) */
+const POPULATION_TIMEOUT_MS = 30_000;
 const population: Member[] = [];
 
 /**
  * 모집단의 앞 `count` 건 — **한 명식은 한 번만 계산한다.**
  *
- * 아래 열두 곳이 같은 시드의 앞자리(200~1200건)를 저마다 `computeSaju` 로 다시 돌려 이 파일
+ * 아래 열두 곳이 같은 시드의 앞자리(200~1200건, 지금은 200~900건)를 저마다 `computeSaju` 로 다시 돌려 이 파일
  * 하나가 약 7천 번을 불렀다. 한 번이 대운 · 세운 · 월운과 그 관계까지 세우느라 약 1ms 라
  * 전체 단위 시험에서 가장 긴 파일이었고, 에이전트 여럿이 한 기계에서 돌 때(부하 30~40)
  * 1초 남짓하던 시험들이 기본 5초를 넘겼다(2026-09-24). `randomInputs` 는 같은 시드면 늘
@@ -112,6 +115,17 @@ const populationOf = (count: number): readonly Member[] => {
   }
   return population.slice(0, count);
 };
+
+/**
+ * **모집단은 시험 전에 한 번 짓는다** — 아래 시험들은 기본 5초 안에 앞자리를 읽기만 한다.
+ *
+ * 전에는 1,200 명식을 처음 부르던 시험(30초 상한, 「사라지는 관계는 반쪽 삼합·방합뿐이다」)이 짓는 값을 대신 치렀다.
+ * 그 시험을 `completeness.test.ts` 로 모으자(2026-10-22) 처음 400 명식을 부르는 5초 시험이 그 값을 떠안아 넘겼다 —
+ * 짓는 일을 시험 순서에 기대지 않고 여기 둔다.
+ */
+beforeAll(() => {
+  for (const member of populationOf(POPULATION_SIZE).slice(0, HOURLESS_SIZE)) void member.hourless;
+}, POPULATION_TIMEOUT_MS);
 
 const topicsOf = (saju: Saju) => findUtterances(saju).map((request) => request.topic);
 
@@ -221,55 +235,19 @@ describe('조립기', () => {
      * 이 자리에는 「시주가 붙어도 여섯 글자에서 난 관계는 사라지지 않는다」가
      * 서 있었고 480 쌍으로 0 건임을 확인했다고 적혀 있었다. **틀린 시험이었다.**
      * 1985~1994년의 열두 날만 훑어 반례를 만나지 못했을 뿐이고, 무작위 표본에서는
-     * 2961건 중 129건(4.4%)에서 관계가 사라진다.
+     * 관계가 사라지는 명식이 있다.
      *
      * 사라지는 것은 **`full: false` 인 삼합·방합뿐이다.** 세 글자가 다 모이면 그
      * 안의 두 글자 조합을 버리기 때문이고(`absorbedPairs`), 시주가 셋째 글자를
      * 들고 오면 반쪽 줄이 완전한 줄로 바뀐다. 그래서 행은 여전히 `fact` 이되
      * **그 행만 흡수될 수 있다고 함께 말한다**(`row-absorbable`).
      *
-     * 시험도 방향을 둘로 든다 — 반례가 **있다**는 것과, 사라진 것이 그 갈래를
-     * **넘지 않는다**는 것.
+     * 모집단 쪽 — 반례가 **있다**는 것과 사라진 것이 그 갈래를 **넘지 않는다**는 것 — 은
+     * `completeness.test.ts` 「사라지는 것은 반쪽 삼합·방합뿐이다」 한 곳이 든다. 여기에도 같은 시드의 1,200 명식으로
+     * 같은 것을 재는 시험이 있었는데, 저쪽 600 명식이 그 앞자리라 반례(30건)가 반쪽 삼합 · 반쪽 방합 두 갈래를 다
+     * 만나고 1,200 은 같은 두 갈래만 더 셌다(2026-10-22 실측 — 590 · 1,181 쌍에서 30 · 66건). 그 시험은 부하 아래
+     * 30초 한도를 넘겨 로컬을 붉혔다. 여기는 고정 반례 하나와 그 행이 문장에서 어떻게 서는가를 든다.
      */
-    // 1200 명식을 시각 있는 짝과 없는 짝으로 두 번 세는 측정이라 기본 5초를 넘길 수
-    // 있다. 표본을 줄이면 반례를 못 만나는 판이 생긴다 — 그것이 이 시험의 앞판이었다.
-    it('사라지는 관계는 반쪽 삼합·방합뿐이다', { timeout: 30_000 }, () => {
-      const keysOf = (saju: Saju) =>
-        new Map(
-          saju.relations.map((r) => [
-            `${r.ko}@${r.participants.map((p) => p.position).join(',')}`,
-            r,
-          ]),
-        );
-
-      let checked = 0;
-      const lost: { key: string; relation: Relation }[] = [];
-
-      for (const { saju: withHour, hourless } of populationOf(1200)) {
-
-        // 세 기둥이 갈리면 다른 명식이라 "관계가 사라졌다"고 셀 수 없다.
-        const three = (saju: Saju) =>
-          (['year', 'month', 'day'] as const).map((p) => saju.pillars[p].name).join(' ');
-        if (three(hourless) !== three(withHour)) continue;
-
-        checked += 1;
-        const eight = keysOf(withHour);
-
-        for (const [key, relation] of keysOf(hourless)) {
-          if (!eight.has(key)) lost.push({ key, relation });
-        }
-      }
-
-      expect(checked).toBeGreaterThan(1000);
-
-      // 반례가 없으면 이 시험은 아무것도 재지 않는다 — 앞선 시험이 그랬다.
-      expect(lost.length).toBeGreaterThan(0);
-
-      // 그리고 사라진 것은 그 갈래를 넘지 않는다.
-      const beyond = lost.filter(({ relation }) => !absorbableByUnknownHour(relation, false));
-      expect(beyond.map(({ key }) => key)).toEqual([]);
-    });
-
     /** 고정 반례 하나 — 무작위 표본이 언젠가 못 만날 수 있다 */
     it('壬申 癸卯 丁酉 에 시주 庚戌 이 붙으면 신유 반방합이 금방으로 흡수된다', () => {
       const input = {

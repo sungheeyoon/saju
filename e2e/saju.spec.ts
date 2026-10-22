@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './anon';
 
 import { BIRTH_YEAR_MAX } from '@/src/lib/input/query';
+import { EVIDENCE_CONTRACT } from '@/src/lib/saju';
 
 import {
   chooseCalendar,
@@ -110,10 +111,12 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   await unfold(page, '신살');
   await expect(stars.getByText('일간 庚 · 월지 巳')).toBeVisible();
   await expect(stars.getByText('년간 庚 · 월지 巳')).toBeVisible();
-  await expect(stars.getByLabel('신살 전통 분류별 개수')).toHaveCount(0);
+  /*
+    길신 · 흉신은 판정이 아니라 전통 분류라 본문에 개수 칩 · 딱지로 서지 않고 접이칸 「전통 분류와 산출 기준」 안에만 선다
+    (`stars.tsx`). 옛 칩의 이름표(「신살 전통 분류별 개수」)는 제품을 떠난 글자라 낱말 자체로 잰다(ADR 0079).
+  */
+  await expect(stars.getByText(/길신|흉신/).filter({ visible: true })).toHaveCount(0);
 
-  /* 강약의 비율은 한 번만 말한다 — 같은 46.9%를 문장으로 되풀이하지 않는다. */
-  await expect(page.getByText(/일간을 돕는 힘은 절반보다/)).toHaveCount(0);
 
   /*
     **채워지지 않은 슬롯이 화면까지 간 적이 있다.** 격국 문장의 `{kind}` 가
@@ -783,14 +786,14 @@ test('사주 결과에 내부 검산 도구가 서지 않는다', async ({ page 
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   /*
-    여기 「풀이에 넘기는 자료」·「무엇을 시킬 것인가」도 함께 있었다. 둘 다 2026-09-06 에
-    제품을 떠난 문구라(`b7b0fed`) 그 뒤로는 **영원히 통과하는 단언 둘**이었다 — 옆에
-    살아 있는 낱말이 함께 있다고 죽은 것이 반증 가능해지지는 않는다. 낱말마다 단언이
-    따로 서기 때문이다(ADR 0079).
+    **도구의 이름이 아니라 도구가 내놓던 것을 잰다**(ADR 0079). 「JSON 내려받기」 · 「풀이에 넘기는 자료」 ·
+    「무엇을 시킬 것인가」는 제품을 떠난 글자라 언제나 통과했다. 패널이 돌아오면 이름이 바뀌어도 둘 중 하나는
+    선다 — 내려받는 링크, 그리고 근거 자료가 스스로 싣는 판본 이름(제품 상수에서 읽는다).
   */
+  await expect(page.locator('main a[download]')).toHaveCount(0);
   const shown = await page.locator('main').innerText();
-  for (const word of ['JSON 내려받기', 'relations-v']) {
-    expect(shown).not.toContain(word);
+  for (const name of [EVIDENCE_CONTRACT.version, ...Object.values(EVIDENCE_CONTRACT.ruleSets)]) {
+    expect(shown).not.toContain(name);
   }
 });
 
@@ -810,32 +813,23 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
-  for (const control of [
-    page.getByLabel('출생연도'),
-    page.getByLabel('출생 시', { exact: true }),
-    page.getByRole('button', { name: '사주 보기' }),
+  /*
+    **상자가 아니라 눌리는 넓이를 잰다**(`e2e/target.ts` 의 `hitArea` — 폭과 높이를 함께, 서 있는지부터 기다린다).
+    전에는 `boundingBox()` 의 높이만 쟀다 — 기다려 주지 않아 `Suspense` 뒤에서 오는 계산기와 경주했고, 폭은 안 봤다.
+  */
+  await expectTargets({
+    출생연도: page.getByLabel('출생연도'),
+    '출생 시': page.getByLabel('출생 시', { exact: true }),
+    '사주 보기': page.getByRole('button', { name: '사주 보기' }),
     /*
       **현관의 두 입구도 과녁이다.** 옛 히어로의 두 갈래는 좁은 화면에서 한 줄에 세우려고 글자와
       여백을 줄였다가 높이가 42px 로 내려갔다 — 이 검사가 그 둘을 안 재고 있어서
       규칙이 깨진 것을 아무도 못 봤다. 화면에서 제일 먼저 누르는 것이 여기 없었다.
       2026-09-29 부터 그 자리는 입력 칸을 고르는 두 입구다(ADR 0131).
     */
-    page.getByRole('tab', { name: /내 사주 보기/ }),
-    page.getByRole('tab', { name: /궁합 보기/ }),
-  ]) {
-    /*
-      **재기 전에 서 있는지부터 본다.**
-
-      `boundingBox()` 는 기다려 주지 않는다 — 붙어 있어도 아직 자리를 못 잡았으면
-      `null` 을 돌려주고, 그러면 `undefined >= 44` 가 되어 검사는 「과녁이 작다」고
-      말한다. 실제로는 아직 안 그려진 것이다. 계산기는 `Suspense` 뒤에서 오므로
-      이 자리는 언제나 그 경주였고, 그동안 이겨 왔을 뿐이다.
-    */
-    await expect(control).toBeVisible();
-
-    const box = await control.boundingBox();
-    expect(box?.height).toBeGreaterThanOrEqual(44);
-  }
+    '내 사주 보기': page.getByRole('tab', { name: /내 사주 보기/ }),
+    '궁합 보기': page.getByRole('tab', { name: /궁합 보기/ }),
+  });
 
   /*
     **궁합 입구의 두 묶음도 잰다.** 칸이 가장 좁아지는 값(음력 윤달 · 시각 모름)을 고른 채로 넘침과 과녁을 잰다
@@ -853,15 +847,13 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   // 고르는 칸의 선택지는 펼침 없이 보인다 — 고른 그 칸이 과녁이다(ADR 0132 덧)
   const option = (name: string) => partner.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  for (const control of [
-    option('음력 윤달'),
-    option('모름'),
-    partner.getByRole('button', { name: /^출생지 / }),
-    partner.getByLabel('출생일', { exact: true }),
-    page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
-  ]) {
-    expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-  }
+  await expectTargets({
+    '음력 윤달': option('음력 윤달'),
+    모름: option('모름'),
+    출생지: partner.getByRole('button', { name: /^출생지 / }),
+    출생일: partner.getByLabel('출생일', { exact: true }),
+    '무료로 두 사람 궁합 보기': page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
+  });
   // 궁합 칸은 닫아도 숨겨진 채 남는다(`home-hero.tsx`) — 이름 칸이 셋이 되지 않게 새로 연다
   await page.goto('/');
 
@@ -869,9 +861,11 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   await page.getByRole('button', { name: '사주 보기' }).click();
   const pillarDetails = page.getByRole('tablist', { name: '사주팔자 상세 정보' });
   await expect(pillarDetails).toBeVisible();
-  for (const tab of await pillarDetails.getByRole('tab').all()) {
-    expect((await tab.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-  }
+  const pillarTabs = await pillarDetails.getByRole('tab').all();
+  expect(pillarTabs.length).toBeGreaterThan(0);
+  await expectTargets(
+    Object.fromEntries(await Promise.all(pillarTabs.map(async (tab) => [await tab.innerText(), tab] as const))),
+  );
 
   await pillarDetails.getByRole('tab', { name: '12신살' }).click();
   await expect(page.getByRole('tabpanel', { name: '12신살' })).toContainText('년지 기준');

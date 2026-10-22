@@ -26,8 +26,12 @@ test('첫 화면은 두 입구와 생일 칸이고, 코드 띠와 이야기 칸�
   await expect(guide.getByRole('heading', { level: 3 })).toHaveText(['사주풀이', '궁합', '인연']);
   await expect(guide).not.toContainText('풀이권');
 
-  await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
-  await expect(page.getByText('사주풀이에서 만날 이야기')).toHaveCount(0);
+  /*
+    코드 띠(「테스트 코드로 시작하기」)는 가입 화면으로 가던 길이다 — 가는 곳으로 잰다. 옛 글자(「테스트 코드를 받으셨나요?」 ·
+    「사주풀이에서 만날 이야기」)는 제품을 떠나 언제나 통과했다(ADR 0079). 이야기 칸의 일은 위 「할 수 있는 것」의 세 제목과
+    결과의 잠긴 목차가 든다
+  */
+  await expect(page.locator('main a[href^="/signup"]')).toHaveCount(0);
 
   /* 로그인 전의 「처음으로」 링크는 이 화면이다 — 회원만 곧장 홈으로 간다(`HomeLink`) */
   await page.goto('/about');
