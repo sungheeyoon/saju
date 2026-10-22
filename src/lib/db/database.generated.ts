@@ -4175,6 +4175,7 @@ export type Database = {
       reading_failure_alert_floor: { Args: never; Returns: number }
       reading_failure_alert_share: { Args: never; Returns: number }
       reading_job_deadline: { Args: never; Returns: string }
+      reading_job_lease: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
