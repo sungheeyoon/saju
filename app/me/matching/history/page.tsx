@@ -31,7 +31,7 @@ export const metadata = {
  *
  * 인연 탭 첫 화면은 덱이 주인이라 지나간 것은 「인연 기록 N」 한 줄로만 선다(`history-row.tsx`). 이 화면이 그 줄의 안쪽이다 —
  * #330 이 덱 아래 펼쳤던 최근 인연 궁합 셋과 지난 요청 접이칸이 여기로 왔다. 주소가 `/me/matching` 아래라 인연 탭에 불이
- * 켜지고(`site-header.tsx`), 로그인 · 가입 관문(`proxy.ts` 의 `/me/:path*` · `src/lib/consent/gate.ts`)도 그대로 지난다.
+ * 켜지고(`site-header.tsx`), 로그인 · 가입 관문(`proxy.ts` 의 `/me` 아래 · `src/lib/consent/gate.ts`)도 그대로 지난다.
  *
  * 인연 궁합 표지는 책장의 궁합 표지 그대로(`PairCover`)이고, 수락 직후 글이 아직 없는 것은 책장의 「만드는 중」 편지
  * (`MakingShelf`)로 선다 — 탭의 한 줄이 센 수(`my_matches`)와 여기 선 수가 같다. 둘 다 `?from=history` 를 달고 결과 화면으로 간다 — 결과 화면의 ← 가

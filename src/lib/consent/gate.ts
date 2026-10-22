@@ -83,7 +83,8 @@ export const NOTICE_UNREAD = 'unread';
  *
  * `/me/photo/…` 는 뺀다. **그림을 내주는 자리**라 튕기면 사진이 깨지고, 하필 깨지는
  * 곳이 이름과 사진을 정하는 화면이다. 레이아웃 시절에도 여기는 관문 밖이었다 —
- * route handler 에는 레이아웃이 안 걸리기 때문이고, 그 사실이 우연히 맞았다.
+ * route handler 에는 레이아웃이 안 걸리기 때문이고, 그 사실이 우연히 맞았다. 이제 관문의 matcher 도 그 주소를 안
+ * 덮는다(ADR 0200) — 이 줄은 matcher 를 다시 넓혔을 때 사진이 깨지지 않게 남긴다.
  */
 const gated = (path: string): boolean =>
   path === '/compat' || ((path === '/me' || path.startsWith('/me/')) && !path.startsWith('/me/photo/'));

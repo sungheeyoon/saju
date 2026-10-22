@@ -205,6 +205,28 @@ describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
     expect(gateOnRender(route)).toBe(false);
   });
 
+  /**
+   * **사진 주소는 관문 밖이다**(ADR 0200) — 한 장마다 Auth 왕복과 계정 · 일정 읽기를 내지 않는다. 볼 수 있는가는 `photo_at` 이
+   * 판정하고, 이 주소가 `signedInUser` 에 닿기 시작하면 위 시험이 붉다.
+   */
+  it.each(['/me/photo/x-userId', '/me/photo/x-userId/1', '/me/photo/x-userId/6'])('%s 는 어떤 요청도 관문을 안 지난다', (route) => {
+    expect(gateOnSome(route)).toBe(false);
+  });
+
+  /** 사진을 뺀 자리가 `/me` 아래 나머지를 덜 덮지 않는다 — 이웃 이름 · 그 자리 · 깊은 주소 */
+  it.each(['/me', '/me/matching', '/me/chat/x-matchId', '/me/profile', '/me/photos', '/me/photo'])('%s 는 관문이 늘 돈다', (route) => {
+    expect(gateOnRender(route)).toBe(true);
+  });
+
+  it('/me 아래에서 관문 밖은 사진 주소뿐이다', () => {
+    const outside = entries
+      .map(routeOf)
+      .filter((route) => route.startsWith('/me') && !gateOnRender(route))
+      .sort();
+
+    expect(outside).toEqual(['/me/photo/x-userId', '/me/photo/x-userId/x-n']);
+  });
+
   /** 나머지 관문 밖 주소는 액션도 안 지난다 */
   it.each(['/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
     '%s 는 어떤 요청도 관문을 안 지난다',
