@@ -217,6 +217,13 @@ describe('ADR 참조 (docs/agents/code-rules/comments.md)', () => {
     expect(numbers.at(-1)).toBe(numbers.length);
   });
 
+  it('ADR 번호는 한 파일에만 있다 — 나란히 쓴 둘이 같은 번호를 잡으면 이음 시험은 못 본다', () => {
+    // 2026-10-23 라운드에 세 PR 이 같은 0201 을 썼다(#809 · #811 · #804) — 번호가 집합이라 위 시험은 초록이었다
+    const files = new Map<string, string[]>();
+    for (const name of ADR_FILES) files.set(name.slice(0, 4), [...(files.get(name.slice(0, 4)) ?? []), name]);
+    expect([...files.values()].filter((names) => names.length > 1)).toEqual([]);
+  });
+
   it('코드·SQL·문서의 `ADR NNNN` 은 전부 있는 파일을 가리킨다', () => {
     const dangling: string[] = [];
     let seen = 0;
