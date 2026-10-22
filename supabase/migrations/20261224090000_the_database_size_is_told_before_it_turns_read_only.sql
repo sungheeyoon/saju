@@ -19,7 +19,8 @@
 --    `database-size-critical`). 값을 인자로 받는 것은 시험이 500MB 를 실제로 채우지 않고 재려는 것이다. 열쇠에도 안 연다 —
 --    감시기 안에서만 돈다.
 -- 4. `watch_cron()` 의 다섯째 갈래 — 앞의 넷(`20261108090000`, 운영의 살아 있는 정의와 같다 — 2026-10-22 에 견줘 봤다)은
---    한 글자도 안 바꾸고 끝에 붙인다. 10분마다 돈다.
+--    한 글자도 안 바꾸고 끝에 붙인다. 10분마다 돈다. 이 갈래는 제 블록 안에서 돈다 — 크기를 못 재면 `database-size-unreadable`
+--    을 알리고 끝나, 앞의 넷이 함께 넘어지지 않는다.
 --
 -- 새 제공자 · 새 비용은 없다. 재는 자리는 `supabase/tests/99_database_size_alert.test.sql`.
 
@@ -170,10 +171,16 @@ begin
     told := told + 1;
   end if;
 
-  -- 5. DB 크기 — 읽기 전용이 되기 **전에** 울린다(머리말)
-  if public.database_size_alert(public.database_size_counted()) then
-    told := told + 1;
-  end if;
+  -- 5. DB 크기 — 읽기 전용이 되기 **전에** 울린다(머리말). 이 갈래가 넘어져도 앞의 넷이 보낸 것은 남는다 — 실패를 알리고 끝까지 간다
+  begin
+    if public.database_size_alert(public.database_size_counted()) then
+      told := told + 1;
+    end if;
+  exception when others then
+    if public.notify_ops('database-size-unreadable', format('DB 크기를 못 쟀다: %s', left(sqlerrm, 200))) then
+      told := told + 1;
+    end if;
+  end;
 
   return told;
 end;

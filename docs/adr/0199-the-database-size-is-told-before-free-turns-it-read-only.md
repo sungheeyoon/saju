@@ -25,6 +25,7 @@ transaction」. 크기는 클러스터의 모든 DB 의 `pg_database_size` 합�
 | 문턱 | **경고 350MB · 위험 425MB — 운영자 결정 대기.** 이름 붙은 함수 둘(`database_size_warning_bytes` · `database_size_critical_bytes`)에 두어 한 줄로 고친다 |
 | 몇 번 | 종류마다 하루 한 줄(`ops_alert` 의 `(kind, day)`). 문턱 위에 있는 동안 매일 다시 온다 |
 | 누가 부르나 | 아무도 — 감시기 안에서만 돈다(알림함을 채울 수 없게) |
+| 못 재면 | 다섯째 갈래는 제 블록 안에서 돈다 — 예외가 나면 `database-size-unreadable` 을 알리고 끝나, 앞의 네 갈래가 함께 넘어지지 않는다 |
 
 ## 고르지 않은 것
 
@@ -33,4 +34,4 @@ transaction」. 크기는 클러스터의 모든 DB 의 `pg_database_size` 합�
 
 ## 재는 자리
 
-`supabase/tests/99_database_size_alert.test.sql` — 문턱 아래 · 경고 · 같은 날 두 번 · 위험 · 감시기 · 권한. 500MB 를 채우지 않으려고 알리는 함수가 크기를 인자로 받는다.
+`supabase/tests/99_database_size_alert.test.sql`(12건) — 한 번 잰 크기가 클러스터 합과 같은가 · 문턱 아래 · 경고 · 같은 날 두 번 · 위험 · 감시기(시험 DB 는 문턱 아래라 0 줄, 트랜잭션 안에서 경고 문턱을 0 으로 내리면 한 바퀴가 경고 한 줄 — 다섯째 갈래가 없으면 붉다) · 크기를 못 재면 `database-size-unreadable` 한 줄을 남기고 감시기는 넘어지지 않는다 · 익명 · 로그인한 사람 · 열쇠 모두 네 함수를 못 부른다. 500MB 를 채우지 않으려고 알리는 함수가 크기를 인자로 받는다.
