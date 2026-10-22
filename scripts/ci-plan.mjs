@@ -153,8 +153,9 @@
  * `instrumentation.ts` 는 공용 경계라 전부, `app/icon.svg` 는 메타데이터라 `core` + `anon`. 옛 전부 382 개 중 61 개가
  * 좁혀진다.
  *
- * 남는 구멍: 시험이 주소를 문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 자리의 붉음은 전처럼
- * 머지 뒤 main 의 전체가 잡는다.
+ * 남는 구멍: 시험이 주소를 문자열로 적지 않고 링크를 눌러 닿는 화면은, 그 주소를 적은 다른 시험이 있으면 그 시험의 차선만 켠다 —
+ * 링크로 닿는 시험의 차선은 안 켠다. 그 자리의 붉음은 전처럼 머지 뒤 main 의 전체가 잡는다. 주소를 적은 시험이 0 이면 링크로 닿는
+ * 시험이 있을 때 전부다(아래 「CI 갈래 검수의 넷」).
  *
  * ## 입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로 (ADR 0178, 운영자 2026-10-12)
  *
@@ -261,13 +262,20 @@
  *   그것을 쓰는 입구의 주소에 닿는 차선을 켜고, 안전 문턱(길 위의 공용 위험 · 고아는 전부)도 같다. 지운 컴포넌트는 안 건다. React 도
  *   `'use client'` 도 없는 `.ts`(`book.ts` · `buttons.ts` 같은 셈 · 상수)는 단위 시험이 재므로 그대로 `core` 다. 잰 값(2026-10-22): 화면
  *   컴포넌트 157 개(옛 규칙 `core`) 중 123 개가 좁힌 차선(그중 열은 차선 열하나를 다 켠다), 21 개가 전부(길 위에 layout · 인증 · Next 공용
- *   경계 — `app/ui/**` 의 여덟이 여기다), 13 개는 쓰는 입구 가운데 시험이 정말 없는 입구가 있어 11 개는 `core`(시험 공백) · 2 개는 나머지 입구의 차선이다.
+ *   경계 — `app/ui/**` 의 여덟이 여기다), 13 개는 쓰는 입구 가운데 시험이 정말 없다던 입구가 있어 11 개는 `core` · 2 개는 나머지 입구의 차선이었다 —
+ *   그 입구들이 링크로 닿을 수 있어(아래) 열셋 모두 전부다.
  * - **닿는 시험이 0 인 입구는 정말 없을 때만 `core` 다.** 글자 그대로의 주소(`addressesOf`)가 0 이어도 시험 · 그 도우미가 템플릿 ·
  *   이어 붙임 · 식 뒤의 경로 · 정규식의 `\/` 경로로 그 주소를 요청할 **수도 있거나**(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의
- *   경로가 글자로 들었거나(`mentionOf`), 그 입구를 들이는 파일이 있으면(다시 내보내는 page) 탐색이 놓친 것이라 전부(「닿는 시험 모름」)다. 그것도 없으면 그 파일은 `core` 로 세고 까닭에 시험 공백과 간극 대장 줄(`UNTESTED_GAP`)을 싣는다 — 다른 파일이 켠
- *   차선은 그대로다. 대장의 기록이 `untestedEntries()` 와 같은 목록을 드는지 시험이 견준다. 해석 불가(고아) · 미분류 · 관문이 부르는
- *   파일 · 차선 모름은 그대로 전부다. 잰 값(2026-10-22): 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)과
- *   그것만 쓰는 서버 파일 여섯이 전부 → `core` 다.
+ *   경로가 글자로 들었거나(`mentionOf`), 그 입구를 들이는 파일이 있거나(다시 내보내는 page), **다른 화면이 그 입구를 가리키고 그 화면을 여는
+ *   시험이 있으면**(아래) 탐색이 놓친 것이라 전부(「닿는 시험 모름」)다. 그것도 없으면 그 파일은 `core` 로 세고 까닭에 시험 공백과 간극 대장 줄(`UNTESTED_GAP`)을 싣는다 — 다른 파일이 켠
+ *   차선은 그대로다. 대장의 기록이 `untestedEntries()` · `linkedOnlyEntries()` 와 같은 목록을 드는지 시험이 견준다. 해석 불가(고아) · 미분류 ·
+ *   관문이 부르는 파일 · 차선 모름은 그대로 전부다.
+ * - **다른 화면이 가리키는 입구는 정말 없음이 아니다**(ADR 0195 덧, 외부 리뷰). 시험이 주소를 한 글자도 적지 않고 링크를 눌러 닿을 수 있다.
+ *   앱 코드에서 그 입구를 가리키는 파일(`linksIn` — 링크든 경로 상수 · `router.push` · `redirect` 든)과 그 파일을 그리는 화면(입구 · `layout`
+ *   아래 전부, 그 화면을 가리키는 화면도 끝까지 — `linkReach`)을 모아, 그 화면을 여는 시험 · 도우미가 있으면 든다. 시험이 무엇을 누르는지는
+ *   가르지 않는다 — 선택자 글자 · 좌표 누름 · 키 · 대소문자로 이름 좁힘이 새는 길이 끝이 없다(2026-10-22 독립 검토). 잰 값(2026-10-22): 시험
+ *   공백이던 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)이 모두 전부로 돌아갔다 — 공용 바닥글 · 회원 머리의 풀이권
+ *   메뉴 · 운영 머리가 그 입구를 가리킨다. 그 아홉과 그것만 쓰는 서버 파일 여섯 · 화면 컴포넌트 열셋, 스물여덟이 `core` · 좁힌 차선 → 전부다.
  * - **엔진의 DB 쪽은 운영 베타에서도 전부다**(공용 위험 「엔진의 DB 쪽」). 머리말 위 「엔진 단계의 예외 둘」과 시험 지도가 이미 「전부」라
  *   적었는데 `ENGINE_DB_FACING` 은 공개 출시의 판정만 읽었다.
  * - **CI 자체와 시험 실행 의존성은 전부다.** 워크플로(`.github/workflows/**`)와 모든 job 이 읽는 Node 판(`.nvmrc`)은 공용 위험 「CI 자체」다 —
@@ -669,12 +677,13 @@ const looseOf = (path, { exact = false } = {}) => {
 
 /**
  * 시험 소스가 요청할 **수도 있는** 주소 — `addressesOf` 가 확실히 풀지 못한 것을 넓게 무늬로 잡는다. 「닿는 시험이 0」을 「정말 없다」와
- * 「탐색이 놓쳤다」로 가르는 데만 쓴다(위 「닿는 시험이 0 인 입구」). 넷이다:
+ * 「탐색이 놓쳤다」로 가르는 데만 쓴다(위 「닿는 시험이 0 인 입구」). 다섯이다:
  *
  * - 템플릿의 식이 든 주소(`` `/me/${tab}` ``) — 식 자리는 아무 글자나
  * - 이어 붙이는 주소(`'/me/' + tab`) — 그 뒤는 아무 글자나
  * - 앞에 식이 선 경로(`` `${BASE}/me/push` ``) — 식 뒤의 경로부터
  * - 정규식의 `\/` 경로(`toHaveURL(/\/me\/credits$/)`) — `$` 로 닫히면 그 주소 하나, 아니면 그 뒤는 아무 글자나
+ * - 배열을 `/` 로 이은 주소(`['', 'me', 'credits'].join('/')`) — 글자 아닌 칸은 아무 글자나
  *
  * 주석 줄은 뺀다. 넓게 잡을수록 전부로 갈 뿐 좁아지지 않는다
  *
@@ -697,6 +706,15 @@ export function looseAddressesOf(source) {
   // 마디가 하나 이상인 `\/` 경로만 — `\d+ \/ 100` 같은 나눗셈 글자는 아니다
   for (const one of code.matchAll(/((?:\\\/[\w.%-]+)+(?:\\\/)?)(\$)?/g)) {
     found.push(looseOf(one[1].replace(/\\\//g, '/'), { exact: one[2] === '$' }));
+  }
+  // 배열을 `/` 로 이은 주소(`['', 'me', 'credits'].join('/')`) — 글자 아닌 칸은 아무 글자나. 글자 마디가 하나도 없으면 주소가 아니다
+  for (const one of code.matchAll(/\[([^[\]\n]*)\]\s*\.join\(\s*(['"`])\/\2\s*\)/g)) {
+    const parts = one[1].split(',').map((part) => part.trim());
+    if (parts.at(-1) === '') parts.pop();
+    const literal = parts.map((part) => /^(['"])([\w.%-]*)\1$/.exec(part)?.[2]);
+    if (!literal.some((part) => part !== undefined && /[A-Za-z]/.test(part))) continue;
+    const path = literal.map((part) => part ?? '${}').join('/');
+    found.push(looseOf(path.startsWith('/') || path.startsWith('${}') ? path : `\${}/${path}`, { exact: true }));
   }
   return found;
 }
@@ -768,11 +786,6 @@ function testMap() {
   ]);
   // 시험 · 도우미와 그것이 바로 들이는 저장소 파일(경로 상수가 사는 `src/**` 같은 곳)의 코드 — 입구의 경로가 글자로 들어 있기만 해도
   // 놓쳤을 수 있다고 본다(`mentionOf`)
-  const codeOf = (file) =>
-    (sourceFromDisk(file) ?? '')
-      .split('\n')
-      .filter((line) => !isCommentLine(line))
-      .join('\n');
   const texts = Object.fromEntries(
     [...tests, ...helpers].map((file) => {
       const source = sourceFromDisk(file) ?? '';
@@ -782,9 +795,16 @@ function testMap() {
       return [file, [file, ...imported].map(codeOf).join('\n')];
     }),
   );
-  testMapCache = { loginSpecs, specsOfLane, addresses, loose, texts };
+  testMapCache = { loginSpecs, specsOfLane, addresses, loose, texts, linkReach };
   return testMapCache;
 }
+
+/** 주석 줄을 뺀 디스크의 코드 — 못 읽으면 빈 글자 */
+const codeOf = (file) =>
+  (sourceFromDisk(file) ?? '')
+    .split('\n')
+    .filter((line) => !isCommentLine(line))
+    .join('\n');
 
 /**
  * 입구의 경로가 글자로 든 자리 — 경로의 끝쪽 마디들(`/me/credits` · `/credits`)이 `/` 나 `\/` 로 이어 적혔는가. 동적 마디는 아무 글자나.
@@ -810,6 +830,131 @@ export function mentionOf(entry) {
   return tails.length === 0 ? null : new RegExp(`(?:${tails.join('|')})(?![\\w-])`);
 }
 
+// ---------------------------------------------------------------------------
+// 링크로 닿을 수 있는 입구 — 다른 화면이 가리키면 정말 없음이 아니다(위 「CI 갈래 검수의 넷」 · ADR 0195 덧)
+// ---------------------------------------------------------------------------
+
+/**
+ * 주소창의 `?…` · `#…` 조각을 잇는 식 — 확실한 꼴만 걷는다: `?` · `#` · `&` 바로 뒤의 `${…search}` · `${…hash}`, 그리고 템플릿 끝에
+ * `${…search}${…hash}` 가 그 차례로 붙은 꼴(`` `/${search}${hash}` `` — 주소창의 차례 그대로). 경로 자리의 홀로 선 식(`` `/${hash}` `` ·
+ * `` `/ops/orders/${order.hash}` ``)은 경로일 수 있어 그대로 둔다(넓은 쪽)
+ */
+const URL_PARTS = [
+  /([?#&])\$\{\s*(?:[\w$]+\.)*(?:search|hash)\s*\}/g,
+  /\$\{\s*(?:[\w$]+\.)*search\s*\}\$\{\s*(?:[\w$]+\.)*hash\s*\}(?=`)/g,
+];
+
+/**
+ * 앱 코드 한 파일이 그 입구를 가리키는가 — 링크든 이동(경로 상수 · `router.push` · `redirect` · `form action`)이든. 글자 그대로의 주소
+ * (`addressesOf` 와 같은 읽기), 넓은 무늬(`looseAddressesOf` — 템플릿 · 이어 붙임 · `join('/')`), 경로 글자(`mentionOf`) 가운데 하나가
+ * 닿으면 참이다. import 경로와 주소창 조각(`URL_PARTS`)은 가는 길이 아니라 걷는다
+ *
+ * @param {string} source 주석 줄을 뺀 코드
+ * @param {string} entry
+ * @returns {boolean}
+ */
+export function linksIn(source, entry) {
+  const route = routeOf(entry);
+  if (route === null) return false;
+  const code = source
+    .replace(URL_PARTS[0], '$1')
+    .replace(URL_PARTS[1], '')
+    .replace(/(\bfrom\s*|\bimport\s*\(?\s*)(['"])[^'"\n]*\2/g, '');
+  if (addressesOf(code).some((address) => route.test(address))) return true;
+  const { samples } = samplesOf(entry);
+  const mention = mentionOf(entry);
+  return looseAddressesOf(code).some(({ pattern }) => samples.some((sample) => pattern.test(sample))) || (mention !== null && mention.test(code));
+}
+
+/** `layout` 이 그리는 주소 — 그 자리의 `loading` 과 같다(그 아래 전부) */
+const layoutRouteOf = (file) => (/^app\/(?:.+\/)?layout\.tsx$/.test(file) ? routeOf(file.replace(/layout\.tsx$/, 'loading.tsx')) : null);
+
+/** 모든 화면 — 그리는 자리를 못 찾은 코드는 어디서나 선다고 본다 */
+const EVERY_SCREEN = { route: /^\/.*$/, samples: ['/', '/x'] };
+
+let linkGraphCache = null;
+/**
+ * 앱 코드의 이동 그래프 — 파일마다 주석 뺀 코드, 그리고 그 파일을 그리는 화면(`hostsOf`): import 를 거꾸로 따라 만난 입구의 주소와
+ * `layout` 아래 전부. 아무 화면도 못 만나면 모든 화면이다
+ */
+function linkGraph() {
+  if (linkGraphCache) return linkGraphCache;
+  const files = importerFiles().filter((file) => /^(?:app|src)\/.+\.tsx?$/.test(file) && !isTestFile(file));
+  const code = new Map(files.map((file) => [file, codeOf(file)]));
+  const entries = importerFiles().filter((file) => routeOf(file) !== null);
+  const importers = importerGraph(sourceFromDisk, []);
+  const hostsMemo = new Map();
+  const hostsOf = (file) => {
+    if (hostsMemo.has(file)) return hostsMemo.get(file);
+    const hosts = new Map();
+    const seen = new Set([file]);
+    const queue = [file];
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const entry = routeOf(current);
+      if (entry) hosts.set(entry.source, { route: entry, samples: samplesOf(current).samples });
+      const layout = layoutRouteOf(current);
+      if (layout) hosts.set(layout.source, { route: layout, samples: samplesOf(current.replace(/layout\.tsx$/, 'loading.tsx')).samples });
+      for (const importer of importers.get(current) ?? []) {
+        if (seen.has(importer) || isTestFile(importer) || !/^(?:app|src)\//.test(importer)) continue;
+        seen.add(importer);
+        queue.push(importer);
+      }
+    }
+    const found = hosts.size === 0 ? [EVERY_SCREEN] : [...hosts.values()];
+    hostsMemo.set(file, found);
+    return found;
+  };
+  linkGraphCache = { code, entries, hostsOf, pointers: new Map() };
+  return linkGraphCache;
+}
+
+/**
+ * 그 입구를 가리키는 화면 — 앱 코드에서 그 입구를 가리키는 파일(`linksIn`)을 찾고 그 파일을 그리는 화면(`hostsOf`)을 모은다. 그 화면을
+ * 가리키는 화면에서도 올 수 있어 끝까지 따른다. 그 입구 하나만 그리는 파일(제 화면의 `form action` 같은 것)은 밖에서 오는 길이 아니라
+ * 뺀다. 비면 앱 어디서도 그 입구로 가지 않는다
+ *
+ * @param {string} entry
+ * @returns {{ routes: { route: RegExp, samples: string[] }[] }}
+ */
+export function linkReach(entry) {
+  const graph = linkGraph();
+  const hostsPointingTo = (target) => {
+    if (graph.pointers.has(target)) return graph.pointers.get(target);
+    const own = routeOf(target).source;
+    const found = [];
+    for (const [file, text] of graph.code) {
+      if (file === target || !linksIn(text, target)) continue;
+      const hosts = graph.hostsOf(file);
+      if (hosts.every((host) => host.route.source === own)) continue;
+      found.push(...hosts);
+    }
+    graph.pointers.set(target, found);
+    return found;
+  };
+  const routes = new Map();
+  const seen = new Set([entry]);
+  const queue = [entry];
+  while (queue.length > 0 && !routes.has(EVERY_SCREEN.route.source)) {
+    for (const host of hostsPointingTo(queue.shift())) {
+      if (routes.has(host.route.source)) continue;
+      routes.set(host.route.source, host);
+      for (const other of graph.entries) {
+        if (seen.has(other) || !samplesOf(other).samples.some((sample) => host.route.test(sample))) continue;
+        seen.add(other);
+        queue.push(other);
+      }
+    }
+  }
+  const every = routes.get(EVERY_SCREEN.route.source);
+  return { routes: every ? [every] : [...routes.values()] };
+}
+
+/** 시험 · 도우미가 그 화면들 가운데 하나를 여는가 — 글자 그대로의 주소나 넓은 무늬로 */
+const opensAny = (addresses, loose, routes) =>
+  addresses.some((address) => routes.some(({ route }) => route.test(address))) ||
+  loose.some(({ pattern }) => routes.some(({ samples }) => samples.some((sample) => pattern.test(sample))));
+
 /** 시험 하나가 켜는 차선 — 흐름 검사는 `flow`, 차선 스크립트가 부르는 spec 은 그 차선, 로그인 무늬인데 부르는 차선이 없으면 `null`(전부), 그 밖 spec 은 `anon` */
 export function lanesOfTest(test) {
   if (isFlowCheck(test)) return ['flow'];
@@ -821,36 +966,50 @@ export function lanesOfTest(test) {
 }
 
 /**
- * 입구 하나에 닿는 시험 — `tests` 는 주소가 글자 그대로 닿는 시험이다. 그것이 0 이면 `unsure` 에 그 주소를 요청할 **수도 있는**
- * 시험 · 도우미(`looseAddressesOf`)를 든다. 둘 다 비어야 「닿는 시험이 정말 없다」(위 「닿는 시험이 0 인 입구」)
- *
- * @param {string} entry
- * @param {{ addresses: Record<string, string[]>, loose: Record<string, { prefix: string, pattern: RegExp }[]>, texts?: Record<string, string> }} [map] 시험마다
- *   글자 그대로의 주소(`addressesOf`) · 넓은 무늬(`looseAddressesOf`) · 경로를 찾을 코드(`mentionOf`) — 빠지면 저장소에서 읽는다(시험이 넣어 가른다)
- * @returns {{ tests: string[], unsure: string[] }}
+ * 입구 하나에 닿는 시험을 셋으로 — `tests` 는 주소가 글자 그대로 닿는 시험, 그것이 0 이면 `byAddress` 는 그 주소를 요청할 **수도 있는**
+ * 시험 · 도우미(`looseAddressesOf` · `mentionOf`), `byLink` 는 그 입구를 가리키는 화면(`linkReach`)을 여는 시험 · 도우미다(`map` 에
+ * `linkReach` 가 없으면 — 시험이 넣은 가짜 — 이 길은 안 본다)
  */
-export function testsOfEntry(entry, map = testMap()) {
+function reachOfEntry(entry, map) {
   const route = routeOf(entry);
-  if (route === null) return { tests: [], unsure: [entry] };
   const tests = Object.entries(map.addresses)
     .filter(([, addresses]) => addresses.some((address) => route.test(address)))
     .map(([test]) => test);
-  if (tests.length > 0) return { tests, unsure: [] };
+  if (tests.length > 0) return { tests, byAddress: [], byLink: [] };
   const { samples, base, subtree } = samplesOf(entry);
   const below = base === '/' ? '/' : `${base}/`;
   const reaches = ({ prefix, pattern }) => samples.some((sample) => pattern.test(sample)) || (subtree && prefix.startsWith(below));
   const mention = mentionOf(entry);
-  const unsure = [
-    ...new Set([
-      ...Object.entries(map.loose)
-        .filter(([, list]) => list.some(reaches))
-        .map(([file]) => file),
-      ...Object.entries(map.texts ?? {})
-        .filter(([, text]) => mention !== null && mention.test(text))
-        .map(([file]) => file),
-    ]),
-  ].sort();
-  return { tests: [], unsure };
+  const byAddress = [
+    ...Object.entries(map.loose)
+      .filter(([, list]) => list.some(reaches))
+      .map(([file]) => file),
+    ...Object.entries(map.texts ?? {})
+      .filter(([, text]) => mention !== null && mention.test(text))
+      .map(([file]) => file),
+  ];
+  const routes = map.linkReach ? map.linkReach(entry).routes : [];
+  const byLink = [...new Set([...Object.keys(map.addresses), ...Object.keys(map.loose)])].filter((file) =>
+    opensAny(map.addresses[file] ?? [], map.loose[file] ?? [], routes),
+  );
+  return { tests: [], byAddress, byLink };
+}
+
+/**
+ * 입구 하나에 닿는 시험 — `tests` 는 주소가 글자 그대로 닿는 시험이다. 그것이 0 이면 `unsure` 에 그 주소를 요청할 **수도 있는**
+ * 시험 · 도우미(`looseAddressesOf` · `mentionOf`)와, 그 입구를 가리키는 화면을 열어 링크 · 이동으로 닿을 수 있는 시험 · 도우미를 든다.
+ * 둘 다 비어야 「닿는 시험이 정말 없다」(위 「닿는 시험이 0 인 입구」)
+ *
+ * @param {string} entry
+ * @param {{ addresses: Record<string, string[]>, loose: Record<string, { prefix: string, pattern: RegExp }[]>, texts?: Record<string, string>, linkReach?: (entry: string) => ReturnType<typeof linkReach> }} [map] 시험마다
+ *   글자 그대로의 주소(`addressesOf`) · 넓은 무늬(`looseAddressesOf`) · 경로를 찾을 코드(`mentionOf`), 그리고 입구를 가리키는 화면
+ *   (`linkReach`) — 빠지면 저장소에서 읽는다(시험이 넣어 가른다)
+ * @returns {{ tests: string[], unsure: string[] }}
+ */
+export function testsOfEntry(entry, map = testMap()) {
+  if (routeOf(entry) === null) return { tests: [], unsure: [entry] };
+  const { tests, byAddress, byLink } = reachOfEntry(entry, map);
+  return { tests, unsure: [...new Set([...byAddress, ...byLink])].sort() };
 }
 
 /**
@@ -862,18 +1021,34 @@ export function testsOfEntry(entry, map = testMap()) {
 const importersOfEntry = (entry, sourceOf = sourceFromDisk, changed = [entry]) =>
   [...(importerGraph(sourceOf, changed).get(entry) ?? [])].filter((file) => !isTestFile(file)).sort();
 
+/** 저장소의 입구마다 닿는 길 — 간극 대장의 두 목록이 여기서 나온다 */
+const entryReaches = () =>
+  importerFiles()
+    .filter((file) => routeOf(file) !== null)
+    .map((file) => ({ file, ...reachOfEntry(file, testMap()), importers: importersOfEntry(file) }))
+    .filter(({ tests, byAddress, importers }) => tests.length === 0 && byAddress.length === 0 && importers.length === 0);
+
 /**
  * 저장소의 입구 가운데 닿는 시험이 정말 없는 것 — 간극 대장의 시험 공백 줄(`UNTESTED_GAP`)이 이 목록을 그대로 든다(시험이 견준다)
  *
  * @returns {string[]}
  */
 export const untestedEntries = () =>
-  importerFiles()
-    .filter((file) => routeOf(file) !== null)
-    .filter((file) => {
-      const { tests, unsure } = testsOfEntry(file);
-      return tests.length === 0 && unsure.length === 0 && importersOfEntry(file).length === 0;
-    })
+  entryReaches()
+    .filter(({ byLink }) => byLink.length === 0)
+    .map(({ file }) => file)
+    .sort();
+
+/**
+ * 주소를 요청하는 시험도 들이는 파일도 없고 그 입구를 가리키는 화면을 여는 시험만 있는 입구 — 그 화면을 여는 시험은 여전히 없지만
+ * 놓쳤을 수 있어 전부로 간다(ADR 0195 덧). 간극 대장의 같은 줄(`UNTESTED_GAP`)이 이 목록도 그대로 든다(시험이 견준다)
+ *
+ * @returns {string[]}
+ */
+export const linkedOnlyEntries = () =>
+  entryReaches()
+    .filter(({ byLink }) => byLink.length > 0)
+    .map(({ file }) => file)
     .sort();
 
 /** 로그인 spec 이 무엇인가 — 시험이 차선 스크립트와 견준다 */
@@ -2097,7 +2272,7 @@ function decideBeta(changed, stage, sourceOf) {
   /** 닿는 시험이 정말 없는 입구 — 그 파일은 `core` 로 세고 까닭에 시험 공백으로 적는다(위 「닿는 시험이 0 인 입구」) */
   const untested = new Set();
   /** 입구 하나의 시험 — 글자 그대로 닿는 시험이 0 이고 탐색이 놓쳤을 수 있으면 `null`(전부로 간다) */
-  /** 시험 없는 입구를 요청하거나 들일 수 있는 파일 — 넓은 무늬 · 경로 글자로 닿는 시험 · 도우미와 그 입구를 들이는 파일 */
+  /** 시험 없는 입구를 요청하거나 눌러 닿거나 들일 수 있는 파일 — 넓은 무늬 · 경로 글자 · 링크로 닿는 시험 · 도우미와 그 입구를 들이는 파일 */
   const maybe = (entry) => [...testsOfEntry(entry).unsure, ...importersOfEntry(entry, sourceOf, changed)];
   const testsOf = (entry) => {
     const { tests, unsure } = testsOfEntry(entry);
@@ -2118,7 +2293,7 @@ function decideBeta(changed, stage, sourceOf) {
       if (routeOf(file)) {
         tests = testsOf(file);
         if (tests === null) {
-          return full('닿는 시험 모름', `${stage} — \`${file}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(file))} 이 요청하거나 들일 수 있다`);
+          return full('닿는 시험 모름', `${stage} — \`${file}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(file))} 이 요청하거나 눌러 닿거나 들일 수 있다`);
         }
       } else {
         // 입구가 아닌 서버 파일 · 화면 컴포넌트 — 그것을 쓰는 입구의 주소로 간다(위 「입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로」 ·
@@ -2135,7 +2310,7 @@ function decideBeta(changed, stage, sourceOf) {
         for (const entry of reach.entries) {
           const found = testsOf(entry);
           if (found === null) {
-            return full('닿는 시험 모름', `${stage} — \`${file}\` 을 쓰는 \`${entry}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(entry))} 이 요청하거나 들일 수 있다`);
+            return full('닿는 시험 모름', `${stage} — \`${file}\` 을 쓰는 \`${entry}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(entry))} 이 요청하거나 눌러 닿거나 들일 수 있다`);
           }
           for (const test of found) reached.add(test);
         }

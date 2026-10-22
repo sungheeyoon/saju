@@ -26,7 +26,7 @@
 | 정책만(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy` |
 | `e2e/*.spec.ts` | `core` + 그 spec 을 부르는 차선(`package.json` 의 `test:e2e:<차선>`). 로그인 무늬(`AUTHED` · `NOTICE`)인데 부르는 차선이 없으면 전부, 그 밖 spec 은 `anon` |
 | `scripts/check-*.mjs` | `core` + `flow` |
-| 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 — 시험 · 그 도우미가 템플릿 · 이어 붙임 · 정규식으로 그 주소를 요청할 수도 있거나(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의 경로가 글자로 들었거나(`mentionOf` — glob · 정규식 문자열 · 경로 상수), 그 입구를 들이는 파일이 있으면(다시 내보내는 page) 전부, 그것도 없으면 그 파일은 `core` 이고 까닭에 시험 공백(간극 대장 G-116 — 그 기록과 계획의 `untestedEntries()` 를 시험이 견준다)이 실린다. 다른 파일이 켠 차선은 그대로다(운영자 2026-10-22, ADR 0195) |
+| 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 — 시험 · 그 도우미가 템플릿 · 이어 붙임 · 정규식으로 그 주소를 요청할 수도 있거나(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의 경로가 글자로 들었거나(`mentionOf` — glob · 정규식 문자열 · 경로 상수), 그 입구를 들이는 파일이 있거나(다시 내보내는 page), 다른 화면이 그 입구를 가리키고(링크든 경로 상수 · `router.push` · `redirect` 든) 그 화면을 여는 시험이 있으면(`linkReach` — 무엇을 누르는지는 가르지 않는다, ADR 0195 덧) 전부, 그것도 없으면 그 파일은 `core` 이고 까닭에 시험 공백(간극 대장 G-116 — 그 기록과 계획의 `untestedEntries()` · `linkedOnlyEntries()` 를 시험이 견준다)이 실린다. 다른 파일이 켠 차선은 그대로다(운영자 2026-10-22, ADR 0195) |
 | Next 메타데이터(`app/**/icon.*` · `opengraph-image.*` · `sitemap.*` …) | `core` + `anon` |
 | 관문이 import 하는 `app/` 파일(ADR 0119 추기) | 전부 |
 | 서버에 닿는 `app/` 파일(ADR 0119 추기) — Supabase 클라이언트 · 서버 전용 모듈을 들인다. 타입만 들여도 센다 — 주입받은 클라이언트로 DB 를 부른다(ADR 0178 「고르지 않은 것」). **입구가 아닌 화면 컴포넌트**(`app/**` 의 시험 아닌 `.tsx` 와 React 를 들이거나 `'use client'` 인 `.ts` — hook 같은 것, 지운 파일은 빼고)도 같은 줄이다(ADR 0195) | 입구면 위 「화면의 입구」 줄. 입구가 아니면 **import 를 거꾸로 따라** 그 파일을 (간접으로라도) 쓰는 입구(입구를 다시 내보내는 page 까지)와 그것을 직접 부르는 시험을 모아 그 주소에 닿는 차선만(`entriesReaching`, ADR 0178). 길 위에 공용 위험(`layout` · `route.ts` · 서버 액션 · 관문 · 인증 · 시험 도구 …) · 메타데이터가 서거나, 입구를 하나도 못 찾거나(고아), 찾은 입구의 주소에 닿는 시험이 0 인데 탐색이 놓쳤을 수 있으면 전부(정말 없는 입구는 위 줄처럼 시험 공백) |
@@ -37,7 +37,9 @@
 `app/me/people/page.tsx` → `core` + `anon`(`auth.spec.ts` 가 `/me/people` 을 요청한다) + signed-in 둘 + match 둘 + `flow`.
 2026-10-01 에 추적 파일 1,139 개를 한 파일씩 넣으니 옛 `fast` 489 개 중 486 개가 그대로 `core` 였고(`app/global-error.tsx` ·
 `instrumentation.ts` 는 전부로, `app/icon.svg` 는 `core` + `anon` 으로), 옛 전부 382 개 중 61 개가 좁혀졌다. **남는 구멍** — 주소를
-문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 붉음은 머지 뒤 main 의 전체가 잡는다.
+문자열로 적지 않고 링크를 눌러 닿는 화면은, 그 화면의 주소를 적은 다른 시험이 있으면 그 시험의 차선만 켠다(링크로 닿는 시험은 안 센다).
+그 붉음은 머지 뒤 main 의 전체가 잡는다. 주소를 적은 시험이 0 인 화면은 다른 화면이 가리키고 그 화면을 여는 시험이 있으면 전부다(아래 2026-10-22 덧).
+그 「가리킴」도 앱 코드(`app/**` · `src/**`)에서만 찾는다 — `proxy.ts` · `next.config.ts` 의 redirect 와 상대 주소(`href="help"`)는 못 본다(지금 해당 없음).
 2026-10-12 에 입구가 아닌 서버 파일을 거꾸로 따라가게 하자 `app/` 의 시험 아닌 파일 388 개 중 전부로 가는 것이 113 → 91 개,
 그중 「주소 없음」이 65 → 42 개가 됐다(ADR 0178). 남은 42 개는 layout · 서버 액션 · `route.ts` · 관문 · `instrumentation.ts` 가 부르는
 파일이다 — 예: `app/me/requests/inbox.ts` 는 `/me/readings` 의 layout 과 요청 액션이 부른다. `app/me/match/screen.tsx` 는 그것을 쓰는
@@ -45,8 +47,10 @@ page 의 주소로 `match` · `chat` · `anon` · `flow` 만, `room-compat.ts` �
 2026-10-22 에 입구가 아닌 화면 컴포넌트도 같은 길을 타게 하자(ADR 0195) 옛 규칙 `core` 이던 컴포넌트 157 개(`.tsx` 145 · hook 같은 `.ts` 열둘) 중 123 개가 좁힌 차선,
 21 개가 전부(길 위에 layout · 인증 · Next 공용 경계 — `app/ui/**` 의 `icons.tsx` · `logo.tsx` 같은 여덟), 11 개가 그대로 `core`(쓰는 입구에
 닿는 시험이 정말 없다)가 됐다. main 이 붉었던 #581 · #614 · #595 의 PR 은 화면 파일만으로 그때 붉은 차선(`anon` · `signed-in` · `push`)을
-머지 전에 돈다. 닿는 시험이 정말 없는 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)과 그것만 쓰는 서버 파일 여섯은
-전부 → `core` 다(G-116).
+머지 전에 돈다. 같은 날 닿는 시험이 정말 없다던 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)은 링크를 눌러 닿는
+시험을 놓친 것이라(외부 리뷰) 다시 전부다 — 공용 바닥글(`app/site-links.ts`) · 회원 머리의 풀이권 메뉴(`CREDITS_PATH`) · 운영 머리
+(`app/ops/ops-header.tsx`) · 결제 화면이 가리킨다(ADR 0195 덧). 그 아홉과 그것만 쓰는 서버 파일 여섯 · 화면 컴포넌트 열셋, 모두 스물여덟이
+`core` · 좁힌 차선 → 전부이고 좁아진 파일은 없다. 계획의 `untestedEntries()` 는 비고 아홉은 `linkedOnlyEntries()` 로 간다(G-116).
 
 **문구 변경의 머지와 배포**(운영자 2026-10-09, ADR 0159) — 사용자가 확인한 문구 변경은 필요한 PR 검사가 통과하면 재승인 없이
 squash-merge 하고 배포한다. 동작 변경이 없다고 판별된 경우 main 전체 CI 완료는 배포의 대기 조건으로 두지 않는다. 문서만 변경한
