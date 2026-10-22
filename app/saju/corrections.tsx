@@ -11,7 +11,7 @@ import {
 import {
   round1,
 } from './shared';
-import { CARD } from '../ui/surfaces';
+import { CARD_FACE } from '../ui/surfaces';
 
 
 
@@ -90,7 +90,7 @@ export function Warnings({ saju }: { saju: Saju }) {
   if (saju.meta.warnings.length === 0) return null;
 
   return (
-    <section className={`${CARD} border-warning/25 bg-warning-wash`}>
+    <section className={`${CARD_FACE} border-warning/25 bg-warning-wash p-5 sm:p-6`}>
       <SectionTitle>경계 주의</SectionTitle>
       <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-sm text-secondary">
         {saju.meta.warnings.map((warning) => (

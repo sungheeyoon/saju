@@ -8,7 +8,7 @@ import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
-import { CARD, COLUMN_READING, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
+import { CARD_FACE, COLUMN_READING, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
 
@@ -112,7 +112,7 @@ export async function SharedReadingView({
       )}
 
       {/* 안쪽 여백은 `sm:p-8` 하나다 — 기둥에서 양쪽 2rem 을 빼면 본문 열(36rem)이 판을 꽉 채워 위아래 판의 글과 같은 선에서 시작한다 */}
-      <article className={`${CARD} overflow-hidden sm:p-8`}>
+      <article className={`${CARD_FACE} overflow-hidden border-border bg-surface p-5 sm:p-8`}>
         <Markdown source={body} />
       </article>
 

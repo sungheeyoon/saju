@@ -6,6 +6,14 @@
  * 잠금은 `app/ui/scale.test.ts`(ADR 0109 추기 2026-10-12). 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
  */
 
+/*
+ * **덧붙여 바꿀 속성은 면(`*_FACE`)에서 뺐다** — 단추 상수(`buttons.ts`)와 같은 까닭이다. 상수 뒤에 `py-0` · `text-foreground` 를
+ * 이어 붙이면 이기는 쪽은 적은 차례가 아니라 Tailwind 가 지은 CSS 의 차례가 정한다 — 인연 탭 접이칸의 `py-0` 이 줄 카드의
+ * `py-3` 에, 도움말 링크의 `text-foreground` 가 보조 글자의 `text-secondary` 에 졌다(2026-10-22 읽기 감사). 여백 · 면 · 테 색처럼
+ * 자리마다 바꾸는 속성은 면 뒤에 쓰는 자리가 한 번만 적는다. 잠금은 `buttons.test.ts`(상수 뒤에 그 상수가 이미 세운 속성을
+ * 덧붙이지 않는다) — 이 파일의 상수도 센다.
+ */
+
 /**
  * **화면의 기둥** — 뿌리 틀(`.app-shell`, 72rem)이 넓은 화면에서 본문을 가운데 한 기둥으로 묶는 폭. 같은 기둥을 쓰는 화면끼리는
  * 제목이 같은 자리에 선다. `app-shell` 과 함께 `main` 에 붙이거나, 그 안의 묶음에 `mx-auto w-full` 과 함께 붙인다.
@@ -26,8 +34,12 @@ export const COLUMN_READING = 'max-w-[40rem]';
  * 모서리는 **1.75rem 이다.** 내 명식과 저장한 사람 카드가 그 반지름으로 서면서 같은 화면 안에서 카드마다 모서리가
  * 갈렸다 — 한 화면에 두 벌이 서면 어느 쪽이 이 앱의 카드인지 사용자가 정하게 된다. `app/card.ts` 에 따로 살다가
  * 공용 판이 모인 이 파일로 왔다(2026-09-26).
+ *
+ * 면(`CARD_FACE`)은 테 색 · 면 색 · 여백을 뺐다 — 경고 판(`app/saju/corrections.tsx`)처럼 색을 바꾸거나 공유본처럼 넓은 화면의
+ * 여백을 바꾸는 자리가 쓴다.
  */
-export const CARD = 'rounded-card border border-border bg-surface p-5 shadow-card sm:p-6';
+export const CARD_FACE = 'rounded-card border shadow-card';
+export const CARD = `${CARD_FACE} border-border bg-surface p-5 sm:p-6`;
 
 /**
  * 카드의 **테만** — 모서리 · 가는 테 · 흰 면. 속을 띠로 나눠 띠마다 제 여백을 두는 판이 쓴다(궁합 고르는 판 — 위 띠는
@@ -36,8 +48,9 @@ export const CARD = 'rounded-card border border-border bg-surface p-5 shadow-car
  */
 export const CARD_FRAME = 'overflow-hidden rounded-card border border-border bg-surface';
 
-/** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나 */
-export const PAPER = 'rounded-paper bg-cream p-6 sm:p-8';
+/** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나. 면(`PAPER_FACE`)은 여백만 뺐다 */
+export const PAPER_FACE = 'rounded-paper bg-cream';
+export const PAPER = `${PAPER_FACE} p-6 sm:p-8`;
 
 /**
  * 크림 종이 한 장을 **위아래 두 토막으로** — 로그인 전 첫 화면이 쓴다(입력 폼 시안 n, ADR 0132).
@@ -63,8 +76,9 @@ export const TILE = 'rounded-tile bg-[var(--tile)] p-4 text-foreground';
  */
 export const MENU_PANEL = 'rounded-row bg-surface shadow-float ring-1 ring-border';
 
-/** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄) */
-export const ROW_CARD = 'rounded-row border border-border bg-surface px-4 py-3';
+/** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄). 면(`ROW_CARD_FACE`)은 여백만 뺐다 */
+export const ROW_CARD_FACE = 'rounded-row border border-border bg-surface';
+export const ROW_CARD = `${ROW_CARD_FACE} px-4 py-3`;
 
 /**
  * 선 줄 — 판 없이 위아래 가는 선 사이에 서는 한 줄. 카드와 카드 사이에 끼는 요약 한 줄(궁합 탭의 「궁합풀이」)이 쓴다 —
@@ -72,8 +86,9 @@ export const ROW_CARD = 'rounded-row border border-border bg-surface px-4 py-3';
  */
 export const ROW_LINE = 'rounded-xl border-y border-border px-2 py-4';
 
-/** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록) */
-export const EMPTY_SLOT = 'rounded-tile border-2 border-dashed border-border-strong p-6';
+/** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록). 면(`EMPTY_SLOT_FACE`)은 여백만 뺐다 */
+export const EMPTY_SLOT_FACE = 'rounded-tile border-2 border-dashed border-border-strong';
+export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
 
 /*
   **글자의 단.** 둥근 서체(`font-rounded`, 고운돋움)는 제목 단에만 쓴다 — 굵기가 400 하나뿐이라 작은
@@ -96,9 +111,10 @@ export const TYPE_NAME = 'font-rounded text-heading leading-7 text-foreground';
 /** 보조 — 날짜 · 메모 · 설명 아래 줄 */
 export const TYPE_META = 'text-small font-medium leading-5 text-secondary';
 
-/** 딱지 — 안 읽은 수 · 짧은 상태 표시. 12px 아래가 허락되는 유일한 자리 */
-export const BADGE =
-  'inline-grid h-5 min-w-5 place-items-center rounded-full bg-badge px-1 text-tag font-bold leading-none tabular-nums text-on-badge';
+/** 딱지 — 안 읽은 수 · 짧은 상태 표시. 12px 아래가 허락되는 유일한 자리. 면(`BADGE_FACE`)은 옆 여백만 뺐다 */
+export const BADGE_FACE =
+  'inline-grid h-5 min-w-5 place-items-center rounded-full bg-badge text-tag font-bold leading-none tabular-nums text-on-badge';
+export const BADGE = `${BADGE_FACE} px-1`;
 
 /*
   **여러 화면이 같은 글자로 적던 모양.** 2026-09-25 에 재어 보니 아래 셋은 화면마다 한 글자도 다르지 않게
@@ -124,6 +140,7 @@ export const DIALOG_ACTIONS = `mt-6 ${CONFIRM_ROW}`;
 /** 「수정 전」 딱지 — 출생 정보를 고치기 전에 만든 풀이. 11px 딱지 단이다 */
 export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-tag font-semibold text-warning';
 
-/** 펼침 줄 — 명식 화면 안 `<details>` 의 `<summary>`. 누를 자리 44px, 기본 삼각표는 숨긴다 */
-export const DISCLOSURE_SUMMARY =
-  'flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden';
+/** 펼침 줄 — 명식 화면 안 `<details>` 의 `<summary>`. 누를 자리 44px, 기본 삼각표는 숨긴다. 면(`DISCLOSURE_SUMMARY_FACE`)은 글자 크기 · 굵기만 뺐다 */
+export const DISCLOSURE_SUMMARY_FACE =
+  'flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden';
+export const DISCLOSURE_SUMMARY = `${DISCLOSURE_SUMMARY_FACE} text-sm font-medium`;

@@ -314,7 +314,11 @@ function ShelfHead({
       <h1 className={TYPE_TITLE}>{SHELF_TITLE}</h1>
       {kind !== null && (
         <nav aria-label="풀이 종류">
-          <ul className="flex gap-2 overflow-x-auto">
+          {/*
+            알약은 36px 이고 **눌리는 자리는 위아래로 4px 씩 넓다**(`after:`, 44px — `app/ui/buttons.ts` 머리 · `discovery/manage.tsx` 와 같은 꼴).
+            가로로 미는 줄은 넘친 것을 자른다 — 그 자리와 초점 테(바깥 6px)가 잘리지 않게 줄에 6px 를 두르고 같은 만큼 당겨 자리는 그대로다.
+          */}
+          <ul className="-m-1.5 flex gap-2 overflow-x-auto p-1.5">
             {SHELF_KINDS.map((one) => {
               const on = one === kind;
               return (
@@ -324,7 +328,7 @@ function ShelfHead({
                     replace
                     scroll={false}
                     aria-current={on ? 'page' : undefined}
-                    className={`flex min-h-9 items-center rounded-full px-3.5 text-note font-semibold transition-colors ${
+                    className={`relative flex min-h-9 items-center rounded-full px-3.5 text-note font-semibold transition-colors after:absolute after:inset-x-0 after:-inset-y-1 ${
                       on ? 'bg-foreground text-background' : 'bg-surface text-secondary ring-1 ring-border hover:text-foreground'
                     }`}
                   >
