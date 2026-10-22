@@ -363,7 +363,14 @@ const accessRow = (actor, outcome = 'allowed') => `
     const out = marked(one, 'OUT') ?? `실패(${one.err.trim().slice(0, 80)})`;
     return { ...tally, [out]: (tally[out] ?? 0) + 1 };
   }, {});
-  const today = `(now() at time zone 'Asia/Seoul')::date`;
+  /*
+    하루 줄은 서울 날짜로 갈린다 — 이 묶음이 서울 자정을 넘으면 앞의 읽기와 뒤의 읽기가 다른 날 줄을 보고 붉어진다(2026-10-22
+    15:00:00Z 에 #792 의 CI 가 그렇게 붉었다). 자정 1분 앞이면 자정을 넘길 때까지 기다리고, 날짜는 한 번 읽어 글자로 박는다.
+  */
+  const untilMidnight = Number(sql(`select extract(epoch from (date_trunc('day', now() at time zone 'Asia/Seoul')
+    + interval '1 day') - now() at time zone 'Asia/Seoul')`));
+  if (untilMidnight < 60) await new Promise((done) => setTimeout(done, (untilMidnight + 2) * 1000));
+  const today = `'${sql(`select (now() at time zone 'Asia/Seoul')::date`)}'::date`;
   const callsBefore = sql(`select coalesce((select value from public.taste_daily_count
     where day = ${today} and metric = 'model_calls'), 0)`);
   const twenty = Array.from({ length: 20 }, (_, i) => i);
