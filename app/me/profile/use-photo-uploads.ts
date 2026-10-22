@@ -6,8 +6,8 @@ import { FOCUS_CENTER, PHOTO_MAX_COUNT, type PhotoFocus } from '@/src/lib/profil
 
 import { actionAnswer } from '../../ui/action-answer';
 import type { useDoneNote } from '../../ui/done-note';
-import { addPhoto, replacePhoto, setPhotoFocus } from './actions';
-import { shrink } from './photo-shrink';
+import { setPhotoFocus } from './actions';
+import { sendNewPhoto, sendReplacement } from './photo-send';
 import type { MyPhoto } from './photos';
 import type { usePhotoRemoval } from './use-photo-removal';
 
@@ -40,6 +40,7 @@ type Framing = { src: string; focus: PhotoFocus; settle: (focus: PhotoFocus | nu
  */
 export function usePhotoUploads({
   userId,
+  stored,
   photos,
   total,
   working,
@@ -49,6 +50,8 @@ export function usePhotoUploads({
   failed,
 }: {
   userId: string;
+  /** 이 배포가 사진을 저장소에 두나 — 서버가 화면을 그릴 때 정한다(G-120). 아니면 지금처럼 DB 다 */
+  stored: boolean;
   /** 서버가 준 지금 목록 */
   photos: readonly MyPhoto[];
   /** 지금 칸에 선 사진 수(지운 장은 뺀다) */
@@ -204,12 +207,8 @@ export function usePhotoUploads({
     for (const [index, { file, key, focus }] of batch.entries()) {
       let message: string | null = null;
       try {
-        const shrunk = await shrink(file);
-        if (!shrunk.ok) message = shrunk.message;
-        else {
-          const result = await actionAnswer(addPhoto({ contentType: shrunk.contentType, base64: shrunk.base64, focus }));
-          if (!result.ok) message = result.message;
-        }
+        const result = await sendNewPhoto(file, focus, stored);
+        if (!result.ok) message = result.message;
       } catch {
         /*
           여기 닿는 것은 브라우저가 못 읽은 사진(`createImageBitmap`)이다 — 액션이 던진 것은 `actionAnswer` 가
@@ -265,17 +264,10 @@ export function usePhotoUploads({
     let message: string | null = null;
     let next: number | null = null;
     try {
-      const shrunk = await shrink(file);
-      const position = removal.serverPositionOf(version);
-      if (!shrunk.ok) message = shrunk.message;
-      else if (position === null) message = REPLACE_FAILED;
-      else {
-        const result = await actionAnswer(
-          replacePhoto({ position, version, contentType: shrunk.contentType, base64: shrunk.base64, focus }),
-        );
-        if (result.ok) next = result.version;
-        else message = result.message;
-      }
+      const result = await sendReplacement(file, version, () => removal.serverPositionOf(version), focus, stored);
+      if (result === null) message = REPLACE_FAILED;
+      else if (result.ok) next = result.version;
+      else message = result.message;
     } catch {
       /* 브라우저가 못 읽은 사진(`createImageBitmap`) — 올리기와 같은 우리 문장 */
       message = UNREADABLE_PHOTO;

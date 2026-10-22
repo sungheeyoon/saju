@@ -178,8 +178,9 @@ async function submitFrozen(
    * 여기서 닫는 실패는 **떠나보내기 전**이거나 provider 가 거절한 제출(상태 코드 · 스트림의 `error` 사건)이라 쓴 토큰을 모른다 —
    * `null` 로 적는다(ADR 0039). 답을 못 받은 제출은 여기서 안 닫는다(아래)
    */
-  const close = (code: string, detail: string): Promise<void> =>
-    failReadingJob(keyed, 'submit', { runId: job.run_id, code, detail, usage: null });
+  const close = async (code: string, detail: string): Promise<void> => {
+    await failReadingJob(keyed, 'submit', { runId: job.run_id, code, detail, usage: null });
+  };
 
   /**
    * 얼린 입력을 세운다 — **`person` 행이 아니라 값이다**(ADR 0071).

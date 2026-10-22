@@ -40,6 +40,9 @@ export const SECRET_ENV = [
   /** 접속기록 반출(S3) 의 IAM 키 둘 — 그 버킷에 `s3:PutObject` 만 할 수 있다 (G-23 ⑩, ADR 0105) */
   'AUDIT_EXPORT_ACCESS_KEY_ID',
   'AUDIT_EXPORT_SECRET_ACCESS_KEY',
+  /** 사진 저장소(S3)의 IAM 키 둘 — 역할을 못 세운 날의 대안. 그 버킷의 `photos/*` 에 쓰기 · 읽기 · 지우기만 (G-120) */
+  'PHOTO_STORE_ACCESS_KEY_ID',
+  'PHOTO_STORE_SECRET_ACCESS_KEY',
   /**
    * Vercel 이 함수마다 주는 OIDC 토큰 — 반출이 AWS 역할을 받는 데 쓴다(`@vercel/oidc` 가 제 안에서 읽는다,
    * `20261014090000`). 짧게 살지만 그동안은 역할의 자격이다
@@ -88,6 +91,13 @@ export const CONFIG_ENV = [
   'AUDIT_EXPORT_REGION',
   /** 반출이 받는 AWS 역할의 ARN — 비밀이 아니다. 믿는 쪽은 AWS 의 신뢰 정책이다(Vercel OIDC 의 이 프로젝트만) */
   'AUDIT_EXPORT_ROLE_ARN',
+  /**
+   * 사진 저장소의 버킷 · 지역 · 역할 ARN — 비밀이 아니다(G-120). 다섯(`PHOTO_STORE_*`)이 모두 비면 사진은 지금처럼 DB 에 산다
+   * (`app/me/photo/store.ts`)
+   */
+  'PHOTO_STORE_BUCKET',
+  'PHOTO_STORE_REGION',
+  'PHOTO_STORE_ROLE_ARN',
   /** PortOne 의 상점 번호 — 비밀이 아니다(브라우저의 결제 창도 든다). 없으면 결제 알림은 503 이다 */
   'PORTONE_STORE_ID',
   /**
