@@ -13,7 +13,8 @@
  * 2. **같은 입력 다른 브라우저 · 쿠키 지우고 같은 입력** — 새 세션, 같은 글, 모델 0번
  * 3. **남의 세션은 못 읽는다** — 세션 id 를 알아도 쿠키가 다르면 글이 안 선다
  * 4. **다른 입력 반복 → 한도** — IP 1분 셋 · 브라우저 1시간 새 지문 다섯
- * 5. **원문이 DB 에 없다** — 날짜 · IP 원문이 맛보기 표 어디에도 없다
+ * 5. **원문이 DB 에 없다** — 날짜 · 시각 · IP 원문이 맛보기 표 어디에도 없다. 칸별로 읽고, 서버 시계 칸은 원문 대신 이번
+ *    실행의 시계 안인지 잰다(`taste-raw.mjs`)
  * 6. **귀속** — 문이 터지면 `retryable` 이고 다시 시도하면 붙는다. 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면
  *    버리고, 바꾼 id 는 조용히 지나간다(셋 다 `terminal`). 지문은 **서버에 저장된 내 사주**로 잰다 — 클라이언트가 다른 입력을
  *    실어 보내도 저장된 입력이 이긴다
@@ -31,6 +32,7 @@ import { readFileSync } from 'node:fs';
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql, keyedRpc, sessionCookie } from './checks.mjs';
+import { TASTE_CLOCK_COLUMNS, rawLeaks, tasteRowsSql } from './taste-raw.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -213,10 +215,18 @@ try {
   // -------------------------------------------------------------------------
   // 5 · 원문
   // -------------------------------------------------------------------------
-  const tables = ['taste_artifact', 'taste_session', 'taste_rate_event', 'taste_daily_count'];
-  const dump = tables.map((table) => sql(`select coalesce(string_agg(t::text, ' '), '') from public.${table} t`)).join(' ');
-  check('맛보기 표 어디에도 생년월일 원문이 없다', !dump.includes(BIRTH) && !dump.includes('2001-01-0') && !dump.includes('14:30'));
-  check('맛보기 표 어디에도 IP 원문이 없다', !/10\.(77|88|99)\.0\./.test(dump));
+  /* 칸별로 읽는다 — 통째 글자로 읽으면 정상 시각 칸(`…14:30:12…`)이 시각 원문과 겹친다(#556 · #686, `taste-raw.mjs` 머리말) */
+  const rows = Object.fromEntries(Object.keys(TASTE_CLOCK_COLUMNS).map((table) => [table, JSON.parse(sql(tasteRowsSql(table)))]));
+  const clock = { since: stamp - 10 * 60_000, until: Date.now() + 25 * 3_600_000 };
+  const clockTyped = sql(`select coalesce(string_agg(table_name || '.' || column_name, ','), '')
+    from information_schema.columns where table_schema = 'public' and data_type = 'timestamp with time zone'
+      and table_name in (${Object.keys(TASTE_CLOCK_COLUMNS).map((table) => `'${table}'`).join(', ')})`).split(',').sort().join(',');
+  const clockNamed = Object.entries(TASTE_CLOCK_COLUMNS).flatMap(([table, columns]) => columns.map((column) => `${table}.${column}`)).sort().join(',');
+  check('원문 찾기에서 빼는 칸은 DB 의 시각(timestamptz) 칸 그대로다', clockTyped === clockNamed, `DB ${clockTyped} · 적은 것 ${clockNamed}`);
+  const birthLeaks = rawLeaks(rows, { needles: [BIRTH, '2001-01-0', '2002-02-0', '14:30'], clock });
+  check('맛보기 표 어디에도 생년월일 원문이 없다', birthLeaks.length === 0, birthLeaks.join(' · '));
+  const ipLeaks = rawLeaks(rows, { needles: [/10\.(77|88|99)\.0\./], clock });
+  check('맛보기 표 어디에도 IP 원문이 없다', ipLeaks.length === 0, ipLeaks.join(' · '));
   check('한도 기록은 16진 64자 HMAC 뿐이다', sql(`select count(*) from public.taste_rate_event where subject_hmac !~ '^[0-9a-f]{64}$'`) === '0');
 
   // -------------------------------------------------------------------------
