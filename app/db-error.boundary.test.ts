@@ -80,6 +80,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/taste/keyed-taste-claims.ts': '같다 — 귀속을 못 하면 보통 풀이로 간다',
   'app/taste/taste-carry.ts': '「아까 보던 내용」을 못 세운 까닭 — 기록에만 가고 그 칸만 빈다',
   'app/api/portone/webhook/settle.ts': '결제 알림 — 사람이 보는 화면이 없고, 까닭은 답이 아니라 기록에만 간다(G-23 ⑥)',
+  'app/api/health/route.ts': '바깥 감시의 상태 문 — 원문은 함수 로그에만 가고 답은 `unavailable` 한 낱말이다(G-118)',
 };
 
 const sourceFiles = (dir: string): string[] => filesUnder(dir).filter((path) => CODE.test(path));
