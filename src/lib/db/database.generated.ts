@@ -4127,6 +4127,7 @@ export type Database = {
         Returns: {
           base64: string
           content_type: string
+          object_key: string
         }[]
       }
       photo_bytes_moved: {

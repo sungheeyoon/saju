@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 
+import { isPhotoObjectKey, variantKey, type PhotoVariant } from '@/src/lib/profile';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { recordDbFailure } from '../../db-error';
+import { photoStoreIfReady } from './s3-store';
+import { storeErrorClassOf } from './store';
 
 /**
  * 사진 한 장을 내주는 자리 — **판정은 여기 없다.** 주소 둘(`/me/photo/{id}` · `/me/photo/{id}/{n}`)이 이것을 부른다.
@@ -30,7 +34,7 @@ import { recordDbFailure } from '../../db-error';
  * 때 그만큼만 늦게 반영되게 하려는 것이다. 순서를 바꿔도 같다 — 남의 카드의 2번 장은 길어야
  * 1분 옛 장이다.
  */
-export async function photoResponse(userId: string, position: number): Promise<NextResponse> {
+export async function photoResponse(userId: string, position: number, variant: PhotoVariant = 'large'): Promise<NextResponse> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('photo_at', { p_user_id: userId, p_position: position });
 
@@ -49,19 +53,43 @@ export async function photoResponse(userId: string, position: number): Promise<N
   }
 
   const row = (data ?? [])[0];
-  /*
-    바이트가 저장소에 사는 장(`object_key`, G-120)은 `base64` 가 빈다 — 그 장을 어떻게 내줄지(열람 방식)는 아직 안 정했다.
-    정하기 전에는 없는 장과 같은 404 다. 저장소가 꺼진 배포에는 그런 장이 없다.
-  */
-  if (row === undefined || !row.base64) return new NextResponse(null, { status: 404 });
+  if (row === undefined) return new NextResponse(null, { status: 404 });
 
-  return new NextResponse(new Uint8Array(Buffer.from(row.base64, 'base64')), {
+  if (row.base64) return photoBytes(new Uint8Array(Buffer.from(row.base64, 'base64')), row.content_type);
+
+  /*
+    **저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽어 낸다**(G-120 의 안 A, 결정 전 draft). 판정은 위의 `photo_at` 이 이미 했다 —
+    여기는 그 줄이 든 열쇠만 쓴다(주소의 값으로 열쇠를 짓지 않는다). 저장소가 꺼졌는데 열쇠 줄이 있으면 우리가 고장 난 것이라 500,
+    객체가 없으면(지운 뒤 DB 를 되돌림 등) 없는 장과 같은 404 다.
+  */
+  if (!row.object_key || !isPhotoObjectKey(row.object_key)) return new NextResponse(null, { status: 404 });
+  const store = photoStoreIfReady();
+  if (store === null) {
+    console.error('photo-store: 열쇠 줄이 있는데 저장소가 꺼졌다');
+    return new NextResponse(null, { status: 500 });
+  }
+  try {
+    const stored = await store.get(variantKey(row.object_key, variant));
+    if (stored === null) return new NextResponse(null, { status: 404 });
+    return photoBytes(stored.body, row.content_type);
+  } catch (thrown) {
+    console.error('photo-store: 사진을 읽지 못했다', storeErrorClassOf('get', thrown));
+    return new NextResponse(null, { status: 500 });
+  }
+}
+
+function photoBytes(body: Uint8Array, contentType: string): NextResponse {
+  return new NextResponse(new Uint8Array(body), {
     headers: {
-      'Content-Type': row.content_type,
+      'Content-Type': contentType,
       'Cache-Control': 'private, max-age=60',
     },
   });
 }
+
+/** 주소의 `?s=card` — 작은 자리(아바타 · 편집 칸)가 작은 벌을 받는다. 그 밖은 큰 벌 */
+export const photoVariantOf = (request: Request): PhotoVariant =>
+  new URL(request.url).searchParams.get('s') === 'card' ? 'card' : 'large';
 
 /** 편집 칸이 여섯이다 — DB 의 `profile_photo_position_check` 와 같은 수 */
 const PHOTO_POSITION = /^[1-6]$/;

@@ -1,4 +1,4 @@
-import { photoResponse } from '../photo-response';
+import { photoResponse, photoVariantOf } from '../photo-response';
 
 /**
  * 대표 사진 — `/me/photo/{id}/1` 의 다른 이름이다(G-60).
@@ -7,9 +7,9 @@ import { photoResponse } from '../photo-response';
  * 세우는 자리는 대표 한 장이면 된다.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
-  return photoResponse(userId, 1);
+  return photoResponse(userId, 1, photoVariantOf(request));
 }

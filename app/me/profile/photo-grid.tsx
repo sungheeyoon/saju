@@ -263,7 +263,7 @@ export function PhotoGrid({
             {covering === null && (
               /* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */
               <img
-                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
+                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}&s=card`}
                 alt=""
                 draggable={false}
                 className="h-full w-full rounded-2xl object-cover"
