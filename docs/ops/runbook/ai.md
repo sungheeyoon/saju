@@ -105,8 +105,12 @@ select day, sum(attempts - verification_attempts) as 사용자_시도,
        sum(verification_attempts) as 검증_시도
 from public.reading_spend_daily group by day order by day desc;
 
--- 오늘 몇 번 썼나 (상한이 보는 바로 그 수)
+-- 오늘 몇 번 썼나 (상한이 보는 바로 그 수 — 모델에 닿았을 수 있는 시도와 아직 도는 예약, ADR 0198)
 select public.reading_spend_today() as 오늘, public.reading_daily_budget() as 상한;
+
+-- 연 시도와 상한이 센 수 — 둘의 차이가 모델에 안 간 채 끝난 예약이다
+select day, sum(attempts) as 연_시도, sum(budget_counted) as 상한이_센_수
+from public.reading_spend_daily group by day order by day desc;
 ```
 
 **금액은 여기 없다.** 단가는 provider 가 정하므로 토큰까지만 낸다 — 원 단위는 대시보드다.
