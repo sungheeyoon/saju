@@ -2,24 +2,34 @@
 
 색인은 `docs/ops/runbook.md` 다.
 
-## 도메인을 옮길 때 — 주소를 든 자리 아홉
+## 도메인을 옮길 때 — 주소를 든 자리 열
 
 **새 도메인은 `mannalmap.com` 이다**(2026-10-07, 서비스 이름 「만날지도」 — ADR 0149). 아래 표의 `<새 도메인>` 은 `mannalmap.com` 이다.
 **운영 주소는 `https://mannalmap.com` 이다**(운영자, 2026-10-08) — 저장소에서 운영 주소를 적는 자리는 이 줄 하나다. `www.mannalmap.com` 은 맨 도메인으로 308 이고 인증서가 섰다. 이 줄의 꼴을 `scripts/deploy-smoke.mjs` 가 읽는다 — 꼴을 바꾸면 그 시험(`scripts/deploy-smoke.test.ts`)이 붉어진다.
-옛 별칭 `saju-snowy.vercel.app` 은 아직 넘김 없이 같은 화면을 200 으로 낸다(2026-10-08 `curl` 로 쟀다) — 8 이 남았다.
+옛 별칭 `saju-snowy.vercel.app` 은 아직 넘김 없이 같은 화면을 200 으로 낸다 — 8 이 남았다.
 
-| # | 상태 (2026-10-08) |
-| --- | --- |
-| 1 | 했다 — 도메인 붙음 · `www` 308 → 맨 도메인 · TLS |
-| 2 | 했다 — `curl -s https://mannalmap.com/` 의 `og:image` 가 `https://mannalmap.com/brand/…` |
-| 3 | 했다(2026-10-08) — Site URL `https://mannalmap.com` · Redirect URLs 에 `https://mannalmap.com/**` 를 더했다(옛 셋은 6 까지 둔다) · 운영자가 새 주소에서 구글 로그인 → `/me` 를 확인했다 |
-| 4 ~ 7 | 이 저장소에서 잴 수 없다 — 운영자가 각 줄의 「확인」으로 본다 |
-| 8 | 안 했다 — 옛 별칭이 200 |
-| 9 | 했다 — `deploy.md` 는 주소 대신 이 문서를 가리킨다(ADR 0152) |
+### 확인 기록 — 도메인 걸음의 상태는 여기 한 곳이다
+
+OAuth 되돌아옴 · 복구기 주소 · OpenAI 웹훅 · 옛 주소 넘김이 어디까지 왔는지는 **이 표만 적는다** — 다른 문서 · ADR · 이슈는 이 표를
+가리킨다. 「확인 전」은 아무도 그 화면을 본 기록이 없다는 뜻이다(했다는 뜻도, 안 했다는 뜻도 아니다). 줄을 고칠 때는 날짜와 잰 방법을 함께 바꾼다.
+
+| # | 상태 | 언제 · 어떻게 쟀나 | 남은 걸음 · 누가 |
+| --- | --- | --- | --- |
+| 1 | 했다 | 2026-10-23 `curl` — 맨 도메인 `/` 200 · `www` 308 → 맨 도메인 | — |
+| 2 | 했다 | 2026-10-23 `curl` — `og:image` 가 새 도메인의 `/brand/…` | — |
+| 3 | 했다 | 2026-10-08 운영자 — Site URL 을 새 주소로, Redirect URLs 에 새 도메인의 `/**` 를 더함, 새 주소에서 구글 로그인 → `/me` | 옛 주소의 Redirect URLs 셋은 8 뒤에 걷는다. 지금 남아 있는지는 **확인 전**(대시보드를 안 봤다) |
+| 4 | **확인 전** | 저장소에서 못 잰다 | 운영자 — Google Cloud Console → OAuth consent screen 의 승인된 도메인 · 앱 홈 · 처리방침 링크가 새 도메인인지 본다(#304) |
+| 5 | **안 했다** | 2026-10-23 `db:remote` — Vault `reading_recovery_url` 의 호스트가 **옛 별칭**이다(호스트만 읽었다 — 비밀이 아닌 공개 주소). 지난 한 시간 복구기 부름 60번이 모두 200 — 옛 별칭이 200 이라 지금은 돈다 | 8 **전에** 아래 5 의 한 줄. 운영 SQL 이라 운영 베타에서는 에이전트가 밟고 값을 적는다(`docs/agents/delegation/permissions.md` 「권한 등급」) |
+| 6 | **확인 전** | 저장소에서 못 잰다 — 결과가 웹훅으로 왔는지 복구기로 왔는지 DB 에 남지 않는다 | 운영자 — platform.openai.com → Settings → Webhooks 의 endpoint 호스트가 새 도메인인지 본다(#304). 옛 별칭이면 아래 6 |
+| 7 | 해당 없음 | 결제 알림이 꺼져 있다(`docs/ops/runbook/credits.md` 「결제 알림」) | 켜는 날 새 도메인으로 |
+| 8 | 안 했다 | 2026-10-23 `curl` — 옛 별칭 `/` 200 | 5 · 6 이 새 도메인으로 선 뒤 |
+| 9 | 했다 | `deploy.md` 는 주소 대신 이 문서를 가리킨다(ADR 0152) | — |
+| 10 | 해당 없음 | 2026-10-23 `db:remote` — Vault `push_dispatch_url` 이 없다(웹 푸시는 G-71 보류) | 켜는 날 새 도메인으로 넣는다(`docs/ops/runbook/push.md`) |
 
 처음 이 표를 쓸 때(2026-09-30)는 자기 도메인이 없었다. 코드는 주소를
 안 적으므로(`app/site-url.ts` 가 배포판이 아는 값을 읽는다) **바꿀 것은 전부 코드 밖이다.** 2026-09-30 에 저장소에서
-주소를 드는 자리를 셌다(`grep -rn "saju-snowy\|SITE_URL\|redirectTo\|vault.create_secret"`) — 아래 아홉이다.
+주소를 드는 자리를 셌다(`grep -rn "saju-snowy\|SITE_URL\|redirectTo\|vault.create_secret"`) — 아래 아홉이다. 2026-10-08 에
+웹 푸시의 배달 주소(Vault `push_dispatch_url`, ADR 0156)가 더해져 열이다 — 2026-10-23 에 다시 세며 찾았다.
 
 **순서가 뜻을 갖는다 — 옛 주소를 끝까지 살려 둔다.** 밖에서 우리를 부르는 것(복구기 · OpenAI 의 webhook · 구글 로그인의
 되돌아옴)은 `POST` 나 한 번뿐인 되돌림이라 **308 넘김을 믿을 수 없다.** 새 주소가 서고, 부르는 쪽을 다 옮기고, 새 주소로
@@ -36,6 +46,7 @@
 | 7 | **PG 결과 통지(웹훅)** | **지금은 꺼져 있다**(`docs/ops/runbook/credits.md` 「결제 알림」). 지금 문은 PortOne 전제이고, PG 와 연동 방식은 미정이다(ADR 0194 — PortOne 경유 · KG파이낸셜 · KPN · 갤럭시아머니트리 후보) — 켜는 날 PortOne 콘솔(또는 직접 맺은 PG사)에 넣는 주소가 새 도메인이다 | — | 켤 때 그 절의 「웹훅 테스트 호출」 |
 | 8 | **옛 주소를 넘김으로** | 1~6 을 새 주소로 본 뒤, Vercel Domains 에서 `saju-snowy.vercel.app` 을 새 도메인으로 308 넘긴다. **지우지 않는다** — 이미 보낸 공유 링크(`/share/…`)가 그 주소를 들고 있다 | 옛 링크가 죽는다 | `curl -sI https://saju-snowy.vercel.app/share/x` 가 308 · `location: https://<새 도메인>/share/x` |
 | 9 | **`docs/ops/runbook/deploy.md`** | 「배포」의 운영 주소 · 「묶음 배포」 3 의 Aliases · 「CSP 가 화면을 막을 때」의 `curl` 이 옛 별칭을 든다. 새 도메인으로 고치는 PR 을 같은 날 넣는다. `scripts/check-share.mjs` 의 `HOST` 는 흉내 낸 값이라 그대로다 | 다음 사람이 옛 주소로 smoke 한다 | `grep -rn saju-snowy docs/ops` 가 넘김 설명 한 줄만 |
+| 10 | **Vault `push_dispatch_url`** | 웹 푸시를 켰으면(G-71) **8 전에** `select vault.update_secret((select id from vault.secrets where name = 'push_dispatch_url'), 'https://<새 도메인>/api/push/dispatch');` — 배달 줄이 생길 때와 1분마다 `pg_net` 이 부르는 주소(`docs/ops/runbook/push.md`). 켜지 않았으면 켜는 날 새 도메인으로 넣는다 | 넘김으로 바꾼 뒤 배달 깨움이 308 을 받는다 → `net-request-failed` · 새 메시지 알림이 안 간다 | 2분 뒤 `net._http_response` 에 200 |
 
 **안 바뀌는 것.** CSP(`next.config.ts`)는 `'self'` 와 Supabase 주소뿐이다. Vercel Cron(`vercel.json`)은 경로만 든다. 접속기록
 반출의 AWS 역할은 Vercel OIDC 의 팀 · 프로젝트로 믿으므로 도메인과 상관없다(`docs/ops/runbook/security.md` 「반출 — 매일 S3」). 알림 주소(`ops_alert_url`)는

@@ -1,9 +1,9 @@
-# 운영 절차 — 사진 저장소 (G-120, ADR 0201)
+# 운영 절차 — 사진 저장소 (G-120, ADR 0202)
 
 색인은 `docs/ops/runbook.md` 다.
 
 사진의 바이트를 AWS S3 서울에 두는 일. **지금은 꺼져 있다** — `PHOTO_STORE_*` 다섯이 운영에 없으면 사진은 DB(`profile_photo.bytes`)에
-산다. 켜는 길과 그 뒤의 손일을 여기 적는다. 설계는 ADR 0201, 규격 · 출처 · 열람 방식의 안은 `docs/product/gaps/records/g-120.md`.
+산다. 켜는 길과 그 뒤의 손일을 여기 적는다. 설계는 ADR 0202, 규격 · 출처 · 열람 방식의 안은 `docs/product/gaps/records/g-120.md`.
 
 ## 사진 저장소를 켠다
 
@@ -35,7 +35,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 | 지역 | `ap-northeast-2`(서울) | 앱의 함수(`vercel.json` 의 `icn1`)와 같은 곳 |
 | Block Public Access | 넷 다 켠다 | 사진은 공개 주소로 안 나간다 — 열람은 판정을 지난다 |
 | Object Ownership | Bucket owner enforced(ACL 끔) | 객체마다 권한을 안 쓴다 |
-| 버전 관리 | **끈다**(켜지 않는다) | 켜면 지운 객체가 이전 판으로 남아 「떠나면 사라진다」가 깨진다(ADR 0201) |
+| 버전 관리 | **끈다**(켜지 않는다) | 켜면 지운 객체가 이전 판으로 남아 「떠나면 사라진다」가 깨진다(ADR 0202) |
 | Object Lock | 끈다 | 지울 수 있어야 한다 — 반출 버킷과 반대다 |
 | 암호화 | 기본(SSE-S3) | |
 | 수명 주기 | 「Delete expired object delete markers or incomplete multipart uploads」 — 미완료 멀티파트 1일 | 앱은 멀티파트를 안 쓰지만 도구가 끊긴 흔적을 안 남게 |
@@ -102,7 +102,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 - `GetObject` — 열람(어느 안이든 쓴다 — A 는 함수가 읽고, B · C 는 서명이 이 권한을 빌린다). 열람 방식이 정해지기 전에는 앱이 부르지 않는다
 - `ListBucket` 이 없다 — 앱은 키를 DB 에서만 받는다. 버킷 밖 · `photos/` 밖에는 닿지 않는다
 
-**도구 역할의 권한 정책**(`photo:move` · `photo:verify` · 손 정리):
+**도구 역할의 권한 정책**(`scripts/photo-move.mjs` · `scripts/photo-verify.mjs` · 손 정리):
 
 ```json
 {
@@ -136,9 +136,9 @@ Access key 하나. 교체는 `docs/ops/runbook/secret-leak.md` 「비밀이 새�
 ```bash
 # 1. 세기만 — 아무것도 안 옮긴다
 AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGION=ap-northeast-2 \
-  NEXT_PUBLIC_SUPABASE_URL=<운영 주소> SUPABASE_SECRET_KEY=<열쇠> npm run photo:move
+  NEXT_PUBLIC_SUPABASE_URL=<운영 주소> SUPABASE_SECRET_KEY=<열쇠> node scripts/photo-move.mjs
 # 2. 옮긴다 — 몇 번 돌려도 된다(이미 옮긴 장은 안 나온다)
-... npm run photo:move -- --execute
+... node scripts/photo-move.mjs --execute
 ```
 
 - **화질은 돌아오지 않는다** — 옛 장은 긴 변 512px 로 줄여 저장됐고, 도구는 그 바이트를 그대로 두 벌로 쓴다(그래서 옛 장의 `card` 는
@@ -152,7 +152,7 @@ AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGI
 
 ```bash
 AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGION=ap-northeast-2 \
-  NEXT_PUBLIC_SUPABASE_URL=<운영 주소> SUPABASE_SECRET_KEY=<열쇠> npm run photo:verify
+  NEXT_PUBLIC_SUPABASE_URL=<운영 주소> SUPABASE_SECRET_KEY=<열쇠> node scripts/photo-verify.mjs
 ```
 
 DB 의 열쇠 줄마다 두 벌의 머리(`HeadObject`)를 본다 — 있나 · 비지 않았나 · 형식이 DB 와 같은가. 어긋남이 하나라도 있으면 1 로 끝난다.
@@ -179,7 +179,7 @@ DB 가 장부이고 저장소가 바이트다. 둘은 따로 되돌아간다 —
 | 일 | DB | 저장소 | 사용자에게 |
 | --- | --- | --- | --- |
 | DB 를 앞 시점으로 되돌림 | 그 시점의 줄 — 그 뒤에 지운 장의 줄이 돌아온다 | 그 뒤에 청소기가 지운 객체는 **없다**(버전 관리를 끈다) | 돌아온 줄의 사진이 안 열린다(404) — 다시 올려야 한다 |
-| 같은 되돌림 | 그 뒤에 올린 장의 줄이 사라진다 | 그 객체는 **남는다** — 어느 줄도 안 가리켜 안 열린다 | 안 보인다. 저장소의 고아다 — 지금 이것을 찾는 도구는 없다(도구 역할의 `ListBucket` 으로 `photos/` 를 훑어 `photo:verify` 의 열쇠와 견주는 손일) |
+| 같은 되돌림 | 그 뒤에 올린 장의 줄이 사라진다 | 그 객체는 **남는다** — 어느 줄도 안 가리켜 안 열린다 | 안 보인다. 저장소의 고아다 — 지금 이것을 찾는 도구는 없다(도구 역할의 `ListBucket` 으로 `photos/` 를 훑어 `scripts/photo-verify.mjs` 의 열쇠와 견주는 손일) |
 | 객체를 잘못 지움 · 버킷 사고 | 줄은 그대로 | 없다 — 다른 사본이 없다 | 그 장이 안 열린다 — 다시 올려야 한다 |
 | 옮기기 전의 옛 장 | 바이트가 DB 에 있다 | — | DB 를 따라 되돌아간다(지금과 같다) |
 | 계정 삭제 | 줄이 cascade 로 사라지고 열쇠가 지울 줄에 | 다음 청소(하루 안)에 지운다 | 지운 그 순간부터 안 열린다 |

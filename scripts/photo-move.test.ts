@@ -39,7 +39,7 @@ function fakeDb(rows: { position: number; version: number; bytes: string }[], ch
   };
 }
 
-describe('photo:move — 옛 사진을 저장소로', () => {
+describe('scripts/photo-move — 옛 사진을 저장소로', () => {
   it('DB 가 준 열쇠로 원본 바이트를 그대로 두 벌로 쓰고 적는다 — 다시 굽지 않는다', async () => {
     const { db, live } = fakeDb([{ position: 1, version: 10, bytes: 'one' }, { position: 2, version: 20, bytes: 'two' }]);
     const objects = new Map<string, string>();
@@ -70,7 +70,7 @@ describe('photo:move — 옛 사진을 저장소로', () => {
   });
 });
 
-describe('photo:verify — 열쇠마다 두 벌이 있는가', () => {
+describe('scripts/photo-verify — 열쇠마다 두 벌이 있는가', () => {
   const row = { object_key: `photos/${USER}/00000000-0000-4000-8000-000000000001`, content_type: 'image/webp' };
 
   it('두 벌이 있고 형식이 같으면 맞다', async () => {

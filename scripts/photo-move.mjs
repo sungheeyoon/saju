@@ -2,7 +2,7 @@
  * **DB 에 사는 사진(bytea)을 저장소(S3)로 옮긴다** — 사람이 한 번 돌리는 도구(G-120, `20261227090000`).
  *
  *     AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<버킷> PHOTO_STORE_REGION=ap-northeast-2 \
- *       NEXT_PUBLIC_SUPABASE_URL=<주소> SUPABASE_SECRET_KEY=<열쇠> npm run photo:move [-- --execute] [--limit N]
+ *       NEXT_PUBLIC_SUPABASE_URL=<주소> SUPABASE_SECRET_KEY=<열쇠> node scripts/photo-move.mjs [--execute] [--limit N]
  *
  * `--execute` 가 없으면 **아무것도 안 옮기고** 옮길 장의 수만 센다(바이트를 안 받는다). 절차 · 까닭 · 되돌리기는
  * `docs/ops/runbook/photo-store.md` 「옛 사진 옮기기」. **사람만 돌린다** — 얼굴은 개인정보이고, 이 도구는 열쇠로 DB 의 바이트를
