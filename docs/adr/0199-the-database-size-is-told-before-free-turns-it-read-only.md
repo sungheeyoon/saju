@@ -1,0 +1,36 @@
+# DB 크기는 Free 의 읽기 전용 문턱(500MB)에 닿기 전에 감시기가 알린다 — 넘은 뒤에는 알림도 못 나간다
+
+> **결정 대기**(2026-10-22, 읽기 감사의 발견). 점검표의 「비용 · 요금 · 외부 서비스 — 플랜 · 한도」 줄에 걸린다(문턱 둘이 플랜을
+> 올릴 때를 정한다). 운영자가 문턱을 답하기 전에는 머지하지 않고 `db push` 하지 않는다.
+
+## 무엇이 문제였나
+
+DB 크기를 보는 자리가 없었다(`pg_database_size` 를 부르는 코드 0, 2026-10-22). Supabase Free 는 DB 크기가 500MB 를 넘으면 읽기 전용이
+된다 — <https://supabase.com/docs/guides/platform/database-size>(2026-10-22 에 읽음): 「Free Plan projects enter read-only mode when
+your database size exceeds 500 MB」, 「In read-only mode, clients will encounter errors such as cannot execute INSERT in a read-only
+transaction」. 크기는 클러스터의 모든 DB 의 `pg_database_size` 합이다(디스크 크기 · WAL 이 아니다).
+
+그때는 가입 · 풀이 · 채팅 · 사진(DB 의 `bytea`)이 다 선다. **알림도 함께 선다** — `notify_ops` 는 `ops_alert` 에 한 줄을 적어야
+보내므로(`20260909090000`) 그 insert 가 같은 오류로 실패한다. 그래서 이 감시의 요점은 **넘기 전에** 울리는 것이다.
+
+운영 값(2026-10-22, 크기만 잼): 합 **52MB**(54,256,665 바이트) — `postgres` 37MB · `template0` 7.5MB · `template1` 7.7MB. 큰 표는
+`cron.job_run_details` 12MB · `pg_proc` 2.6MB · `public.reading` 2.3MB 순이다.
+
+## 정한 것(안)
+
+| 물음 | 답 |
+| --- | --- |
+| 어디서 보나 | `watch_cron()`(10분마다)의 다섯째 갈래. 앞 넷은 그대로 |
+| 무엇을 재나 | `database_size_counted()` — 클러스터의 모든 DB 의 `pg_database_size` 합(Supabase 가 세는 값) |
+| 문턱 | **경고 350MB · 위험 425MB — 운영자 결정 대기.** 이름 붙은 함수 둘(`database_size_warning_bytes` · `database_size_critical_bytes`)에 두어 한 줄로 고친다 |
+| 몇 번 | 종류마다 하루 한 줄(`ops_alert` 의 `(kind, day)`). 문턱 위에 있는 동안 매일 다시 온다 |
+| 누가 부르나 | 아무도 — 감시기 안에서만 돈다(알림함을 채울 수 없게) |
+
+## 고르지 않은 것
+
+- **넘은 뒤 알린다** — 읽기 전용에서는 `ops_alert` insert 가 실패해 못 나간다.
+- **외부 감시(대시보드 · 이메일)에 맡긴다** — Supabase 의 사용량 이메일이 Free 에서 언제 오는지 확인하지 않았다. 새 제공자 · 새 비용 없이 있는 길을 쓴다.
+
+## 재는 자리
+
+`supabase/tests/99_database_size_alert.test.sql` — 문턱 아래 · 경고 · 같은 날 두 번 · 위험 · 감시기 · 권한. 500MB 를 채우지 않으려고 알리는 함수가 크기를 인자로 받는다.

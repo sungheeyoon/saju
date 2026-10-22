@@ -10,7 +10,7 @@
 쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
 
 **이제 감시기가 본다**(2026-09-23, G-42). 크론 `cron-watch`(10분마다)가 `watch_cron()` 으로 지난 한 시간을
-보고, 넷 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
+보고, 다섯 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
 
 | 종류 | 뜻 | 할 일 |
 | --- | --- | --- |
@@ -18,6 +18,7 @@
 | `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
 | `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
+| `database-size-warning` · `database-size-critical` | DB 크기(클러스터의 모든 DB 의 `pg_database_size` 합 — Supabase 가 세는 값)가 350MB · 425MB 를 넘었다(`20261224090000`, ADR 0199 — 문턱은 `database_size_warning_bytes()` · `database_size_critical_bytes()`). **Free 는 500MB 에서 읽기 전용이 되고 그 뒤에는 `ops_alert` 에 못 적어 이 알림도 못 나간다** | 큰 표를 본다 — `select concat(n.nspname, '.', c.relname), pg_size_pretty(pg_total_relation_size(c.oid)) from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r', 'm', 'p') order by pg_total_relation_size(c.oid) desc limit 10;`(크기만 — 개인정보 없음). 지울 것이 없으면 플랜을 올린다 |
 
 **지급 장부의 대조도 잡이 스스로 알린다** — `credit-grant-mismatch:<계정 id>`(크론 `credit-grant-watch`, 매일 05:41 UTC, G-111 R-8 ·
 ADR 0191). 무상 지급 장부의 합과 예외 몫(`reading_credit_grant.extra`)이 다른 계정마다 하루 한 줄이고 아무것도 고치지 않는다. 할 일은
