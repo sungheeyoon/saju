@@ -44,7 +44,8 @@ function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
 /**
  * **환불 준비** — 걷을 회차 · 사유를 고르고 「환불 준비」를 누르면 확인창이 선다(G-110 ②, ADR 0184). 창을 여는 순간 대상 · 회차 ·
  * 금액 · 사유 · 요청 번호를 고정하고(`preparePlan`), 그 고정본을 그대로 낸다. DB 는 금액을 다시 셈해 다르면 거절하고, 같은 요청
- * 번호로 다시 오면 같은 확보를 돌려준다. 실패하면 고른 값과 요청 번호가 남아 같은 창을 다시 연다.
+ * 번호로 다시 오면 같은 확보를 돌려준다. 실패해도 창은 열린 채 실패 줄을 세우고 고른 값이 남는다 — 요청 번호는 답을 못 받았을
+ * 때만 남는다(ADR 0184 덧).
  */
 export function PrepareForm({
   orderId,
@@ -108,12 +109,13 @@ export function PrepareForm({
         setPlan(null);
       } else {
         setFailure(answer.message);
-        // 답을 못 받았으면 서버에서 섰는지 모른다 — 창 · 고정본(요청 번호)을 지켜 같은 요청으로 다시 낸다(섰으면 같은 확보가 온다).
-        // 분명한 거절이면(금액이 바뀜 · 요청 번호가 다른 준비에 쓰임 …) 그 고정본으로는 다시 내도 같은 거절이다 — 창을 닫고 버린다.
-        // 고른 회차 · 사유는 남는다. 액션은 거절이면 화면을 다시 그리지 않으므로 어느 실패든 여기서 다시 읽는다(ADR 0184 덧)
+        // 어느 실패든 확인창은 열어 두고 실패 줄을 창 안에 세운다 — 결정이다(운영자 답 2026-10-22, ADR 0184 덧).
+        // 답을 못 받았으면 서버에서 섰는지 모른다 — 고정본(요청 번호)을 지켜 같은 요청으로 다시 낸다(섰으면 같은 확보가 온다).
+        // 분명한 거절이면(금액이 바뀜 · 요청 번호가 다른 준비에 쓰임 …) 그 요청 번호로는 다시 내도 같은 거절이다 — 번호만 새로 받는다.
+        // 고른 회차 · 사유는 남는다. 액션은 거절이면 화면을 다시 그리지 않으므로 어느 실패든 여기서 다시 읽는다 — 창을 닫고 다시
+        // 열면 새로 읽은 금액으로 고정한다
         if (afterFailure(answer) === 'discard') {
-          setConfirming(false);
-          setPlan(null);
+          setPlan(Object.freeze({ ...plan, request: Object.freeze({ ...plan.request, requestId: crypto.randomUUID() }) }));
         }
         router.refresh();
       }
