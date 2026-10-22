@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { oneAtATime, ownerLabel, preparePlan, releaseLabel, samePlan } from './refund-confirm';
+import { oneAtATime, preparePlan, releaseLabel, samePlan } from './refund-confirm';
 
 const order = { orderId: 'o-1', paid: 12900, credits: 3, refundedCredits: 0, refundedAmount: 0, penalizedCredits: 0 };
 
@@ -45,9 +45,7 @@ describe('환불 준비의 확인창 — 보인 값이 곧 낸 값이다', () =>
     expect(after.confirmLabel).toBe('1장 · 3,870원 환불 준비');
   });
 
-  it('대상은 닉네임과 계정 앞자리로 가르고, 준비 취소 단추는 돌려놓는 회차를 말한다', () => {
-    expect(ownerLabel({ nickname: '하늘', ref: '2658fc70' })).toBe('하늘 · 2658fc70');
-    expect(ownerLabel({ nickname: null, ref: '2658fc70' })).toBe('닉네임 없음 · 2658fc70');
+  it('준비 취소 단추는 돌려놓는 회차를 말한다', () => {
     expect(releaseLabel(2)).toBe('준비 취소 — 2장 돌려놓기');
   });
 });

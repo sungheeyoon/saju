@@ -1,8 +1,9 @@
 import { REPORT_REASONS } from '@/src/lib/account';
 
+import { accountLabel } from '../account-label';
 import { firstLine } from '../first-line';
 import { statusReasonLabel, UNRECORDED } from '../members/suspension';
-import { NO_NICKNAME, reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './labels';
+import { reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './labels';
 
 /**
  * **신고 처분의 「실행 전 확인」** — 처분 폼이 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다(G-111 ②, ADR 0188).
@@ -141,10 +142,6 @@ export const needsConfirm = (now: ReportNow, outcome: Outcome): boolean => isCha
 const beforeLabel = (now: ReportNow): string =>
   now.outcome === null ? REVIEW_LABEL.open : reviewOutcomeLabel(now.outcome);
 
-/** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(닉네임이 비슷한 다른 사람과 가른다) */
-export const partyLabel = (party: Pick<Party, 'nickname' | 'userId'>): string =>
-  `${party.nickname ?? NO_NICKNAME} · ${party.userId.slice(0, 8)}`;
-
 /**
  * 「이번이 N회째 경고」의 N — **현재 신고 기준** 최근 12개월 경고 수에 이번 것을 더한다. 이 신고가 이미 그 대상에게 경고로 적혀
  * 있으면(경고를 경고로 고치는 것) 그 건은 이미 수에 들었으므로 한 번만 센다.
@@ -208,7 +205,7 @@ export function reviewPlan(
     confirmLabel: label,
     danger: input.outcome === 'suspension',
     reportLine: now.reportId.slice(0, 8),
-    targetLine: target === null ? null : `${partyLabel(target)} · ${SIDE_NAME[target.side]}`,
+    targetLine: target === null ? null : `${accountLabel(target.nickname, target.userId)} · ${SIDE_NAME[target.side]}`,
     changeLine: `${beforeLabel(now)} → ${after}`,
     reasonLine: firstLine(input.note),
     resultLines: resultLines(now, input.outcome, target),

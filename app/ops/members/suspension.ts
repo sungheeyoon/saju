@@ -1,5 +1,5 @@
 import { firstLine } from '../first-line';
-import { NO_NICKNAME, accountStatusLabel, reasonLabel, reviewOutcomeLabel } from '../reports/labels';
+import { accountStatusLabel, reasonLabel, reviewOutcomeLabel } from '../reports/labels';
 
 /**
  * **회원 화면의 이용 정지 · 해제의 「실행 전 확인」과 처분 이력의 말** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다
@@ -107,10 +107,6 @@ export type StatusPlan = {
   /** 결과 칸 */
   readonly resultLine: string;
 };
-
-/** 확인창의 대상 — 닉네임 · 계정 id 앞 8자(동명이인을 가른다) */
-export const memberLabel = (nickname: string | null, userId: string): string =>
-  `${nickname ?? NO_NICKNAME} · ${userId.slice(0, 8)}`;
 
 /** 확인창을 여는 순간의 정지 · 해제 — `requestId` 는 부르는 쪽이 넘긴다(응답이 끊긴 뒤의 재시도는 앞 번호를 다시 쓴다) */
 export function statusPlan(standing: Pick<Standing, 'version'>, input: StatusInput, requestId: string): StatusPlan {

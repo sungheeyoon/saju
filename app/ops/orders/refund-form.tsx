@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, useTransition } from 'react';
 
-import { isPenalizedRefund, refundBreakdown } from '@/src/lib/reading/bundle';
+import { isPenalizedRefund, refundBreakdown, won } from '@/src/lib/reading/bundle';
 
 import { ACTION_UNREACHED_NOTE, actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
@@ -11,13 +11,13 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { accountLabel } from '../account-label';
 import { bookRefund, holdRefund, releaseRefund } from './actions';
-import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime, won } from './labels';
+import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime } from './labels';
 import type { RefundHold } from './read';
 import {
   BOOK_LABEL,
   oneAtATime,
-  ownerLabel,
   preparePlan,
   releaseLabel,
   samePlan,
@@ -42,7 +42,7 @@ function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
       <dt className="text-muted">주문</dt>
       <dd className="break-all font-mono text-xs leading-5">{orderNumber}</dd>
       <dt className="text-muted">회원</dt>
-      <dd>{ownerLabel(owner)}</dd>
+      <dd>{accountLabel(owner.nickname, owner.ref)}</dd>
     </>
   );
 }
@@ -302,7 +302,7 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
           <dt className="text-muted">사유</dt>
           <dd>{refundReasonLabel(hold.reason)}</dd>
           <dt className="text-muted">회원</dt>
-          <dd>{ownerLabel(hold.owner)}</dd>
+          <dd>{accountLabel(hold.owner.nickname, hold.owner.ref)}</dd>
           <dt className="text-muted">결제 번호</dt>
           <dd className="break-all font-mono text-xs leading-5">{hold.orderNumber}</dd>
           <dt className="text-muted">거래 번호</dt>

@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
+import { accountLabel } from '../account-label';
 import { oneAtATime } from '../orders/refund-confirm';
 import { bookCreditGrant } from './actions';
 import {
@@ -20,7 +21,6 @@ import {
   REVOKE_REASONS,
   grantBlocked,
   grantPlan,
-  memberLabel,
   revokeBlocked,
   samePlan,
   type GrantKind,
@@ -252,7 +252,7 @@ export function GrantPanel({
         >
           <dl className={FACTS}>
             <dt className="text-muted">대상</dt>
-            <dd>{memberLabel(nickname, userId)}</dd>
+            <dd>{accountLabel(nickname, userId)}</dd>
             <dt className="text-muted">수량</dt>
             <dd className="tabular-nums">{plan.amountLine}</dd>
             <dt className="text-muted">사유</dt>
