@@ -9,7 +9,7 @@ import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
-import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
+import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
@@ -421,7 +421,7 @@ function StaleChip() {
  */
 export function EmptyReader() {
   return (
-    <div className={`${EMPTY_SLOT} grid min-h-80 place-items-center p-8 text-center`}>
+    <div className={`${EMPTY_SLOT_FACE} grid min-h-80 place-items-center p-8 text-center`}>
       <p className="text-body leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐져요.</p>
     </div>
   );

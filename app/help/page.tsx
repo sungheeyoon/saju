@@ -5,7 +5,7 @@ import { SUPPORT_EMAIL } from '@/src/lib/brand';
 import { BUTTON_SECONDARY } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { OpenHashed } from './open-hashed';
-import { CARD, DISCLOSURE_SUMMARY, TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, DISCLOSURE_SUMMARY_FACE, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 
 export const metadata = {
   title: '자주 묻는 질문',
@@ -156,7 +156,7 @@ export default function HelpPage() {
             {group.items.map((item) => (
               <li key={item.id} id={item.id} className="scroll-mt-24">
                 <details className="group py-1">
-                  <summary className={`${DISCLOSURE_SUMMARY} py-2 text-body font-semibold`}>
+                  <summary className={`${DISCLOSURE_SUMMARY_FACE} py-2 text-body font-semibold`}>
                     {item.q}
                     <Icon name="chevron" className="size-4 shrink-0 text-secondary transition-transform group-open:rotate-90" />
                   </summary>
@@ -167,7 +167,7 @@ export default function HelpPage() {
                       </p>
                     ))}
                     {item.link && (
-                      <Link href={item.link.href} className={`${TYPE_META} w-fit font-semibold text-foreground underline underline-offset-4`}>
+                      <Link href={item.link.href} className="w-fit text-small font-semibold leading-5 text-foreground underline underline-offset-4">
                         {item.link.label} →
                       </Link>
                     )}
