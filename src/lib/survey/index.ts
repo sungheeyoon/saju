@@ -192,6 +192,10 @@ export const WANT_NEW_NOTE = '아래 기능은 아직 제공하지 않아요. �
  *
  * **눈금을 보기 좋게 맞추려고 실제로 검토하지 않는 금액을 넣지 않는다.** 간격이 고른 것은
  * 목록의 성질이지 값의 성질이 아니다.
+ *
+ * **「보여 준 목록」의 기록은 DB 가 같은 목록을 스스로 적는다** — 앱은 보내지 않는다
+ * (`supabase/migrations/20261222090000_the_survey_price_list_is_carried_by_the_server.sql`). 이 목록을 바꾸면 그 줄도
+ * 함께 바꾼다 — `app/me/survey/price-options.test.ts` 가 둘을 견준다.
  */
 export const PRICE_OPTIONS = [
   'free',

@@ -1,6 +1,6 @@
 'use server';
 
-import { PRICE_OPTIONS, type SurveyAnswers } from '@/src/lib/survey';
+import type { SurveyAnswers } from '@/src/lib/survey';
 
 import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
@@ -14,8 +14,9 @@ import { rpcArgs } from '@/src/lib/db';
  * 순간 검사에 걸리는 줄이 이미 저장돼 있게 된다. 무엇을 받고 무엇을 비우는지는 DB 가
  * 정한다(`save_service_survey`) — 여기서 한 번 더 다듬으면 다듬는 자리가 둘이 된다.
  *
- * **제시 금액 목록은 서버가 싣는다.** 브라우저가 보내게 하면 그 값이 곧 「무엇을 보여
- * 줬는가」의 기록인데, 보낸 쪽이 고칠 수 있는 기록은 기록이 아니다.
+ * **제시 금액 목록은 DB 가 싣는다**(`save_service_survey` 가 판본의 목록을 스스로 적는다). 보내게 하면 그
+ * 값이 곧 「무엇을 보여 줬는가」의 기록인데, 보낸 쪽이 고칠 수 있는 기록은 기록이 아니다 — 문은 로그인한
+ * 누구나 바로 부를 수 있어 이 액션이 상수를 보내는 것으로는 막히지 않았다(2026-10-22).
  */
 export async function saveServiceSurvey(
   answers: SurveyAnswers,
@@ -34,7 +35,6 @@ export async function saveServiceSurvey(
     p_price_pair: answers.pricePair,
     p_price_factors: [...answers.priceFactors],
     p_free_text: answers.freeText.trim() === '' ? null : answers.freeText,
-    p_price_options: [...PRICE_OPTIONS],
     p_submit: submit,
   }));
 
