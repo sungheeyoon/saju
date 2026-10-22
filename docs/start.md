@@ -44,7 +44,7 @@
 | 코드가 어디에 살고 무엇을 불러도 되나 | `docs/architecture.md` | `scripts/layers.test.ts` · `eslint.config.mjs` 가 맞다 |
 | 코드를 어떻게 적나 | `CODING_STANDARDS.md` | `scripts/code-rules.test.ts` · 린트가 맞다 |
 | 무엇을 돌리나 | `docs/agents/test-map.md` | `scripts/ci-plan.mjs` 가 맞다 |
-| 이미 정한 화면 문구 | `docs/product/copy-ledger.md`(규칙 · 무리 색인) → `docs/product/copy-ledger/` 의 그 화면 무리 | 없으면 표로 묻는다 |
+| 이미 정한 화면 문구 | `docs/product/copy-ledger.md`(규칙 · 무리 색인) → `docs/product/copy-ledger/` 의 그 화면 무리 | 없으면 실사례를 출처와 함께 넣고 나중에 확인받는다(`docs/agents/code-rules/screen-copy.md` 「화면 문구」) |
 | 맡기는 법 · 권한 · 병렬 · PR 의 칸 | `docs/agents/delegation.md` | 권한 표는 `.claude/settings.json` 과 시험이 견준다 |
 | 운영에서 무엇을 어떤 차례로 | `docs/ops/runbook.md` | — |
 | 운영 주소 · 도메인 | `docs/ops/runbook/domain.md` 맨 위 | 주석 · 다른 문서는 주소를 적지 않고 여기를 가리킨다 — `scripts/code-rules.test.ts` 가 잰다 |
