@@ -1,7 +1,7 @@
 -- 집은 일감은 임대다 — 지금 쥔 작업자만 놓고 · 저장하고 · 실패로 닫는다 (ADR 0201, `20261226090000`)
 --
 -- 회수하던 함수가 죽으면 일감이 `retrieving` 에 갇혀 8분 기한까지 아무도 안 집었다. 이제 집은 시각과 임대 식별자가
--- 남고, 임대(2분)가 지나면 다른 작업자가 다시 집는다. 다시 집히면 식별자가 바뀌어 옛 작업자의 늦은 놓기 · 저장 · 실패는
+-- 남고, 임대(150초)가 지나면 다른 작업자가 다시 집는다. 다시 집히면 식별자가 바뀌어 옛 작업자의 늦은 놓기 · 저장 · 실패는
 -- 아무 일도 안 한다.
 --
 -- 재는 것.
@@ -65,7 +65,7 @@ select ok(
   and not has_function_privilege('authenticated',
     'public.save_reading(uuid, text, smallint, text, text, text, text, text, jsonb, timestamptz, uuid)', 'execute'),
   '로그인한 사람은 닫지도 저장하지도 못한다');
-select is(public.reading_job_lease(), interval '2 minutes', '임대는 2분이다 — 처리 상한 100초 < 2분 < 8분 기한(ADR 0201)');
+select is(public.reading_job_lease(), interval '150 seconds', '임대는 150초다 — 처리 상한 110초 < 150초 < 8분 기한(ADR 0201)');
 
 /** 제출까지 — 얼린 작업에 지은 것을 적고 이름표를 붙인다(앱의 `prepare_reading_job` → `adopt_reading_job` 차례) */
 create or replace function pg_temp.submitted(run uuid, resp text)
@@ -101,7 +101,7 @@ returns jsonb
 language sql
 as $$ select to_jsonb(o) from public.open_reading_jobs() o where o.run_id = run $$;
 
-/** 임대를 늙힌다 — 2분을 기다리지 않는다 */
+/** 임대를 늙힌다 — 150초를 기다리지 않는다 */
 create or replace function pg_temp.lease_ages(run uuid)
 returns void
 language sql

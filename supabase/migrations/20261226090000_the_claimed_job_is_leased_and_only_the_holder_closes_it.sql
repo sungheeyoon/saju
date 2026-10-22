@@ -12,8 +12,8 @@
 --
 -- - `reading_job` 에 `lease_id`(임대 식별자 — 앱이 집을 때 짓는다) · `claimed_at`(집은 시각, DB 시계) 두 칸.
 --   `claimed_at` 은 `retrieving` 일 때만 차 있고, `lease_id` 는 `retrieving` 일 때만 있을 수 있다(검사식 둘).
--- - `reading_job_lease()` — 2분. 셈은 ADR 0201: 일감 하나의 처리 상한(집기 응답 10초 + 회수 10초 × 2번 + 재시도 대기 60초 +
---   저장 · 실패 · 놓기 10초 = 100초)보다 길고, 8분 기한 안에 다시 집을 자리가 남게 짧다.
+-- - `reading_job_lease()` — 150초. 셈은 ADR 0201: 일감 하나의 처리 상한(집기 응답 10초 + 회수 10초 × 2번 + 재시도 대기 60초 +
+--   적기 두 번 — 저장 뒤 놓기나 실패 — 10초 × 2 = 110초)보다 길고, 8분 기한 안에 다시 집을 자리가 남게 짧다.
 -- - `claim_reading_job(p_response_id, p_lease_id default null)` — `submitted` 와 **임대가 지난 `retrieving`** 을 집는다.
 --   집으면 임대 식별자와 시각을 새로 쓴다 — 옛 작업자의 식별자는 그 순간 무효다.
 -- - `release_reading_job(p_run_id, p_lease_id default null)` · `save_reading(…, p_lease_id default null)` ·
@@ -60,13 +60,13 @@ alter table public.reading_job
   add constraint the_claim_time_marks_the_claim check ((status = 'retrieving') = (claimed_at is not null)),
   add constraint the_lease_lives_only_while_claimed check (lease_id is null or status = 'retrieving');
 
-/** 임대 시간 — 2분(ADR 0201). 일감 하나의 처리 상한 100초 < 2분 < 8분 기한 */
+/** 임대 시간 — 150초(ADR 0201). 일감 하나의 처리 상한 110초 < 150초 < 8분 기한. 앱의 `READING_JOB_LEASE_MS` 와 같은 값이다 */
 create function public.reading_job_lease()
 returns interval
 language sql
 immutable
 set search_path = ''
-as $$ select interval '2 minutes' $$;
+as $$ select interval '150 seconds' $$;
 
 revoke execute on function public.reading_job_lease() from anon, public, authenticated, service_role;
 

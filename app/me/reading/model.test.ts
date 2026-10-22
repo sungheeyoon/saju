@@ -88,6 +88,22 @@ describe('회수 조회', () => {
     expect(calls).toBe(2);
   });
 
+  it('머리(200)가 와도 본문이 10초 안에 안 끝나면 끊는다 — 상한은 본문 읽기까지 덮는다', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    stub(async () => new Response(new ReadableStream({ start() {} }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    const answered = retrieveBackgroundReading('resp_1');
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(calls).toBe(1);
+    await vi.advanceTimersByTimeAsync(1_000 + 10_000);
+
+    await expect(answered).resolves.toMatchObject({ ok: 'unreachable' });
+    expect(calls).toBe(2);
+  });
+
   it('다시 해도 같은 거절(404)은 지금처럼 실패로 닫는다 — 다시 보내지 않는다', async () => {
     stub(async () => Response.json({ error: { message: 'No response found' } }, { status: 404 }));
 
