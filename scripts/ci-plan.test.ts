@@ -21,6 +21,7 @@ import {
   HARNESS,
   ROOT_CONFIGS,
   SERVER_ACTIONS_ELSEWHERE,
+  SERVICE_WORKER,
   SHARED_RISK,
   addressesOf,
   COPY_ATTRIBUTES,
@@ -599,6 +600,59 @@ describe('CI 계획 — 입구가 아닌 화면 컴포넌트는 그것을 쓰는
       .filter(([, plan]) => plan.tier === 'core' && !plan.reason.includes('시험 공백'))
       .map(([file]) => file);
     expect(silent).toEqual([]);
+  });
+});
+
+/**
+ * **css module 과 서비스 워커는 core 하나로 떨어지지 않는다**(2026-10-22 감사가 `planFor` 에 넣어 본 구멍 둘). css module 만 바꾼 PR 은
+ * `.tsx` 가 아니라 `core` 였고, `public/sw.js` 는 알려진 `core` 자리(`public/**`)라 그것을 등록해 재는 `e2e/push.spec.ts` 의 차선이 안 섰다.
+ */
+describe('CI 계획 — css module 은 그것을 들이는 화면의 차선, 서비스 워커는 그것을 여는 시험의 차선을 탄다', () => {
+  it('css module 하나만 바꿔도 그것을 들이는 컴포넌트를 바꾼 것과 같은 차선이 선다', () => {
+    const css = 'app/me/home/map/relation-map.module.css';
+    const plan = beta([css]);
+    expect(plan.tier).not.toBe('core');
+    expect(plan.lanes).toEqual(beta(['app/me/home/map/relation-map.tsx']).lanes);
+    expect(plan.authedLanes).toEqual(beta(['app/me/home/map/relation-map.tsx']).authedLanes);
+  });
+
+  it('실측 — 저장소의 css module 은 core 하나로 떨어지지 않는다 · app/globals.css 는 core 그대로', () => {
+    const modules = filesUnder(resolve(ROOT, 'app'))
+      .map((file) => relative(ROOT, file).split(sep).join('/'))
+      .filter((file) => file.endsWith('.module.css'));
+    expect(modules.length).toBeGreaterThan(3);
+    const silent = modules.filter((file) => {
+      const plan = beta([file]);
+      return plan.tier === 'core' && !plan.reason.includes('시험 공백');
+    });
+    expect(silent).toEqual([]);
+    // 뿌리 layout 이 들이는 전역 css 는 좁히면 사실상 전부다 — 단위 · 빌드가 재는 core 로 둔다
+    expect(beta(['app/globals.css']).lanes).toEqual(CORE_ONLY);
+  });
+
+  it('지운 css module(못 읽음)은 안 건다 · 아무도 안 들이면 전부', () => {
+    expect(planFor({ files: ['app/me/gone.module.css'], stage: '운영 베타', sourceOf: () => null }).lanes).toEqual(CORE_ONLY);
+    const orphan = 'app/me/orphan.module.css';
+    const plan = planFor({ files: [orphan], stage: '운영 베타', sourceOf: (one) => (one === orphan ? '.x { color: red; }\n' : diskOf(one)) });
+    expect(plan.cause).toBe('주소 없음');
+  });
+
+  it('public/sw.js 는 서비스 워커를 여는 시험의 차선(push)을 탄다 — public 의 다른 파일은 core 그대로', () => {
+    const plan = beta([SERVICE_WORKER]);
+    expect(plan.tier).toBe('narrow');
+    expect(plan.authedLanes).toContain('push');
+    expect(plan.reason).toContain('e2e/push.spec.ts');
+    expect(beta(['public/badge.png']).lanes).toEqual(CORE_ONLY);
+  });
+
+  it('SERVICE_WORKER 는 앱이 등록하는 서비스 워커 그 파일이다', () => {
+    expect(existsSync(resolve(ROOT, SERVICE_WORKER))).toBe(true);
+    const registering = [...codeUnder(resolve(ROOT, 'app')), ...codeUnder(resolve(ROOT, 'src'))]
+      .map((file) => readFileSync(file, 'utf8'))
+      .filter((source) => /serviceWorker\.register\(/.test(source));
+    expect(registering.length).toBeGreaterThan(0);
+    const urls = new Set(registering.flatMap((source) => [...source.matchAll(/['"`](\/[\w./-]+\.js)['"`]/g)].map((one) => one[1])));
+    expect([...urls]).toEqual([SERVICE_WORKER.replace(/^public/, '')]);
   });
 });
 

@@ -148,7 +148,7 @@
  * `package.json` 의 `test:e2e:<차선>` 과 `playwright.config.ts` 의 무늬에서 읽는다. 파일이 옮겨지면 대응도 함께 옮는다.
  *
  * **모르는 파일은 베타에서도 전부다.** 알려진 `core` 자리(`KNOWN_CORE` · `ROOT_CONFIGS`)는 자리로 적는다 — `src/**` ·
- * 입구가 아닌 `app/**` · `scripts/**` · 워크플로 밖의 `.github/**` · `public/**` 와 뿌리 설정 몇. 잰 값(2026-10-01, 추적 파일 1,139 개를 한
+ * 입구가 아닌 `app/**` · `scripts/**` · 워크플로 밖의 `.github/**` · 서비스 워커 밖의 `public/**` 와 뿌리 설정 몇. 잰 값(2026-10-01, 추적 파일 1,139 개를 한
  * 파일씩): 옛 규칙의 `fast` 489 개 중 486 개가 그대로 `core` 이고, 셋이 옮는다 — `app/global-error.tsx` ·
  * `instrumentation.ts` 는 공용 경계라 전부, `app/icon.svg` 는 메타데이터라 `core` + `anon`. 옛 전부 382 개 중 61 개가
  * 좁혀진다.
@@ -284,6 +284,19 @@
  *   — `dev` 포함)이 바뀌었을 때만 전부다
  *   (`testRunnerChangeOf`). 앱이 쓰는 패키지만 바뀌었으면 전처럼 `core` 와 `audit` 이다. base 나 HEAD 를 못 읽으면 가를 수 없어 전부다.
  *
+ * ## css module 과 서비스 워커 (2026-10-22, ADR 0195 덧)
+ *
+ * 같은 날 감사가 `planFor` 에 대표 변경을 넣어 본 구멍 둘이다 — 둘 다 넓히기만 한다.
+ *
+ * - **css module(`app/**\/*.module.css`)은 화면 컴포넌트다.** `.tsx` 만 보던 판정이라 css module 만 바꾼 PR 은 `core` 였고, 그것을 들이는
+ *   `.tsx` 를 바꾸면 차선이 섰다. 이제 그것을 들이는 컴포넌트와 같은 길(`entriesReaching`)을 탄다 — layout 이 들이면 전부, 아무도 안 들이면
+ *   전부, 지운 것은 안 건다. 뿌리 layout 이 들이는 `app/globals.css` 는 좁히면 사실상 전부라 `core`(알려진 자리) 그대로다.
+ * - **서비스 워커(`SERVICE_WORKER` — `public/sw.js`)는 그것을 여는 시험의 차선을 탄다.** `public/**` 는 알려진 `core` 자리라 서비스 워커를
+ *   등록해 재는 `e2e/push.spec.ts`(`push`)가 안 섰다. 시험은 `/sw.js` 를 적지 않고 브라우저의 서비스 워커를 열므로, 주석을 뺀 코드에
+ *   `serviceWorker` 가 든 spec · 흐름 검사(`workerTests`)를 모은다. 하나도 없으면 「닿는 시험 모름」이라 전부다. 흐름 검사(`check-push`)는
+ *   서비스 워커를 띄우지 않고 그 문을 직접 두드리므로 `flow` 는 안 켠다. 웹 푸시를 운영에 켰는지와 따로다. 시험이 앱의 등록 주소와
+ *   `SERVICE_WORKER` 를 견준다.
+ *
  * ## 원칙
  *
  * - 라벨(`full-ci`)은 **더할 수만 있고 뺄 수 없다.**
@@ -361,6 +374,8 @@ export const TEST_RUNNERS = ['@playwright/test', 'playwright', 'playwright-core'
 export const LANE_SCRIPTS = /^(?:test:e2e(?::.+)?|test:flow|test:db|db:start|db:types|dev)$/;
 /** 닿는 시험이 정말 없는 입구를 적는 간극 대장의 줄 — 그 기록 파일이 `untestedEntries` 와 같은 목록을 든다(시험이 견준다) */
 export const UNTESTED_GAP = 'G-116';
+/** 앱이 등록하는 서비스 워커 — 시험은 그 주소를 적지 않고 브라우저의 서비스 워커를 연다(위 「css module 과 서비스 워커」). 시험이 앱의 등록 주소와 견준다 */
+export const SERVICE_WORKER = 'public/sw.js';
 
 /** `core` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」) */
 export const CORE_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm run build'];
@@ -599,14 +614,15 @@ export const isSurface = (file, sourceOf = sourceFromDisk) =>
     (file.startsWith('app/') && gateReach(sourceOf).has(file)));
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 /**
- * 입구가 아닌 화면 컴포넌트 — `app/**` 의 시험 아닌 `.tsx`, 그리고 React 를 들이거나 `'use client'` 인 `.ts`(hook 같은 것) 가운데
- * 입구 · 서버 파일이 아닌 것(위 「CI 갈래 검수의 넷」). 지운 파일(못 읽음)은 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다
+ * 입구가 아닌 화면 컴포넌트 — `app/**` 의 시험 아닌 `.tsx` · css module(`.module.css`), 그리고 React 를 들이거나 `'use client'` 인
+ * `.ts`(hook 같은 것) 가운데 입구 · 서버 파일이 아닌 것(위 「CI 갈래 검수의 넷」 · 「css module 과 서비스 워커」). 지운 파일(못 읽음)은
+ * 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다. 뿌리 layout 이 들이는 `app/globals.css` 는 module 이 아니라 여기 없다(`core`)
  */
 const isScreenComponent = (file, sourceOf = sourceFromDisk) => {
-  if (!/^app\/.+\.tsx?$/.test(file) || isTestFile(file) || routeOf(file) !== null) return false;
+  if (!/^app\/.+\.(?:tsx?|module\.css)$/.test(file) || isTestFile(file) || routeOf(file) !== null) return false;
   const source = sourceOf(file);
   if (source === null) return false;
-  return file.endsWith('.tsx') || /^\s*['"]use client['"]/m.test(source) || importsOf(source).some((name) => /^react(?:-dom)?(?:\/|$)/.test(name));
+  return /\.(?:tsx|module\.css)$/.test(file) || /^\s*['"]use client['"]/m.test(source) || importsOf(source).some((name) => /^react(?:-dom)?(?:\/|$)/.test(name));
 };
 
 // ---------------------------------------------------------------------------
@@ -1050,6 +1066,18 @@ export const linkedOnlyEntries = () =>
     .filter(({ byLink }) => byLink.length > 0)
     .map(({ file }) => file)
     .sort();
+
+/**
+ * 서비스 워커를 여는 시험 — 주석을 뺀 코드(그것이 바로 들이는 저장소 파일까지)에 `serviceWorker` 가 든 spec · 흐름 검사
+ *
+ * @returns {string[]}
+ */
+export const workerTests = () => {
+  const { addresses, texts } = testMap();
+  return Object.keys(addresses)
+    .filter((test) => /serviceworker/i.test(texts[test] ?? ''))
+    .sort();
+};
 
 /** 로그인 spec 이 무엇인가 — 시험이 차선 스크립트와 견준다 */
 export const loginSpecs = () => [...testMap().loginSpecs];
@@ -2285,7 +2313,10 @@ function decideBeta(changed, stage, sourceOf) {
     if (isTestFile(file) || isPolicy(file)) continue;
     let tests;
     if (isSpec(file) || isFlowCheck(file)) tests = [file];
-    else if (METADATA.test(file) && !reachesServer(file, sourceOf)) {
+    else if (file === SERVICE_WORKER) {
+      tests = workerTests();
+      if (tests.length === 0) return full('닿는 시험 모름', `${stage} — \`${file}\`(서비스 워커)를 여는 시험을 못 찾는다`);
+    } else if (METADATA.test(file) && !reachesServer(file, sourceOf)) {
       take(['anon']);
       why.push(`\`${file}\` → 메타데이터`);
       continue;
