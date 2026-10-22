@@ -256,15 +256,15 @@
  *
  * 검수(`docs/notes/2026-10-22-ci-lane-audit.md` 「CI 갈래 검수」)가 짚은 빈틈과 낭비를 고쳤다.
  *
- * - **입구가 아닌 화면 컴포넌트는 그것을 쓰는 입구의 차선을 탄다.** `app/**` 의 시험 아닌 `.tsx` 가운데 입구 · 서버 파일이 아닌 것
- *   (`isScreenComponent`)은 `core` 만 돌았다 — main 이 붉은 #581 · #614 · #595 가 다 여기서 샜다. 이제 서버 파일과 같은 길(`entriesReaching`)로
- *   그것을 쓰는 입구의 주소에 닿는 차선을 켜고, 안전 문턱(길 위의 공용 위험 · 고아는 전부)도 같다. 지운 컴포넌트는 안 건다. 순수 로직
- *   `.ts`(`book.ts` · `buttons.ts` 같은 것)는 단위 시험이 재므로 그대로 `core` 다. 잰 값(2026-10-22): 화면 컴포넌트 145 개(옛 규칙 `core`) 중
- *   113 개가 좁힌 차선(그중 아홉은 차선 열하나를 다 켠다), 19 개가 전부(길 위에 layout · 인증 · Next 공용 경계 — `app/ui/**` 의 일곱이
- *   여기다), 13 개는 쓰는 입구 가운데 시험이 정말 없는 입구가 있어 11 개는 `core`(시험 공백) · 2 개는 나머지 입구의 차선이다.
+ * - **입구가 아닌 화면 컴포넌트는 그것을 쓰는 입구의 차선을 탄다.** `app/**` 의 시험 아닌 `.tsx` 와 React 를 들이거나 `'use client'` 인
+ *   `.ts`(hook 같은 것, 운영자 2026-10-22) 가운데 입구 · 서버 파일이 아닌 것(`isScreenComponent`)은 `core` 만 돌았다 — main 이 붉은 #581 · #614 · #595 가 다 여기서 샜다. 이제 서버 파일과 같은 길(`entriesReaching`)로
+ *   그것을 쓰는 입구의 주소에 닿는 차선을 켜고, 안전 문턱(길 위의 공용 위험 · 고아는 전부)도 같다. 지운 컴포넌트는 안 건다. React 도
+ *   `'use client'` 도 없는 `.ts`(`book.ts` · `buttons.ts` 같은 셈 · 상수)는 단위 시험이 재므로 그대로 `core` 다. 잰 값(2026-10-22): 화면
+ *   컴포넌트 157 개(옛 규칙 `core`) 중 123 개가 좁힌 차선(그중 열은 차선 열하나를 다 켠다), 21 개가 전부(길 위에 layout · 인증 · Next 공용
+ *   경계 — `app/ui/**` 의 여덟이 여기다), 13 개는 쓰는 입구 가운데 시험이 정말 없는 입구가 있어 11 개는 `core`(시험 공백) · 2 개는 나머지 입구의 차선이다.
  * - **닿는 시험이 0 인 입구는 정말 없을 때만 `core` 다.** 글자 그대로의 주소(`addressesOf`)가 0 이어도 시험 · 그 도우미가 템플릿 ·
- *   이어 붙임 · 식 뒤의 경로 · 정규식의 `\/` 경로로 그 주소를 요청할 **수도 있으면**(`looseAddressesOf`) 탐색이 놓친 것이라 전부(「닿는
- *   시험 모름」)다. 그것도 없으면 그 파일은 `core` 로 세고 까닭에 시험 공백과 간극 대장 줄(`UNTESTED_GAP`)을 싣는다 — 다른 파일이 켠
+ *   이어 붙임 · 식 뒤의 경로 · 정규식의 `\/` 경로로 그 주소를 요청할 **수도 있거나**(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의
+ *   경로가 글자로 들었거나(`mentionOf`), 그 입구를 들이는 파일이 있으면(다시 내보내는 page) 탐색이 놓친 것이라 전부(「닿는 시험 모름」)다. 그것도 없으면 그 파일은 `core` 로 세고 까닭에 시험 공백과 간극 대장 줄(`UNTESTED_GAP`)을 싣는다 — 다른 파일이 켠
  *   차선은 그대로다. 대장의 기록이 `untestedEntries()` 와 같은 목록을 드는지 시험이 견준다. 해석 불가(고아) · 미분류 · 관문이 부르는
  *   파일 · 차선 모름은 그대로 전부다. 잰 값(2026-10-22): 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)과
  *   그것만 쓰는 서버 파일 여섯이 전부 → `core` 다.
@@ -272,7 +272,8 @@
  *   적었는데 `ENGINE_DB_FACING` 은 공개 출시의 판정만 읽었다.
  * - **CI 자체와 시험 실행 의존성은 전부다.** 워크플로(`.github/workflows/**`)와 모든 job 이 읽는 Node 판(`.nvmrc`)은 공용 위험 「CI 자체」다 —
  *   PR 이 바꾼 워크플로가 그 PR 에서 job 을 다 돌려 보게. 의존성 목록은 base 와 견줘 시험 실행 의존성(`TEST_RUNNERS` — Playwright 와
- *   Supabase CLI 의 판 · `overrides` · 설치 항목, 그리고 차선 job 이 부르는 스크립트 `LANE_SCRIPTS`)이 바뀌었을 때만 전부다
+ *   Supabase CLI, 시험 도우미만 들이는 `http_ece` 의 판 · `overrides` · 설치 항목, 그리고 차선 job 과 e2e 가 부르는 스크립트 `LANE_SCRIPTS`
+ *   — `dev` 포함)이 바뀌었을 때만 전부다
  *   (`testRunnerChangeOf`). 앱이 쓰는 패키지만 바뀌었으면 전처럼 `core` 와 `audit` 이다. base 나 HEAD 를 못 읽으면 가를 수 없어 전부다.
  *
  * ## 원칙
@@ -340,12 +341,16 @@ export const ENGINE_DB_FACING = ['src/lib/saju/version.ts', 'src/lib/saju/pillar
 /** CI 자체 — 워크플로와 모든 job 이 도는 Node 판(`node-version-file`). 바뀌면 그 PR 에서 job 을 다 돌려 본다(위 「CI 자체」) */
 const CI_ITSELF = [/^\.github\/workflows\//, /^\.nvmrc$/];
 /**
- * 시험 실행 의존성 — e2e · 흐름 · DB 차선만 부르는 실행기(Playwright 와 Supabase CLI). `core` 는 이것을 안 부르므로 판이 바뀌면 전부다.
+ * 시험 실행 의존성 — e2e · 흐름 · DB 차선만 부르는 실행기(Playwright 와 Supabase CLI)와 시험 · 그 도우미만 들이는 패키지(`http_ece` —
+ * 가짜 푸시 서비스가 직접 들이는 `web-push` 의 간접 의존성). `core` 는 이것을 안 부르므로 판이 바뀌면 전부다.
  * 앱도 쓰는 패키지(`@supabase/supabase-js` 같은 것)의 판은 일반 의존성이라 `core` 와 `audit` 이다(위 「시험 실행 의존성」)
  */
-export const TEST_RUNNERS = ['@playwright/test', 'playwright', 'playwright-core', 'supabase'];
-/** 차선 job 이 부르는 npm 스크립트 — `core` · `policy` 가 안 부르는 것. 이 줄이 바뀌면 차선이 무엇을 도는지가 바뀐다 */
-export const LANE_SCRIPTS = /^(?:test:e2e(?::.+)?|test:flow|test:db|db:start|db:types)$/;
+export const TEST_RUNNERS = ['@playwright/test', 'playwright', 'playwright-core', 'supabase', 'http_ece'];
+/**
+ * 차선 job 과 그 시험이 부르는 npm 스크립트 — `core` · `policy` 가 안 부르는 것. `dev` 는 e2e 가 앱을 띄우는 명령이다(`playwright.config.ts` 의
+ * `webServer.command`). 이 줄이 바뀌면 차선이 무엇을 도는지가 바뀐다
+ */
+export const LANE_SCRIPTS = /^(?:test:e2e(?::.+)?|test:flow|test:db|db:start|db:types|dev)$/;
 /** 닿는 시험이 정말 없는 입구를 적는 간극 대장의 줄 — 그 기록 파일이 `untestedEntries` 와 같은 목록을 든다(시험이 견준다) */
 export const UNTESTED_GAP = 'G-116';
 
@@ -586,11 +591,15 @@ export const isSurface = (file, sourceOf = sourceFromDisk) =>
     (file.startsWith('app/') && gateReach(sourceOf).has(file)));
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 /**
- * 입구가 아닌 화면 컴포넌트 — `app/**` 의 시험 아닌 `.tsx` 가운데 입구 · 서버 파일이 아닌 것(위 「입구가 아닌 화면 컴포넌트」).
- * 지운 파일(못 읽음)은 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다
+ * 입구가 아닌 화면 컴포넌트 — `app/**` 의 시험 아닌 `.tsx`, 그리고 React 를 들이거나 `'use client'` 인 `.ts`(hook 같은 것) 가운데
+ * 입구 · 서버 파일이 아닌 것(위 「CI 갈래 검수의 넷」). 지운 파일(못 읽음)은 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다
  */
-const isScreenComponent = (file, sourceOf = sourceFromDisk) =>
-  /^app\/.+\.tsx$/.test(file) && !isTestFile(file) && routeOf(file) === null && sourceOf(file) !== null;
+const isScreenComponent = (file, sourceOf = sourceFromDisk) => {
+  if (!/^app\/.+\.tsx?$/.test(file) || isTestFile(file) || routeOf(file) !== null) return false;
+  const source = sourceOf(file);
+  if (source === null) return false;
+  return file.endsWith('.tsx') || /^\s*['"]use client['"]/m.test(source) || importsOf(source).some((name) => /^react(?:-dom)?(?:\/|$)/.test(name));
+};
 
 // ---------------------------------------------------------------------------
 // 주소 대응 — 소스에서 뽑는다(위 「그 주소에 닿는 차선만」)
@@ -639,7 +648,8 @@ export function addressesOf(source) {
     .filter((line) => !isCommentLine(line))
     .join('\n');
   const found = new Set();
-  for (const one of code.matchAll(/['"`](\/[^'"`\s]*)/g)) found.add(one[1].replace(/\$\{[^}]*\}/g, 'x').split(/[?#]/)[0]);
+  // 끝의 `$` 는 정규식 문자열(`new RegExp('/me/credits$')`)의 닻이다 — 떼고 읽는다
+  for (const one of code.matchAll(/['"`](\/[^'"`\s]*)/g)) found.add(one[1].replace(/\$\{[^}]*\}/g, 'x').split(/[?#]/)[0].replace(/\$$/, ''));
   for (const one of code.matchAll(/%2F[\w%.-]+/g)) {
     try {
       found.add(decodeURIComponent(one[0]).split(/[?#]/)[0]);
@@ -756,8 +766,48 @@ function testMap() {
       return [helper, [...addressesOf(source).map((address) => looseOf(address, { exact: true })), ...looseAddressesOf(source)]];
     }),
   ]);
-  testMapCache = { loginSpecs, specsOfLane, addresses, loose };
+  // 시험 · 도우미와 그것이 바로 들이는 저장소 파일(경로 상수가 사는 `src/**` 같은 곳)의 코드 — 입구의 경로가 글자로 들어 있기만 해도
+  // 놓쳤을 수 있다고 본다(`mentionOf`)
+  const codeOf = (file) =>
+    (sourceFromDisk(file) ?? '')
+      .split('\n')
+      .filter((line) => !isCommentLine(line))
+      .join('\n');
+  const texts = Object.fromEntries(
+    [...tests, ...helpers].map((file) => {
+      const source = sourceFromDisk(file) ?? '';
+      const imported = importsOf(source)
+        .map((name) => resolveImport(name, file, sourceFromDisk))
+        .filter((one) => one !== null);
+      return [file, [file, ...imported].map(codeOf).join('\n')];
+    }),
+  );
+  testMapCache = { loginSpecs, specsOfLane, addresses, loose, texts };
   return testMapCache;
+}
+
+/**
+ * 입구의 경로가 글자로 든 자리 — 경로의 끝쪽 마디들(`/me/credits` · `/credits`)이 `/` 나 `\/` 로 이어 적혔는가. 동적 마디는 아무 글자나.
+ * glob(`'**\/me/credits'`) · 정규식 문자열 · 경로 상수 · 이어 붙임(`base + '/credits'`)처럼 `looseAddressesOf` 가 못 푸는 이동을 잡는다.
+ * 뿌리(`/`)는 `null` — 모든 글자에 든다
+ *
+ * @param {string} entry
+ * @returns {RegExp | null}
+ */
+export function mentionOf(entry) {
+  const found = ENTRY.exec(entry);
+  if (!found) return null;
+  const segments = (found[1] ?? '').split('/').filter((one) => one !== '' && !/^\(.*\)$/.test(one) && !one.startsWith('@') && !/^\[\[\.\.\..+\]\]$/.test(one));
+  const dynamic = (one) => /^\[.+\]$/.test(one);
+  const piece = (one) => (dynamic(one) ? '[^/\'"`\\s]+' : escapeRegExp(one));
+  const slash = '(?:/|\\\\/)';
+  // 경로 전체는 어디에 들어 있든, 끝쪽 마디만이면 앞이 다른 마디가 아닐 때만(`'/credits'` 는 들고 `/me/matching/history` 의 `/history` 는 안 든다)
+  const tails = segments.flatMap((one, at) => {
+    if (dynamic(one)) return [];
+    const tail = `${slash}${segments.slice(at).map(piece).join(slash)}`;
+    return [at === 0 ? tail : `(?<![\\w.%-]|\\\\)${tail}`];
+  });
+  return tails.length === 0 ? null : new RegExp(`(?:${tails.join('|')})(?![\\w-])`);
 }
 
 /** 시험 하나가 켜는 차선 — 흐름 검사는 `flow`, 차선 스크립트가 부르는 spec 은 그 차선, 로그인 무늬인데 부르는 차선이 없으면 `null`(전부), 그 밖 spec 은 `anon` */
@@ -775,8 +825,8 @@ export function lanesOfTest(test) {
  * 시험 · 도우미(`looseAddressesOf`)를 든다. 둘 다 비어야 「닿는 시험이 정말 없다」(위 「닿는 시험이 0 인 입구」)
  *
  * @param {string} entry
- * @param {{ addresses: Record<string, string[]>, loose: Record<string, { prefix: string, pattern: RegExp }[]> }} [map] 시험마다
- *   글자 그대로의 주소(`addressesOf`)와 넓은 무늬(`looseAddressesOf`) — 빠지면 저장소에서 읽는다(시험이 넣어 가른다)
+ * @param {{ addresses: Record<string, string[]>, loose: Record<string, { prefix: string, pattern: RegExp }[]>, texts?: Record<string, string> }} [map] 시험마다
+ *   글자 그대로의 주소(`addressesOf`) · 넓은 무늬(`looseAddressesOf`) · 경로를 찾을 코드(`mentionOf`) — 빠지면 저장소에서 읽는다(시험이 넣어 가른다)
  * @returns {{ tests: string[], unsure: string[] }}
  */
 export function testsOfEntry(entry, map = testMap()) {
@@ -789,11 +839,28 @@ export function testsOfEntry(entry, map = testMap()) {
   const { samples, base, subtree } = samplesOf(entry);
   const below = base === '/' ? '/' : `${base}/`;
   const reaches = ({ prefix, pattern }) => samples.some((sample) => pattern.test(sample)) || (subtree && prefix.startsWith(below));
-  const unsure = Object.entries(map.loose)
-    .filter(([, list]) => list.some(reaches))
-    .map(([file]) => file);
+  const mention = mentionOf(entry);
+  const unsure = [
+    ...new Set([
+      ...Object.entries(map.loose)
+        .filter(([, list]) => list.some(reaches))
+        .map(([file]) => file),
+      ...Object.entries(map.texts ?? {})
+        .filter(([, text]) => mention !== null && mention.test(text))
+        .map(([file]) => file),
+    ]),
+  ].sort();
   return { tests: [], unsure };
 }
+
+/**
+ * 입구를 들이는 파일 — 다른 page 가 이 입구를 다시 내보내면(`export { default } from …`) 그 page 의 시험이 이 입구를 그린다. 시험 없는
+ * 입구라도 들이는 파일(시험 파일 빼고)이 있으면 놓쳤을 수 있다
+ *
+ * @returns {string[]}
+ */
+const importersOfEntry = (entry, sourceOf = sourceFromDisk, changed = [entry]) =>
+  [...(importerGraph(sourceOf, changed).get(entry) ?? [])].filter((file) => !isTestFile(file)).sort();
 
 /**
  * 저장소의 입구 가운데 닿는 시험이 정말 없는 것 — 간극 대장의 시험 공백 줄(`UNTESTED_GAP`)이 이 목록을 그대로 든다(시험이 견준다)
@@ -805,7 +872,7 @@ export const untestedEntries = () =>
     .filter((file) => routeOf(file) !== null)
     .filter((file) => {
       const { tests, unsure } = testsOfEntry(file);
-      return tests.length === 0 && unsure.length === 0;
+      return tests.length === 0 && unsure.length === 0 && importersOfEntry(file).length === 0;
     })
     .sort();
 
@@ -2030,10 +2097,12 @@ function decideBeta(changed, stage, sourceOf) {
   /** 닿는 시험이 정말 없는 입구 — 그 파일은 `core` 로 세고 까닭에 시험 공백으로 적는다(위 「닿는 시험이 0 인 입구」) */
   const untested = new Set();
   /** 입구 하나의 시험 — 글자 그대로 닿는 시험이 0 이고 탐색이 놓쳤을 수 있으면 `null`(전부로 간다) */
+  /** 시험 없는 입구를 요청하거나 들일 수 있는 파일 — 넓은 무늬 · 경로 글자로 닿는 시험 · 도우미와 그 입구를 들이는 파일 */
+  const maybe = (entry) => [...testsOfEntry(entry).unsure, ...importersOfEntry(entry, sourceOf, changed)];
   const testsOf = (entry) => {
     const { tests, unsure } = testsOfEntry(entry);
     if (tests.length > 0) return tests;
-    if (unsure.length > 0) return null;
+    if (unsure.length > 0 || importersOfEntry(entry, sourceOf, changed).length > 0) return null;
     untested.add(entry);
     return [];
   };
@@ -2049,8 +2118,7 @@ function decideBeta(changed, stage, sourceOf) {
       if (routeOf(file)) {
         tests = testsOf(file);
         if (tests === null) {
-          const { unsure } = testsOfEntry(file);
-          return full('닿는 시험 모름', `${stage} — \`${file}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(unsure)} 이 요청할 수도 있다`);
+          return full('닿는 시험 모름', `${stage} — \`${file}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(file))} 이 요청하거나 들일 수 있다`);
         }
       } else {
         // 입구가 아닌 서버 파일 · 화면 컴포넌트 — 그것을 쓰는 입구의 주소로 간다(위 「입구가 아닌 서버 파일은 그것을 쓰는 입구의 주소로」 ·
@@ -2067,8 +2135,7 @@ function decideBeta(changed, stage, sourceOf) {
         for (const entry of reach.entries) {
           const found = testsOf(entry);
           if (found === null) {
-            const { unsure } = testsOfEntry(entry);
-            return full('닿는 시험 모름', `${stage} — \`${file}\` 을 쓰는 \`${entry}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(unsure)} 이 요청할 수도 있다`);
+            return full('닿는 시험 모름', `${stage} — \`${file}\` 을 쓰는 \`${entry}\` 의 주소를 글자 그대로 요청하는 시험은 없지만 ${cite(maybe(entry))} 이 요청하거나 들일 수 있다`);
           }
           for (const test of found) reached.add(test);
         }

@@ -53,6 +53,7 @@ import {
   TEST_RUNNERS,
   UNTESTED_GAP,
   looseAddressesOf,
+  mentionOf,
   testRunnerChangeOf,
   testsOfEntry,
   untestedEntries,
@@ -524,9 +525,9 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
       .filter((file) => !isTestFile(file));
     const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
     for (const plan of noAddress) expect(plan.reason).toMatch(/가 부른다$|관문이 부른다$|입구를 못 찾는다$/);
-    // 서버 파일은 옛 규칙의 65 개에서 42 개로 줄었고(ADR 0178), 화면 컴포넌트 19 개가 layout · 인증 · Next 공용 경계를 지나 더해졌다
-    // (2026-10-22 에 잰 합 66) — 다시 넓어지면 이 수를 보고 까닭을 적는다
-    expect(noAddress.length).toBeLessThanOrEqual(66);
+    // 서버 파일은 옛 규칙의 65 개에서 42 개로 줄었고(ADR 0178), 화면 컴포넌트 21 개(`.tsx` 19 · hook 같은 `.ts` 둘)가 layout · 인증 ·
+    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다
+    expect(noAddress.length).toBeLessThanOrEqual(68);
   });
 });
 
@@ -565,6 +566,24 @@ describe('CI 계획 — 입구가 아닌 화면 컴포넌트는 그것을 쓰는
     const plan = planFor({ files: [orphan], stage: '운영 베타', sourceOf: (one) => (one === orphan ? 'export const C = () => null;\n' : diskOf(one)) });
     expect(plan.cause).toBe('주소 없음');
     expect(plan.reason).toContain('입구를 못 찾는다');
+  });
+
+  it('React 를 들이거나 \'use client\' 인 .ts(hook 같은 것)도 화면 컴포넌트다 — 순수 로직 .ts 는 core 그대로 (운영자 2026-10-22)', () => {
+    for (const hook of ['app/me/chat/[matchId]/use-outbox.ts', 'app/me/matching/use-deck.ts', 'app/ui/leave-guard.ts']) {
+      const plan = beta([hook]);
+      expect(plan.tier, hook).toBe('narrow');
+      expect(plan.authedLanes.length, hook).toBeGreaterThan(0);
+    }
+    expect(beta(['app/me/(shelf)/readings/book.ts']).lanes).toEqual(CORE_ONLY);
+    // 주석 속 「'use client'」는 지시가 아니다 — 첫 칸에 선 문자열만 센다
+    expect(beta(['app/me/matching/history-href.ts']).lanes).toEqual(CORE_ONLY);
+    const client = 'app/me/people/use-thing.ts';
+    const page = 'app/me/people/page.tsx';
+    const sourceOf = (one: string) =>
+      one === client ? "'use client';\nexport const useThing = () => 1;\n" : one === page ? `import { useThing } from './use-thing';\n${diskOf(page)}` : diskOf(one);
+    expect(planFor({ files: [client], stage: '운영 베타', sourceOf }).lanes).toEqual(beta([page]).lanes);
+    const hook = (one: string) => (one === client ? "import { useState } from 'react';\nexport const useThing = () => useState(1);\n" : sourceOf(one));
+    expect(planFor({ files: [client], stage: '운영 베타', sourceOf: hook }).lanes).toEqual(beta([page]).lanes);
   });
 
   it('실측 — 저장소의 화면 컴포넌트는 core 하나로 떨어지지 않는다(쓰는 입구에 닿는 시험이 정말 없을 때 말고는)', () => {
@@ -622,6 +641,33 @@ describe('CI 계획 — 닿는 시험이 0 인 입구는 정말 없을 때만 co
     expect(testsOfEntry('app/ops/(desk)/orders/[id]/page.tsx', map({}, { 'scripts/check-x.mjs': 'await fetch(`${base}/ops/orders/${id}`);' })).unsure).toEqual([
       'scripts/check-x.mjs',
     ]);
+  });
+
+  it('경로가 글자로 들어 있기만 해도 놓쳤을 수 있다 — glob · 정규식 문자열 · 경로 상수 · 이어 붙임. 앞이 다른 마디면 아니다 (두 번째 검토)', () => {
+    const page = 'app/me/credits/page.tsx';
+    const judge = (source: string, imported = '') =>
+      testsOfEntry(page, { addresses: { 'e2e/x.spec.ts': addressesOf(source) }, loose: { 'e2e/x.spec.ts': looseAddressesOf(source) }, texts: { 'e2e/x.spec.ts': `${source}\n${imported}` } });
+    const unsure = (source: string, imported = '') => judge(source, imported).unsure.length > 0;
+    expect(unsure("await page.waitForURL('**/me/credits');")).toBe(true);
+    expect(unsure("const base = '/me';\nawait page.goto(base + '/credits');")).toBe(true);
+    expect(unsure('await expect(page).toHaveURL(/credits$/);')).toBe(true);
+    expect(unsure("import { CREDITS } from '../src/lib/x';\nawait page.goto(CREDITS);", "export const CREDITS = '/me/credits';")).toBe(true);
+    // 정규식 문자열의 끝 `$` 는 떼고 읽어 글자 그대로 닿는다
+    expect(judge("await expect(page).toHaveURL(new RegExp('/me/credits$'));").tests).toEqual(['e2e/x.spec.ts']);
+    // 다른 마디 뒤의 끝 마디 · 주석 속 경로는 아니다
+    expect(testsOfEntry('app/me/credits/history/page.tsx', { addresses: {}, loose: {}, texts: { 'e2e/m.spec.ts': "await page.goto('/me/matching/history');" } }).unsure).toEqual([]);
+    expect(mentionOf('app/page.tsx')).toBeNull();
+    expect(mentionOf('app/me/chat/[matchId]/page.tsx')!.test('`/me/chat/${id}`')).toBe(true);
+  });
+
+  it('시험 없는 입구를 다른 page 가 다시 내보내면 그 page 의 시험이 그것을 그린다 — 놓쳤을 수 있어 전부 (두 번째 검토)', () => {
+    const lonely = 'app/me/credits/page.tsx';
+    const page = 'app/me/people/page.tsx';
+    const sourceOf = (one: string) => (one === page ? `export { default } from '../credits/page';\n` : diskOf(one));
+    const plan = planFor({ files: [lonely], stage: '운영 베타', sourceOf });
+    expect(plan.lanes).toEqual(FULL);
+    expect(plan.cause).toBe('닿는 시험 모름');
+    expect(plan.reason).toContain(page);
   });
 
   it('탐색이 놓쳤을 수 있으면 전부다 — 서가 아래 새 page 는 글자 그대로 요청하는 시험이 없어도 정규식 `\\/me\\/readings\\/[0-9a-f-]+$` 이 요청할 수 있다', () => {
@@ -686,12 +732,18 @@ describe('CI 계획 — CI 자체 · 시험 실행 의존성은 전부다', () =
     expect(planOf('package.json', bump(PKG, (json) => (json.scripts['db:start'] += ',realtime'))).cause).toBe('시험 실행 의존성');
     const app = planOf('package.json', bump(PKG, (json) => (json.dependencies.next = '99.0.0')));
     expect(app.lanes).toEqual({ ...CORE_ONLY, audit: true });
-    expect(planOf('package.json', bump(PKG, (json) => (json.scripts.dev += ' --turbo'))).lanes).toEqual({ ...CORE_ONLY, audit: true });
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts.start += ' --keepAliveTimeout 1'))).lanes).toEqual({ ...CORE_ONLY, audit: true });
+    // e2e 가 앱을 띄우는 `dev` 도 차선 스크립트다(두 번째 검토의 반례)
+    expect(planOf('package.json', bump(PKG, (json) => (json.scripts.dev = 'next dev --broken-flag'))).cause).toBe('시험 실행 의존성');
   });
 
   it('잠금 파일 — 설치된 실행기(node_modules/<이름> 으로 끝나는 열쇠)의 판 · 출처 · 지문이 바뀌면 전부, 다른 패키지만이면 core 와 audit', () => {
     const installed = Object.keys(JSON.parse(LOCK).packages).filter((key) => /(?:^|\/)node_modules\/(?:@playwright\/test|playwright|playwright-core|supabase)$/.test(key));
     expect(installed.length).toBeGreaterThanOrEqual(3);
+    // 가짜 푸시 서비스가 직접 들이는 간접 의존성 — package.json 에 없어도 잠금 파일의 판이 바뀌면 전부다(두 번째 검토의 반례)
+    const ece = Object.keys(JSON.parse(LOCK).packages).filter((key) => /(?:^|\/)node_modules\/http_ece$/.test(key));
+    expect(ece.length).toBeGreaterThan(0);
+    for (const key of ece) expect(planOf('package-lock.json', bump(LOCK, (json) => (json.packages[key].version = '9.9.9'))).cause, key).toBe('시험 실행 의존성');
     for (const key of installed) {
       const plan = planOf('package-lock.json', bump(LOCK, (json) => (json.packages[key].version = '9.9.9')));
       expect(plan.cause, key).toBe('시험 실행 의존성');
@@ -724,25 +776,36 @@ describe('CI 계획 — CI 자체 · 시험 실행 의존성은 전부다', () =
       .filter((line) => /^\s*(?:- )?run: /.test(line))
       .flatMap((line) => [...line.matchAll(/npm run ([\w:-]+(?:\$\{\{[^}]*\}\})?)/g)].map((one) => one[1].replace(/\$\{\{[^}]*\}\}/, 'x')))
       .filter((name) => !coreRuns.has(name));
+    // e2e 가 앱을 띄우는 명령(`playwright.config.ts` 의 `webServer.command`)도 차선이 부르는 스크립트다
+    const config = readFileSync(resolve(ROOT, 'playwright.config.ts'), 'utf8');
+    const served = [.../webServer:\s*\{\s*command:\s*`([^`]*)`/.exec(config)![1].matchAll(/npm run ([\w:-]+)/g)].map((one) => one[1]);
+    expect(served).toEqual(['dev']);
     expect(runs.length).toBeGreaterThan(3);
-    expect(runs.filter((name) => !LANE_SCRIPTS.test(name))).toEqual([]);
+    expect([...runs, ...served].filter((name) => !LANE_SCRIPTS.test(name))).toEqual([]);
     const scripts: Record<string, string> = JSON.parse(PKG).scripts;
-    const devDependencies: Record<string, string> = JSON.parse(PKG).devDependencies;
     const binaries = new Set(
       Object.entries(scripts)
-        .filter(([name]) => LANE_SCRIPTS.test(name))
+        .filter(([name]) => LANE_SCRIPTS.test(name) && name !== 'dev')
         .flatMap(([, command]) => command.split('&&').map((one) => one.trim().replace(/^node scripts\/heavy\.mjs /, '').split(' ')[0])),
     );
     expect([...binaries].sort()).toEqual(['node', 'playwright', 'supabase']);
     expect(TEST_RUNNERS).toContain('@playwright/test');
     expect(TEST_RUNNERS).toContain('supabase');
-    // 시험(e2e · 흐름 검사 · Playwright 설정)만 들이는 개발 의존성 — 앱(app · src · proxy)이 안 들이는 것
+    // `dev` 는 앱 자신(`next dev`)이다 — Next 의 판은 일반 의존성이라 core 와 audit 이고, 스크립트 줄이 바뀌면 전부다
+    expect(scripts.dev.split(' ')[0]).toBe('next');
+    // 시험(e2e · 흐름 검사 · Playwright 설정)과 그 도우미(`fake-push-service.mjs` 같은 시험 도구)만 들이는 패키지 — 앱(app · src · proxy)이
+    // 안 들이는 것. package.json 에 없는 간접 의존성(`http_ece`)도 든다
     const packageOf = (name: string) => (name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0]);
     const imported = (files: string[]) =>
       new Set(files.flatMap((file) => importsOf(readFileSync(file, 'utf8'))).filter((name) => !/^(?:\.|@\/|node:)/.test(name)).map(packageOf));
-    const testOnly = imported([...codeUnder(resolve(ROOT, 'e2e')), resolve(ROOT, 'playwright.config.ts'), ...codeUnder(resolve(ROOT, 'scripts')).filter((file) => /check-[^/]+\.mjs$/.test(file))]);
+    const testOnly = imported([
+      ...codeUnder(resolve(ROOT, 'e2e')),
+      resolve(ROOT, 'playwright.config.ts'),
+      ...codeUnder(resolve(ROOT, 'scripts')).filter((file) => !isTestFile(file) && isSurface(relative(ROOT, file))),
+    ]);
+    expect(testOnly).toContain('http_ece');
     const app = imported([...codeUnder(resolve(ROOT, 'app')), ...codeUnder(resolve(ROOT, 'src')), resolve(ROOT, 'proxy.ts')]);
-    expect([...testOnly].filter((name) => !app.has(name) && name in devDependencies && !TEST_RUNNERS.includes(name))).toEqual([]);
+    expect([...testOnly].filter((name) => !app.has(name) && !TEST_RUNNERS.includes(name))).toEqual([]);
   });
 });
 
