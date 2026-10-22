@@ -11,6 +11,7 @@ import {
 } from '@/src/lib/reading';
 import { checkContinuation, continuedMarkdownOf, firstSectionItemNumbersOf } from '@/src/lib/reading/continuation';
 
+import { recordDbFailure } from '../../db-error';
 import { keyedClient } from '../../keyed-client';
 import { countTasteStep } from '../../taste/keyed-taste';
 import type { StoredInput } from '@/src/lib/input/stored';
@@ -35,6 +36,10 @@ import { rpcArgs } from '@/src/lib/db';
  *
  * 이미 누가 집었거나 시도가 끝난 것이다. **그때 실패로 닫으면 안 된다** — 방금 성공으로
  * 닫힌 것을 뒤따라 실패로 덮을 수 있다.
+ *
+ * **건너뜀의 까닭(`why`)은 부르는 쪽이 안 읽는다** — webhook 은 처리 표시만 하고 복구기는 세지 않는다. 그래서 집기 ·
+ * 되찾기의 DB 실패는 그 자리에서 기록에 남긴다(`recordDbFailure`, 자리 이름과 작업 식별자만 — 출생 정보는 안 싣는다).
+ * 실패한 문은 일감의 상태를 안 바꿨으므로 복구기가 다음 바퀴에 그 일감을 다시 본다.
  */
 type CollectOutcome =
   | { done: 'saved' }
@@ -72,7 +77,10 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
 
   const claim = async (): Promise<ClaimedJob | undefined> => {
     const { data, error } = await keyed.rpc('claim_reading_job', { p_response_id: responseId });
-    if (error) throw new Error(error.message);
+    if (error) {
+      recordDbFailure(error, `collect: claim_reading_job ${responseId}`);
+      throw new Error(error.message);
+    }
     return ((data ?? []) as ClaimedJob[])[0];
   };
 
@@ -99,8 +107,11 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
           p_run_id: runId,
           p_response_id: responseId,
         });
-        /* 되찾기가 터진 것은 「되찾을 것이 없다」가 아니다 — 집기와 같이 까닭을 싣고 건너뛴다(ADR 0078) */
-        if (adoptError) throw new Error(adoptError.message);
+        /* 되찾기가 터진 것은 「되찾을 것이 없다」가 아니다 — 집기와 같이 기록에 남기고 건너뛴다(ADR 0078) */
+        if (adoptError) {
+          recordDbFailure(adoptError, `collect: adopt_reading_job ${runId} ${responseId}`);
+          throw new Error(adoptError.message);
+        }
         if (adopted === true) job = await claim();
       }
     }

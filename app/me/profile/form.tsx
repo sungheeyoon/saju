@@ -135,7 +135,11 @@ export function ProfileForm({
     startSaving(async () => {
       /* 확인이 아직이면 저장이 먼저 묻는다 — 확인이 끝나야 저장한다 */
       if (nicknameChanged && answer === null) {
-        const asked = await actionAnswer(checkNickname(profile.nickname));
+        /* 부름이 던져도 아래 저장과 같은 한 문장이다 — 「저장하지 못했어요. 처리하지 못했어요.」로 겹치지 않게 */
+        const asked = await actionAnswer(checkNickname(profile.nickname), () => ({
+          ok: false as const,
+          message: FEEDBACK_UNEXPECTED_NOTE,
+        }));
         if (!asked.ok) {
           setFailure(`저장하지 못했어요. ${asked.message}`);
           return;
