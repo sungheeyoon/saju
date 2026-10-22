@@ -59,7 +59,7 @@ Safari 는 SVG 파비콘을 안 읽고 `/favicon.ico` 는 404 였다. ICO · PNG
   약관 · 처리방침 다음 판의 이름은 G-25 가 든다.
 - 기능 이름으로서의 「만세력」 · 「만세력 엔진」.
 - 도메인의 나머지 걸음(다시 배포 · Supabase Auth URL · 구글 동의 화면 · Vault · webhook 둘 · 옛 주소 넘김 · 배포 문서) —
-  `docs/ops/runbook/domain.md` 의 2~9 다. 1 만 밟았다.
+  `docs/ops/runbook/domain.md` 의 2~9 다. 1 만 밟았다(이 ADR 을 쓴 날). 지금 어디까지 왔는지는 그 문서 「확인 기록」만 적는다.
 
 ## 치르는 값
 

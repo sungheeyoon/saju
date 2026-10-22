@@ -36,7 +36,7 @@
    select vault.create_secret('<Vercel 의 PUSH_DISPATCH_SECRET 과 같은 값>', 'push_dispatch_secret');
    ```
 
-   `<운영 주소>` 는 `docs/ops/runbook/domain.md` 맨 위의 그 한 줄이다(여기 적지 않는다). 도메인을 옮기면 이 값도 고친다.
+   `<운영 주소>` 는 `docs/ops/runbook/domain.md` 맨 위의 그 한 줄이다(여기 적지 않는다). 도메인을 옮기면 이 값도 고친다(`docs/ops/runbook/domain.md` 「확인 기록」의 10).
    **`push_extra_hosts` 는 넣지 않는다** — 로컬의 가짜 푸시 서비스를 여는 시험용 값이다. 없어야 알려진 푸시 서비스 넷(FCM · Mozilla ·
    WNS · Apple)의 구독만 받는다(ADR 0156). Vercel 의 `WEB_PUSH_EXTRA_HOSTS` 도 같다.
 4. **Realtime 설정** — 대시보드 Project Settings → Realtime 에서 「Allow public access」를 끈다. 계정 채널(ADR 0155)은 비공개 채널만
