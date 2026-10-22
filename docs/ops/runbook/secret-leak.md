@@ -48,6 +48,7 @@
 | Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
 | Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | `docs/ops/runbook/ai.md` 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
 | Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
+| Vault `ops_heartbeat_url` | **주소 자체가 열쇠다** — 가진 사람은 「DB 가 살아 있다」를 꾸며 바깥 감시를 속인다. 바깥 감시 서비스(G-118)에서 그 heartbeat 의 신호 주소를 새로 받는다 | Vault(재배포 없음) — `vault.update_secret` | 신호가 끊겨 바깥 감시가 「down」을 알린다(헛 알림) | `docs/ops/runbook/jobs.md` 「바깥 감시」의 확인. 서비스에서 옛 주소를 지우거나 그 heartbeat 를 새로 만든다 |
 | 구글 로그인 client secret | 코드에 없다 — Supabase Auth 가 든다. Google Cloud Console → Credentials → 그 OAuth client 에서 secret 을 더한다 | Supabase 대시보드 Authentication → Providers → Google(재배포 없음). **`supabase config push` 로 넣지 않는다**(`docs/ops/runbook/access.md` 맨 위 경고) | 구글 로그인 전부 | 새 창에서 로그인이 되면 Google 에서 옛 secret 을 끈다 |
 
 - **운영자 자격**(Supabase access token · DB 비밀번호 · Vercel · GitHub 토큰)은 코드에 없다. 각 대시보드에서
