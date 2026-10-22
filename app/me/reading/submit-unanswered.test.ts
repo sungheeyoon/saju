@@ -70,6 +70,8 @@ type Db = {
     responseId: string | null;
     prepared: Record<string, unknown> | null;
   };
+  /** 복구기의 기한(`reading_job_deadline()`, 8분)이 지났는가 — 시험이 시계를 넘긴다 */
+  overdue: boolean;
 };
 
 let db: Db;
@@ -77,6 +79,7 @@ let db: Db;
 const freshDb = (): Db => ({
   run: { status: 'running', failureCode: null, usage: null },
   job: { status: 'frozen', responseId: null, prepared: null },
+  overdue: false,
 });
 
 const keyedDoor = async (name: string, args: Record<string, unknown> = {}) => {
@@ -135,7 +138,7 @@ const keyedDoor = async (name: string, args: Record<string, unknown> = {}) => {
       return { data: 'reading-1', error: null };
     case 'open_reading_jobs':
       return {
-        data: running ? [{ run_id: 'run-1', response_id: db.job.responseId, overdue: false, failure_code: 'model-timeout' }] : [],
+        data: running ? [{ run_id: 'run-1', response_id: db.job.responseId, overdue: db.overdue, failure_code: 'model-timeout' }] : [],
         error: null,
       };
     default:
@@ -147,10 +150,16 @@ const keyedDoor = async (name: string, args: Record<string, unknown> = {}) => {
 // OpenAI 의 HTTP — 제출은 받아 응답을 세우고(토큰이 나간다), 끊는 방식은 시험이 고른다
 // ---------------------------------------------------------------------------
 
-type Link = 'answers' | 'drops' | 'hangs';
+/**
+ * `answers` 받고 답한다 · `drops` 받아 응답을 세운 뒤 끊는다 · `hangs` 받아 세우고 머리를 안 보낸다 ·
+ * `unreached` 받지도 못하고 끊긴다 · `rejects` 상태 코드로 거절한다(응답을 안 세운다)
+ */
+type Link = 'answers' | 'drops' | 'hangs' | 'unreached' | 'rejects';
 let link: Link;
 /** provider 쪽에 선 응답 — 하나하나가 토큰이 나가는 모델 실행이다 */
 let created: { id: string; headers: Headers }[];
+/** 망에 나간 제출 — 응답이 섰든 안 섰든 */
+let sent: number;
 
 const sse = (id: string) =>
   new Response(
@@ -184,6 +193,9 @@ const fakeOpenAi = async (input: string | URL | Request, init?: RequestInit): Pr
   const method = init?.method ?? 'GET';
 
   if (method === 'POST' && url.endsWith('/responses')) {
+    sent += 1;
+    if (link === 'unreached') throw new TypeError('fetch failed');
+    if (link === 'rejects') return Response.json({ error: { message: 'server error' } }, { status: 500 });
     const id = `resp_${created.length + 1}`;
     created.push({ id, headers: new Headers(init?.headers) });
     if (link === 'answers') return sse(id);
@@ -202,7 +214,7 @@ const fakeOpenAi = async (input: string | URL | Request, init?: RequestInit): Pr
 
 /** `after` 에 넘긴 일이 망에 닿을 때까지 — 타이머를 안 쓰고 이벤트 고리만 돌린다 */
 const untilSubmitted = async (count: number) => {
-  for (let turn = 0; turn < 200 && created.length < count; turn += 1) {
+  for (let turn = 0; turn < 200 && sent < count; turn += 1) {
     await new Promise((resolve) => setImmediate(resolve));
   }
 };
@@ -220,6 +232,7 @@ let logged: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   db = freshDb();
   created = [];
+  sent = 0;
   pending.length = 0;
   rpc.mockReset().mockImplementation(async (name: string) =>
     name === 'start_reading_run' ? { data: [{ run_id: 'run-1' }], error: null } : { data: null, error: null },
@@ -261,48 +274,76 @@ describe('떠나보냈는데 답을 못 받은 제출', () => {
   });
 
   /**
-   * **재시도 0 — 끊긴 제출은 한 번만 나간다.** provider 쪽 응답은 하나다. 다만 그 하나는 여전히 버려진다 — 우리 쪽 시도는
-   * `model-submit-failed` 로 닫히고 쓴 토큰은 `null` 이다(ADR 0039 의 지출 기록에 안 남는다). webhook 은 되찾기가 거절당해
-   * (시도가 이미 닫힘) 건너뛰고, 복구기는 집을 일감이 없다.
+   * **재시도 0 — 끊긴 제출은 한 번만 나간다.** provider 쪽 응답은 하나이고, 시도는 닫지 않고 `submitting` 으로 남는다 —
+   * 그 응답의 webhook 이 이름표로 되찾아 저장한다.
    *
-   * SDK 기본값(재시도 2)일 때는 같은 갈래에서 응답이 셋 섰고 셋 다 버려졌다(이 파일의 첫 커밋).
+   * 이 파일의 첫 커밋(SDK 기본값 재시도 2)에서는 같은 갈래에 응답이 셋 섰고, 시도가 `model-submit-failed` · 쓴 토큰
+   * `null` 로 닫혀 셋 다 버려졌다. 둘째 커밋(재시도 0 만)에서는 응답 하나가 같은 까닭으로 버려졌다.
    */
-  it('망이 끊기면 제출은 한 번만 나가고, 그 응답은 버려진다', async () => {
+  it('망이 끊기면 제출은 한 번만 나가고, 시도를 열어 두어 webhook 이 되찾아 저장한다', async () => {
     link = 'drops';
 
     await beginReading({ kind: 'self' });
     await settle();
 
     expect(created.map(({ id }) => id)).toEqual(['resp_1']);
-    expect(db.run).toEqual({ status: 'failed', failureCode: 'model-submit-failed', usage: null });
+    expect(db.run.status).toBe('running');
+    expect(db.job).toMatchObject({ status: 'submitting', responseId: null });
 
-    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'skipped', why: '집을 일감이 없습니다' });
-    expect(db.run.status).toBe('failed');
-    expect(await (await recoveryTick()).json()).toEqual({ open: 0, collected: 0, closed: 0 });
+    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'saved' });
+    expect(db.run.status).toBe('succeeded');
   });
 
   /**
-   * **시간 상한 30초 — 머리가 안 오면 30초에 끊고 시도를 닫는다.** 사람은 8분(복구기의 기한) 대신 30초 만에 실패를 본다.
-   * 대가: provider 가 받았던 제출이면 그 응답은 버려진다 — 닫힌 시도는 되찾기가 거절한다.
+   * **시간 상한 30초 — 머리가 안 오면 30초에 끊고, 시도는 열어 둔다.** 함수는 30초에 끝나고, 늦게 선 응답은 webhook 이 되찾는다.
    *
-   * SDK 기본값(10분)일 때는 누름의 `after` 가 사는 300초(`maxDuration`) 안에 포기하지 않았고, 함수가 끊긴 뒤 시도가
-   * `submitting` 으로 남아 webhook 이 이름표로 되찾아 저장했다(이 파일의 첫 커밋).
+   * 첫 커밋(10분)에서는 누름의 `after` 가 사는 300초(`maxDuration`) 안에 포기하지 않았다 — 함수가 끊긴 뒤에 같은 길로 되찾았다.
+   * 둘째 커밋(30초에 닫음)에서는 늦게 온 응답이 버려졌다.
    */
-  it('머리가 안 오면 30초에 끊고 시도를 닫고, 늦게 온 응답은 버려진다', async () => {
+  it('머리가 안 오면 30초에 끊고, 시도를 열어 두어 늦게 온 응답을 webhook 이 되찾는다', async () => {
     link = 'hangs';
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
     await beginReading({ kind: 'self' });
     await untilSubmitted(1);
-    await vi.advanceTimersByTimeAsync(29_000);
-    expect(db.run.status).toBe('running');
-
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     await settle();
 
     expect(created).toHaveLength(1);
-    expect(db.run).toMatchObject({ status: 'failed', failureCode: 'model-submit-failed' });
+    expect(db.run.status).toBe('running');
+    expect(db.job).toMatchObject({ status: 'submitting', responseId: null });
 
-    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'skipped', why: '집을 일감이 없습니다' });
+    await expect(collectReadingResult('resp_1')).resolves.toEqual({ done: 'saved' });
+  });
+
+  /**
+   * **안 닿은 제출은 복구기가 기한에 닫는다.** 열어 둔 대가다 — 사람은 바로가 아니라 기한(`reading_job_deadline()`, 8분)에
+   * `model-timeout` 실패를 본다. 그 전의 바퀴는 이름표가 없어 넘긴다.
+   */
+  it('provider 에 안 닿았으면 아무것도 안 오고, 복구기가 기한에 시도를 닫는다', async () => {
+    link = 'unreached';
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(sent).toBe(1);
+    expect(created).toEqual([]);
+    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 0 });
+    expect(db.run.status).toBe('running');
+
+    db.overdue = true;
+    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 1 });
+    expect(db.run).toMatchObject({ status: 'failed', failureCode: 'model-timeout' });
+  });
+
+  /** **상태 코드로 거절당한 제출은 바로 닫는다** — provider 가 답했고 응답을 안 세웠다. 다시 보내지도 않는다 */
+  it('상태 코드로 거절당하면 한 번만 보내고 바로 닫는다', async () => {
+    link = 'rejects';
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(sent).toBe(1);
+    expect(db.run).toMatchObject({ status: 'failed', failureCode: 'model-submit-failed' });
   });
 });

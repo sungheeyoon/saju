@@ -20,7 +20,7 @@ import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import { readingInputOf } from './generator';
 import { failReadingJob } from './fail-job';
 import { GENERATION } from './generation';
-import { submitBackgroundReading } from './model';
+import { SUBMIT_UNANSWERED, submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
 import { claimedTaste } from '../../taste/taste-carry';
 import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../../taste/keyed-taste-claims';
@@ -254,6 +254,15 @@ async function submitFrozen(
     summaryLast: writesSummaryLast(kind),
     continuation: continued,
   });
+  /**
+   * **답을 못 받은 제출은 닫지 않는다.** provider 가 받았으면 응답이 돌고 있고, 그 webhook 이 이름표(`metadata.reading_run_id`)로
+   * 이 시도를 되찾는다 — 되찾기는 `submitting` 인 시도만 받으므로 여기서 닫으면 그 결과는 버려진다(`submit-unanswered.test.ts`).
+   * 안 닿았으면 아무것도 안 오고, 복구기가 기한(`reading_job_deadline()`)에 `model-timeout` 으로 닫는다. 까닭은 기록에만 남긴다.
+   */
+  if (!submitted.ok && submitted.code === SUBMIT_UNANSWERED) {
+    console.error('submit: 답 없음 — 시도를 열어 둔다', job.run_id, submitted.detail);
+    return;
+  }
   if (!submitted.ok) {
     await close(submitted.code, submitted.detail);
     return;

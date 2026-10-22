@@ -341,9 +341,17 @@ export async function submitBackgroundReading(
       }
     }
   } catch (failure) {
-    return { ok: false, code: 'model-submit-failed', detail: messageOf(failure) };
+    /*
+      **답이 없었던 실패는 따로 부른다** — 망이 끊김 · 머리를 기다리다 끊음(`APIConnectionError`, 시간 초과는 그 아래 갈래).
+      provider 가 받았는지 우리는 모른다. 상태 코드로 거절당한 것(`APIError` 의 나머지)은 받지 않은 것이 분명하다.
+    */
+    const unanswered = failure instanceof OpenAI.APIConnectionError;
+    return { ok: false, code: unanswered ? SUBMIT_UNANSWERED : 'model-submit-failed', detail: messageOf(failure) };
   }
 }
+
+/** 제출이 답을 못 받았다 — provider 가 받았을 수 있다(`pipeline.ts` 가 시도를 닫지 않는다) */
+export const SUBMIT_UNANSWERED = 'model-submit-unanswered';
 
 /**
  * 남은 사건에서 **본문 조각만** 흘린다 — 끝나는 사건이 오면 멈춘다.
