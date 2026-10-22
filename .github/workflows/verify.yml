@@ -116,9 +116,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+        id: install
+      # **앞 검사가 붉어도 뒤 검사는 돈다** — `core` 의 주석이 까닭이다. 설치가 섰을 때만이다.
       - run: npx vitest run scripts/
       - run: npm run typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: npx eslint scripts/
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
 
   # ---------------------------------------------------------------------------
   # core — 단위 · 타입 · 린트 · 빌드. 정책만 바뀐 PR 밖에서는 늘 선다 (#161, ADR 0097)
@@ -141,13 +145,20 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+        id: install
+      # **앞 검사가 붉어도 뒤 검사는 돈다**(2026-10-22, ADR 0097 덧). 기본 `if` 는 `success()` 라 `npm test` 하나가 붉으면
+      # 타입 · 린트 · 빌드가 건너뛰어져, 열린 PR 들이 ADR 번호를 나눠 쥔 날 뒤 번호 PR 의 빌드가 한 번도 안 돌았다(#791 · #792 · #796).
+      # `!cancelled()` 로 앞 단계의 실패와 상관없이 돌리되 설치가 섰을 때만이다. 붉은 단계가 하나라도 있으면 job 은 그대로
+      # 실패이고 `gate` 도 그대로 선다 — `continue-on-error` 는 두지 않는다. 끊긴 실행은 이어 돌지 않는다.
       - run: npm test
       - run: npm run typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: npm run lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       # 코드가 화면 문구만 바뀐 PR 은 빌드를 건너뛴다 — #219 의 `icon.tsx` 같은 이름 · 모양 실패는 문구 한 줄로 안 생긴다(ADR 0178).
       # 계획의 `build` 가 `false` 일 때만 건너뛴다 — 값이 비면(계획 실패) 돈다. job 은 그대로 서고 `gate` 도 그대로다.
       - run: npm run build
-        if: needs.plan.outputs.build != 'false'
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && needs.plan.outputs.build != 'false' }}
 
   # ---------------------------------------------------------------------------
   # 익명 e2e — **살아 있는 Supabase 없이** 잰다
