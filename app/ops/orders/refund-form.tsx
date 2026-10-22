@@ -5,7 +5,7 @@ import { useId, useState } from 'react';
 
 import { isPenalizedRefund, refundBreakdown, won } from '@/src/lib/reading/bundle';
 
-import { actionAnswer, isUnreached, type ActionUnreached } from '../../ui/action-answer';
+import { actionAnswer, afterFailure, type ActionUnreached } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote } from '../../ui/done-note';
@@ -44,7 +44,8 @@ function Target({ orderNumber, owner }: { orderNumber: string; owner: Owner }) {
 /**
  * **환불 준비** — 걷을 회차 · 사유를 고르고 「환불 준비」를 누르면 확인창이 선다(G-110 ②, ADR 0184). 창을 여는 순간 대상 · 회차 ·
  * 금액 · 사유 · 요청 번호를 고정하고(`preparePlan`), 그 고정본을 그대로 낸다. DB 는 금액을 다시 셈해 다르면 거절하고, 같은 요청
- * 번호로 다시 오면 같은 확보를 돌려준다. 실패하면 고른 값과 요청 번호가 남아 같은 창을 다시 연다.
+ * 번호로 다시 오면 같은 확보를 돌려준다. 실패해도 창은 열린 채 실패 줄을 세우고 고른 값이 남는다 — 요청 번호는 답을 못 받았을
+ * 때만 남는다(ADR 0184 덧).
  */
 export function PrepareForm({
   orderId,
@@ -108,9 +109,15 @@ export function PrepareForm({
         setPlan(null);
       } else {
         setFailure(answer.message);
-        // 답을 못 받았으면 서버에서 섰는지 모른다 — 액션이 다시 그린 화면도 안 왔으므로 화면을 다시 읽어 실제 결과를 세운다(같은
-        // 요청 번호로 다시 내도 한 번만 적힌다). 고른 값 · 요청 번호는 어느 실패에도 남는다(ADR 0184)
-        if (isUnreached(answer)) router.refresh();
+        // 어느 실패든 확인창은 열어 두고 실패 줄을 창 안에 세운다 — 결정이다(운영자 답 2026-10-22, ADR 0184 덧).
+        // 답을 못 받았으면 서버에서 섰는지 모른다 — 고정본(요청 번호)을 지켜 같은 요청으로 다시 낸다(섰으면 같은 확보가 온다).
+        // 분명한 거절이면(금액이 바뀜 · 요청 번호가 다른 준비에 쓰임 …) 그 요청 번호로는 다시 내도 같은 거절이다 — 번호만 새로 받는다.
+        // 고른 회차 · 사유는 남는다. 액션은 거절이면 화면을 다시 그리지 않으므로 어느 실패든 여기서 다시 읽는다 — 창을 닫고 다시
+        // 열면 새로 읽은 금액으로 고정한다
+        if (afterFailure(answer) === 'discard') {
+          setPlan(Object.freeze({ ...plan, request: Object.freeze({ ...plan.request, requestId: crypto.randomUUID() }) }));
+        }
+        router.refresh();
       }
     });
   };
@@ -228,8 +235,9 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
         if (answer.done) setBooked(answer.done);
       } else {
         setFailure(answer.message);
-        // 답을 못 받았으면 화면을 다시 읽어 실제 결과를 세운다 — 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다
-        if (isUnreached(answer)) router.refresh();
+        // 어느 실패든 화면을 다시 읽는다 — 답을 못 받았으면 실제 결과를, 거절이면(준비가 이미 취소됨 · 다른 취소 번호로 적힘 …) 지금
+        // 확보를 세운다. 액션은 거절이면 다시 그리지 않는다. 같은 확보 · 취소 번호로 다시 내도 한 번만 적힌다(ADR 0184 덧)
+        router.refresh();
       }
     });
 
