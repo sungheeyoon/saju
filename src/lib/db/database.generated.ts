@@ -4156,6 +4156,25 @@ export type Database = {
           version: number
         }[]
       }
+      photo_bytes_moved: {
+        Args: {
+          p_object_key: string
+          p_position: number
+          p_user_id: string
+          p_version: number
+        }
+        Returns: boolean
+      }
+      photo_bytes_to_move: {
+        Args: { p_limit: number }
+        Returns: {
+          base64: string
+          content_type: string
+          position: number
+          user_id: string
+          version: number
+        }[]
+      }
       photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }
       photo_move_begin: { Args: { p_user_id: string }; Returns: string }
       photo_object_keys: {
