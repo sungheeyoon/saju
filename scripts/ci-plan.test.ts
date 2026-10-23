@@ -138,8 +138,51 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     expect(runsOf('core')).toEqual(['npm ci', ...CORE_STEPS]);
     expect(CORE_STEPS).toContain('npm run build');
     // 빌드는 계획의 `build` 가 `false` 일 때만 건너뛴다 — 값이 비면 돈다(문구만 바뀐 PR, ADR 0178)
-    expect(yml).toMatch(/^ {6}- run: npm run build\n {8}if: needs\.plan\.outputs\.build != 'false'$/m);
+    expect(yml).toMatch(
+      /^ {6}- run: npm run build\n {8}if: \$\{\{ !cancelled\(\) && steps\.install\.outcome == 'success' && needs\.plan\.outputs\.build != 'false' \}\}$/m,
+    );
     expect(runsOf('anon')).toEqual(['npm ci', 'npx playwright install --with-deps chromium', 'npm run test:e2e']);
+  });
+
+  /**
+   * **앞 검사가 붉어도 뒤 검사는 돈다**(2026-10-22, ADR 0097 덧). 기본 `if` 는 `success()` 라 `npm test` 가 붉으면 타입 · 린트 ·
+   * 빌드가 건너뛰어졌다 — ADR 번호를 나눠 쥔 뒤 번호 PR(#791 · #792 · #796)은 빌드가 한 번도 안 돌았다. 넓히기만 한다 —
+   * 붉은 단계를 삼키는 `continue-on-error` 는 없고, 첫 검사는 기본 조건 그대로이며, 설치가 섰을 때만 돈다.
+   */
+  it('core · policy 의 검사는 앞 검사가 붉어도 돌고, 붉음을 삼키지 않는다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    const stepsOf = (name: string) => {
+      const block = new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)\\n  [a-z]+:\\n`).exec(yml)?.[1] ?? '';
+      // 주석 줄은 뺀다 — 머리 주석이 `continue-on-error` 를 이름으로 말한다
+      const job = block
+        .split('\n')
+        .filter((line) => !/^\s*#/.test(line))
+        .join('\n');
+      expect(job, name).not.toMatch(/continue-on-error/);
+      // 단계의 첫 키가 무엇이든(`- name:` · `- if:` …) `run:` 이 든 단계는 다 센다
+      const field = (step: string, key: string) => new RegExp(`^(?: {8})?${key}: (.+)$`, 'm').exec(step)?.[1].trim();
+      return job
+        .split(/^ {6}- /m)
+        .slice(1)
+        .filter((step) => field(step, 'run') !== undefined)
+        .map((step) => ({ run: field(step, 'run'), cond: field(step, 'if') ?? null, id: field(step, 'id') }));
+    };
+    const GUARD = "${{ !cancelled() && steps.install.outcome == 'success' }}";
+    const BUILD = "${{ !cancelled() && steps.install.outcome == 'success' && needs.plan.outputs.build != 'false' }}";
+    const expected = {
+      core: ['npm ci', ...CORE_STEPS],
+      policy: ['npm ci', 'npx vitest run scripts/', 'npm run typecheck', 'npx eslint scripts/'],
+    };
+    for (const [name, runs] of Object.entries(expected)) {
+      const steps = stepsOf(name);
+      // 명령 목록 전체를 견준다 — 가드 없는 단계가 끼어들면 여기서 걸린다
+      expect(steps.map((step) => step.run), name).toEqual(runs);
+      const [install, head, ...rest] = steps;
+      expect(install, name).toEqual({ run: 'npm ci', cond: null, id: 'install' });
+      expect(head, name).toEqual({ run: runs[1], cond: null, id: undefined });
+      // 조건은 글자 그대로 — `|| always()` 같은 꼬리가 붙으면 다르다
+      for (const step of rest) expect(step.cond, `${name}: ${step.run}`).toBe(step.run === 'npm run build' ? BUILD : GUARD);
+    }
   });
 
   it('「(지금)」이 둘이거나 없으면 모르는 단계다', () => {
@@ -530,8 +573,9 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
     const noAddress = files.map((file) => beta([file])).filter((plan) => plan.cause === '주소 없음');
     for (const plan of noAddress) expect(plan.reason).toMatch(/가 부른다$|관문이 부른다$|입구를 못 찾는다$/);
     // 서버 파일은 옛 규칙의 65 개에서 42 개로 줄었고(ADR 0178), 화면 컴포넌트 21 개(`.tsx` 19 · hook 같은 `.ts` 둘)가 layout · 인증 ·
-    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다
-    expect(noAddress.length).toBeLessThanOrEqual(68);
+    // Next 공용 경계를 지나 더해졌다(2026-10-22 에 잰 합 68) — 다시 넓어지면 이 수를 보고 까닭을 적는다. 2026-10-23 에 둘 —
+    // 사진 저장소의 켜는 값 · S3 손(`app/me/photo/store-env.ts` · `s3-store.ts`)을 청소 크론(`app/api/cron/photo-sweep`)이 부른다(G-120)
+    expect(noAddress.length).toBeLessThanOrEqual(70);
   });
 });
 

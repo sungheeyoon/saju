@@ -977,6 +977,14 @@ select is(
     'note_reading_progress',
     'note_taste_checks',
     'open_reading_jobs',
+    /**
+     * 사진 저장소의 문 넷(`20261227090000`, G-120) — 열쇠 목록(사람만 돌리는 월 점검 `scripts/photo-verify.mjs`)과 청소 크론의
+     * 남은 표 · 지울 줄 둘. 옮기는 도구의 문 셋은 `20261227150000` 이 걷었다. 로그인한 사람은 못 부른다(`99_photo_object_store`)
+     */
+    'photo_object_keys',
+    'photo_sweep_tickets',
+    'photo_trash_batch',
+    'photo_trash_settle',
     /** Node 가 지은 것을 적는 문 — 계산 입력은 안 받는다(ADR 0071 · #66) */
     'prepare_reading_job',
     'record_reading_webhook_event',
@@ -1021,7 +1029,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 마흔한 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔여덟 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

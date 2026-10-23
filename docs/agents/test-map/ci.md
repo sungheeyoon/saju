@@ -9,7 +9,7 @@
 
 **차선은 여섯이고 서로 따로 선다**(2026-10-01) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
 `ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit`.
-단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. 옛 이름은 `fast` → `core`,
+단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. **`core` · `policy` 안에서는 앞 검사가 붉어도 뒤 검사가 돈다**(`!cancelled()`, 설치가 섰을 때만 — ADR 0097 덧 2026-10-22) — 붉은 단계가 하나라도 있으면 job 과 `gate` 는 그대로 실패다. 옛 이름은 `fast` → `core`,
 `verify`(job) → `anon` 이다. 워크플로 이름 `verify` 와 npm 스크립트 `npm run verify` 는 그대로다.
 
 **공개 출시 전(지금) — 그 주소에 실제로 닿는 차선만 머지를 막는다**(#161, ADR 0097 · 0119 추기 2026-10-01)
@@ -100,7 +100,10 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 
 **차선 수와 시간은 이 문서에 적지 않는다** — 로그인 차선은 `ci-plan.mjs` 의 `AUTHED_LANES` 가, 그 실행이 고른 차선은
 plan job 의 step summary(`summaryOf`)가, 차선마다 걸린 시간은 `gh run view <run id>` 의 job 시간이 답한다.
-지난 PR 의 계획(`tier` · 까닭 · 차선)은 `gh run view <run id> --log --job <plan job id>` 로 읽는다 — `gh api …/logs` 는 제어 문자로 거절된다.
+지난 PR 의 계획(`tier` · 까닭 · 차선)은 `gh run view <run id> --log --job <plan job id>` 로 읽는다.
+**붉은 job 의 기록은 `gh run view <run id> --log-failed` 로 읽고, 빈 출력이면 job 기록을 API 로 연다(2026-10-22)** —
+`gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/<job id>/logs"`(job id 는 `gh run view <run id> --json jobs`).
+기록에 제어 문자가 있어 `--allow-escape-sequences` 없이는 거절된다. **아직 도는 run 은 `--log` 가 비므로** 끝난 job 의 기록도 같은 API 로 연다(2026-10-23).
 가정한 변경 묶음의 계획은 저장소 뿌리에서 `planFor` 에 넣어 본다(단계는 PRD 의 「(지금)」 — `currentStageOf`):
 `node --input-type=module -e "import {readFileSync} from 'node:fs'; import {planFor} from './scripts/ci-plan.mjs'; import {STAGE_FILE,currentStageOf} from './scripts/release-stage.mjs'; const p = planFor({ files: ['public/sw.js'], stage: currentStageOf(readFileSync(STAGE_FILE,'utf8')) }); console.log(p.tier, p.cause ?? '', p.authedLanes, p.lanes, p.reason)"`
 — 파일은 디스크(HEAD)에서 읽는다. 의존성 목록은 `baseSourceOf` 를 안 주면 base 를 못 읽어 전부로 나온다.

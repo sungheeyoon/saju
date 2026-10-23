@@ -58,9 +58,19 @@ export async function photoResponse(request: Request, userId: string, position: 
   const row = (data ?? [])[0];
   if (row === undefined) return new NextResponse(null, { status: 404 });
 
+  /*
+    **304 는 판본으로 가른다 — `base64` 가 빈 것으로 가르지 않는다.** 바이트가 저장소에 사는 장(`object_key`, G-120)도 `base64` 가
+    빈다(`20261227090000`). 빈 바이트를 304 로 읽으면 그런 장을 처음 여는 브라우저가 든 것 없이 304 를 받는다. 이 줄은 이미
+    `may_see_photo` 를 지났다 — 판본이 같다는 것은 그 사람이 그 장을 우리에게서 받아 들고 있다는 뜻이다.
+  */
   const cache = { ETag: etagOf(row.version), 'Cache-Control': PHOTO_CACHE };
-  // 생성 타입은 SQL 함수의 반환 칸을 늘 값으로 적는다 — 판본이 같으면 `base64` 는 `null` 이다(`20261225090000`)
-  if (row.base64 === null) return new NextResponse(null, { status: 304, headers: cache });
+  if (held !== null && row.version === held) return new NextResponse(null, { status: 304, headers: cache });
+
+  /*
+    바이트가 저장소에 사는 장은 그 장을 어떻게 내줄지(열람 방식)를 아직 안 정했다. 정하기 전에는 없는 장과 같은 404 다.
+    저장소가 꺼진 배포에는 그런 장이 없다.
+  */
+  if (!row.base64) return new NextResponse(null, { status: 404 });
 
   return new NextResponse(new Uint8Array(Buffer.from(row.base64, 'base64')), {
     headers: { ...cache, 'Content-Type': row.content_type },

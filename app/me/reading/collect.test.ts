@@ -8,8 +8,20 @@ import { readingInputOf } from './generator';
 const keyedRpc = vi.fn();
 const retrieve = vi.fn();
 
+/** 회수는 부름마다 상한을 건다(`.abortSignal`) — 가짜 문은 그것을 받아 그대로 답한다 */
+const aborts = vi.fn();
 vi.mock('../../keyed-client', () => ({
-  keyedClient: () => ({ rpc: keyedRpc }),
+  keyedClient: () => ({
+    rpc: (...args: unknown[]) => {
+      const answer = keyedRpc(...args) as Promise<unknown>;
+      return Object.assign(answer, {
+        abortSignal: (signal: AbortSignal) => {
+          aborts(args[0], signal);
+          return answer;
+        },
+      });
+    },
+  }),
 }));
 
 /** 모델만 가짜다 — 가져오는 자리를 바꿔 끼우고, 검사와 근거는 진짜를 지난다 */
@@ -17,7 +29,7 @@ vi.mock('./model', () => ({
   retrieveBackgroundReading: (...args: unknown[]) => retrieve(...args),
 }));
 
-const { collectReadingResult } = await import('./collect');
+const { collectReadingResult, passingDbFailure } = await import('./collect');
 
 /**
  * **막는 검사에 걸린 글은 저장하지 않고, 품질 검사에만 걸린 글은 저장하고 적는다**(ADR 0163).
@@ -112,11 +124,13 @@ let job: ReturnType<typeof jobOf>;
 beforeEach(() => {
   keyedRpc.mockReset();
   retrieve.mockReset();
+  aborts.mockReset();
   job = jobOf('self');
 
   keyedRpc.mockImplementation(async (name: string) => {
     if (name === 'claim_reading_job') return { data: [job], error: null };
     if (name === 'save_reading') return { data: 'reading-1', error: null };
+    if (name === 'fail_reading_job' || name === 'release_reading_job') return { data: true, error: null };
     return { data: null, error: null };
   });
 });
@@ -249,6 +263,186 @@ describe('가져온 글은 막는 검사를 넘어야 저장된다', () => {
 
     expect(called('save_reading')).toBeUndefined();
     expect(called('fail_reading_job')?.[1].p_usage).toEqual(USAGE);
+  });
+});
+
+/**
+ * **집은 일감은 임대다**(ADR 0201) — 집을 때 지은 식별자가 놓기 · 저장 · 실패에 함께 가고, 일시 장애는 닫지 않고 놓는다.
+ *
+ * 가짜 DB 는 문 이름마다 답만 고른다 — 「지금 쥔 작업자인가」의 판정 자체는 DB 가 하고 `99_reading_job_lease` 가 잰다. 여기서
+ * 재는 것은 앱이 그 판정에 무엇을 싣고, 답을 받아 어느 길로 가는가다.
+ */
+describe('집은 일감은 임대다', () => {
+  const leaseOf = (name: string) => (called(name)?.[1] as { p_lease_id?: string } | undefined)?.p_lease_id;
+  const failing = (save: { code?: string; message: string }) =>
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: [job], error: null };
+      if (name === 'save_reading') return { data: null, error: save };
+      if (name === 'fail_reading_job' || name === 'release_reading_job') return { data: true, error: null };
+      return { data: null, error: null };
+    });
+
+  it('집을 때 지은 식별자 하나가 저장에 함께 간다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(leaseOf('claim_reading_job')).toMatch(/^[0-9a-f-]{36}$/);
+    expect(leaseOf('save_reading')).toBe(leaseOf('claim_reading_job'));
+  });
+
+  it('회수할 때마다 새 식별자다 — 다시 집은 작업자는 옛 작업자와 다른 값을 든다', async () => {
+    retrieve.mockResolvedValue({ ok: 'pending' });
+
+    await collectReadingResult('resp-1');
+    const first = leaseOf('claim_reading_job');
+    keyedRpc.mockClear();
+    await collectReadingResult('resp-1');
+
+    expect(leaseOf('claim_reading_job')).not.toBe(first);
+  });
+
+  it('망을 지나는 DB 부름마다 상한을 건다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+
+    await collectReadingResult('resp-1');
+
+    expect(aborts.mock.calls.map(([name]) => name)).toEqual(['claim_reading_job', 'save_reading', 'note_reading_checks']);
+    expect(aborts.mock.calls.every(([, signal]) => signal instanceof AbortSignal)).toBe(true);
+  });
+
+  it('아직 도는 중이면 제 식별자로 놓는다', async () => {
+    retrieve.mockResolvedValue({ ok: 'pending' });
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'pending' });
+    expect(called('release_reading_job')?.[1]).toEqual({ p_run_id: 'run-1', p_lease_id: leaseOf('claim_reading_job') });
+  });
+
+  it('조회가 안 닿으면(망 · 시간 상한 · provider 의 일시 장애) 닫지 않고 놓는다 — 실패 소식이 안 선다', async () => {
+    retrieve.mockResolvedValue({ ok: 'unreachable', detail: 'Connection error.' });
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'released', why: 'Connection error.' });
+    expect(called('fail_reading_job')).toBeUndefined();
+    expect(leaseOf('release_reading_job')).toBe(leaseOf('claim_reading_job'));
+  });
+
+  it('놓기가 실패해도 던지지 않고 기록에 남긴다 — 임대가 지나면 다음 바퀴가 다시 집는다', async () => {
+    retrieve.mockResolvedValue({ ok: 'unreachable', detail: 'Request timed out.' });
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: [job], error: null };
+      if (name === 'release_reading_job') return { data: null, error: { code: '', message: 'FetchError: fetch failed' } };
+      return { data: null, error: null };
+    });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'released', why: 'Request timed out.' });
+    expect(called('fail_reading_job')).toBeUndefined();
+    expect(logged.mock.calls[0]?.[0]).toBe('collect: release_reading_job run-1');
+    logged.mockRestore();
+  });
+
+  it('DB 가 저장에 답하지 못하면(끊김 · 연결 · 시간 상한) 닫지 않고 놓는다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    for (const unanswered of [
+      { code: '', message: 'AbortError: This operation was aborted' },
+      { code: 'PGRST000', message: 'Could not connect with the database' },
+      { code: '57014', message: 'canceling statement due to statement timeout' },
+    ]) {
+      keyedRpc.mockClear();
+      failing(unanswered);
+      await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'released', why: unanswered.message });
+      expect(called('fail_reading_job'), unanswered.code).toBeUndefined();
+      expect(leaseOf('release_reading_job')).toBe(leaseOf('claim_reading_job'));
+    }
+    logged.mockRestore();
+  });
+
+  it('DB 의 실제 거절은 지금처럼 제 식별자로 닫는다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+    failing({ code: '23514', message: '그 사이에 새 시도가 열려 이 결과는 저장하지 않았습니다.' });
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'save-rejected' });
+    expect(called('release_reading_job')).toBeUndefined();
+    expect(leaseOf('fail_reading_job')).toBe(leaseOf('claim_reading_job'));
+  });
+
+  it('모델이 낸 실패는 지금처럼 쓴 토큰과 함께 닫는다', async () => {
+    retrieve.mockResolvedValue({ ok: false, code: 'model-failed', detail: 'server_error', usage: USAGE });
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'model-failed' });
+    expect(called('fail_reading_job')?.[1]).toMatchObject({ p_failure_code: 'model-failed', p_usage: USAGE });
+    expect(called('release_reading_job')).toBeUndefined();
+  });
+
+  /**
+   * **이전 작업자의 늦은 응답** — 임대가 지나 남이 다시 집은 뒤에 결과를 들고 온 작업자다. DB 가 저장을 거절하고(지금 쥔
+   * 작업자가 아니다) 실패 닫기도 `false` 로 답한다. 닫았다고 말하지 않는다 — 시도는 지금 쥔 작업자가 끝낸다.
+   */
+  it('이전 작업자의 늦은 저장은 닫았다고 말하지 않는다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: [job], error: null };
+      if (name === 'save_reading') {
+        return { data: null, error: { code: '23514', message: '이 일감을 지금 쥔 작업자가 아니라 저장하지 않았습니다.' } };
+      }
+      if (name === 'fail_reading_job') return { data: false, error: null };
+      return { data: null, error: null };
+    });
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'skipped', why: '닫지 못했습니다: save-rejected' });
+  });
+
+  /**
+   * **저장은 됐는데 답만 끊긴 경우** — 앱은 끊김으로 보고 놓는다. 그 시도는 이미 끝나 일감이 지워졌으므로 놓기는 `false` 이고,
+   * 다음 바퀴(복구기 · webhook 재전송)는 집을 일감이 없다. 두 번째 저장도 실패 닫기도 일어나지 않는다 — 풀이 한 벌 · 정산
+   * 한 번은 DB 가 든다(`99_reading_job_lease`).
+   */
+  it('저장은 됐는데 답만 끊기면 놓기만 하고, 다음 바퀴는 아무것도 안 한다', async () => {
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null }));
+    let saved = false;
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'claim_reading_job') return { data: saved ? [] : [job], error: null };
+      if (name === 'save_reading') {
+        saved = true;
+        return { data: null, error: { code: '', message: 'FetchError: terminated' } };
+      }
+      if (name === 'release_reading_job') return { data: false, error: null };
+      return { data: null, error: null };
+    });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(collectReadingResult('resp-1')).resolves.toMatchObject({ done: 'released' });
+    await expect(collectReadingResult('resp-1')).resolves.toMatchObject({ done: 'skipped' });
+
+    expect(keyedRpc.mock.calls.filter(([name]) => name === 'save_reading')).toHaveLength(1);
+    expect(called('fail_reading_job')).toBeUndefined();
+    logged.mockRestore();
+  });
+});
+
+describe('DB 가 답하지 못한 실패만 놓는다', () => {
+  it.each([
+    ['', true],
+    ['PGRST000', true],
+    ['PGRST003', true],
+    ['08006', true],
+    ['53300', true],
+    ['57P01', true],
+    ['57014', true],
+    ['40001', true],
+    ['40P01', true],
+    ['55P03', true],
+    ['23514', false],
+    ['P0002', false],
+    ['42501', false],
+    ['PGRST202', false],
+  ])('코드 %j 는 놓는가: %s', (code, passing) => {
+    expect(passingDbFailure({ code })).toBe(passing);
+  });
+
+  it('코드가 없는 것(망이 끊김 · 게이트웨이의 HTML)은 놓는다', () => {
+    expect(passingDbFailure({})).toBe(true);
   });
 });
 

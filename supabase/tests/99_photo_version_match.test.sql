@@ -1,4 +1,4 @@
--- 이미 받은 사진은 다시 안 보낸다 — **판본이 같으면 바이트가 없고, 판정은 판본보다 먼저다** (`20261225090000`, G-119 안 C)
+-- 이미 받은 사진은 다시 안 보낸다 — **판본이 같으면 바이트가 없고, 판정은 판본보다 먼저다** (`20261227180000`, G-119 안 C)
 --
 -- 여기서 재는 것 셋.
 --
@@ -7,11 +7,13 @@
 --    (옮기기) 그 자리의 판본이 달라 바이트가 나간다
 -- 3. **볼 수 없는 사람은 판본도 안 받는다** — 판본을 맞혀도 0행. 아무 사이도 아닌 사람 · 볼 수 있다가 차단한 사람 ·
 --    정지된 사람이 그렇다. 304 는 판정을 지난 뒤에만 나간다
+-- 4. **저장소에 사는 장은 판본과 상관없이 바이트가 비고 판본은 나온다** — 그래서 라우트는 빈 바이트가 아니라 판본으로 304 를
+--    가른다(`app/me/photo/photo-response.ts`). 판본을 안 넘겨도 `base64` 가 `null` 이다
 --
 -- 고치기 전(두 인자 `photo_at`)이면 세 인자 부름이 「함수가 없다」로 모두 붉다. 판본을 견주되 `may_see_photo` 밖에서
 -- 견주면 3 이 붉고, 같은 판본에도 바이트를 실으면 1 이 붉다.
 begin;
-select plan(11);
+select plan(13);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -134,6 +136,24 @@ select is(
   (select count(*)::int from public.photo_at((select kim from who), 1, (select two from v))),
   0,
   '차단하면 판본을 맞혀도 0행이다 — 브라우저가 든 장에 304 가 안 나가고 404 다');
+
+-- ── 4. 저장소에 사는 장은 판본과 상관없이 바이트가 비고 판본은 나온다 ────────
+
+/* 올리는 문은 닫혀 있어(`20261227120000`) 표에 바로 놓는다 — 트랜잭션 안이라 되돌아간다 */
+reset role;
+insert into public.profile_photo (user_id, position, content_type, object_key)
+values ((select park from who), 1, 'image/webp', format('photos/%s/%s', (select park from who), gen_random_uuid()));
+set local role authenticated;
+select pg_temp.acting((select park from who));
+
+select is(
+  (select (base64 is null)::text || ':' || (version is not null)::text from public.photo_at((select park from who), 1)),
+  'true:true',
+  '저장소에 사는 장은 판본을 안 넘겨도 바이트가 비고 판본은 나온다 — 빈 바이트가 「같은 판본」이 아니다');
+select is(
+  (select count(*)::int from public.photo_at((select park from who), 1, 0)),
+  1,
+  '저장소에 사는 장도 판정을 지나면 한 줄이다 — 라우트가 판본이 달라 404 로 가른다');
 
 select * from finish();
 rollback;

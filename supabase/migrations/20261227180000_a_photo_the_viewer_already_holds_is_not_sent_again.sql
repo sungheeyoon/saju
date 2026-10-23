@@ -10,6 +10,10 @@
 -- 판본은 `profile_photo_version(updated_at)` — `my_photos` 의 `?v=` 와 같은 수다. 올리기 · 바꾸기만 바꾸고(`clock_timestamp()`),
 -- 옮기기 · 보일 자리는 안 바꾼다. 그래서 판본은 **그 장**을 가리킨다 — 자리에 다른 장이 앉으면 판본이 달라 바이트가 나간다.
 --
+-- **바이트가 저장소에 사는 장**(`object_key`, `20261227090000`)은 `bytes` 가 `null` 이라 판본과 상관없이 `base64` 가 빈다 — 앞과
+-- 같다. 그래서 「`base64` 가 비었다」는 「같은 판본」을 뜻하지 않는다. 라우트는 판본 칸을 넘긴 판본과 견주어 304 를 가르고,
+-- 판본이 다른데 바이트가 비면 그 장은 열람 방식이 정해질 때까지 404 다(G-120).
+--
 -- ## 모양
 --
 -- 인자 끝에 `p_version bigint default null` 이 붙고, 반환 칸 끝에 `version` 이 붙는다. 반환형이 바뀌므로 지우고 다시 세운다
@@ -46,7 +50,7 @@ as $$
 $$;
 
 comment on function public.photo_at(uuid, integer, bigint) is
-  '사진 한 장 — 볼 수 있을 때만(may_see_photo). 받은 판본과 같으면 바이트 없이 판본만 (G-119, 20261225090000)';
+  '사진 한 장 — 볼 수 있을 때만(may_see_photo). 받은 판본과 같으면 바이트 없이 판본만 (G-119, 20261227180000)';
 
 revoke execute on function public.photo_at(uuid, integer, bigint) from anon, public;
 grant execute on function public.photo_at(uuid, integer, bigint) to authenticated;

@@ -24,6 +24,7 @@
 - 「배포」 답 없이 Production 에 올리지 않는다([권한 등급](../agents/delegation/permissions.md))
 - 등급 4 — force push · `supabase config push` · Vercel 변수 삭제 · main 가지 삭제([권한 등급](../agents/delegation/permissions.md))
 - 운영 개인정보를 직접 조회하지 않는다 — break-glass 는 사람이 돈다([개인정보는 화면으로만](../ops/runbook/access.md#개인정보는-화면으로만--원격-sql-의-경계-adr-0105) · ADR 0105)
+- `app/api/**` 에 자격을 묻지 않는 문(상태 문 · 감시 문)을 더하면 결정이다([결정 점검표](../agents/delegation/decisions.md))
 - 운영자가 미룬 것(간극 대장의 `보류`)을 다시 권하지 않는다([조율자 세션](../agents/delegation/coordinator.md))
 
 ## 끝날 때 고치는 것

@@ -1109,30 +1109,75 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_object_trash: {
+        Row: {
+          attempts: number
+          last_error: string | null
+          next_try_at: string
+          object_key: string
+          queued_at: string
+        }
+        Insert: {
+          attempts?: number
+          last_error?: string | null
+          next_try_at?: string
+          object_key: string
+          queued_at?: string
+        }
+        Update: {
+          attempts?: number
+          last_error?: string | null
+          next_try_at?: string
+          object_key?: string
+          queued_at?: string
+        }
+        Relationships: []
+      }
+      photo_upload_ticket: {
+        Row: {
+          issued_at: string
+          object_key: string
+          user_id: string
+        }
+        Insert: {
+          issued_at?: string
+          object_key: string
+          user_id: string
+        }
+        Update: {
+          issued_at?: string
+          object_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_photo: {
         Row: {
-          bytes: string
+          bytes: string | null
           content_type: string
           focus_x: number
           focus_y: number
+          object_key: string | null
           position: number
           updated_at: string
           user_id: string
         }
         Insert: {
-          bytes: string
+          bytes?: string | null
           content_type: string
           focus_x?: number
           focus_y?: number
+          object_key?: string | null
           position: number
           updated_at?: string
           user_id?: string
         }
         Update: {
-          bytes?: string
+          bytes?: string | null
           content_type?: string
           focus_x?: number
           focus_y?: number
+          object_key?: string | null
           position?: number
           updated_at?: string
           user_id?: string
@@ -1617,9 +1662,11 @@ export type Database = {
           body_written: boolean
           chart_a: Json
           chart_b: Json | null
+          claimed_at: string | null
           created_at: string
           evidence: string | null
           generation: Json | null
+          lease_id: string | null
           prompt: string | null
           prompt_version: string | null
           requested_model: string | null
@@ -1639,9 +1686,11 @@ export type Database = {
           body_written?: boolean
           chart_a: Json
           chart_b?: Json | null
+          claimed_at?: string | null
           created_at?: string
           evidence?: string | null
           generation?: Json | null
+          lease_id?: string | null
           prompt?: string | null
           prompt_version?: string | null
           requested_model?: string | null
@@ -1661,9 +1710,11 @@ export type Database = {
           body_written?: boolean
           chart_a?: Json
           chart_b?: Json | null
+          claimed_at?: string | null
           created_at?: string
           evidence?: string | null
           generation?: Json | null
+          lease_id?: string | null
           prompt?: string | null
           prompt_version?: string | null
           requested_model?: string | null
@@ -2736,6 +2787,10 @@ export type Database = {
         Args: { p_base64: string; p_content_type: string }
         Returns: number
       }
+      add_my_photo_object: {
+        Args: { p_content_type: string; p_object_key: string }
+        Returns: number
+      }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
         Returns: boolean
@@ -2803,6 +2858,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      begin_my_photo_upload: { Args: never; Returns: string }
       beta_is_over: { Args: never; Returns: boolean }
       block_user: { Args: { p_user_id: string }; Returns: boolean }
       book_reading_credit_grant: {
@@ -2856,6 +2912,10 @@ export type Database = {
       chat_room_readable: { Args: { p_room_id: string }; Returns: boolean }
       chat_snapshot_context: { Args: never; Returns: number }
       check_findings_valid: { Args: { p_findings: Json }; Returns: boolean }
+      check_photo_content_type: {
+        Args: { p_content_type: string }
+        Returns: undefined
+      }
       claim_push_deliveries: {
         Args: { p_limit?: number }
         Returns: {
@@ -2868,7 +2928,7 @@ export type Database = {
         }[]
       }
       claim_reading_job: {
-        Args: { p_response_id: string }
+        Args: { p_lease_id?: string; p_response_id: string }
         Returns: {
           birth_a: Json
           birth_b: Json
@@ -3002,6 +3062,10 @@ export type Database = {
           schedule_id: number
         }[]
       }
+      database_size_alert: { Args: { p_bytes: number }; Returns: boolean }
+      database_size_counted: { Args: never; Returns: number }
+      database_size_critical_bytes: { Args: never; Returns: number }
+      database_size_warning_bytes: { Args: never; Returns: number }
       day_master_element_of: { Args: { p_user_id: string }; Returns: string }
       discovery_balance_band: {
         Args: { combined_balance: number }
@@ -3087,6 +3151,10 @@ export type Database = {
         Returns: boolean
       }
       dispose_requested_accounts: { Args: never; Returns: number }
+      drop_my_photo_upload: {
+        Args: { p_object_key: string }
+        Returns: undefined
+      }
       edit_person_input: {
         Args: {
           p_birth_time: string
@@ -3120,6 +3188,7 @@ export type Database = {
         Args: {
           p_failure_code: string
           p_failure_detail?: string
+          p_lease_id?: string
           p_run_id: string
           p_usage?: Json
         }
@@ -4069,6 +4138,25 @@ export type Database = {
         }[]
       }
       photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }
+      photo_object_keys: {
+        Args: { p_after: string; p_limit: number }
+        Returns: {
+          content_type: string
+          object_key: string
+        }[]
+      }
+      photo_sweep_tickets: { Args: never; Returns: number }
+      photo_trash_batch: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          object_key: string
+        }[]
+      }
+      photo_trash_settle: {
+        Args: { p_deleted: string[]; p_error_class: string; p_failed: string[] }
+        Returns: boolean
+      }
       pick_reading_credit_share: {
         Args: { p_user: string }
         Returns: Record<string, unknown>
@@ -4165,6 +4253,7 @@ export type Database = {
       reading_failure_alert_floor: { Args: never; Returns: number }
       reading_failure_alert_share: { Args: never; Returns: number }
       reading_job_deadline: { Args: never; Returns: string }
+      reading_job_lease: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
@@ -4235,7 +4324,10 @@ export type Database = {
         }
         Returns: undefined
       }
-      release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      release_reading_job: {
+        Args: { p_lease_id?: string; p_run_id: string }
+        Returns: boolean
+      }
       release_reading_refund_by_hand: {
         Args: { p_hold_id: string; p_note: string }
         Returns: undefined
@@ -4252,6 +4344,15 @@ export type Database = {
         Args: {
           p_base64: string
           p_content_type: string
+          p_position: number
+          p_version: number
+        }
+        Returns: number
+      }
+      replace_my_photo_object: {
+        Args: {
+          p_content_type: string
+          p_object_key: string
           p_position: number
           p_version: number
         }
@@ -4328,6 +4429,7 @@ export type Database = {
         Args: {
           p_evidence: string
           p_generation: Json
+          p_lease_id?: string
           p_metaphor: string
           p_model: string
           p_output: string
@@ -4511,6 +4613,10 @@ export type Database = {
         Returns: boolean
       }
       sync_reading_credit_grant: { Args: { p_user: string }; Returns: number }
+      take_my_photo_ticket: {
+        Args: { p_actor: string; p_object_key: string }
+        Returns: undefined
+      }
       take_reading_job: {
         Args: { p_run_id: string }
         Returns: {
@@ -4581,6 +4687,7 @@ export type Database = {
         Returns: undefined
       }
       touch_activity: { Args: never; Returns: boolean }
+      trash_photo_object: { Args: { p_object_key: string }; Returns: undefined }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
       visible_matches: {
