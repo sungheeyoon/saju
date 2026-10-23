@@ -23,16 +23,23 @@ import { recordDbFailure } from '../../db-error';
  * 통째로 들어가 첫 화면이 몇 배로 무거워진다. 주소로 내주면 브라우저가 필요한 것만
  * 받아 가고 캐시도 브라우저가 든다.
  *
- * ## 캐시는 **사람마다** 든다
+ * ## 캐시는 **사람마다** 들고, 쓸 때마다 묻는다 (G-119 안 C)
  *
  * `private` 이다. 중간 캐시가 한 사람에게 내준 얼굴을 다음 사람에게 주면, 「볼 수 있는
- * 사람에게만」이 캐시 한 겹으로 무너진다. 짧게 잡는 것은 사진을 바꾸거나 상대를 감췄을
- * 때 그만큼만 늦게 반영되게 하려는 것이다. 순서를 바꿔도 같다 — 남의 카드의 2번 장은 길어야
- * 1분 옛 장이다.
+ * 사람에게만」이 캐시 한 겹으로 무너진다. `no-cache` 라 브라우저는 든 장을 쓰기 전에 매번 묻는다 —
+ * `ETag` 는 그 장의 판본이고, 브라우저가 `If-None-Match` 로 돌려주면 `photo_at` 에 넘긴다. 판본이
+ * 같으면 DB 가 바이트 없이 판본만 내고 여기서 304 를 낸다. **304 도 `photo_at` 의 판정을 지난 뒤에만
+ * 나간다** — 못 보게 된 사람은 판본을 맞혀도 0행이라 404 다(ADR 0040). 사진을 바꾸거나 다른 장이
+ * 그 자리에 앉으면 판본이 달라 새 바이트가 바로 나간다. 줄어드는 것은 바이트뿐이고 DB 왕복은 장마다 하나 그대로다.
  */
-export async function photoResponse(userId: string, position: number): Promise<NextResponse> {
+export async function photoResponse(request: Request, userId: string, position: number): Promise<NextResponse> {
+  const held = heldVersionOf(request.headers.get('if-none-match'));
   const supabase = await supabaseOnServer();
-  const { data, error } = await supabase.rpc('photo_at', { p_user_id: userId, p_position: position });
+  const { data, error } = await supabase.rpc('photo_at', {
+    p_user_id: userId,
+    p_position: position,
+    ...(held === null ? {} : { p_version: held }),
+  });
 
   /*
     **못 여는 것과 고장 난 것을 가른다.**
@@ -49,19 +56,42 @@ export async function photoResponse(userId: string, position: number): Promise<N
   }
 
   const row = (data ?? [])[0];
+  if (row === undefined) return new NextResponse(null, { status: 404 });
+
   /*
-    바이트가 저장소에 사는 장(`object_key`, G-120)은 `base64` 가 빈다 — 그 장을 어떻게 내줄지(열람 방식)는 아직 안 정했다.
-    정하기 전에는 없는 장과 같은 404 다. 저장소가 꺼진 배포에는 그런 장이 없다.
+    **304 는 판본으로 가른다 — `base64` 가 빈 것으로 가르지 않는다.** 바이트가 저장소에 사는 장(`object_key`, G-120)도 `base64` 가
+    빈다(`20261227090000`). 빈 바이트를 304 로 읽으면 그런 장을 처음 여는 브라우저가 든 것 없이 304 를 받는다. 이 줄은 이미
+    `may_see_photo` 를 지났다 — 판본이 같다는 것은 그 사람이 그 장을 우리에게서 받아 들고 있다는 뜻이다.
   */
-  if (row === undefined || !row.base64) return new NextResponse(null, { status: 404 });
+  const cache = { ETag: etagOf(row.version), 'Cache-Control': PHOTO_CACHE };
+  if (held !== null && row.version === held) return new NextResponse(null, { status: 304, headers: cache });
+
+  /*
+    바이트가 저장소에 사는 장은 그 장을 어떻게 내줄지(열람 방식)를 아직 안 정했다. 정하기 전에는 없는 장과 같은 404 다.
+    저장소가 꺼진 배포에는 그런 장이 없다.
+  */
+  if (!row.base64) return new NextResponse(null, { status: 404 });
 
   return new NextResponse(new Uint8Array(Buffer.from(row.base64, 'base64')), {
-    headers: {
-      'Content-Type': row.content_type,
-      'Cache-Control': 'private, max-age=60',
-    },
+    headers: { ...cache, 'Content-Type': row.content_type },
   });
 }
+
+/** 브라우저는 든 장을 쓰기 전에 매번 묻는다 — 판정이 매번 DB 에 닿는다 */
+export const PHOTO_CACHE = 'private, no-cache';
+
+/** 판본(그 장을 올린 시각의 마이크로초, `profile_photo_version`)을 강한 ETag 로 — 같은 판본은 같은 바이트다 */
+export const etagOf = (version: number): string => `"${version}"`;
+
+/** 우리가 단 꼴(`"판본"`, 약한 표지 `W/` 도 받는다) 하나만 판본으로 읽는다. 목록 · `*` · 다른 꼴은 `null` — 바이트를 보낸다 */
+const HELD_ETAG = /^\s*(?:W\/)?"(\d{1,16})"\s*$/;
+
+export const heldVersionOf = (ifNoneMatch: string | null): number | null => {
+  const match = ifNoneMatch === null ? null : HELD_ETAG.exec(ifNoneMatch);
+  if (match === null) return null;
+  const version = Number(match[1]);
+  return Number.isSafeInteger(version) ? version : null;
+};
 
 /** 편집 칸이 여섯이다 — DB 의 `profile_photo_position_check` 와 같은 수 */
 const PHOTO_POSITION = /^[1-6]$/;
