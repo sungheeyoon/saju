@@ -8,7 +8,7 @@ import { cronAuthorized } from '../authorized';
 import { SWEEP_BUSY, sweepOnce, type TrashLedger } from './sweep';
 
 /**
- * **사진 저장소를 매시간 치운다** (G-120, `20261227090000` · `20261229090000`, ADR 0205).
+ * **사진 저장소를 매시간 치운다** (G-120, `20261227090000` · `20261229090000`, ADR 0204).
  *
  * 깨우는 것은 둘이다 — 매시간의 Supabase pg_cron(`wake_photo_sweep`, Vault 의 주소 · 비밀이 있을 때만)과 그것이 멈췄을 때의 예비인
  * Vercel Cron 하루 한 번(`vercel.json`). 자격은 다른 크론과 같은 `CRON_SECRET` 이다. 둘이 겹치면 뒤 실행은 DB 의 임대를 못 잡고

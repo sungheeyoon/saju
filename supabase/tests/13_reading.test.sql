@@ -982,7 +982,7 @@ select is(
      * 남은 표 · 지울 줄 둘. 옮기는 도구의 문 셋은 `20261227150000` 이 걷었다. 로그인한 사람은 못 부른다(`99_photo_object_store`)
      */
     'photo_object_keys',
-    /** 매시 청소의 임대를 여닫는 문 둘 — 겹쳐 돌면 하나만(`20261229090000`, ADR 0205 · `99_photo_sweep_hourly`) */
+    /** 매시 청소의 임대를 여닫는 문 둘 — 겹쳐 돌면 하나만(`20261229090000`, ADR 0204 · `99_photo_sweep_hourly`) */
     'photo_sweep_begin',
     'photo_sweep_finish',
     'photo_sweep_tickets',

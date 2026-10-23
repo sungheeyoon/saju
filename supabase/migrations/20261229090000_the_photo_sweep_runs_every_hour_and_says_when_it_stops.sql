@@ -1,4 +1,4 @@
--- 사진 청소는 매시간 돌고, 못 지우면 첫 번부터 알리며, 멈추거나 줄이 남으면 감시가 알린다 (G-120, ADR 0205)
+-- 사진 청소는 매시간 돌고, 못 지우면 첫 번부터 알리며, 멈추거나 줄이 남으면 감시가 알린다 (G-120, ADR 0204)
 --
 -- 운영자 결정(2026-10-23): 사진 저장소의 청소(`app/api/cron/photo-sweep`)를 하루 한 번에서 **매시간**으로 바꾼다. 깨우는 쪽은
 -- 복구기와 같은 **Supabase pg_cron → pg_net**(`20260901210000`)이고, 주소와 비밀은 Vault 에서 읽는다. Vercel 의 하루 한 번 크론은
@@ -34,7 +34,7 @@
 --     Vault 주소를 넣은 때 중 늦은 쪽 — 켠 직후 「한 번도 안 돌았다」로 울리지 않는다
 --   - `photo-trash-lingering` — 지울 줄에 **12시간** 넘게 남은 줄이 있다
 --
---   둘 다 Vault 의 `photo_sweep_url` 이 있을 때만 본다 — 저장소가 꺼진 동안(지금 운영) 거짓 알림이 없다. 문턱의 근거는 ADR 0205:
+--   둘 다 Vault 의 `photo_sweep_url` 이 있을 때만 본다 — 저장소가 꺼진 동안(지금 운영) 거짓 알림이 없다. 문턱의 근거는 ADR 0204:
 --   탈퇴 계정의 열쇠는 처분(신청 뒤 24 ~ 25시간, `20261004090000`)에 지울 줄에 들고 처리방침의 기한은 신청 뒤 72시간이라 줄이 선
 --   뒤 남는 틈은 약 47시간이다. 12시간이면 사람이 조치할 시간이 35시간쯤 남고, 그 사이 매시 재시도가 열두 번 실패했으니 지나가는
 --   흔들림이 아니다. 같은 종류는 하루 한 번이라 다음 날 다시 울린다.
@@ -71,7 +71,7 @@ insert into public.photo_sweep_state (one) values (true);
 alter table public.photo_sweep_state enable row level security;
 revoke all on public.photo_sweep_state from anon, authenticated;
 
-/** 끝까지 돈 청소가 이만큼 없으면 알린다 — 매시 실행 셋을 연달아 걸렀다(ADR 0205) */
+/** 끝까지 돈 청소가 이만큼 없으면 알린다 — 매시 실행 셋을 연달아 걸렀다(ADR 0204) */
 create function public.photo_sweep_stale_after()
 returns interval
 language sql
@@ -79,7 +79,7 @@ immutable
 set search_path = ''
 as $$ select interval '3 hours' $$;
 
-/** 지울 줄에 이만큼 넘게 남으면 알린다 — 처리방침의 「3일 안 파기」 전에 사람이 조치할 틈(ADR 0205) */
+/** 지울 줄에 이만큼 넘게 남으면 알린다 — 처리방침의 「3일 안 파기」 전에 사람이 조치할 틈(ADR 0204) */
 create function public.photo_trash_linger_after()
 returns interval
 language sql

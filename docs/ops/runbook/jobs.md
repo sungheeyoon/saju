@@ -67,11 +67,11 @@ group by 1, 2 order by 1, 2;
 `taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다. 2026-10-17 에 `credit-grant-watch`(매일 05:41 UTC,
 무상 지급 장부의 대조, ADR 0191 — `20261219090000`)가 더해졌다. 2026-10-08(#526) 에 머지된 `20261121090000` 이 `push-dispatch`(매분) ·
 `push-delivery-retention-purge`(매일 04:43 UTC)를 세웠다(ADR 0156) — 2026-10-22 에 다시 센 이 목록이 빠뜨린 둘이다. 웹 푸시를 켜는 걸음과
-확인은 `docs/ops/runbook/push.md`. `20261229090000`(ADR 0205)이 `photo-sweep-wake`(매시 33분 — 사진 청소를 깨운다, Vault 의 `photo_sweep_url` 이
+확인은 `docs/ops/runbook/push.md`. `20261229090000`(ADR 0204)이 `photo-sweep-wake`(매시 33분 — 사진 청소를 깨운다, Vault 의 `photo_sweep_url` 이
 없으면 아무것도 안 한다) · `photo-sweep-watch`(매시 53분 — 멈춘 청소 · 남은 줄, 같은 조건)를 세운다 — 알림과 할 일은 `docs/ops/runbook/photo-store.md`
 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」.
 Vercel Cron 은 셋이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`), 접속기록 반출(`/api/cron/audit-export`,
-ADR 0105), 사진 청소의 예비(`/api/cron/photo-sweep`, 하루 한 번 — 매시 실행은 pg_cron 이 깨운다, ADR 0205). 셋은 `cron-watch` 가 못 본다 —
+ADR 0105), 사진 청소의 예비(`/api/cron/photo-sweep`, 하루 한 번 — 매시 실행은 pg_cron 이 깨운다, ADR 0204). 셋은 `cron-watch` 가 못 본다 —
 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다), 사진 청소는 `photo-sweep-watch` 가 본다(끝까지 돈
 실행이 세 시간 넘게 없으면 — 어느 쪽이 깨웠든).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
