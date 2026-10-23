@@ -35,7 +35,8 @@ declare
 begin
   select s.mode into now_mode
   from public.photo_upload_switch s
-  where s.id;
+  where s.id
+  for share;
 
   if now_mode is null or now_mode = 'paused' then
     raise exception '사진 보관 방식을 바꾸는 중이라 지금은 사진을 올릴 수 없어요.' using errcode = '55000';
