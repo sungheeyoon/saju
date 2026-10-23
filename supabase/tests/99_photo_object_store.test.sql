@@ -5,7 +5,7 @@
 -- 1. **표를 받아야 놓는다** — 열쇠는 DB 가 내 접두사로 짓고, 표는 한 번만 쓰이며, 남의 표로는 못 놓는다. 하루 한도는 표를 받을 때 센다
 -- 2. **열쇠를 잃는 모든 길이 지울 줄에 넣는다** — 바꾸기(저장소 · 바이트 길) · 지우기 · 계정 삭제. 자리만 옮기면 안 넣는다
 -- 3. **저장하지 못한 올리기가 고아로 안 남는다** — 앱이 버린 표, 한 시간 지난 표가 지울 줄로 간다
--- 4. **청소기는 아직 쓰이는 열쇠를 안 지운다** · 실패는 간격을 늘리고 다섯 번째부터 알린다
+-- 4. **청소기는 아직 쓰이는 열쇠를 안 지운다** · 실패는 첫 번부터 알린다(다음 시간에 다시 — `99_photo_sweep_hourly`, `20261229090000`)
 -- 5. **월 점검의 열쇠 목록**(`photo_object_keys`)은 열쇠 줄만 낸다
 -- 6. **한 줄은 바이트 또는 열쇠 하나** · 청소기 · 열쇠 목록은 로그인한 사람에게 닫혀 있다
 begin;
@@ -65,7 +65,7 @@ select ok(has_function_privilege('authenticated', 'public.begin_my_photo_upload(
 /** 다른 시험이 남긴 지울 줄 · 알림과 섞이지 않게 — 트랜잭션 안이라 되돌아간다 */
 delete from public.photo_object_trash;
 delete from public.photo_upload_ticket;
-delete from public.ops_alert where kind = 'photo-trash-stuck';
+delete from public.ops_alert where kind = 'photo-trash-failed';
 
 /**
  * 저장소 길을 재므로 스위치를 `s3` 로 — 기본값 `db` 에서는 저장소 길의 문이 거절한다(`20261228140000`, 그 갈래는
@@ -182,16 +182,11 @@ select ok(not exists (select 1 from due where object_key = (select v from kept w
   '4. 아직 쓰이는 열쇠는 내지 않는다');
 select ok(not pg_temp.trashed((select v from kept where k = 'live')), '4. 쓰이는 열쇠의 줄은 지울 줄에서 걷는다');
 
-select public.photo_trash_settle(array[(select v from kept where k = 'first')], array[(select v from kept where k = 'second')], 'delete:accessdenied');
+select ok(public.photo_trash_settle(array[(select v from kept where k = 'first')], array[(select v from kept where k = 'second')], 'delete:accessdenied'),
+  '4. 첫 실패에 운영 알림을 낸다');
 select ok(not pg_temp.trashed((select v from kept where k = 'first')), '4. 지운 것은 걷는다');
 select ok(not exists (select 1 from public.photo_trash_batch(100) b where b.object_key = (select v from kept where k = 'second')),
   '4. 못 지운 것은 다음 차례까지 안 나온다');
-
-reset role;
-update public.photo_object_trash set attempts = 4 where object_key = (select v from kept where k = 'second');
-set local role service_role;
-select ok(public.photo_trash_settle(null, array[(select v from kept where k = 'second')], 'delete:accessdenied'),
-  '4. 다섯 번째 실패에 운영 알림을 낸다');
 
 -- ── 5. 월 점검의 열쇠 목록 ─────────────────────────────────────────────────
 
