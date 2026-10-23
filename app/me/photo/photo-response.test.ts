@@ -94,6 +94,17 @@ describe('사진 한 장을 내주는 자리', () => {
       rpc.mockResolvedValue({ data: [{ content_type: 'image/webp', base64: null, object_key: KEY, version: VERSION }], error: null });
       expect((await photoResponse(asked(), 'u-1', 1)).status).toBe(500);
     });
+
+    it('저장소가 던지면(권한 403 등) 404 로 숨기지 않고 500 이다 — 없는 객체(null)만 404', async () => {
+      rpc.mockResolvedValue({ data: [{ content_type: 'image/webp', base64: null, object_key: KEY, version: VERSION }], error: null });
+      const get = vi.spyOn(memory.store, 'get').mockRejectedValue(Object.assign(new Error('Access Denied'), { name: 'AccessDenied' }));
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      expect((await photoResponse(asked(), 'u-1', 1)).status).toBe(500);
+      expect(logged).toHaveBeenCalled();
+      get.mockRestore();
+      logged.mockRestore();
+    });
   });
 
   it('DB 가 고장 나면 500 이고 그 까닭이 기록에 남는다', async () => {

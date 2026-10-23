@@ -147,8 +147,12 @@ describe('스위치 셋 × 올리는 액션', () => {
 });
 
 describe('화면의 안내와 DB 의 거절이 같은 글자다', () => {
-  it('스위치 마이그레이션이 멈춘 동안 내는 문장이 화면의 첫 줄과 같다', () => {
-    const migration = readFileSync('supabase/migrations/20261228140000_photo_uploads_follow_one_switch.sql', 'utf8');
+  it.each([
+    '20261228140000_photo_uploads_follow_one_switch.sql',
+    /* 살아 있는 정의 — 스위치 줄을 for share 로 읽게 다시 세웠다(ADR 0203 덧붙임) */
+    '20261229150000_a_switch_change_waits_for_the_uploads_in_flight.sql',
+  ])('검사 함수(%s)가 멈춘 동안 내는 문장이 화면의 첫 줄과 같다', (file) => {
+    const migration = readFileSync(`supabase/migrations/${file}`, 'utf8');
 
     expect(migration).toContain(`raise exception '${PHOTO_UPLOADS_PAUSED}' using errcode = '55000'`);
     expect(migration).toContain(`raise exception '${WRONG_PATH}' using errcode = '55000'`);
