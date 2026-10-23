@@ -1,4 +1,4 @@
--- 사진의 바이트가 저장소에 살 수 있다 — 표 · 지울 줄 · 열쇠 목록 (`20261227090000` · `20261227150000`, G-120)
+-- 사진의 바이트가 저장소에 살 수 있다 — 표 · 지울 줄 · 열쇠 목록 (`20261227090000`, G-120)
 --
 -- 여기서 재는 것.
 --
@@ -6,10 +6,10 @@
 -- 2. **열쇠를 잃는 모든 길이 지울 줄에 넣는다** — 바꾸기(저장소 · 바이트 길) · 지우기 · 계정 삭제. 자리만 옮기면 안 넣는다
 -- 3. **저장하지 못한 올리기가 고아로 안 남는다** — 앱이 버린 표, 한 시간 지난 표가 지울 줄로 간다
 -- 4. **청소기는 아직 쓰이는 열쇠를 안 지운다** · 실패는 간격을 늘리고 다섯 번째부터 알린다
--- 5. **옛 사진은 옮기지 않는다** — 옮기는 문 셋이 없고, 월 점검의 열쇠 목록(`photo_object_keys`)은 열쇠 줄만 낸다
+-- 5. **월 점검의 열쇠 목록**(`photo_object_keys`)은 열쇠 줄만 낸다
 -- 6. **한 줄은 바이트 또는 열쇠 하나** · 청소기 · 열쇠 목록은 로그인한 사람에게 닫혀 있다
 begin;
-select plan(32);
+select plan(31);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -186,12 +186,7 @@ set local role service_role;
 select ok(public.photo_trash_settle(null, array[(select v from kept where k = 'second')], 'delete:accessdenied'),
   '4. 다섯 번째 실패에 운영 알림을 낸다');
 
--- ── 5. 옛 사진은 옮기지 않는다 ─────────────────────────────────────────────
-
-select ok(to_regprocedure('public.photo_move_begin(uuid)') is null
-  and to_regprocedure('public.photo_bytes_to_move(integer)') is null
-  and to_regprocedure('public.photo_bytes_moved(uuid, integer, bigint, text)') is null,
-  '5. 옮기는 문 셋이 없다 — 옛 장은 바이트로 DB 에 남는다');
+-- ── 5. 월 점검의 열쇠 목록 ─────────────────────────────────────────────────
 
 create temporary table listed as select k.object_key from public.photo_object_keys('', 1000) k;
 grant select on listed to authenticated, service_role;
