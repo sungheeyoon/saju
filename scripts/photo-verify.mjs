@@ -4,7 +4,7 @@
  *     AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<버킷> PHOTO_STORE_REGION=ap-northeast-2 \
  *       NEXT_PUBLIC_SUPABASE_URL=<주소> SUPABASE_SECRET_KEY=<열쇠> node scripts/photo-verify.mjs
  *
- * 월 점검에 돈다(옛 사진은 옮기지 않는다 — DB 에 남는다, `20261227150000`). 열쇠마다 `card` · `large` 를 **머리만**(`HeadObject`) 보고 — 바이트를 안 받는다 —
+ * 켠 뒤 월 점검에 돈다. 열쇠마다 `card` · `large` 를 **머리만**(`HeadObject`) 보고 — 바이트를 안 받는다 —
  * 있는가 · 비지 않았나 · 형식이 DB 와 같은가를 잰다. 어긋난 것이 하나라도 있으면 1 로 끝난다. 찍는 것은 열쇠와 어긋남의
  * 이름뿐이다(열쇠의 앞 칸은 계정 id 다 — 이 출력을 저장소 · 이슈에 붙이지 않는다).
  *
