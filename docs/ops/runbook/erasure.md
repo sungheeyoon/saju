@@ -158,7 +158,7 @@ delete from public.signup_code;
 | --- | --- | --- |
 | Supabase Auth | 로그인 신원·세션·토큰 | `auth.users` 삭제가 identities·sessions·one_time_tokens·mfa_factors 를 cascade 로 데려간다(확인함). 감사 로그·flow state 는 FK 가 없어 `forget_user` 가 손으로 지운다 |
 | Supabase 백업 | 지운 행이 스냅숏에 남는다 | **Free 플랜에는 자동 일일 백업과 PITR 이 없다.** 운영자가 손으로 dump 를 뜬 적이 없으면 남는 것이 없다. 플랜을 올리면 이 줄을 다시 쓴다 |
-| AWS S3 사진 저장소(켠 뒤, G-120) | 프로필 사진 두 벌(`photos/{계정 id}/…`) | 줄이 지워지면 지울 줄(`photo_object_trash`)에 들고 청소 크론이 지운다 — 실패하면 다시 시도하고 운영 알림이 선다. 지울 줄이 비어야 「파기했습니다」다(`docs/ops/runbook/photo-store.md` 「지울 줄이 안 줄 때」). 버킷은 버전 관리를 꺼 이전 판이 안 남는다. 꺼져 있으면 이 줄은 없다 |
+| AWS S3 사진 저장소(켠 뒤, G-120) | 프로필 사진 두 벌(`photos/{계정 id}/…`) | 처리방침의 「탈퇴 신청 후 3일 이내」에 든다. 줄이 지워지면 지울 줄(`photo_object_trash`)에 들고 매시간 청소가 지운다 — 첫 실패에 알림, 미실행 · 잔류는 감시가 알린다(#821). 장치가 실패하면 기한 전에 사람이 `docs/ops/runbook/photo-store.md` 대로 조치한다. 지울 줄이 비어야 「파기했습니다」다. 버킷은 버전 관리를 꺼 이전 판이 안 남는다. 꺼져 있으면 이 줄은 없다 |
 | Vercel 로그 | 요청 로그. 출생 원문은 안 적는다(`prd-archive` 로그 규율) | **Hobby 플랜의 런타임 로그 보존은 1시간.** 플랜을 올리면 이 줄을 다시 쓴다 |
 | OpenAI | 프롬프트에 여덟 글자와 그 위의 사실이 들어간다. 정확한 생년월일시·출생지·분 단위는 안 나간다(ADR 0008) | `store: false` 로 보내되 `background: true` 라 회수용으로 **약 10분** 들고 있다. 그와 별개로 기본 abuse monitoring 로그가 **최대 30일**, 프롬프트 캐시가 마지막 사용 후 **최소 30분**이다 |
 

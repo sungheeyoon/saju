@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { photoPositionOf, photoResponse } from '../../photo-response';
+import { photoPositionOf, photoResponse, photoVariantOf } from '../../photo-response';
 
 /**
  * 사진 한 장 — `n` 은 1부터 세는 자리다(1 = 대표 사진, G-60).
@@ -14,5 +14,5 @@ export async function GET(
   const { userId, n } = await params;
   const position = photoPositionOf(n);
   if (position === null) return new NextResponse(null, { status: 404 });
-  return photoResponse(request, userId, position);
+  return photoResponse(request, userId, position, photoVariantOf(request));
 }

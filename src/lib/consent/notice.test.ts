@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DISCOVERY_DISCLOSURE } from '../discovery';
 import {
   MATCH_PILLARS_DISCLOSURE,
+  NOTICE_ACK_FLOOR,
   NOTICE_VERSION,
   OPTIONAL_CONSENT_NOTE,
   OPTIONAL_CONSENTS,
@@ -230,10 +231,10 @@ it('안내 판본이 값으로 서 있다', () => {
 });
 
 /**
- * v9 의 내용 개정 — 사진 파일을 AWS S3 서울에 맡긴다(G-120, ADR 0202).
+ * v9 — 사진 파일을 AWS S3 서울에 맡긴다(G-120, ADR 0202 · 0203).
  *
- * 사진 파일은 DB 의 줄이 지워진 뒤 정기 삭제 작업이 지운다 — 「탈퇴 3일」 안에 반드시 지워진다고 말하지 않고, 실패하면 다시 시도하고
- * 사람이 조치하는 구조를 말한다.
+ * 사진 파일도 기존 「탈퇴 신청 후 3일 이내」 범위에 든다 — 기한을 늦추거나 예외로 빼지 않는다. 기준은 `notice-v8` 그대로라 확인한
+ * 사람은 다시 안 본다(운영자 결정 2026-10-23).
  */
 describe('사진 저장소', () => {
   const sections = noticeFor(
@@ -246,12 +247,16 @@ describe('사진 저장소', () => {
     expect(lines('맡겨서 처리하는 곳')).toContain('프로필 사진 파일의 보관·제공·삭제는 Amazon Web Services 에 맡기고 서울 리전에서 처리합니다');
   });
 
-  it('사진 파일이 지워지는 차례를 단정 없이 적는다', () => {
+  it('사진 파일도 탈퇴 신청 후 3일 이내 범위에 넣는다', () => {
     const purge = lines('파기 절차와 방법');
-    expect(purge).toContain('정기 삭제 작업이 뒤이어 지웁니다');
-    expect(purge).toContain('이전 판을 남기지 않습니다');
-    expect(purge).toContain('다시 시도하고, 운영자가 알림을 받아 조치합니다');
-    expect(purge).not.toContain('사진 파일도 3일');
+    expect(purge).toContain('3일 이내에 같은 방법으로 자동으로 지웁니다. 저장소에 보관한 프로필 사진 파일도 이 기간 안에 지웁니다');
+    expect(purge).toContain('이전 판을 남기지 않아 복구할 수 없습니다');
+    expect(purge).not.toContain('뒤이어');
+    expect(purge).not.toContain('반드시');
+  });
+
+  it('재확인을 시키지 않는다 — 기준은 v8 그대로다', () => {
+    expect(NOTICE_ACK_FLOOR).toBe('notice-v8');
   });
 });
 
