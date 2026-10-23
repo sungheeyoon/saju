@@ -226,7 +226,33 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v8');
+  expect(NOTICE_VERSION).toBe('notice-v9');
+});
+
+/**
+ * v9 의 내용 개정 — 사진 파일을 AWS S3 서울에 맡긴다(G-120, ADR 0202).
+ *
+ * 사진 파일은 DB 의 줄이 지워진 뒤 정기 삭제 작업이 지운다 — 「탈퇴 3일」 안에 반드시 지워진다고 말하지 않고, 실패하면 다시 시도하고
+ * 사람이 조치하는 구조를 말한다.
+ */
+describe('사진 저장소', () => {
+  const sections = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  );
+  const lines = (title: string) => sections.find((section) => section.title === title)?.lines.join(' ') ?? '';
+
+  it('사진 파일의 보관·제공·삭제를 맡는 곳을 위탁 절에 적는다', () => {
+    expect(lines('맡겨서 처리하는 곳')).toContain('프로필 사진 파일의 보관·제공·삭제는 Amazon Web Services 에 맡기고 서울 리전에서 처리합니다');
+  });
+
+  it('사진 파일이 지워지는 차례를 단정 없이 적는다', () => {
+    const purge = lines('파기 절차와 방법');
+    expect(purge).toContain('정기 삭제 작업이 뒤이어 지웁니다');
+    expect(purge).toContain('이전 판을 남기지 않습니다');
+    expect(purge).toContain('다시 시도하고, 운영자가 알림을 받아 조치합니다');
+    expect(purge).not.toContain('사진 파일도 3일');
+  });
 });
 
 /**
