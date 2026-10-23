@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PHOTO_UPLOAD_MODES, photoUploadModeOf, photoUploadsOnScreen } from './photo-upload-mode';
 
-describe('사진 올리기의 길 — DB 스위치의 값 (G-120, ADR 0204)', () => {
+describe('사진 올리기의 길 — DB 스위치의 값 (G-120, ADR 0203)', () => {
   it.each(PHOTO_UPLOAD_MODES)('%s 는 그대로 읽는다', (mode) => {
     expect(photoUploadModeOf(mode)).toBe(mode);
   });

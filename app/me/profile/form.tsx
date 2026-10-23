@@ -80,7 +80,7 @@ export function ProfileForm({
   current: ProfileInput;
   photos: readonly MyPhoto[];
   userId: string;
-  /** 사진 올리기의 길 — DB 의 스위치(G-120, ADR 0204) */
+  /** 사진 올리기의 길 — DB 의 스위치(G-120, ADR 0203) */
   uploads: PhotoUploadMode;
 }) {
   const [profile, setProfile] = useState(current);

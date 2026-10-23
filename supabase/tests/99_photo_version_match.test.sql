@@ -153,7 +153,7 @@ select is(
 select is(
   (select count(*)::int from public.photo_at((select park from who), 1, 0)),
   1,
-  '저장소에 사는 장도 판정을 지나면 한 줄이다 — 판본이 다르면 라우트가 그 줄의 열쇠로 저장소에서 읽는다(ADR 0204)');
+  '저장소에 사는 장도 판정을 지나면 한 줄이다 — 판본이 다르면 라우트가 그 줄의 열쇠로 저장소에서 읽는다(ADR 0203)');
 
 select * from finish();
 rollback;

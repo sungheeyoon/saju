@@ -91,7 +91,7 @@ export function PhotoGrid({
   userId: string;
   photos: readonly MyPhoto[];
   /**
-   * 올리기의 길 — DB 의 스위치(G-120, ADR 0204). `s3` 면 저장소로, `db` 면 지금처럼 DB 로 보낸다(`usePhotoUploads`).
+   * 올리기의 길 — DB 의 스위치(G-120, ADR 0203). `s3` 면 저장소로, `db` 면 지금처럼 DB 로 보낸다(`usePhotoUploads`).
    * `paused` 면 첫 줄이 안내로 바뀌고 올리는 자리(빈 칸의 + · 「사진 변경」)가 안 선다 — 옮기기 · 위치 조정 · 지우기는 그대로다.
    * 화면의 값이 낡아도 DB 가 거절하고, 실패를 받은 화면은 목록을 다시 읽어 새 길로 선다(`failed`)
    */

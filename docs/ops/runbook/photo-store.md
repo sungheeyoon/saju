@@ -1,10 +1,10 @@
-# 운영 절차 — 사진 저장소 (G-120, ADR 0202 · 0204)
+# 운영 절차 — 사진 저장소 (G-120, ADR 0202 · 0203)
 
 색인은 `docs/ops/runbook.md` 다.
 
 사진의 바이트를 AWS S3 서울에 두는 일. **지금은 꺼져 있다** — 올리기의 스위치(`public.photo_upload_switch`)가 `db` 이고 `PHOTO_STORE_*`
 다섯이 운영에 없어 사진은 DB(`profile_photo.bytes`)에 산다. 바꾸는 길과 그 뒤의 손일을 여기 적는다. 설계는 ADR 0202, 열람 방식(안 A) ·
-스위치 · 전환 차례는 ADR 0204, 규격 · 출처는 `docs/product/gaps/records/g-120.md`.
+스위치 · 전환 차례는 ADR 0203, 규격 · 출처는 `docs/product/gaps/records/g-120.md`.
 
 ## 올리기의 스위치
 
@@ -31,7 +31,7 @@ select mode, changed_at from public.photo_upload_switch;
 
 ## 사진 저장소로 바꾼다
 
-**운영자 결정(2026-10-23, ADR 0204): 업로드 차단 → 기존 사진 전체 삭제 → 0건 확인 → S3 업로드 개방.** 옛 사진은 옮기지 않는다 —
+**운영자 결정(2026-10-23, ADR 0203): 업로드 차단 → 기존 사진 전체 삭제 → 0건 확인 → S3 업로드 개방.** 옛 사진은 옮기지 않는다 —
 **되돌릴 수 없다**(운영 DB 에 백업이 없다, Supabase Free · 간극 대장 G-63). 차단이 먼저라 지우는 동안 새 바이트 줄이 안 생기고, 지운 뒤
 올리는 장은 모두 저장소에 산다 — 「먼저 바꿔 올리면 남는다」는 없다. 걸음마다 운영자가 따로 지시한다 — 에이전트는 이 SQL 을 돌리지 않는다.
 
@@ -144,7 +144,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 | 암호화 | 기본(SSE-S3) | |
 | 수명 주기 | 「Delete expired object delete markers or incomplete multipart uploads」 — 미완료 멀티파트 1일 | 앱은 멀티파트를 안 쓰지만 도구가 끊긴 흔적을 안 남게 |
 | 접두사 | `photos/` | 열쇠는 `photos/{계정 id}/{올림 id}`, 두 벌은 그 아래 `card` · `large`(`src/lib/profile/photo-variants.ts`) |
-| CORS | 두지 않는다 | 브라우저가 버킷에 직접 안 닿는다(열람 방식 A, ADR 0204) |
+| CORS | 두지 않는다 | 브라우저가 버킷에 직접 안 닿는다(열람 방식 A, ADR 0203) |
 | 앱 역할 이름 | `saju-photo-store` | 세션 이름도 같다(`app/me/photo/s3-store.ts`) — CloudTrail 에서 반출(`saju-audit-export`)과 가른다 |
 | 도구 역할 이름 | `saju-photo-admin` | 사람의 AWS 프로필(SSO · MFA)에서만 받는다. Vercel 에 넣지 않는다 |
 
@@ -203,7 +203,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 ```
 
 - `PutObject` — 올리기(두 벌). `DeleteObject` — 청소기와 올리기의 되돌리기(`DeleteObjects` 도 객체마다 이 권한을 본다)
-- `GetObject` — 열람(안 A — 사진 라우트가 판정 뒤 읽는다, ADR 0204)
+- `GetObject` — 열람(안 A — 사진 라우트가 판정 뒤 읽는다, ADR 0203)
 - `ListBucket` 이 없다 — 앱은 키를 DB 에서만 받는다. 버킷 밖 · `photos/` 밖에는 닿지 않는다
 
 **도구 역할의 권한 정책**(`scripts/photo-verify.mjs` · 손 정리 — 도구는 저장소에 쓰지 않으므로 `PutObject` 가 없다):

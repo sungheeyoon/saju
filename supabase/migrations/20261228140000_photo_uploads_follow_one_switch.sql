@@ -1,4 +1,4 @@
--- 사진 올리기는 DB 의 스위치 하나를 따른다 — `db` · `paused` · `s3` (G-120, ADR 0204)
+-- 사진 올리기는 DB 의 스위치 하나를 따른다 — `db` · `paused` · `s3` (G-120, ADR 0203)
 --
 -- 운영자 결정(2026-10-23): 사진 저장소로 바꿀 때 **업로드 차단 → 기존 사진 전체 삭제 → 0건 확인 → S3 업로드 개방** 의 차례로
 -- 간다. 차단은 화면만이 아니라 서버의 모든 올리는 문에 선다. 그래서 **올리는 문마다 스위치를 보고 제 길이 아니면 거절한다** —
@@ -28,7 +28,7 @@ create table public.photo_upload_switch (
 );
 
 comment on table public.photo_upload_switch is
-  '사진 올리기의 길 — 한 줄뿐. db(바이트) · paused(모두 거절) · s3(저장소). 운영 SQL 로 바꾼다 (G-120, ADR 0204)';
+  '사진 올리기의 길 — 한 줄뿐. db(바이트) · paused(모두 거절) · s3(저장소). 운영 SQL 로 바꾼다 (G-120, ADR 0203)';
 
 insert into public.photo_upload_switch (id, mode) values (true, 'db');
 

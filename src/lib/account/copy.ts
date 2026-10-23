@@ -26,7 +26,7 @@ export const BETA_SIGNUP_CODE_NOTE =
 export const PHOTO_ADD = '사진 추가';
 
 /**
- * 사진 올리기가 멈춘 동안(스위치 `paused`, G-120 · ADR 0204) 프로필 사진 판의 첫 줄 — DB 의 거절(`photo_upload_must_be`)도 같은
+ * 사진 올리기가 멈춘 동안(스위치 `paused`, G-120 · ADR 0203) 프로필 사진 판의 첫 줄 — DB 의 거절(`photo_upload_must_be`)도 같은
  * 글자다(대장 settings-05, 확인 전).
  */
 export const PHOTO_UPLOADS_PAUSED = '사진 보관 방식을 바꾸는 중이라 지금은 사진을 올릴 수 없어요.';

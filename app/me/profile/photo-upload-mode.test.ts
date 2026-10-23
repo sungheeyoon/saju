@@ -6,7 +6,7 @@ import { PHOTO_UPLOADS_PAUSED } from '@/src/lib/account/copy';
 import type { PhotoUploadMode } from '@/src/lib/profile';
 
 /**
- * **사진 올리기의 스위치 셋 × 문 · 화면**(G-120, ADR 0204).
+ * **사진 올리기의 스위치 셋 × 문 · 화면**(G-120, ADR 0203).
  *
  * 거절은 DB 가 한다(`photo_upload_must_be` — `supabase/tests/99_photo_upload_switch.test.sql` 이 잰다). 여기서 재는 것은 앱 쪽이다.
  *

@@ -46,7 +46,7 @@ export default async function ProfilePage() {
 
   /*
     바이트는 이 화면에 안 실린다 — 자리와 판본만 읽고 그림은 주소로 받아 간다(`/me/photo/[userId]/[n]`). 올리기의 길(`db` ·
-    `paused` · `s3`)은 DB 의 스위치가 정한다(G-120, ADR 0204)
+    `paused` · `s3`)은 DB 의 스위치가 정한다(G-120, ADR 0203)
   */
   const [photos, uploads] = await Promise.all([myPhotos(), photoUploadMode()]);
 
