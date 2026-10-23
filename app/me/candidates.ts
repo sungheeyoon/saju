@@ -165,8 +165,9 @@ const avatarElementOf = (value: string | null | undefined): Element | null =>
 /**
  * 한 사람의 사진 주소들 — `/me/photo/{id}/{n}`, `n` 은 1부터 세는 자리다(G-60).
  *
- * 판본을 안 붙인다. 남의 사진은 `private, max-age=60` 이라 순서를 바꾼 뒤 길어야 1분 옛 장이 서고,
- * 판본을 실으려면 목록이 장마다 시각을 내줘야 한다 — 카드가 쓰지 않는 값을 내보내지 않는다.
+ * 판본을 안 붙인다. 사진은 `private, no-cache` 에 판본 `ETag` 라 브라우저가 쓸 때마다 묻고, 순서를 바꾸면
+ * 그 자리의 판본이 달라 새 장이 바로 선다(G-119, `app/me/photo/photo-response.ts`). 판본을 실으려면 목록이 장마다
+ * 시각을 내줘야 한다 — 카드가 쓰지 않는 값을 내보내지 않는다.
  */
 export const photoUrlsOf = (userId: string, count: number): string[] =>
   Array.from({ length: Math.max(0, Math.min(count, 6)) }, (_, index) => `/me/photo/${userId}/${index + 1}`);

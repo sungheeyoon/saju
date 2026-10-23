@@ -194,6 +194,8 @@ finish() {
 # - **값은 저장소 밖에 둔다** — `~/.config/saju/aws-wizard.env`(`AWS_WIZARD_STATE` 로 바꾼다). 버킷 이름 · 역할 ARN ·
 #   계정 번호 · 걸음의 날짜뿐이고 비밀은 없다(열쇠를 만들지 않는다). 그래도 문서 · 채팅 · 커밋에 옮기지 않는다.
 # - **되돌릴 수 없는 걸음은 묻는다** — Compliance 전환은 버킷 이름을 그대로 쳐야 간다.
+# - **검증은 그 검증이 본 설정에만 유효하다** — 지문(버킷 · 역할 · 정책 · Vercel 팀 · 프로젝트)이 달라졌거나 Redeploy ·
+#   Vercel 세 값의 확인이 남았으면 Stage 12 를 다시 잰다. Compliance 가 400일보다 짧으면 끝냈다고 하지 않는다.
 # - 시험: `scripts/aws-wizard.test.ts` — 가짜 `aws` · `vercel` · `npm` 으로 처음 · 재실행 · 부분 실패 · 재사용 · 전환을 잰다.
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -220,6 +222,8 @@ EXPORT_PREFIX="operator-access"
 PROBE_PREFIX="wizard-probe"
 CRON_PATH="/api/cron/audit-export"
 BUCKET_STEM="saju-audit-"
+# Compliance 의 목표 일수 — 이보다 짧으면 끝나지 않았다
+COMPLIANCE_DAYS=400
 
 # 이번 실행에서 남은 것 — 끝에 한꺼번에 보인다
 REMAINING=()
@@ -301,6 +305,34 @@ ensure_role() {
   awsa iam put-role-policy --role-name "$name" --policy-name "$policy_name" --policy-document "$policy" >/dev/null
   step "권한 정책 $policy_name 을 맞췄다" >&2
   printf '%s' "$arn"
+}
+
+# 검증이 본 설정의 지문 — 인자를 줄마다 이어 sha256 하나로. 상태 파일에는 지문으로만 남는다
+fingerprint() { printf '%s\n' "$@" | sha256sum | cut -d' ' -f1; }
+
+# Production 의 실제 값을 읽는다 — 세 이름(비밀이 아니다)만 연관 배열 remote 에 담는다.
+# `vercel env pull` 은 다른 변수(비밀 포함)도 함께 쓰므로, 저장소 밖 임시 폴더(권한 700)에 받아 세 이름만 뽑고
+# 곧 지운다 — 파일 내용은 화면에도 로그에도 내지 않는다. 못 읽으면 1 을 돌려준다(부르는 쪽이 「확인 못 함」으로)
+declare -A remote=()
+read_vercel_values() {
+  local dir file line name value rc=0
+  dir=$(mktemp -d "${TMPDIR:-/tmp}/saju-aws-wizard.XXXXXX") || return 1
+  chmod 700 "$dir"
+  file="$dir/production.env"
+  if (umask 077 && vercel env pull "$file" --environment production "${vercel_scope[@]}" --yes) >/dev/null 2>&1 \
+      && [[ -f "$file" ]]; then
+    for name in AUDIT_EXPORT_BUCKET AUDIT_EXPORT_REGION AUDIT_EXPORT_ROLE_ARN; do
+      line=$(grep -E "^${name}=" "$file" | tail -n1 || true)
+      [[ -n "$line" ]] || continue
+      value="${line#*=}"
+      value="${value%\"}"; value="${value#\"}"
+      remote[$name]="$value"
+    done
+  else
+    rc=1
+  fi
+  rm -rf "$dir"
+  return "$rc"
 }
 
 # ── 시작 ─────────────────────────────────────────────────────────────────
@@ -530,21 +562,33 @@ declare -A wanted=(
   [AUDIT_EXPORT_REGION]="$REGION"
   [AUDIT_EXPORT_ROLE_ARN]="$export_role_arn"
 )
+# 상태 파일이 아니라 Production 의 실제 값과 견준다 — 대시보드에서 바뀐 값을 「그대로다」라 하지 않는다
+pulled=yes
+read_vercel_values || pulled=""
+# 셋이 다 Production 에 이 마법사의 값으로 있는가 — Stage 12 · 13 의 문이다
+vercel_ok=yes
 for name in AUDIT_EXPORT_BUCKET AUDIT_EXPORT_REGION AUDIT_EXPORT_ROLE_ARN; do
   if grep -qw "$name" <<<"$existing"; then
-    if [[ "$(state "VERCEL_SET_${name}")" == "${wanted[$name]}" ]]; then
-      step "$name — 이 마법사가 넣은 값 그대로다"
+    if [[ -z "$pulled" || -z "${remote[$name]:-}" ]]; then
+      # 못 읽었다(Sensitive 면 값이 비어 온다) — 같다고 말하지 않는다
+      warn "$name — Production 의 값을 못 읽어 이 마법사 값과 같은지 모른다"
+      REMAINING+=("Stage 10 — Production 의 $name 값을 확인 못 함(대시보드에서 상태 파일의 같은 이름 줄과 견준다)")
+      vercel_ok=""
       continue
     fi
-    if ! confirm "$name 이 Production 에 이미 있다. 이 마법사의 값으로 덮어쓸까?"; then
+    if [[ "${remote[$name]}" == "${wanted[$name]}" ]]; then
+      step "$name — Production 값이 이 마법사 값과 같다"
+      continue
+    fi
+    if ! confirm "$name 이 Production 에 이미 있다(다른 값). 이 마법사의 값으로 덮어쓸까?"; then
       REMAINING+=("Stage 10 — $name 를 덮어쓰지 않았다(값이 맞는지 대시보드에서 본다)")
+      vercel_ok=""
       continue
     fi
     vercel env add "$name" production "${vercel_scope[@]}" --value "${wanted[$name]}" --no-sensitive --yes --force >/dev/null
   else
     vercel env add "$name" production "${vercel_scope[@]}" --value "${wanted[$name]}" --no-sensitive --yes >/dev/null
   fi
-  remember "VERCEL_SET_${name}" "${wanted[$name]}"
   remember REDEPLOY_PENDING "yes"
   step "$name 을 넣었다"
 done
@@ -568,18 +612,36 @@ fi
 # ── 12 ───────────────────────────────────────────────────────────────────
 stage "첫 반출 · Governance 검증"
 gov_set="$(state GOVERNANCE_SET_EPOCH)"
-gov_ok="$(state GOVERNANCE_VERIFIED_EPOCH)"
-# Governance 를 건 뒤 24시간이 지나서 검증이 초록이었나 — 13 의 문이다
-matured() { [[ -n "$gov_ok" && -n "$gov_set" ]] && (( gov_ok - gov_set >= DAY )); }
 lock=$(lock_state "$bucket")
 read -r mode days <<<"$lock"
+# 검증이 본 설정 — 바뀌면 지난 검증은 지금 설정을 잰 것이 아니다. 보존은 따로 적는다(13 이 Governance → Compliance 로 바꾼다)
+config_fp=$(fingerprint "$bucket" "$REGION" "$export_role_arn" "$verify_role_arn" "$export_trust" "$export_policy" \
+  "$verify_trust" "$verify_policy" "$VERCEL_TEAM" "$VERCEL_PROJECT")
+# 잴 수 있나 — 보존이 걸렸고 · OIDC 를 켰고 · Redeploy 가 끝났고 · Vercel 세 값이 이 마법사 값인 것을 읽어 확인했다
+ready_to_measure() {
+  [[ "$mode" != "None" && "$(state VERCEL_OIDC_READY)" == "yes" && "$(state REDEPLOY_PENDING)" != "yes" && -n "$vercel_ok" ]]
+}
+gov_ok="$(state GOVERNANCE_VERIFIED_EPOCH)"
+if [[ -n "$gov_ok" ]] && { [[ "$(state GOVERNANCE_VERIFIED_FP)" != "$config_fp" ]] || ! ready_to_measure; }; then
+  warn "지난 검증은 지금 설정과 다르다(또는 Redeploy · Vercel 값 확인이 남았다) — 무효로 하고 다시 잰다"
+  remember GOVERNANCE_VERIFIED_EPOCH ""
+  remember GOVERNANCE_VERIFIED_FP ""
+  remember GOVERNANCE_VERIFIED_LOCK ""
+  gov_ok=""
+fi
+# Governance 를 건 뒤 24시간이 지나서, 지금과 같은 설정 · 같은 보존에서 검증이 초록이었나 — 13 의 문이다
+matured() {
+  [[ -n "$gov_ok" && -n "$gov_set" ]] && (( gov_ok - gov_set >= DAY )) \
+    && [[ "$(state GOVERNANCE_VERIFIED_LOCK)" == "$mode $days" ]]
+}
+long_compliance() { [[ "$mode" == "COMPLIANCE" && "$days" =~ ^[0-9]+$ ]] && (( days >= COMPLIANCE_DAYS )); }
 if matured; then
-  step "Governance 를 걸고 24시간 뒤에 검증했다 — 건너뛴다"
-elif [[ "$mode" == "COMPLIANCE" && -n "$gov_ok" ]]; then
-  step "이미 Compliance 다 — 건너뛴다. 달마다의 검증은 runbook 「반출」 9"
-elif [[ "$(state REDEPLOY_PENDING)" == "yes" || "$(state VERCEL_OIDC_READY)" != "yes" || "$mode" == "None" ]]; then
-  warn "Stage 5 · 6 · 11 이 남아 아직 잴 수 없다"
-  REMAINING+=("Stage 12 — 5 · 6 · 11 을 끝낸 뒤 다시 돌린다")
+  step "Governance 를 걸고 24시간 뒤에 지금 설정으로 검증했다 — 건너뛴다"
+elif long_compliance && [[ -n "$gov_ok" ]]; then
+  step "이미 Compliance ${days}일이고 지금 설정으로 검증했다 — 건너뛴다. 달마다의 검증은 runbook 「반출」 9"
+elif ! ready_to_measure; then
+  warn "Stage 5 · 6 · 10 · 11 이 남아 아직 잴 수 없다"
+  REMAINING+=("Stage 12 — 5 · 6 · 10 · 11 을 끝낸 뒤 다시 돌린다")
 else
   say "반출 크론을 지금 한 번 돌리고(매일 서울 03:37 전후에도 돈다), 셋을 본다 —"
   say "객체가 섰나 · 검증(audit:verify)이 초록인가 · 보존이 지우기를 막나."
@@ -626,6 +688,8 @@ else
           || stop "지우기 시험이 보존이 아닌 까닭으로 실패했다 — 막혔는지 알 수 없다." "$delete_err"
         step "지우기가 막혔다(보존 ${mode} ${days}일)"
         remember GOVERNANCE_VERIFIED_EPOCH "$(now)"
+        remember GOVERNANCE_VERIFIED_FP "$config_fp"
+        remember GOVERNANCE_VERIFIED_LOCK "$mode $days"
         gov_ok="$(state GOVERNANCE_VERIFIED_EPOCH)"
         if ! matured; then
           REMAINING+=("Stage 12 — Governance 를 건 지 24시간이 안 됐다. 그 뒤 정기 반출이 한 번 돈 다음 다시 돌려 한 번 더 잰다")
@@ -641,23 +705,28 @@ fi
 stage "Compliance 400일로 옮기기 — 되돌릴 수 없다"
 lock=$(lock_state "$bucket")
 read -r mode days <<<"$lock"
-if [[ "$mode" == "COMPLIANCE" ]]; then
+if long_compliance; then
   step "이미 Compliance ${days}일이다 — 건너뛴다"
+elif [[ "$mode" == "COMPLIANCE" ]]; then
+  # 짧은 Compliance — 마법사는 늘리지 않는다. 되돌릴 수 없는 걸음이라 runbook 의 손 절차로(버킷 이름을 맞춰 친다)
+  warn "기본 보존이 Compliance ${days}일 — ${COMPLIANCE_DAYS}일보다 짧다. 끝난 것으로 치지 않는다."
+  note "늘리는 법: docs/ops/runbook/security.md 「마법사가 멈췄을 때」의 「Compliance N일 — 400일보다 짧다」"
+  REMAINING+=("Stage 13 — 기본 보존이 Compliance ${days}일이다. runbook 의 절차로 ${COMPLIANCE_DAYS}일로 늘린 뒤 다시 돌린다")
 elif [[ "$mode" != "GOVERNANCE" ]] || ! matured; then
   say "아직이다 — Governance 를 걸고 24시간 뒤에 Stage 12 가 초록이어야 옮긴다(runbook 「반출」 3 → 4)."
   REMAINING+=("Stage 13 — Compliance 400일 전환(Governance 24시간 뒤 Stage 12 가 초록인 다음)")
 else
   warn "이 뒤에 올라오는 객체는 루트도 400일 동안 못 지우고, 보존을 줄일 수 없다."
-  note "Governance 동안 올라간 객체는 Governance 그대로다 — 필요하면 객체마다 올린다(runbook 「반출」 4)."
+  note "Compliance 는 그 뒤 올라오는 객체의 기본값이다 — Governance 시험 기간의 객체는 Governance 1일 그대로다(runbook 「반출」 4)."
   printf '  %s? 옮기려면 버킷 이름을 그대로 친다:%s ' "$YELLOW" "$RESET"
   typed=""
   read -r typed || true
   if [[ "$typed" == "$bucket" ]]; then
     awsa s3api put-object-lock-configuration --bucket "$bucket" --object-lock-configuration \
-      '{"ObjectLockEnabled":"Enabled","Rule":{"DefaultRetention":{"Mode":"COMPLIANCE","Days":400}}}' >/dev/null
+      '{"ObjectLockEnabled":"Enabled","Rule":{"DefaultRetention":{"Mode":"COMPLIANCE","Days":'"$COMPLIANCE_DAYS"'}}}' >/dev/null
     lock=$(lock_state "$bucket")
     read -r mode days <<<"$lock"
-    [[ "$mode" == "COMPLIANCE" && "$days" == "400" ]] || stop "다시 읽은 기본 보존이 $mode $days 이다."
+    [[ "$mode" == "COMPLIANCE" && "$days" == "$COMPLIANCE_DAYS" ]] || stop "다시 읽은 기본 보존이 $mode $days 이다."
     remember COMPLIANCE_SET_AT "$(today)"
     step "Compliance 400일을 걸었다"
   else
@@ -667,11 +736,14 @@ fi
 
 trap - ERR
 finish
-if (( ${#REMAINING[@]} )); then
+# 「끝」은 다시 읽은 기본 보존이 Compliance 400일 이상이고 남은 것이 없을 때만 말한다
+if (( ${#REMAINING[@]} )) || ! long_compliance; then
   warn "남은 것 — 끝내고 다시 돌린다(된 걸음은 건너뛴다):"
   for r in "${REMAINING[@]}"; do note "  - $r"; done
+  long_compliance || (( ${#REMAINING[@]} )) || note "  - 기본 보존이 아직 Compliance ${COMPLIANCE_DAYS}일이 아니다(지금 $mode $days)"
 else
-  printf '  %s반출이 Compliance 400일로 돈다.%s\n' "$GREEN" "$RESET"
+  printf '  %s반출이 Compliance %s일로 돈다.%s\n' "$GREEN" "$days" "$RESET"
+  note "Compliance 는 전환 뒤 올라오는 객체의 기본값이다 — Governance 시험 기간의 객체는 Governance 1일 그대로다(하루 뒤 풀린다)."
 fi
 note "값은 $ENV_FILE 에 있다 — 문서 · 채팅 · 커밋에 옮기지 않는다. #304 의 7 에는 「끝」과 날짜만 적는다."
 printf '\n'

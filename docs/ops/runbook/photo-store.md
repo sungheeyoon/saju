@@ -19,9 +19,10 @@
    **둘을 함께 넣으면 오설정이다**(올리기는 DB 길로 가고 청소기가 500). 최신 Production 을 Redeploy 하고 Ready 를 본다. 값은 문서 ·
    채팅 · 커밋에 적지 않는다
 5. **확인** — 사람이 운영 계정으로 프로필 사진을 한 장 올린다 → 칸에 선다 → S3 콘솔의 `photos/<계정 id>/` 아래 `card` · `large` 가
-   있다 → 그 장을 지운다 → 다음 날 청소 뒤 두 객체가 없다. 청소 크론의 응답(`/api/cron/photo-sweep`, Vercel 의 Cron 로그)이
-   `{"configured":true,…,"failed":0}` 이다
-6. **옛 사진을 옮긴다** — 아래 「옛 사진 옮기기」. 옮기기 전에도 옛 장은 DB 에서 그대로 열린다
+   있다 → 그 장을 지운다 → 다음 날 청소 뒤 두 객체가 없다. 청소 크론의 응답(`/api/cron/photo-sweep`, Vercel 의 Cron 로그)이 200 이고
+   `{"ticketsMoved":…,"deleted":…,"failed":0,"errorClass":null,"alerted":false}` 꼴이다(`app/api/cron/photo-sweep/sweep.ts` 의
+   `SweepResult` — `configured` 칸은 없다). `{"configured":false}` 면 아직 꺼져 있다 — 4 의 값이 그 배포에 안 들었다
+6. **옛 사진은 옮기지 않는다** — 아래 「옛 사진은 DB 에 남는다」
 
 **끄는 길 — 끄기 전에 지울 줄을 비운다.** 끄면 청소기도 멈춘다(「설정 안 됨」) — 그 사이 탈퇴 · 지운 장의 객체가 저장소에 남는다. 그래서
 ① 아래 「지울 줄이 안 줄 때」의 집계 질의에서 줄 수가 0 인지 보고(크론을 손으로 한 번 부를 수 있다), ② 4 의 값을 지우고 Redeploy. 새
@@ -105,7 +106,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 - `GetObject` — 열람(어느 안이든 쓴다 — A 는 함수가 읽고, B · C 는 서명이 이 권한을 빌린다). 열람 방식이 정해지기 전에는 앱이 부르지 않는다
 - `ListBucket` 이 없다 — 앱은 키를 DB 에서만 받는다. 버킷 밖 · `photos/` 밖에는 닿지 않는다
 
-**도구 역할의 권한 정책**(`scripts/photo-move.mjs` · `scripts/photo-verify.mjs` · 손 정리):
+**도구 역할의 권한 정책**(`scripts/photo-verify.mjs` · 손 정리 — 옛 사진을 옮기지 않으므로 `PutObject` 가 없다):
 
 ```json
 {
@@ -114,7 +115,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
     {
       "Sid": "PhotoObjects",
       "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Action": ["s3:GetObject", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::<사진 버킷>/photos/*"
     },
     {
@@ -131,27 +132,13 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 **대안 — 접근 키.** 역할을 못 세운 날만. IAM → Users → `saju-photo-store`(콘솔 접근 없음)에 앱 역할의 권한 정책을 인라인으로 걸고
 Access key 하나. 교체는 `docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 `PHOTO_STORE_*` 줄.
 
-## 옛 사진 옮기기
+## 옛 사진은 DB 에 남는다
 
-**사람만 돌린다.** 얼굴은 개인정보이고, 이 도구는 열쇠(`SUPABASE_SECRET_KEY`)로 DB 의 바이트를 받아 저장소에 쓴다 — 화면에는 수만
-찍는다. 돌리기 전에 대장에 목적 · 실행자 · 시각을 적는다(`docs/ops/runbook/access.md` 「개인정보는 화면으로만」의 대장과 같은 자리).
+**옮기지 않는다(운영자 판단 2026-10-23, 운영 베타).** 한 줄은 바이트 또는 열쇠를 들고, 바이트 줄은 저장소를 켠 뒤에도 지금 길로
+그대로 열린다 — 옛 장은 DB 에 남고, 사람이 그 장을 바꾸거나 새로 올리는 장부터 저장소에 산다. 옮기는 도구와 그 DB 문 셋은
+`20261227150000` 이 걷었다(ADR 0202 의 덧붙인 문단). 옛 장의 화질은 그대로다(긴 변 512px).
 
-```bash
-# 1. 세기만 — 아무것도 안 옮긴다
-AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGION=ap-northeast-2 \
-  NEXT_PUBLIC_SUPABASE_URL=<운영 주소> SUPABASE_SECRET_KEY=<열쇠> node scripts/photo-move.mjs
-# 2. 옮긴다 — 몇 번 돌려도 된다(이미 옮긴 장은 안 나온다)
-... node scripts/photo-move.mjs --execute
-```
-
-- **화질은 돌아오지 않는다** — 옛 장은 긴 변 512px 로 줄여 저장됐고, 도구는 그 바이트를 그대로 두 벌로 쓴다(그래서 옛 장의 `card` 는
-  규격 480 보다 조금 크다)
-- 한 장마다 DB 에서 표와 열쇠를 먼저 받는다(`photo_move_begin`) — 도구가 두 벌을 쓰다 죽어도 표가 남아 청소기가 한 시간 뒤 지운다
-- 판본(`?v=`)은 그대로다 — 옮기는 동안 화면이 깨지지 않는다(열람 방식이 들어온 뒤에 돌린다 — 「사진 저장소를 켠다」 6)
-- 그 사이 사람이 그 장을 바꿨으면 DB 가 안 적고 올린 객체를 지울 줄에 넣는다 — 건너뛴 수로 찍힌다. 다시 돌리면 이어진다
-- 저장소에 못 쓰면(권한 · 망) 그 장을 DB 에 적기 전에 멈춘다
-
-## 옮긴 뒤 재기
+## 열쇠 줄 재기
 
 ```bash
 AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGION=ap-northeast-2 \
@@ -159,7 +146,7 @@ AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGI
 ```
 
 DB 의 열쇠 줄마다 두 벌의 머리(`HeadObject`)를 본다 — 있나 · 비지 않았나 · 형식이 DB 와 같은가. 어긋남이 하나라도 있으면 1 로 끝난다.
-출력의 열쇠 앞 칸은 계정 id 다 — 저장소 · 이슈 · 채팅에 붙이지 않는다. 월 점검에도 한 번.
+바이트 줄(옛 장)은 재지 않는다 — DB 에 산다. 출력의 열쇠 앞 칸은 계정 id 다 — 저장소 · 이슈 · 채팅에 붙이지 않는다. 켠 뒤 월 점검에 한 번.
 
 ## 지울 줄이 안 줄 때
 
@@ -184,7 +171,7 @@ DB 가 장부이고 저장소가 바이트다. 둘은 따로 되돌아간다 —
 | DB 를 앞 시점으로 되돌림 | 그 시점의 줄 — 그 뒤에 지운 장의 줄이 돌아온다 | 그 뒤에 청소기가 지운 객체는 **없다**(버전 관리를 끈다) | 돌아온 줄의 사진이 안 열린다(404) — 다시 올려야 한다 |
 | 같은 되돌림 | 그 뒤에 올린 장의 줄이 사라진다 | 그 객체는 **남는다** — 어느 줄도 안 가리켜 안 열린다 | 안 보인다. 저장소의 고아다 — 지금 이것을 찾는 도구는 없다(도구 역할의 `ListBucket` 으로 `photos/` 를 훑어 `scripts/photo-verify.mjs` 의 열쇠와 견주는 손일) |
 | 객체를 잘못 지움 · 버킷 사고 | 줄은 그대로 | 없다 — 다른 사본이 없다 | 그 장이 안 열린다 — 다시 올려야 한다 |
-| 옮기기 전의 옛 장 | 바이트가 DB 에 있다 | — | DB 를 따라 되돌아간다(지금과 같다) |
+| 옛 장(바이트 줄 — 옮기지 않는다) | 바이트가 DB 에 있다 | — | DB 를 따라 되돌아간다(지금과 같다) |
 | 계정 삭제 | 줄이 cascade 로 사라지고 열쇠가 지울 줄에 | 다음 청소(하루 안)에 지운다 | 지운 그 순간부터 안 열린다 |
 
 DB 의 백업 · 되돌림 자체는 이 문서가 다루지 않는다(간극 대장의 그 줄).

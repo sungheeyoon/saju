@@ -14,5 +14,5 @@ export async function GET(
   const { userId, n } = await params;
   const position = photoPositionOf(n);
   if (position === null) return new NextResponse(null, { status: 404 });
-  return photoResponse(userId, position, photoVariantOf(request));
+  return photoResponse(request, userId, position, photoVariantOf(request));
 }

@@ -11,5 +11,5 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
-  return photoResponse(userId, 1, photoVariantOf(request));
+  return photoResponse(request, userId, 1, photoVariantOf(request));
 }
