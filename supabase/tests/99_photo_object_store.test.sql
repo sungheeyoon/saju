@@ -1,4 +1,4 @@
--- 사진의 바이트가 저장소에 살 수 있다 — 표 · 지울 줄 · 옮기는 문 (`20261227090000`, G-120)
+-- 사진의 바이트가 저장소에 살 수 있다 — 표 · 지울 줄 · 열쇠 목록 (`20261227090000` · `20261227150000`, G-120)
 --
 -- 여기서 재는 것.
 --
@@ -6,10 +6,10 @@
 -- 2. **열쇠를 잃는 모든 길이 지울 줄에 넣는다** — 바꾸기(저장소 · 바이트 길) · 지우기 · 계정 삭제. 자리만 옮기면 안 넣는다
 -- 3. **저장하지 못한 올리기가 고아로 안 남는다** — 앱이 버린 표, 한 시간 지난 표가 지울 줄로 간다
 -- 4. **청소기는 아직 쓰이는 열쇠를 안 지운다** · 실패는 간격을 늘리고 다섯 번째부터 알린다
--- 5. **옛 사진을 옮기는 문** — 판본을 안 바꾸고, 그 사이 바뀐 장은 안 덮고 올린 객체를 지울 줄에 넣는다
--- 6. **한 줄은 바이트 또는 열쇠 하나** · 청소기 · 옮기는 문은 로그인한 사람에게 닫혀 있다
+-- 5. **옛 사진은 옮기지 않는다** — 옮기는 문 셋이 없고, 월 점검의 열쇠 목록(`photo_object_keys`)은 열쇠 줄만 낸다
+-- 6. **한 줄은 바이트 또는 열쇠 하나** · 청소기 · 열쇠 목록은 로그인한 사람에게 닫혀 있다
 begin;
-select plan(38);
+select plan(32);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -186,56 +186,25 @@ set local role service_role;
 select ok(public.photo_trash_settle(null, array[(select v from kept where k = 'second')], 'delete:accessdenied'),
   '4. 다섯 번째 실패에 운영 알림을 낸다');
 
--- ── 5. 옛 사진을 옮기는 문 ───────────────────────────────────────────────────
+-- ── 5. 옛 사진은 옮기지 않는다 ─────────────────────────────────────────────
 
-create temporary table moving as
-select m.user_id, m.position, m.version from public.photo_bytes_to_move(200) m
-where m.user_id = (select kim from who);
-grant select on moving to authenticated, service_role;
+select ok(to_regprocedure('public.photo_move_begin(uuid)') is null
+  and to_regprocedure('public.photo_bytes_to_move(integer)') is null
+  and to_regprocedure('public.photo_bytes_moved(uuid, integer, bigint, text)') is null,
+  '5. 옮기는 문 셋이 없다 — 옛 장은 바이트로 DB 에 남는다');
 
-select is((select count(*)::int from moving), 1, '5. 바이트로 사는 장을 낸다');
-
-insert into kept values ('moved', public.photo_move_begin((select kim from who)));
-select ok((select v from kept where k = 'moved') like format('photos/%s/%%', (select kim from who)) and pg_temp.ticketed((select v from kept where k = 'moved')),
-  '5. 옮기기도 그 사람의 접두사로 표를 먼저 받는다');
-
-select ok(public.photo_bytes_moved((select kim from who), (select position from moving), (select version from moving),
-                                   (select v from kept where k = 'moved')),
-  '5. 판본이 그대로면 옮기고 표를 걷는다');
-
+create temporary table listed as select k.object_key from public.photo_object_keys('', 1000) k;
+grant select on listed to authenticated, service_role;
 reset role;
-set local role authenticated;
-select pg_temp.acting((select kim from who));
-select is((select version from public.my_photos() where position = (select position from moving)), (select version from moving),
-  '5. 옮겨도 판본이 그대로다 — 화면의 `?v=` 가 맞다');
-reset role;
-set local role service_role;
-
-insert into kept values ('again', public.photo_move_begin((select kim from who)));
-select ok(not public.photo_bytes_moved((select kim from who), (select position from moving), (select version from moving),
-                                       (select v from kept where k = 'again')),
-  '5. 이미 옮긴(바이트가 아닌) 장은 다시 안 덮는다');
-select ok(pg_temp.trashed((select v from kept where k = 'again')),
-  '5. 안 덮은 올리기는 지울 줄에 간다');
-
-/** 표 없이 온 표시 — 도구가 멈춘 사이 청소기가 표를 옮기고 객체를 지운 뒤다 */
-reset role;
-insert into public.profile_photo (user_id, position, content_type, bytes)
-values ((select lee from who), 1, 'image/png', convert_to('lee-face', 'UTF8'));
-set local role service_role;
-create temporary table lees as
-select m.position, m.version from public.photo_bytes_to_move(200) m where m.user_id = (select lee from who);
-select ok(not public.photo_bytes_moved((select lee from who), (select position from lees), (select version from lees),
-                                       format('photos/%s/33333333-3333-4333-8333-333333333333', (select lee from who))),
-  '5. 표 없는 표시는 받지 않는다');
-select ok(pg_temp.has_bytes_at((select lee from who), 1) and pg_temp.key_at((select lee from who), 1) is null,
-  '5. 표 없는 옮기기는 바이트를 안 지운다 — 하나뿐인 사본이 남는다');
+select ok(exists (select 1 from listed where object_key = (select v from kept where k = 'live'))
+  and not exists (select 1 from listed l join public.profile_photo p on p.object_key = l.object_key where p.bytes is not null),
+  '5. 열쇠 목록은 열쇠 줄만 낸다 — 바이트 줄은 점검 밖이다');
 
 -- ── 2(끝). 계정을 지우면 ─────────────────────────────────────────────────────
 
 reset role;
 select public.forget_user((select kim from who));
-select ok(pg_temp.trashed((select v from kept where k = 'moved')) and not pg_temp.ticketed((select v from kept where k = 'moved')),
+select ok(pg_temp.trashed((select v from kept where k = 'live')),
   '2. 계정을 지우면 남은 열쇠가 지울 줄에 간다');
 
 -- ── 6. 모양과 문 ─────────────────────────────────────────────────────────────
@@ -249,12 +218,10 @@ select ok(
   not has_function_privilege('authenticated', 'public.photo_trash_batch(integer)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_trash_settle(text[], text[], text)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_sweep_tickets()', 'execute')
-  and not has_function_privilege('authenticated', 'public.photo_bytes_to_move(integer)', 'execute')
-  and not has_function_privilege('authenticated', 'public.photo_move_begin(uuid)', 'execute')
-  and not has_function_privilege('authenticated', 'public.photo_bytes_moved(uuid, integer, bigint, text)', 'execute')
   and not has_function_privilege('authenticated', 'public.photo_object_keys(text, integer)', 'execute')
-  and has_function_privilege('service_role', 'public.photo_trash_batch(integer)', 'execute'),
-  '6. 청소기 · 옮기는 문은 열쇠에만 열린다');
+  and has_function_privilege('service_role', 'public.photo_trash_batch(integer)', 'execute')
+  and has_function_privilege('service_role', 'public.photo_object_keys(text, integer)', 'execute'),
+  '6. 청소기 · 열쇠 목록은 열쇠에만 열린다');
 
 select * from finish();
 rollback;
