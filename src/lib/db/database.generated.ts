@@ -4061,10 +4061,11 @@ export type Database = {
       person_save_daily_limit: { Args: never; Returns: number }
       person_save_hourly_limit: { Args: never; Returns: number }
       photo_at: {
-        Args: { p_position: number; p_user_id: string }
+        Args: { p_position: number; p_user_id: string; p_version?: number }
         Returns: {
           base64: string
           content_type: string
+          version: number
         }[]
       }
       photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }

@@ -7,9 +7,9 @@ import { photoResponse } from '../photo-response';
  * 세우는 자리는 대표 한 장이면 된다.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
-  return photoResponse(userId, 1);
+  return photoResponse(request, userId, 1);
 }
