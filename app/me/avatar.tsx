@@ -71,7 +71,7 @@ export function Avatar({
           // eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내주므로 최적화기가 다시 받아 갈 원본이 없다
           <img
             ref={image}
-            src={`/me/photo/${userId}`}
+            src={`/me/photo/${userId}?s=card`}
             alt=""
             width={size}
             height={size}

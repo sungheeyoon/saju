@@ -1032,7 +1032,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 마흔일곱 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔여덟 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

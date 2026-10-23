@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 
+import { isPhotoObjectKey, variantKey, type PhotoVariant } from '@/src/lib/profile';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { recordDbFailure } from '../../db-error';
+import { photoStoreIfReady } from './s3-store';
+import { storeErrorClassOf } from './store';
 
 /**
  * 사진 한 장을 내주는 자리 — **판정은 여기 없다.** 주소 둘(`/me/photo/{id}` · `/me/photo/{id}/{n}`)이 이것을 부른다.
@@ -32,7 +36,12 @@ import { recordDbFailure } from '../../db-error';
  * 나간다** — 못 보게 된 사람은 판본을 맞혀도 0행이라 404 다(ADR 0040). 사진을 바꾸거나 다른 장이
  * 그 자리에 앉으면 판본이 달라 새 바이트가 바로 나간다. 줄어드는 것은 바이트뿐이고 DB 왕복은 장마다 하나 그대로다.
  */
-export async function photoResponse(request: Request, userId: string, position: number): Promise<NextResponse> {
+export async function photoResponse(
+  request: Request,
+  userId: string,
+  position: number,
+  variant: PhotoVariant = 'large',
+): Promise<NextResponse> {
   const held = heldVersionOf(request.headers.get('if-none-match'));
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('photo_at', {
@@ -66,16 +75,37 @@ export async function photoResponse(request: Request, userId: string, position: 
   const cache = { ETag: etagOf(row.version), 'Cache-Control': PHOTO_CACHE };
   if (held !== null && row.version === held) return new NextResponse(null, { status: 304, headers: cache });
 
-  /*
-    바이트가 저장소에 사는 장은 그 장을 어떻게 내줄지(열람 방식)를 아직 안 정했다. 정하기 전에는 없는 장과 같은 404 다.
-    저장소가 꺼진 배포에는 그런 장이 없다.
-  */
-  if (!row.base64) return new NextResponse(null, { status: 404 });
+  if (row.base64) return photoBytes(new Uint8Array(Buffer.from(row.base64, 'base64')), row.content_type, cache);
 
-  return new NextResponse(new Uint8Array(Buffer.from(row.base64, 'base64')), {
-    headers: { ...cache, 'Content-Type': row.content_type },
-  });
+  /*
+    **저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽어 낸다**(G-120 의 안 A, ADR 0203). 판정은 위의 `photo_at` 이 이미 했다 —
+    여기는 그 줄이 든 열쇠만 쓴다(주소의 값으로 열쇠를 짓지 않는다). 저장소가 꺼졌는데 열쇠 줄이 있으면 우리가 고장 난 것이라 500,
+    객체가 없으면(지운 뒤 DB 를 되돌림 등) 없는 장과 같은 404 다. 두 벌(`card` · `large`)은 주소(`?s=card`)가 달라 브라우저가 따로
+    들고, 판본 `ETag` 는 둘에 같다 — 같은 판본의 두 벌은 각자 제 주소에서 바뀌지 않는다.
+  */
+  if (!row.object_key || !isPhotoObjectKey(row.object_key)) return new NextResponse(null, { status: 404 });
+  const store = photoStoreIfReady();
+  if (store === null) {
+    console.error('photo-store: 열쇠 줄이 있는데 저장소가 꺼졌다');
+    return new NextResponse(null, { status: 500 });
+  }
+  try {
+    const stored = await store.get(variantKey(row.object_key, variant));
+    if (stored === null) return new NextResponse(null, { status: 404 });
+    return photoBytes(stored.body, row.content_type, cache);
+  } catch (thrown) {
+    console.error('photo-store: 사진을 읽지 못했다', storeErrorClassOf('get', thrown));
+    return new NextResponse(null, { status: 500 });
+  }
 }
+
+function photoBytes(body: Uint8Array, contentType: string, cache: Record<string, string>): NextResponse {
+  return new NextResponse(new Uint8Array(body), { headers: { ...cache, 'Content-Type': contentType } });
+}
+
+/** 주소의 `?s=card` — 작은 자리(아바타 · 편집 칸)가 작은 벌을 받는다. 그 밖은 큰 벌 */
+export const photoVariantOf = (request: Request): PhotoVariant =>
+  new URL(request.url).searchParams.get('s') === 'card' ? 'card' : 'large';
 
 /** 브라우저는 든 장을 쓰기 전에 매번 묻는다 — 판정이 매번 DB 에 닿는다 */
 export const PHOTO_CACHE = 'private, no-cache';
