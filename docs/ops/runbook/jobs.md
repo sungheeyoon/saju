@@ -15,7 +15,7 @@
 | 종류 | 뜻 | 할 일 |
 | --- | --- | --- |
 | `cron-failed:<잡>` | 그 잡의 SQL 이 실패했다. 알림에 마지막 오류가 붙는다 | 아래 질의로 `return_message` 를 보고 함수를 고친다 |
-| `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
+| `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 사진 청소(매시 33분, 켠 뒤)가 못 지운 객체 · 오설정으로 500 을 내도 온다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다(복구기와 사진 청소가 함께 멈춘다), 503 이면 Vercel 쪽 열쇠 · DB 문. 사진 청소면 `docs/ops/runbook/photo-store.md` 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」 |
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
 | `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
 | `database-size-warning` · `database-size-critical` · `database-size-unreadable` | DB 크기(클러스터의 모든 DB 의 `pg_database_size` 합 — Supabase 가 세는 값)가 350MB · 425MB 를 넘었다(`20261224090000`, ADR 0199 — 문턱은 `database_size_warning_bytes()` · `database_size_critical_bytes()`). **Free 는 500MB 에서 읽기 전용이 되고 그 뒤에는 `ops_alert` 에 못 적어 이 알림도 못 나간다**. `database-size-unreadable` 은 감시기가 크기를 못 쟀다는 뜻이다(다른 갈래는 그대로 돈다) | 큰 표를 본다 — `select concat(n.nspname, '.', c.relname), pg_size_pretty(pg_total_relation_size(c.oid)) from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r', 'm', 'p') order by pg_total_relation_size(c.oid) desc limit 10;`(크기만 — 개인정보 없음). 지울 것이 없으면 플랜을 올린다. **이미 읽기 전용이 됐으면** Supabase 문서의 차례로 푼다(<https://supabase.com/docs/guides/platform/database-size>, 2026-10-22 읽음) — `set session characteristics as transaction read write;` → 지운다 → `vacuum;` → `set default_transaction_read_only = 'off';` |
@@ -67,9 +67,13 @@ group by 1, 2 order by 1, 2;
 `taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다. 2026-10-17 에 `credit-grant-watch`(매일 05:41 UTC,
 무상 지급 장부의 대조, ADR 0191 — `20261219090000`)가 더해졌다. 2026-10-08(#526) 에 머지된 `20261121090000` 이 `push-dispatch`(매분) ·
 `push-delivery-retention-purge`(매일 04:43 UTC)를 세웠다(ADR 0156) — 2026-10-22 에 다시 센 이 목록이 빠뜨린 둘이다. 웹 푸시를 켜는 걸음과
-확인은 `docs/ops/runbook/push.md`.
-Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
-ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
+확인은 `docs/ops/runbook/push.md`. `20261229090000`(ADR 0205)이 `photo-sweep-wake`(매시 33분 — 사진 청소를 깨운다, Vault 의 `photo_sweep_url` 이
+없으면 아무것도 안 한다) · `photo-sweep-watch`(매시 53분 — 멈춘 청소 · 남은 줄, 같은 조건)를 세운다 — 알림과 할 일은 `docs/ops/runbook/photo-store.md`
+「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」.
+Vercel Cron 은 셋이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`), 접속기록 반출(`/api/cron/audit-export`,
+ADR 0105), 사진 청소의 예비(`/api/cron/photo-sweep`, 하루 한 번 — 매시 실행은 pg_cron 이 깨운다, ADR 0205). 셋은 `cron-watch` 가 못 본다 —
+반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다), 사진 청소는 `photo-sweep-watch` 가 본다(끝까지 돈
+실행이 세 시간 넘게 없으면 — 어느 쪽이 깨웠든).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ### 바깥 감시 — 앱이 통째로 죽거나 DB 가 알림을 못 쓸 때 (G-118)

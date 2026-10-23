@@ -9,24 +9,56 @@
 
 **차례가 곧 안전이다 — 4 를 1 ~ 3 보다 먼저 하면 새로 올린 사진이 아무에게도 안 보인다**(열쇠 줄은 열람 방식이 정해지기 전까지 404).
 
-1. **열람 방식 · 청소 주기가 정해졌다**(G-120 의 결정) — 그 구현(올리는 문 넷을 `authenticated` 에 여는 마이그레이션 포함 — 지금은
-   `20261227120000` 이 닫아 두었다)이 main 에 있고 운영에 배포됐다. **처리방침과 대조한다** — 위탁 표의 AWS 목적(지금 접속기록 사본뿐,
-   `docs/legal/` 의 처리방침 초안)과 탈퇴 뒤 「3일 안 파기」가 청소 주기 · 실패 때의 지연과 맞는가
-2. **마이그레이션** `20261227090000` 이 운영 DB 에 있다(`supabase migration list` 의 remote 칸)
+1. **열람 방식이 정해졌다**(G-120 의 결정 — 청소 주기 · 첫 실패 알림은 ADR 0205 가 정했다: 매시간 · 다음 시간에 다시 · 첫 실패부터 알림) —
+   그 구현(올리는 문 넷을 `authenticated` 에 여는 마이그레이션 포함 — 지금은 `20261227120000` 이 닫아 두었다)이 main 에 있고 운영에
+   배포됐다. **처리방침과 대조한다** — 위탁 표의 AWS 목적(지금 접속기록 사본뿐, `docs/legal/` 의 처리방침 초안)과 탈퇴 뒤 「3일 안 파기」가
+   청소 주기 · 실패 때의 지연과 맞는가
+2. **마이그레이션** `20261227090000` · `20261229090000`(매시 청소 · 감시) 이 운영 DB 에 있다(`supabase migration list` 의 remote 칸)
 3. **AWS** — 아래 「마법사가 쓸 값」의 버킷 · 역할을 세운다(마법사가 돌면 그 출력의 이름을 쓴다)
 4. **Vercel** — Settings → Environment Variables → **Production** 에 `PHOTO_STORE_BUCKET` · `PHOTO_STORE_REGION`(`ap-northeast-2`) ·
    `PHOTO_STORE_ROLE_ARN` 셋. 대안(접근 키)이면 역할 대신 `PHOTO_STORE_ACCESS_KEY_ID` · `PHOTO_STORE_SECRET_ACCESS_KEY`(Sensitive) —
    **둘을 함께 넣으면 오설정이다**(올리기는 DB 길로 가고 청소기가 500). 최신 Production 을 Redeploy 하고 Ready 를 본다. 값은 문서 ·
    채팅 · 커밋에 적지 않는다
 5. **확인** — 사람이 운영 계정으로 프로필 사진을 한 장 올린다 → 칸에 선다 → S3 콘솔의 `photos/<계정 id>/` 아래 `card` · `large` 가
-   있다 → 그 장을 지운다 → 다음 날 청소 뒤 두 객체가 없다. 청소 크론의 응답(`/api/cron/photo-sweep`, Vercel 의 Cron 로그)이 200 이고
-   `{"ticketsMoved":…,"deleted":…,"failed":0,"errorClass":null,"alerted":false}` 꼴이다(`app/api/cron/photo-sweep/sweep.ts` 의
-   `SweepResult` — `configured` 칸은 없다). `{"configured":false}` 면 아직 꺼져 있다 — 4 의 값이 그 배포에 안 들었다
-6. **옛 사진을 지우고 다시 받는다** — 아래 「켠 뒤 옛 사진을 지우고 다시 받는다」. 5 의 확인이 끝난 뒤다
+   있다 → 그 장을 지운다 → 다음 청소 뒤 두 객체가 없다(6 전이면 예비인 Vercel 의 하루 한 번 — 매일 19:47 UTC ±59분, 6 뒤면 매시 33분).
+   청소 크론의 응답(`/api/cron/photo-sweep`, Vercel 의 Cron 로그)이 200 이고 `{"ticketsMoved":…,"deleted":…,"failed":0,"errorClass":null,"alerted":false}`
+   꼴이다(`app/api/cron/photo-sweep/sweep.ts` 의 `SweepResult` — `configured` 칸은 없다). `{"busy":true}` 는 다른 실행이 돌던 중이다(정상 —
+   겹치면 하나만, ADR 0205). `{"configured":false}` 면 아직 꺼져 있다 — 4 의 값이 그 배포에 안 들었다
+6. **매시 청소를 켠다 — Vault 주소 하나**(ADR 0205). 5 가 끝난 뒤, **맨 끝이다** — 이 이름이 서는 순간 매시 33분에 청소가 불리고 53분의
+   감시(멈춘 청소 3시간 · 남은 줄 12시간)가 켜진다. 4 보다 먼저 넣으면 청소가 「설정 안 됨」으로 끝나 세 시간 뒤 `photo-sweep-stale` 이 운다.
+   1. **넣기 전에 본다** — 값은 안 읽는다:
+
+      ```sql
+      select (select count(*) from vault.decrypted_secrets
+              where name = 'reading_recovery_secret' and decrypted_secret is not null) as secret_ok,
+             (select count(*) from vault.decrypted_secrets
+              where name = 'photo_sweep_url' and decrypted_secret is not null) as url_ok,
+             (select count(*) from cron.job
+              where jobname in ('photo-sweep-wake', 'photo-sweep-watch') and active) as jobs;
+      ```
+
+      `npm run db:remote -- --purpose "사진 매시 청소 켜기 전 점검(G-120)" "<위 SQL>"`. `secret_ok` 1 · `url_ok` 0 · `jobs` 2 여야 넣는다.
+      비밀은 새로 넣지 않는다 — 복구기의 `reading_recovery_secret`(= Vercel 의 `CRON_SECRET`)을 함께 쓴다. `secret_ok` 가 0 이면 복구기도 멈춘
+      것이다(`docs/ops/runbook/jobs.md` 「도는 잡이 정말 도나」)
+   2. **넣는다 — 운영자가.** Supabase 대시보드 → Project Settings → Vault 에서 이름 `photo_sweep_url`, 값은 운영 주소
+      (`docs/ops/runbook/domain.md` 맨 위) 뒤에 `/api/cron/photo-sweep`. SQL Editor 라면 `select vault.create_secret('<운영 주소>/api/cron/photo-sweep', 'photo_sweep_url');`
+   3. **다음 매시 33분이 지난 뒤 본다**:
+
+      ```sql
+      select s.last_finished_at, s.last_deleted, s.last_failed,
+             (select d.status from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+              where j.jobname = 'photo-sweep-wake' order by d.start_time desc limit 1) as wake_status
+      from public.photo_sweep_state s;
+      ```
+
+      `last_finished_at` 이 방금(그 시각의 33분 남짓)이고 `wake_status` 가 `succeeded` 다. 아니면 아래 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」
+7. **옛 사진을 지우고 다시 받는다** — 아래 「켠 뒤 옛 사진을 지우고 다시 받는다」. 5 · 6 의 확인이 끝난 뒤다
 
 **끄는 길 — 끄기 전에 지울 줄을 비운다.** 끄면 청소기도 멈춘다(「설정 안 됨」) — 그 사이 탈퇴 · 지운 장의 객체가 저장소에 남는다. 그래서
-① 아래 「지울 줄이 안 줄 때」의 집계 질의에서 줄 수가 0 인지 보고(크론을 손으로 한 번 부를 수 있다), ② 4 의 값을 지우고 Redeploy. 새
-올리기는 DB 길로 돌아가고, 이미 저장소에 사는 장은 저장소에 남는다(열람이 저장소를 읽으므로 그 장은 켤 때까지 안 열린다).
+① 아래 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」의 1 에서 `waiting` 이 0 인지 보고(3 의 손 부름으로 한 번 더 돌릴 수 있다), ② Vault 의
+`photo_sweep_url` 을 지운다(`delete from vault.secrets where name = 'photo_sweep_url';`) — 매시 청소와 감시가 함께 멈춘다. 이것을 ③ 보다
+먼저 해야 꺼진 청소를 감시가 「멈췄다」로 울리지 않는다, ③ 4 의 값을 지우고 Redeploy. 새 올리기는 DB 길로 돌아가고, 이미 저장소에 사는
+장은 저장소에 남는다(열람이 저장소를 읽으므로 그 장은 켤 때까지 안 열린다).
 
 ## 마법사가 쓸 값
 
@@ -141,7 +173,7 @@ G-63). 지운 바이트는 저장소에도 없다(옮기지 않았다).
 **차례 — 켜기 → 안내 → 지우기.** 켜기 전에 지우면 켜는 날까지 사진이 비고, 그 사이 다시 올린 장도 DB 길로 가 또 지워야 한다. 켠 뒤에
 지우면 안내를 받고 먼저 바꿔 올린 장(「사진 변경」 · 새 장)은 열쇠 줄이라 남아, 그 사람에게는 빈 사진 창이 없다.
 
-1. **「사진 저장소를 켠다」 1 ~ 5 가 끝났다** — 새로 올린 장이 저장소에 서고(5 의 확인), Production 에 `PHOTO_STORE_*` 가 들었다
+1. **「사진 저장소를 켠다」 1 ~ 6 이 끝났다** — 새로 올린 장이 저장소에 서고(5 의 확인), Production 에 `PHOTO_STORE_*` 가 들었다
 2. **대상을 잰다** — 개인을 가리키지 않는 집계만(ADR 0105):
 
    ```sql
@@ -212,19 +244,73 @@ AWS_PROFILE=saju-photo-admin PHOTO_STORE_BUCKET=<사진 버킷> PHOTO_STORE_REGI
 DB 의 열쇠 줄마다 두 벌의 머리(`HeadObject`)를 본다 — 있나 · 비지 않았나 · 형식이 DB 와 같은가. 어긋남이 하나라도 있으면 1 로 끝난다.
 바이트 줄(옛 장)은 재지 않는다 — 켠 뒤 지운다(위 절). 출력의 열쇠 앞 칸은 계정 id 다 — 저장소 · 이슈 · 채팅에 붙이지 않는다. 켠 뒤 월 점검에 한 번.
 
-## 지울 줄이 안 줄 때
+## 청소가 멈췄을 때 · 못 지운 줄이 쌓일 때
 
-운영 알림 `photo-trash-stuck`(다섯 번 넘게 못 지운 객체가 있다)이 오면:
+청소는 매시 33분(Supabase pg_cron → `wake_photo_sweep()`)과 예비인 하루 한 번(Vercel Cron)에 돈다. 못 지운 줄은 다음 매시 실행이 다시
+한다(ADR 0205). 알림은 셋이고 모두 `notify_ops` 한 길이다(종류마다 서울 날짜로 하루 한 줄):
 
-```sql
--- 보통 갈래 — 개인을 가리키지 않는 집계
-select count(*) as stuck, max(attempts) as attempts, array_agg(distinct last_error) as errors
-from public.photo_object_trash where attempts >= 5;
-```
+| 종류 | 뜻 | 언제 |
+| --- | --- | --- |
+| `photo-trash-failed` | 이번 실행에서 못 지운 객체가 있다. 분류 · 지울 줄 수 · 가장 오래된 줄의 나이가 붙는다 | 첫 실패에 — 청소의 결과 적기(`photo_trash_settle`)가 낸다 |
+| `photo-sweep-stale` | 끝까지 돈 청소가 3시간 넘게 없다(`photo_sweep_stale_after()`) — 매시 실행 셋을 걸렀다 | 매시 53분 감시(`photo-sweep-watch`). Vault 의 `photo_sweep_url` 이 있을 때만 |
+| `photo-trash-lingering` | 지울 줄에 12시간 넘게 남은 줄이 있다(`photo_trash_linger_after()`) | 같은 감시. 같은 조건 |
 
-`npm run db:remote -- --purpose "사진 지울 줄 점검" "<위 SQL>"`. 분류가 `delete:accessdenied` 면 앱 역할의 권한 정책(`DeleteObject`)과
-버킷 이름을, `delete:nosuchbucket` 이면 `PHOTO_STORE_BUCKET` 을 본다. 고친 뒤 다음 청소가 이어 지운다(다섯 번까지는 날마다, 그 뒤 간격이
-길어져 길어야 이레 — `next_try_at` 을 `now()` 로 당기면 다음 청소에 든다).
+청소가 500 으로 끝나면(못 지운 객체 · 오설정) `cron-watch` 의 `net-request-failed` 도 함께 올 수 있다 — 같은 일이다.
+
+**기한을 먼저 센다 — 재시도가 기한 안에 끝난다고 믿지 않는다.** 탈퇴 계정의 열쇠는 처분(신청 뒤 24 ~ 25시간)에 지울 줄에 서고, 처리방침의
+「3일 안 파기」는 신청 뒤 72시간이다 — 줄이 선 뒤 약 47시간. `photo-trash-lingering` 이 오면 줄은 이미 12시간을 썼다 — **그날 안에** 아래를
+밟는다. 권한 · 버킷 사고는 몇 번을 다시 해도 같다.
+
+1. **지금을 본다** — 개인을 가리키지 않는 집계만(ADR 0105):
+
+   ```sql
+   select (select count(*) from public.photo_object_trash) as waiting,
+          (select count(*) from public.photo_object_trash where queued_at < now() - interval '12 hours') as lingering,
+          (select floor(extract(epoch from now() - min(queued_at)) / 3600) from public.photo_object_trash) as oldest_hours,
+          (select max(attempts) from public.photo_object_trash) as max_attempts,
+          (select array_agg(distinct last_error) from public.photo_object_trash) as errors,
+          s.last_finished_at, s.last_deleted, s.last_failed, s.held_until
+   from public.photo_sweep_state s;
+   ```
+
+   `npm run db:remote -- --purpose "사진 청소 점검(G-120)" "<위 SQL>"`. `oldest_hours` 가 기한까지 남은 틈(47시간 − `oldest_hours`)을 말한다.
+   `last_finished_at` 이 세 시간보다 오래면 2 로, 최근인데 `errors` 가 있으면 3 으로
+2. **청소가 안 돈다**
+   - 잡 — `select jobname, schedule, active from cron.job where jobname like 'photo-sweep-%';` 둘(`33 * * * *` · `53 * * * *`)이 `active`.
+     꺼졌으면 `select cron.alter_job(<jobid>, active := true);`. 없으면 마이그레이션 `20261229090000` 이 운영에 없다(「사진 저장소를 켠다」 2)
+   - 잡의 실행 — `select d.status, d.return_message, d.start_time from cron.job_run_details d join cron.job j on j.jobid = d.jobid where j.jobname = 'photo-sweep-wake' order by d.start_time desc limit 3;`
+     `failed` 면 `return_message` 를 본다. pg_cron 의 모든 잡이 멈췄으면(`docs/ops/runbook/jobs.md` 「바깥 감시」) 예비인 Vercel 의 하루 한 번만 돈다 —
+     기한 안이면 그것으로 지워지지만, 프로젝트 멈춤 · 읽기 전용이면 그쪽부터 푼다
+   - Vault 배선 — 「사진 저장소를 켠다」 6 의 1 질의. `url_ok` · `secret_ok` 둘 다 1 이어야 한다
+   - 청소 주소의 답 — `select status_code, timed_out, left(content, 80), created from net._http_response where created > now() - interval '3 hours' and (status_code is null or status_code <> 200) order by created desc limit 5;`
+     (복구기도 같은 표를 쓴다 — 시각으로 매시 33분 줄을 고른다). **403** 이면 Vault `reading_recovery_secret` 과 Vercel 의 `CRON_SECRET` 이
+     갈렸다(`docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표 — 복구기도 함께 멈춘다), **500** 이면 Vercel 로그에서 `photo-sweep misconfigured`
+     (저장소 값이 반쯤 — 「사진 저장소를 켠다」 4) 나 `photo-sweep failed <분류>`(DB 문)를, **200 `{"configured":false}`** 면 Vercel 에 저장소 값이
+     없다(4 의 값이 그 배포에 안 들었다)
+   - 임대 — `held_until` 이 미래인데 도는 실행이 없으면 죽은 실행의 임대다. 5분 안에 저절로 풀린다 — 손대지 않는다
+3. **돌지만 못 지운다** — `errors` 의 분류로 가른다. `delete:accessdenied` 면 앱 역할의 권한 정책(`DeleteObject`) · 신뢰 정책과 버킷 이름,
+   `delete:nosuchbucket` 이면 `PHOTO_STORE_BUCKET`, `delete:partial` 이면 일부 객체만 — CloudTrail 의 `DeleteObjects` 오류, 그 밖은 Vercel 로그의
+   `photo-sweep: 못 지운 객체` 줄
+4. **고친 뒤 당긴다** — 운영자가. 차례를 지금으로 당기고 청소를 한 번 깨운다(비밀은 Vault 에서 나간다 — 셸에 안 남는다):
+
+   ```sql
+   update public.photo_object_trash set next_try_at = now();
+   select public.wake_photo_sweep();
+   ```
+
+   `npm run db:remote -- --purpose "사진 지울 줄 당기기(G-120)" "<위 SQL>"`. 1 분쯤 뒤 1 을 다시 — `waiting` 이 줄고 `last_finished_at` 이
+   방금이며 `last_failed` 가 0 이다. 기다려도 되면 깨우기 없이 다음 매시 33분에 맡긴다
+5. **기한 안에 못 고치면 손으로 지운다** — `oldest_hours` 가 40을 넘었는데 3 의 원인이 그날 안 풀릴 때. 도구 역할(`saju-photo-admin`, 사람의
+   SSO)은 `DeleteObject` 를 든다. **열쇠 목록은 계정 id 를 든다 — 사람만 읽고, 저장소 · 이슈 · 채팅에 붙이지 않는다.** 열쇠마다:
+
+   ```bash
+   aws s3 rm "s3://<사진 버킷>/<열쇠>/card" --profile saju-photo-admin
+   aws s3 rm "s3://<사진 버킷>/<열쇠>/large" --profile saju-photo-admin
+   ```
+
+   지운 열쇠의 줄을 걷는다 — `select public.photo_trash_settle(array['<열쇠>', …], null, null);`(지운 것을 걷기만 한다 — 알림은 안 낸다).
+   목록은 `select object_key from public.photo_object_trash where queued_at < now() - interval '12 hours' order by queued_at;` — 이 질의도
+   사람이 돈다. 기한을 넘긴 객체가 있었으면 그 수와 시각을 그날 노트(`docs/notes/`)에 계정 id 없이 적는다
 
 ## DB 와 파일의 복구 범위
 
@@ -236,6 +322,6 @@ DB 가 장부이고 저장소가 바이트다. 둘은 따로 되돌아간다 —
 | 같은 되돌림 | 그 뒤에 올린 장의 줄이 사라진다 | 그 객체는 **남는다** — 어느 줄도 안 가리켜 안 열린다 | 안 보인다. 저장소의 고아다 — 지금 이것을 찾는 도구는 없다(도구 역할의 `ListBucket` 으로 `photos/` 를 훑어 `scripts/photo-verify.mjs` 의 열쇠와 견주는 손일) |
 | 객체를 잘못 지움 · 버킷 사고 | 줄은 그대로 | 없다 — 다른 사본이 없다 | 그 장이 안 열린다 — 다시 올려야 한다 |
 | 옛 장(바이트 줄 — 켠 뒤 지운다) | 지우기 전에는 바이트가 DB 에 있다 | — | 지운 뒤에는 어디에도 없다 — 백업이 없어 되돌릴 수 없다. 다시 올려야 한다 |
-| 계정 삭제 | 줄이 cascade 로 사라지고 열쇠가 지울 줄에 | 다음 청소(하루 안)에 지운다 | 지운 그 순간부터 안 열린다 |
+| 계정 삭제 | 줄이 cascade 로 사라지고 열쇠가 지울 줄에 | 다음 매시 청소(한 시간 안)에 지운다 — 못 지우면 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」 | 지운 그 순간부터 안 열린다 |
 
 DB 의 백업 · 되돌림 자체는 이 문서가 다루지 않는다(간극 대장의 그 줄).
