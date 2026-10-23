@@ -78,7 +78,7 @@ export async function photoResponse(
   if (row.base64) return photoBytes(new Uint8Array(Buffer.from(row.base64, 'base64')), row.content_type, cache);
 
   /*
-    **저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽어 낸다**(G-120 의 안 A, 결정 전 draft). 판정은 위의 `photo_at` 이 이미 했다 —
+    **저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽어 낸다**(G-120 의 안 A, ADR 0204). 판정은 위의 `photo_at` 이 이미 했다 —
     여기는 그 줄이 든 열쇠만 쓴다(주소의 값으로 열쇠를 짓지 않는다). 저장소가 꺼졌는데 열쇠 줄이 있으면 우리가 고장 난 것이라 500,
     객체가 없으면(지운 뒤 DB 를 되돌림 등) 없는 장과 같은 404 다. 두 벌(`card` · `large`)은 주소(`?s=card`)가 달라 브라우저가 따로
     들고, 판본 `ETag` 는 둘에 같다 — 같은 판본의 두 벌은 각자 제 주소에서 바뀌지 않는다.

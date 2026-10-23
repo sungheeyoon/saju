@@ -11,6 +11,7 @@ import {
   missingInProfile,
   missingNickname,
   nicknameKey,
+  type PhotoUploadMode,
   type ProfileInput,
 } from '@/src/lib/profile';
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
@@ -74,13 +75,13 @@ export function ProfileForm({
   current,
   photos,
   userId,
-  storedPhotos,
+  uploads,
 }: {
   current: ProfileInput;
   photos: readonly MyPhoto[];
   userId: string;
-  /** 올린 사진이 저장소로 가나(G-120) */
-  storedPhotos: boolean;
+  /** 사진 올리기의 길 — DB 의 스위치(G-120, ADR 0204) */
+  uploads: PhotoUploadMode;
 }) {
   const [profile, setProfile] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
@@ -176,7 +177,7 @@ export function ProfileForm({
       <PhotoGrid
         userId={userId}
         photos={photos}
-        stored={storedPhotos}
+        uploads={uploads}
       />
 
       <form

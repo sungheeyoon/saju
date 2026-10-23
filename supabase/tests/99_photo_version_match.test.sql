@@ -139,7 +139,7 @@ select is(
 
 -- ── 4. 저장소에 사는 장은 판본과 상관없이 바이트가 비고 판본은 나온다 ────────
 
-/* 올리는 문은 닫혀 있어(`20261227120000`) 표에 바로 놓는다 — 트랜잭션 안이라 되돌아간다 */
+/* 저장소 길은 스위치가 `db` 라 거절하므로(`20261228140000`) 표에 바로 놓는다 — 트랜잭션 안이라 되돌아간다 */
 reset role;
 insert into public.profile_photo (user_id, position, content_type, object_key)
 values ((select park from who), 1, 'image/webp', format('photos/%s/%s', (select park from who), gen_random_uuid()));
@@ -153,7 +153,7 @@ select is(
 select is(
   (select count(*)::int from public.photo_at((select park from who), 1, 0)),
   1,
-  '저장소에 사는 장도 판정을 지나면 한 줄이다 — 라우트가 판본이 달라 404 로 가른다');
+  '저장소에 사는 장도 판정을 지나면 한 줄이다 — 판본이 다르면 라우트가 그 줄의 열쇠로 저장소에서 읽는다(ADR 0204)');
 
 select * from finish();
 rollback;

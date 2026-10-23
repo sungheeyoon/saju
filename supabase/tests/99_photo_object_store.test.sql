@@ -67,6 +67,12 @@ delete from public.photo_object_trash;
 delete from public.photo_upload_ticket;
 delete from public.ops_alert where kind = 'photo-trash-stuck';
 
+/**
+ * 저장소 길을 재므로 스위치를 `s3` 로 — 기본값 `db` 에서는 저장소 길의 문이 거절한다(`20261228140000`, 그 갈래는
+ * `99_photo_upload_switch` 가 잰다). 바이트 길로 바꾸는 2 의 한 줄 앞뒤에서만 `db` 로 돌린다
+ */
+update public.photo_upload_switch set mode = 's3';
+
 set local role authenticated;
 select pg_temp.acting((select kim from who));
 
@@ -120,7 +126,15 @@ select is(pg_temp.key_at((select kim from who), 2), (select v from kept where k 
 select ok(pg_temp.trashed((select v from kept where k = 'first')), '2. 저장소 길로 바꾸면 옛 열쇠가 지울 줄에 간다');
 select isnt((select v from kept where k = 'v2'), (select v from kept where k = 'v1'), '2. 판본이 바뀐다');
 
+reset role;
+update public.photo_upload_switch set mode = 'db';
+set local role authenticated;
+select pg_temp.acting((select kim from who));
 select public.replace_my_photo(2, (select version from public.my_photos() where position = 2), 'image/png', pg_temp.pic('back'));
+reset role;
+update public.photo_upload_switch set mode = 's3';
+set local role authenticated;
+select pg_temp.acting((select kim from who));
 select ok(pg_temp.trashed((select v from kept where k = 'second')), '2. 바이트 길로 바꿔도 옛 열쇠가 지울 줄에 간다');
 select ok(pg_temp.key_at((select kim from who), 2) is null and pg_temp.has_bytes_at((select kim from who), 2),
   '2. 바이트 길로 바꾼 줄은 열쇠를 걷고 바이트를 든다');

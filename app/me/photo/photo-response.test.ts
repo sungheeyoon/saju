@@ -43,7 +43,7 @@ describe('사진 한 장을 내주는 자리', () => {
     expect(logged).not.toHaveBeenCalled();
   });
 
-  describe('저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽는다(G-120 안 A, draft)', () => {
+  describe('저장소에 사는 장 — 판정을 지난 줄의 열쇠로 읽는다(G-120 안 A, ADR 0204)', () => {
     beforeEach(async () => {
       storeOn = true;
       await memory.store.put(`${KEY}/card`, Uint8Array.from([1]), 'image/webp');
