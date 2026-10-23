@@ -108,6 +108,13 @@ if (TOOL === 'aws') {
 } else if (TOOL === 'vercel') {
   if (argv[0] === 'whoami') { out('someone'); }
   else if (argv[0] === 'env' && argv[1] === 'ls') { out(Object.keys(world.vercelEnv).map((n) => ' ' + n + '  Encrypted  Production  1d ago').join('\n')); }
+  else if (argv[0] === 'env' && argv[1] === 'pull') {
+    // 진짜처럼 Production 의 변수 전부(비밀 포함)를 dotenv 로 쓴다 — 마법사가 세 이름만 뽑고 곧 지우는지 시험이 본다
+    if (process.env.FAKE_VERCEL_PULL_FAIL) { process.stderr.write('Error: pull failed\n'); process.exit(1); }
+    const file = argv[2];
+    fs.appendFileSync(path.join(dir, 'pulled.log'), file + '\n');
+    fs.writeFileSync(file, '# Created by Vercel CLI\n' + Object.entries(world.vercelEnv).map(([n, v]) => n + '="' + v + '"').join('\n') + '\n');
+  }
   else if (argv[0] === 'env' && argv[1] === 'add') {
     const name = argv[2];
     if (world.vercelEnv[name] !== undefined && !has('--force')) { process.stderr.write('already exists\n'); process.exit(1); }
@@ -179,6 +186,15 @@ function setUp(world: Partial<World> = {}) {
     world: () => JSON.parse(readFileSync(join(fake, 'world.json'), 'utf8')) as World,
     calls: () => readFileSync(join(fake, 'calls.log'), 'utf8').split('\n').filter(Boolean),
     npmEnv: () => (existsSync(join(fake, 'npm-env.log')) ? readFileSync(join(fake, 'npm-env.log'), 'utf8') : ''),
+    pulled: () =>
+      existsSync(join(fake, 'pulled.log'))
+        ? readFileSync(join(fake, 'pulled.log'), 'utf8').split('\n').filter(Boolean)
+        : [],
+    setWorld(change: (w: World) => void) {
+      const w = JSON.parse(readFileSync(join(fake, 'world.json'), 'utf8')) as World;
+      change(w);
+      writeFileSync(join(fake, 'world.json'), JSON.stringify(w));
+    },
     state: () => (existsSync(statePath) ? readFileSync(statePath, 'utf8') : ''),
     setState(key: string, value: string) {
       const lines = this.state()
@@ -375,11 +391,10 @@ describe('AWS 마법사 — 처음 도는 날', () => {
         'VERCEL_OIDC_READY',
         'AUDIT_EXPORT_ROLE_ARN',
         'AUDIT_VERIFY_ROLE_ARN',
-        'VERCEL_SET_AUDIT_EXPORT_BUCKET',
-        'VERCEL_SET_AUDIT_EXPORT_REGION',
-        'VERCEL_SET_AUDIT_EXPORT_ROLE_ARN',
         'REDEPLOY_PENDING',
         'GOVERNANCE_VERIFIED_EPOCH',
+        'GOVERNANCE_VERIFIED_FP',
+        'GOVERNANCE_VERIFIED_LOCK',
       ]),
     );
     expect(t.state()).not.toMatch(/SECRET|ACCESS_KEY|AKIA/);
@@ -421,6 +436,8 @@ describe('AWS 마법사 — 다시 돌리면', () => {
       count(t.calls().slice(before), /put-object-lock-configuration|create-|env add|crons run|delete-object/),
     ).toBe(0);
     expect(third.out).toContain('반출이 Compliance 400일로 돈다');
+    // 전환은 그 뒤 객체의 기본값일 뿐 — 시험 기간의 객체를 400일이라 말하지 않는다
+    expect(third.out).toContain('Governance 시험 기간의 객체는 Governance 1일 그대로다');
   }, 60_000);
 
   it('버킷 이름을 틀리게 치면 Compliance 로 가지 않는다', async () => {
@@ -625,4 +642,121 @@ describe('AWS 마법사 — 멈추는 자리', () => {
     expect(out).toContain('2.32 보다 낮다');
     expect(count(t.calls(), /^aws (login|s3api|iam)/)).toBe(0);
   }, 30_000);
+});
+
+/** 지난 실행이 「Governance 를 걸고 24시간 뒤에 검증했다」고 적어 둔 상태 — 옛 마법사는 이것만 보고 Stage 12 를 건너뛰었다 */
+function verifiedYesterday(t: ReturnType<typeof setUp>) {
+  t.setState('GOVERNANCE_SET_EPOCH', '0');
+  t.setState('GOVERNANCE_VERIFIED_EPOCH', String(86_400));
+}
+
+const compliance = (calls: string[]) => count(calls, /"Mode":"COMPLIANCE"/);
+
+describe('AWS 마법사 — 끝났다고 말하는 문', () => {
+  it('버킷이 이미 Compliance 여도 400일보다 짧으면 끝냈다고 하지 않고, 400일이라 말하지 않는다', async () => {
+    const t = setUp({
+      loggedIn: true,
+      buckets: {
+        'saju-audit-abcd1234': { lock: true, versioning: 'Enabled', mode: 'COMPLIANCE', days: 30, objects: [] },
+      },
+    });
+    const { code, out } = await t.run();
+    expect(code, out).toBe(0);
+    expect(out).toContain('Compliance 30일 — 400일보다 짧다');
+    expect(out).toContain('Stage 13 — 기본 보존이 Compliance 30일이다');
+    expect(out).not.toContain('Compliance 400일로 돈다');
+    expect(out).not.toContain('반출이 Compliance');
+    // 늘리기는 사람이 runbook 으로 — 마법사는 보존을 건드리지 않는다
+    expect(count(t.calls(), /put-object-lock-configuration/)).toBe(0);
+  }, 30_000);
+
+  it('Stage 12 — 검증 기록이 있어도 Compliance 가 400일보다 짧으면 건너뛰지 않고 다시 잰다', async () => {
+    const t = setUp();
+    expect((await t.run()).code).toBe(0);
+    t.setWorld((w) => {
+      const [b] = Object.keys(w.buckets);
+      w.buckets[b].mode = 'COMPLIANCE';
+      w.buckets[b].days = 30;
+    });
+    const before = t.calls().length;
+    const { code, out } = await t.run();
+    expect(code, out).toBe(0);
+    expect(out).not.toContain('이미 Compliance 다 — 건너뛴다');
+    expect(count(t.calls().slice(before), /crons run/)).toBe(1);
+    expect(out).not.toContain('반출이 Compliance');
+  }, 60_000);
+
+  it('지난 검증 뒤 설정(Vercel 프로젝트)이 바뀌면 Stage 12 를 다시 재고서야 Compliance 로 간다', async () => {
+    const t = setUp();
+    expect((await t.run()).code).toBe(0);
+    verifiedYesterday(t);
+    t.setState('VERCEL_PROJECT', 'saju-next');
+    const before = t.calls().length;
+    const { code, out } = await t.run();
+    expect(code, out).toBe(0);
+    const again = t.calls().slice(before);
+    const measured = again.findIndex((c) => c.startsWith('vercel crons run'));
+    const locked = again.findIndex((c) => c.includes('"Mode":"COMPLIANCE"'));
+    expect(measured, out).toBeGreaterThanOrEqual(0);
+    expect(locked).toBeGreaterThan(measured);
+    expect(out).toContain('지난 검증은 지금 설정과 다르다');
+  }, 60_000);
+
+  it('Redeploy 가 남았으면 지난 검증이 있어도 Compliance 로 가지 않는다', async () => {
+    const t = setUp();
+    expect((await t.run()).code).toBe(0);
+    verifiedYesterday(t);
+    t.setState('REDEPLOY_PENDING', 'yes');
+    const { code, out } = await t.run({ no: /Redeploy 가 Ready/ });
+    expect(code, out).toBe(0);
+    expect(compliance(t.calls())).toBe(0);
+    expect(out).toContain('Stage 13 — Compliance 400일 전환');
+    expect(out).not.toContain('반출이 Compliance');
+  }, 60_000);
+});
+
+describe('AWS 마법사 — Vercel 의 실제 값을 견준다', () => {
+  it('Production 값이 바뀌었으면 상태 파일이 같아도 묻고, 아니라 하면 덮어쓰지도 Compliance 로 가지도 않는다', async () => {
+    const t = setUp();
+    expect((await t.run()).code).toBe(0);
+    t.setWorld((w) => {
+      w.vercelEnv.AUDIT_EXPORT_REGION = 'us-east-1';
+    });
+    verifiedYesterday(t);
+    const { code, out } = await t.run({ no: /AUDIT_EXPORT_REGION 이 Production 에 이미 있다/ });
+    expect(code, out).toBe(0);
+    expect(out).not.toContain('AUDIT_EXPORT_REGION — 이 마법사가 넣은 값 그대로다');
+    expect(out).toContain('AUDIT_EXPORT_REGION 를 덮어쓰지 않았다');
+    expect(t.world().vercelEnv.AUDIT_EXPORT_REGION).toBe('us-east-1');
+    expect(compliance(t.calls())).toBe(0);
+  }, 60_000);
+
+  it('Production 값을 못 읽으면 같다고 하지 않고 「확인 못 함」으로 남긴다 — Compliance 로 가지 않는다', async () => {
+    const t = setUp();
+    expect((await t.run()).code).toBe(0);
+    verifiedYesterday(t);
+    const { code, out } = await t.run({ env: { FAKE_VERCEL_PULL_FAIL: '1' } });
+    expect(code, out).toBe(0);
+    expect(out).not.toMatch(/AUDIT_EXPORT_\w+ — (이 마법사가 넣은 값 그대로다|Production 값이 이 마법사 값과 같다)/);
+    expect(out).toContain('Stage 10 — Production 의 AUDIT_EXPORT_BUCKET 값을 확인 못 함');
+    expect(compliance(t.calls())).toBe(0);
+  }, 60_000);
+
+  it('값을 읽은 파일은 저장소 밖에 두고 곧 지우며, 다른 변수(비밀)의 값은 화면 · 상태 파일에 남기지 않는다', async () => {
+    const secret = 'sk-live-SECRET-0123456789';
+    const t = setUp({ vercelEnv: { OPENAI_API_KEY: secret } });
+    const first = await t.run();
+    expect(first.code, first.out).toBe(0);
+    const second = await t.run();
+    expect(second.code, second.out).toBe(0);
+    expect(second.out).toContain('AUDIT_EXPORT_BUCKET — Production 값이 이 마법사 값과 같다');
+    const pulled = t.pulled();
+    expect(pulled.length).toBeGreaterThan(0);
+    for (const file of pulled) {
+      expect(existsSync(file)).toBe(false);
+      expect(resolve(file).startsWith(resolve(__dirname, '..'))).toBe(false);
+    }
+    expect(first.out + second.out).not.toContain(secret);
+    expect(t.state()).not.toContain(secret);
+  }, 60_000);
 });
