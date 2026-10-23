@@ -43,7 +43,9 @@ select mode, changed_at from public.photo_upload_switch;
 
 **0. 준비** — 차단 전에 끝나 있다.
 
-- 마이그레이션 `20261228140000`(스위치) · `20261228150000`(열람 · 문 넷) · `20261229090000`(매시 청소 · 감시, ADR 0204)이 운영 DB 에 있다 — `npx supabase migration list` 의 remote 칸.
+- 마이그레이션 넷이 **모두** 운영 DB 에 있다 — `npx supabase migration list` 의 remote 칸: `20261228140000`(스위치) · `20261228150000`(열람 · 문 넷) ·
+  `20261229090000`(매시 청소 · 감시, ADR 0204) · `20261229150000`(스위치의 `update` 가 진행 중인 올리기를 기다리는 잠금, ADR 0203 덧붙임 —
+  **없으면 1 의 차단 뒤에도 옛 길의 올리기가 2 의 삭제 뒤에 커밋할 수 있다. 없으면 멈춘다**).
   스위치 값을 읽어 `db` 다(위 SQL 의 `select`)
 - 이 구현이 든 앱이 Production 에 배포됐다(`docs/ops/runbook/deploy.md` 「배포」) — 화면이 스위치를 읽고, 열쇠 줄을 저장소에서 읽는다
 - 대상을 잰다 — 개인을 가리키지 않는 집계만(ADR 0105):
@@ -182,7 +184,7 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 | 버전 관리 | **끈다**(켜지 않는다) | 켜면 지운 객체가 이전 판으로 남아 「떠나면 사라진다」가 깨진다(ADR 0202) |
 | Object Lock | 끈다 | 지울 수 있어야 한다 — 반출 버킷과 반대다 |
 | 암호화 | 기본(SSE-S3) | |
-| 수명 주기 | 「Delete expired object delete markers or incomplete multipart uploads」 — 미완료 멀티파트 1일 | 앱은 멀티파트를 안 쓰지만 도구가 끊긴 흔적을 안 남게 |
+| 수명 주기 | 미완료 멀티파트 업로드 정리 1일 하나만(만료된 삭제 표식 정리는 두지 않는다 — 버전 관리를 꺼 표식이 안 생긴다) | 앱은 멀티파트를 안 쓰지만 도구가 끊긴 흔적을 안 남게 |
 | 접두사 | `photos/` | 열쇠는 `photos/{계정 id}/{올림 id}`, 두 벌은 그 아래 `card` · `large`(`src/lib/profile/photo-variants.ts`) |
 | CORS | 두지 않는다 | 브라우저가 버킷에 직접 안 닿는다(열람 방식 A, ADR 0203) |
 | 앱 역할 이름 | `saju-photo-store` | 세션 이름도 같다(`app/me/photo/s3-store.ts`) — CloudTrail 에서 반출(`saju-audit-export`)과 가른다 |
@@ -237,6 +239,12 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::<사진 버킷>/photos/*"
+    },
+    {
+      "Sid": "PhotoListForNotFound",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::<사진 버킷>"
     }
   ]
 }
@@ -244,7 +252,13 @@ AWS 마법사(`docs/ops/runbook/security.md` 「반출」의 마법사)가 사�
 
 - `PutObject` — 올리기(두 벌). `DeleteObject` — 청소기와 올리기의 되돌리기(`DeleteObjects` 도 객체마다 이 권한을 본다)
 - `GetObject` — 열람(안 A — 사진 라우트가 판정 뒤 읽는다, ADR 0203)
-- `ListBucket` 이 없다 — 앱은 키를 DB 에서만 받는다. 버킷 밖 · `photos/` 밖에는 닿지 않는다
+- `ListBucket`(`PhotoListForNotFound`) — **이 버킷 하나에만, 조건 없이.** 목록을 읽으려는 것이 아니다 — `ListBucket` 이 없으면 없는
+  객체의 `GetObject` 에 S3 가 404(`NoSuchKey`) 대신 403(`AccessDenied`)을 준다(「If you have the `s3:ListBucket` permission on the bucket, Amazon S3 returns an HTTP
+  status code `404 Not Found` error.」 · 「If you don’t have the `s3:ListBucket` permission, Amazon S3 returns an HTTP status code `403 Access Denied` error.」 — <https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html>, 확인
+  2026-10-23). 앱(`app/me/photo/s3-store.ts`)은 `NoSuchKey` 만 「없음」으로 받아 404 로 내고 나머지는 500 이므로, 없으면 지운 장 · 되돌린 DB 의
+  줄이 404 가 아니라 500 으로 선다. **403 을 404 로 바꾸지 않는다** — 권한 장애를 숨긴다(`app/me/photo/s3-store.test.ts` 가 잰다).
+  `s3:prefix` 조건은 걸지 않는다 — `GetObject` 요청의 문맥에는 그 키가 없어 조건이 맞지 않는다. 앱은 키를 DB 에서만 받고 목록을 부르지 않는다.
+  운영 AWS 에는 조율자가 2026-10-23 에 반영했다
 
 **도구 역할의 권한 정책**(`scripts/photo-verify.mjs` · 손 정리 — 도구는 저장소에 쓰지 않으므로 `PutObject` 가 없다):
 
@@ -295,9 +309,10 @@ DB 의 열쇠 줄마다 두 벌의 머리(`HeadObject`)를 본다 — 있나 · 
 
 청소가 500 으로 끝나면(못 지운 객체 · 오설정) `cron-watch` 의 `net-request-failed` 도 함께 올 수 있다 — 같은 일이다.
 
-**기한을 먼저 센다 — 재시도가 기한 안에 끝난다고 믿지 않는다.** 탈퇴 계정의 열쇠는 처분(신청 뒤 24 ~ 25시간)에 지울 줄에 서고, 처리방침의
-「3일 안 파기」는 신청 뒤 72시간이다 — 줄이 선 뒤 약 47시간. `photo-trash-lingering` 이 오면 줄은 이미 12시간을 썼다 — **그날 안에** 아래를
-밟는다. 권한 · 버킷 사고는 몇 번을 다시 해도 같다.
+**기한을 먼저 센다 — 재시도 · 감시가 기한을 지켜 준다고 믿지 않는다.** 처리방침의 「3일 안 파기」는 신청 뒤 72시간이다. 탈퇴 계정의 열쇠는
+계정 처분 때 지울 줄에 선다 — 처분이 **정상으로** 신청 뒤 24 ~ 25시간에 끝나면 줄이 선 뒤 남는 틈은 약 47시간이다. **처분이 늦으면(처분 실패 ·
+크론 멈춤) 그 틈이 그만큼 준다** — 감시의 3시간 · 12시간은 그 남은 틈 안에서 사람이 알게 하는 장치이지 72시간을 보장하지 않는다.
+`photo-trash-lingering` 이 오면 줄은 이미 12시간을 썼다 — **그날 안에** 아래를 밟는다. 권한 · 버킷 사고는 몇 번을 다시 해도 같다.
 
 1. **지금을 본다** — 개인을 가리키지 않는 집계만(ADR 0105):
 
@@ -311,8 +326,22 @@ DB 의 열쇠 줄마다 두 벌의 머리(`HeadObject`)를 본다 — 있나 · 
    from public.photo_sweep_state s;
    ```
 
-   `npm run db:remote -- --purpose "사진 청소 점검(G-120)" "<위 SQL>"`. `oldest_hours` 가 기한까지 남은 틈(47시간 − `oldest_hours`)을 말한다.
+   `npm run db:remote -- --purpose "사진 청소 점검(G-120)" "<위 SQL>"`. `oldest_hours` 는 줄이 선 뒤의 시간이다 — 기한까지 남은 틈은 처분이
+   정상(24 ~ 25시간)이었을 때 47시간 − `oldest_hours` 이고, 처분이 늦었으면 더 짧다(아래 1').
    `last_finished_at` 이 세 시간보다 오래면 2 로, 최근인데 `errors` 가 있으면 3 으로
+1'. **계정 처분이 늦지 않았나** — 사진 줄은 처분 뒤에야 지울 줄에 서므로, 처분이 늦으면 사진도 늦는다. 집계만:
+
+   ```sql
+   select count(*) as waiting,
+          count(*) filter (where deletion_requested_at < now() - interval '25 hours') as past_25h,
+          floor(extract(epoch from now() - min(deletion_requested_at)) / 3600) as oldest_request_hours,
+          (select active from cron.job where jobname = 'account-disposal') as disposal_job_active
+   from public.app_user where status = 'deletion_requested';
+   ```
+
+   `npm run db:remote -- --purpose "탈퇴 처분 지연 점검(G-120)" "<위 SQL>"`. `past_25h` 가 0 이 아니거나 `disposal_job_active` 가 참이 아니면
+   처분부터 푼다 — `docs/ops/runbook/erasure.md` 「탈퇴 신청의 처리」(`account-disposal-failed` · `account-disposal-overdue`)와
+   `docs/ops/runbook/jobs.md` 「도는 잡이 정말 도나」. 그 사람의 사진 기한은 `oldest_request_hours` 에서 72 까지다
 2. **청소가 안 돈다**
    - 잡 — `select jobname, schedule, active from cron.job where jobname like 'photo-sweep-%';` 둘(`33 * * * *` · `53 * * * *`)이 `active`.
      꺼졌으면 `select cron.alter_job(<jobid>, active := true);`. 없으면 마이그레이션 `20261229090000` 이 운영에 없다(「사진 저장소로 바꾼다」 0)

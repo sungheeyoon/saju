@@ -63,6 +63,7 @@ export function s3PhotoStore(config: StoreConfig): PhotoStore {
         if (answer.Body === undefined) return null;
         return { body: await answer.Body.transformToByteArray(), contentType: answer.ContentType ?? 'application/octet-stream' };
       } catch (error) {
+        /* 없는 객체가 NoSuchKey(404)로 오는 것은 앱 역할에 이 버킷의 ListBucket 이 있어서다 — 없으면 403 이고 그것은 던진다(runbook 「마법사가 쓸 값」) */
         if (error instanceof NoSuchKey) return null;
         throw error;
       }
