@@ -1,4 +1,4 @@
-import { photoResponse } from '../photo-response';
+import { photoResponse, photoVariantOf } from '../photo-response';
 
 /**
  * 대표 사진 — `/me/photo/{id}/1` 의 다른 이름이다(G-60).
@@ -11,5 +11,5 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
-  return photoResponse(request, userId, 1);
+  return photoResponse(request, userId, 1, photoVariantOf(request));
 }

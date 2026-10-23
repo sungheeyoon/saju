@@ -1133,6 +1133,24 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_upload_switch: {
+        Row: {
+          changed_at: string
+          id: boolean
+          mode: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: boolean
+          mode?: string
+        }
+        Update: {
+          changed_at?: string
+          id?: boolean
+          mode?: string
+        }
+        Relationships: []
+      }
       photo_upload_ticket: {
         Row: {
           issued_at: string
@@ -4134,6 +4152,7 @@ export type Database = {
         Returns: {
           base64: string
           content_type: string
+          object_key: string
           version: number
         }[]
       }
@@ -4157,6 +4176,8 @@ export type Database = {
         Args: { p_deleted: string[]; p_error_class: string; p_failed: string[] }
         Returns: boolean
       }
+      photo_upload_mode: { Args: never; Returns: string }
+      photo_upload_must_be: { Args: { p_path: string }; Returns: undefined }
       pick_reading_credit_share: {
         Args: { p_user: string }
         Returns: Record<string, unknown>

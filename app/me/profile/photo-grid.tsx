@@ -10,9 +10,10 @@ import {
   FOCUS_CENTER,
   focusPosition,
   movedPhotos,
+  type PhotoUploadMode,
 } from '@/src/lib/profile';
 
-import { PHOTO_ADD } from '@/src/lib/account/copy';
+import { PHOTO_ADD, PHOTO_UPLOADS_PAUSED } from '@/src/lib/account/copy';
 
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
@@ -85,13 +86,18 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
 export function PhotoGrid({
   userId,
   photos,
-  stored,
+  uploads,
 }: {
   userId: string;
   photos: readonly MyPhoto[];
-  /** 올린 사진이 저장소로 가나(G-120) — `usePhotoUploads` 가 보내는 길을 고른다 */
-  stored: boolean;
+  /**
+   * 올리기의 길 — DB 의 스위치(G-120, ADR 0203). `s3` 면 저장소로, `db` 면 지금처럼 DB 로 보낸다(`usePhotoUploads`).
+   * `paused` 면 첫 줄이 안내로 바뀌고 올리는 자리(빈 칸의 + · 「사진 변경」)가 안 선다 — 옮기기 · 위치 조정 · 지우기는 그대로다.
+   * 화면의 값이 낡아도 DB 가 거절하고, 실패를 받은 화면은 목록을 다시 읽어 새 길로 선다(`failed`)
+   */
+  uploads: PhotoUploadMode;
 }) {
+  const paused = uploads === 'paused';
   const router = useRouter();
   const [order, moveInView] = useOptimistic(
     photos,
@@ -139,7 +145,7 @@ export function PhotoGrid({
     framer,
   } = usePhotoUploads({
     userId,
-    stored,
+    stored: uploads === 's3',
     photos,
     total,
     working,
@@ -202,7 +208,7 @@ export function PhotoGrid({
     const underFocus = replaced?.focus ?? backdrop.get(photo.version)?.focus ?? FOCUS_CENTER;
     const focus = focusOfPhoto(photo);
     const items: MenuChoice[] = [
-      { icon: 'pencil', label: '사진 변경', run: () => chooseReplacement(photo) },
+      ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
       { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
       ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
       { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
@@ -263,7 +269,7 @@ export function PhotoGrid({
             {covering === null && (
               /* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */
               <img
-                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
+                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}&s=card`}
                 alt=""
                 draggable={false}
                 className="h-full w-full rounded-2xl object-cover"
@@ -316,6 +322,11 @@ export function PhotoGrid({
     </div>
   );
 
+  /** 멈춘 동안의 빈 칸 — 누를 것이 없다. 자리만 선다 */
+  const restingSlot = () => (
+    <div aria-hidden="true" className="h-full w-full rounded-2xl border-2 border-dashed border-border bg-surface" />
+  );
+
   const emptySlot = (position: number) => {
     /* 첫 빈 칸만 올리기 칸으로 읽힌다 — 나머지 빈 칸도 누르면 같은 칸을 연다. 앉는 자리는 맨 뒤다 */
     const first = position === total + waiting.length + 1;
@@ -360,7 +371,8 @@ export function PhotoGrid({
     const photo = shown[position - 1];
     if (photo !== undefined) return photoSlot(photo, position);
     const upload = waiting[position - total - 1];
-    return upload === undefined ? emptySlot(position) : uploadSlot(upload);
+    if (upload !== undefined) return uploadSlot(upload);
+    return paused ? restingSlot() : emptySlot(position);
   };
 
   /* 한 장이 끝나면 그 말이 잠깐 서고, 아직 남은 장이 있으면 다시 「사진 저장 중…」으로 돌아온다 */
@@ -369,7 +381,12 @@ export function PhotoGrid({
   return (
     <section className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
       {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
-      <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      {paused ? (
+        /* 올리기가 멈춘 동안 — 첫 줄이 그 까닭이다(대장 settings-05). DB 의 거절도 같은 글자다 */
+        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_UPLOADS_PAUSED}</p>
+      ) : (
+        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      )}
       {/* 「사진 변경」의 기기 사진 창 — 한 장만. 메뉴의 누름이 연다 */}
       <input
         ref={replaceInput}

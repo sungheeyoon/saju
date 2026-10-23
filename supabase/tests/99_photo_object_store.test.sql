@@ -55,24 +55,23 @@ grant select on who to authenticated, service_role;
 create temporary table kept (k text primary key, v text);
 grant select, insert, update on kept to authenticated, service_role;
 
-/**
- * 올리는 문 넷은 운영에서 닫혀 있다(`20261227120000` — 열람 방식이 정해지는 날 연다). 그 차례를 재려고 이 트랜잭션 안에서만
- * 연다 — 끝에서 되돌아간다. 닫혀 있다는 것은 아래 6 과 `74_authenticated_doors` 가 잰다
- */
-select ok(not has_function_privilege('authenticated', 'public.begin_my_photo_upload()', 'execute')
-  and not has_function_privilege('authenticated', 'public.add_my_photo_object(text, text)', 'execute')
-  and not has_function_privilege('authenticated', 'public.replace_my_photo_object(integer, bigint, text, text)', 'execute')
-  and not has_function_privilege('authenticated', 'public.drop_my_photo_upload(text)', 'execute'),
-  '0. 올리는 문 넷은 로그인한 사람에게 닫혀 있다 — 켜는 날의 결정 전');
-grant execute on function public.begin_my_photo_upload() to authenticated;
-grant execute on function public.add_my_photo_object(text, text) to authenticated;
-grant execute on function public.replace_my_photo_object(integer, bigint, text, text) to authenticated;
-grant execute on function public.drop_my_photo_upload(text) to authenticated;
+/** 올리는 문 넷은 `20261227120000` 이 닫았다가 열람 방식(G-120 안 A)과 함께 `20261228150000` 이 연다 — 열려 있는지는 `74_authenticated_doors` 도 잰다 */
+select ok(has_function_privilege('authenticated', 'public.begin_my_photo_upload()', 'execute')
+  and has_function_privilege('authenticated', 'public.add_my_photo_object(text, text)', 'execute')
+  and has_function_privilege('authenticated', 'public.replace_my_photo_object(integer, bigint, text, text)', 'execute')
+  and has_function_privilege('authenticated', 'public.drop_my_photo_upload(text)', 'execute'),
+  '0. 올리는 문 넷은 로그인한 사람에게 열려 있다 — 읽는 길(열람 방식)과 같은 날');
 
 /** 다른 시험이 남긴 지울 줄 · 알림과 섞이지 않게 — 트랜잭션 안이라 되돌아간다 */
 delete from public.photo_object_trash;
 delete from public.photo_upload_ticket;
 delete from public.ops_alert where kind = 'photo-trash-stuck';
+
+/**
+ * 저장소 길을 재므로 스위치를 `s3` 로 — 기본값 `db` 에서는 저장소 길의 문이 거절한다(`20261228140000`, 그 갈래는
+ * `99_photo_upload_switch` 가 잰다). 바이트 길로 바꾸는 2 의 한 줄 앞뒤에서만 `db` 로 돌린다
+ */
+update public.photo_upload_switch set mode = 's3';
 
 set local role authenticated;
 select pg_temp.acting((select kim from who));
@@ -127,7 +126,15 @@ select is(pg_temp.key_at((select kim from who), 2), (select v from kept where k 
 select ok(pg_temp.trashed((select v from kept where k = 'first')), '2. 저장소 길로 바꾸면 옛 열쇠가 지울 줄에 간다');
 select isnt((select v from kept where k = 'v2'), (select v from kept where k = 'v1'), '2. 판본이 바뀐다');
 
+reset role;
+update public.photo_upload_switch set mode = 'db';
+set local role authenticated;
+select pg_temp.acting((select kim from who));
 select public.replace_my_photo(2, (select version from public.my_photos() where position = 2), 'image/png', pg_temp.pic('back'));
+reset role;
+update public.photo_upload_switch set mode = 's3';
+set local role authenticated;
+select pg_temp.acting((select kim from who));
 select ok(pg_temp.trashed((select v from kept where k = 'second')), '2. 바이트 길로 바꿔도 옛 열쇠가 지울 줄에 간다');
 select ok(pg_temp.key_at((select kim from who), 2) is null and pg_temp.has_bytes_at((select kim from who), 2),
   '2. 바이트 길로 바꾼 줄은 열쇠를 걷고 바이트를 든다');
