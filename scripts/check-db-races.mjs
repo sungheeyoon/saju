@@ -18,6 +18,10 @@
  *   7. **덱이 없던 사람의 첫 목록을 두 세션이 나란히 열어도 덱은 한 벌이다** — 뒤 세션은 사람 단위 자물쇠에서 앞
  *      세션의 커밋을 기다렸다가 앞이 세운 덱을 읽는다. 고치기 전에는 덱 둘 · 노출 기록 두 벌이 섰다(`20261030090000`)
  *
+ *   9. **사진 올리기 스위치를 바꾸는 일은 검사를 지난 올리기의 커밋을 기다린다** — 앞 세션이 `db` 검사를 지나고 커밋 전일 때
+ *      운영자가 `paused` 로 바꾸면 그 `update` 는 앞 커밋 뒤에야 돌아오고, 돌아온 순간 앞 세션의 바이트 줄이 이미 보인다 —
+ *      그 뒤에 보내는 삭제가 그 줄까지 지운다. 바꾸는 동안 들어온 올리기는 새 값으로 거절된다(`20261229150000`, ADR 0203 덧붙임)
+ *
  *   8. **맛보기 예약 스물이 한꺼번에 와도 상한과 유일 생성이 선다** — 같은 지문이면 모델 예약 하나 · 한 IP 면 1분 셋 ·
  *      한 브라우저면 새 지문 다섯 · 전체 상한 근처면 남은 수만(`20261118090000`). 예약 문은 IP → 브라우저 → artifact 열쇠
  *      순으로 트랜잭션 자물쇠를 잡고 전체 하루 줄은 `for update` 로 잡는다
@@ -412,6 +416,46 @@ const accessRow = (actor, outcome = 'allowed') => `
     sql(`delete from public.taste_rate_event where subject_hmac in (${subjects.map((label) => `'${hex(label)}'`).join(', ')})`);
     sql(`update public.taste_daily_count set value = ${callsBefore} where day = ${today} and metric = 'model_calls'`);
     sql(`delete from public.ops_alert where kind like 'taste-budget-%' and day = ${today}`);
+  }
+}
+
+// ── 9. 사진 올리기 스위치는 진행 중인 올리기를 기다린다 ─────────────────────────────
+
+{
+  const uid = sql(`insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at)
+    values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+            'race-photo-switch-${Date.now()}@example.com', now(), now()) returning id`);
+  sql(`insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+    select (now() at time zone 'Asia/Seoul')::date + 30, '경합 검사', '만세력 운영자', '시험 담당', 'ops@example.com'
+    where not exists (select 1 from public.beta_schedule)`);
+  const modeBefore = sql(`select mode from public.photo_upload_switch`);
+  const upload = (at, tail = '') => session(at, `begin; ${asUser(uid)}
+    select 'PLACED=' || public.add_my_photo('image/png', 'QQ=='); ${tail} commit;`);
+
+  try {
+    sql(`update public.photo_upload_switch set mode = 'db', changed_at = now()`);
+    const [early, switcher, late] = await Promise.all([
+      // 검사를 지나고 2초 뒤에 커밋한다
+      upload(0, 'select pg_sleep(2);'),
+      // 그 사이 운영자가 멈춘다 — 돌아오면 곧바로 바이트 줄을 센다(삭제가 볼 줄)
+      session(600, `update public.photo_upload_switch set mode = 'paused', changed_at = now() returning 'MODE=' || mode;
+        select 'ROWS=' || count(*) from public.profile_photo where user_id = '${uid}' and bytes is not null;`),
+      // 바꾸는 동안 들어온 올리기
+      upload(1200),
+    ]);
+
+    check('앞 올리기는 db 검사를 지나 커밋한다 — 경합할 올리기가 있다', early.code === 0 && marked(early, 'PLACED') === '1',
+      early.err.trim());
+    check('스위치를 바꾸는 update 는 앞 올리기의 커밋을 기다렸다', switcher.code === 0 && switcher.ms >= 1000,
+      `${switcher.ms}ms ${switcher.err.trim()}`);
+    check('update 가 돌아온 순간 앞 올리기의 바이트 줄이 이미 보인다 — 그 뒤의 삭제가 그 줄까지 지운다',
+      marked(switcher, 'MODE') === 'paused' && marked(switcher, 'ROWS') === '1',
+      `mode ${marked(switcher, 'MODE')} · rows ${marked(switcher, 'ROWS')}`);
+    check('바꾸는 동안 들어온 올리기는 새 값(paused)으로 거절된다',
+      late.code !== 0 && late.err.includes('사진 보관 방식을 바꾸는 중이라 지금은 사진을 올릴 수 없어요.'), late.err.trim());
+  } finally {
+    sql(`update public.photo_upload_switch set mode = '${modeBefore}', changed_at = now()`);
+    sql(`delete from auth.users where id = '${uid}'`);
   }
 }
 

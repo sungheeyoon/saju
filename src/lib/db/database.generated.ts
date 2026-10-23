@@ -1133,6 +1133,33 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_sweep_state: {
+        Row: {
+          held_until: string | null
+          holder: string | null
+          last_deleted: number | null
+          last_failed: number | null
+          last_finished_at: string | null
+          one: boolean
+        }
+        Insert: {
+          held_until?: string | null
+          holder?: string | null
+          last_deleted?: number | null
+          last_failed?: number | null
+          last_finished_at?: string | null
+          one?: boolean
+        }
+        Update: {
+          held_until?: string | null
+          holder?: string | null
+          last_deleted?: number | null
+          last_failed?: number | null
+          last_finished_at?: string | null
+          one?: boolean
+        }
+        Relationships: []
+      }
       photo_upload_switch: {
         Row: {
           changed_at: string
@@ -4164,6 +4191,12 @@ export type Database = {
           object_key: string
         }[]
       }
+      photo_sweep_begin: { Args: never; Returns: string }
+      photo_sweep_finish: {
+        Args: { p_deleted: number; p_failed: number; p_holder: string }
+        Returns: boolean
+      }
+      photo_sweep_stale_after: { Args: never; Returns: string }
       photo_sweep_tickets: { Args: never; Returns: number }
       photo_trash_batch: {
         Args: { p_limit: number }
@@ -4172,6 +4205,7 @@ export type Database = {
           object_key: string
         }[]
       }
+      photo_trash_linger_after: { Args: never; Returns: string }
       photo_trash_settle: {
         Args: { p_deleted: string[]; p_error_class: string; p_failed: string[] }
         Returns: boolean
@@ -4751,10 +4785,12 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      wake_photo_sweep: { Args: never; Returns: undefined }
       wake_push_dispatch: { Args: never; Returns: undefined }
       wake_push_dispatch_when_due: { Args: never; Returns: boolean }
       wake_reading_recovery: { Args: never; Returns: undefined }
       watch_cron: { Args: never; Returns: number }
+      watch_photo_sweep: { Args: { p_now?: string }; Returns: number }
       watch_reading_credit_grants: { Args: never; Returns: number }
       write_person_input: {
         Args: {
