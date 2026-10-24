@@ -3130,7 +3130,8 @@ test.describe('가입 관문', () => {
       return bodies.get(src) ?? Buffer.alloc(0);
     };
 
-    await page.getByLabel('사진 추가').setInputFiles([
+    /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles([
       'e2e/fixtures/harin.webp',
       'e2e/fixtures/jiwoo.webp',
     ]);
@@ -3230,7 +3231,8 @@ test.describe('가입 관문', () => {
     await expect(page.getByText('사진은 바로 저장돼요')).toBeVisible();
 
     const fixtures = ['e2e/fixtures/harin.webp', 'e2e/fixtures/jiwoo.webp', 'e2e/fixtures/seoyeon.webp'];
-    await page.getByLabel('사진 추가').setInputFiles([...fixtures, ...fixtures]);
+    /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles([...fixtures, ...fixtures]);
     const slot = (n: number) => page.getByLabel(`사진 ${n} / 6, 길게 눌러 옮기기`, { exact: true });
     /* 여섯 장을 차례로 줄이고 올린다 — 한 장씩이라 기본 기다림보다 길다 */
     await expect(slot(6)).toBeVisible({ timeout: 30_000 });
@@ -3310,7 +3312,8 @@ test.describe('가입 관문', () => {
     });
     await page.goto('/me/profile');
 
-    await page.getByLabel('사진 추가').setInputFiles(['e2e/fixtures/harin.webp']);
+    /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles(['e2e/fixtures/harin.webp']);
     /* 한 장을 고르면 위치 조정 창이 선다(G-98) — 그대로 「저장」 */
     await page.getByRole('dialog', { name: '위치 조정' }).getByRole('button', { name: '저장', exact: true }).click();
     const photo = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
@@ -3328,7 +3331,8 @@ test.describe('가입 관문', () => {
     const { page } = await openAs({ selfPerson: true });
     await page.goto('/me/profile');
 
-    await page.getByLabel('사진 추가').setInputFiles([
+    /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles([
       'e2e/fixtures/harin.webp',
       'e2e/fixtures/jiwoo.webp',
       'e2e/fixtures/seoyeon.webp',

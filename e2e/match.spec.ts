@@ -1254,7 +1254,8 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
 
     const page = partner.page;
     await page.goto('/me/profile');
-    await page.getByLabel('사진 추가').setInputFiles(['e2e/fixtures/harin.webp']);
+    /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles(['e2e/fixtures/harin.webp']);
     const framer = page.getByRole('dialog', { name: '위치 조정' });
     const frame = framer.getByRole('group', { name: '사진 위치' });
     await expect(frame).toBeFocused();
@@ -1281,6 +1282,8 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
     await slot.click();
     await page.getByRole('button', { name: '위치 조정' }).click();
     await expect(frame).toBeVisible();
+    /* 틀이 사진의 크기를 잰 뒤에 끈다 — 그 전의 끌기는 넘친 길이를 몰라 자리를 안 옮긴다 */
+    await expect(frame).toHaveAttribute('data-measured', '');
     const box = (await frame.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();

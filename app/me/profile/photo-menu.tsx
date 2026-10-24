@@ -1,51 +1,49 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 
-import { useDetailsMenu } from '../../ui/details-menu';
-import { Icon, type IconName } from '../../ui/icons';
-import { MENU_PANEL } from '../../ui/surfaces';
+import { ActionSheet, type ActionChoice } from '../../ui/action-sheet';
 
-/** 사진 칸 메뉴의 한 줄 */
-export type MenuChoice = { icon: IconName; label: string; tone?: 'danger'; run: () => void };
+/** 사진 칸 판의 한 줄 */
+export type MenuChoice = ActionChoice;
 
 /**
- * 사진 칸 하나의 메뉴 — **사진 자체가 여는 자리다**(`<summary>`). 계정 메뉴 · 사람 관리 메뉴와 같은 `<details>` 한 벌이라
- * 바깥 누름 · Esc 로 닫히고 Esc 면 초점이 그 사진으로 돌아온다(`useDetailsMenu`). 고르면 먼저 닫고 그 일을 한다.
+ * 사진 칸 하나와 그 칸의 고르기 판 — **사진 자체가 여는 자리다**(단추). 누르면 아래에서 판이 올라온다(`ActionSheet`,
+ * 카카오톡 「프로필 사진 설정」과 같은 꼴, 2026-10-24). 사진 위에 뜨던 작은 메뉴(`<details>`)는 옆 장을 가리고 폰의 하단 독에
+ * 끝 줄이 덮였다. Esc · 바깥 누름 · 「취소」로 닫히고 초점은 그 사진으로 돌아온다.
+ *
+ * 여는 단추의 누름이 막혔으면(들었다 놓은 누름 · 처리하는 동안 — 부르는 쪽이 `preventDefault`) 판을 안 연다.
  */
 export function PhotoMenu({
-  summary,
-  items,
-  align,
+  opener,
+  choices,
+  label,
+  lead,
   children,
 }: {
-  summary: Omit<ComponentProps<'summary'>, 'ref'> & { ref: (element: HTMLElement | null) => void };
-  items: readonly MenuChoice[];
-  align: string;
+  opener: Omit<ComponentProps<'button'>, 'ref' | 'type'> & { ref: (element: HTMLElement | null) => void };
+  choices: readonly MenuChoice[];
+  /** 판의 이름(보조기기) */
+  label: string;
+  /** 판 머리의 그림 — 그 사진 */
+  lead?: ReactNode;
   children: ReactNode;
 }) {
-  const { menu, close } = useDetailsMenu();
+  const [open, setOpen] = useState(false);
+  const { onClick, ...rest } = opener;
   return (
-    <details ref={menu} className="group relative h-full w-full">
-      <summary {...summary}>{children}</summary>
-      <div
-        className={`${MENU_PANEL} absolute z-40 flex w-44 flex-col p-1.5 ${align}`}
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        {...rest}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented) setOpen(true);
+        }}
       >
-        {items.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => {
-              close();
-              item.run();
-            }}
-            className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
-              item.tone === 'danger' ? 'text-danger' : 'text-foreground'
-            }`}
-          >
-            <Icon name={item.icon} className="size-4.5" />
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </details>
+        {children}
+      </button>
+      <ActionSheet open={open} onClose={() => setOpen(false)} label={label} lead={lead} choices={choices} />
+    </>
   );
 }
