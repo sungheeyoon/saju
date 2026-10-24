@@ -199,6 +199,13 @@ finish() {
 # - 시험: `scripts/aws-wizard.test.ts` — 가짜 `aws` · `vercel` · `npm` 으로 처음 · 재실행 · 부분 실패 · 재사용 · 전환을 잰다.
 # ──────────────────────────────────────────────────────────────────────────
 
+# bash 4.4 이상이어야 한다 — 아래 `inherit_errexit` 와 연관 배열(`declare -A`)이 그 판부터다. macOS 의 `/bin/bash` 는
+# 3.2 라 `shopt` 에서 알 수 없는 이름으로 죽는다 — 그 전에 까닭과 까는 길을 말하고 멈춘다
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+  printf '이 마법사는 bash 4.4 이상에서 돈다 — 지금은 %s 다. macOS 면 `brew install bash` 뒤 새 터미널에서 `bash scripts/aws-wizard.sh`\n' "$BASH_VERSION" >&2
+  exit 1
+fi
+
 # 명령 치환 안의 실패도 멈추게 한다 — 없으면 `x=$(실패하는 함수)` 가 조용히 지나간다. 함수 안의 실패도
 # 오류 알림(on_error)을 거치게 한다(-E)
 shopt -s inherit_errexit
@@ -307,8 +314,12 @@ ensure_role() {
   printf '%s' "$arn"
 }
 
-# 검증이 본 설정의 지문 — 인자를 줄마다 이어 sha256 하나로. 상태 파일에는 지문으로만 남는다
-fingerprint() { printf '%s\n' "$@" | sha256sum | cut -d' ' -f1; }
+# 검증이 본 설정의 지문 — 인자를 줄마다 이어 sha256 하나로. 상태 파일에는 지문으로만 남는다.
+# macOS 에는 `sha256sum` 이 없고 `shasum -a 256` 이 있다 — 같은 값을 낸다(WSL 에서 적은 지문을 맥에서 다시 잰다)
+fingerprint() {
+  if command -v sha256sum >/dev/null 2>&1; then printf '%s\n' "$@" | sha256sum | cut -d' ' -f1
+  else printf '%s\n' "$@" | shasum -a 256 | cut -d' ' -f1; fi
+}
 
 # Production 의 실제 값을 읽는다 — 세 이름(비밀이 아니다)만 연관 배열 remote 에 담는다.
 # `vercel env pull` 은 다른 변수(비밀 포함)도 함께 쓰므로, 저장소 밖 임시 폴더(권한 700)에 받아 세 이름만 뽑고

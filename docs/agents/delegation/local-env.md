@@ -38,6 +38,7 @@
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
 | 기계가 바쁠 때(빌드 · 다른 워크트리의 시험과 겹칠 때) `npm test` 의 엔진 시험이 `Test timed out in 5000ms` 로 붉다 | 로컬 `testTimeout` 은 5초다(`vitest.config.mts`, CI 는 30초) — 코드가 아니라 일꾼 수가 부하를 키운다(2026-10-22) | `npx vitest run --maxWorkers=4` 로 다시. 그래도 붉으면 그때 코드를 본다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
+| 맥에서만 `scripts/aws-wizard.test.ts` 가 붉다 · 마법사가 「bash 4.4 이상」이라며 멈춘다 | macOS 의 `/bin/bash` 는 3.2 다 — 마법사는 `inherit_errexit` · 연관 배열을 쓴다. 시험은 PATH 의 bash 를 쓴다(CI 는 ubuntu 라 초록, 2026-10-24) | `brew install bash` — `/opt/homebrew/bin` 이 PATH 에서 `/bin` 앞이면 된다 |
 | `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096) |
 | 워크트리에서 운영에 닿는 CLI 를 처음 부를 때 macOS 가 키체인의 `Supabase CLI` 를 쓰려 한다고 묻는다 | 임시 서명(`adhoc`) 바이너리라 키체인이 **경로**로 허락을 기억한다 — 워크트리마다 새 경로다(2026-09-24) | 사람이 경로가 이 저장소의 `.claude/worktrees/…/supabase` 인지 보고 「항상 허용」. 거부하면 그 세션의 원격 걸음이 실패한다 |
 | 프로덕션 확인에 계정이 필요하다 | 기존 계정은 실제 사용자다 | `.env.development.local` 의 `SUPABASE_SECRET_KEY` 로 `auth.admin.createUser({ email_confirm: true })` — 주소는 `@example.com`, 전용 코드로 `complete_signup` 을 지난다. 끝나면 `forget_user` 로 지우고 코드도 지운다(#115 · #121) |
