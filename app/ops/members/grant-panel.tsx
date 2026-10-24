@@ -150,7 +150,7 @@ export function GrantPanel({
       {blocked !== null && <p className="text-xs text-secondary">{blocked}</p>}
 
       {mode !== null && input !== null && (
-        <form onSubmit={open} className="flex flex-col gap-4 rounded-tile bg-surface-soft p-4" aria-label={mode === 'grant' ? '무상 풀이권 지급' : '무상 지급분 회수'}>
+        <form onSubmit={open} className="flex flex-col gap-4 rounded-card bg-surface-soft p-4" aria-label={mode === 'grant' ? '무상 풀이권 지급' : '무상 지급분 회수'}>
           <p className="text-sm font-semibold">
             {mode === 'grant' ? `무상 지급분은 ${NOT_REFUNDABLE}` : '무상 지급분만 회수합니다. 구매분 환불은 주문 화면에서.'}
           </p>

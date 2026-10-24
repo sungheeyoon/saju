@@ -59,14 +59,14 @@ export function RoomHeader({
         </span>
         <div className="min-w-0 flex-1">
           {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
-          <h1 className="truncate font-rounded text-lead font-semibold leading-6 text-foreground">
+          <h1 className="truncate font-rounded text-lead leading-6 text-foreground">
             {partnerOpens ? (
               <button
                 type="button"
                 aria-haspopup="dialog"
                 aria-label={partnerSheetName(room.name)}
                 onClick={onOpenPartner}
-                className="inline-flex max-w-full items-center gap-0.5 text-left after:absolute after:inset-0 after:rounded-2xl"
+                className="inline-flex max-w-full items-center gap-0.5 text-left after:absolute after:inset-0 after:rounded-cell"
               >
                 <span className="truncate">{room.heading}</span>
                 <Icon name="chevron" className="size-4 text-secondary" />

@@ -125,7 +125,7 @@ function BetweenRelations({
       </div>
 
       {dayToDay.length > 0 && (
-        <div className="mt-3 rounded-md border border-border bg-surface-sunken p-3">
+        <div className="mt-3 rounded-cell border border-border bg-surface-sunken p-3">
           <p className="text-xs text-muted">일지끼리 — 부부 자리로 읽는 자리입니다</p>
           <ul className="mt-1.5 flex flex-col gap-1 text-sm">
             {dayToDay.map((relation) => (

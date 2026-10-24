@@ -17,7 +17,7 @@ export function SupplyBody({ card, explorationNote }: { card: DeckCard; explorat
           ))}
         </ul>
       ) : (
-        <p className="text-note leading-6 text-foreground">{card.reason}</p>
+        <p className="text-body leading-6 text-foreground">{card.reason}</p>
       )}
       <p className="text-small leading-5 text-secondary">{card.balanceLabel}</p>
       {card.exploration && explorationNote !== null && (

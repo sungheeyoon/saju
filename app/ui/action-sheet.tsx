@@ -57,7 +57,7 @@ export function ActionSheet({
       key={choice.label}
       type="button"
       onClick={() => choose(choice)}
-      className={`flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 text-left text-lead font-semibold hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+      className={`flex min-h-14 w-full items-center gap-3 rounded-cell px-4 text-left text-lead font-semibold hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
         choice.tone === 'danger' ? 'text-danger' : 'text-foreground'
       }`}
     >
@@ -83,7 +83,7 @@ export function ActionSheet({
         event.stopPropagation();
         onClose();
       }}
-      className="mx-auto mb-0 mt-auto w-full max-w-[28rem] rounded-t-paper bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:w-[22rem] lg:rounded-paper lg:shadow-float"
+      className="mx-auto mb-0 mt-auto w-full max-w-[28rem] rounded-t-card bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:w-[22rem] lg:rounded-card lg:shadow-float"
     >
       <div className="flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 lg:p-4">
         <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />

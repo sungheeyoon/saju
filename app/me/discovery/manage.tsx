@@ -95,11 +95,11 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
           44px 이다. 칸을 키우면 고른 칸의 흰 바탕도 커지므로, 모양은 두고 투명한 덮개만 격자의
           안쪽 여백(`p-1`)까지 내민다.
         */}
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface-sunken p-1 sm:shrink-0">
+        <div className="grid grid-cols-3 gap-1 rounded-cell bg-surface-sunken p-1 sm:shrink-0">
           {PREFER_GENDER_ORDER.map((value) => (
             <label
               key={value}
-              className="relative flex min-h-9 cursor-pointer items-center justify-center rounded-lg px-3 text-sm font-medium text-secondary transition-colors after:absolute after:inset-x-0 after:-inset-y-1 hover:text-foreground has-checked:bg-surface has-checked:text-foreground has-checked:shadow-soft has-focus-visible:ring-2 has-focus-visible:ring-accent"
+              className="relative flex min-h-9 cursor-pointer items-center justify-center rounded-cell px-3 text-sm font-medium text-secondary transition-colors after:absolute after:inset-x-0 after:-inset-y-1 hover:text-foreground has-checked:bg-surface has-checked:text-foreground has-checked:shadow-soft has-focus-visible:ring-2 has-focus-visible:ring-accent"
             >
               <input
                 type="radio"

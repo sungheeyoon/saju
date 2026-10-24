@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useBrowserSession } from './auth/browser-session';
 import { SERVICE_FEATURES } from './service-features';
 import { Icon, type IconName } from './ui/icons';
-import { TYPE_SECTION } from './ui/surfaces';
+import { TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
 
 /**
  * 로그인 전 첫 화면의 **「할 수 있는 것」** — 폼 아래. 서비스 소개(`/about`)의 같은 구역 이름이다.
@@ -44,13 +44,13 @@ export function LandingGuide() {
         {SERVICE_FEATURES.filter((feature) => feature.title !== '사주').map((feature) => (
           <li
             key={feature.title}
-            className="flex gap-4 rounded-tile border border-border bg-surface p-5 sm:p-6"
+            className="flex gap-4 rounded-card border border-border bg-surface p-5 sm:p-6"
           >
-            <span className={`grid size-11 shrink-0 place-items-center rounded-2xl ${TONES[feature.icon] ?? TONE_DEFAULT}`}>
+            <span className={`grid size-11 shrink-0 place-items-center rounded-cell ${TONES[feature.icon] ?? TONE_DEFAULT}`}>
               <Icon name={feature.icon} className="size-[22px]" />
             </span>
             <div className="min-w-0">
-              <h3 className="font-rounded text-heading leading-7 text-foreground">{feature.title}</h3>
+              <h3 className={TYPE_NAME}>{feature.title}</h3>
               <p className="mt-1 text-pretty text-body leading-7 text-secondary">{feature.body}</p>
             </div>
           </li>

@@ -84,12 +84,12 @@ export async function SharedReadingView({
       </header>
 
       {(metaphor !== null || score !== null) && (
-        <section className="grid overflow-hidden rounded-paper bg-cream sm:grid-cols-[minmax(0,1fr)_auto]">
+        <section className="grid overflow-hidden rounded-card bg-cream sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-w-0 gap-3 px-5 py-7 sm:px-8 sm:py-9">
             {metaphor !== null && (
               <>
                 <Icon name="quote" className="mt-1 size-6 text-cream-ink" />
-                <p className="max-w-2xl text-pretty font-rounded text-section leading-[1.45] tracking-[-0.01em] text-foreground sm:text-title">
+                <p className="max-w-2xl text-pretty font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground sm:text-title">
                   {metaphor}
                 </p>
               </>
@@ -97,7 +97,7 @@ export async function SharedReadingView({
           </div>
           {/* 궁합에서는 **점수가 그 글의 일부다.** 빼면 받은 사람이 다른 글을 본다 */}
           {score !== null && (
-            <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-tile bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
+            <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-card bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
               <p className="flex items-center gap-1 text-small font-semibold text-[var(--ink)]">
                 <Icon name="taiji" className="size-4" />
                 궁합풀이 점수
@@ -123,7 +123,7 @@ export async function SharedReadingView({
         **가입은 아직 코드로만 열린다**(ADR 0042) — 누르고 나서 알게 하면, 그 사람은
         읽은 글이 좋아서 눌렀다가 막힌 문을 만난다.
       */}
-      <section className="flex flex-col gap-3 rounded-paper bg-cream px-5 py-7 sm:px-8">
+      <section className="flex flex-col gap-3 rounded-card bg-cream px-5 py-7 sm:px-8">
         <span className="grid size-14 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-9" />
         </span>

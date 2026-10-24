@@ -285,7 +285,7 @@ async function Inspected({ target }: { target: ReadingTarget }) {
 /** 긴 글은 가로로 흐르게 둔다 — 본문이 아니라 자료라서 줄바꿈을 지어내지 않는다 */
 function Pre({ text }: { text: string }) {
   return (
-    <pre className="mt-2 max-h-96 overflow-auto rounded-md bg-surface-sunken p-3 text-xs whitespace-pre-wrap break-all">
+    <pre className="mt-2 max-h-96 overflow-auto rounded-cell bg-surface-sunken p-3 text-xs whitespace-pre-wrap break-all">
       {text}
     </pre>
   );

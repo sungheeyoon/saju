@@ -30,8 +30,8 @@ export default function CompatLoading() {
                 {/* 두 칸 사이의 「×」 자리 — 실제 판처럼 넓은 화면에서는 가운데 좁은 열이다 */}
                 {side === 1 && <span aria-hidden="true" className="h-8 sm:w-4" />}
                 <div className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
-                  <Bone className="h-11 w-full rounded-xl" />
-                  <Bone className="h-[3.25rem] w-full rounded-xl" />
+                  <Bone className="h-11 w-full rounded-cell" />
+                  <Bone className="h-[3.25rem] w-full rounded-cell" />
                 </div>
               </div>
             ))}
@@ -66,7 +66,7 @@ export default function CompatLoading() {
       </div>
 
       {/* 관계 지도 — 크림 판 · 머리 줄 · 정사각 궤도(폰 24rem · 넓은 화면 30rem) · 범례(설명이 폰은 두 줄) */}
-      <div className="flex flex-col rounded-paper bg-cream">
+      <div className="flex flex-col rounded-card bg-cream">
         <div className="px-5 pt-5 sm:px-6 sm:pt-6">
           <Bone className="h-8 w-32 rounded-full" />
         </div>

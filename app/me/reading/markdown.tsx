@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 결과 원문을 그대로 세운다 — **화면은 글의 절 구조를 알지 않는다.**
@@ -46,7 +47,7 @@ function inline(text: string, key: string): ReactNode[] {
           {found[1]}
         </strong>
       ) : (
-        <code key={`${key}-${index}`} className="rounded-md bg-surface-sunken px-1 py-0.5 text-[0.9em]">
+        <code key={`${key}-${index}`} className="rounded-cell bg-surface-sunken px-1 py-0.5 text-[0.9em]">
           {found[2]}
         </code>
       ),
@@ -173,7 +174,7 @@ export function Markdown({ source }: { source: string }) {
         return block.depth <= 2 ? (
           <h3
             key={key}
-            className={`flex items-center gap-2.5 font-rounded text-section leading-[1.35] text-foreground ${at === 0 ? '' : 'mt-8'}`}
+            className={`flex items-center gap-2.5 ${TYPE_SECTION} ${at === 0 ? '' : 'mt-8'}`}
           >
             <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
             <span>{inline(block.text, key)}</span>

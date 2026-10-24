@@ -63,7 +63,7 @@ export function RunningBandLive({ initial }: { initial: readonly RunningLine[] }
         <Link
           key={line.key}
           href={line.href}
-          className="flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-foreground hover:border-border-strong active:scale-[0.99]"
+          className="flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-foreground hover:border-border-strong active:scale-[0.99]"
         >
           <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-cream text-cream-ink">
             <Icon name="spark" className="size-[18px] animate-pulse motion-reduce:animate-none" />

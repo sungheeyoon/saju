@@ -156,7 +156,7 @@ export function CardPhotos({
               event.stopPropagation();
               setAt(index);
             }}
-            className="flex h-6 min-w-0 flex-1 items-start rounded-sm pt-1 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white"
+            className="flex h-6 min-w-0 flex-1 items-start rounded-cell pt-1 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white"
           >
             <span
               aria-hidden="true"

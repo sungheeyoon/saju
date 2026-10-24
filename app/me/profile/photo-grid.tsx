@@ -281,7 +281,7 @@ export function PhotoGrid({
                 move(position, position + 1);
               }
             },
-            className: `block h-full w-full cursor-grab touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+            className: `block h-full w-full cursor-grab touch-manipulation select-none rounded-cell bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
               target ? 'ring-4 ring-accent' : ''
             }`,
           }}
@@ -289,7 +289,7 @@ export function PhotoGrid({
           <span
             aria-hidden="true"
             className={`pointer-events-none relative block h-full w-full transition-transform duration-150 motion-reduce:transition-none ${
-              lifting ? 'z-20 rounded-2xl shadow-float' : ''
+              lifting ? 'z-20 rounded-cell shadow-float' : ''
             }`}
             style={{
               ...(lifting && lift !== null ? { transform: `translate(${lift.dx}px, ${lift.dy}px) scale(1.05)` } : {}),
@@ -309,12 +309,12 @@ export function PhotoGrid({
                 src={`/me/photo/${userId}/${photo.position}?v=${photo.version}&s=card`}
                 alt=""
                 draggable={false}
-                className="h-full w-full rounded-2xl object-cover"
+                className="h-full w-full rounded-cell object-cover"
                 style={{ objectPosition: focusPosition(focus) }}
               />
             )}
             {covering !== null && covering.next === null && (
-              <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-small font-semibold text-surface">
+              <span className="absolute inset-0 grid place-items-center rounded-cell bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)] text-small font-semibold text-surface">
                 저장 중…
               </span>
             )}
@@ -349,7 +349,7 @@ export function PhotoGrid({
   const uploadSlot = (upload: Upload) => (
     <div
       aria-hidden="true"
-      className="relative h-full w-full overflow-hidden rounded-2xl bg-surface bg-cover"
+      className="relative h-full w-full overflow-hidden rounded-cell bg-surface bg-cover"
       style={{ backgroundImage: `url(${upload.url})`, backgroundPosition: focusPosition(upload.focus) }}
     >
       {!upload.done && (
@@ -362,7 +362,7 @@ export function PhotoGrid({
 
   /** 멈춘 동안의 빈 칸 — 누를 것이 없다. 자리만 선다 */
   const restingSlot = () => (
-    <div aria-hidden="true" className="h-full w-full rounded-2xl border-2 border-dashed border-border bg-surface" />
+    <div aria-hidden="true" className="h-full w-full rounded-cell border-2 border-dashed border-border bg-surface" />
   );
 
   const emptySlot = (position: number) => {
@@ -374,7 +374,7 @@ export function PhotoGrid({
       <label
         htmlFor={inputId}
         aria-hidden={first ? undefined : true}
-        className={`grid h-full w-full cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border-strong bg-surface text-muted hover:border-accent hover:text-foreground ${
+        className={`grid h-full w-full cursor-pointer place-items-center rounded-cell border-2 border-dashed border-border-strong bg-surface text-muted hover:border-accent hover:text-foreground ${
           first
             ? 'has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]'
             : ''
@@ -423,7 +423,7 @@ export function PhotoGrid({
   const status = done.note !== '' ? done.note : sending ? '사진 저장 중…' : '';
 
   return (
-    <section className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
+    <section className="flex flex-col gap-4 rounded-card bg-cream px-4 py-5 sm:px-6 sm:py-6">
       <header className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-body font-semibold text-foreground">{PHOTO_SECTION_TITLE}</h2>

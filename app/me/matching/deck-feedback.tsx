@@ -32,7 +32,7 @@ export function Feedback({
   return (
     <>
       {undo !== null && (
-        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-row bg-surface px-4 py-1 text-note font-medium text-foreground ring-1 ring-border">
+        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-card bg-surface px-4 py-1 text-note font-medium text-foreground ring-1 ring-border">
           <span className="py-2">지나친 인연에 보관했어요</span>
           <button type="button" onClick={undo} disabled={working} className={BUTTON_TERTIARY}>
             실행 취소

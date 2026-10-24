@@ -201,7 +201,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
         <ul
           aria-label="사주를 바꾼 입력 안내"
-          className="mt-4 flex flex-col gap-1.5 rounded-2xl border border-warning/25 bg-warning-wash px-4 py-3 text-small leading-5 text-secondary sm:mx-auto sm:max-w-3xl"
+          className="mt-4 flex flex-col gap-1.5 rounded-cell border border-warning/25 bg-warning-wash px-4 py-3 text-small leading-5 text-secondary sm:mx-auto sm:max-w-3xl"
         >
           {pillars.meta.sajuYear !== saju.meta.inputTime.year && (
             <li>
@@ -227,7 +227,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
         </summary>
         <div className="grid grid-cols-2 gap-2 pb-2 pt-2 sm:grid-cols-4">
           {PILLAR_COLUMNS.map(({ key, label }) => (
-            <div key={key} className="rounded-2xl bg-surface-soft p-3">
+            <div key={key} className="rounded-cell bg-surface-soft p-3">
               <p className="text-small font-semibold text-foreground">{label} · {PALACE[key].period}</p>
               <p className="mt-1 text-small leading-5 text-secondary">{PALACE[key].meaning}</p>
             </div>
@@ -322,7 +322,7 @@ function PillarTable({ saju }: { readonly saju: Saju }) {
               <td key={key} className="align-top">
                 <div
                   aria-label={`${label} 천간과 지지`}
-                  className={`flex flex-col gap-1.5 rounded-tile p-1 sm:gap-2 sm:p-1.5 ${
+                  className={`flex flex-col gap-1.5 rounded-cell p-1 sm:gap-2 sm:p-1.5 ${
                     key === 'day' ? 'bg-foreground/[0.06] ring-2 ring-foreground' : ''
                   }`}
                 >
@@ -382,7 +382,7 @@ function PillarGlyph({
 }) {
   return (
     <div
-      className={`${elementScope(element)} flex min-h-[8.5rem] flex-col items-center justify-center gap-1 rounded-row bg-[var(--tile)] px-0.5 py-2.5 sm:min-h-[10.5rem] sm:py-3.5 ${
+      className={`${elementScope(element)} flex min-h-[8.5rem] flex-col items-center justify-center gap-1 rounded-cell bg-[var(--tile)] px-0.5 py-2.5 sm:min-h-[10.5rem] sm:py-3.5 ${
         glyph === null ? 'border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_30%,transparent)]' : ''
       }`}
     >
@@ -447,7 +447,7 @@ function PillarValueGrid({
       {PILLAR_COLUMNS.map(({ key, label }) => {
         const value = values(key);
         return (
-          <div key={key} className={`min-w-0 rounded-xl px-0.5 py-2 text-xs sm:px-2 sm:text-small ${key === 'day' ? 'bg-cream text-foreground ring-1 ring-border-strong' : 'bg-surface-soft text-secondary'}`}>
+          <div key={key} className={`min-w-0 rounded-cell px-0.5 py-2 text-xs sm:px-2 sm:text-small ${key === 'day' ? 'bg-cream text-foreground ring-1 ring-border-strong' : 'bg-surface-soft text-secondary'}`}>
             <p className="mb-1 text-xs font-semibold text-secondary">{label}</p>
             {value ?? <span className="opacity-40">·</span>}
           </div>

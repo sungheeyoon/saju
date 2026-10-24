@@ -6,4 +6,4 @@
  * 모양이 달라 제 파일에 남았다. 글자가 16px 아래로 내려가지 않는 것은 `fields.test.ts` 가 잰다(ADR 0109 「입력 칸의 글자」).
  */
 export const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-field outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+  'min-h-12 rounded-cell border border-border-strong bg-surface px-4 text-field outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';

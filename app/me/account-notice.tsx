@@ -30,7 +30,7 @@ export function AccountNotice({ state }: { state: AccountState }) {
   if (text === null) return null;
 
   return (
-    <div className="flex flex-col gap-1 rounded-row border border-border bg-surface px-5 py-4">
+    <div className="flex flex-col gap-1 rounded-card border border-border bg-surface px-5 py-4">
       <p className="text-body font-semibold text-foreground">{text.title}</p>
       <p className="text-sm text-secondary">{text.detail}</p>
     </div>

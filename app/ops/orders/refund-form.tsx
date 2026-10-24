@@ -160,7 +160,7 @@ export function PrepareForm({
         </select>
       </div>
 
-      <div className="rounded-tile bg-surface-soft p-4">
+      <div className="rounded-card bg-surface-soft p-4">
         <p className="text-xs text-muted">돌려줄 금액</p>
         <p className="mt-1 text-2xl font-bold tabular-nums tracking-[-0.02em]">{won(amount)}</p>
         <p className="mt-1 text-xs tabular-nums text-secondary">
@@ -274,7 +274,7 @@ export function HoldPanel({ hold, orderId }: { readonly hold: RefundHold; readon
 
   return (
     <form onSubmit={openBook} className="flex flex-col gap-4" aria-label="진행 중인 환불">
-      <div className="rounded-tile border border-border-strong bg-surface-soft p-4">
+      <div className="rounded-card border border-border-strong bg-surface-soft p-4">
         <p className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-foreground px-2.5 py-1 font-bold text-background">환불 진행 중</span>
           <span className="tabular-nums text-muted">{seoulTime(hold.heldAt)} 준비</span>

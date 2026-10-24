@@ -29,8 +29,8 @@ export default function ReadingsLoading() {
                 <Bone className="h-5 w-56 max-w-full rounded-full" />
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
-                <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
-                <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
+                <Bone className="min-h-[14rem] rounded-card" />
+                <Bone className="min-h-[14rem] rounded-card" />
               </div>
             </div>
           ))}

@@ -8,7 +8,7 @@ import { PairTaste } from './pair-taste';
 import { memberLandingOf } from './saju-landing';
 import { SignedInProvider } from './signed-in';
 import { SunMark, TaijiMark } from './ui/entry-marks';
-import { PAPER_TOP } from './ui/surfaces';
+import { PAPER_TOP, TYPE_TITLE } from './ui/surfaces';
 
 /**
  * `/` 의 얼굴 — **로그인 전 첫 화면 하나다**(ADR 0144). 로그인한 사람은 세션을 안 순간 홈(`/me`)으로, 입력을 든 주소면
@@ -93,10 +93,10 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
   return (
     <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
       {/* 제목 아래 설명 줄은 걷었다(운영자 2026-10-09) — 제목만 서고, 탭과의 틈은 위 여백(pt-5 · sm:pt-9)과 맞춘다 */}
-      <h1 className="px-1 font-rounded text-section leading-[1.3] tracking-[-0.02em] text-foreground sm:text-headline">
+      <h1 className={`px-1 ${TYPE_TITLE}`}>
         나는 어떤 사람일까?
       </h1>
-      <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 sm:mt-6 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
+      <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 sm:mt-6 grid grid-cols-2 gap-0.5 rounded-cell bg-surface-sunken p-0.5">
         {ENTRIES.map(({ id, Mark, title }) => (
           <button
             key={id}
@@ -108,7 +108,7 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
             tabIndex={entry === id ? 0 : -1}
             onClick={() => onEntry(id)}
             onKeyDown={onKeyDown}
-            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-body font-semibold active:scale-[0.98] ${
+            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-cell px-2 text-body font-semibold active:scale-[0.98] ${
               entry === id ? 'bg-surface text-foreground shadow-card' : 'text-secondary'
             }`}
           >

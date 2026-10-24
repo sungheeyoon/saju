@@ -70,7 +70,7 @@ export default function AboutPage() {
         </h2>
         <ol className="flex flex-col gap-2">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex gap-4 rounded-row border border-border bg-surface px-4 py-4">
+            <li key={step.title} className="flex gap-4 rounded-card border border-border bg-surface px-4 py-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-sm font-bold text-on-accent tabular-nums">
                 {index + 1}
               </span>

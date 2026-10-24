@@ -281,7 +281,7 @@ function PersonCard({
   return (
     <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
       {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-tile">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-card">
         {person.chart.ok && (
           <StemSymbol stem={person.chart.saju.pillars.dayMaster} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
         )}
@@ -301,18 +301,18 @@ function PersonCard({
         <h2 className={`${TYPE_NAME} truncate`}>
           <Link
             href={`/me/people/${person.personId}`}
-            className="after:absolute after:inset-0 after:rounded-tile after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
+            className="after:absolute after:inset-0 after:rounded-card after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           >
             {person.label}
             {/* 사람 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누르면 카드 테가 선다(`LinkPending`) */}
-            <LinkPending className={`${LINK_PENDING_RING} rounded-tile`} />
+            <LinkPending className={`${LINK_PENDING_RING} rounded-card`} />
           </Link>
         </h2>
         {person.chart.ok && <BirthLines query={person.chart.query} />}
       </div>
 
       {note !== '' && (
-        <p className="rounded-2xl bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-3 py-2 text-small leading-5 text-foreground">
+        <p className="rounded-cell bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-3 py-2 text-small leading-5 text-foreground">
           <span className="mr-1.5 text-fine font-semibold text-[var(--ink)]">메모</span>
           {note}
         </p>

@@ -177,35 +177,40 @@
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
   --font-sans: var(--font-system);
-  /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
+  /* 제목 · 서비스 이름 · 인용의 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
 
   /*
-    **글자 크기의 단** — 화면은 `text-small` 처럼 부르고 `text-[13px]` 로 다시 적지 않는다(ADR 0109 추기, 2026-10-12,
-    잠금 `app/ui/scale.test.ts`). 값은 화면에 이미 서 있던 것 그대로라 모양은 안 바뀌었다 — 작은 단은 px, 제목 단은 rem
-    이던 것을 단위째 옮겼다. 줄 높이는 싣지 않는다(`text-sm` 과 달리 `leading-*` 를 따로 적는다). 12px 아래는 딱지뿐이다.
+    **글자 크기의 단** — 화면은 `text-small` 처럼 부르고 `text-[13px]` 로 다시 적지 않는다(잠금 `app/ui/scale.test.ts`).
+    2026-10-24 에 제목 단을 다시 골랐다(ADR 0109 추기 「글자는 일곱 벌 · 모서리는 세 단」) — 토스 TDS · 당근 SEED 의 단을 따라
+    26(화면 제목, 넓은 화면 30) · 20(구역 제목) · 17(카드 제목) · 15(본문) · 13(보조) · 12(캡션) · 11(딱지)이다. 글자 모양(크기 · 굵기 · 줄 높이)의
+    한 벌은 `app/ui/surfaces.ts` 의 `TYPE_*` 상수가 든다 — 화면은 크기 토큰보다 그 상수를 먼저 부른다.
+    16px(`text-field`)은 글을 받는 칸의 바닥이고, 40px(`text-figure`)은 숫자 강조뿐이다. 줄 높이는 싣지 않는다(상수가 적는다).
   */
   --text-tag: 11px;
   --text-fine: 12px;
   --text-small: 13px;
-  --text-note: 14px;
   --text-body: 15px;
   --text-field: 16px;
   --text-lead: 17px;
-  --text-heading: 1.25rem;
-  --text-section: 1.5rem;
-  --text-title: 1.75rem;
-  --text-headline: 2rem;
+  --text-heading: 20px;
+  --text-title: 26px;
+  /* 화면 제목의 넓은 화면(lg 이상) 한 단 — 운영자 2026-10-24 */
+  --text-display: 30px;
   --text-figure: 2.5rem;
+  /*
+    `note` 14px 는 작은 단추 · 알약 · 고르는 칸의 글자다 — Tailwind 의 `text-sm`(14px, 단추 상수가 부른다)과 같은 값이고,
+    둘을 하나로 걷는 일은 다음 라운드다. 글 문단은 14px 를 쓰지 않고 본문(15px)을 쓴다.
+  */
+  --text-note: 14px;
 
   /*
-    **모서리의 단** — 큰 판(종이) 2rem · 카드 1.75rem · 타일 1.5rem · 줄 카드와 띄움 판 1.25rem(`app/ui/surfaces.ts` 머리).
-    화면은 `rounded-card` · `rounded-t-paper` 처럼 부른다. 단추의 알약(`rounded-full`)과 Tailwind 의 작은 단은 그대로다.
+    **모서리는 세 단이다**(2026-10-24, ADR 0109 추기) — 카드(`rounded-card` 20px) · 칸(`rounded-cell` 12px) · 알약(`rounded-full`).
+    카드는 판 · 종이 · 타일 · 줄 카드 · 띄움 판 · 시트처럼 화면 위에 서는 면이고, 칸은 그 안의 입력 칸 · 고르는 칸 · 작은 상자 ·
+    사진 · 뼈대다. 알약은 단추 · 딱지 · 둥근 그림. 옛 이름 셋(`paper` 32 · `tile` 24 · `row` 20px)은 카드로 옮기고 걷었다.
   */
-  --radius-paper: 2rem;
-  --radius-card: 1.75rem;
-  --radius-tile: 1.5rem;
-  --radius-row: 1.25rem;
+  --radius-card: 20px;
+  --radius-cell: 12px;
 }
 
 /*
@@ -235,16 +240,11 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background:
-    radial-gradient(circle at 10% -6%, color-mix(in srgb, var(--cream) 90%, transparent) 0, transparent 28rem),
-    radial-gradient(circle at 96% 16%, color-mix(in srgb, var(--earth-soft) 55%, transparent) 0, transparent 24rem),
-    var(--background);
   /*
-    **빛은 한 번만 깔린다.** 바탕은 캔버스로 옮겨 가 `<html>` 의 상자를 한 칸으로 삼는데, 그 상자가
-    한 화면 높이(`h-full`)라 되풀이하면 둥근 빛이 화면 높이마다 다시 깔렸다 — 긴 화면에서 첫 화면
-    바로 아래에 가로 금이 섰다(어두운 테마에서 가장 또렷했다). 첫 칸은 전과 같고, 그 아래는 바탕색이다.
+    **바탕은 단색이다**(2026-10-24, ADR 0109 추기). 왼쪽 위 크림 · 오른쪽 위 흙빛의 둥근 빛 둘을 걷었다 — 면과 카드가
+    바탕의 얼룩과 다투었고, 긴 화면에서는 첫 칸 아래로 빛이 끊겨 금이 섰다.
   */
-  background-repeat: no-repeat;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-system);
   letter-spacing: -0.012em;

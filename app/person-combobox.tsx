@@ -210,7 +210,7 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-11 w-full rounded-xl border border-border-strong bg-surface pr-10 text-field font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
+          className={`h-11 w-full rounded-cell border border-border-strong bg-surface pr-10 text-field font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
             chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
           }`}
         />
@@ -229,7 +229,7 @@ export function PersonCombobox({
         role="listbox"
         aria-label={label}
         hidden={!listed}
-        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
+        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-cell border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
       >
         {listed &&
           choices.map((one, index) => (
@@ -242,7 +242,7 @@ export function PersonCombobox({
               /* 누르는 동안 입력 칸이 초점을 잃지 않게 — 잃으면 닫히며 누름이 사라진다 */
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(one)}
-              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 text-body ${
+              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-cell px-3 text-body ${
                 index === current ? 'bg-surface-sunken text-foreground' : 'text-foreground hover:bg-surface-sunken'
               }`}
             >
@@ -264,7 +264,7 @@ export function PersonCombobox({
         role="status"
         className={
           nothing
-            ? 'rounded-2xl border border-border bg-surface px-4 py-3 text-body text-secondary'
+            ? 'rounded-cell border border-border bg-surface px-4 py-3 text-body text-secondary'
             : 'sr-only'
         }
       >

@@ -227,7 +227,7 @@ function Result({ report, next }: { report: ResultReport; next: string | null })
         </Item>
       </dl>
       {held !== null && (
-        <p className="rounded-tile bg-warning-wash p-3 text-sm font-semibold text-warning">
+        <p className="rounded-card bg-warning-wash p-3 text-sm font-semibold text-warning">
           {SIDE_LABEL[held]} · {HELD_SUSPENSION}
         </p>
       )}
@@ -332,7 +332,7 @@ function ReviewLog({ lines }: { lines: readonly ReviewLogLine[] }) {
       <summary className="cursor-pointer text-xs font-semibold text-secondary">처분 이력 {lines.length}건</summary>
       <ol className="mt-2 flex flex-col gap-2">
         {lines.map((line) => (
-          <li key={line.version} className="flex flex-col gap-0.5 rounded-tile bg-surface-soft p-3">
+          <li key={line.version} className="flex flex-col gap-0.5 rounded-card bg-surface-soft p-3">
             <p className="flex flex-wrap gap-x-2 text-xs text-muted">
               <span className="tabular-nums">{line.version}차</span>
               <span className="tabular-nums">{evidenceTime(line.at)}</span>
@@ -421,7 +421,7 @@ function Evidence({ snapshot }: { snapshot: Snapshot | null }) {
               <li
                 key={message.seq}
                 aria-current={message.chosen ? 'true' : undefined}
-                className={`rounded-2xl border p-4 ${
+                className={`rounded-cell border p-4 ${
                   message.chosen ? 'border-accent bg-accent-wash' : 'border-border bg-surface-soft'
                 }`}
               >

@@ -50,7 +50,7 @@ export function PhotoFramer({
             focus={focus}
             onFocus={onFocus}
             keyboard
-            className="aspect-[3/4] w-full max-w-[17rem] rounded-2xl"
+            className="aspect-[3/4] w-full max-w-[17rem] rounded-cell"
           />
           <FocusFrame src={src} focus={focus} onFocus={onFocus} className="size-16 rounded-full" />
         </div>

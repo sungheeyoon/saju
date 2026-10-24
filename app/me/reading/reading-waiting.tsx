@@ -51,7 +51,7 @@ export function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
           {rows.map((row, at) => (
             <li
               key={`${at}-${row.label}`}
-              className="flex items-center justify-between gap-3 rounded-row bg-surface px-4 py-3 text-note"
+              className="flex items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 text-note"
             >
               <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
               <OutlineMark state={row.state} />

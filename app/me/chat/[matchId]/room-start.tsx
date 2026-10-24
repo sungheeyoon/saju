@@ -88,7 +88,7 @@ function StartSide({
   openName: string;
 }) {
   const info = STEM_INFO[stem];
-  const face = `${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-tile bg-[var(--tile)] p-4 text-left`;
+  const face = `${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-card bg-[var(--tile)] p-4 text-left`;
   const body = (
     <>
       <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />

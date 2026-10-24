@@ -17,6 +17,7 @@ import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';
+import { TYPE_TITLE } from '../../ui/surfaces';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -73,19 +74,23 @@ export function SelfCard({
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-paper bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-card bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
       <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
-        <div>
+        {/*
+          딱지를 줄 상자(본문 줄 높이 1.65 의 26.4px 줄)에 세우면 이 머리가 소수 px 높이가 되어, 아래 결과 바로가기가 반 픽셀
+          자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836) — 세로 flex 로 줄 상자를 없앤다
+        */}
+        <div className="flex flex-col items-start">
           {/*
             저장한 사람 타일과 같은 문법 — 딱지 하나, 그 아래 이름. 「나」 알약 · 「내 사주」 글자는 걷었다: 홈 맨 위의 큰
             카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
           */}
           <DayMasterChip stem={saju.pillars.dayMaster} />
-          <h2 className="mt-1 break-all font-rounded text-title leading-[1.15] tracking-[-0.02em] text-foreground sm:text-figure">
+          <h2 className={`mt-1 break-all ${TYPE_TITLE}`}>
             {label}
           </h2>
         </div>
@@ -157,13 +162,13 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
           return (
             <li
               key={element}
-              className={`${elementScope(element)} flex flex-col items-center gap-1 rounded-2xl px-1 py-3 sm:gap-1.5 sm:py-5 ${
+              className={`${elementScope(element)} flex flex-col items-center gap-1 rounded-cell px-1 py-3 sm:gap-1.5 sm:py-5 ${
                 count === 0 ? 'border border-dashed border-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : 'bg-surface'
               }`}
             >
               <ElementSymbol element={element} className="size-7 sm:size-10" />
               <span className="text-fine font-medium text-secondary sm:text-note">{ELEMENT_PICTURE_KO[element]}</span>
-              <span className={`text-section font-bold leading-none tabular-nums sm:text-headline ${count === 0 ? 'text-secondary' : 'text-[var(--ink)]'}`}>
+              <span className={`text-heading font-bold leading-none tabular-nums sm:text-title ${count === 0 ? 'text-secondary' : 'text-[var(--ink)]'}`}>
                 {count}
               </span>
             </li>
@@ -197,7 +202,7 @@ function BirthLine({ query, saved }: { query: Query; saved: boolean }) {
   ] as const;
 
   return (
-    <section className="relative -mt-2 sm:mt-0 sm:rounded-row sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
+    <section className="relative -mt-2 sm:mt-0 sm:rounded-card sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
       {/*
         저장 전 카드(로그인 전 결과 · 사주 이어 보기, `personId === null`)에는 저장된 것이 없다 — 방금 입력한 값이다(ADR 0157).
       */}

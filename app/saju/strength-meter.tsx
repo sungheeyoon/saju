@@ -24,7 +24,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
       meta={isStrong ? '신강' : '신약'}
       note="보조세력과 득령·득지·득세를 함께 봅니다"
     >
-      <div className="rounded-2xl bg-surface-soft p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
+      <div className="rounded-cell bg-surface-soft p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
         <div>
           <p className="text-xs font-medium text-muted">현재 판정</p>
           <div className="mt-1 flex items-baseline gap-2">
@@ -63,12 +63,12 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-xl border border-border px-3 py-2.5">
+        <div className="rounded-cell border border-border px-3 py-2.5">
           <p className="text-xs text-muted">일간을 돕는 힘</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.supportScore.toFixed(2)}</p>
           <p className="text-xs text-secondary">비겁·인성</p>
         </div>
-        <div className="rounded-xl border border-border px-3 py-2.5">
+        <div className="rounded-cell border border-border px-3 py-2.5">
           <p className="text-xs text-muted">일간을 소모하는 힘</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.opposeScore.toFixed(2)}</p>
           <p className="text-xs text-secondary">식상·재성·관성</p>
@@ -85,7 +85,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
         {strength.criteria.map((criterion) => (
           <li
             key={criterion.key}
-            className={`rounded-xl border p-3 ${
+            className={`rounded-cell border p-3 ${
               criterion.met ? 'border-border-strong bg-surface-sunken' : 'border-border bg-surface-soft'
             }`}
           >

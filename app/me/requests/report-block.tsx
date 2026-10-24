@@ -33,7 +33,7 @@ import { FailureLine } from '../../ui/failure-line';
 
 /** 신고 칸 — 초점 테는 전역 초점 테두리와 같은 섞음(accent 55%, `globals.css`) */
 const FIELD =
-  'rounded-xl bg-surface px-3 text-field text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
+  'rounded-cell bg-surface px-3 text-field text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 /** 「⋯」를 읽는 이름 — 신고 · 차단만 든 판 */
 const REPORT_BLOCK_MENU_LABEL = '신고 · 차단';
@@ -71,7 +71,7 @@ export function ReportBlockMenu({
   onMyProfile?: () => void;
 }) {
   const { menu, close } = useDetailsMenu();
-  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
+  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-cell px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
 
   return (
     <details ref={menu} className={`${className || 'relative'} shrink-0`}>
@@ -432,7 +432,7 @@ function MessagePicker({
       <div
         role="group"
         aria-labelledby={labelId}
-        className="flex max-h-44 flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl bg-surface p-1.5 ring-1 ring-border"
+        className="flex max-h-44 flex-col gap-1 overflow-y-auto overscroll-contain rounded-cell bg-surface p-1.5 ring-1 ring-border"
       >
         {messages.map((message) => {
           const chosen = picked === message.id;
@@ -442,7 +442,7 @@ function MessagePicker({
               type="button"
               aria-pressed={chosen}
               onClick={() => onPick(chosen ? null : message.id)}
-              className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
+              className={`flex min-h-11 w-full items-center gap-3 rounded-cell px-3 py-2 text-left ${
                 chosen ? 'bg-danger-wash ring-1 ring-danger/45' : 'hover:bg-surface-soft active:bg-surface-sunken'
               }`}
             >

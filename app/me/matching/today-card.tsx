@@ -100,7 +100,7 @@ export function TodayCard({
           aria-hidden="true"
           inert
           style={nextStyle}
-          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-paper bg-[var(--tile)] motion-reduce:transition-none`}
+          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-card bg-[var(--tile)] motion-reduce:transition-none`}
         >
           <CandidatePhoto card={next} initialClass={INITIAL_ON_CARD} />
           <FaceText card={next} />
@@ -111,7 +111,7 @@ export function TodayCard({
         key={profile.candidateUserId}
         ref={panel}
         style={cardStyle}
-        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-paper bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
+        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-card bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
       >
         <CardPhotos card={profile} bounce={panel} initialClass={INITIAL_ON_CARD} />
 

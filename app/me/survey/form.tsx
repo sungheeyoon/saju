@@ -58,7 +58,7 @@ import { FailureLine } from '../../ui/failure-line';
  * 여기서도 하는 것은, 화면에 안 보이는 값이 요청에 실려 나가지 않게 하기 위해서다.
  */
 /** 문항 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-3 rounded-tile border border-border bg-surface p-5 sm:p-6';
+const PANEL = 'flex flex-col gap-3 rounded-card border border-border bg-surface p-5 sm:p-6';
 
 /** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 시스템 서체다 */
 const ASK = 'block text-lead font-bold leading-7 text-foreground';
@@ -68,7 +68,7 @@ const ASK = 'block text-lead font-bold leading-7 text-foreground';
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
 const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-body leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
+  'flex min-h-12 cursor-pointer items-center gap-3 rounded-cell border border-border bg-surface px-4 py-2.5 text-body leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -128,7 +128,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   if (!open) {
     return (
-      <section className="flex flex-col gap-4 rounded-tile border border-border bg-surface p-5 sm:p-6">
+      <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 sm:p-6">
         <div className="flex flex-col gap-1">
           <h2 className={TYPE_SECTION}>{SURVEY_COPY.thanks}</h2>
           <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.editable}</p>
@@ -428,7 +428,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-field leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className="w-full rounded-cell border border-border-strong bg-surface px-4 py-3 text-field leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
       />
     </div>
   );

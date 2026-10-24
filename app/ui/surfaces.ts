@@ -1,7 +1,7 @@
 /**
  * **판의 모양과 글자의 단** — 부드러움(5차)의 카드 · 타일 · 제목을 한 자리에서 든다.
  *
- * 모서리는 큰 판 32px(`rounded-paper`) · 카드 28px(`rounded-card`) · 타일 24px(`rounded-tile`) · 줄 카드 20px(`rounded-row`) ·
+ * 모서리는 세 단이다 — 카드 20px(`rounded-card`: 판 · 종이 · 타일 · 줄 카드 · 띄움 판) · 칸 12px(`rounded-cell`: 그 안의 칸 · 작은 상자) ·
  * 단추는 알약. 글자 크기도 단이다(`text-small` 13px · `text-body` 15px …) — 토큰은 `app/globals.css` 의 `@theme inline`,
  * 잠금은 `app/ui/scale.test.ts`(ADR 0109 추기 2026-10-12). 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
  */
@@ -49,7 +49,7 @@ export const CARD = `${CARD_FACE} border-border bg-surface p-5 sm:p-6`;
 export const CARD_FRAME = 'overflow-hidden rounded-card border border-border bg-surface';
 
 /** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나. 면(`PAPER_FACE`)은 여백만 뺐다 */
-export const PAPER_FACE = 'rounded-paper bg-cream';
+export const PAPER_FACE = 'rounded-card bg-cream';
 export const PAPER = `${PAPER_FACE} p-6 sm:p-8`;
 
 /**
@@ -59,57 +59,77 @@ export const PAPER = `${PAPER_FACE} p-6 sm:p-8`;
  * `pair-taste.tsx`)은 서로 다른 부품이고 결과는 폼 **밖** 아래에 선다. 한 부품으로 싸면 결과까지 종이 위에 올라간다.
  * 그래서 머리는 위 모서리만, 폼은 아래 모서리만 둥글고, 폼 쪽 자리가 둘 사이의 틈만큼 올라붙는다.
  */
-export const PAPER_TOP = 'rounded-t-paper bg-cream';
+export const PAPER_TOP = 'rounded-t-card bg-cream';
 
-export const PAPER_BOTTOM = 'rounded-b-paper bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
+export const PAPER_BOTTOM = 'rounded-b-card bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
 
 /**
  * 오행 타일 — `ELEMENT_TONE[x].scope`(또는 `elementScope`)와 함께 단다. 면이 그 오행의 파스텔이 되고 안의
  * `BUTTON_ON_TILE` · `ElementSymbol` 이 같은 색을 따른다.
  */
-export const TILE = 'rounded-tile bg-[var(--tile)] p-4 text-foreground';
+export const TILE = 'rounded-card bg-[var(--tile)] p-4 text-foreground';
 
 /**
  * 띄움 메뉴 판 — 단추 아래(위)에 떠서 고를 줄을 드는 흰 판(설정 톱니 · 풀이권 · 대화방 「⋯」 · 신고 · 차단 · 사진 한 장의 메뉴 ·
  * 저장한 사람의 관리 메뉴). 테는 `ring` 이라 판의 폭을 먹지 않는다. 안쪽 여백 · 폭 · 자리는 판마다 달라 쓰는 자리가 붙인다.
  * 관리 메뉴(`app/me/people/person-menu.tsx`)만 테가 `border` 였는데 운영자가 맞추라고 했다(2026-10-14, G-109)
  */
-export const MENU_PANEL = 'rounded-row bg-surface shadow-float ring-1 ring-border';
+export const MENU_PANEL = 'rounded-card bg-surface shadow-float ring-1 ring-border';
 
 /** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄). 면(`ROW_CARD_FACE`)은 여백만 뺐다 */
-export const ROW_CARD_FACE = 'rounded-row border border-border bg-surface';
+export const ROW_CARD_FACE = 'rounded-card border border-border bg-surface';
 export const ROW_CARD = `${ROW_CARD_FACE} px-4 py-3`;
 
 /**
  * 선 줄 — 판 없이 위아래 가는 선 사이에 서는 한 줄. 카드와 카드 사이에 끼는 요약 한 줄(궁합 탭의 「궁합풀이」)이 쓴다 —
  * 줄 카드(`ROW_CARD`)로 세우면 위아래 카드 사이에서 판이 하나 더 늘어 보인다(#543, 2026-10-08 운영자 승인 모양)
  */
-export const ROW_LINE = 'rounded-xl border-y border-border px-2 py-4';
+export const ROW_LINE = 'rounded-cell border-y border-border px-2 py-4';
 
 /** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록). 면(`EMPTY_SLOT_FACE`)은 여백만 뺐다 */
-export const EMPTY_SLOT_FACE = 'rounded-tile border-2 border-dashed border-border-strong';
+export const EMPTY_SLOT_FACE = 'rounded-card border-2 border-dashed border-border-strong';
 export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
 
 /*
-  **글자의 단.** 둥근 서체(`font-rounded`, 고운돋움)는 제목 단에만 쓴다 — 굵기가 400 하나뿐이라 작은
-  크기에서 획이 흐리다. 본문 · 단추 · 보조는 기기의 시스템 서체다(웹 글꼴을 싣지 않는다, ADR 0109 추기). 12px 아래는 딱지(11px)뿐이다.
-  글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 — iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
+  **글자의 단 — 텍스트 스타일 일곱 벌**(ADR 0109 추기 2026-10-24). 크기 · 서체 · 줄 높이를 한 벌로 묶었다 — 화면은 크기를
+  따로 붙이지 않고 이 상수를 부른다. 크기는 토스 TDS(Typography 2 · 4 · 5 · 6 · 7)와 당근 SEED(screenTitle 26/35)의 단을 따랐다.
+
+  | 스타일 | 상수 | 크기/줄 높이 | 서체 · 굵기 |
+  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30/40 | 고운돋움 400 |
+  | 구역 제목 | `TYPE_SECTION` | 20/29 | 고운돋움 400 |
+  | 카드 제목 | `TYPE_NAME` | 17/24 | 고운돋움 400 |
+  | 본문 | `TYPE_BODY` | 15/24 | 시스템 400 |
+  | 보조 | `TYPE_META` | 13/20 | 시스템 500 |
+  | 캡션 | `TYPE_CAPTION` | 12/16 | 시스템 400 |
+  | 딱지 | `BADGE` · `STALE_CHIP` | 11 | 시스템 700 · 600 |
+
+  **제목 셋은 둥근 서체(`font-rounded`, 고운돋움)다** — 굵기가 400 하나뿐이라 굵기를 주지 않는다(주면 브라우저가 획을 덧칠한
+  가짜 굵기가 선다). 제목을 시스템 서체 굵게로 바꾸는 일은 운영자가 「아직 미적용」으로 보류했다(2026-10-24). 본문 · 단추 · 보조는
+  기기의 시스템 서체다. 12px 아래는 딱지(11px)뿐이다. 글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 —
+  iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
 */
 
-/** 표시 — 화면의 첫 한 줄(인사 · 빈 상태의 큰 말) */
-export const TYPE_DISPLAY = 'font-rounded text-title leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]';
-
-/** 제목 — 화면 제목(`h1`) */
-export const TYPE_TITLE = 'font-rounded text-title leading-[1.3] tracking-[-0.02em] text-foreground sm:text-headline';
+/**
+ * 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24). 줄 높이는 정수 px(35 · 40)로 적는다 —
+ * 배수(1.35 × 30 = 40.5)는 아래 것들을 반 픽셀 자리로 민다. 결과 바로가기가 반 픽셀 자리(x.5)에 서면 누르는 자리를 반 픽셀씩 재는
+ * e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 잰다(#836 CI, 내 사주 카드 머리의 줄 상자와 함께 — `app/me/home/self-card.tsx`)
+ */
+export const TYPE_TITLE = 'font-rounded text-title leading-[2.1875rem] tracking-[-0.02em] text-foreground lg:text-display lg:leading-10';
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
-export const TYPE_SECTION = 'font-rounded text-section leading-8 text-foreground';
+export const TYPE_SECTION = 'font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
 
-/** 이름 — 사람 · 카드 머리 */
-export const TYPE_NAME = 'font-rounded text-heading leading-7 text-foreground';
+/** 카드 제목 — 사람 이름 · 카드 머리 · 창 제목 */
+export const TYPE_NAME = 'font-rounded text-lead leading-6 text-foreground';
+
+/** 본문 — 설명 문단 · 카드 안의 글 */
+export const TYPE_BODY = 'text-body leading-6 text-foreground';
 
 /** 보조 — 날짜 · 메모 · 설명 아래 줄 */
 export const TYPE_META = 'text-small font-medium leading-5 text-secondary';
+
+/** 캡션 — 그림 · 숫자 곁의 작은 설명, 바닥글 */
+export const TYPE_CAPTION = 'text-fine leading-4 text-muted';
 
 /** 딱지 — 안 읽은 수 · 짧은 상태 표시. 12px 아래가 허락되는 유일한 자리. 면(`BADGE_FACE`)은 옆 여백만 뺐다 */
 export const BADGE_FACE =

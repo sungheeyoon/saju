@@ -59,7 +59,7 @@ export function BubbleRow({
   /* 말풍선과 그 곁(시각 · 못 보낸 말의 단추) — 내 말은 오른쪽으로, 상대 말은 이름 아래로 선다 */
   const line = (
     <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
-      <p className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55]`}>
+      <p className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-card px-4 py-2.5 text-body leading-[1.55]`}>
         <BubbleBody body={bubble.body} />
       </p>
       {sending === 'failed' ? (
@@ -163,7 +163,7 @@ function BubbleBody({ body }: { body: string }) {
  */
 function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onDrop: (() => void) | null }) {
   const { menu, close } = useDetailsMenu();
-  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
+  const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-cell px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
   return (
     <details ref={menu} className="relative shrink-0 self-end">
       <summary

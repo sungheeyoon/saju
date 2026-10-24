@@ -19,27 +19,27 @@ export default function ProfileLoading() {
       </div>
 
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-        <div className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-4 rounded-card bg-cream px-4 py-5 sm:px-6 sm:py-6">
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <Bone className="col-span-2 row-span-2 h-full rounded-2xl" />
+            <Bone className="col-span-2 row-span-2 h-full rounded-cell" />
             {[2, 3, 4, 5, 6].map((position) => (
-              <Bone key={position} className="aspect-[3/4] rounded-2xl" />
+              <Bone key={position} className="aspect-[3/4] rounded-cell" />
             ))}
           </div>
           <Bone className="h-5 w-3/4 rounded-full" />
         </div>
 
-        <div className="flex flex-col gap-5 rounded-tile border border-border bg-surface p-5 sm:p-6">
+        <div className="flex flex-col gap-5 rounded-card border border-border bg-surface p-5 sm:p-6">
           <div className="flex flex-col gap-1.5">
             <Bone className="h-5 w-14 rounded-full" />
             <div className="flex items-center gap-2">
-              <Bone className="h-12 min-w-0 flex-1 rounded-2xl sm:max-w-64" />
+              <Bone className="h-12 min-w-0 flex-1 rounded-cell sm:max-w-64" />
               <Bone className="h-12 w-24 shrink-0 rounded-full" />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Bone className="h-5 w-20 rounded-full" />
-            <Bone className="h-[6.125rem] w-full rounded-2xl" />
+            <Bone className="h-[6.125rem] w-full rounded-cell" />
           </div>
           <div className="border-t border-border pt-5">
             <Bone className="h-12 w-full rounded-full sm:w-36" />

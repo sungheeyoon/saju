@@ -24,7 +24,7 @@ export default function MatchingLoading() {
       <div className="flex min-h-0 flex-1 flex-col lg:grid lg:flex-none lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 lg:flex-none lg:gap-4">
           <div data-deck-fit="" className="relative flex min-h-0 flex-1 flex-col lg:aspect-[4/5] lg:flex-none">
-            <Bone className="min-h-0 flex-1 rounded-paper" />
+            <Bone className="min-h-0 flex-1 rounded-card" />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Bone className="size-14 shrink-0 rounded-full" />
@@ -33,7 +33,7 @@ export default function MatchingLoading() {
           </div>
         </div>
         <div className="hidden min-w-0 flex-col gap-4 lg:flex">
-          <div className="flex flex-col rounded-paper bg-cream">
+          <div className="flex flex-col rounded-card bg-cream">
             <div className="px-6 pt-6">
               <Bone className="h-8 w-56 rounded-full" />
             </div>
@@ -47,7 +47,7 @@ export default function MatchingLoading() {
         </div>
       </div>
 
-      <Bone className="h-[3.25rem] w-full shrink-0 rounded-row" />
+      <Bone className="h-[3.25rem] w-full shrink-0 rounded-card" />
     </SkeletonMain>
   );
 }

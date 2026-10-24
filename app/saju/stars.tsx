@@ -93,7 +93,7 @@ export function StarTable({ saju }: { saju: Saju }) {
     >
 
       {stars.length === 0 ? (
-        <div className="rounded-row bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
+        <div className="rounded-card bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
           걸린 신살이 없습니다
         </div>
       ) : (
@@ -104,7 +104,7 @@ export function StarTable({ saju }: { saju: Saju }) {
               <section
                 key={key}
                 aria-label={`${label}에 걸린 신살`}
-                className={`min-w-0 rounded-row border p-3 ${
+                className={`min-w-0 rounded-card border p-3 ${
                   key === 'day' ? 'border-border-strong bg-cream' : 'border-transparent bg-surface-soft'
                 }`}
               >
@@ -120,7 +120,7 @@ export function StarTable({ saju }: { saju: Saju }) {
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {found.map(({ star, hit }) => (
-                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-xl bg-surface-raised px-3 py-2 shadow-soft">
+                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-cell bg-surface-raised px-3 py-2 shadow-soft">
                         <span className="text-sm font-semibold text-foreground">{star.ko}</span>
                         <p className="mt-0.5 text-xs leading-5 text-secondary">
                           {HIT_POSITION_KO[hit.position][hit.target]} <span className="glyph">{hit.char}</span>
@@ -157,7 +157,7 @@ export function StarTable({ saju }: { saju: Saju }) {
           <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
         </summary>
         <div className="pb-2 pt-2 text-xs leading-5 text-secondary">
-          <dl className="mb-3 flex flex-col gap-1 rounded-2xl bg-surface-soft p-3">
+          <dl className="mb-3 flex flex-col gap-1 rounded-cell bg-surface-soft p-3">
             {(Object.keys(STAR_NATURE_KO) as StarNature[]).map((nature) => {
               const named = [...new Set(stars.filter((star) => star.nature === nature).map((star) => star.ko))];
               if (named.length === 0) return null;
@@ -173,7 +173,7 @@ export function StarTable({ saju }: { saju: Saju }) {
             길신·흉신·특수는 전통적 분류일 뿐, 좋고 나쁨의 판정이 아닙니다.
           </p>
           {missingSpirits.length > 0 && (
-            <ul className="mb-3 flex flex-col gap-0.5 rounded-2xl bg-surface-soft p-3">
+            <ul className="mb-3 flex flex-col gap-0.5 rounded-cell bg-surface-soft p-3">
               {missingSpirits.map((note) => <li key={note}>{note}</li>)}
             </ul>
           )}

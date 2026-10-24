@@ -8,7 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { Icon } from '../../ui/icons';
-import { COLUMN, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
@@ -89,7 +89,7 @@ function Greeting({ name }: { name: string }) {
   return (
     <header className="sr-only flex flex-col gap-1 sm:not-sr-only">
       <p className={TYPE_META}>{today}</p>
-      <h1 className={TYPE_DISPLAY}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
+      <h1 className={TYPE_TITLE}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
     </header>
   );
 }
@@ -139,7 +139,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
     stood === null ? (
       <FailureLine retry>내 사주를 불러오지 못했어요.</FailureLine>
     ) : !stood.ok ? (
-      <section className="flex flex-col gap-2 rounded-paper border border-border bg-surface p-5 sm:p-6">
+      <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-5 sm:p-6">
         <p className="text-sm">{stood.message}</p>
         <p className="text-small text-muted">{UNREADABLE_INPUT_NOTE}</p>
       </section>
@@ -218,7 +218,7 @@ function OtherSaju() {
   return (
     <Link
       href={SAJU_PATH}
-      className="flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
+      className="flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-water-soft text-water">
         <Icon name="search" className="size-[18px]" />

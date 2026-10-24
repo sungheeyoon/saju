@@ -72,7 +72,7 @@ export function Result({
       */}
       {reading.score !== null || metaphor !== null ? (
         <figure
-          className={`${elementScope(firstTone)} relative overflow-hidden rounded-paper px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
+          className={`${elementScope(firstTone)} relative overflow-hidden rounded-card px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
         >
           {/* 한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징 */}
@@ -117,7 +117,7 @@ export function Result({
         말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「수정 전」 낱말이 함께 선다.
       */}
       {target.kind !== 'match' && !reading.fromCurrentChart && (
-        <p className="flex gap-2.5 rounded-row bg-warning-wash px-4 py-3.5 text-note leading-6 text-foreground">
+        <p className="flex gap-2.5 rounded-card bg-warning-wash px-4 py-3.5 text-note leading-6 text-foreground">
           <Icon name="alert" className="mt-0.5 size-5 text-warning" />
           <span>
             <span className="mr-1.5 font-semibold text-warning">{READING_STALE_LABEL}</span>

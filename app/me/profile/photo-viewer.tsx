@@ -110,7 +110,7 @@ export function PhotoViewer({
           step(1);
         }
       }}
-      className="m-0 h-dvh max-h-none w-full max-w-none overflow-hidden bg-black p-0 text-white backdrop:bg-black lg:m-auto lg:h-[min(88dvh,52rem)] lg:w-[min(40rem,92vw)] lg:rounded-paper lg:shadow-float lg:backdrop:bg-black/70"
+      className="m-0 h-dvh max-h-none w-full max-w-none overflow-hidden bg-black p-0 text-white backdrop:bg-black lg:m-auto lg:h-[min(88dvh,52rem)] lg:w-[min(40rem,92vw)] lg:rounded-card lg:shadow-float lg:backdrop:bg-black/70"
     >
       {open && photo !== undefined && (
         <div className="flex h-full flex-col">

@@ -409,7 +409,7 @@ function Dock({
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-row text-fine font-semibold active:scale-95 ${
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-card text-fine font-semibold active:scale-95 ${
                   active ? 'text-foreground' : 'text-secondary hover:text-foreground'
                 }`}
               >
@@ -503,7 +503,7 @@ function SettingsMenu({
                 href={link.href}
                 onClick={close}
                 aria-current={pathname === link.href ? 'page' : undefined}
-                className="flex min-h-11 items-center rounded-xl px-3 text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
+                className="flex min-h-11 items-center rounded-cell px-3 text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
               >
                 {link.label}
               </Link>
@@ -514,7 +514,7 @@ function SettingsMenu({
           type="button"
           onClick={signOut}
           disabled={leaving}
-          className="mt-1 flex min-h-11 w-full items-center rounded-xl border-t border-border px-3 text-left text-body text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
+          className="mt-1 flex min-h-11 w-full items-center rounded-cell border-t border-border px-3 text-left text-body text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
         >
           {leaving ? SIGN_OUT_PENDING : '로그아웃'}
         </button>

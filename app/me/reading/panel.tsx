@@ -234,7 +234,7 @@ export function ReadingPanel({
   const alert = failure === null ? null : (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
-      className={`flex gap-2.5 rounded-row px-4 py-3.5 text-note leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
+      className={`flex gap-2.5 rounded-card px-4 py-3.5 text-body leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
     >
       <Icon name="alert" className="mt-0.5 size-5" />
       <div className="min-w-0">
