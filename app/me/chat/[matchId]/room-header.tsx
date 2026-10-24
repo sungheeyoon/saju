@@ -12,12 +12,16 @@ import { CompatChip } from './compat-chip';
 import type { RoomView } from './room-view';
 
 /**
- * 방의 머리 — 목록으로 · 상대(사진 · 이름 · 접속 상태) · 궁합 단추 · 신고와 차단의 「⋯」.
+ * 방의 머리 — 목록으로 · 상대(사진 · 이름 · 접속 상태) · 궁합 단추 · 「⋯」(내 프로필 · 신고 · 차단).
+ *
+ * 제목은 메신저의 방 머리 크기다(카카오톡 · 위피 — 17px 안팎의 굵은 한 줄, 2026-10-24). 화면 제목 크기(`text-heading`)였을 때는
+ * 이름이 머리를 채워 궁합 단추 · 「⋯」와 겨뤘다.
  */
 export function RoomHeader({
   room,
   partnerOpens,
   onOpenPartner,
+  onOpenMe,
   matchLink,
   chipTone,
   onReport,
@@ -27,6 +31,8 @@ export function RoomHeader({
   /** 상대 프로필 시트가 열리는 방인가 — 상대가 있고 열린 방 */
   partnerOpens: boolean;
   onOpenPartner: () => void;
+  /** 내 프로필 시트 — 「⋯」 맨 위 「내 프로필」. 못 여는 방은 `null` */
+  onOpenMe: (() => void) | null;
   /** 인연 궁합으로 가는 길 — 상대가 있는 열린 방에만 */
   matchLink: string | null;
   chipTone: Element | null;
@@ -53,7 +59,7 @@ export function RoomHeader({
         </span>
         <div className="min-w-0 flex-1">
           {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
-          <h1 className="truncate font-rounded text-heading leading-7 text-foreground">
+          <h1 className="truncate font-rounded text-lead font-semibold leading-6 text-foreground">
             {partnerOpens ? (
               <button
                 type="button"
@@ -85,6 +91,7 @@ export function RoomHeader({
           canBlock={!closed}
           onReport={onReport}
           onBlock={onBlock}
+          onMyProfile={onOpenMe ?? undefined}
         />
       )}
     </header>

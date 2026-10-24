@@ -13,6 +13,7 @@ import { ChatFrame, RoomList } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
 import { roomScopesForViewer } from '../tones';
 import { labelled } from './bubbles';
+import { myRoomFace } from './me';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
 import { roomCompatForViewer } from './room-compat';
@@ -51,7 +52,8 @@ export default async function ChatRoomPage({
   if (!user) return redirectToSignIn();
 
   const { matchId } = await params;
-  const { state } = await readAccount(supabase, ['status']);
+  /* 닉네임 · 소개는 「내 프로필」 시트가 쓴다 — 같은 계정 줄에 칸만 더 청한다 */
+  const { state, row: account } = await readAccount(supabase, ['status', 'nickname', 'intro']);
 
   if (isBlocked(state)) {
     return (
@@ -68,11 +70,23 @@ export default async function ChatRoomPage({
   /* 궁합 단추는 열린 방 · 상대가 있는 방에만 선다 — 닫힌 방은 묻지 않는다(결과 화면도 그 쌍에게 닫혔다) */
   const notice = roomNoticeOf(room);
   const open = notice === null && room.partnerUserId !== null;
-  const [messages, { tones, intros }, compat] = await Promise.all([
+  const [messages, { tones, intros }, compat, face] = await Promise.all([
     messagesForViewer(supabase, matchId),
     roomScopesForViewer(rooms),
     open ? roomCompatForViewer(supabase, matchId) : null,
+    myRoomFace(supabase, user.id),
   ]);
+  /* 꾸밈이다 — 사진을 못 읽었거나 계정 줄이 없으면 「내 프로필」만 안 선다(ADR 0078) */
+  const me =
+    face.ok && account !== null
+      ? {
+          userId: user.id,
+          nickname: account.nickname ?? '',
+          intro: account.intro ?? null,
+          photoUrls: face.value.photoUrls,
+          photoFocus: face.value.photoFocus,
+        }
+      : null;
 
   return (
     <main className={`app-shell ${styles.page} flex w-full flex-1 flex-col md:py-6 lg:py-8`}>
@@ -100,6 +114,7 @@ export default async function ChatRoomPage({
               fromBeginning: messages.length < MESSAGE_WINDOW,
               tones: tones.get(matchId) ?? null,
               compat,
+              me,
             }}
           />
         }

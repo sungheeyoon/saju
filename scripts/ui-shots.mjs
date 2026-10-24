@@ -317,6 +317,26 @@ const PLAN = [
       { id: 'match', at: (one, all) => `/me/match/${all.matchId}`, name: '인연 궁합' },
       { id: 'requests-matched', at: '/me/matching', name: '인연 탭의 요청 — 맺어진 뒤' },
       { id: 'chat', at: (one, all) => `/me/chat/${all.matchId}`, name: '대화방' },
+      {
+        id: 'chat-menu',
+        at: (one, all) => `/me/chat/${all.matchId}`,
+        name: '대화방 — 머리의 「⋯」',
+        act: async (page) => {
+          await page.locator('[data-chat-room] header summary').click();
+          await page.waitForTimeout(300);
+        },
+      },
+      {
+        id: 'chat-me',
+        at: (one, all) => `/me/chat/${all.matchId}`,
+        name: '대화방 — 내 프로필',
+        act: async (page) => {
+          await page.locator('[data-chat-room] header summary').click();
+          await page.locator('[data-chat-room] header').getByRole('button', { name: '내 프로필', exact: true }).click();
+          await page.locator('dialog[open]').waitFor();
+          await page.waitForTimeout(400);
+        },
+      },
       { id: 'chat-rooms-matched', at: '/me/chat', name: '대화 목록 — 맺어진 뒤' },
       { id: 'match-reading', at: (one, all) => `/me/readings/match/${all.matchId}`, name: '사주풀이 — 인연 궁합' },
       {
