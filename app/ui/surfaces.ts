@@ -95,7 +95,7 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
   따로 붙이지 않고 이 상수를 부른다. 크기는 토스 TDS(Typography 2 · 4 · 5 · 6 · 7)와 당근 SEED(screenTitle 26/35)의 단을 따랐다.
 
   | 스타일 | 상수 | 크기/줄 높이 | 서체 · 굵기 |
-  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30 | 고운돋움 400 |
+  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30/40 | 고운돋움 400 |
   | 구역 제목 | `TYPE_SECTION` | 20/29 | 고운돋움 400 |
   | 카드 제목 | `TYPE_NAME` | 17/24 | 고운돋움 400 |
   | 본문 | `TYPE_BODY` | 15/24 | 시스템 400 |
@@ -109,8 +109,12 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
   iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
 */
 
-/** 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24) */
-export const TYPE_TITLE = 'font-rounded text-title leading-[1.35] tracking-[-0.02em] text-foreground lg:text-display';
+/**
+ * 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24). 줄 높이는 정수 px(35 · 40)다 — 배수
+ * (1.35 × 30 = 40.5)로 두면 아래 모든 것이 반 픽셀 자리에 서서, 누르는 자리를 반 픽셀씩 재는 e2e(`e2e/target.ts`)가 결과 바로가기의
+ * 44px 칸을 43.5 로 쟀다(#836 CI)
+ */
+export const TYPE_TITLE = 'font-rounded text-title leading-[2.1875rem] tracking-[-0.02em] text-foreground lg:text-display lg:leading-10';
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
 export const TYPE_SECTION = 'font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
