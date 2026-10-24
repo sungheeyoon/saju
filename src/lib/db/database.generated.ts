@@ -4216,6 +4216,7 @@ export type Database = {
         Args: { p_user: string }
         Returns: Record<string, unknown>
       }
+      ping_ops_heartbeat: { Args: never; Returns: boolean }
       prepare_reading_job: {
         Args: {
           p_evidence: string
