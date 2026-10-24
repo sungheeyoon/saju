@@ -26,6 +26,7 @@ import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { FailureLine } from '../../ui/failure-line';
+import { HOME_LIST, HOME_ROW_LINK } from '../home/home-list';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -49,7 +50,7 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-4 sm:gap-12 sm:py-12">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
@@ -194,7 +195,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
         내가 받은 사주풀이가 선다.
       */}
-      <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
           {selfCard}
           <OtherSaju />
@@ -212,19 +213,19 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
  * **다른 사람 사주 보기** — 저장하지 않고 한 사람을 계산하는 자리(`/saju`, ADR 0144)로 가는 길. 내 사주 카드 바로 아래 한 줄이다.
  *
  * 처음에는 저장한 사람 구역 끝의 작은 보조 링크였다 — 홈의 주인공은 내 사주와 저장한 사람이라는 판단이었다. 남의 사주를 보는
- * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 알림 띠와 같은 줄이다.
+ * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 목록들과 같은 흰 판의 줄 하나다
+ * (`home/home-list.tsx`) — 검색 표시도 오행 파스텔을 벗었다(2026-10-25 홈 위계 정리).
  */
 function OtherSaju() {
   return (
-    <Link
-      href={SAJU_PATH}
-      className="flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-water-soft text-water">
-        <Icon name="search" className="size-[18px]" />
-      </span>
-      <span className="min-w-0 flex-1">다른 사람 사주 보기</span>
-      <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
-    </Link>
+    <div className={HOME_LIST}>
+      <Link href={SAJU_PATH} className={HOME_ROW_LINK}>
+        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-foreground">
+          <Icon name="search" className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1 text-body font-semibold">다른 사람 사주 보기</span>
+        <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+      </Link>
+    </div>
   );
 }

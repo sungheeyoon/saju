@@ -8,6 +8,7 @@ import { Icon } from '../../ui/icons';
 import { TYPE_META } from '../../ui/surfaces';
 import { watchRun, type PageVisibility } from '../reading/watch-run';
 import { runningLinesNow } from './actions';
+import { HOME_LIST, HOME_ROW, HOME_ROW_LINK } from './home-list';
 import { READING_MAKING } from './making';
 import type { RunningLine } from './running-line';
 import { RUNNING_ASK_EVERY_MS, afterRunningAnswer } from './running-watch';
@@ -58,25 +59,26 @@ export function RunningBandLive({ initial }: { initial: readonly RunningLine[] }
   if (lines.length === 0) return null;
 
   return (
-    <section aria-label={`풀이 ${READING_MAKING}`} className="flex flex-col gap-2">
-      {lines.map((line) => (
-        <Link
-          key={line.key}
-          href={line.href}
-          className="flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-foreground hover:border-border-strong active:scale-[0.99]"
-        >
-          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-cream text-cream-ink">
-            <Icon name="spark" className="size-[18px] animate-pulse motion-reduce:animate-none" />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-body font-semibold">
-              {line.name} {READING_MAKING}
-            </span>
-            <span className={`${TYPE_META} truncate`}>{line.stage}</span>
-          </span>
-          <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
-        </Link>
-      ))}
+    <section aria-label={`풀이 ${READING_MAKING}`}>
+      {/* 아래 목록들과 같은 흰 판의 줄이다(`home-list.tsx`) — 둘 이상이면 한 판 안에 구분선으로 쌓는다 */}
+      <ul className={HOME_LIST}>
+        {lines.map((line) => (
+          <li key={line.key} className={HOME_ROW}>
+            <Link href={line.href} className={HOME_ROW_LINK}>
+              <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-cream text-cream-ink">
+                <Icon name="spark" className="size-5 animate-pulse motion-reduce:animate-none" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-body font-semibold">
+                  {line.name} {READING_MAKING}
+                </span>
+                <span className={`${TYPE_META} truncate`}>{line.stage}</span>
+              </span>
+              <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

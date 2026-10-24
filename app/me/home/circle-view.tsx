@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import type { PersonSlots } from '@/src/lib/people';
 
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT, TYPE_SECTION } from '../../ui/surfaces';
+import { TYPE_SECTION } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import type { Circle } from './circle';
 import { compatHrefOf, pairWithSelf, readingOf, type HomePerson } from './map/model';
+import { HOME_LIST, HOME_ROW, HOME_ROW_INNER, HOME_ROW_LINK } from './home-list';
 import { PersonTile } from './person-tile';
 
 /**
@@ -50,8 +51,8 @@ function tileOfWith(readings: readonly ReadingEntry[], selfPersonId: string, mak
 }
 
 /**
- * **홈 탭의 저장한 사람** — 타일만(u2). 타일의 결과 링크는 `from=me` 를 든다(`from-me.ts`). 넓은 화면은 4열이다 — 지도 옆이
- * 아니라 화면 폭을 다 쓴다(프로덕션 홈과 같다).
+ * **홈 탭의 저장한 사람** — 흰 판 안의 줄 목록(2026-10-25 홈 위계 정리). 줄의 결과 링크는 `from=me` 를 든다(`from-me.ts`). 넓은 화면은
+ * 줄이 두 열로 선다 — 화면 폭을 다 쓰는 한 줄은 이름과 끝 단추 사이가 너무 멀었다.
  */
 export function MyPeople({
   selfPersonId,
@@ -71,7 +72,7 @@ export function MyPeople({
 }
 
 /**
- * 저장한 사람 — 사람마다 제 일간 색의 타일 한 장. 폰 2열 · 태블릿 3열 · 넓은 화면 4열.
+ * 저장한 사람 — 사람마다 흰 판 안의 줄 하나(`PersonTile`), 끝에 「사람 추가」 줄. 넓은 화면(`lg`)은 두 열이다.
  *
  * 몇 자리를 썼는지는 **DB 가 센다**(`my_person_slots`) — 못 읽었으면 수를 안 세운다. 빼기를 화면이 하면
  * 내 사주를 잊는 자리가 생긴다.
@@ -90,7 +91,7 @@ function SavedPeople({
   const full = slots !== null && slots.remaining <= 0;
 
   return (
-    <section aria-labelledby="home-people" className="flex min-w-0 flex-col gap-4">
+    <section aria-labelledby="home-people" className="flex min-w-0 flex-col gap-2 sm:gap-4">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
           저장한 사람
@@ -110,19 +111,19 @@ function SavedPeople({
       </div>
 
       {people.length === 0 ? (
-        <div className={`${EMPTY_SLOT} flex flex-col items-start gap-4`}>
-          <p className="text-body leading-6 text-secondary">가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
-          <Link href="/me/people" className={BUTTON_PRIMARY}>
-            <Icon name="plus" className="size-[18px]" />
-            사람 추가
-          </Link>
-        </div>
+        /* 아무도 없으면 같은 판에 설명 한 줄과 「사람 추가」 줄 — 주 단추(먹색)는 내 사주 카드에만 선다 */
+        <ul className={HOME_LIST}>
+          <li className={HOME_ROW}>
+            <p className={`${HOME_ROW_INNER} text-body leading-6 text-secondary`}>가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
+          </li>
+          <AddRow slots={null} />
+        </ul>
       ) : (
-        <ul className={`grid grid-cols-2 gap-3 md:grid-cols-3 ${fromMe ? 'lg:grid-cols-4' : ''}`}>
+        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2 lg:[&>li:nth-child(odd)]:border-r`}>
           {people.map((person) => (
             <PersonTile key={person.personId} person={person} {...tileOf(person)} fromMe={fromMe} />
           ))}
-          {!full && <AddTile slots={slots} />}
+          {!full && <AddRow slots={slots} />}
         </ul>
       )}
       {slots !== null && full && <p className="text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
@@ -130,20 +131,17 @@ function SavedPeople({
   );
 }
 
-/** 목록 끝의 빈 타일 — 다른 타일과 같은 크기라 「한 자리 더」로 읽힌다 */
-function AddTile({ slots }: { slots: PersonSlots | null }) {
+/** 목록 끝의 「사람 추가」 줄 — 사람 줄과 같은 높이 · 같은 표시 자리라 「한 자리 더」로 읽힌다 */
+function AddRow({ slots }: { slots: PersonSlots | null }) {
   return (
-    <li>
-      <Link
-        href="/me/people"
-        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
-      >
-        <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
-          <Icon name="plus" />
+    <li className={HOME_ROW}>
+      <Link href="/me/people" className={HOME_ROW_LINK}>
+        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-foreground">
+          <Icon name="plus" className="size-5" />
         </span>
-        <span className="text-body font-semibold">사람 추가</span>
+        <span className="min-w-0 flex-1 text-body font-semibold">사람 추가</span>
         {slots !== null && (
-          <span className="text-small tabular-nums text-secondary">
+          <span className="shrink-0 text-small tabular-nums text-secondary">
             {slots.used}/{slots.limit}명
           </span>
         )}
