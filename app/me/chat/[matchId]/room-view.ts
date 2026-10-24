@@ -35,4 +35,17 @@ export type RoomView = {
   readonly tones: RoomTones | null;
   /** 그 인연 궁합이 어디까지 왔나 — 궁합 단추가 든다. 열린 방에만 온다(닫힌 방에는 단추가 없다) */
   readonly compat: RoomCompat | null;
+  /**
+   * 나 — 상대가 이 방에서 내 얼굴을 누르면 보는 지금의 사진 · 소개(`me.ts`). 방 머리의 「⋯」 맨 위 「내 프로필」과 첫머리의
+   * 「나」 카드가 같은 시트로 연다(2026-10-24). 사진을 못 읽었으면 `null` — 그 길이 안 선다
+   */
+  readonly me: RoomSelf | null;
+};
+
+export type RoomSelf = {
+  readonly userId: string;
+  readonly nickname: string;
+  readonly intro: string | null;
+  readonly photoUrls: readonly string[];
+  readonly photoFocus: readonly PhotoFocus[];
 };

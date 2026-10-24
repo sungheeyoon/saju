@@ -168,6 +168,23 @@ export async function build(state) {
 
     const matchId = await pairThem(asker, receiver);
     await plantReading(asker.api, { kind: 'match', matchId, title: '두 사람의 결' });
+    /*
+      대화방이 빈 방으로만 찍히면 말풍선 · 시각 · 묶음을 훑을 수 없다 — 두 사람이 몇 마디 주고받은 방으로 세운다(2026-10-24).
+      문으로 바로 보낸다(화면의 보내기와 같은 `send_chat_message`).
+    */
+    for (const [who, body] of [
+      [asker, '안녕하세요! 궁합 결과 보고 반가워서 먼저 인사드려요.'],
+      [receiver, '안녕하세요 :) 저도 결과 재밌게 봤어요.'],
+      [receiver, '주말에는 보통 뭐 하세요?'],
+      [asker, '요즘은 한강에서 자전거 타요.'],
+    ]) {
+      const sent = await who.api.rpc('send_chat_message', {
+        p_match_id: matchId,
+        p_body: body,
+        p_client_id: crypto.randomUUID(),
+      });
+      if (sent.error) throw new Error(`메시지를 못 보냈습니다 — ${sent.error.message}`);
+    }
 
     return {
       local,

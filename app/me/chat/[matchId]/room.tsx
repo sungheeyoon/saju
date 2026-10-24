@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
+import { MY_PROFILE_EDIT_LABEL, NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 
 import { withCameFrom } from '../../../came-from';
 import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
@@ -73,6 +74,24 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         }
       : null;
   const openPartner = profile.open;
+  /*
+    **내 프로필 시트** — 상대가 이 방에서 내 얼굴을 누르면 보는 것과 같은 판에 내 지금 사진 · 소개를 싣는다(카카오톡 채팅방 서랍의
+    「대화상대 — 나」, 2026-10-24). 머리의 「⋯」 맨 위 「내 프로필」과 첫머리의 「나」 카드가 연다. 궁합 단추 자리에 프로필 편집으로
+    가는 단추가 서고, 신고 · 차단은 없다. 사진을 못 읽은 방(`room.me` 가 `null`)에는 이 길이 안 선다
+  */
+  const myself = usePartnerSheet();
+  const me: PartnerProfile | null =
+    room.me === null
+      ? null
+      : {
+          userId: room.me.userId,
+          nickname: room.me.nickname,
+          intro: room.me.intro,
+          photoUrls: room.me.photoUrls,
+          photoFocus: room.me.photoFocus,
+          tone: room.tones?.mine.element ?? null,
+        };
+  const openMe = me === null ? null : myself.open;
   /* 인연 궁합으로 가는 길 — 상대가 있는 열린 방에만. 머리와 시트의 궁합 단추가 같은 곳 · 같은 상태다 */
   const matchLink = hasPartner && !closed ? withCameFrom(`/me/match/${room.matchId}`, 'chat') : null;
   const chipTone = room.tones === null ? null : theirTone;
@@ -109,7 +128,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
     신고 · 차단 창이나 상대 프로필 시트가 대화를 덮은 동안은 읽음을 남기지 않는다 — 창 · 시트 뒤에 든 말은 본 것이 아니다. 닫으면
     그때 화면에 든 것으로 다시 잰다. 시트의 「⋯」에서 창으로 넘어갈 때는 창이 먼저 서고 시트가 내려간 뒤 닫혀 틈이 없다
   */
-  useReadMarker(log, room.matchId, already, readsNow({ closed, dialogOpen: opened !== null, sheetOpen: profile.shown }), days);
+  useReadMarker(log, room.matchId, already, readsNow({ closed, dialogOpen: opened !== null, sheetOpen: profile.shown || myself.shown }), days);
 
   return (
     <section
@@ -122,6 +141,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         room={room}
         partnerOpens={partner !== null}
         onOpenPartner={openPartner}
+        onOpenMe={openMe}
         matchLink={matchLink}
         chipTone={chipTone}
         onReport={() => setOpened('report')}
@@ -139,7 +159,12 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       >
         <div className="flex flex-col gap-5 px-3 py-5 sm:px-6">
           {thread.reachedStart ? (
-            <RoomStart room={room} quiet={thread.messages.length === 0 && pending.length === 0} />
+            <RoomStart
+              room={room}
+              quiet={thread.messages.length === 0 && pending.length === 0}
+              onMe={openMe}
+              onPartner={partner === null ? null : openPartner}
+            />
           ) : (
             thread.messages.length > 0 && (
               <button
@@ -233,6 +258,18 @@ export function ChatRoomView({ room }: { room: RoomView }) {
                 setOpened('block');
               }}
             />
+          }
+        />
+      )}
+      {me !== null && (
+        <PartnerSheet
+          control={myself}
+          partner={me}
+          toMatch={
+            <Link href="/me/profile" className={BUTTON_SECONDARY_SMALL}>
+              <Icon name="pencil" className="size-4" />
+              {MY_PROFILE_EDIT_LABEL}
+            </Link>
           }
         />
       )}
