@@ -127,7 +127,7 @@ try {
     const body = await response.text();
     check('계정 관리가 열린다', response.status === 200, String(response.status));
     check('참여를 끄는 손잡이가 거기 있다',
-      body.includes('현재 다른 사람에게 내 프로필이 소개되고 있어요') && body.includes('인연 찾기 쉬기'));
+      body.includes('현재 다른 사람에게 내 프로필이 소개되고 있어요') && body.includes('role="switch" aria-checked="true" aria-label="인연 찾기"'));
 
     /**
      * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름으로 말하고 점수까지 세우므로,
