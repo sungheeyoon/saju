@@ -84,7 +84,7 @@ ADR 0105), 사진 청소의 예비(`/api/cron/photo-sweep`, 하루 한 번 — �
 그 길이 아예 모른다. 그래서 **바깥 서비스가 두 꼴로 본다** — 주소를 두드리는 uptime 감시, 그리고 DB 가 10분마다 보내는 신호가
 끊기면 알리는 dead-man heartbeat. **운영자가 정했다(2026-10-24, ADR 0206)** — uptime 둘은 UptimeRobot Free(5분), heartbeat 하나는
 Healthchecks.io 무료 판, 감시 서비스 이용료 월 $0 · `/api/health` 는 자격 없이 공개 · 감시기 창 25분 그대로. 후보와 출처는
-[기록](../../product/gaps/records/g-118.md), 남은 걸음은 간극 대장 G-118.
+ADR 0206 「견준 서비스」. 2026-10-24 에 붙이고 알림 시험까지 마쳤다.
 
 **무엇을 보나** — `<운영 주소>` 는 `docs/ops/runbook/domain.md` 맨 위의 그 한 줄이다(여기 적지 않는다).
 
@@ -131,7 +131,7 @@ Discord — Vault `ops_alert_url` 과 같은 채널)을 더한다. 채널의 웹
 - `curl -s -o /dev/null -w '%{http_code}\n' <운영 주소>/api/health` 가 200, 서비스 화면의 두 감시가 「up」
 - 2분 뒤 `select status_code, created from net._http_response order by created desc limit 3;` 에 200 이 있고, 서비스 화면의 heartbeat 가 「up」
 - **알림이 실제로 오나** — heartbeat 잡을 잠시 끈다: `select cron.alter_job((select jobid from cron.job where jobname = 'ops-heartbeat'), active := false);`
-  → 20~25분 안에 이메일(과 채널)로 「down」이 온다 → `active := true` 로 되돌리고 「up」이 오는 것을 본다. 끈 동안 감시기가
+  → 20~25분 안에 이메일(과 채널)로 「down」이 온다(시계는 끈 시각이 아니라 **마지막 신호**부터다. 기다리는 동안 서비스 화면에서 아무것도 누르지 않는다 — Healthchecks 의 종 모양은 체크를 일시정지해 알림을 막는다, 2026-10-24) → `active := true` 로 되돌리고 「up」이 오는 것을 본다. 끈 동안 감시기가
   `cron-inactive:ops-heartbeat` 를 한 번 보내는 것은 정상이다
 
 ---
