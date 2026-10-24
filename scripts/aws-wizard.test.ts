@@ -6,7 +6,7 @@
  * 보존이 걸린 버전 지우기는 `AccessDenied`). 가짜 `vercel crons run` 은 반출 하나를 흉내 내 버킷에 객체 하나를 놓는다.
  * 마법사의 물음에는 화면 글자를 보고 답한다(`[y/N]` · `[Enter]` · 버킷 이름).
  */
-import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams, spawn, spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -14,6 +14,18 @@ import { dirname, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const WIZARD = resolve(__dirname, 'aws-wizard.sh');
+
+/**
+ * 마법사를 돌릴 bash — 4.4 이상이어야 한다(`inherit_errexit` · `declare -A`). macOS 의 `/bin/bash` 는 3.2 라 경로를 박지
+ * 않고 부른 사람의 PATH 에서 찾는다(Homebrew 의 `/opt/homebrew/bin/bash`). 모자라면 시험 스물여덟이 같은 `shopt` 오류로
+ * 붉는 대신 여기서 한 번, 까는 길과 함께 선다.
+ */
+const BASH = ((): string => {
+  const probe = spawnSync('bash', ['-c', 'echo "${BASH_VERSINFO[0]} ${BASH_VERSINFO[1]} $BASH"'], { encoding: 'utf8' });
+  const [major, minor, path] = probe.stdout.trim().split(' ');
+  if (Number(major) > 4 || (Number(major) === 4 && Number(minor) >= 4)) return path;
+  throw new Error(`aws-wizard 시험은 PATH 에 bash 4.4 이상이 있어야 돈다 — 지금은 ${major}.${minor}(${path}). macOS 면 brew install bash`);
+})();
 const ACCOUNT = '123456789012';
 const ADMIN_ARN = `arn:aws:iam::${ACCOUNT}:user/saju-admin`;
 
@@ -226,7 +238,7 @@ function drive(
   },
 ): Promise<{ code: number | null; out: string }> {
   return new Promise((done) => {
-    const child: ChildProcessWithoutNullStreams = spawn('/bin/bash', [WIZARD], {
+    const child: ChildProcessWithoutNullStreams = spawn(BASH, [WIZARD], {
       env: {
         PATH: `${bin}:/usr/bin:/bin`,
         HOME: join(root, 'home'),

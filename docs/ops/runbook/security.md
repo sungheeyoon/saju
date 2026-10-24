@@ -203,7 +203,7 @@ bash scripts/aws-wizard.sh
 
 `scripts/aws-wizard.sh` 는 아래 「사람이 켜는 걸음」 1 ~ 9 를 **같은 차례로** 밟는다 — 콘솔에서만 되는 것(계정 · 루트 MFA ·
 관리자 사용자 · Vercel OIDC 켜기 · Redeploy)은 주소를 열고 무엇을 누를지 말한 뒤 기다리고, 나머지는 AWS CLI · Vercel CLI 로
-한다. 준비물은 AWS CLI 2.32 이상(`aws login`)과 로그인된 Vercel CLI 다.
+한다. 준비물은 AWS CLI 2.32 이상(`aws login`)과 로그인된 Vercel CLI, 그리고 bash 4.4 이상이다 — macOS 의 `/bin/bash` 는 3.2 라 `brew install bash` 를 먼저 한다(옛 bash 면 마법사가 그 말을 하고 멈춘다).
 
 | 마법사 Stage | 이 절의 걸음 | 무엇을 |
 | --- | --- | --- |
