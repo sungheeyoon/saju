@@ -56,6 +56,25 @@ export function BubbleRow({
   /* 묶음의 첫 말은 머리 쪽 모서리만 뾰족하다 — 누가 말을 시작했는지 모양으로 읽힌다 */
   const corner = bubble.first ? (mine ? 'rounded-tr-md' : 'rounded-tl-md') : '';
 
+  /* 말풍선과 그 곁(시각 · 못 보낸 말의 단추) — 내 말은 오른쪽으로, 상대 말은 이름 아래로 선다 */
+  const line = (
+    <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
+      <p className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55]`}>
+        <BubbleBody body={bubble.body} />
+      </p>
+      {sending === 'failed' ? (
+        <SendFailedMenu onRetry={onRetry} onDrop={onDrop} />
+      ) : (
+        bubble.last &&
+        sending !== 'sending' && (
+          <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-fine tabular-nums text-secondary">
+            {bubble.time}
+          </time>
+        )
+      )}
+    </div>
+  );
+
   return (
     <li
       {...{ [MESSAGE_ID]: bubble.id, ...(mine ? {} : { [THEIR_SEQ]: bubble.seq }) }}
@@ -77,21 +96,18 @@ export function BubbleRow({
         ) : (
           <span aria-hidden="true" className="w-9 shrink-0" />
         ))}
-      <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
-        <p className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-row px-4 py-2.5 text-body leading-[1.55]`}>
-          <BubbleBody body={bubble.body} />
-        </p>
-        {sending === 'failed' ? (
-          <SendFailedMenu onRetry={onRetry} onDrop={onDrop} />
-        ) : (
-          bubble.last &&
-          sending !== 'sending' && (
-            <time dateTime={bubble.createdAt} className="shrink-0 pb-0.5 text-fine tabular-nums text-secondary">
-              {bubble.time}
-            </time>
-          )
-        )}
-      </div>
+      {mine ? (
+        line
+      ) : (
+        /*
+          상대 묶음의 첫 말 위에는 이름이 선다(카카오톡 · 위피의 방 — 얼굴 곁 이름, 2026-10-24). 얼굴만으로는 누구의 말인지 읽을
+          자리가 없었다 — 보조기기는 이름 없이 말만 읽었다
+        */
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {bubble.first && <p className="truncate px-1 text-fine font-medium text-secondary">{room.name}</p>}
+          {line}
+        </div>
+      )}
     </li>
   );
 }
