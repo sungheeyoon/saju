@@ -137,6 +137,12 @@ export const CONFIRM_ROW = 'flex flex-col gap-2 sm:flex-row-reverse';
 /** 확인 창의 단추 줄 — `CONFIRM_ROW` 에 제목 · 본문과 띄우는 여백 */
 export const DIALOG_ACTIONS = `mt-6 ${CONFIRM_ROW}`;
 
+/**
+ * 확인 창의 단추 줄 — **폭과 상관없이 나란히**, 「취소」가 왼쪽 · 실행이 오른쪽이고 둘이 반씩 나눈다. 단추가 짧은(「삭제」 ·
+ * 「취소」) 창이 쓴다 — 카카오톡 · 토스 · 당근 · iOS 경고창의 꼴(ADR 0205 추기, 2026-10-24). 글이 긴 단추는 `DIALOG_ACTIONS`
+ */
+export const DIALOG_ACTIONS_ROW = 'mt-6 flex flex-row-reverse gap-2 *:min-w-0 *:flex-1';
+
 /** 「수정 전」 딱지 — 출생 정보를 고치기 전에 만든 풀이. 11px 딱지 단이다 */
 export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-tag font-semibold text-warning';
 

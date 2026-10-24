@@ -22,7 +22,7 @@ import { movePhoto } from './actions';
 import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
 import { PhotoMenu, type MenuChoice } from './photo-menu';
 import { positionOf } from './photo-positions';
-import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
+import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_NOTE, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
 import type { MyPhoto } from './photos';
 import { usePhotoDrag } from './use-photo-drag';
 import { usePhotoRemoval } from './use-photo-removal';
@@ -76,8 +76,8 @@ const PHOTO_REORDER_HINT = '사진을 길게 눌러 순서를 바꿀 수 있어�
  *
  * ## 지우기는 묻고 나서 한다
  *
- * × · 메뉴의 「삭제」는 확인 창(`ConfirmDialog`, 첫 초점 「취소」)을 연다 — 「사진을 삭제할까요?」 [삭제] [취소](운영자 2026-10-23,
- * ADR 0205). 「삭제」를 누르면 창이 「삭제 중…」으로 선 채 서버에서 지우고, 지우면 창이 닫히고 상태 줄이 「사진을 지웠어요」를
+ * × · 메뉴의 「삭제」는 확인 창(`ConfirmDialog`, 첫 초점 「취소」)을 연다 — 「사진을 삭제할까요?」 · 「삭제한 사진은 되돌릴 수
+ * 없어요.」 · [취소] [삭제] 나란히(운영자 2026-10-23, ADR 0205 · 추기 2026-10-24). 「삭제」를 누르면 창이 「삭제 중…」으로 선 채 서버에서 지우고, 지우면 창이 닫히고 상태 줄이 「사진을 지웠어요」를
  * 잠깐 말한다. 거절되면 창 안에 까닭이 선다. 실행 취소 띠는 없다 — 묻고 나서 또 되돌리기를 세우면 겹친다(ADR 0165 의 3 을 걷었다).
  *
  * 순서는 서버 답을 기다리지 않고 먼저 옮겨 그린다(`useOptimistic`). 서버가 거절하면 서버가 준 순서로
@@ -250,17 +250,6 @@ export function PhotoGrid({
         <PhotoMenu
           choices={items}
           label={`사진 ${position} / ${total}`}
-          lead={
-            /* 판이 무엇에 대한 것인지 — 그 장(칸과 같은 주소 · 같은 보일 자리) */
-            <span
-              aria-hidden="true"
-              className="block aspect-[3/4] w-16 rounded-xl bg-surface-sunken bg-cover"
-              style={{
-                backgroundImage: `url(/me/photo/${userId}/${photo.position}?v=${photo.version}&s=card)`,
-                backgroundPosition: focusPosition(focus),
-              }}
-            />
-          }
           opener={{
             ref: (element) => {
               slotRefs.current[position - 1] = element;
@@ -481,30 +470,23 @@ export function PhotoGrid({
 
       <p className="text-small leading-5 text-cream-ink">{PHOTO_NOTE}</p>
       <PhotoFramer {...framer} />
-      {/* 지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다 */}
+      {/*
+        지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다. 그림 없이 제목 · 한 줄 ·
+        나란한 두 단추다 — 카카오톡 · 토스 · 당근 · iOS · 안드로이드의 삭제 확인 창이 다 그 꼴이다(ADR 0205 추기, 2026-10-24)
+      */}
       <ConfirmDialog
         open={asking !== null}
         onClose={() => answer('cancel')}
-        lead={
-          asking === null ? undefined : (
-            /* 지울 그 장 — 칸과 같은 주소 · 같은 보일 자리(이미 받아 둔 그림이라 곧바로 선다) */
-            <span
-              aria-hidden="true"
-              className="block aspect-[3/4] w-20 rounded-2xl bg-surface-sunken bg-cover"
-              style={{
-                backgroundImage: `url(/me/photo/${userId}/${asking.position}?v=${asking.version}&s=card)`,
-                backgroundPosition: focusPosition(focusOfPhoto(asking)),
-              }}
-            />
-          )
-        }
         title={PHOTO_REMOVE_TITLE}
+        actions="row"
         confirmLabel={working ? '삭제 중…' : PHOTO_REMOVE_CONFIRM}
         onConfirm={() => answer('confirm')}
         danger
         busy={working}
         failure={askFailure}
-      />
+      >
+        <p>{PHOTO_REMOVE_NOTE}</p>
+      </ConfirmDialog>
       {failure !== null && (
         <FailureLine>{failure}</FailureLine>
       )}

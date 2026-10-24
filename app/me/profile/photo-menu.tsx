@@ -16,15 +16,12 @@ export function PhotoMenu({
   opener,
   choices,
   label,
-  lead,
   children,
 }: {
   opener: Omit<ComponentProps<'button'>, 'ref' | 'type'> & { ref: (element: HTMLElement | null) => void };
   choices: readonly MenuChoice[];
   /** 판의 이름(보조기기) */
   label: string;
-  /** 판 머리의 그림 — 그 사진 */
-  lead?: ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +40,7 @@ export function PhotoMenu({
       >
         {children}
       </button>
-      <ActionSheet open={open} onClose={() => setOpen(false)} label={label} lead={lead} choices={choices} />
+      <ActionSheet open={open} onClose={() => setOpen(false)} label={label} choices={choices} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { BUTTON_SECONDARY } from './buttons';
 import { Icon, type IconName } from './icons';
@@ -19,13 +19,13 @@ export type ActionChoice = { icon: IconName; label: string; tone?: 'danger'; run
  * - 위험한 줄은 맨 아래, 선 하나 뒤에 붉게 선다. 그 줄을 골라도 여기서 지우지 않는다 — 부르는 쪽이 확인 창을 연다(ADR 0205).
  * - 줄을 고르면 판을 **곧바로** 닫고 그 일을 한다 — 기기의 사진 창(`input.click()`)은 누름 안에서만 열리므로 닫는 움직임을
  *   기다리지 않는다. 닫히면 브라우저가 초점을 연 자리(사진 칸)로 돌려놓는다.
- * - 닫기는 「취소」다(대장 01). 머리의 X 는 없다.
+ * - 닫기는 「취소」다(대장 01). 머리의 X 도 제목도 없다 — 카카오톡 · 안드로이드의 판처럼 줄이 곧 무엇을 하는 판인지 말한다. 판 머리에
+ *   사진만 덩그러니 세웠더니 무엇을 말하는지 모르겠다고 했다(운영자 2026-10-24).
  */
 export function ActionSheet({
   open,
   onClose,
   label,
-  lead,
   choices,
 }: {
   open: boolean;
@@ -33,8 +33,6 @@ export function ActionSheet({
   onClose: () => void;
   /** 보조기기가 읽는 판의 이름 */
   label: string;
-  /** 판 머리에 서는 그림 — 무엇에 대한 판인지(그 사진) */
-  lead?: ReactNode;
   choices: readonly ActionChoice[];
 }) {
   const sheet = useRef<HTMLDialogElement>(null);
@@ -89,7 +87,6 @@ export function ActionSheet({
     >
       <div className="flex flex-col gap-3 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 lg:p-4">
         <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />
-        {lead !== undefined && <div className="flex justify-center pt-1">{lead}</div>}
         <div className="flex flex-col rounded-card bg-surface p-1.5">
           {quiet.map(row)}
           {danger.length > 0 && quiet.length > 0 && <hr className="mx-3 my-1 border-border" />}
