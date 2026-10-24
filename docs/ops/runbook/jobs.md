@@ -106,9 +106,12 @@ Discord — Vault `ops_alert_url` 과 같은 채널)을 더한다. 채널의 웹
 #### 붙이는 차례 — UptimeRobot · Healthchecks.io
 
 1. **서비스 계정**을 만들고 MFA 를 켠다(#304 의 MFA 줄에 이 서비스를 더한다). 알림 받을 곳에 운영자 이메일을 넣고, 채널을 쓰면 그 연동을 더한다.
+   UptimeRobot Free 는 **가입한 메일 하나로만** 알린다 — 다른 메일을 더하는 것은 유료 판의 notify-only seat 다(공식 도움말 「Personal
+   Notification Channels」, 2026-10-24). 알림을 개인 메일에서도 보려면 그 메일함을 휴대폰에 더하거나 메일 전달 필터를 건다.
+   UptimeRobot 의 MFA 는 대시보드 왼쪽 아래 「…」 → Security → Set up 2FA 다(2026-10-24 화면).
 2. **uptime 둘**(UptimeRobot) — 위 표 1 · 2 를 HTTP(S) 감시로 만든다. 2 는 본문 낱말(`"status":"ok"`)을 보는 감시가 있으면 그것으로, 없으면 상태 코드로.
-   방법 GET · 넘김 따라가지 않음(넘김이 생기면 그것이 바뀐 것이다) · 제한시간 30초 안팎.
-3. **heartbeat 하나**(Healthchecks.io) — 기간 10분 · 유예 10분으로 만들고 신호 주소를 받는다. 신호 주소는 **열쇠다**(가진 사람이 「살아 있다」를 꾸민다) —
+   방법 GET · 넘김 따라가지 않음(넘김이 생기면 그것이 바뀐 것이다) · 제한시간 30초 안팎. 감시 위치는 기본값으로 둔다 — 고르는 것과 1분 간격은 유료다.
+3. **heartbeat 하나**(Healthchecks.io) — 기간 10분 · 유예 10분으로 만들고 신호 주소를 받는다. Filtering Rules 의 「Require HTTP POST」는 켜지 않는다 — DB 가 GET 으로 보낸다. 신호 주소는 **열쇠다**(가진 사람이 「살아 있다」를 꾸민다) —
    저장소 · 이슈 · 노트에 적지 않는다.
 4. **Vault 에 넣는다**(heartbeat 마이그레이션이 운영에 오른 뒤 — `docs/ops/runbook/deploy.md` 「배포」의 `db push` 차례):
 
