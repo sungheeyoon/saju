@@ -28,7 +28,7 @@ import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-5 rounded-tile border border-border bg-surface p-5 sm:p-6';
+const PANEL = 'flex flex-col gap-5 rounded-card border border-border bg-surface p-5 sm:p-6';
 
 const LABEL = 'text-small font-semibold text-secondary';
 

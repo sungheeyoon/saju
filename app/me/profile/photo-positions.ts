@@ -14,13 +14,3 @@ export function serverPosition(list: readonly MyPhoto[], gone: ReadonlySet<numbe
   return position === 0 ? null : position;
 }
 
-/**
- * 메뉴 판이 서는 쪽 — 칸이 화면 오른쪽 끝에 있으면 판이 밖으로 안 나가게 오른쪽에 붙인다. 대표 칸은 그 칸 안 왼쪽 위다.
- * 칸의 자리는 세 칸 격자(대표가 두 줄 두 칸)로 정해져 있다 — 2 · 3 은 셋째 열, 4 · 5 · 6 은 셋째 줄.
- */
-export function menuAlign(position: number): string {
-  if (position === 1) return 'left-3 top-3';
-  if (position === 4) return 'left-0 top-full mt-1.5';
-  if (position === 5) return 'left-1/2 top-full mt-1.5 -translate-x-1/2';
-  return 'right-0 top-full mt-1.5';
-}

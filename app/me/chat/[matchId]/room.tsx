@@ -135,7 +135,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
       ref={frame}
       aria-label={room.heading}
       data-chat-room
-      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-card md:ring-1 md:ring-border lg:rounded-paper`}
+      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden bg-surface md:rounded-card md:ring-1 md:ring-border lg:rounded-card`}
     >
       <RoomHeader
         room={room}
@@ -222,7 +222,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         {/* 차단이 끝나 다시 읽으면 방이 닫혀 있다 — 입력 칸 대신 닫힌 까닭이 선다 */}
         {closed ? (
           /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD 「앱 내 채팅」) */
-          <p role="status" className="flex items-center gap-2.5 rounded-row bg-surface-soft px-4 py-3 text-note text-secondary">
+          <p role="status" className="flex items-center gap-2.5 rounded-card bg-surface-soft px-4 py-3 text-note text-secondary">
             <Icon name="lock" className="size-4" />
             {room.notice}
           </p>

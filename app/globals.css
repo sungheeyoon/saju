@@ -207,13 +207,10 @@
   /*
     **모서리는 세 단이다**(2026-10-24, ADR 0109 추기) — 카드(`rounded-card` 20px) · 칸(`rounded-cell` 12px) · 알약(`rounded-full`).
     카드는 판 · 종이 · 타일 · 줄 카드 · 띄움 판 · 시트처럼 화면 위에 서는 면이고, 칸은 그 안의 입력 칸 · 고르는 칸 · 작은 상자 ·
-    사진 · 뼈대다. 알약은 단추 · 딱지 · 둥근 그림. 옛 이름 셋(`paper` · `tile` · `row`)은 카드와 같은 값이고 쓰는 수는 줄기만 한다.
+    사진 · 뼈대다. 알약은 단추 · 딱지 · 둥근 그림. 옛 이름 셋(`paper` 32 · `tile` 24 · `row` 20px)은 카드로 옮기고 걷었다.
   */
   --radius-card: 20px;
   --radius-cell: 12px;
-  --radius-paper: 20px;
-  --radius-tile: 20px;
-  --radius-row: 20px;
 }
 
 /*

@@ -1,51 +1,33 @@
 import type { ComponentProps, ReactNode } from 'react';
 
-import { useDetailsMenu } from '../../ui/details-menu';
-import { Icon, type IconName } from '../../ui/icons';
-import { MENU_PANEL } from '../../ui/surfaces';
-
-/** 사진 칸 메뉴의 한 줄 */
-export type MenuChoice = { icon: IconName; label: string; tone?: 'danger'; run: () => void };
-
 /**
- * 사진 칸 하나의 메뉴 — **사진 자체가 여는 자리다**(`<summary>`). 계정 메뉴 · 사람 관리 메뉴와 같은 `<details>` 한 벌이라
- * 바깥 누름 · Esc 로 닫히고 Esc 면 초점이 그 사진으로 돌아온다(`useDetailsMenu`). 고르면 먼저 닫고 그 일을 한다.
+ * 사진 칸 하나 — **사진 자체가 여는 자리다**(단추). 누르면 그 장의 크게 보기(`PhotoViewer`)가 열리고, 할 일은 거기 「⋯」에 있다
+ * (2026-10-24, 카카오톡 프로필 사진 보기 · iPhone 사진 앱과 같은 꼴). 길게 누르면 들려 옮겨진다(`usePhotoDrag`) — 탭은 열기,
+ * 길게 누름은 옮기기로 갈린다(Google 포토의 탭 = 열기 · 길게 탭 = 고르기와 같은 가름).
+ *
+ * 여는 단추의 누름이 막혔으면(들었다 놓은 누름 · 처리하는 동안 — 부르는 쪽이 `preventDefault`) 보기를 안 연다.
  */
 export function PhotoMenu({
-  summary,
-  items,
-  align,
+  opener,
+  onOpen,
   children,
 }: {
-  summary: Omit<ComponentProps<'summary'>, 'ref'> & { ref: (element: HTMLElement | null) => void };
-  items: readonly MenuChoice[];
-  align: string;
+  opener: Omit<ComponentProps<'button'>, 'ref' | 'type'> & { ref: (element: HTMLElement | null) => void };
+  onOpen: () => void;
   children: ReactNode;
 }) {
-  const { menu, close } = useDetailsMenu();
+  const { onClick, ...rest } = opener;
   return (
-    <details ref={menu} className="group relative h-full w-full">
-      <summary {...summary}>{children}</summary>
-      <div
-        className={`${MENU_PANEL} absolute z-40 flex w-44 flex-col p-1.5 ${align}`}
-      >
-        {items.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => {
-              close();
-              item.run();
-            }}
-            className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
-              item.tone === 'danger' ? 'text-danger' : 'text-foreground'
-            }`}
-          >
-            <Icon name={item.icon} className="size-4.5" />
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </details>
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      {...rest}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) onOpen();
+      }}
+    >
+      {children}
+    </button>
   );
 }

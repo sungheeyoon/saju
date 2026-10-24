@@ -127,11 +127,6 @@ function countBy(pattern: RegExp): Record<string, number> {
   return out;
 }
 
-/*
-  **나란히 고치는 화면** — 2026-10-24 라운드는 대화(`app/me/chat/**`) · 프로필(`app/me/profile/**`)을 다른 PR 이 고치는 동안
-  손대지 않았다. 아래 목록의 그 파일 자리는 다음 라운드에 걷는다 — 수는 줄기만 한다(늘리면 붉고, 줄이면 여기서도 줄인다).
-*/
-
 describe('텍스트 스타일 일곱 벌(ADR 0109 추기 2026-10-24)', () => {
   const styles = { TYPE_TITLE, TYPE_SECTION, TYPE_NAME, TYPE_BODY, TYPE_META, TYPE_CAPTION, BADGE };
   const TITLES = { TYPE_TITLE, TYPE_SECTION, TYPE_NAME };
@@ -185,29 +180,14 @@ describe('모서리는 카드 · 칸 · 알약 세 단이다(ADR 0109 추기 202
   const SIDE = '(?:-(?:t|b|l|r|s|e|tl|tr|bl|br|ss|se|es|ee))?';
 
   it('Tailwind 의 기본 단(sm · md · lg · xl · 2xl · 3xl · 맨 rounded)을 부르지 않는다 — `rounded-cell` 을 쓴다', () => {
-    // 뒤가 `.` 인 것은 JS 이름이다(`app/layout.tsx` 의 `rounded.variable`)
+    // 뒤가 `.` 인 것은 JS 이름이다. 예외 하나 — 말풍선의 꼬리 귀(첫 말풍선의 한 귀만 6px)는 모양이지 단이 아니다
     expect(countBy(new RegExp(`(?<![\\w.-])rounded${SIDE}(?:-(?:sm|md|lg|xl|2xl|3xl))?(?![\\w.\\[-])`, 'g'))).toEqual({
-      'app/me/chat/[matchId]/bubble-row.tsx': 3,
-      'app/me/chat/[matchId]/room-header.tsx': 1,
-      'app/me/profile/loading.tsx': 4,
-      'app/me/profile/photo-framer.tsx': 1,
-      'app/me/profile/photo-grid.tsx': 8,
-      'app/me/profile/photo-menu.tsx': 1,
+      'app/me/chat/[matchId]/bubble-row.tsx': 2,
     });
   });
 
-  it('옛 이름(paper · tile · row)은 나란히 고치는 화면에만 남는다 — 값은 카드와 같다', () => {
-    expect([radius.paper, radius.tile, radius.row]).toEqual([radius.card, radius.card, radius.card]);
-    expect(countBy(new RegExp(`(?<![\\w-])rounded${SIDE}-(?:paper|tile|row)(?![\\w-])`, 'g'))).toEqual({
-      'app/me/chat/(rooms)/loading.tsx': 2,
-      'app/me/chat/[matchId]/bubble-row.tsx': 1,
-      'app/me/chat/[matchId]/room-start.tsx': 1,
-      'app/me/chat/[matchId]/room.tsx': 2,
-      'app/me/chat/empty.tsx': 2,
-      'app/me/chat/room-list.tsx': 3,
-      'app/me/profile/form.tsx': 1,
-      'app/me/profile/loading.tsx': 2,
-      'app/me/profile/photo-grid.tsx': 1,
-    });
+  it('옛 이름(paper · tile · row)은 걷었다 — 토큰도 소스도 없다', () => {
+    expect(Object.keys(radius).sort()).toEqual(['card', 'cell']);
+    expect(countBy(new RegExp(`(?<![\\w-])rounded${SIDE}-(?:paper|tile|row)(?![\\w-])`, 'g'))).toEqual({});
   });
 });
