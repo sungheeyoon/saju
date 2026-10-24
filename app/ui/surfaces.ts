@@ -110,9 +110,9 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
 */
 
 /**
- * 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24). 줄 높이는 정수 px(35 · 40)다 — 배수
- * (1.35 × 30 = 40.5)로 두면 아래 모든 것이 반 픽셀 자리에 서서, 누르는 자리를 반 픽셀씩 재는 e2e(`e2e/target.ts`)가 결과 바로가기의
- * 44px 칸을 43.5 로 쟀다(#836 CI)
+ * 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24). 줄 높이는 정수 px(35 · 40)로 적는다 —
+ * 배수(1.35 × 30 = 40.5)는 아래 것들을 반 픽셀 자리로 민다. 결과 바로가기가 반 픽셀 자리(x.5)에 서면 누르는 자리를 반 픽셀씩 재는
+ * e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 잰다(#836 CI, 내 사주 카드 머리의 줄 상자와 함께 — `app/me/home/self-card.tsx`)
  */
 export const TYPE_TITLE = 'font-rounded text-title leading-[2.1875rem] tracking-[-0.02em] text-foreground lg:text-display lg:leading-10';
 
