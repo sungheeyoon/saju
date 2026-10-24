@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MY_PROFILE_EDIT_LABEL, NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 
 import { withCameFrom } from '../../../came-from';
-import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, BUTTON_SECONDARY_SMALL_FACE } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { PartnerSheet, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
 import { BlockDialog, ReportBlockMenu, ReportDialog } from '../../requests/report-block';
@@ -266,7 +266,8 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           control={myself}
           partner={me}
           toMatch={
-            <Link href="/me/profile" className={BUTTON_SECONDARY_SMALL}>
+            /* 궁합 단추와 같은 자리 · 같은 폭 — 시트의 사진 아래 한 줄(`CompatChip` 의 `fill`) */
+            <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
               <Icon name="pencil" className="size-4" />
               {MY_PROFILE_EDIT_LABEL}
             </Link>
