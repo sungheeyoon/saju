@@ -25,5 +25,11 @@ export const BETA_SIGNUP_CODE_NOTE =
  */
 export const PHOTO_ADD = '사진 추가';
 
+/**
+ * 사진 올리기가 멈춘 동안(스위치 `paused`, G-120 · ADR 0203) 프로필 사진 판의 첫 줄 — DB 의 거절(`photo_upload_must_be`)도 같은
+ * 글자다(대장 settings-05, 확인 전).
+ */
+export const PHOTO_UPLOADS_PAUSED = '사진 보관 방식을 바꾸는 중이라 지금은 사진을 올릴 수 없어요.';
+
 /** 로그아웃을 누른 뒤 끝날 때까지 그 단추 · 링크 자리의 글자 — 머리글의 계정 메뉴 · 계정 관리 · 가입 화면의 다른 계정 링크가 같이 쓴다 */
 export const SIGN_OUT_PENDING = '로그아웃하는 중…';

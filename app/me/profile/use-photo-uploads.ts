@@ -58,8 +58,8 @@ export function usePhotoUploads({
   total: number;
   /** 옮기기가 서버에 가는 중이다 */
   working: boolean;
-  /** 늦은 지우기 쪽에서 쓰는 셋 — 보내기 전에 기다리던 지우기를 먼저 보내고, 서버 목록의 자리를 센다 */
-  removal: Pick<ReturnType<typeof usePhotoRemoval>, 'sendRemoval' | 'serverPositionOf' | 'serverVersions'>;
+  /** 지우기 쪽이 세는 서버 목록의 자리 — 서버가 지웠다고 답한 장은 목록이 새로 오기 전에도 뺀다 */
+  removal: Pick<ReturnType<typeof usePhotoRemoval>, 'serverPositionOf' | 'serverVersions'>;
   done: ReturnType<typeof useDoneNote>;
   clearFailure: () => void;
   failed: (message: string) => void;
@@ -153,7 +153,6 @@ export function usePhotoUploads({
     if (chosen === null) return;
     setPlaced((was) => new Map(was).set(photo.version, chosen));
     setSending(true);
-    await removal.sendRemoval();
     const position = removal.serverPositionOf(photo.version);
     const result =
       position === null
@@ -199,9 +198,6 @@ export function usePhotoUploads({
     setBefore(removal.serverVersions());
     setUploads(batch.map(({ key, url, focus }) => ({ key, url, focus, done: false })));
     setSending(true);
-
-    /* 지운 장이 아직 서버에 있으면 여섯 칸이 찼다고 거절된다 — 먼저 보낸다 */
-    await removal.sendRemoval();
 
     let sent = 0;
     for (const [index, { file, key, focus }] of batch.entries()) {
@@ -257,9 +253,6 @@ export function usePhotoUploads({
 
     setReplacing({ version, url, next: null, focus });
     setSending(true);
-
-    /* 지운 장이 아직 서버에 있으면 그 장 뒤의 자리가 하나 밀려 있다 — 먼저 보낸다 */
-    await removal.sendRemoval();
 
     let message: string | null = null;
     let next: number | null = null;

@@ -1133,6 +1133,51 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_sweep_state: {
+        Row: {
+          held_until: string | null
+          holder: string | null
+          last_deleted: number | null
+          last_failed: number | null
+          last_finished_at: string | null
+          one: boolean
+        }
+        Insert: {
+          held_until?: string | null
+          holder?: string | null
+          last_deleted?: number | null
+          last_failed?: number | null
+          last_finished_at?: string | null
+          one?: boolean
+        }
+        Update: {
+          held_until?: string | null
+          holder?: string | null
+          last_deleted?: number | null
+          last_failed?: number | null
+          last_finished_at?: string | null
+          one?: boolean
+        }
+        Relationships: []
+      }
+      photo_upload_switch: {
+        Row: {
+          changed_at: string
+          id: boolean
+          mode: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: boolean
+          mode?: string
+        }
+        Update: {
+          changed_at?: string
+          id?: boolean
+          mode?: string
+        }
+        Relationships: []
+      }
       photo_upload_ticket: {
         Row: {
           issued_at: string
@@ -4130,33 +4175,15 @@ export type Database = {
       person_save_daily_limit: { Args: never; Returns: number }
       person_save_hourly_limit: { Args: never; Returns: number }
       photo_at: {
-        Args: { p_position: number; p_user_id: string }
+        Args: { p_position: number; p_user_id: string; p_version?: number }
         Returns: {
           base64: string
           content_type: string
-        }[]
-      }
-      photo_bytes_moved: {
-        Args: {
-          p_object_key: string
-          p_position: number
-          p_user_id: string
-          p_version: number
-        }
-        Returns: boolean
-      }
-      photo_bytes_to_move: {
-        Args: { p_limit: number }
-        Returns: {
-          base64: string
-          content_type: string
-          position: number
-          user_id: string
+          object_key: string
           version: number
         }[]
       }
       photo_focus_of: { Args: { p_user_id: string }; Returns: number[] }
-      photo_move_begin: { Args: { p_user_id: string }; Returns: string }
       photo_object_keys: {
         Args: { p_after: string; p_limit: number }
         Returns: {
@@ -4164,6 +4191,12 @@ export type Database = {
           object_key: string
         }[]
       }
+      photo_sweep_begin: { Args: never; Returns: string }
+      photo_sweep_finish: {
+        Args: { p_deleted: number; p_failed: number; p_holder: string }
+        Returns: boolean
+      }
+      photo_sweep_stale_after: { Args: never; Returns: string }
       photo_sweep_tickets: { Args: never; Returns: number }
       photo_trash_batch: {
         Args: { p_limit: number }
@@ -4172,10 +4205,13 @@ export type Database = {
           object_key: string
         }[]
       }
+      photo_trash_linger_after: { Args: never; Returns: string }
       photo_trash_settle: {
         Args: { p_deleted: string[]; p_error_class: string; p_failed: string[] }
         Returns: boolean
       }
+      photo_upload_mode: { Args: never; Returns: string }
+      photo_upload_must_be: { Args: { p_path: string }; Returns: undefined }
       pick_reading_credit_share: {
         Args: { p_user: string }
         Returns: Record<string, unknown>
@@ -4749,10 +4785,12 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      wake_photo_sweep: { Args: never; Returns: undefined }
       wake_push_dispatch: { Args: never; Returns: undefined }
       wake_push_dispatch_when_due: { Args: never; Returns: boolean }
       wake_reading_recovery: { Args: never; Returns: undefined }
       watch_cron: { Args: never; Returns: number }
+      watch_photo_sweep: { Args: { p_now?: string }; Returns: number }
       watch_reading_credit_grants: { Args: never; Returns: number }
       write_person_input: {
         Args: {

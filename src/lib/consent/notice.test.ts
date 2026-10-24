@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DISCOVERY_DISCLOSURE } from '../discovery';
 import {
   MATCH_PILLARS_DISCLOSURE,
+  NOTICE_ACK_FLOOR,
   NOTICE_VERSION,
   OPTIONAL_CONSENT_NOTE,
   OPTIONAL_CONSENTS,
@@ -226,7 +227,37 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v8');
+  expect(NOTICE_VERSION).toBe('notice-v9');
+});
+
+/**
+ * v9 — 사진 파일을 AWS S3 서울에 맡긴다(G-120, ADR 0202 · 0203).
+ *
+ * 사진 파일도 기존 「탈퇴 신청 후 3일 이내」 범위에 든다 — 기한을 늦추거나 예외로 빼지 않는다. 기준은 `notice-v8` 그대로라 확인한
+ * 사람은 다시 안 본다(운영자 결정 2026-10-23).
+ */
+describe('사진 저장소', () => {
+  const sections = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  );
+  const lines = (title: string) => sections.find((section) => section.title === title)?.lines.join(' ') ?? '';
+
+  it('사진 파일의 보관·제공·삭제를 맡는 곳을 위탁 절에 적는다', () => {
+    expect(lines('맡겨서 처리하는 곳')).toContain('프로필 사진 파일의 보관·제공·삭제는 Amazon Web Services 에 맡기고 서울 리전에서 처리합니다');
+  });
+
+  it('사진 파일도 탈퇴 신청 후 3일 이내 범위에 넣는다', () => {
+    const purge = lines('파기 절차와 방법');
+    expect(purge).toContain('3일 이내에 같은 방법으로 자동으로 지웁니다. 저장소에 보관한 프로필 사진 파일도 이 기간 안에 지웁니다');
+    expect(purge).toContain('이전 판을 남기지 않아 복구할 수 없습니다');
+    expect(purge).not.toContain('뒤이어');
+    expect(purge).not.toContain('반드시');
+  });
+
+  it('재확인을 시키지 않는다 — 기준은 v8 그대로다', () => {
+    expect(NOTICE_ACK_FLOOR).toBe('notice-v8');
+  });
 });
 
 /**

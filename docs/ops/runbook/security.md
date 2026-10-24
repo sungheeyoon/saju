@@ -115,7 +115,7 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 원칙 1년, 정보주체 5만 명 이상 · 고유식별정보 · 민감정보 처리 등은 2년. CI 가 고유식별정보인지와 2년 여부는 G-25 변호사
 확인 목록이다). **1년은 법의 하한이다**(고시 제8조① — 개정 ①② 는 2026-10-31 시행, 부칙 제2025-9호. 근거와 확인 날짜는 ADR 0191 「근거」).
 대상 요약 줄의 `reported=<id> reporter=<id>` 는 그 읽기가 처리한 두 정보주체다(고시 제2조 제3호의 「처리한 정보주체 정보」) — 신고의
-증거가 아니라서 떠난 사람의 신고 기록(6개월, ADR 0098)보다 오래 남는다. 2026 고시 본문 · 시행일은 다시 확인할 거리이고 법 제21조와의
+증거가 아니라서 떠난 사람의 신고 기록(6개월, ADR 0098)보다 오래 남는다. 2026 고시 본문 · 시행일은 2026-10-23 에 다시 열었다(`docs/legal/privacy-grounds.md` 「운영자 접속기록」 — 기록 표에 접속지 정보 칸은 없다). 법 제21조와의
 관계를 포함해 법적 결론은 내리지 않는다(G-111 R-5 — 운영 판단). **정보주체가 5만 명 이상이면 2년으로 옮긴다** — 반출 버킷의
 기본 보존을 730일로, 이미 있는 객체의 보존일을 늘린다(아래 「반출」 4). 회원 수는 `docs/ops/runbook/jobs.md` 「제품 지표」의 첫 질의가 낸다.
 2026-09-24 에 자리마다 잰 값이다. 플랜은 CLI · API 로 읽었다 — Supabase 조직 `free`, Vercel 팀
@@ -203,7 +203,7 @@ bash scripts/aws-wizard.sh
 
 `scripts/aws-wizard.sh` 는 아래 「사람이 켜는 걸음」 1 ~ 9 를 **같은 차례로** 밟는다 — 콘솔에서만 되는 것(계정 · 루트 MFA ·
 관리자 사용자 · Vercel OIDC 켜기 · Redeploy)은 주소를 열고 무엇을 누를지 말한 뒤 기다리고, 나머지는 AWS CLI · Vercel CLI 로
-한다. 준비물은 AWS CLI 2.32 이상(`aws login`)과 로그인된 Vercel CLI 다.
+한다. 준비물은 AWS CLI 2.32 이상(`aws login`)과 로그인된 Vercel CLI, 그리고 bash 4.4 이상이다 — macOS 의 `/bin/bash` 는 3.2 라 `brew install bash` 를 먼저 한다(옛 bash 면 마법사가 그 말을 하고 멈춘다).
 
 | 마법사 Stage | 이 절의 걸음 | 무엇을 |
 | --- | --- | --- |
@@ -216,14 +216,14 @@ bash scripts/aws-wizard.sh
 | 7 OIDC 제공자 | 5-2 | `oidc.vercel.com/<팀>` · audience `https://vercel.com/<팀>` |
 | 8 반출 역할 | 5-3 · 5-4 | `saju-audit-export` — 신뢰는 이 프로젝트의 `environment:production` 만, 권한은 `s3:PutObject` 를 `operator-access/*` 에 하나(인라인 `saju-audit-export-put`) |
 | 9 검증 역할 | 9 | `saju-audit-verify` — `saju-admin` 사용자만 맡는다(`sts:AssumeRole`), `s3:GetObject`(`operator-access/*`) · `s3:ListBucket`(prefix 그것만). 이 기계의 `~/.aws/config` 에 프로필 `saju-audit-verify`(`source_profile = saju-admin`)를 맞춘다 |
-| 10 Vercel 변수 | 6 | **기본 보존(Governance · Compliance)이 없으면 멈춘다** — 기본 보존은 올리는 순간에만 붙어, 보존 없이 켜면 그동안의 객체가 영영 보존 없이 남는다. Production 에 셋(`--no-sensitive` — 비밀이 아니다) — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ROLE_ARN`(코드의 `configOf` 가 읽는 이름). 다른 값이 있으면 묻고, 접근 키 두 변수가 남아 있으면 오설정이라 알리기만 한다(지우지 않는다) |
+| 10 Vercel 변수 | 6 | **기본 보존(Governance · Compliance)이 없으면 멈춘다** — 기본 보존은 올리는 순간에만 붙어, 보존 없이 켜면 그동안의 객체가 영영 보존 없이 남는다. Production 에 셋(`--no-sensitive` — 비밀이 아니다) — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ROLE_ARN`(코드의 `configOf` 가 읽는 이름). **상태 파일이 아니라 Production 의 실제 값과 견준다** — `vercel env pull` 을 저장소 밖 임시 폴더(권한 700)에 받아 세 이름만 뽑고 곧 지운다(다른 변수 · 비밀의 값은 화면 · 로그 · 상태 파일에 안 남는다). 같으면 건너뛰고, 다르면 덮어쓸지 묻고, 못 읽으면(실패 · Sensitive 라 값이 빈다) 「확인 못 함」으로 남긴다 — 같다고 말하지 않고 12 · 13 으로 가지 않는다. 접근 키 두 변수가 남아 있으면 오설정이라 알리기만 한다(지우지 않는다) |
 | 11 Redeploy | 6 | 콘솔 — 최신 Production 을 Redeploy, Ready |
-| 12 첫 반출 · 검증 | 3 · 7 · 9 | `vercel crons run /api/cron/audit-export` 로 한 번 돌리고 → 상태 질의 → 객체 수(검증 프로필) → `npm run audit:verify` → 시험 객체 하나를 `wizard-probe/` 에 올려 버전째 지우기가 **`AccessDenied` 로 막히는지**. 감사 객체(`operator-access/`)는 지워 보지 않는다 — 보존이 끝난 옛 객체면 정말 지워진다. 다른 오류면 막혔다고 보지 않고 멈춘다 |
-| 13 Compliance 400일 | 4 | **Governance 를 걸고 24시간 뒤에 12 가 초록일 때만**(날짜 글자가 아니라 시각으로 — 그 사이에 매일의 정기 반출이 한 번 돈다), 버킷 이름을 그대로 쳐야 옮긴다 |
+| 12 첫 반출 · 검증 | 3 · 7 · 9 | `vercel crons run /api/cron/audit-export` 로 한 번 돌리고 → 상태 질의 → 객체 수(검증 프로필) → `npm run audit:verify` → 시험 객체 하나를 `wizard-probe/` 에 올려 버전째 지우기가 **`AccessDenied` 로 막히는지**. 감사 객체(`operator-access/`)는 지워 보지 않는다 — 보존이 끝난 옛 객체면 정말 지워진다. 다른 오류면 막혔다고 보지 않고 멈춘다. **검증 기록은 그 검증이 본 설정의 지문과 함께 적는다**(버킷 · 리전 · 두 역할 ARN · 신뢰 · 권한 정책 · Vercel 팀 · 프로젝트, 그리고 그때의 보존 모드 · 일수) — 지문이 지금과 다르거나 Redeploy 가 남았거나 10 의 세 값이 확인되지 않았으면 지난 기록을 무효로 하고 다시 잰다. 이미 Compliance 여도 400일보다 짧으면 건너뛰지 않는다 |
+| 13 Compliance 400일 | 4 | **Governance 를 걸고 24시간 뒤에 지금 설정 · 지금 보존으로 12 가 초록일 때만**(날짜 글자가 아니라 시각으로 — 그 사이에 매일의 정기 반출이 한 번 돈다), 버킷 이름을 그대로 쳐야 옮긴다. 이미 Compliance 인데 400일보다 짧으면 끝난 것으로 치지 않고 「남은 것」에 넣는다 — 마법사는 늘리지 않는다(아래 「마법사가 멈췄을 때」). **전환은 그 뒤 올라오는 객체의 기본값이다** — Governance 시험 기간의 객체는 Governance 1일 그대로다(하루 뒤 풀린다) |
 
 - **두 번 돌려도 하나다.** 걸음마다 AWS 의 지금 상태를 읽고 있으면 다시 쓴다 — 버킷(상태 파일을 잃었으면 `saju-audit-` 로
-  시작하는 버킷을 찾는다) · 제공자(ARN) · 역할(이름) · 권한 정책(이름이 같으면 덮어쓴다) · Vercel 변수(마법사가 넣은 값과 같으면
-  건너뛴다). 그래서 **첫날 1 ~ 12 를 돌리고, 24시간 뒤 같은 줄을 다시 치면 12 를 다시 재고 13 으로 간다** — runbook 3 의 「하루 돌려」다
+  시작하는 버킷을 찾는다) · 제공자(ARN) · 역할(이름) · 권한 정책(이름이 같으면 덮어쓴다) · Vercel 변수(Production 의 실제 값을 읽어 마법사
+  값과 같으면 건너뛴다). 그래서 **첫날 1 ~ 12 를 돌리고, 24시간 뒤 같은 줄을 다시 치면 12 를 다시 재고 13 으로 간다** — runbook 3 의 「하루 돌려」다
 - **멈추면 다시 친다.** 오류 · Ctrl-C · 「남은 것」이 있으면 같은 줄을 다시 치면 된 걸음은 건너뛴다. 버킷 이름은 만들기 **전에**
   상태에 적어, 만든 직후 멈춰도 다음 실행이 같은 버킷을 쓴다. Redeploy 전에 멈추면 다음 실행이 Redeploy 를 다시 묻는다
 - **값은 저장소 밖** — `~/.config/saju/aws-wizard.env`(버킷 이름 · 역할 ARN · 계정 번호 · 걸음의 날짜). 비밀은 없다 — 마법사는
@@ -237,10 +237,14 @@ bash scripts/aws-wizard.sh
 
 **성공 조건 — 다 되면 이렇다**
 
-- 마법사 끝에 「반출이 Compliance 400일로 돈다」가 서고 「남은 것」이 없다
+- 마법사 끝에 「반출이 Compliance 400일로 돈다」가 서고 「남은 것」이 없다. 이 줄은 **다시 읽은 기본 보존이 Compliance 400일
+  이상이고, Vercel 세 값을 Production 에서 읽어 같다고 확인했고, 지금 설정으로 한 검증이 유효할 때만** 선다 — Compliance 가
+  400일보다 짧거나 값을 확인 못 했으면 「남은 것」이 선다
+- **400일은 전환 뒤 올라오는 객체의 기본값이다** — Governance 시험 기간(12 의 첫 반출 · 시험 객체)의 객체는 Governance 1일
+  그대로라 하루 뒤 보존이 풀린다. 그 객체도 지켜야 하면 아래 4 대로 객체마다 올린다
 - `select * from audit.export_status()`(위 「상태를 본다」)의 `last_outcome` 이 `succeeded`, `consecutive_failures` 0, `pending_rows` 가 작다
 - `audit.operator_access_export` 에 범위가 적혀 있다 — #304 의 7 이 「끝」으로 보는 것이다
-- 버킷의 기본 보존이 `COMPLIANCE 400`(`aws --profile saju-admin s3api get-object-lock-configuration --bucket <버킷>`)
+- 버킷의 기본 보존이 `COMPLIANCE 400`(또는 그 이상 — `aws --profile saju-admin s3api get-object-lock-configuration --bucket <버킷>`)
 - 이튿날 · 달마다 `npm run audit:verify`(아래 9)가 초록
 
 **마법사가 멈췄을 때**
@@ -261,7 +265,10 @@ bash scripts/aws-wizard.sh
 | 「지워졌다 — 보존이 안 걸렸다」 | 새로 올린 시험 객체에 기본 보존이 안 붙었다(지워진 것은 시험 객체뿐이다) | `aws --profile saju-admin s3api get-object-lock-configuration --bucket <버킷>` 으로 Governance 1일인지 본다. 그동안 올라간 감사 객체도 보존이 없을 수 있다 — `get-object-retention` 으로 보고 객체마다 `put-object-retention` 으로 건 뒤 다시 친다 |
 | 「지우기 시험이 보존이 아닌 까닭으로 실패했다」 | 네트워크 · 자격 만료 · 없는 버전 — `AccessDenied` 가 아니다 | 아래 찍힌 오류대로 고치고(대개 `aws login --profile saju-admin`) 다시 친다 |
 | 13 이 「아직이다」 | Governance 를 건 지 24시간이 안 됐거나 12 가 초록이 아니다 | 24시간 뒤 다시 친다 — runbook 3 → 4 의 차례다 |
-| 10 에서 `vercel env add` 가 물음 · 거절로 선다 | 팀 정책이 Production 변수를 Sensitive 로 강제한다(확인 전) | 대시보드에서 셋을 손으로 넣고(Sensitive 여도 된다 — 값은 `~/.config/saju/aws-wizard.env` 의 같은 이름 줄) Production 을 Redeploy 한 뒤 다시 친다 — 덮어쓸지 물으면 아니라고 답한다 |
+| 「지난 검증은 지금 설정과 다르다」 | 지난 검증 뒤 버킷 · 역할 · 정책 · Vercel 팀 · 프로젝트가 바뀌었거나, Redeploy · 10 의 세 값 확인이 남았다 | 할 것 없다 — 12 가 다시 잰다. 그 다시 잰 검증이 Governance 를 건 지 24시간 뒤여야 13 으로 간다 |
+| 「Production 의 … 값을 확인 못 함」(10) | `vercel env pull` 이 실패했거나 그 변수가 Sensitive 라 값이 비어 온다 | 실패면 `vercel whoami` · 팀 · 프로젝트 이름을 보고 다시 친다. Sensitive 면 마법사는 값을 못 보니 이 줄이 늘 남고 13 으로 가지 않는다 — 대시보드에서 그 변수를 Sensitive 가 아니게(`--no-sensitive`) 상태 파일의 같은 이름 줄 값으로 다시 넣고 Redeploy 한 뒤 다시 친다. 팀 정책이 Sensitive 를 강제하면 아래 「`vercel env add` 가 물음 · 거절로 선다」 줄과 같은 처지다 — 마법사로는 끝낼 수 없고, 값을 눈으로 견준 뒤 12 · 13 을 위 「사람이 켜는 걸음」 3 · 4 대로 손으로 밟는다 |
+| 「Compliance N일 — 400일보다 짧다」(13) | 마법사 밖에서 기본 보존을 짧은 Compliance 로 걸었다 | 마법사는 늘리지 않는다 — 되돌릴 수 없는 걸음이라 사람이 친다. 상태 파일의 `AUDIT_EXPORT_BUCKET=` 값을 **눈으로 맞춰 버킷 이름을 그대로 쳐서** `aws --profile saju-admin s3api put-object-lock-configuration --bucket <버킷> --object-lock-configuration '{"ObjectLockEnabled":"Enabled","Rule":{"DefaultRetention":{"Mode":"COMPLIANCE","Days":400}}}'` 를 부르고 다시 친다. 기본값은 그 뒤 객체에만 붙는다 — 이미 짧은 Compliance 로 올라간 객체는 줄일 수 없고 늘리기만 된다(아래 4 의 `PutObjectRetention`) |
+| 10 에서 `vercel env add` 가 물음 · 거절로 선다 | 팀 정책이 Production 변수를 Sensitive 로 강제한다(확인 전) | 대시보드에서 셋을 손으로 넣고(Sensitive 여도 된다 — 값은 `~/.config/saju/aws-wizard.env` 의 같은 이름 줄) Production 을 Redeploy 한 뒤 다시 친다 — Sensitive 값은 마법사가 못 읽어 「확인 못 함」이 남는다(위 줄) |
 | Compliance 를 잘못 걸었다 | — | **되돌릴 수 없다**(루트도). 그래서 13 은 이름을 쳐야 간다. 400일 동안 객체가 쌓이는 비용만 남는다 |
 
 **사람이 켜는 걸음 — AWS (한 번)** — 마법사가 차례대로 밟는 원본이다

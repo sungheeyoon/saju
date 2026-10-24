@@ -3186,23 +3186,23 @@ test.describe('가입 관문', () => {
     await expect.poll(() => versionAt(first)).toBe(a);
 
     /*
-      대표를 지우면 둘째가 대표가 된다 — 칸에서는 곧바로 빠지고, 서버에서는 되돌릴 시간이 지난 뒤에 지운다(2026-10-11).
-      실행 취소는 아무 요청 없이 그 장을 제자리에 다시 세운다.
+      지우기는 먼저 묻는다(ADR 0205) — 「취소」면 아무것도 안 지운다. 「삭제」면 대표가 지워지고 둘째가 대표가 된다.
     */
+    const asking = page.getByRole('dialog', { name: '사진을 삭제할까요?' });
     await lead.getByRole('button', { name: '사진 지우기' }).click();
-    const only = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
-    await expect(only).toBeVisible();
-    await expect.poll(() => versionAt(only)).toBe(b);
-    await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
-    await page.getByRole('button', { name: '실행 취소' }).click();
-    await expect(first).toBeVisible();
+    await expect(asking).toBeVisible();
+    await asking.getByRole('button', { name: '취소' }).click();
+    await expect(asking).toBeHidden();
     await expect.poll(() => versionAt(first)).toBe(a);
     await expect.poll(() => versionAt(second)).toBe(b);
 
     const removed = saved();
     await lead.getByRole('button', { name: '사진 지우기' }).click();
+    await asking.getByRole('button', { name: /^삭제$/ }).click();
+    const only = page.getByLabel('사진 1 / 1, 길게 눌러 옮기기', { exact: true });
     await expect(only).toBeVisible();
     await expect.poll(() => versionAt(only)).toBe(b);
+    await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
     await removed;
 
     /* 그림은 자리 주소로 열린다 — 1번과 옛 주소가 같은 장이다 */
@@ -3279,11 +3279,12 @@ test.describe('가입 관문', () => {
     await page.reload();
     await expect.poll(() => versionAt(1)).toBe(replaced);
 
-    /* 메뉴의 「삭제」는 × 와 같은 일이다 — 실행 취소 띠가 선다 */
+    /* 메뉴의 「삭제」는 × 와 같은 일이다 — 묻는 창이 서고, 「삭제」를 누르면 지운다 */
     await hydrated(slot(2));
     await slot(2).click();
     /* 글자가 채팅의 문구 상수(`SEND_DROP_LABEL`)와 같아 따옴표로 안 적는다 — 그 상수는 다른 화면의 말이다(G-90 잠금) */
     await page.locator('[data-photo-slot="2"]').getByRole('button', { name: /^삭제$/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /^삭제$/ }).click();
     await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
     await expect(page.getByLabel('사진 5 / 5, 길게 눌러 옮기기', { exact: true })).toBeVisible();
   });
@@ -3346,11 +3347,13 @@ test.describe('가입 관문', () => {
     await expect(slot(other, 3, 3)).toBeVisible();
 
     /*
-      첫 탭이 둘째 장을 지운다 — 셋째 장이 둘째 자리로 당겨 앉는다. 서버에는 되돌릴 시간이 지난 뒤에 가므로 그 요청이
-      끝나기를 기다린다
+      첫 탭이 둘째 장을 지운다 — 셋째 장이 둘째 자리로 당겨 앉는다. 묻는 창의 「삭제」를 누르면 서버에 가므로(ADR 0205) 그
+      요청이 끝나기를 기다린다
     */
-    const removeSecond = (tab: typeof page) =>
-      tab.locator('[data-photo-slot="2"]').getByRole('button', { name: '사진 지우기' }).click();
+    const removeSecond = async (tab: typeof page) => {
+      await tab.locator('[data-photo-slot="2"]').getByRole('button', { name: '사진 지우기' }).click();
+      await tab.getByRole('dialog').getByRole('button', { name: /^삭제$/ }).click();
+    };
     const firstGone = page.waitForResponse((response) => response.request().method() === 'POST');
     await removeSecond(page);
     await expect(slot(page, 2, 2)).toBeVisible();
