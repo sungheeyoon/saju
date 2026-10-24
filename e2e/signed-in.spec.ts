@@ -3220,7 +3220,8 @@ test.describe('가입 관문', () => {
   });
 
   /**
-   * **사진을 누르면 메뉴 — 「사진 변경」은 그 칸에서 바꾸고, 「대표로 설정」은 1번으로 옮긴다**(`20261202090000`, 2026-10-11).
+   * **사진을 누르면 크게 보고, 「⋯」(사진 메뉴)가 판을 연다 — 「사진 변경」은 그 칸에서 바꾸고, 「대표로 설정」은 1번으로 옮긴다**
+   * (`20261202090000`, 2026-10-11 · 크게 보기 2026-10-24).
    *
    * 여섯 칸이 다 차도 바꿀 수 있다 — 지우고 올리는 것이 아니라 그 자리의 바이트만 갈아 끼운다. 바뀐 칸만 판본이 바뀌고
    * 다른 칸은 그대로다. 첫 칸에는 「대표」 딱지가 선다.
@@ -3247,17 +3248,31 @@ test.describe('가입 관문', () => {
     await expect(lead.getByText('대표', { exact: true })).toBeVisible();
     await expect(page.getByText('대표', { exact: true })).toHaveCount(1);
 
-    /* 대표 칸의 메뉴에는 「대표로 설정」이 없다 */
+    /* 사진을 누르면 크게 보기 — 「1 / 6」. 그 「⋯」가 판을 열고, 대표 칸의 판에는 「대표로 설정」이 없다 */
+    const viewer = page.getByRole('dialog', { name: '사진 1 / 6' });
+    const openMenu = (n: number) => page.getByRole('dialog', { name: `사진 ${n} / 6` }).getByRole('button', { name: '사진 메뉴' }).click();
     await hydrated(slot(1));
     await slot(1).click();
+    await expect(viewer).toBeVisible();
+    /* 좌우로 넘긴다 — → 키로 둘째 장, ← 로 돌아온다 */
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('dialog', { name: '사진 2 / 6' })).toBeVisible();
+    await page.keyboard.press('ArrowLeft');
+    await expect(viewer).toBeVisible();
+    await openMenu(1);
     await expect(page.getByRole('button', { name: '사진 변경' })).toBeVisible();
     await expect(page.getByRole('button', { name: '대표로 설정' })).toHaveCount(0);
+    /* Esc 한 번은 판, 한 번 더는 보기 — 초점은 연 사진 칸으로 */
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: '사진 변경' })).toHaveCount(0);
+    await expect(viewer).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(viewer).toBeHidden();
     await expect(slot(1)).toBeFocused();
 
     /* 여섯째 칸을 바꾼다 — 그 칸만 판본이 바뀐다 */
     await slot(6).click();
+    await openMenu(6);
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: '사진 변경' }).click();
     await (await chooser).setFiles('e2e/fixtures/jiwoo.webp');
@@ -3275,6 +3290,7 @@ test.describe('가입 관문', () => {
     /* 「대표로 설정」 — 바꾼 장이 1번에 서고 나머지가 한 칸씩 밀린다 */
     await hydrated(slot(6));
     await slot(6).click();
+    await openMenu(6);
     await page.getByRole('button', { name: '대표로 설정' }).click();
     await expect.poll(() => versionAt(1)).toBe(replaced);
     await expect.poll(() => versionAt(2)).toBe(before[0]);
@@ -3284,9 +3300,10 @@ test.describe('가입 관문', () => {
     /* 메뉴의 「삭제」는 × 와 같은 일이다 — 묻는 창이 서고, 「삭제」를 누르면 지운다 */
     await hydrated(slot(2));
     await slot(2).click();
+    await openMenu(2);
     /* 글자가 채팅의 문구 상수(`SEND_DROP_LABEL`)와 같아 따옴표로 안 적는다 — 그 상수는 다른 화면의 말이다(G-90 잠금) */
-    await page.locator('[data-photo-slot="2"]').getByRole('button', { name: /^삭제$/ }).click();
-    await page.getByRole('dialog').getByRole('button', { name: /^삭제$/ }).click();
+    await page.getByRole('dialog', { name: '사진 메뉴' }).getByRole('button', { name: /^삭제$/ }).click();
+    await page.getByRole('dialog', { name: '사진을 삭제할까요?' }).getByRole('button', { name: /^삭제$/ }).click();
     await expect(page.getByRole('status').filter({ hasText: '사진을 지웠어요' })).toBeVisible();
     await expect(page.getByLabel('사진 5 / 5, 길게 눌러 옮기기', { exact: true })).toBeVisible();
   });

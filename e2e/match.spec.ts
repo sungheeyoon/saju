@@ -1280,6 +1280,8 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
     /* 메뉴의 「위치 조정」 — 큰 틀을 끌어 다시 맞춘다. 3:4 틀에 4:5 사진이라 가로로 넘친다 */
     await hydrated(slot);
     await slot.click();
+    /* 사진을 누르면 크게 보기 — 그 「⋯」(사진 메뉴)가 판을 연다 */
+    await page.getByRole('dialog', { name: '사진 1 / 1' }).getByRole('button', { name: '사진 메뉴' }).click();
     await page.getByRole('button', { name: '위치 조정' }).click();
     await expect(frame).toBeVisible();
     /* 틀이 사진의 크기를 잰 뒤에 끈다 — 그 전의 끌기는 넘친 길이를 몰라 자리를 안 옮긴다 */

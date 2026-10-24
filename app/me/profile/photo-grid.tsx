@@ -20,7 +20,9 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { movePhoto } from './actions';
 import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
-import { PhotoMenu, type MenuChoice } from './photo-menu';
+import type { ActionChoice } from '../../ui/action-sheet';
+import { PhotoMenu } from './photo-menu';
+import { PhotoViewer } from './photo-viewer';
 import { positionOf } from './photo-positions';
 import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_NOTE, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
 import type { MyPhoto } from './photos';
@@ -44,9 +46,10 @@ const PHOTO_REORDER_HINT = '사진을 길게 눌러 순서를 바꿀 수 있어�
  *
  * - 사진 칸을 **길게 누르면 들리고**, 끌어 다른 사진 칸에 두면 그 자리로 옮겨 앉는다 — 사이의 장이
  *   한 칸씩 밀린다(`movedPhotos` · DB 의 `move_my_photo` 가 같은 뜻). 키보드는 ← → 로 한 칸씩.
- * - 사진 칸을 **누르면 아래에서 판이 올라온다**(`ActionSheet`) — 「대표로 설정」(대표가 아닐 때) · 「사진 변경」 · 「위치 조정」,
- *   선 하나 뒤에 붉은 「삭제」(카카오톡 「프로필 사진 설정」 판과 같은 꼴, 2026-10-24). 누름과 길게 누름을 가른다 — 들린 뒤에
- *   손을 떼면 판이 안 열린다.
+ * - 사진 칸을 **누르면 그 장을 크게 본다**(`PhotoViewer` — 폰은 전체 화면, 넓은 화면은 가운데 큰 판, 운영자 2026-10-24). 머리는 왼쪽
+ *   위 × · 가운데 「2 / 3」(첫 장이면 「대표」) · 오른쪽 위 「⋯」이고, 좌우로 쓸어넘기면 다른 장이다. 「⋯」가 아래 판(`ActionSheet`)을
+ *   연다 — 「대표로 설정」(대표가 아닐 때) · 「사진 변경」 · 「위치 조정」, 선 하나 뒤에 붉은 「삭제」. 누름과 길게 누름을 가른다 —
+ *   들린 뒤에 손을 떼면 보기가 안 열린다.
  * - 사진 귀퉁이의 작은 × 는 메뉴의 「삭제」와 같은 일이다 — 둘 다 확인 창을 먼저 연다(ADR 0205). 사진 위에 얹는 단추 꼴
  *   (`ICON_BUTTON_ON_PHOTO_FACE` 와 같은 반투명 검정, 크기만 작게)이라 먹색 큰 원처럼 사진보다 먼저 눈에 띄지 않는다.
  * - 빈 칸의 + 가 올린다. 어느 빈 칸을 눌러도 **맨 뒤에** 앉는다 — 자리는 빈틈없이 1..k 다.
@@ -223,6 +226,16 @@ export function PhotoGrid({
     });
   };
 
+  /** 크게 보는 장의 칸 번호 — 사진 칸을 누르면 선다 */
+  const [viewing, setViewing] = useState<number | null>(null);
+  /** 크게 보기의 「⋯」 판 — 자주 하는 일이 위(대표로 올리기 · 바꾸기 · 자리 맞추기), 지우기는 선 뒤 맨 아래 */
+  const choicesFor = (photo: MyPhoto, position: number): ActionChoice[] => [
+    ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
+    ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
+    { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
+    { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
+  ];
+
   const { lift, gridRef, onPointerDown, onPointerMove, onPointerUp, endPress, takeSwallowedClick } = usePhotoDrag({
     busy,
     total,
@@ -238,18 +251,10 @@ export function PhotoGrid({
     const under = replaced?.url ?? backdrop.get(photo.version)?.url;
     const underFocus = replaced?.focus ?? backdrop.get(photo.version)?.focus ?? FOCUS_CENTER;
     const focus = focusOfPhoto(photo);
-    /* 자주 하는 일이 위 — 대표로 올리기, 바꾸기, 자리 맞추기. 지우기는 선 뒤 맨 아래 */
-    const items: MenuChoice[] = [
-      ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
-      ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
-      { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
-      { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
-    ];
     return (
       <div data-photo-slot={position} className="relative h-full w-full">
         <PhotoMenu
-          choices={items}
-          label={`사진 ${position} / ${total}`}
+          onOpen={() => setViewing(position)}
           opener={{
             ref: (element) => {
               slotRefs.current[position - 1] = element;
@@ -262,7 +267,7 @@ export function PhotoGrid({
             onPointerCancel: endPress,
             onContextMenu: (event) => event.preventDefault(),
             onClick: (event) => {
-              /* 들었다 놓은 누름 · 처리하는 동안의 누름은 판을 안 연다 */
+              /* 들었다 놓은 누름 · 처리하는 동안의 누름은 크게 보기를 안 연다 */
               if (takeSwallowedClick() || busy) event.preventDefault();
             },
             onKeyDown: (event) => {
@@ -469,6 +474,14 @@ export function PhotoGrid({
       </DoneNote>
 
       <p className="text-small leading-5 text-cream-ink">{PHOTO_NOTE}</p>
+      <PhotoViewer
+        userId={userId}
+        photos={shown}
+        at={viewing}
+        onAt={setViewing}
+        onClose={() => setViewing(null)}
+        choicesFor={choicesFor}
+      />
       <PhotoFramer {...framer} />
       {/*
         지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다. 그림 없이 제목 · 한 줄 ·
