@@ -192,7 +192,7 @@ describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
    * **관문 밖의 주소는 로그인을 안 묻는다** — 반대 방향의 표본. 현관(`/`) · 공유 화면 · 크론 · webhook 이 `signedInUser` 에
    * 닿기 시작하면 위 시험이 붉어지지만, 이 표본은 matcher 를 넓혀 그 붉음을 지우는 길을 막는다 — 넓히면 여기가 붉다.
    */
-  it.each(['/', '/saju', '/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
+  it.each(['/', '/saju', '/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook', '/api/health'])(
     '%s 를 그리는 요청은 관문 밖이다',
     (route) => {
       expect(gateOnRender(route)).toBe(false);
@@ -228,7 +228,7 @@ describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
   });
 
   /** 나머지 관문 밖 주소는 액션도 안 지난다 */
-  it.each(['/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
+  it.each(['/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook', '/api/health'])(
     '%s 는 어떤 요청도 관문을 안 지난다',
     (route) => {
       expect(gateOnSome(route)).toBe(false);

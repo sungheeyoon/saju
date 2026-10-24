@@ -178,6 +178,23 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
   });
 
   /**
+   * 자격을 묻지 않는 `/api` 문 — 하나뿐이고 까닭이 적힌다. 바깥 감시의 상태 문(G-118, ADR 0206)은 운영자가 자격 없이
+   * 열기로 정했고(2026-10-24), 일어나는 일은 로그인 없는 역할이 이미 부르는 공개 문 하나의 읽기와 한 낱말의 답뿐이다(`app/api/health/route.ts`).
+   */
+  const OPEN_ROUTES: Readonly<Record<string, string>> = {
+    'app/api/health/route.ts': '바깥 감시의 상태 문 — anon 의 공개 문 하나만 읽고 `ok` · `unavailable` 만 답한다',
+  };
+
+  it('자격을 묻지 않는 문은 상태 문 하나이고, 그것은 열쇠 · 쓰기에 닿지 않는다', () => {
+    for (const path of Object.keys(OPEN_ROUTES)) {
+      const text = files.find((file) => file.path === path)?.text;
+      expect(text, `${path} 를 못 찾았다`).toBeDefined();
+      expect(text).not.toMatch(/keyedClient|SUPABASE_SECRET_KEY|cookies\(|export async function (POST|PUT|PATCH|DELETE)/);
+      expect([...(text ?? '').matchAll(/\.rpc\('([^']+)'/g)].map((match) => match[1])).toEqual(['current_beta_schedule']);
+    }
+  });
+
+  /**
    * **관문 밖의 주소는 스스로 자격을 물어야 한다.**
    *
    * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
@@ -187,7 +204,7 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * 배달 문은 제 비밀(`PUSH_DISPATCH_SECRET`)로 `bearerAuthorized` 를 부른다(ADR 0156).
    */
   it('관문 밖 주소는 저마다 자격을 묻는다', () => {
-    const routes = files.filter(({ path }) => path.startsWith('app/api/') && path.endsWith('route.ts'));
+    const routes = files.filter(({ path }) => path.startsWith('app/api/') && path.endsWith('route.ts') && !(path in OPEN_ROUTES));
 
     expect(routes.length, 'api 라우트를 못 찾았다').toBeGreaterThan(0);
 
