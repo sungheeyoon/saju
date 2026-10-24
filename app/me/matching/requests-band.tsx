@@ -27,7 +27,7 @@ export function RequestsBand({ count, names, children }: { count: number; names:
         type="button"
         aria-haspopup="dialog"
         onClick={() => openSheet(sheet.current)}
-        className="flex min-h-12 w-full shrink-0 items-center gap-3 rounded-row bg-accent px-4 py-2 text-left text-on-accent active:scale-[0.99]"
+        className="flex min-h-12 w-full shrink-0 items-center gap-3 rounded-card bg-accent px-4 py-2 text-left text-on-accent active:scale-[0.99]"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-body font-bold leading-5">받은 요청 {count}</span>

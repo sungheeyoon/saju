@@ -114,7 +114,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
+      className={`flex min-h-11 w-full items-center gap-2.5 rounded-cell px-3 text-left text-body font-semibold hover:bg-surface-sunken ${
         tone === 'danger' ? 'text-danger' : 'text-foreground'
       }`}
     >

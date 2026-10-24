@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { filesUnder, lengthPx, scaleTokens } from './source-files';
+import { BADGE, TYPE_BODY, TYPE_CAPTION, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from './surfaces';
 
 /**
  * **글자 크기 · 모서리는 토큰으로 부른다**(ADR 0109 추기, 2026-10-12). `app/globals.css` 의 `@theme inline` 에 단이 있는
@@ -16,12 +17,11 @@ import { filesUnder, lengthPx, scaleTokens } from './source-files';
 
 /**
  * **토큰 밖 허용 목록** — 가까운 단과 2px 넘게 떨어지거나(제목 2.25rem), 장식 · 숫자 강조 · 큰 디스플레이 값, 둘레 글자를
- * 따라 크는 `em`, 로고, 등이 각진 책 표지의 네 귀 따로 모서리다. 파일마다 몇 번 적혔는지까지 잰다 — 새 자리는 토큰을 쓰고,
+ * 따라 크는 `em`, 로고다. 책 표지의 네 귀 따로 모서리 · 첫 화면 탭 묶음의 0.9rem 은 모서리 세 단(2026-10-24)으로 걷었다. 파일마다 몇 번 적혔는지까지 잰다 — 새 자리는 토큰을 쓰고,
  * 정말 단 밖이어야 하면 여기에 까닭과 함께 더한다. 지운 자리는 여기서도 지운다.
  */
 const OUTSIDE_SCALE: { at: string; value: string; n?: number; why: string }[] = [
-  { at: 'app/ui/surfaces.ts', value: '2.25rem', why: 'TYPE_DISPLAY 의 넓은 폭 — 2rem · 2.5rem 둘 다 4px 떨어진다' },
-  { at: 'app/me/matching/today-card.tsx', value: '2.25rem', why: '오늘의 인연 카드의 별명 — 위와 같은 큰 제목' },
+  { at: 'app/me/matching/today-card.tsx', value: '2.25rem', why: '오늘의 인연 카드의 별명 — 사진 위의 큰 이름' },
   { at: 'app/me/matching/today-card.tsx', value: '2.75rem', why: '카드의 점수 숫자 강조' },
   { at: 'app/me/matching/today-card.tsx', value: 'min(9rem,18dvh)', why: '사진 없는 카드의 첫 글자 — 화면 높이를 따른다' },
   { at: 'app/me/matching/today-card.tsx', value: '9rem', why: '같은 첫 글자의 넓은 폭' },
@@ -32,13 +32,6 @@ const OUTSIDE_SCALE: { at: string; value: string; n?: number; why: string }[] = 
   { at: 'app/me/reading/reading-result.tsx', value: '5rem', why: '비유 앞 큰 따옴표(장식)' },
   { at: 'app/me/reading/markdown.tsx', value: '0.9em', why: '풀이 글 안의 코드 — 둘레 글자를 따른다' },
   { at: 'app/ui/logo.tsx', value: '1.3rem', why: '로고의 이름 — 브랜드 그림과 함께 정한다(ADR 0149)' },
-  { at: 'app/home-hero.tsx', value: '0.9rem', why: '첫 화면 탭 묶음 — 안의 칸(rounded-xl)을 p-0.5 만큼 감싼다. 같은 값의 기본 단이 없다' },
-  { at: 'app/me/(shelf)/readings/shelf.tsx', value: '0.5rem_1.5rem_1.5rem_0.5rem', n: 3, why: '책 표지 — 등만 각지다' },
-  { at: 'app/me/(shelf)/readings/shelf.tsx', value: '0.5rem_1.25rem_1.25rem_0.5rem', n: 2, why: '작은 책 표지' },
-  { at: 'app/me/(shelf)/loading.tsx', value: '0.5rem_1.5rem_1.5rem_0.5rem', n: 2, why: '책 표지의 뼈대' },
-  { at: 'app/me/(home)/loading.tsx', value: '0.5rem_1.25rem_1.25rem_0.5rem', why: '작은 책 표지의 뼈대' },
-  { at: 'app/me/(home)/loading.tsx', value: '0.5rem_1.5rem_1.5rem_0.5rem', why: '같은 뼈대의 넓은 폭' },
-  { at: 'app/me/matching/history/loading.tsx', value: '0.5rem_1.5rem_1.5rem_0.5rem', n: 2, why: '책 표지의 뼈대' },
 ];
 
 /** 글자 크기인 임의값 — `text-[var(--ink)]` 같은 색은 뺀다 */
@@ -53,7 +46,8 @@ function byPx(tokens: Record<string, string>): Map<number, string> {
   const out = new Map<number, string>();
   for (const [name, value] of Object.entries(tokens)) {
     const px = lengthPx(value);
-    if (px !== null) out.set(px, name);
+    // 같은 값의 이름이 여럿이면(옛 이름 `paper` = `card`) 먼저 적힌 새 이름을 권한다
+    if (px !== null && !out.has(px)) out.set(px, name);
   }
   return out;
 }
@@ -71,8 +65,8 @@ const RADIUS_CLASS = /(?<![\w-])rounded(?:-(?:t|b|l|r|s|e|tl|tr|bl|br|ss|se|es|e
 
 describe('글자 크기 · 모서리의 단', () => {
   it('토큰이 globals.css 에 서 있다', () => {
-    expect(text).toMatchObject({ small: '13px', body: '15px', field: '16px', title: '1.75rem' });
-    expect(radius).toMatchObject({ paper: '2rem', card: '1.75rem', tile: '1.5rem', row: '1.25rem' });
+    expect(text).toMatchObject({ tag: '11px', fine: '12px', small: '13px', body: '15px', field: '16px', lead: '17px', heading: '20px', title: '26px' });
+    expect(radius).toMatchObject({ card: '20px', cell: '12px' });
   });
 
   it('단이 있는 글자 크기를 임의값으로 다시 적지 않는다', () => {
@@ -114,5 +108,111 @@ describe('글자 크기 · 모서리의 단', () => {
     const css = readFileSync('app/globals.css', 'utf8');
     const colors = new Set([...css.matchAll(/--color-([a-z-]+):/g)].map((match) => match[1]));
     expect(Object.keys(text).filter((name) => colors.has(name))).toEqual([]);
+  });
+});
+
+/** 주석을 걷은 소스 — 주석은 옛 값 · 까닭을 이름으로 적는다 */
+const code = (path: string): string =>
+  readFileSync(path, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+
+/** `pattern` 이 걸린 수를 파일마다 — `{ 'app/x.tsx': 2 }` */
+function countBy(pattern: RegExp): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const path of sources()) {
+    const n = [...code(path).matchAll(pattern)].length;
+    if (n > 0) out[path] = n;
+  }
+  return out;
+}
+
+/*
+  **나란히 고치는 화면** — 2026-10-24 라운드는 대화(`app/me/chat/**`) · 프로필(`app/me/profile/**`)을 다른 PR 이 고치는 동안
+  손대지 않았다. 아래 목록의 그 파일 자리는 다음 라운드에 걷는다 — 수는 줄기만 한다(늘리면 붉고, 줄이면 여기서도 줄인다).
+*/
+
+describe('텍스트 스타일 일곱 벌 — 제목은 시스템 서체 굵게다(ADR 0109 추기 2026-10-24)', () => {
+  const styles = { TYPE_TITLE, TYPE_SECTION, TYPE_NAME, TYPE_BODY, TYPE_META, TYPE_CAPTION, BADGE };
+  const sizeOf = (style: string): number => {
+    const name = /(?:^|\s)text-([a-z]+)(?=\s|$)/.exec(style.split(' ').filter((c) => !c.includes(':')).join(' '))?.[1];
+    const px = name === undefined ? null : lengthPx(text[name] ?? '');
+    if (px === null) throw new Error(`크기 토큰이 없다: ${style}`);
+    return px;
+  };
+  const WEIGHT: Record<string, number> = { normal: 400, medium: 500, semibold: 600, bold: 700 };
+  const weightOf = (style: string): number => WEIGHT[/(?:^|\s)font-(normal|medium|semibold|bold)(?=\s|$)/.exec(style)?.[1] ?? 'normal'];
+
+  it('어느 스타일도 둥근 서체를 입지 않는다 — 고운돋움은 굵기가 400 하나뿐이라 그 아래 600~700 글보다 가볍다', () => {
+    expect(Object.entries(styles).filter(([, style]) => style.includes('font-rounded')).map(([name]) => name)).toEqual([]);
+  });
+
+  it('크기는 화면 제목 → 딱지로 줄곧 작아지고 폭마다 바뀌지 않는다', () => {
+    const sizes = Object.values(styles).map(sizeOf);
+    expect(sizes).toEqual([...sizes].sort((a, b) => b - a));
+    expect(new Set(sizes).size).toBe(sizes.length);
+    expect(Object.entries(styles).filter(([, style]) => /(?:^|\s)(?:sm|md|lg):text-/.test(style)).map(([name]) => name)).toEqual([]);
+  });
+
+  it('제목 셋은 그 아래 보조 · 단추 글자(600)보다 가볍지 않다', () => {
+    expect(weightOf(TYPE_TITLE)).toBe(700);
+    expect(weightOf(TYPE_SECTION)).toBe(700);
+    expect(weightOf(TYPE_NAME)).toBeGreaterThanOrEqual(600);
+    expect(weightOf(TYPE_NAME)).toBeGreaterThan(weightOf(TYPE_META));
+  });
+
+  it('둥근 서체는 브랜드 자리(서비스 이름 · 인용)뿐이다', () => {
+    expect(countBy(/(?<![\w-])font-rounded(?![\w-])/g)).toEqual({
+      // 서비스 이름
+      'app/ui/logo.tsx': 1,
+      'app/site-footer.tsx': 1,
+      // 인용 — 풀이의 비유 · 받은 편지
+      'app/me/reading/reading-result.tsx': 2,
+      'app/share/view.tsx': 1,
+      'app/me/home/self-card.tsx': 1,
+      'app/me/home/map/relation-map.tsx': 1,
+      'app/me/(shelf)/readings/shelf.tsx': 1,
+      'app/me/matching/letter.tsx': 2,
+      // 나란히 고치는 대화 화면 — 다음 라운드
+      'app/me/chat/room-list.tsx': 1,
+      'app/me/chat/[matchId]/room-header.tsx': 1,
+      'app/me/chat/[matchId]/room-start.tsx': 1,
+    });
+  });
+
+  it('옛 이름(표시 단 · 구역 글자 크기)은 나란히 고치는 화면에만 남는다', () => {
+    expect(countBy(/(?<![\w-])TYPE_DISPLAY(?![\w-])/g)).toEqual({ 'app/ui/surfaces.ts': 1, 'app/me/chat/empty.tsx': 2 });
+    expect(countBy(/(?<![\w-])text-section(?![\w-])/g)).toEqual({ 'app/me/chat/room-list.tsx': 1 });
+  });
+});
+
+describe('모서리는 카드 · 칸 · 알약 세 단이다(ADR 0109 추기 2026-10-24)', () => {
+  const SIDE = '(?:-(?:t|b|l|r|s|e|tl|tr|bl|br|ss|se|es|ee))?';
+
+  it('Tailwind 의 기본 단(sm · md · lg · xl · 2xl · 3xl · 맨 rounded)을 부르지 않는다 — `rounded-cell` 을 쓴다', () => {
+    // 뒤가 `.` 인 것은 JS 이름이다(`app/layout.tsx` 의 `rounded.variable`)
+    expect(countBy(new RegExp(`(?<![\\w.-])rounded${SIDE}(?:-(?:sm|md|lg|xl|2xl|3xl))?(?![\\w.\\[-])`, 'g'))).toEqual({
+      'app/me/chat/[matchId]/bubble-row.tsx': 3,
+      'app/me/chat/[matchId]/room-header.tsx': 1,
+      'app/me/profile/loading.tsx': 4,
+      'app/me/profile/photo-framer.tsx': 1,
+      'app/me/profile/photo-grid.tsx': 8,
+      'app/me/profile/photo-menu.tsx': 1,
+    });
+  });
+
+  it('옛 이름(paper · tile · row)은 나란히 고치는 화면에만 남는다 — 값은 카드와 같다', () => {
+    expect([radius.paper, radius.tile, radius.row]).toEqual([radius.card, radius.card, radius.card]);
+    expect(countBy(new RegExp(`(?<![\\w-])rounded${SIDE}-(?:paper|tile|row)(?![\\w-])`, 'g'))).toEqual({
+      'app/me/chat/(rooms)/loading.tsx': 2,
+      'app/me/chat/[matchId]/bubble-row.tsx': 1,
+      'app/me/chat/[matchId]/room-start.tsx': 1,
+      'app/me/chat/[matchId]/room.tsx': 2,
+      'app/me/chat/empty.tsx': 2,
+      'app/me/chat/room-list.tsx': 3,
+      'app/me/profile/form.tsx': 1,
+      'app/me/profile/loading.tsx': 2,
+      'app/me/profile/photo-grid.tsx': 1,
+    });
   });
 });

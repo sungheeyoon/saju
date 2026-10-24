@@ -41,7 +41,7 @@ export const BUTTON_SECONDARY_FACE = `inline-flex min-h-12 items-center justify-
 export const BUTTON_SECONDARY = `${BUTTON_SECONDARY_FACE} px-5`;
 
 /** 셋째 단추의 면 — 글자 크기 · 굵기 · 색을 뺐다. 결제 화면의 작은 링크처럼 글자를 따로 정하는 자리가 쓴다 */
-export const BUTTON_TERTIARY_FACE = `inline-flex min-h-11 items-center gap-1 rounded-lg px-1 underline decoration-[color-mix(in_srgb,var(--foreground)_25%,transparent)] decoration-2 underline-offset-[6px] hover:decoration-foreground active:opacity-70 disabled:opacity-55`;
+export const BUTTON_TERTIARY_FACE = `inline-flex min-h-11 items-center gap-1 rounded-cell px-1 underline decoration-[color-mix(in_srgb,var(--foreground)_25%,transparent)] decoration-2 underline-offset-[6px] hover:decoration-foreground active:opacity-70 disabled:opacity-55`;
 export const BUTTON_TERTIARY = `${BUTTON_TERTIARY_FACE} text-sm font-semibold text-foreground`;
 /** 셋째 단추의 위험 색 — 「차단으로 넘어가기」처럼 되돌리기 어려운 쪽으로 가는 글자 단추 */
 export const BUTTON_TERTIARY_DANGER = `${BUTTON_TERTIARY_FACE} text-sm font-semibold text-danger`;
@@ -89,9 +89,9 @@ export const BUTTON_ON_TILE_PRIMARY = `inline-flex min-h-11 items-center justify
  * 바꾸는 탭이 아니라 입력 방법을 고르는 단추라 모서리가 조금 각지다(#543 의 운영자 승인 모양, 2026-10-08). 글자는 작은
  * 단추와 같은 14px(`text-sm`)이다.
  */
-export const SEGMENTS = 'grid gap-1 rounded-xl bg-surface-sunken p-1';
+export const SEGMENTS = 'grid gap-1 rounded-cell bg-surface-sunken p-1';
 
-const SEGMENT_SHAPE = 'min-h-11 rounded-lg px-3 text-sm disabled:cursor-not-allowed disabled:opacity-45';
+const SEGMENT_SHAPE = 'min-h-11 rounded-cell px-3 text-sm disabled:cursor-not-allowed disabled:opacity-45';
 
 /** 고르는 칸 한 칸 — 안 고른 칸. 고른 칸은 `SEGMENT_ON` 한 벌을 쓴다(굵기 · 면을 덧붙이지 않는다, 아이콘 단추와 같은 까닭) */
 export const SEGMENT = `${SEGMENT_SHAPE} font-medium text-secondary hover:text-foreground`;

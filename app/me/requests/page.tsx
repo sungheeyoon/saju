@@ -103,7 +103,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
     <section className="flex flex-col gap-3">
 
       {inbox.notifications.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-tile border-2 border-dashed border-border-strong px-5 py-7 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-card border-2 border-dashed border-border-strong px-5 py-7 text-center">
           <span
             aria-hidden="true"
             className="grid size-11 place-items-center rounded-full bg-surface-sunken text-muted"
@@ -114,7 +114,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
           <p className={TYPE_META}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-tile border border-border bg-surface">
+        <ul className="overflow-hidden rounded-card border border-border bg-surface">
           {inbox.notifications.map((notification) => {
             const warns = NOTIFICATION_WARNS.includes(notification.kind);
             const inner = (

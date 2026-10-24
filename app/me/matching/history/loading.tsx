@@ -19,8 +19,8 @@ export default function MatchHistoryLoading() {
       <div className="flex flex-col gap-4">
         <Bone className="h-8 w-32 rounded-full" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
-          <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
+          <Bone className="min-h-[14rem] rounded-card" />
+          <Bone className="min-h-[14rem] rounded-card" />
         </div>
       </div>
 
@@ -28,8 +28,8 @@ export default function MatchHistoryLoading() {
         <Bone className="h-8 w-28 rounded-full" />
         <div className="flex flex-col gap-2">
           <Bone className="h-[1.375rem] w-20 rounded-full" />
-          <Bone className="h-24 w-full rounded-row" />
-          <Bone className="h-24 w-full rounded-row" />
+          <Bone className="h-24 w-full rounded-card" />
+          <Bone className="h-24 w-full rounded-card" />
         </div>
       </div>
     </SkeletonMain>

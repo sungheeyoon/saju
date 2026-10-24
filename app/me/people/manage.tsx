@@ -262,7 +262,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-field leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className="rounded-cell border border-border-strong bg-surface px-3.5 py-2.5 text-field leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
       />
     </label>
   );
@@ -319,7 +319,7 @@ export function NoteEditor({
         event.preventDefault();
         if (changed && !saving) save();
       }}
-      className="flex flex-col gap-3 rounded-row bg-surface p-4 shadow-card"
+      className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card"
     >
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">

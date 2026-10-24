@@ -5,6 +5,7 @@ import { GENERATION } from './generation';
 import { READING_COLUMN } from './markdown';
 import type { OutlineRow } from './outline';
 import flow from './flow.module.css';
+import { TYPE_NAME } from '../../ui/surfaces';
 
 /**
  * **멈춘 화면이 아니라는 것을 무엇이 말하는가** — 서버가 적은 진행이다(ADR 0127).
@@ -29,7 +30,7 @@ export function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
             <Icon name="spark" className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-lead font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
+            <p className={TYPE_NAME}>사주의 흐름을 이어 읽고 있어요</p>
             <p className="text-small leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
           </div>
         </div>
@@ -51,7 +52,7 @@ export function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
           {rows.map((row, at) => (
             <li
               key={`${at}-${row.label}`}
-              className="flex items-center justify-between gap-3 rounded-row bg-surface px-4 py-3 text-note"
+              className="flex items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 text-note"
             >
               <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
               <OutlineMark state={row.state} />

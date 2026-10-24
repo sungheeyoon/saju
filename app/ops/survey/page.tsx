@@ -327,7 +327,7 @@ function Comments({ rows }: { rows: readonly CommentRow[] }) {
         {rows.map((row) => (
           <li
             key={`${row.submittedAt}:${row.comment}`}
-            className="rounded-2xl border border-border bg-surface-soft p-4"
+            className="rounded-cell border border-border bg-surface-soft p-4"
           >
             <p className="text-sm leading-6">{row.comment}</p>
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
@@ -464,7 +464,7 @@ function Service({
                 {texts.map((row) => (
                   <li
                     key={`${row.submittedAt}:${row.improveText ?? ''}:${row.freeText ?? ''}`}
-                    className="rounded-2xl border border-border bg-surface-soft p-4"
+                    className="rounded-cell border border-border bg-surface-soft p-4"
                   >
                     {row.improveText !== null && (
                       <p className="text-sm leading-6">

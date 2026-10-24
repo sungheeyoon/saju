@@ -17,7 +17,7 @@ export function SupplyBody({ card, explorationNote }: { card: DeckCard; explorat
           ))}
         </ul>
       ) : (
-        <p className="text-note leading-6 text-foreground">{card.reason}</p>
+        <p className="text-body leading-6 text-foreground">{card.reason}</p>
       )}
       <p className="text-small leading-5 text-secondary">{card.balanceLabel}</p>
       {card.exploration && explorationNote !== null && (
@@ -38,7 +38,7 @@ function Supply({ element, text }: { element: string; text: string }) {
         <ElementSymbol element={known} className="size-6" />
       </span>
       <span className="flex min-w-0 flex-col">
-        {known !== null && <span className="font-rounded text-lead leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
+        {known !== null && <span className="text-lead font-semibold leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
         <span className="text-note leading-5 text-foreground">{text}</span>
       </span>
     </li>

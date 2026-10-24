@@ -191,7 +191,7 @@ function FortuneCell({
 }) {
   return (
     <div
-      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
+      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-cell border py-2.5 ${
         current ? 'border-foreground bg-cream' : 'border-transparent bg-surface-soft'
       }`}
     >

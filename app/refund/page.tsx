@@ -23,7 +23,7 @@ export default function RefundPage() {
   const policy = refundPolicyFor(currentBusinessInfo());
   return (
     <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-8 sm:py-12">
-      <header className="mb-2 rounded-paper bg-cream px-6 py-7 sm:px-8">
+      <header className="mb-2 rounded-card bg-cream px-6 py-7 sm:px-8">
         <p className="text-small font-semibold text-cream-ink">환불정책</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>{SERVICE_NAME} 환불정책</h1>
         {policy.effectiveDate ? (

@@ -201,7 +201,7 @@ export function ShareReadingButton({
           value={link}
           aria-label="공유 주소"
           onFocus={() => address.current?.select()}
-          className="min-h-11 w-full rounded-xl border border-border bg-surface-sunken px-3 text-field text-secondary"
+          className="min-h-11 w-full rounded-cell border border-border bg-surface-sunken px-3 text-field text-secondary"
         />
       )}
     </div>

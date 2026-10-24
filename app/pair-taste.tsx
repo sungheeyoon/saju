@@ -144,7 +144,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
         </div>
         <p className="max-w-md text-body leading-7 text-foreground">{taste.line}</p>
         <p className="flex items-center gap-2 text-small text-secondary">
-          <span aria-hidden className="rounded-full bg-surface-sunken px-3 py-1 font-rounded text-xl text-muted blur-[4px]">
+          <span aria-hidden className="rounded-full bg-surface-sunken px-3 py-1 text-xl font-bold text-muted blur-[4px]">
             00
           </span>
           <Icon name="lock" className="size-4" />

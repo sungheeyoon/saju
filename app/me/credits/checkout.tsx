@@ -93,7 +93,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           return (
             <label
               key={bundle.credits}
-              className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-row border px-4 py-3 ${
+              className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-card border px-4 py-3 ${
                 on ? 'border-accent bg-surface ring-2 ring-accent' : 'border-border bg-surface hover:border-border-strong'
               }`}
             >

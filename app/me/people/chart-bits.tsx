@@ -51,7 +51,7 @@ export function PillarStrip({
   name: string;
   size?: 'md' | 'lg';
 }) {
-  const glyph = size === 'lg' ? 'text-section' : 'text-lead';
+  const glyph = size === 'lg' ? 'text-title' : 'text-lead';
 
   return (
     <div role="group" aria-label={`${name}의 네 기둥`} className="grid grid-cols-4 gap-1.5">
@@ -60,7 +60,7 @@ export function PillarStrip({
         return (
           <div
             key={key}
-            className={`flex flex-col items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--surface)_78%,transparent)] px-1 pb-1.5 pt-1 ${
+            className={`flex flex-col items-center gap-0.5 rounded-cell bg-[color-mix(in_srgb,var(--surface)_78%,transparent)] px-1 pb-1.5 pt-1 ${
               key === 'day' ? 'ring-2 ring-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : ''
             }`}
           >

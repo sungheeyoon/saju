@@ -65,7 +65,7 @@ export function CopyLinkButton() {
         </span>
       )}
       {state === 'failed' && (
-        <code className="w-full overflow-x-auto rounded-sm bg-surface-sunken px-2 py-1 text-xs text-secondary">
+        <code className="w-full overflow-x-auto rounded-cell bg-surface-sunken px-2 py-1 text-xs text-secondary">
           {href}
         </code>
       )}

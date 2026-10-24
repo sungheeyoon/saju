@@ -11,7 +11,7 @@ import { elementScope } from '../../ui/element-tone';
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
+import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 import type { MeMark } from './me-mark';
@@ -107,10 +107,10 @@ export function MatchingExperience({
   const detailsOf = (card: DeckCard) => (
     <>
       <div className="flex flex-col gap-1">
-        <p className="font-rounded text-heading leading-snug text-[var(--ink)]">{card.verdict}</p>
-        <p className="max-w-prose text-note leading-6 text-foreground">{card.reason}</p>
+        <p className="text-heading font-bold leading-snug text-[var(--ink)]">{card.verdict}</p>
+        <p className="max-w-prose text-body leading-6 text-foreground">{card.reason}</p>
       </div>
-      <div className="flex flex-col gap-2 rounded-tile bg-surface p-4 ring-1 ring-border">
+      <div className="flex flex-col gap-2 rounded-card bg-surface p-4 ring-1 ring-border">
         <SupplyBody card={card} explorationNote={explorationNote} />
       </div>
     </>
@@ -133,7 +133,7 @@ export function MatchingExperience({
       <header className="flex flex-row items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <p className={TYPE_META} suppressHydrationWarning>{todayLabel()}</p>
-          <h1 className={TYPE_DISPLAY}>오늘의 인연</h1>
+          <h1 className={TYPE_TITLE}>오늘의 인연</h1>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 sm:hidden">
           {view === 'today' && profile !== undefined && <DeckDots total={total} counter={counter} />}
@@ -242,9 +242,9 @@ export function MatchingExperience({
             자리에만 선다.
           */}
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
-            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-paper bg-cream">
+            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-card bg-cream">
               <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
-                <h2 id="matching-map" className="font-rounded text-section leading-8 text-foreground">
+                <h2 id="matching-map" className={TYPE_SECTION}>
                   내 궤도로 다가오는 인연
                 </h2>
                 <p className="shrink-0 text-small font-semibold text-secondary">
@@ -301,7 +301,7 @@ export function MatchingExperience({
           className={elementScope(supplyOf(profile))}
           lead={
             <div className="flex items-center gap-3">
-              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-section ring-2 ring-[var(--tile)]">
+              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-heading ring-2 ring-[var(--tile)]">
                 <CandidatePhoto card={profile} />
               </span>
               <span className="grid size-10 place-items-center rounded-full bg-[var(--tile)]">

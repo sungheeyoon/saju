@@ -69,7 +69,7 @@ export function ReadingFeedback({
 
   if (answer !== null && !open) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-tile bg-cream px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-card bg-cream px-5 py-3">
         <p className="text-body text-cream-ink">{FEEDBACK_THANKS}</p>
         <button type="button" onClick={() => setOpen(true)} className={BUTTON_TERTIARY}>
           답 고치기
@@ -218,7 +218,7 @@ export function ReadingFeedback({
             onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
             maxLength={FEEDBACK_COMMENT.limit}
             rows={3}
-            className="mt-1.5 rounded-row border border-border bg-surface px-4 py-3 text-field leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
+            className="mt-1.5 rounded-card border border-border bg-surface px-4 py-3 text-field leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]"
           />
           <p className="text-right text-fine tabular-nums text-secondary">
             {comment.length} / {FEEDBACK_COMMENT.limit}자
@@ -280,7 +280,7 @@ function Scale({
       **이제 그 폭은 바깥이 정한다** — 설문 전체가 본문과 같은 열(`READING_COLUMN`, 36rem)에 서므로 눈금은 칸을
       채운다. 눈금만 `max-w-md` 로 따로 묶여 있을 때는 칸의 오른쪽이 비었다(화면 갤러리 감사 2026-10-09).
     */
-    <fieldset className="rounded-row bg-surface-soft p-4">
+    <fieldset className="rounded-card bg-surface-soft p-4">
       <legend className="float-left mb-4 w-full text-body font-semibold">{question.label}</legend>
       <div className="grid grid-cols-5 gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (

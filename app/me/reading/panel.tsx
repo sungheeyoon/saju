@@ -215,7 +215,7 @@ export function ReadingPanel({
         <div className="flex flex-col gap-1">
           {reading === null && (
             <>
-              <p className="text-lead font-semibold text-foreground">사주를 바탕으로 {noun}를 받아 보세요</p>
+              <p className={TYPE_NAME}>사주를 바탕으로 {noun}를 받아 보세요</p>
               <p className="text-small leading-5 text-secondary">{readingNoneNote(noun)}</p>
             </>
           )}
@@ -234,7 +234,7 @@ export function ReadingPanel({
   const alert = failure === null ? null : (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
-      className={`flex gap-2.5 rounded-row px-4 py-3.5 text-note leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
+      className={`flex gap-2.5 rounded-card px-4 py-3.5 text-body leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
     >
       <Icon name="alert" className="mt-0.5 size-5" />
       <div className="min-w-0">

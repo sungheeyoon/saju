@@ -64,7 +64,7 @@ export function SameChartAsk({
     <section
       role="group"
       aria-label="같은 사람인지 확인"
-      className="flex flex-col gap-3 rounded-tile border border-warning/40 bg-warning-wash px-4 py-4 sm:px-5"
+      className="flex flex-col gap-3 rounded-card border border-warning/40 bg-warning-wash px-4 py-4 sm:px-5"
     >
       <div>
         <p className="text-body font-semibold leading-6">

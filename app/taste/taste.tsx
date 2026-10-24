@@ -88,7 +88,7 @@ export function Taste({
       <LockedOutline outline={outline} draft={draft} tasteDraft={tasteDraftOf(query)} />
 
       <details id="saju-detail" data-fold="" className="group/detail scroll-mt-24">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-tile border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-card border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
             <span className={TYPE_NAME}>사주 자세히 보기</span>
             <span className="mt-0.5 block text-small leading-5 text-secondary">여덟 글자 · 신살 · 오행 · 용신 · 관계 · 운</span>

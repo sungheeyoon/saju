@@ -182,7 +182,7 @@ function DecidedRequests({ requests }: { requests: readonly DecidedRequest[] }) 
             ) : (
               <Link
                 href={request.matchHref}
-                className="group -mx-2 flex min-h-11 items-center gap-3 rounded-lg px-2 py-3 active:opacity-70"
+                className="group -mx-2 flex min-h-11 items-center gap-3 rounded-cell px-2 py-3 active:opacity-70"
               >
                 <span className="min-w-0 flex-1">
                   <DecidedLine request={request} />
@@ -253,7 +253,7 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
 
 function InfoChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-xl bg-surface-sunken px-3 py-1.5 text-small font-medium leading-5 text-secondary">
+    <span className="rounded-cell bg-surface-sunken px-3 py-1.5 text-small font-medium leading-5 text-secondary">
       {children}
     </span>
   );

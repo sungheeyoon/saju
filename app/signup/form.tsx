@@ -36,7 +36,7 @@ const FIELD = `${FIELD_BASE} aria-invalid:border-danger`;
  * 같은 섞음(accent 55%, `globals.css`)이다 — `accent-soft` 는 크림 바탕에서 거의 안 보였다
  */
 const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
+  'flex cursor-pointer gap-3 rounded-cell border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[[aria-invalid=true]]:border-danger has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
 const LABEL = 'text-body font-semibold';
 
@@ -289,7 +289,7 @@ export function SignupForm({
         </div>
       )}
 
-      <div className="rounded-row bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
+      <div className="rounded-card bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
         <div className="flex flex-wrap items-center justify-between gap-x-3">
           <h2 id="signup-notice" className="text-body font-bold">
             가입 전에 확인해 주세요

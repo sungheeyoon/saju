@@ -10,6 +10,7 @@ import { elementScope } from '../../ui/element-tone';
 import { Icon, type IconName } from '../../ui/icons';
 import type { MeMark } from './me-mark';
 import { QuietOrbit } from './orbit-map';
+import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 소개할 사람이 없다 — 아무도 다가오지 않는 작은 궤도.
@@ -24,11 +25,11 @@ export function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode })
     내용은 그 높이의 가운데 선다. 폰은 판의 내용이 이미 카드 자리를 거의 채운다.
   */
   return (
-    <section className="grid items-center gap-6 rounded-paper bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10 lg:min-h-[37rem]">
+    <section className="grid items-center gap-6 rounded-card bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10 lg:min-h-[37rem]">
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
-          <h2 className="font-rounded text-section leading-[1.35] text-foreground sm:text-headline">
+          <h2 className={TYPE_SECTION}>
             {DISCOVERY_EMPTY.title}
           </h2>
           <p className="max-w-prose text-body leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
@@ -38,7 +39,7 @@ export function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode })
             <Link
               key={link.href}
               href={link.href}
-              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-row border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
+              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
                 <Icon name={link.icon} />

@@ -34,12 +34,12 @@ import { FailureLine } from '../../ui/failure-line';
  * 나란히 선 둘 사이가 `gap-x-4`(16px)라 덮개 둘이 가운데서 맞닿고 겹치지 않는다.
  */
 const QUIET_LINK =
-  'relative inline-flex min-h-11 items-center rounded-lg px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
+  'relative inline-flex min-h-11 items-center rounded-cell px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
 
 /** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
 export function MatchConsentQuestion() {
   return (
-    <p className="rounded-2xl bg-cream px-4 py-3 text-sm leading-6 text-cream-ink">
+    <p className="rounded-cell bg-cream px-4 py-3 text-sm leading-6 text-cream-ink">
       {MATCH_CONSENT_QUESTION}
     </p>
   );

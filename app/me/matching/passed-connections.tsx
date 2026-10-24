@@ -11,6 +11,7 @@ import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 import { PASSED_LIMIT } from './deck-state';
 import { DetailSheet, openSheet } from '../../ui/sheet';
+import { TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
 
 /*
   **지나친 인연 — 「오늘의 인연」 옆의 두 번째 보기.**
@@ -59,7 +60,7 @@ export function PassedConnections({
   return (
     <section aria-labelledby="passed-title" className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h2 id="passed-title" ref={heading} tabIndex={-1} className="font-rounded flex items-baseline gap-2 text-section leading-8 text-foreground outline-none">
+        <h2 id="passed-title" ref={heading} tabIndex={-1} className={`flex items-baseline gap-2 outline-none ${TYPE_SECTION}`}>
           지나친 인연
           {cards.length > 0 && <span className="font-sans text-small font-semibold tabular-nums text-secondary">{cards.length} / {PASSED_LIMIT}</span>}
         </h2>
@@ -67,7 +68,7 @@ export function PassedConnections({
       </div>
 
       {map !== null && (
-        <div className="w-full overflow-hidden rounded-paper bg-cream px-2 pt-4 lg:max-w-xl">
+        <div className="w-full overflow-hidden rounded-card bg-cream px-2 pt-4 lg:max-w-xl">
           <div className="mx-auto max-w-[28rem]">{map}</div>
         </div>
       )}
@@ -77,7 +78,7 @@ export function PassedConnections({
           <span className="grid size-12 place-items-center rounded-full bg-cream text-cream-ink">
             <Icon name="undo" />
           </span>
-          <h3 className="font-rounded text-heading text-foreground">지나친 인연이 여기에 모여요</h3>
+          <h3 className={TYPE_NAME}>지나친 인연이 여기에 모여요</h3>
           <p className="text-body leading-6 text-secondary">다시 궁금해진 사람을 살펴보고, 한 번 더 알아갈 수 있는 자리예요.</p>
         </div>
       ) : (
@@ -91,7 +92,7 @@ export function PassedConnections({
                   setLooking(card);
                   if (looking?.candidateUserId === card.candidateUserId) openSheet(sheet.current);
                 }}
-                className="flex size-full flex-col overflow-hidden rounded-tile border border-border bg-surface text-left shadow-card hover:border-border-strong active:scale-[0.98]"
+                className="flex size-full flex-col overflow-hidden rounded-card border border-border bg-surface text-left shadow-card hover:border-border-strong active:scale-[0.98]"
               >
                 <span className="relative block aspect-square text-[3rem]">
                   <CandidatePhoto card={card} />
@@ -101,7 +102,7 @@ export function PassedConnections({
                 </span>
                 <span className="flex flex-1 flex-col gap-2 p-3">
                   <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-                    <span className="font-rounded truncate text-heading text-foreground">{card.nickname}</span>
+                    <span className={`truncate ${TYPE_NAME}`}>{card.nickname}</span>
                     <span className="shrink-0 text-small font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
                   </span>
                   <span className="line-clamp-2 text-small leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>

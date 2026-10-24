@@ -166,7 +166,7 @@ function SaveCard({
 
   if (context.state === 'out') {
     return (
-      <section id="reading-next" className="scroll-mt-24 rounded-2xl border border-border bg-accent-wash/50 p-5">
+      <section id="reading-next" className="scroll-mt-24 rounded-cell border border-border bg-accent-wash/50 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold">이 사주가 내 삶에서는 어떤 뜻일까요?</h2>
@@ -215,7 +215,7 @@ function SaveCard({
           찾아야 하고, 그냥 눌리게 두면 눌러도 아무 일이 안 일어난다 — 한 문으로
           저장하므로 통째로 되돌아가기 때문이다.
         */
-        <div className="flex flex-col gap-2 rounded-xl bg-surface-sunken px-4 py-3">
+        <div className="flex flex-col gap-2 rounded-cell bg-surface-sunken px-4 py-3">
           <p className="text-sm leading-6">{noRoom}</p>
           <Link
             href="/me/people"

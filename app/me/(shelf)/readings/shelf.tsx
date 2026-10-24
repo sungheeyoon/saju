@@ -9,7 +9,7 @@ import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
-import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
+import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
@@ -33,7 +33,7 @@ import type { DayMaster } from './subject';
  */
 
 const COVER =
-  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
+  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-card py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
 /**
  * **한 줄에 셋이 서는 작은 표지** — 홈 탭의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
@@ -50,7 +50,7 @@ const COVER =
  * 2026-10-10(B13) 폰의 홈은 셋을 한 줄 격자가 아니라 옆으로 넘기는 줄에 세운다 — 한 권이 줄의 72% 다. 높이 · 글자 크기는 그대로다.
  */
 const COVER_ROW =
-  'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
+  'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-card py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:py-4 sm:pl-6 sm:pr-4';
 
 /**
  * 칸이 하나도 안 보이는 구역은 통째로 숨는다 — 보관함의 찾는 칸이 그 구역의 권을 다 숨겼을 때(`ShelfItem`). 찾지 않을 때는
@@ -210,7 +210,7 @@ export function BlankBook({
       <CoverLink
         href={href}
         from={from}
-        className={`${elementScope(element)} flex h-full ${shape} items-center rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${shape} items-center rounded-card border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
@@ -290,7 +290,7 @@ export function MakingShelf({
                 <span className="flex items-center gap-3.5">
                   <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} focus={match.photoFocus} size={56} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-lead font-semibold text-foreground">
+                    <span className={`block truncate ${TYPE_NAME}`}>
                       {match.nickname} 님과의 궁합풀이
                     </span>
                     {supplied !== null && (
@@ -357,7 +357,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
           <li key={slot.href}>
             <Link
               href={slot.href}
-              className={`${elementScope(slot.element)} relative flex h-full min-h-16 items-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-36 sm:flex-col sm:justify-center sm:pl-4 sm:pr-2 sm:text-center`}
+              className={`${elementScope(slot.element)} relative flex h-full min-h-16 items-center gap-3 overflow-hidden rounded-card bg-[var(--tile)] py-3 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-36 sm:flex-col sm:justify-center sm:pl-4 sm:pr-2 sm:text-center`}
             >
               <Spine background="var(--mid)" />
               <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-[var(--ink)] sm:size-12">

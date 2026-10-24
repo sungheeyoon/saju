@@ -100,7 +100,7 @@ export function TodayCard({
           aria-hidden="true"
           inert
           style={nextStyle}
-          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-paper bg-[var(--tile)] motion-reduce:transition-none`}
+          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-card bg-[var(--tile)] motion-reduce:transition-none`}
         >
           <CandidatePhoto card={next} initialClass={INITIAL_ON_CARD} />
           <FaceText card={next} />
@@ -111,7 +111,7 @@ export function TodayCard({
         key={profile.candidateUserId}
         ref={panel}
         style={cardStyle}
-        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-paper bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
+        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-card bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
       >
         <CardPhotos card={profile} bounce={panel} initialClass={INITIAL_ON_CARD} />
 
@@ -172,7 +172,7 @@ function FaceText({ card }: { card: DeckCard }) {
     <div style={{ backgroundImage: FACE_SCRIM }} className={`${FACE_SHADOW} pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2.5 px-5 pb-5 pt-32 text-white`}>
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-rounded truncate text-[2.25rem] leading-tight">{card.nickname}</h2>
+          <h2 className="truncate text-[2.25rem] font-bold leading-tight tracking-[-0.02em]">{card.nickname}</h2>
           {card.activity != null && <p className="text-small font-semibold text-white/85">{activityText(card.activity)}</p>}
         </div>
         <p className="flex shrink-0 items-baseline">
@@ -181,7 +181,7 @@ function FaceText({ card }: { card: DeckCard }) {
           <span className="ml-1 text-small font-semibold text-white/85"> / 100</span>
         </p>
       </div>
-      <p className="font-rounded text-lead leading-snug text-white/95">{card.verdict}</p>
+      <p className="text-lead font-semibold leading-snug text-white/95">{card.verdict}</p>
       <SupplyOnPhoto card={card} />
       {card.intro !== null && <p className="line-clamp-1 text-note leading-5 text-white/85">{card.intro}</p>}
     </div>
@@ -215,7 +215,7 @@ function SupplyOnPhoto({ card }: { card: DeckCard }) {
       </span>
       <p className="flex min-w-0 flex-col">
         <span className="text-fine font-semibold leading-4 text-white/75">이 사람이 채워 주는 기운</span>
-        <span className="font-rounded truncate text-heading leading-7 text-white">{names.join(' · ')}</span>
+        <span className="truncate text-heading font-bold leading-7 text-white">{names.join(' · ')}</span>
         <span className="sr-only">
           {card.highlights.map((highlight) => (
             <span key={highlight.element}>{highlight.text} </span>

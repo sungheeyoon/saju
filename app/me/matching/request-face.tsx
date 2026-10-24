@@ -42,7 +42,7 @@ export function RequestFace({
               aria-haspopup="dialog"
               aria-label={partnerSheetName(partner.nickname)}
               onClick={control.open}
-              className="inline-flex max-w-full items-center gap-0.5 text-left after:absolute after:inset-0 after:rounded-2xl"
+              className="inline-flex max-w-full items-center gap-0.5 text-left after:absolute after:inset-0 after:rounded-cell"
             >
               <span className="truncate">{partner.nickname}</span>
               <Icon name="chevron" className="size-4 shrink-0 text-secondary" />

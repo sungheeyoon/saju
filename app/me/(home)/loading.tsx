@@ -33,7 +33,7 @@ export default function HomeLoading() {
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
           {/* 줄인 내 사주 카드 — 폰에서는 오행 칸과 출생 정보 상자가 없어 낮고(224px), 넓은 화면은 그 둘이 선다(594px) */}
-          <div className="flex min-h-56 flex-col justify-between gap-3 rounded-paper bg-surface p-4 sm:min-h-[37.125rem] sm:gap-6 sm:p-8">
+          <div className="flex min-h-56 flex-col justify-between gap-3 rounded-card bg-surface p-4 sm:min-h-[37.125rem] sm:gap-6 sm:p-8">
             <div className="flex flex-col gap-2 sm:gap-3">
               <div className="flex flex-col gap-1">
                 <Bone className="h-8 w-20 rounded-full" />
@@ -41,12 +41,12 @@ export default function HomeLoading() {
               </div>
               <Bone className="h-[1.6rem] w-3/4 rounded-full sm:h-[1.875rem]" />
             </div>
-            <Bone className="-mt-2 h-5 w-48 rounded-full sm:mt-0 sm:h-[6.375rem] sm:w-full sm:rounded-row" />
+            <Bone className="-mt-2 h-5 w-48 rounded-full sm:mt-0 sm:h-[6.375rem] sm:w-full" />
             <div className="hidden flex-col gap-3 sm:flex">
               <Bone className="h-5 w-16 rounded-full" />
               <div className="grid grid-cols-5 gap-3">
                 {[0, 1, 2, 3, 4].map((element) => (
-                  <Bone key={element} className="h-[9.375rem] rounded-2xl" />
+                  <Bone key={element} className="h-[9.375rem] rounded-cell" />
                 ))}
               </div>
             </div>
@@ -56,7 +56,7 @@ export default function HomeLoading() {
             </div>
           </div>
           {/* 「다른 사람 사주 보기」 한 줄 — 넓은 화면은 글자 줄이 커 62px 다 */}
-          <Bone className="h-14 w-full rounded-row sm:h-[3.875rem]" />
+          <Bone className="h-14 w-full rounded-card sm:h-[3.875rem]" />
         </div>
 
         {/*
@@ -71,7 +71,7 @@ export default function HomeLoading() {
             {[0, 1, 2].map((book) => (
               <Bone
                 key={book}
-                className={`min-h-[9.125rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem] sm:min-h-[14rem] sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] ${book === 2 ? 'lg:hidden' : ''}`}
+                className={`min-h-[9.125rem] rounded-card sm:min-h-[14rem] ${book === 2 ? 'lg:hidden' : ''}`}
               />
             ))}
           </div>
@@ -87,9 +87,9 @@ export default function HomeLoading() {
           <Bone className="h-8 w-40 rounded-full" />
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          <Bone className="min-h-[13.75rem] rounded-tile sm:min-h-56" />
-          <Bone className="min-h-[13.75rem] rounded-tile sm:min-h-56" />
-          <Bone className="min-h-44 rounded-tile" />
+          <Bone className="min-h-[13.75rem] rounded-card sm:min-h-56" />
+          <Bone className="min-h-[13.75rem] rounded-card sm:min-h-56" />
+          <Bone className="min-h-44 rounded-card" />
         </div>
       </div>
     </SkeletonMain>

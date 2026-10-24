@@ -94,7 +94,7 @@ export default async function PersonSajuPage({
         **머리는 그 사람의 일간 색을 입는다** — 목록의 타일을 눌러 들어온 사람이 같은 색의 판을 다시 만난다.
         색 혼자 말하지 않게 일간 딱지(상징 · 글자 · 오행 이름)가 함께 선다.
       */}
-      <header className={`${elementScope(element)} relative overflow-hidden rounded-paper bg-[var(--tile)] p-5 sm:p-8`}>
+      <header className={`${elementScope(element)} relative overflow-hidden rounded-card bg-[var(--tile)] p-5 sm:p-8`}>
         <StemSymbol
           stem={person.saju.pillars.dayMaster}
           className="pointer-events-none absolute -right-8 -top-8 size-44 opacity-[0.14] sm:size-56"

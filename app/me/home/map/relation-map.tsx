@@ -33,7 +33,7 @@ import { Icon } from '../../../ui/icons';
 import { reducedMotion } from '../../../ui/motion';
 import { DotsMark, ELEMENT_ANGLE, ORBIT_GLOW, ORBIT_LABEL_PAD, ORBIT_NAME_TAG, ORBIT_RING, ThreadMark, round2 } from '../../../ui/orbit';
 import { StemSymbol } from '../../../ui/stem-symbol';
-import { STALE_CHIP, TYPE_META } from '../../../ui/surfaces';
+import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import { LivingStem } from './living-stem';
 import { linksOf, type MapModel, type MapPerson } from './model';
 import { RADIUS, SIZE, curve, curveAway, phaseOf, pointAt, seatAngles, stepsAlong, type Point } from './orbit';
@@ -96,9 +96,9 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   };
 
   return (
-    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-paper bg-cream">
+    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-card bg-cream">
       <header className="flex items-baseline justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
-        <h2 id="home-orbit" className="font-rounded text-section leading-8 text-foreground">
+        <h2 id="home-orbit" className={TYPE_SECTION}>
           관계 지도
         </h2>
         {!empty && (
@@ -503,7 +503,7 @@ function Seat({
           className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'}`}
           style={{ boxShadow: ORBIT_RING.tag }}
         >
-          <span className="font-rounded text-body">{person.label}</span>
+          <span className="text-body font-semibold">{person.label}</span>
           {score !== null && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{score}</span>}
         </span>
       ) : (
@@ -578,7 +578,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
   return (
     <article
       aria-labelledby="home-orbit-card-name"
-      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-row bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
+      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-card bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
     >
       <div className="flex items-center gap-2.5">
         <span
@@ -593,7 +593,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           </span>
         </span>
         <div className="min-w-0 flex-1">
-          <h3 id="home-orbit-card-name" className="truncate font-rounded text-lead leading-6 text-foreground">
+          <h3 id="home-orbit-card-name" className={`truncate ${TYPE_NAME}`}>
             {person.label}
           </h3>
           {/* 그림 이름 하나만 — 일간 · 한자 · 메모는 걷었다(운영자 2026-09-26) */}
@@ -602,7 +602,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
         {person.unreadable === null && compat.seen && compat.score !== null && (
           <p className="shrink-0 text-right">
             <span className="block text-tag font-semibold leading-4 text-secondary">나와의 궁합</span>
-            <span className="font-rounded text-section leading-7 tabular-nums text-[var(--ink)]">
+            <span className="text-heading font-bold leading-7 tabular-nums text-[var(--ink)]">
               {compat.score}
               <span className="ml-0.5 text-fine text-secondary">점</span>
             </span>
@@ -619,7 +619,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
       </div>
 
       {person.unreadable !== null ? (
-        <p className="text-note leading-6 text-secondary">{person.unreadable}</p>
+        <p className="text-body leading-6 text-secondary">{person.unreadable}</p>
       ) : (
         <>
           <p className="line-clamp-2 font-rounded text-field leading-snug text-foreground">
