@@ -3021,7 +3021,7 @@ test.describe('가입 관문', () => {
     const two = await openAs({ selfPerson: true });
 
     await two.page.goto('/me/profile');
-    await expect(two.page.getByRole('heading', { name: '프로필' })).toBeVisible();
+    await expect(two.page.getByRole('heading', { name: '프로필', exact: true })).toBeVisible();
 
     /* 남이 쓰는 이름으로 고치면 입력을 멈춘 뒤 스스로 묻고 칸 아래에 말한다 — 「중복 확인」 단추는 없다(2026-10-11) */
     const nickname = two.page.getByLabel('닉네임');
