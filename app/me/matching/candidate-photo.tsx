@@ -18,7 +18,7 @@ export function CandidatePhoto({ card, initialClass = 'text-[1.2em]', at = 0 }: 
     return (
       <span
         aria-hidden="true"
-        className={`${elementScope(card.avatarElement)} absolute inset-0 grid font-bold place-items-center bg-[var(--tile)] text-[var(--ink)] ${initialClass}`}
+        className={`${elementScope(card.avatarElement)} font-rounded absolute inset-0 grid place-items-center bg-[var(--tile)] text-[var(--ink)] ${initialClass}`}
       >
         {initialOf(card.nickname)}
       </span>

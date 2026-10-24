@@ -67,7 +67,7 @@ export function MatchIndexCard({
           <p className="text-small font-semibold text-cream-ink">
             {names.a} × {names.b}
           </p>
-          <p className="text-[3.5rem] font-bold leading-none tracking-[-0.03em] tabular-nums text-foreground">{preview.index}</p>
+          <p className="font-rounded text-[3.5rem] leading-none tabular-nums text-foreground">{preview.index}</p>
           <p className="text-small text-cream-ink">100점 만점 베타 탐색 지표</p>
         </div>
 

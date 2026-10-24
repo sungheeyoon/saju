@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
+import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 결과 원문을 그대로 세운다 — **화면은 글의 절 구조를 알지 않는다.**
@@ -180,7 +180,7 @@ export function Markdown({ source }: { source: string }) {
             <span>{inline(block.text, key)}</span>
           </h3>
         ) : (
-          <h4 key={key} className={`${TYPE_NAME} ${at === 0 ? '' : 'mt-3'}`}>
+          <h4 key={key} className={`text-lead font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
             {inline(block.text, key)}
           </h4>
         );

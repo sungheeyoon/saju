@@ -503,7 +503,7 @@ function Seat({
           className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'}`}
           style={{ boxShadow: ORBIT_RING.tag }}
         >
-          <span className="text-body font-semibold">{person.label}</span>
+          <span className="font-rounded text-body">{person.label}</span>
           {score !== null && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{score}</span>}
         </span>
       ) : (
@@ -602,7 +602,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
         {person.unreadable === null && compat.seen && compat.score !== null && (
           <p className="shrink-0 text-right">
             <span className="block text-tag font-semibold leading-4 text-secondary">나와의 궁합</span>
-            <span className="text-heading font-bold leading-7 tabular-nums text-[var(--ink)]">
+            <span className="font-rounded text-heading leading-7 tabular-nums text-[var(--ink)]">
               {compat.score}
               <span className="ml-0.5 text-fine text-secondary">점</span>
             </span>

@@ -77,12 +77,12 @@ export const viewport: Viewport = {
 };
 
 /**
- * **둥근 서체는 브랜드 자리에만**(`font-rounded`, ADR 0109 추기 2026-10-24). 고운돋움은 굵기가 400 하나뿐이라 시스템 서체
- * 600~700 의 라벨 · 단추 위에 서면 제목이 그 아래 글보다 가벼워 위계가 뒤집혔다 — 제목은 시스템 서체 굵게(`TYPE_*`)로 옮기고,
- * 고운돋움은 서비스 이름(로고 · 바닥글)과 인용(풀이의 비유 · 받은 편지)에만 남는다. 자리는 `app/ui/scale.test.ts` 가 든다.
+ * **둥근 서체는 제목에만**(`font-rounded`). 고운돋움은 굵기가 400 하나뿐이라 본문 13~15px 에서는 획이
+ * 가늘어 흐리다 — 화면 · 구역 · 카드 제목(`TYPE_TITLE` · `TYPE_SECTION` · `TYPE_NAME`)과 서비스 이름 · 인용까지만 입고, 설명과
+ * 버튼은 기기의 시스템 서체(`--font-system`)에 남는다. 굵기를 주지 않는다 — 없는 굵기는 가짜로 덧칠된다(`app/ui/scale.test.ts`).
  * 한글 조각은 `subsets` 에 없어 미리 받지 않는다(`preload: false`) — 쓰이는 조각만 받는다.
  */
-const brandFace = Gowun_Dodum({
+const titleFace = Gowun_Dodum({
   weight: '400',
   subsets: ['latin'],
   display: 'swap',
@@ -94,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `globals.css` 가 부드러운 스크롤을 켠다 — Next 는 라우트 전환에서 그것을 끌지
     // 말지를 이 표시로 정한다. 없으면 개발 화면이 그것을 문제로 잡는다.
-    <html lang="ko" data-scroll-behavior="smooth" className={`${brandFace.variable} h-full antialiased`}>
+    <html lang="ko" data-scroll-behavior="smooth" className={`${titleFace.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {/* 로그인한 사람의 채널 하나 — 그리는 것은 없다(ADR 0155) */}

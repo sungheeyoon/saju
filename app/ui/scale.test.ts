@@ -65,7 +65,7 @@ const RADIUS_CLASS = /(?<![\w-])rounded(?:-(?:t|b|l|r|s|e|tl|tr|bl|br|ss|se|es|e
 
 describe('글자 크기 · 모서리의 단', () => {
   it('토큰이 globals.css 에 서 있다', () => {
-    expect(text).toMatchObject({ tag: '11px', fine: '12px', small: '13px', body: '15px', field: '16px', lead: '17px', heading: '20px', title: '26px' });
+    expect(text).toMatchObject({ tag: '11px', fine: '12px', small: '13px', body: '15px', field: '16px', lead: '17px', heading: '20px', title: '26px', display: '30px' });
     expect(radius).toMatchObject({ card: '20px', cell: '12px' });
   });
 
@@ -132,52 +132,46 @@ function countBy(pattern: RegExp): Record<string, number> {
   손대지 않았다. 아래 목록의 그 파일 자리는 다음 라운드에 걷는다 — 수는 줄기만 한다(늘리면 붉고, 줄이면 여기서도 줄인다).
 */
 
-describe('텍스트 스타일 일곱 벌 — 제목은 시스템 서체 굵게다(ADR 0109 추기 2026-10-24)', () => {
+describe('텍스트 스타일 일곱 벌(ADR 0109 추기 2026-10-24)', () => {
   const styles = { TYPE_TITLE, TYPE_SECTION, TYPE_NAME, TYPE_BODY, TYPE_META, TYPE_CAPTION, BADGE };
-  const sizeOf = (style: string): number => {
-    const name = /(?:^|\s)text-([a-z]+)(?=\s|$)/.exec(style.split(' ').filter((c) => !c.includes(':')).join(' '))?.[1];
-    const px = name === undefined ? null : lengthPx(text[name] ?? '');
-    if (px === null) throw new Error(`크기 토큰이 없다: ${style}`);
-    return px;
+  const TITLES = { TYPE_TITLE, TYPE_SECTION, TYPE_NAME };
+  /** 변형(`lg:`)을 뺀 기본 크기의 px */
+  const sizeOf = (style: string, variant = ''): number | null => {
+    const name = style
+      .split(' ')
+      .map((c) => (variant === '' ? (c.includes(':') ? '' : c) : c.startsWith(`${variant}:`) ? c.slice(variant.length + 1) : ''))
+      .map((c) => /^text-([a-z]+)$/.exec(c)?.[1])
+      .find((n) => n !== undefined && n in text);
+    return name === undefined ? null : lengthPx(text[name]);
   };
-  const WEIGHT: Record<string, number> = { normal: 400, medium: 500, semibold: 600, bold: 700 };
-  const weightOf = (style: string): number => WEIGHT[/(?:^|\s)font-(normal|medium|semibold|bold)(?=\s|$)/.exec(style)?.[1] ?? 'normal'];
 
-  it('어느 스타일도 둥근 서체를 입지 않는다 — 고운돋움은 굵기가 400 하나뿐이라 그 아래 600~700 글보다 가볍다', () => {
-    expect(Object.entries(styles).filter(([, style]) => style.includes('font-rounded')).map(([name]) => name)).toEqual([]);
-  });
-
-  it('크기는 화면 제목 → 딱지로 줄곧 작아지고 폭마다 바뀌지 않는다', () => {
-    const sizes = Object.values(styles).map(sizeOf);
-    expect(sizes).toEqual([...sizes].sort((a, b) => b - a));
+  it('크기는 화면 제목 → 딱지로 줄곧 작아진다', () => {
+    const sizes = Object.values(styles).map((style) => sizeOf(style));
+    expect(sizes.every((px) => px !== null)).toBe(true);
+    expect(sizes).toEqual([...sizes].sort((a, b) => (b ?? 0) - (a ?? 0)));
     expect(new Set(sizes).size).toBe(sizes.length);
-    expect(Object.entries(styles).filter(([, style]) => /(?:^|\s)(?:sm|md|lg):text-/.test(style)).map(([name]) => name)).toEqual([]);
   });
 
-  it('제목 셋은 그 아래 보조 · 단추 글자(600)보다 가볍지 않다', () => {
-    expect(weightOf(TYPE_TITLE)).toBe(700);
-    expect(weightOf(TYPE_SECTION)).toBe(700);
-    expect(weightOf(TYPE_NAME)).toBeGreaterThanOrEqual(600);
-    expect(weightOf(TYPE_NAME)).toBeGreaterThan(weightOf(TYPE_META));
+  it('폭마다 크기가 바뀌는 것은 화면 제목의 넓은 화면(lg) 한 단뿐이다 — 운영자 2026-10-24', () => {
+    expect(Object.entries(styles).filter(([, style]) => /(?:^|\s)(?:sm|md|lg|xl):text-/.test(style)).map(([name]) => name)).toEqual(['TYPE_TITLE']);
+    expect([sizeOf(TYPE_TITLE), sizeOf(TYPE_TITLE, 'lg')]).toEqual([26, 30]);
   });
 
-  it('둥근 서체는 브랜드 자리(서비스 이름 · 인용)뿐이다', () => {
-    expect(countBy(/(?<![\w-])font-rounded(?![\w-])/g)).toEqual({
-      // 서비스 이름
-      'app/ui/logo.tsx': 1,
-      'app/site-footer.tsx': 1,
-      // 인용 — 풀이의 비유 · 받은 편지
-      'app/me/reading/reading-result.tsx': 2,
-      'app/share/view.tsx': 1,
-      'app/me/home/self-card.tsx': 1,
-      'app/me/home/map/relation-map.tsx': 1,
-      'app/me/(shelf)/readings/shelf.tsx': 1,
-      'app/me/matching/letter.tsx': 2,
-      // 나란히 고치는 대화 화면 — 다음 라운드
-      'app/me/chat/room-list.tsx': 1,
-      'app/me/chat/[matchId]/room-header.tsx': 1,
-      'app/me/chat/[matchId]/room-start.tsx': 1,
-    });
+  it('제목 셋은 고운돋움이고 굵기를 주지 않는다 — 서체 교체는 운영자가 「아직 미적용」으로 보류했다', () => {
+    for (const style of Object.values(TITLES)) {
+      expect(style).toMatch(/(?:^|\s)font-rounded(?:\s|$)/);
+      expect(style).not.toMatch(/(?:^|\s)font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)(?:\s|$)/);
+    }
+  });
+
+  it('둥근 서체에 굵기를 붙이지 않는다 — 고운돋움은 400 하나뿐이라 브라우저가 획을 덧칠한 가짜 굵기가 선다', () => {
+    const offenders = sources().flatMap((path) =>
+      [...code(path).matchAll(/['"`]([^'"`]*)['"`]/g)]
+        .map((match) => match[1])
+        .filter((value) => /(?<![\w-])font-rounded(?![\w-])/.test(value) && /(?<![\w:-])font-(?:medium|semibold|bold|extrabold|black)(?![\w-])/.test(value))
+        .map((value) => `${path} — ${value}`),
+    );
+    expect(offenders).toEqual([]);
   });
 
   it('옛 이름(표시 단 · 구역 글자 크기)은 나란히 고치는 화면에만 남는다', () => {

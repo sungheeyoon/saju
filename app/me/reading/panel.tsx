@@ -215,7 +215,7 @@ export function ReadingPanel({
         <div className="flex flex-col gap-1">
           {reading === null && (
             <>
-              <p className={TYPE_NAME}>사주를 바탕으로 {noun}를 받아 보세요</p>
+              <p className="text-lead font-semibold text-foreground">사주를 바탕으로 {noun}를 받아 보세요</p>
               <p className="text-small leading-5 text-secondary">{readingNoneNote(noun)}</p>
             </>
           )}

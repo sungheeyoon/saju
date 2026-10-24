@@ -9,7 +9,7 @@ import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
-import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
+import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
@@ -290,7 +290,7 @@ export function MakingShelf({
                 <span className="flex items-center gap-3.5">
                   <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} focus={match.photoFocus} size={56} />
                   <span className="min-w-0 flex-1">
-                    <span className={`block truncate ${TYPE_NAME}`}>
+                    <span className="block truncate text-lead font-semibold text-foreground">
                       {match.nickname} 님과의 궁합풀이
                     </span>
                     {supplied !== null && (

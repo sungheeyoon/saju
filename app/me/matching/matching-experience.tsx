@@ -107,7 +107,7 @@ export function MatchingExperience({
   const detailsOf = (card: DeckCard) => (
     <>
       <div className="flex flex-col gap-1">
-        <p className="text-heading font-bold leading-snug text-[var(--ink)]">{card.verdict}</p>
+        <p className="font-rounded text-heading leading-snug text-[var(--ink)]">{card.verdict}</p>
         <p className="max-w-prose text-body leading-6 text-foreground">{card.reason}</p>
       </div>
       <div className="flex flex-col gap-2 rounded-card bg-surface p-4 ring-1 ring-border">

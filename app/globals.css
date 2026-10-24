@@ -76,7 +76,7 @@
   /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
-    제목도 시스템 서체 굵게다(2026-10-24). 둥근 서체(고운돋움)는 브랜드 자리 — 서비스 이름과 인용 — 에만 `next/font` 로 싣는다(`app/layout.tsx`).
+    제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
   */
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
@@ -177,13 +177,13 @@
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
   --font-sans: var(--font-system);
-  /* 브랜드 자리의 둥근 서체(서비스 이름 · 인용) — 제목은 아니다(2026-10-24). 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
+  /* 제목 · 서비스 이름 · 인용의 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
 
   /*
     **글자 크기의 단** — 화면은 `text-small` 처럼 부르고 `text-[13px]` 로 다시 적지 않는다(잠금 `app/ui/scale.test.ts`).
-    2026-10-24 에 제목 단을 다시 골랐다(ADR 0109 추기 「제목은 시스템 서체 굵게다」) — 토스 TDS · 당근 SEED 의 단을 따라
-    26(화면 제목) · 20(구역 제목) · 17(카드 제목) · 15(본문) · 13(보조) · 12(캡션) · 11(딱지)이다. 글자 모양(크기 · 굵기 · 줄 높이)의
+    2026-10-24 에 제목 단을 다시 골랐다(ADR 0109 추기 「글자는 일곱 벌 · 모서리는 세 단」) — 토스 TDS · 당근 SEED 의 단을 따라
+    26(화면 제목, 넓은 화면 30) · 20(구역 제목) · 17(카드 제목) · 15(본문) · 13(보조) · 12(캡션) · 11(딱지)이다. 글자 모양(크기 · 굵기 · 줄 높이)의
     한 벌은 `app/ui/surfaces.ts` 의 `TYPE_*` 상수가 든다 — 화면은 크기 토큰보다 그 상수를 먼저 부른다.
     16px(`text-field`)은 글을 받는 칸의 바닥이고, 40px(`text-figure`)은 숫자 강조뿐이다. 줄 높이는 싣지 않는다(상수가 적는다).
   */
@@ -195,6 +195,8 @@
   --text-lead: 17px;
   --text-heading: 20px;
   --text-title: 26px;
+  /* 화면 제목의 넓은 화면(lg 이상) 한 단 — 운영자 2026-10-24 */
+  --text-display: 30px;
   --text-figure: 2.5rem;
   /*
     `note` 14px 는 작은 단추 · 알약 · 고르는 칸의 글자다 — Tailwind 의 `text-sm`(14px, 단추 상수가 부른다)과 같은 값이고,

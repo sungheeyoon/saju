@@ -91,26 +91,26 @@ export const EMPTY_SLOT_FACE = 'rounded-card border-2 border-dashed border-borde
 export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
 
 /*
-  **글자의 단 — 텍스트 스타일 일곱 벌**(ADR 0109 추기 2026-10-24). 크기 · 굵기 · 줄 높이를 한 벌로 묶었다 — 화면은 크기와 굵기를
-  따로 붙이지 않고 이 상수를 부른다. 값은 토스 TDS(Typography 2 · 4 · 5 · 6 · 7)와 당근 SEED(screenTitle 26/35 bold)의 단을 따랐다.
+  **글자의 단 — 텍스트 스타일 일곱 벌**(ADR 0109 추기 2026-10-24). 크기 · 서체 · 줄 높이를 한 벌로 묶었다 — 화면은 크기를
+  따로 붙이지 않고 이 상수를 부른다. 크기는 토스 TDS(Typography 2 · 4 · 5 · 6 · 7)와 당근 SEED(screenTitle 26/35)의 단을 따랐다.
 
-  | 스타일 | 상수 | 크기/줄 높이 | 굵기 |
-  | 화면 제목 | `TYPE_TITLE` | 26/35 | 700 |
-  | 구역 제목 | `TYPE_SECTION` | 20/29 | 700 |
-  | 카드 제목 | `TYPE_NAME` | 17/24 | 600 |
-  | 본문 | `TYPE_BODY` | 15/24 | 400 |
-  | 보조 | `TYPE_META` | 13/20 | 500 |
-  | 캡션 | `TYPE_CAPTION` | 12/16 | 400 |
-  | 딱지 | `BADGE` · `STALE_CHIP` | 11 | 700 · 600 |
+  | 스타일 | 상수 | 크기/줄 높이 | 서체 · 굵기 |
+  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30 | 고운돋움 400 |
+  | 구역 제목 | `TYPE_SECTION` | 20/29 | 고운돋움 400 |
+  | 카드 제목 | `TYPE_NAME` | 17/24 | 고운돋움 400 |
+  | 본문 | `TYPE_BODY` | 15/24 | 시스템 400 |
+  | 보조 | `TYPE_META` | 13/20 | 시스템 500 |
+  | 캡션 | `TYPE_CAPTION` | 12/16 | 시스템 400 |
+  | 딱지 | `BADGE` · `STALE_CHIP` | 11 | 시스템 700 · 600 |
 
-  **제목은 시스템 서체 굵게다.** 고운돋움(`font-rounded`)은 굵기가 400 하나뿐이라, 600~700 인 라벨 · 단추 아래 서면 제목이 그
-  아래 글보다 가벼웠다(위계가 뒤집혔다). 둥근 서체는 브랜드 자리 — 서비스 이름과 인용 — 에만 남는다(`app/layout.tsx`).
-  12px 아래는 딱지(11px)뿐이다. 글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 — iOS Safari 가 초점에
-  화면을 확대한다(`app/ui/fields.test.ts`).
+  **제목 셋은 둥근 서체(`font-rounded`, 고운돋움)다** — 굵기가 400 하나뿐이라 굵기를 주지 않는다(주면 브라우저가 획을 덧칠한
+  가짜 굵기가 선다). 제목을 시스템 서체 굵게로 바꾸는 일은 운영자가 「아직 미적용」으로 보류했다(2026-10-24). 본문 · 단추 · 보조는
+  기기의 시스템 서체다. 12px 아래는 딱지(11px)뿐이다. 글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 —
+  iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
 */
 
-/** 화면 제목 — 화면의 `h1` 하나. 폭마다 크기를 바꾸지 않는다 */
-export const TYPE_TITLE = 'text-title font-bold leading-[1.35] tracking-[-0.02em] text-foreground';
+/** 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24) */
+export const TYPE_TITLE = 'font-rounded text-title leading-[1.35] tracking-[-0.02em] text-foreground lg:text-display';
 
 /**
  * 옛 「표시」 단(인사 · 빈 상태의 큰 말) — 화면 제목과 한 벌로 합쳤다. 대화 화면(`app/me/chat/empty.tsx`)이 나란히 고쳐지는
@@ -119,10 +119,10 @@ export const TYPE_TITLE = 'text-title font-bold leading-[1.35] tracking-[-0.02em
 export const TYPE_DISPLAY = TYPE_TITLE;
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
-export const TYPE_SECTION = 'text-heading font-bold leading-[1.45] tracking-[-0.01em] text-foreground';
+export const TYPE_SECTION = 'font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
 
 /** 카드 제목 — 사람 이름 · 카드 머리 · 창 제목 */
-export const TYPE_NAME = 'text-lead font-semibold leading-6 text-foreground';
+export const TYPE_NAME = 'font-rounded text-lead leading-6 text-foreground';
 
 /** 본문 — 설명 문단 · 카드 안의 글 */
 export const TYPE_BODY = 'text-body leading-6 text-foreground';
