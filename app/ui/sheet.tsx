@@ -24,7 +24,6 @@ export function DetailSheet({
   nickname,
   label,
   menu,
-  nameInBody = false,
   onClose,
   children,
 }: {
@@ -35,11 +34,6 @@ export function DetailSheet({
   label?: string;
   /** 머리의 닫기(X) 왼쪽에 서는 것 — 오늘의 인연은 신고 · 차단 「⋯」를 둔다 */
   menu?: ReactNode;
-  /**
-   * 이름이 머리가 아니라 본문(사진 아래)에 선다 — 상대 프로필 시트(`app/me/partner-sheet.tsx`). 머리의 제목은 보조기기에만
-   * 읽히고, 본문의 이름은 보이기만 한다(한 이름을 두 번 읽지 않게)
-   */
-  nameInBody?: boolean;
   /** 판이 닫힌 뒤 — 어느 길(X · Esc · 바깥 · 끌기)로 닫혀도 한 번 */
   onClose?: () => void;
   children: ReactNode;
@@ -62,11 +56,11 @@ export function DetailSheet({
         폭은 40rem 에서 멈추고 가운데 선다 — ⓘ 는 `lg` 아래에서 열리므로 640~1023px 에서 시트가 화면 끝까지 늘어나 한 줄이
         너무 길었다(화면 감사 2026-10-09). 폰 폭에서는 그대로 꽉 찬다.
       */
-      className={`mx-auto mb-0 mt-auto max-h-[85dvh] w-full ${nameInBody ? 'max-w-[28rem]' : 'max-w-[40rem]'} overflow-y-auto overscroll-contain rounded-t-card bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:max-h-[min(85dvh,48rem)] lg:rounded-card lg:shadow-float`}
+      className="mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-[40rem] overflow-y-auto overscroll-contain rounded-t-card bg-background p-0 text-foreground backdrop:bg-black/40 lg:my-auto lg:max-h-[min(85dvh,48rem)] lg:rounded-card lg:shadow-float"
     >
       <div className="flex flex-col gap-4 px-5 pb-10 lg:px-6 lg:pb-6">
         <div
-          className={`sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col ${nameInBody ? 'gap-1' : 'gap-2'} bg-background px-5 pb-1 pt-3 lg:-mx-6 lg:touch-auto lg:px-6 lg:pt-5`}
+          className="sticky top-0 z-10 -mx-5 flex touch-none select-none flex-col gap-2 bg-background px-5 pb-1 pt-3 lg:-mx-6 lg:touch-auto lg:px-6 lg:pt-5"
           onPointerDown={(event) => {
             if (wideSheet()) return;
             press.current = event.clientY;
@@ -82,7 +76,7 @@ export function DetailSheet({
         >
           <span aria-hidden="true" className="mx-auto h-1.5 w-10 rounded-full bg-border-strong lg:hidden" />
           <div className="flex items-center justify-between gap-3">
-            <h2 className={nameInBody ? 'sr-only' : `min-w-0 truncate ${TYPE_SECTION}`}>{nickname}</h2>
+            <h2 className={`min-w-0 truncate ${TYPE_SECTION}`}>{nickname}</h2>
             <span className="ml-auto flex shrink-0 items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
               {menu}
               {/* 보는 판을 닫는 것은 오른쪽 위 X 한 벌이다 — 관계 지도 카드 · 신고 창과 같은 모양, 이름은 「닫기」(ADR 0166) */}

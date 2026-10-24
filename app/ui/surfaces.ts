@@ -112,12 +112,6 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
 /** 화면 제목 — 화면의 `h1` 하나. 넓은 화면(lg 이상)만 한 단 키운다(운영자 2026-10-24) */
 export const TYPE_TITLE = 'font-rounded text-title leading-[1.35] tracking-[-0.02em] text-foreground lg:text-display';
 
-/**
- * 옛 「표시」 단(인사 · 빈 상태의 큰 말) — 화면 제목과 한 벌로 합쳤다. 대화 화면(`app/me/chat/empty.tsx`)이 나란히 고쳐지는
- * 동안만 이름이 남는다 — 새 자리는 `TYPE_TITLE` 을 부른다
- */
-export const TYPE_DISPLAY = TYPE_TITLE;
-
 /** 구역 제목 — 카드 · 구역의 `h2` */
 export const TYPE_SECTION = 'font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
 

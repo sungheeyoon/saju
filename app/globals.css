@@ -203,8 +203,6 @@
     둘을 하나로 걷는 일은 다음 라운드다. 글 문단은 14px 를 쓰지 않고 본문(15px)을 쓴다.
   */
   --text-note: 14px;
-  /* **옛 이름** — 구역 제목(20px)과 같은 값. 나란히 고치는 대화 화면이 아직 부른다 — 새 자리는 `text-heading`, 쓰는 수는 줄기만 한다(`scale.test.ts`) */
-  --text-section: 20px;
 
   /*
     **모서리는 세 단이다**(2026-10-24, ADR 0109 추기) — 카드(`rounded-card` 20px) · 칸(`rounded-cell` 12px) · 알약(`rounded-full`).

@@ -18,10 +18,14 @@ export const MESSAGE_ID = 'data-message-id';
  * 위에서 읽는 중이면 합치기 직전에 맨 위에 보이는 말풍선과 그 높이를 재어 두고, 그린 뒤 그 말풍선이 같은 높이에 오게
  * 스크롤을 옮긴다 — 아래에 새 말이 붙든 위에 이전 말이 붙든 같은 규칙이다. 브라우저의 스크롤 고정이 이미 지켰으면
  * 옮길 것이 0 이다.
+ *
+ * **재는 것은 줄의 아래 끝이다**(2026-10-24). 줄의 머리(상대 묶음의 첫 말 위 이름 · 묶음 사이 여백)는 앞에 이전 말이 붙으면
+ * 사라질 수 있다 — 같은 사람의 말이 3분 안에 앞에 서면 그 줄은 더는 묶음의 첫 말이 아니다. 위 끝을 재면 머리가 빠진 만큼
+ * 말풍선이 위로 밀렸다. 말풍선은 줄의 아래에 붙어 있으니 아래 끝이 곧 말풍선의 자리다.
  */
 export function useScrollKeeper(messages: readonly ShownMessage[]) {
   const log = useRef<HTMLDivElement>(null);
-  const anchor = useRef<{ id: string; top: number } | null>(null);
+  const anchor = useRef<{ id: string; bottom: number } | null>(null);
   /** 위에서 읽는 동안 상대의 새 말이 왔다 — 「새 메시지」 단추가 선다 */
   const [fresh, setFresh] = useState(false);
 
@@ -40,7 +44,7 @@ export function useScrollKeeper(messages: readonly ShownMessage[]) {
       for (const row of element.querySelectorAll(`[${MESSAGE_ID}]`)) {
         const box = row.getBoundingClientRect();
         if (box.bottom > top) {
-          anchor.current = { id: row.getAttribute(MESSAGE_ID) ?? '', top: box.top };
+          anchor.current = { id: row.getAttribute(MESSAGE_ID) ?? '', bottom: box.bottom };
           break;
         }
       }
@@ -57,7 +61,7 @@ export function useScrollKeeper(messages: readonly ShownMessage[]) {
     if (keep === null || element === null) return;
     const row = element.querySelector(`[${MESSAGE_ID}="${CSS.escape(keep.id)}"]`);
     if (row === null) return;
-    const moved = row.getBoundingClientRect().top - keep.top;
+    const moved = row.getBoundingClientRect().bottom - keep.bottom;
     if (moved !== 0) element.scrollTop += moved;
   }, [messages]);
 

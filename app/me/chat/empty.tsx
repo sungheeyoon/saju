@@ -5,7 +5,7 @@ import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat/copy';
 import { ELEMENT_TONE } from '../../ui/element-tone';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { TYPE_DISPLAY } from '../../ui/surfaces';
+import { TYPE_TITLE } from '../../ui/surfaces';
 
 /**
  * **아직 방이 없을 때** — 목록 판(`RoomListPanel`) 안에 선다. 폰은 제목 아래 크림 판에 그림과 함께, 넓은 화면은 21rem 판 안에
@@ -19,7 +19,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
     <section className="flex flex-col items-center gap-6 rounded-paper bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
       <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem] lg:hidden" />
       <div className="flex max-w-md flex-col gap-2">
-        <h2 className={`${TYPE_DISPLAY} lg:text-heading lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
+        <h2 className={`${TYPE_TITLE} lg:text-heading! lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
         <p className="text-body leading-6 text-secondary lg:text-note lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
       </div>
       {hasSelf ? (

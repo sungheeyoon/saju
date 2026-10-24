@@ -16,6 +16,7 @@ import {
   CHAT_EMPTY_TITLE,
   CHAT_INPUT_PLACEHOLDER,
   CHAT_SEND_LABEL,
+  MY_PROFILE_EDIT_LABEL,
   SEND_DROP_LABEL,
   SEND_FAILED_LABEL,
   SEND_RETRY_LABEL,
@@ -75,9 +76,10 @@ const talkOf = (person: Person) => person.page.getByRole('log', { name: '메시�
 
 /**
  * 신고 · 차단은 방 머리의 「⋯」 안에 있다. 여는 자리는 `<summary>` 라 단추 역할이 아니다 — 이름(aria-label)으로 찾는다
- * (계정 메뉴의 `설정 메뉴` 와 같다)
+ * (계정 메뉴의 `설정 메뉴` 와 같다). 대화방의 「⋯」는 맨 위에 「내 프로필」도 들어 이름이 「메뉴」다(2026-10-24)
  */
-const roomMenuOf = (person: Person) => person.page.getByLabel('신고 · 차단', { exact: true });
+const roomMenuOf = (person: Person) =>
+  person.page.locator('[data-chat-room] header').getByLabel('메뉴', { exact: true });
 
 /** 못 보낸 말 곁의 실패 단추 — 이것도 `<summary>` 다 */
 const failedMenuOf = (person: Person) => talkOf(person).getByLabel(SEND_FAILED_LABEL, { exact: true });
@@ -201,6 +203,23 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.goto(`/me/match/${matchId}`);
     await expect(lit).toContainText(/^인연/);
     await expect(a.page.getByRole('main').getByRole('link', { name: '인연', exact: true })).toHaveAttribute('href', '/me/matching');
+  });
+
+  /*
+    내 프로필은 방 머리 「⋯」 맨 위에 있다(카카오톡 채팅방 서랍의 「대화상대 — 나」, 2026-10-24). 상대가 보는 것과 같은 시트에 내
+    지금 모습이 서고, 「프로필 편집」이 프로필 화면으로 간다. 시트에는 신고 · 차단이 없다
+  */
+  test('방 머리 「⋯」의 「내 프로필」이 내 시트를 열고 「프로필 편집」이 프로필 화면으로 간다', async ({ openAs }) => {
+    const { b, tag, room } = await pair(openAs);
+
+    await b.page.goto(room);
+    await roomMenuOf(b).click();
+    await b.page.locator('[data-chat-room] header').getByRole('button', { name: '내 프로필', exact: true }).click();
+    const sheet = b.page.getByRole('dialog', { name: `나${tag} 님 자세히` });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByLabel('신고 · 차단', { exact: true })).toHaveCount(0);
+    await sheet.getByRole('link', { name: MY_PROFILE_EDIT_LABEL, exact: true }).click();
+    await expect(b.page).toHaveURL(/\/me\/profile$/);
   });
 
   test('상대의 접속 상태가 방 안과 후보 카드에 구간으로 선다 — 시각은 없다', async ({ openAs }) => {
@@ -455,6 +474,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const opener = roomMenuOf(a);
     const report = a.page.getByRole('button', { name: '신고', exact: true });
     const block = a.page.getByRole('button', { name: '차단', exact: true });
+    /* 판의 첫 줄은 「내 프로필」이다(2026-10-24) — 첫머리 「나」 카드도 같은 이름이라 머리 안에서 찾는다 */
+    const myProfile = a.page.locator('[data-chat-room] header').getByRole('button', { name: '내 프로필', exact: true });
 
     // 여는 자리로 열린다
     await opener.click();
@@ -469,6 +490,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await opener.focus();
     await a.page.keyboard.press('Enter');
     await expect(report).toBeVisible();
+    await a.page.keyboard.press('Tab');
+    await expect(myProfile).toBeFocused();
     await a.page.keyboard.press('Tab');
     await expect(report).toBeFocused();
     await a.page.keyboard.press('Escape');

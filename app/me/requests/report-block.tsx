@@ -35,11 +35,21 @@ import { FailureLine } from '../../ui/failure-line';
 const FIELD =
   'rounded-cell bg-surface px-3 text-field text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)]';
 
+/** 「⋯」를 읽는 이름 — 신고 · 차단만 든 판 */
+const REPORT_BLOCK_MENU_LABEL = '신고 · 차단';
+/** 대화방 머리의 「⋯」를 읽는 이름 — 「내 프로필」까지 든 판(카카오톡 채팅방의 ☰ 「메뉴」) */
+const ROOM_MENU_LABEL = '메뉴';
+/** 대화방 메뉴의 첫 줄 — 상대에게 보이는 내 모습을 연다(카카오톡 친구 탭 · 채팅방 서랍의 「내 프로필」) */
+export const MY_PROFILE_LABEL = '내 프로필';
+
 /** 「⋯」가 서는 판 — 흰 판 위(`plain`)인가 사진 위(`photo`)인가 */
 export type MenuLook = 'plain' | 'photo';
 
 /**
  * 「⋯」 — 신고 · 차단. `canBlock` 이 거짓이면(닫힌 방 — 이미 끊겼다) 신고만 남는다.
+ *
+ * **대화방은 맨 위에 「내 프로필」을 하나 더 둔다**(`onMyProfile`, 2026-10-24) — 카카오톡 채팅방 서랍이 대화상대 맨 위에 「나」를
+ * 세우는 자리다. 그때는 판이 신고 · 차단만의 것이 아니므로 여는 자리의 이름이 「메뉴」다(`ROOM_MENU_LABEL`).
  *
  * 여는 방식은 계정 메뉴 · 사람 관리 메뉴와 같다 — `<details>` 하나에 바깥 누름과 Esc 로 닫는 자리를 단다
  * (`useDetailsMenu`). Esc 로 닫으면 초점이 「⋯」로 돌아온다. 고르면 먼저 닫고 그 칸을 세운다.
@@ -50,12 +60,15 @@ export function ReportBlockMenu({
   onBlock,
   look = 'plain',
   className = '',
+  onMyProfile,
 }: {
   canBlock: boolean;
   onReport: () => void;
   onBlock: () => void;
   look?: MenuLook;
   className?: string;
+  /** 대화방만 — 주면 맨 위에 「내 프로필」이 선다 */
+  onMyProfile?: () => void;
 }) {
   const { menu, close } = useDetailsMenu();
   const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-cell px-3 text-left text-body font-semibold hover:bg-surface-soft active:bg-surface-sunken';
@@ -63,12 +76,28 @@ export function ReportBlockMenu({
   return (
     <details ref={menu} className={`${className || 'relative'} shrink-0`}>
       <summary
-        aria-label="신고 · 차단"
+        aria-label={onMyProfile === undefined ? REPORT_BLOCK_MENU_LABEL : ROOM_MENU_LABEL}
         className={`${look === 'photo' ? ICON_BUTTON_ON_PHOTO : ICON_BUTTON_GHOST} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
         <Icon name="more" />
       </summary>
       <div className={`${MENU_PANEL} absolute right-0 top-12 z-20 flex w-48 flex-col p-1.5`}>
+        {onMyProfile !== undefined && (
+          <>
+            <button
+              type="button"
+              className={`${item} text-foreground`}
+              onClick={() => {
+                close();
+                onMyProfile();
+              }}
+            >
+              <Icon name="people" className="size-[18px]" />
+              {MY_PROFILE_LABEL}
+            </button>
+            <span aria-hidden="true" className="mx-3 my-1 h-px bg-border" />
+          </>
+        )}
         <button
           type="button"
           className={`${item} text-foreground`}

@@ -40,3 +40,8 @@ export const OLDER_LOADING_LABEL = '불러오는 중…';
 export const SEND_FAILED_LABEL = '전송하지 못했어요';
 export const SEND_RETRY_LABEL = '다시 보내기';
 export const SEND_DROP_LABEL = '삭제';
+
+/**
+ * 「내 프로필」 시트의 단추 — 프로필 화면으로 간다(2026-10-24, 대장 matching 「확인 전」). 카카오톡 내 프로필의 「프로필 편집」.
+ */
+export const MY_PROFILE_EDIT_LABEL = '프로필 편집';

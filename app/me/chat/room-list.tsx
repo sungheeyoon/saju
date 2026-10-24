@@ -81,7 +81,7 @@ export function RoomListPanel({ titleLevel, children }: { titleLevel: 'h1' | 'h2
       aria-label="대화방 목록"
       className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-paper lg:bg-surface lg:ring-1 lg:ring-border"
     >
-      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-section`}>{CHAT_TAB_LABEL}</Title>
+      <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-heading!`}>{CHAT_TAB_LABEL}</Title>
       {children}
     </section>
   );

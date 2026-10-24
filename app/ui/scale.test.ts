@@ -174,9 +174,10 @@ describe('텍스트 스타일 일곱 벌(ADR 0109 추기 2026-10-24)', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('옛 이름(표시 단 · 구역 글자 크기)은 나란히 고치는 화면에만 남는다', () => {
-    expect(countBy(/(?<![\w-])TYPE_DISPLAY(?![\w-])/g)).toEqual({ 'app/ui/surfaces.ts': 1, 'app/me/chat/empty.tsx': 2 });
-    expect(countBy(/(?<![\w-])text-section(?![\w-])/g)).toEqual({ 'app/me/chat/room-list.tsx': 1 });
+  it('옛 이름(표시 단 `TYPE_DISPLAY` · 24px `text-section` · 32px `text-headline`)은 다시 서지 않는다', () => {
+    expect(countBy(/(?<![\w-])(?:TYPE_DISPLAY|text-section|text-headline)(?![\w-])/g)).toEqual({});
+    expect(Object.keys(text)).not.toContain('section');
+    expect(Object.keys(text)).not.toContain('headline');
   });
 });
 
