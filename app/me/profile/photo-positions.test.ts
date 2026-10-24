@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { menuAlign, positionOf, serverPosition } from './photo-positions';
+import { positionOf, serverPosition } from './photo-positions';
 import type { MyPhoto } from './photos';
 
 describe('사진의 자리', () => {
@@ -16,12 +16,5 @@ describe('사진의 자리', () => {
     expect(serverPosition(list, new Set([10]), 30)).toBe(2);
     expect(serverPosition(list, new Set([30]), 30)).toBeNull();
     expect(serverPosition(list, new Set(), 99)).toBeNull();
-  });
-
-  it('메뉴 판은 대표 칸 안 · 셋째 줄 왼쪽 · 가운데 · 그 밖은 오른쪽에 붙는다', () => {
-    expect(menuAlign(1)).toBe('left-3 top-3');
-    expect(menuAlign(4)).toBe('left-0 top-full mt-1.5');
-    expect(menuAlign(5)).toBe('left-1/2 top-full mt-1.5 -translate-x-1/2');
-    expect([2, 3, 6].map(menuAlign)).toEqual(Array(3).fill('right-0 top-full mt-1.5'));
   });
 });

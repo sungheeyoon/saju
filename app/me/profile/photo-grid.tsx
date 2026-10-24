@@ -20,30 +20,40 @@ import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { movePhoto } from './actions';
 import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
-import { PhotoMenu, type MenuChoice } from './photo-menu';
-import { menuAlign, positionOf } from './photo-positions';
-import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
+import type { ActionChoice } from '../../ui/action-sheet';
+import { PhotoMenu } from './photo-menu';
+import { PhotoViewer } from './photo-viewer';
+import { positionOf } from './photo-positions';
+import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_NOTE, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
 import type { MyPhoto } from './photos';
 import { usePhotoDrag } from './use-photo-drag';
 import { usePhotoRemoval } from './use-photo-removal';
 import { usePhotoUploads, type Upload } from './use-photo-uploads';
 import { FailureLine } from '../../ui/failure-line';
+import { Icon } from '../../ui/icons';
 
 /** 빈 칸보다 많이 골랐을 때 — 앞의 장만 올리고 이 한 줄을 남긴다 */
 const PHOTO_LIMIT_NOTE = `${PHOTO_MAX_COUNT}장까지 올릴 수 있어요`;
 /** 사진 판의 첫 줄 — 저장 단추가 사진을 안 든다는 말(대장 40) */
 const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
+/** 사진 판의 이름 — 닉네임 · 소개 칸의 이름과 같은 자리(대장 settings-07) */
+const PHOTO_SECTION_TITLE = '프로필 사진';
+/** 두 장 이상일 때 격자 아래 — 길게 눌러 옮기는 길이 눈에 안 보였다(대장 settings-07) */
+const PHOTO_REORDER_HINT = '사진을 길게 눌러 순서를 바꿀 수 있어요';
 
 /**
  * 사진 여섯 칸 — **첫 칸이 두 배라 대표 사진으로 읽힌다**(G-60, 운영자 2026-09-25 시안).
  *
  * - 사진 칸을 **길게 누르면 들리고**, 끌어 다른 사진 칸에 두면 그 자리로 옮겨 앉는다 — 사이의 장이
  *   한 칸씩 밀린다(`movedPhotos` · DB 의 `move_my_photo` 가 같은 뜻). 키보드는 ← → 로 한 칸씩.
- * - 사진 칸을 **누르면 메뉴**가 열린다 — 「사진 변경」 · 「대표로 설정」(대표가 아닐 때) · 「삭제」(조율자 지시 2026-10-11).
- *   누름과 길게 누름을 가른다 — 들린 뒤에 손을 떼면 메뉴가 안 열린다. 메뉴는 `<details>` 한 벌(`useDetailsMenu`)이다.
- * - × 가 그 장을 내린다(메뉴의 「삭제」와 같은 일). 뒤의 장이 당겨 앉는다.
+ * - 사진 칸을 **누르면 그 장을 크게 본다**(`PhotoViewer` — 폰은 전체 화면, 넓은 화면은 가운데 큰 판, 운영자 2026-10-24). 머리는 왼쪽
+ *   위 × · 가운데 「2 / 3」(첫 장이면 「대표」) · 오른쪽 위 「⋯」이고, 좌우로 쓸어넘기면 다른 장이다. 「⋯」가 아래 판(`ActionSheet`)을
+ *   연다 — 「대표로 설정」(대표가 아닐 때) · 「사진 변경」 · 「위치 조정」, 선 하나 뒤에 붉은 「삭제」. 누름과 길게 누름을 가른다 —
+ *   들린 뒤에 손을 떼면 보기가 안 열린다.
+ * - 사진 귀퉁이의 작은 × 는 메뉴의 「삭제」와 같은 일이다 — 둘 다 확인 창을 먼저 연다(ADR 0205). 사진 위에 얹는 단추 꼴
+ *   (`ICON_BUTTON_ON_PHOTO_FACE` 와 같은 반투명 검정, 크기만 작게)이라 먹색 큰 원처럼 사진보다 먼저 눈에 띄지 않는다.
  * - 빈 칸의 + 가 올린다. 어느 빈 칸을 눌러도 **맨 뒤에** 앉는다 — 자리는 빈틈없이 1..k 다.
- * - 첫 칸에 「대표」 딱지가 선다.
+ * - 첫 칸에 「대표」 딱지가 선다. 판 머리에 「프로필 사진」과 찬 장 수(3/6), 두 장 이상이면 격자 아래에 길게 눌러 옮기는 법이 선다.
  *
  * ## 사진 변경은 그 칸에서 바뀐다
  *
@@ -69,8 +79,8 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
  *
  * ## 지우기는 묻고 나서 한다
  *
- * × · 메뉴의 「삭제」는 확인 창(`ConfirmDialog`, 첫 초점 「취소」)을 연다 — 「사진을 삭제할까요?」 [삭제] [취소](운영자 2026-10-23,
- * ADR 0205). 「삭제」를 누르면 창이 「삭제 중…」으로 선 채 서버에서 지우고, 지우면 창이 닫히고 상태 줄이 「사진을 지웠어요」를
+ * × · 메뉴의 「삭제」는 확인 창(`ConfirmDialog`, 첫 초점 「취소」)을 연다 — 「사진을 삭제할까요?」 · 「삭제한 사진은 되돌릴 수
+ * 없어요.」 · [취소] [삭제] 나란히(운영자 2026-10-23, ADR 0205 · 추기 2026-10-24). 「삭제」를 누르면 창이 「삭제 중…」으로 선 채 서버에서 지우고, 지우면 창이 닫히고 상태 줄이 「사진을 지웠어요」를
  * 잠깐 말한다. 거절되면 창 안에 까닭이 선다. 실행 취소 띠는 없다 — 묻고 나서 또 되돌리기를 세우면 겹친다(ADR 0165 의 3 을 걷었다).
  *
  * 순서는 서버 답을 기다리지 않고 먼저 옮겨 그린다(`useOptimistic`). 서버가 거절하면 서버가 준 순서로
@@ -216,6 +226,16 @@ export function PhotoGrid({
     });
   };
 
+  /** 크게 보는 장의 칸 번호 — 사진 칸을 누르면 선다 */
+  const [viewing, setViewing] = useState<number | null>(null);
+  /** 크게 보기의 「⋯」 판 — 자주 하는 일이 위(대표로 올리기 · 바꾸기 · 자리 맞추기), 지우기는 선 뒤 맨 아래 */
+  const choicesFor = (photo: MyPhoto, position: number): ActionChoice[] => [
+    ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
+    ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
+    { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
+    { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
+  ];
+
   const { lift, gridRef, onPointerDown, onPointerMove, onPointerUp, endPress, takeSwallowedClick } = usePhotoDrag({
     busy,
     total,
@@ -231,18 +251,11 @@ export function PhotoGrid({
     const under = replaced?.url ?? backdrop.get(photo.version)?.url;
     const underFocus = replaced?.focus ?? backdrop.get(photo.version)?.focus ?? FOCUS_CENTER;
     const focus = focusOfPhoto(photo);
-    const items: MenuChoice[] = [
-      ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
-      { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
-      ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
-      { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
-    ];
     return (
       <div data-photo-slot={position} className="relative h-full w-full">
         <PhotoMenu
-          align={menuAlign(position)}
-          items={items}
-          summary={{
+          onOpen={() => setViewing(position)}
+          opener={{
             ref: (element) => {
               slotRefs.current[position - 1] = element;
             },
@@ -254,7 +267,7 @@ export function PhotoGrid({
             onPointerCancel: endPress,
             onContextMenu: (event) => event.preventDefault(),
             onClick: (event) => {
-              /* 들었다 놓은 누름 · 처리하는 동안의 누름은 메뉴를 안 연다 */
+              /* 들었다 놓은 누름 · 처리하는 동안의 누름은 크게 보기를 안 연다 */
               if (takeSwallowedClick() || busy) event.preventDefault();
             },
             onKeyDown: (event) => {
@@ -268,7 +281,7 @@ export function PhotoGrid({
                 move(position, position + 1);
               }
             },
-            className: `block h-full w-full cursor-grab list-none touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] [&::-webkit-details-marker]:hidden focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
+            className: `block h-full w-full cursor-grab touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] ${
               target ? 'ring-4 ring-accent' : ''
             }`,
           }}
@@ -313,18 +326,19 @@ export function PhotoGrid({
             )}
           </span>
         </PhotoMenu>
+        {/* 귀퉁이의 × — 누름 자리는 44px, 보이는 원은 26px 로 사진 안쪽에 앉는다(밖으로 삐져나와 옆 칸과 겹치지 않게) */}
         <button
           type="button"
           onClick={() => remove(position)}
           disabled={busy}
           aria-label="사진 지우기"
-          className="absolute -right-1 -top-1 z-10 grid size-11 place-items-center rounded-full disabled:opacity-55"
+          className="absolute right-0 top-0 z-10 grid size-11 place-items-center rounded-full disabled:opacity-55"
         >
           <span
             aria-hidden="true"
-            className="grid size-7 place-items-center rounded-full bg-foreground text-body leading-none text-surface ring-2 ring-surface"
+            className="grid size-[1.625rem] place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/40 backdrop-blur-sm"
           >
-            ×
+            <Icon name="close" className="size-3.5" />
           </span>
         </button>
       </div>
@@ -360,15 +374,21 @@ export function PhotoGrid({
       <label
         htmlFor={inputId}
         aria-hidden={first ? undefined : true}
-        className={`grid h-full w-full cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border-strong bg-surface text-2xl font-semibold text-muted ${
+        className={`grid h-full w-full cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border-strong bg-surface text-muted hover:border-accent hover:text-foreground ${
           first
             ? 'has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]'
             : ''
         } ${busy ? 'cursor-progress opacity-60' : ''}`}
       >
-        <span className={bare ? 'flex flex-col items-center gap-1' : undefined}>
-          <span aria-hidden="true">+</span>
-          {bare && <span className="text-body text-secondary">{PHOTO_ADD}</span>}
+        <span className="flex flex-col items-center gap-2">
+          {/* + 는 동그란 면 위에 — 빈 칸이 「누르는 자리」로 읽힌다. 다음에 찰 칸만 먹색, 나머지는 옅게 */}
+          <span
+            aria-hidden="true"
+            className={`grid place-items-center rounded-full ${first ? 'bg-accent text-surface' : 'bg-surface-sunken text-secondary'} ${bare ? 'size-12' : 'size-8'}`}
+          >
+            <Icon name="plus" className={bare ? 'size-6' : 'size-4.5'} />
+          </span>
+          {bare && <span className="text-body font-semibold text-secondary">{PHOTO_ADD}</span>}
         </span>
         {first && (
           <>
@@ -404,13 +424,22 @@ export function PhotoGrid({
 
   return (
     <section className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
-      {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
-      {paused ? (
-        /* 올리기가 멈춘 동안 — 첫 줄이 그 까닭이다(대장 settings-05). DB 의 거절도 같은 글자다 */
-        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_UPLOADS_PAUSED}</p>
-      ) : (
-        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
-      )}
+      <header className="flex flex-col gap-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-body font-semibold text-foreground">{PHOTO_SECTION_TITLE}</h2>
+          {/* 찬 장 수 — 소개 칸의 글자 수(12/300)와 같은 꼴 */}
+          <p className="text-small font-medium leading-5 tabular-nums text-cream-ink">
+            {total}/{PHOTO_MAX_COUNT}
+          </p>
+        </div>
+        {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
+        {paused ? (
+          /* 올리기가 멈춘 동안 — 첫 줄이 그 까닭이다(대장 settings-05). DB 의 거절도 같은 글자다 */
+          <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_UPLOADS_PAUSED}</p>
+        ) : (
+          <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+        )}
+      </header>
       {/* 「사진 변경」의 기기 사진 창 — 한 장만. 메뉴의 누름이 연다 */}
       <input
         ref={replaceInput}
@@ -435,6 +464,7 @@ export function PhotoGrid({
           </div>
         ))}
       </div>
+      {total >= 2 && <p className="-mt-1 text-small leading-5 text-cream-ink">{PHOTO_REORDER_HINT}</p>}
 
       {/* 상태 한 줄 — 올리는 동안 · 끝난 뒤 잠깐. 상자는 늘 서 있어 바뀐 글자를 화면 읽기가 읽는다 */}
       <DoneNote className="text-note font-medium leading-5 text-foreground">
@@ -444,31 +474,32 @@ export function PhotoGrid({
       </DoneNote>
 
       <p className="text-small leading-5 text-cream-ink">{PHOTO_NOTE}</p>
+      <PhotoViewer
+        userId={userId}
+        photos={shown}
+        at={viewing}
+        onAt={setViewing}
+        onClose={() => setViewing(null)}
+        choicesFor={choicesFor}
+      />
       <PhotoFramer {...framer} />
-      {/* 지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다 */}
+      {/*
+        지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다. 그림 없이 제목 · 한 줄 ·
+        나란한 두 단추다 — 카카오톡 · 토스 · 당근 · iOS · 안드로이드의 삭제 확인 창이 다 그 꼴이다(ADR 0205 추기, 2026-10-24)
+      */}
       <ConfirmDialog
         open={asking !== null}
         onClose={() => answer('cancel')}
-        lead={
-          asking === null ? undefined : (
-            /* 지울 그 장 — 칸과 같은 주소 · 같은 보일 자리(이미 받아 둔 그림이라 곧바로 선다) */
-            <span
-              aria-hidden="true"
-              className="block aspect-[3/4] w-20 rounded-2xl bg-surface-sunken bg-cover"
-              style={{
-                backgroundImage: `url(/me/photo/${userId}/${asking.position}?v=${asking.version}&s=card)`,
-                backgroundPosition: focusPosition(focusOfPhoto(asking)),
-              }}
-            />
-          )
-        }
         title={PHOTO_REMOVE_TITLE}
+        actions="row"
         confirmLabel={working ? '삭제 중…' : PHOTO_REMOVE_CONFIRM}
         onConfirm={() => answer('confirm')}
         danger
         busy={working}
         failure={askFailure}
-      />
+      >
+        <p>{PHOTO_REMOVE_NOTE}</p>
+      </ConfirmDialog>
       {failure !== null && (
         <FailureLine>{failure}</FailureLine>
       )}

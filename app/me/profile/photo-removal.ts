@@ -1,6 +1,8 @@
 /** 사진 지우기를 묻는 창의 글자(대장 settings-06) */
 export const PHOTO_REMOVE_TITLE = '사진을 삭제할까요?';
 export const PHOTO_REMOVE_CONFIRM = '삭제';
+/** 창의 한 줄 — 지운 장은 되살릴 길이 없다(대장 settings-07) */
+export const PHOTO_REMOVE_NOTE = '삭제한 사진은 되돌릴 수 없어요.';
 /** 지운 뒤 상태 줄(대장 36) */
 export const PHOTO_REMOVED = '사진을 지웠어요';
 

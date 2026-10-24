@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react';
 
 import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from './buttons';
-import { DIALOG, DIALOG_ACTIONS, TYPE_NAME } from './surfaces';
+import { DIALOG, DIALOG_ACTIONS, DIALOG_ACTIONS_ROW, TYPE_NAME } from './surfaces';
 import { FailureLine } from './failure-line';
 
 /**
@@ -61,6 +61,7 @@ export function ConfirmDialog({
   failure = null,
   firstFocus = 'cancel',
   cancelLabel = '취소',
+  actions = 'stack',
   className,
 }: {
   open: boolean;
@@ -80,6 +81,8 @@ export function ConfirmDialog({
   firstFocus?: 'cancel' | 'confirm';
   /** `null` 이면 「취소」를 안 세운다 — 고를 것이 없는 고지 */
   cancelLabel?: string | null;
+  /** 단추 줄 — `stack` 은 좁으면 위아래(기본), `row` 는 늘 나란히(짧은 두 단추, `DIALOG_ACTIONS_ROW`) */
+  actions?: 'stack' | 'row';
   /** 판에 덧붙이는 것 — 오행 색(`elementScope`) · 자리 */
   className?: string;
 }) {
@@ -124,7 +127,7 @@ export function ConfirmDialog({
       {failure !== null && failure !== undefined && (
         <FailureLine className="mt-3">{failure}</FailureLine>
       )}
-      <div className={DIALOG_ACTIONS}>
+      <div className={actions === 'row' ? DIALOG_ACTIONS_ROW : DIALOG_ACTIONS}>
         <button
           type="button"
           onClick={onConfirm}

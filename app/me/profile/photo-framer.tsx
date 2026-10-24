@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { draggedFocus, focusPosition, steppedFocus, type PhotoFocus } from '@/src/lib/profile';
 
@@ -82,10 +82,16 @@ function FocusFrame({
     자리가 `object-*` 와 같은 뜻이다.
   */
   const natural = useRef({ width: 0, height: 0 });
+  /*
+    크기를 잰 사진 — 그 전에 끌면 넘친 길이를 몰라 자리가 안 옮는다. 틀이 `data-measured` 를 달아 시험이 그 뒤에 끈다
+    (창이 서자마자 끈 시험이 사진이 오기 전에 끌어 가끔 붉었다, 2026-10-24)
+  */
+  const [measured, setMeasured] = useState<string | null>(null);
   useEffect(() => {
     const probe = new Image();
     probe.onload = () => {
       natural.current = { width: probe.naturalWidth, height: probe.naturalHeight };
+      setMeasured(src);
     };
     probe.src = src;
     return () => {
@@ -136,6 +142,7 @@ function FocusFrame({
           }
         : { 'aria-hidden': true })}
       data-focus-frame={keyboard ? 'main' : 'round'}
+      data-measured={measured === src ? '' : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={end}
