@@ -6,9 +6,10 @@ import type { PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
 
 import { Avatar } from './avatar';
+import { CandidatePhoto } from './matching/candidate-photo';
 import { CardPhotos } from './matching/card-photos';
 import { closeSheet, DetailSheet, openSheet } from '../ui/sheet';
-import { TYPE_SECTION } from '../ui/surfaces';
+import { TYPE_META } from '../ui/surfaces';
 
 /**
  * 매칭된 상대 한 사람 — **지금의** 사진 · 소개다(동의 당시의 것이 아니다). 서버가 이미 열린 문에서 지어 넘긴다 —
@@ -48,15 +49,29 @@ export type PartnerSheetControl = ReturnType<typeof usePartnerSheet>;
 /** 시트 · 머리 단추의 보조기기 이름 — 오늘의 인연 · 지나친 인연 시트와 같은 이름이다(문구 대장 43) */
 export const partnerSheetName = (nickname: string): string => `${nickname} 님 자세히`;
 
+/** 소개 구역의 이름 — 프로필 화면의 같은 칸 이름(「소개 (선택)」, `app/me/profile/form.tsx`)과 한 낱말이다 */
+const INTRO_HEADING = '소개';
+
 /**
- * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리의 사진이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
+ * 사진 판의 크기 — **세로 4:5 한 벌**(오늘의 인연 카드 · 한국 데이팅 앱의 프로필 상세와 같은 세로 사진). 폰은 시트 폭을 다 쓰되
+ * 높이가 화면의 56% 를 넘으면 폭을 줄여 4:5 를 지킨다 — 낮은 폰(375×667)에서도 사진 아래 궁합 단추가 첫 화면에 걸린다.
+ * 넓은 화면(lg)은 왼쪽 열 18rem 한 칸이다.
+ */
+const PHOTO_FRAME =
+  'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] select-none overflow-hidden rounded-card lg:mx-0 lg:max-w-none';
+
+/**
+ * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리 · 요청 카드의 얼굴이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
  *
- * 별도 화면이 아니라 시트다 — 방의 스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로 남는다. 모양은 오늘의 인연 ⓘ 시트
- * (`DetailSheet`) 한 벌이라 폰은 아래에서 올라오고 넓은 화면(lg)은 가운데 대화상자다. 위에서부터 사진 넘기기(오늘의 인연
- * 카드와 같은 판 `CardPhotos` — 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표) → 이름과 궁합 단추 → 소개 전문이고,
- * 머리에 「⋯」(신고 · 차단, 부르는 쪽이 준다)와 닫기가 선다. 사진이 없으면 사진 칸 대신 첫 글자 동그라미 하나, 소개가 없으면
- * 그 줄을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고(`CompatChip`), 인연
- * 궁합 화면 자신이 연 시트는 `null` 이라 안 선다.
+ * 별도 화면이 아니라 시트다 — 방의 스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로 남는다. 판은 오늘의 인연 ⓘ · 지나친 인연
+ * 시트(`DetailSheet`)와 같은 한 벌이라 **이름이 머리에 선다** — 시트를 내려 읽는 동안에도 누구인지가 남고, 그 줄 끝에 「⋯」(신고 ·
+ * 차단, 부르는 쪽이 준다)와 닫기가 선다(힌지 · 대화방 머리와 같은 줄). 폰은 아래에서 올라오고 넓은 화면(lg)은 가운데 대화상자다.
+ *
+ * 몸은 위에서부터 **사진(세로 4:5) → 궁합 단추(폭을 다 쓰는 한 줄) → 소개**다(스카이피플 · 아만다의 상세 — 사진 바로 아래 주 행동,
+ * 그 아래 구역). 넓은 화면은 사진이 왼쪽 열, 궁합 · 소개가 오른쪽 열이다. 사진 넘기기는 오늘의 인연 카드와 같은 판(`CardPhotos` —
+ * 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표). 사진이 없으면 그 사람의 색 판에 첫 글자(덱 카드와 같은 모양)가 낮은 띠로 선다.
+ * 소개가 없으면 그 구역을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고
+ * (`CompatChip` 의 `fill`), 인연 궁합 화면 · 요청 카드가 연 시트는 `null` 이라 안 선다.
  */
 export function PartnerSheet({
   control,
@@ -72,6 +87,15 @@ export function PartnerSheet({
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
+  const hasPhoto = partner.photoUrls.length > 0;
+  const face = {
+    candidateUserId: partner.userId,
+    nickname: partner.nickname,
+    hasPhoto,
+    photoUrls: partner.photoUrls,
+    photoFocus: partner.photoFocus,
+    avatarElement: partner.tone,
+  };
   return (
     <DetailSheet
       sheet={control.sheet}
@@ -79,40 +103,33 @@ export function PartnerSheet({
       label={partnerSheetName(partner.nickname)}
       menu={control.shown ? menu : null}
       onClose={control.closed}
-      nameInBody
     >
-      <div data-partner-sheet="" className="flex flex-col gap-4">
-        {partner.photoUrls.length > 0 ? (
-          <div
-            ref={frame}
-            className="relative aspect-square w-full select-none overflow-hidden rounded-card bg-surface-sunken lg:aspect-[4/5] lg:max-h-[42dvh]"
-          >
-            <CardPhotos
-              card={{
-                candidateUserId: partner.userId,
-                nickname: partner.nickname,
-                hasPhoto: true,
-                photoUrls: partner.photoUrls,
-                photoFocus: partner.photoFocus,
-                avatarElement: partner.tone,
-              }}
-              bounce={frame}
-            />
+      <div
+        data-partner-sheet=""
+        className={`flex flex-col gap-5 ${hasPhoto ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
+      >
+        {hasPhoto ? (
+          <div ref={frame} className={`${PHOTO_FRAME} bg-surface-sunken`}>
+            <CardPhotos card={face} bounce={frame} />
           </div>
         ) : (
-          <span className="self-center">
-            <Avatar userId={partner.userId} nickname={partner.nickname} hasPhoto={false} size={128} tone={partner.tone} />
-          </span>
+          /* 사진이 없는 사람 — 빈 사진 칸 대신 그 사람의 색 띠 하나. 덱 카드의 첫 글자 판과 같은 모양이다(`CandidatePhoto`) */
+          <div className="relative h-32 overflow-hidden rounded-card">
+            <CandidatePhoto card={face} initialClass="text-figure" />
+          </div>
         )}
-        {/* 이름은 머리의 제목(보조기기)이 이미 읽는다 — 여기는 보이기만 한다 */}
-        <div className="flex items-center justify-between gap-4">
-          <p aria-hidden="true" className={`${TYPE_SECTION} min-w-0 break-words`}>
-            {partner.nickname}
-          </p>
-          {toMatch !== null && <div className="shrink-0">{toMatch}</div>}
-        </div>
-        {intro !== null && (
-          <p className="whitespace-pre-wrap break-words text-body leading-7 text-foreground">{intro}</p>
+        {(toMatch !== null || intro !== null) && (
+          <div className="flex min-w-0 flex-col gap-5">
+            {toMatch}
+            {intro !== null && (
+              <section className="flex flex-col gap-2 border-t border-border pt-4">
+                <h3 className={TYPE_META}>
+                  {INTRO_HEADING}
+                </h3>
+                <p className="whitespace-pre-wrap break-words text-body leading-[1.7] text-foreground">{intro}</p>
+              </section>
+            )}
+          </div>
         )}
       </div>
     </DetailSheet>
