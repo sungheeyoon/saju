@@ -7,7 +7,7 @@
  * - **주**(`BUTTON_PRIMARY`): 먹색 채움 알약. 파스텔 위 어디에 놓여도 가장 먼저 보이도록 오행 색을 안 입는다. 한 영역에 하나.
  * - **보조**(`BUTTON_SECONDARY`): 흰 알약 + 가는 테.
  * - **셋째**(`BUTTON_TERTIARY`): 밑줄 글자(+ 화살표). 누를 자리는 글자보다 넓게 44px.
- * - **아이콘**(`ICON_BUTTON`): 동그란 흰 단추 44px — 종 · 톱니 · 닫기.
+ * - **아이콘**(`ICON_BUTTON`): 동그란 흰 단추 44px — 창의 닫기. 머리글의 풀이권 · 종 · 톱니는 테 없는 한 벌(`ICON_BUTTON_BARE`)이다.
  *
  * 누르면 조금 줄어든다(`active:scale`) — 손가락 아래에서 「눌렸다」를 말하는 유일한 신호라 빼지 않는다.
  * 비활성은 `disabled:` 로 흐려지고 줄지 않는다. 포커스 테는 `globals.css` 가 전역으로 세운다.
@@ -72,6 +72,16 @@ export const ICON_BUTTON_QUIET = `${ICON_BUTTON_SHAPE} bg-surface text-secondary
  * CSS 순서로 갈려 흰 면에 밝은 그림이 서서 그림이 사라졌다(소식 종, 2026-09-27). 색은 덧붙이지 말고 이 한 벌을 쓴다
  */
 export const ICON_BUTTON_ACTIVE = `${ICON_BUTTON_SHAPE} bg-accent text-on-accent ring-accent`;
+
+/**
+ * **머리글의 아이콘 단추** — 테도 면도 없는 44px(풀이권 · 종 · 톱니). 테 두른 흰 원 셋이 머리글에 나란히 서 무거웠다(2026-10-24 감사,
+ * ADR 0109 추기 「머리글 아이콘」). 당근 SEED Top Navigation 의 오른쪽 아이콘처럼 그림만 서고, 누를 자리는 그대로 44px 이며 올리거나
+ * 누르면 옅은 면이 비친다. 지금 선 자리(소식 화면의 종)는 가라앉은 면 한 벌(`ICON_BUTTON_BARE_ACTIVE`)이다 — 먹색 채움은 머리글에서
+ * 가장 먼저 보여 주 단추처럼 읽혔다.
+ */
+const ICON_BUTTON_BARE_SHAPE = 'relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-foreground active:scale-95';
+export const ICON_BUTTON_BARE = `${ICON_BUTTON_BARE_SHAPE} hover:bg-surface-soft`;
+export const ICON_BUTTON_BARE_ACTIVE = `${ICON_BUTTON_BARE_SHAPE} bg-surface-sunken`;
 
 /**
  * 오행 판(`tone-*`) 안의 보조 — 반투명 흰 면이 판의 색을 조금 비치고, 글자는 그 오행의 진한 색이다.

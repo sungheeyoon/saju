@@ -1937,15 +1937,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없어요' })).toBeVisible();
     /*
-      「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
-      표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
+      빈 화면은 만드는 자리로 **곧장** 가는 단추 하나를 세운다(빈 상태 한 벌, 2026-10-24) — 내 사주가 있는 사람에게는 내 사주풀이
+      화면이다. 저장한 사람 · 궁합은 한 줄이 어디서 시작하는지 말하고 아래 탭이 그 길을 든다.
     */
     const mine = page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true });
     await expect(mine).toHaveAttribute('href', '/me/readings/self');
-    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람 보기', exact: true })).toHaveAttribute(
-      'href',
-      '/me/people',
-    );
+    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람 보기', exact: true })).toHaveCount(0);
   });
 
   /**

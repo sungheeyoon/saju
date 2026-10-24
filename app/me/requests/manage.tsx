@@ -14,6 +14,7 @@ import {
   REQUEST_STATUS_TEXT,
   type RequestStatus,
 } from '@/src/lib/consent';
+import { CANCEL_REQUEST_NOTE } from '@/src/lib/matching/copy';
 
 import {
   cancelRequest,
@@ -22,8 +23,10 @@ import {
   respondToRequest,
 } from './actions';
 import { BlockDialog, ReportForm } from './report-block';
+import { cancelledNote } from './cancel-answer';
 import { actionAnswer } from '../../ui/action-answer';
 import { FailureLine } from '../../ui/failure-line';
+import { showSnackbar } from '../../ui/snackbar-store';
 
 /**
  * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 취소) — 셋째 단추의 기하에 보조 글자색.
@@ -128,9 +131,17 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
   );
 }
 
-/** 보낸 요청을 거둔다 — 상대에게 알리지 않는다 */
+/**
+ * 보낸 요청을 거둔다 — 상대에게 알리지 않는다.
+ *
+ * **한 번 더 묻는다**(2026-10-24). 거둔 요청은 서버에서 되살릴 길이 없다 — 거두는 문(`cancel_match_request`)은 끝 상태로만 옮기고, 같은
+ * 사람에게 다시 보내면 풀이권을 새로 잡고 상대에게 「요청이 왔다」는 소식이 한 번 더 간다. 그래서 바닥 스낵바의 「되돌리기」로는 못
+ * 무른다 — 되돌릴 수 없는 누름 앞의 확인 창(`ConfirmDialog`, 첫 초점 「취소」)이다. 거두면 카드가 목록에서 빠지므로 끝난 말은 카드 곁이
+ * 아니라 바닥 스낵바에 선다(`cancelledNote`).
+ */
 export function CancelButton({ requestId }: { requestId: string }) {
   const [failure, setFailure] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const [working, startWorking] = useTransition();
 
   const cancel = () => {
@@ -138,16 +149,38 @@ export function CancelButton({ requestId }: { requestId: string }) {
     startWorking(async () => {
       const result = await actionAnswer(cancelRequest(requestId));
       announceIfMoved(result);
-      if (!result.ok) setFailure(result.message);
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      setAsking(false);
+      const note = cancelledNote(result.status);
+      if (note !== null) showSnackbar(note);
     });
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={cancel} disabled={working} className={QUIET_LINK}>
-        {working ? '거두는 중…' : '요청 거두기'}
+      <button type="button" onClick={() => setAsking(true)} disabled={working} className={QUIET_LINK}>
+        요청 거두기
       </button>
-      {failure !== null && <FailureLine>{failure}</FailureLine>}
+      {failure !== null && !asking && <FailureLine>{failure}</FailureLine>}
+
+      <ConfirmDialog
+        open={asking}
+        onClose={() => {
+          setAsking(false);
+          setFailure(null);
+        }}
+        title="요청을 거둘까요?"
+        confirmLabel={working ? '거두는 중…' : '요청 거두기'}
+        onConfirm={cancel}
+        danger
+        busy={working}
+        failure={failure}
+      >
+        <p>{CANCEL_REQUEST_NOTE}</p>
+      </ConfirmDialog>
     </div>
   );
 }

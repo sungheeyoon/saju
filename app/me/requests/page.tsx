@@ -8,6 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
+import { EmptyState } from '../../ui/empty-state';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -103,16 +104,12 @@ function Notifications({ inbox }: { inbox: Inbox }) {
     <section className="flex flex-col gap-3">
 
       {inbox.notifications.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-card border-2 border-dashed border-border-strong px-5 py-7 text-center">
-          <span
-            aria-hidden="true"
-            className="grid size-11 place-items-center rounded-full bg-surface-sunken text-muted"
-          >
-            <Icon name="bell" />
-          </span>
-          <p className="text-sm font-semibold">새로 도착한 소식이 없습니다</p>
-          <p className={TYPE_META}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
-        </div>
+        <EmptyState
+          icon="bell"
+          title="새로 도착한 소식이 없어요"
+        >
+          새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.
+        </EmptyState>
       ) : (
         <ul className="overflow-hidden rounded-card border border-border bg-surface">
           {inbox.notifications.map((notification) => {
