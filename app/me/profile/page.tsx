@@ -7,8 +7,8 @@ import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
-import { photoStoreIsOn } from '../photo/store-env';
 import { ProfileForm } from './form';
+import { photoUploadMode } from './photo-upload-mode';
 import { myPhotos } from './photos';
 
 export const metadata = {
@@ -44,8 +44,11 @@ export default async function ProfilePage() {
     );
   }
 
-  /* 바이트는 이 화면에 안 실린다 — 자리와 판본만 읽고 그림은 주소로 받아 간다(`/me/photo/[userId]/[n]`) */
-  const photos = await myPhotos();
+  /*
+    바이트는 이 화면에 안 실린다 — 자리와 판본만 읽고 그림은 주소로 받아 간다(`/me/photo/[userId]/[n]`). 올리기의 길(`db` ·
+    `paused` · `s3`)은 DB 의 스위치가 정한다(G-120, ADR 0203)
+  */
+  const [photos, uploads] = await Promise.all([myPhotos(), photoUploadMode()]);
 
   /* 넓은 화면에서는 사진과 글 칸이 나란히 서므로(`form.tsx`) 판이 그 둘만큼 넓어진다 */
 
@@ -60,7 +63,7 @@ export default async function ProfilePage() {
         current={{ nickname: account.nickname ?? '', intro: account.intro ?? '' }}
         photos={photos}
         userId={user.id}
-        storedPhotos={photoStoreIsOn()}
+        uploads={uploads}
       />
     </main>
   );

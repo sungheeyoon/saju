@@ -5,7 +5,7 @@
 > 하고, 묻고 싶을 때 묻는 선택 검토로 남는다(`docs/legal/counsel-request.md` 「B-9」, ADR 0180).
 
 화면의 처리방침 원문은 `src/lib/consent/notice.ts` 의 `noticeFor` · `TRANSFERS` 이고 `/privacy` 가 그대로 그린다. 이 문서는
-**`notice-v8`**(G-66 의 내용 개정, ADR 0180)이 더한 줄을 든다. 새 메시지 알림(G-71)은 그 판에 없다 — 아래 「푸시 회사 넷」은 알림을
+**`notice-v8`**(G-66 의 내용 개정, ADR 0180)이 더한 줄과 **`notice-v9`**(사진 저장소, G-120)가 더한 줄(아래 「사진 저장소」)을 든다. 새 메시지 알림(G-71)은 그 판에 없다 — 아래 「푸시 회사 넷」은 알림을
 켜기 전에 따로 올릴 판의 재료다 — 그 앞 판의 줄은 `docs/legal/privacy-v8-draft.md` 「부록 A」가
 출처를 든다. 처리방침 문장을 바꾸는 PR 은 이 문서의 그 줄도 같은 PR 에서 고친다(ADR 0180 의 9).
 
@@ -81,7 +81,7 @@ Org」) **`plan: free`**(Management API `GET /v1/organizations/{slug}`) — Verc
 | --- | --- | --- | --- |
 | Supabase DB · 인증 | 서울. 「The region you choose also determines where your primary project data is stored.」(https://supabase.com/docs/guides/platform/regions) · 「Your PostgreSQL database, as well as Auth service and Storage objects are hosted in that region, alongside backups.」(https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq, 「Version 1 — October 6, 2026」) | — | 구글 로그인의 콜백 · 토큰 교환 위치 |
 | Supabase 백업 | Free 요금제는 자동 백업이 없다(https://supabase.com/pricing). 있으면 리전 안(위 FAQ 「alongside backups」) | — | — |
-| Supabase 스토리지 · CDN | 쓰지 않는다(사진은 Postgres `bytea`, ADR 0040). FAQ 의 네 번째 범주 「If you use our Storage service, content may be cached or served through a global CDN outside your region」는 해당 없음 | — | — |
+| Supabase 스토리지 · CDN | 쓰지 않는다(사진은 Postgres `bytea`, ADR 0040 — 저장소를 켜면 Supabase Storage 가 아니라 AWS S3 서울, ADR 0202 · 아래 「사진 저장소」). FAQ 의 네 번째 범주 「If you use our Storage service, content may be cached or served through a global CDN outside your region」는 해당 없음 | — | — |
 | Supabase 리전 밖 처리의 네 범주 | FAQ 원문 그대로 — ① 「Customer Account Information: Your account setup, configuration, and billing data may be processed by centralized systems outside your region.」 「We are controllers of this data.」 ② 「Customer Support Requests: Our support team, located globally to provide 24/7 coverage, may access your data when you request help … report issues, or when we identify and respond to security incidents.」 「We are processors of this data.」 ③ 「Usage Information: Telemetry, logs, and service metadata are processed outside your region to operate and secure the platform.」 「Commonly, we are processors of this data.」 ④ 「Content Delivery: If you use our Storage service, content may be cached or served through a global CDN outside your region … depending on your configuration and end-user locations.」 | ① 은 운영자 계정의 정보라 이용자의 개인정보가 아니다 | — |
 | Supabase 로그(③) | 「Logs are ingested and stored at EU-based data centers.」 · 「This includes operational analytics, performance metrics, and platform health monitoring (not your application data).」(FAQ). 로그에는 요청 경로와 계정 id 가 든다 — 「The User filter matches the user's ID in Auth actor IDs or API Gateway JWT subjects」 · Pathname 필터는 「a request path」(https://supabase.com/docs/guides/telemetry/logs). 보관 1일(Free, https://supabase.com/pricing 「Log retention (API & Database) 1 day」) | — | 로그에 접속 IP 가 드는지(문서에 없음). FAQ 의 「not your application data」와 계정 id · 경로가 든 로그가 어떻게 맞물리는지 |
 | Supabase 지원 접근(②) | 조건부 — 우리가 요청할 때 · 보안 사고 대응 때만. 「Support staff can access only projects relevant to your request, and we log all access.」 · 「Supabase, Inc. (United States) provides technical support and operational services.」 · 「Your data flows to Supabase, Inc. only when necessary for support or operations」(FAQ). 이전 수단 「Supabase transfers data to Singapore and to the US under the Standard Contractual Clauses (SCCs)」 | — | 미국 밖 지원 인력의 국가(「located globally」) — 공급업체 내부 운영이라 차단 사유 아님. 보관 기간은 계약으로 채움(DPA 11.2) |
@@ -91,7 +91,7 @@ Org」) **`plan: free`**(Management API `GET /v1/organizations/{slug}`) — Verc
 | Vercel 런타임 로그 | Hobby 1시간(https://vercel.com/docs/logs/runtime 「Hobby: 1 hour of logs」) | DPA 「Vercel's primary processing facilities are in the United States」(https://vercel.com/legal/dpa §13.1)로 보아 미국일 수 있다 | **저장 위치** — 처리방침에 국외로 싣지 않고, 위탁 절에 보관 기간만 적었다 |
 | Vercel 지원 접근 | 조건부 — 「Vercel personnel are prohibited from viewing Customer Content, except when instructed by you」(https://vercel.com/legal/privacy-policy, 2026-06-01). 법인 「Vercel Inc., a Delaware corporation」, 주된 처리 시설 미국(DPA §13.1) | — | — (보관 기간은 계약으로 채움 — DPA 12.1) |
 | OpenAI 모델 호출 | 국외 — 데이터 레지던시를 따로 걸지 않은 프로젝트로 보이고(설정은 운영자 확인), 한국 리전은 처리 「None」. 「OpenAI may also process and temporarily store Customer Content outside of the Region to deliver the services.」 · 보관 「roughly 10 minutes」 · 「up to 30 days」(https://developers.openai.com/api/docs/guides/your-data). 법인 「(a) OpenAI OpCo, LLC for Customers located outside the EEA or Switzerland」(https://cdn.openai.com/osa/openai-services-agreement.pdf v.010126) | — | — **2026-10-15 운영자 확인(이 기계 403)**: 하위처리자 목록에 API 처리 위치 미국 · 하위처리자 여러 국가 · 연락처 `privacy@openai.com`(위 「남은 항목」). 법인 소재지로 대신한 것이 아니다 |
-| AWS S3 | 반출이 꺼져 있다(위 계정 값) — 지금 처리 없음 | — | — |
+| AWS S3 | 접속기록 반출이 꺼져 있다(위 계정 값, 2026-10-15). 사진 저장소(G-120)는 `notice-v9` 가 위탁으로 싣는다 — 아래 「사진 저장소」 | — | — |
 
 ### 국외 이전의 근거 — 처리마다 적용 가능성과 조건 (시행령 제31조 ① 2)
 
@@ -179,6 +179,37 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 
 - 구글 간편로그인이 그 자체로 제6조 ② 의 「안전한 인증수단」인가 — 안내서는 소셜 로그인을 제5조 ⑤ 의 인증수단 예시에만 두고, 제6조 ② 에서는 「비밀번호 인증 외에 … 추가적인 인증 수단」을 예로 든다. 운영자 구글 계정의 2단계 인증을 켜는 것만으로 이 요건에 대는 근거가 되는지는 고시 · 안내서에 적혀 있지 않다 — 운영자(필요하면 변호사)가 답한다.
 - 위 글의 시행일 — 부칙은 「발령한 날의 1년 후부터」, 안내서는 2026-11-01. 그 전의 글(제2023-6호)도 「개인정보취급자가 … 외부에서」 접속할 때 같은 수단을 적는다.
+
+### 운영자 접속기록 — 안전성 확보조치 기준 제2조 제3호 · 제8조 (G-23 · G-25)
+
+2026-10-23 에 원문을 열어 확인했다.
+
+판정하지 않는다 — 요건 · 우리 사실 · 할 일만 적는다. 「기록을 남긴다」와 「법이 드는 항목을 모두 채웠다」는 다른 말이다 — 앞의 것만 사실이다.
+
+**요건 — 원문**
+
+| 출처 | 원문(필요한 대목만) | 링크 · 확인한 날 |
+| --- | --- | --- |
+| 고시 현행판(제2026-9호) 제2조 제3호 | 「"접속기록"이란 개인정보처리시스템에 접속하는 자가 개인정보처리시스템에 접속하여 수행한 업무내역에 대하여 식별자, 접속일시, 접속지 정보, 처리한 정보주체 정보, 수행업무 등을 전자적으로 기록한 것을 말한다. …」 | https://www.law.go.kr/LSW/admRulInfoR.do?admRulSeq=2100000281400 · 2026-10-23 |
+| 같은 고시 제8조 ② | 「… 개인정보취급자의 개인정보처리시스템에 대한 접속기록 및 개인정보 다운로드 상황을 확인하고 점검하는 주기ㆍ방법ㆍ사후조치절차 등을 내부 관리계획으로 정하고 이행하여야 한다.」 | 같은 곳 · 2026-10-23 |
+| 같은 고시 제8조 ③ | 「개인정보처리자는 접속기록이 위ㆍ변조 및 도난, 분실되지 않도록 해당 접속기록을 안전하게 보관하기 위한 조치를 하여야 한다.」 | 같은 곳 · 2026-10-23 |
+| 부칙 <제2025-9호> 제1조 | 「… 다만, 제4조제1항 제12호 및 제13호, 제5조제1항 및 제6항, 제6조제2항, 제8조제1항 및 제2항은 발령한 날의 1년 후부터 시행한다.」 — 위 제8조 ② 의 글은 2026-10-31 부터다 | 같은 곳 · 2026-10-23 |
+| 그 전의 글 — 제2023-6호 제8조 ② | 「개인정보처리자는 … 개인정보처리시스템의 접속기록 등을 월 1회 이상 점검하여야 한다. …」 | https://www.law.go.kr/LSW/admRulInfoR.do?admRulSeq=2100000229672 · 2026-10-23 |
+| 개인정보위 보도자료 「일률적 인터넷망 차단조치 제도 개선 본격 시행」(2025-10-31) | 「… 개인정보처리자가 내부 관리계획을 수립하고 점검 주기·방법·사후조치 절차 등을 자율적으로 정할 수 있도록 개선한다.」 · 「※ 1년 유예기간 부여 : 제4조(내부 관리계획의 수립‧시행 및 점검), 제5조(접근 권한의 관리), 제6조(접근통제), 제8조(접속기록의 보관 및 점검)」 | https://pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS074&mCode=C020010000&nttId=11531 · 2026-10-23 |
+
+**우리 사실**
+
+- `audit.operator_access` 에 남는 것은 운영자(앱이면 계정 id, CLI 면 실행자 이름) · 시각 · 동작 · 대상 식별자(신고 id, 또는 거른 조건 칸의
+  계정 · 주문 id) · 허용/거절 · 거른 조건 · CLI 목적 · SQL 해시다 — `supabase/migrations/20261010100000_the_operator_access_is_written_down.sql:56-83`
+  과 그 뒤 동작을 넓힌 마이그레이션(마지막 `20261216090000`). **접속지 정보(IP 등)를 담는 칸은 없다** — 앱이 적는 문
+  `audit.note_app_access(text, uuid, text, text, uuid[])` 도 그 값을 받지 않는다.
+- 점검 주기 「매월 1회 이상」은 내부 운영 목표로 적혀 있다 — `docs/ops/runbook/security.md` 「운영 주기」(ADR 0105). 법정 주기로 적은 문장은 저장소에 없다.
+- S3 반출 사본(Object Lock 400일)은 접속기록이 고쳐지지 않게 두는 밖의 사본이다 — 운영 DB 를 되살리는 백업이 아니다.
+
+**할 일 — 결정 아님**
+
+- 위 제2조 제3호의 항목(식별자 · 접속일시 · 접속지 정보 · 처리한 정보주체 정보 · 수행업무)과 `audit.operator_access` 의 칸을 하나씩
+  대조한다. 접속지 정보 칸을 더할지는 그 대조 뒤에 정한다.
 
 ### 제30조 ① — 첫 화면 처리에 대해
 
@@ -300,6 +331,50 @@ v7 부터 빠져 있던 절을 `notice-v8` 에 「개인정보를 지키는 조�
 | 같은 절 — 첫 화면 문단의 거부 방법과 효과: 넣지 않으면 일어나지 않고, 가입 · 그 밖의 이용에 영향 없음 | 로그인한 사람은 그 문단을 받지 않는다(`app/taste/taste-run.ts:130` `if (await hands.member()) return TASTE_CLOSED`) — 가입 뒤의 길과 무관하다 | 제28조의8 ② 5 꼴 |
 | 「국외로 나가는 것」 — OpenAI 의 「언제」 · 「목적」 · 「보유기간」 | 위 「판단 셋」. 「회수용 보관 약 10분 · 오·남용 점검 기록 최대 30일」은 v7 의 문장 그대로이고 이 판에서 다시 재지 않았다(출처는 초안 「부록 A」) | 제28조의8 ② 1~4 |
 | 「맡겨서 처리하는 곳」 — 서울 리전에서 처리 · 보관하는 것(DB · 로그인 · 임시 기록, 서버 처리 · 입력 계산) / 「국외로 나가는 것」 — 국외에서 처리 · 접근되는 것만 | 위 「처리마다 — 사실 · 추정 · 미확인」 | 제30조 ① 4 · 제28조의8 ② |
+
+## 사진 저장소 — `notice-v9` 가 더한 줄 (G-120, 2026-10-23)
+
+**법률 자문이 아니다 — 요건과 사실만 둔다. 「적법」이라고 적지 않는다.** 운영자 결정(2026-10-23): 사진 저장소(AWS S3 서울, ADR 0202)를
+진행하고, 열람은 안 A(앱 경로가 중계), 청소는 매시간, 첫 실패에 알림, 미실행 · 장기 잔류를 감시한다. 경과는
+`docs/product/gaps/records/g-120.md`.
+
+### 조문 — 원문과 확인한 날
+
+국가법령정보센터에서 2026-10-23 에 읽은 판이다 — 개인정보 보호법 [시행 2026. 9. 11.] [법률 제21445호, 2026. 3. 10., 일부개정]
+(https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=283839&efYd=20260911), 같은 법 시행령 [시행 2026. 9. 11.] [대통령령 제36671호, 2026. 9. 10.,
+일부개정](https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=289537&efYd=20260911).
+
+| 조문 | 원문(필요한 대목만) |
+| --- | --- |
+| 제26조 ② | 「제1항에 따라 개인정보의 처리 업무를 위탁하는 개인정보처리자(이하 "위탁자"라 한다)는 위탁하는 업무의 내용과 개인정보 처리 업무를 위탁받아 처리하는 자(…이하 "수탁자"라 한다)를 정보주체가 언제든지 쉽게 확인할 수 있도록 대통령령으로 정하는 방법에 따라 공개하여야 한다.」 |
+| 시행령 제28조 ② | 「법 제26조제2항에서 "대통령령으로 정하는 방법"이란 개인정보 처리 업무를 위탁하는 개인정보처리자(이하 "위탁자"라 한다)가 위탁자의 인터넷 홈페이지에 위탁하는 업무의 내용과 수탁자를 지속적으로 게재하는 방법을 말한다.」 |
+| 제30조 ① 4 | 「개인정보처리의 위탁에 관한 사항(해당되는 경우에만 정한다)」(위 「조문 — 원문과 확인한 날」, 2026-10-15) |
+| 제21조 ① | 「개인정보처리자는 보유기간의 경과, 개인정보의 처리 목적 달성, 가명정보의 처리 기간 경과 등 그 개인정보가 불필요하게 되었을 때에는 지체 없이 그 개인정보를 파기하여야 한다. 다만, 다른 법령에 따라 보존하여야 하는 경우에는 그러하지 아니하다.」 |
+| 제21조 ② | 「개인정보처리자가 제1항에 따라 개인정보를 파기할 때에는 복구 또는 재생되지 아니하도록 조치하여야 한다.」 |
+| 제30조 ① 3의2 | 「개인정보의 파기절차 및 파기방법(…)」(위와 같음) |
+
+처리방침의 위탁 절이 제26조 ② · 시행령 제28조 ② 의 「업무의 내용과 수탁자」를 싣는 자리이고(`/privacy` 는 홈페이지에 늘 서 있다), 파기 절이
+제30조 ① 3의2 의 자리다. 제21조 ① 의 「지체 없이」가 몇 시간 · 며칠인지는 조문에 없다 — 처리방침은 이미 적은 「탈퇴 신청 후 3일 이내」를
+사진 파일에도 그대로 적용했다(운영자 결정 2026-10-23).
+
+### 줄마다
+
+| 처리방침의 줄(`src/lib/consent/notice.ts`) | 사실의 출처 | 조문 |
+| --- | --- | --- |
+| 「맡겨서 처리하는 곳」 — 프로필 사진 파일의 보관 · 제공 · 삭제는 Amazon Web Services 에 맡기고 서울 리전에서 처리 | 저장 자리 AWS S3 서울(`ap-northeast-2`, ADR 0202 · `docs/ops/runbook/photo-store.md` 「마법사가 쓸 값」). 보관 = 두 벌(`card` · `large`)의 객체, 제공 = 안 A — 앱 경로가 판정 뒤 S3 에서 읽어 낸다(브라우저는 S3 에 닿지 않는다, 구현은 ADR 0203 · #812), 삭제 = 청소 크론의 `DeleteObject`. AWS 공식: 「You choose the AWS Region(s) in which your content is stored.」 · 「We will not move or replicate your content outside of your chosen AWS Region(s)」(예외 「except as necessary to provide the services you initiated」) · 「We do not access or use your content for any purpose without your agreement.」(https://aws.amazon.com/compliance/data-privacy-faq/, 확인 2026-10-23) | 제26조 ② · 제30조 ① 4 |
+| 「파기 절차와 방법」 — 「…3일 이내에 같은 방법으로 자동으로 지웁니다. 저장소에 보관한 프로필 사진 파일도 이 기간 안에 지웁니다.」 | 탈퇴 처분 크론이 신청 뒤 24 ~ 72시간에 계정을 지운다(`supabase/migrations/20261004090000_the_leaver_is_disposed_within_three_days_by_the_clock.sql`, G-53). 사진의 줄은 그 처분에서 cascade 로 사라지고, 트리거 `profile_photo_object_left` 가 열쇠를 지울 줄(`photo_object_trash`)에 넣는다(ADR 0202 의 4) — 그 순간부터 열람 라우트는 404 다(`app/me/photo/photo-response.ts`). 파일은 청소가 지운다. **72시간 안에 지우려는 장치**는 #821 — 매시간 청소 · 첫 실패에 알림 · 미실행 3시간 · 잔류 12시간 감시, 기준은 72시간에서 거꾸로 잡았다. **이 장치가 72시간을 언제나 보장하지는 않는다** — 줄이 선 뒤의 여유(약 47시간)는 처분이 신청 뒤 24 ~ 25시간에 정상으로 끝났을 때의 값이고, 처분이 늦으면(실패 · 크론 멈춤) 그만큼 준다. 장치가 실패하거나 처분이 늦으면 runbook 대로 사람이 기한 전에 조치한다(`docs/ops/runbook/photo-store.md` 「청소가 멈췄을 때 · 못 지운 줄이 쌓일 때」 — 처분 지연을 함께 본다, `docs/ops/runbook/erasure.md` 「탈퇴 신청의 처리」). 기한 전까지는 지울 줄에 열쇠(접두사가 계정 id)가 남는다 | 제21조 ① · 제30조 ① 2 · 3의2 |
+| 같은 절 — 「사진 파일은 저장소에서 삭제하며, 저장소는 지운 파일의 이전 판을 남기지 않아 복구할 수 없습니다.」 | 청소가 두 벌에 `DeleteObject` 를 부른다(`app/api/cron/photo-sweep`). 버킷은 버전 관리를 끈다(ADR 0202 「고르지 않은 것」 · runbook 「마법사가 쓸 값」의 「버전 관리 — 끈다」). **켜는 날 버킷 설정으로 확인한다** — 이 문장은 그 설정에 기댄다 | 제21조 ② · 제30조 ① 3의2 |
+
+**국외 이전 절에 싣지 않았다** — 처리 · 보관이 서울이고, AWS 의 지원 접근 같은 조건부 국외 접근은 위 공식 문장(「without your agreement」) 밖에서
+찾지 못했다. 미국 법인의 서울 처리를 무엇으로 볼지는 B-3(`docs/legal/counsel-request.md`)이 이미 든 물음이다 — 새 조사 과제로 늘리지 않는다.
+**국외 접근 · 이전 여부는 별도 판단이고, 서울 리전이라는 사실만으로 해결됐다고 단정하지 않는다 — 확인 전.**
+
+**판본** — `NOTICE_VERSION` 은 `notice-v9`, `NOTICE_ACK_FLOOR` 는 `notice-v8` 그대로다 — 확인한 사람은 다시 안 보고, 새로 확인하는 사람만
+`notice-v9` 로 적힌다(운영자 결정 2026-10-23, ADR 0095). 보유기간(탈퇴 3일)은 그대로이고 그 범위에 사진 파일을 넣었다. 이 저장소에
+「시행일 · 이전 판 열람」 규약은 없다 — 판본은 확인 기록(`app_user.notice_version`)이 들고, 이전 판 열람 경로는 운영자가 출시 전에 정할
+것이다(`docs/legal/README.md`). **이 판은 S3 를 켜는 날의 배포와 묶어 나간다**(#820) — 먼저 나가면 아직 없는 위탁을 고지한다.
+
+**확인 전** — ① 켜는 날 사진 버킷의 버전 관리가 꺼져 있는지(버킷 설정) ② 매시간 청소 · 감시가 운영에 섰는지(#821)
 
 ## 푸시 회사 넷 — 알림을 켜기 전에 따로 올릴 판의 재료 (`notice-v8` 에 없음)
 

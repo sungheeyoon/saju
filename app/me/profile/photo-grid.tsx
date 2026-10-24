@@ -10,17 +10,19 @@ import {
   FOCUS_CENTER,
   focusPosition,
   movedPhotos,
+  type PhotoUploadMode,
 } from '@/src/lib/profile';
 
-import { PHOTO_ADD } from '@/src/lib/account/copy';
+import { PHOTO_ADD, PHOTO_UPLOADS_PAUSED } from '@/src/lib/account/copy';
 
 import { actionAnswer } from '../../ui/action-answer';
-import { BUTTON_TERTIARY } from '../../ui/buttons';
+import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { movePhoto } from './actions';
 import { PHOTO_FRAME_TITLE, PhotoFramer } from './photo-framer';
 import { PhotoMenu, type MenuChoice } from './photo-menu';
 import { menuAlign, positionOf } from './photo-positions';
+import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
 import type { MyPhoto } from './photos';
 import { usePhotoDrag } from './use-photo-drag';
 import { usePhotoRemoval } from './use-photo-removal';
@@ -65,17 +67,15 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
  * - 실패하면 그 칸과 아직 안 간 뒤의 칸이 걷히고 까닭이 선다. 앞서 올라간 장은 그대로이고 상태 줄이 몇 장을 올렸는지 말한다.
  * - 빈 칸보다 많이 고르면 앞의 장만 올리고 「6장까지 올릴 수 있어요」가 남는다 — 말없이 버리지 않는다.
  *
- * ## 지우기는 되돌릴 수 있다
+ * ## 지우기는 묻고 나서 한다
  *
- * × 를 누르면 그 장이 곧바로 칸에서 빠지고 상태 줄에 「사진을 지웠어요 · 실행 취소」가 `UNDO_MS` 동안 선다. **서버에서는
- * 그 시간이 지나야 지운다**(화면의 늦은 지우기). 실행 취소는 아무 요청도 안 보낸다 — 지웠다가 다시 올리는 것이 아니라서
- * 하루 올리기 한도(ADR 0125)를 깎지 않는다. 다른 누름(올리기 · 옮기기 · 다른 장 지우기)이 오면 기다리던 지우기를 먼저
- * 보낸다 — 되돌릴 수 있는 장은 하나다. 화면을 떠나면(다른 화면으로 가거나 탭을 닫으면) 그때 보낸다. 탭을 닫는 순간의
- * 요청은 브라우저가 끊을 수 있다 — 그러면 그 장은 남는다(지워지지 않은 쪽으로 틀린다).
+ * × · 메뉴의 「삭제」는 확인 창(`ConfirmDialog`, 첫 초점 「취소」)을 연다 — 「사진을 삭제할까요?」 [삭제] [취소](운영자 2026-10-23,
+ * ADR 0205). 「삭제」를 누르면 창이 「삭제 중…」으로 선 채 서버에서 지우고, 지우면 창이 닫히고 상태 줄이 「사진을 지웠어요」를
+ * 잠깐 말한다. 거절되면 창 안에 까닭이 선다. 실행 취소 띠는 없다 — 묻고 나서 또 되돌리기를 세우면 겹친다(ADR 0165 의 3 을 걷었다).
  *
  * 순서는 서버 답을 기다리지 않고 먼저 옮겨 그린다(`useOptimistic`). 서버가 거절하면 서버가 준 순서로
  * 돌아가고, 받아들이면 새로 받은 순서가 그 자리를 잇는다. 옮기기 · 지우기가 서버에 보내는 자리는 화면의 칸 번호가 아니라
- * **그 장(판본)이 서버 목록에서 몇 번째인가**로 짓는다 — 지우기를 기다리는 장이 화면에서만 빠져 있어서다.
+ * **그 장(판본)이 서버 목록에서 몇 번째인가**로 짓는다 — 다른 탭이 목록을 바꿨을 수 있어서다.
  *
  * **그림 주소는 서버가 준 자리로 짓는다**(`photo.position`) — 칸의 자리가 아니다. 주소가 자리 번호라
  * (`/me/photo/{id}/{n}?v=`), 옮긴 칸의 새 주소를 서버가 옮기기 전에 받아 가면 **옛 장의 바이트가 새
@@ -85,13 +85,18 @@ const PHOTO_SAVES_ITSELF = '사진은 바로 저장돼요';
 export function PhotoGrid({
   userId,
   photos,
-  stored,
+  uploads,
 }: {
   userId: string;
   photos: readonly MyPhoto[];
-  /** 올린 사진이 저장소로 가나(G-120) — `usePhotoUploads` 가 보내는 길을 고른다 */
-  stored: boolean;
+  /**
+   * 올리기의 길 — DB 의 스위치(G-120, ADR 0203). `s3` 면 저장소로, `db` 면 지금처럼 DB 로 보낸다(`usePhotoUploads`).
+   * `paused` 면 첫 줄이 안내로 바뀌고 올리는 자리(빈 칸의 + · 「사진 변경」)가 안 선다 — 옮기기 · 위치 조정 · 지우기는 그대로다.
+   * 화면의 값이 낡아도 DB 가 거절하고, 실패를 받은 화면은 목록을 다시 읽어 새 길로 선다(`failed`)
+   */
+  uploads: PhotoUploadMode;
 }) {
+  const paused = uploads === 'paused';
   const router = useRouter();
   const [order, moveInView] = useOptimistic(
     photos,
@@ -117,9 +122,12 @@ export function PhotoGrid({
     router.refresh();
   };
 
-  const { hidden, undoable, undoRef, hide, undo, sendRemoval, serverPhotos, serverPositionOf, serverVersions } =
-    usePhotoRemoval({ photos, failed });
-  const shown = order.filter((photo) => !hidden.has(photo.version));
+  const { remove: removeOnServer, serverPhotos, serverPositionOf, serverVersions } = usePhotoRemoval({ photos });
+  /** 지울지 묻는 장 — 창이 열려 있는 동안 */
+  const [asking, setAsking] = useState<MyPhoto | null>(null);
+  /** 묻는 창 안의 실패 줄 — 창은 열린 채 선다 */
+  const [askFailure, setAskFailure] = useState<string | null>(null);
+  const shown = order;
   const total = shown.length;
   const {
     busy,
@@ -139,11 +147,11 @@ export function PhotoGrid({
     framer,
   } = usePhotoUploads({
     userId,
-    stored,
+    stored: uploads === 's3',
     photos,
     total,
     working,
-    removal: { sendRemoval, serverPositionOf, serverVersions },
+    removal: { serverPositionOf, serverVersions },
     done,
     clearFailure: () => setFailure(null),
     failed,
@@ -167,7 +175,6 @@ export function PhotoGrid({
     focusAfter.current = to;
     startWorking(async () => {
       moveInView({ version: photo.version, onto: onto.version });
-      await sendRemoval();
       const server = serverPhotos();
       const result = await actionAnswer(
         movePhoto(positionOf(server, photo.version), positionOf(server, onto.version), photo.version),
@@ -176,14 +183,37 @@ export function PhotoGrid({
     });
   };
 
+  /** × · 메뉴의 「삭제」 — 지우지 않고 먼저 묻는다 */
   const remove = (position: number) => {
     const photo = shown[position - 1];
     if (busy || photo === undefined) return;
     setFailure(null);
+    setAskFailure(null);
     forgetOverflow();
     done.clear();
     settle();
-    hide(photo.version);
+    setAsking(photo);
+  };
+
+  /** 묻는 창의 답 — 「취소」 · Esc · 바깥 누름은 아무것도 안 보내고, 「삭제」는 그 장을 곧바로 지운다 */
+  const answer = (choice: 'cancel' | 'confirm') => {
+    if (choice === 'cancel') {
+      if (working) return;
+      setAsking(null);
+      setAskFailure(null);
+      return;
+    }
+    setAskFailure(null);
+    startWorking(async () => {
+      const result = await answerRemoval(asking?.version ?? null, 'confirm', removeOnServer);
+      if (result.open) {
+        setAskFailure(result.failure);
+        router.refresh();
+        return;
+      }
+      setAsking(null);
+      if (result.removed) done.say(PHOTO_REMOVED);
+    });
   };
 
   const { lift, gridRef, onPointerDown, onPointerMove, onPointerUp, endPress, takeSwallowedClick } = usePhotoDrag({
@@ -202,7 +232,7 @@ export function PhotoGrid({
     const underFocus = replaced?.focus ?? backdrop.get(photo.version)?.focus ?? FOCUS_CENTER;
     const focus = focusOfPhoto(photo);
     const items: MenuChoice[] = [
-      { icon: 'pencil', label: '사진 변경', run: () => chooseReplacement(photo) },
+      ...(paused ? [] : [{ icon: 'pencil' as const, label: '사진 변경', run: () => chooseReplacement(photo) }]),
       { icon: 'move', label: PHOTO_FRAME_TITLE, run: () => void adjust(photo) },
       ...(position > 1 ? [{ icon: 'spark' as const, label: '대표로 설정', run: () => move(position, 1) }] : []),
       { icon: 'remove', label: '삭제', tone: 'danger' as const, run: () => remove(position) },
@@ -263,7 +293,7 @@ export function PhotoGrid({
             {covering === null && (
               /* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */
               <img
-                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
+                src={`/me/photo/${userId}/${photo.position}?v=${photo.version}&s=card`}
                 alt=""
                 draggable={false}
                 className="h-full w-full rounded-2xl object-cover"
@@ -316,6 +346,11 @@ export function PhotoGrid({
     </div>
   );
 
+  /** 멈춘 동안의 빈 칸 — 누를 것이 없다. 자리만 선다 */
+  const restingSlot = () => (
+    <div aria-hidden="true" className="h-full w-full rounded-2xl border-2 border-dashed border-border bg-surface" />
+  );
+
   const emptySlot = (position: number) => {
     /* 첫 빈 칸만 올리기 칸으로 읽힌다 — 나머지 빈 칸도 누르면 같은 칸을 연다. 앉는 자리는 맨 뒤다 */
     const first = position === total + waiting.length + 1;
@@ -360,16 +395,22 @@ export function PhotoGrid({
     const photo = shown[position - 1];
     if (photo !== undefined) return photoSlot(photo, position);
     const upload = waiting[position - total - 1];
-    return upload === undefined ? emptySlot(position) : uploadSlot(upload);
+    if (upload !== undefined) return uploadSlot(upload);
+    return paused ? restingSlot() : emptySlot(position);
   };
 
   /* 한 장이 끝나면 그 말이 잠깐 서고, 아직 남은 장이 있으면 다시 「사진 저장 중…」으로 돌아온다 */
-  const status = undoable !== null ? '사진을 지웠어요' : done.note !== '' ? done.note : sending ? '사진 저장 중…' : '';
+  const status = done.note !== '' ? done.note : sending ? '사진 저장 중…' : '';
 
   return (
     <section className="flex flex-col gap-4 rounded-paper bg-cream px-4 py-5 sm:px-6 sm:py-6">
       {/* 아래 저장 단추는 닉네임 · 소개만 저장한다 — 사진은 고르는 순간 서버에 간다(대장 40) */}
-      <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      {paused ? (
+        /* 올리기가 멈춘 동안 — 첫 줄이 그 까닭이다(대장 settings-05). DB 의 거절도 같은 글자다 */
+        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_UPLOADS_PAUSED}</p>
+      ) : (
+        <p className="text-small font-medium leading-5 text-cream-ink">{PHOTO_SAVES_ITSELF}</p>
+      )}
       {/* 「사진 변경」의 기기 사진 창 — 한 장만. 메뉴의 누름이 연다 */}
       <input
         ref={replaceInput}
@@ -395,30 +436,39 @@ export function PhotoGrid({
         ))}
       </div>
 
-      {/*
-        상태 한 줄 — 올리는 동안 · 끝난 뒤 잠깐 · 지운 뒤 되돌릴 수 있는 동안. 지운 뒤에는 매칭의 실행 취소 띠와 같은 모양이다
-        (`app/me/matching/matching-experience.tsx` 의 `Feedback`). 상자는 늘 서 있어 바뀐 글자를 화면 읽기가 읽는다.
-      */}
-      <div
-        className={`flex flex-wrap items-center justify-between gap-x-4 ${
-          undoable !== null ? 'rounded-row bg-surface px-4 py-1 ring-1 ring-border' : ''
-        }`}
-      >
-        <DoneNote className={`text-note font-medium leading-5 text-foreground ${undoable !== null ? 'py-2' : ''}`}>
-          {status}
-          {overflowed && status !== '' && ' · '}
-          {overflowed && PHOTO_LIMIT_NOTE}
-        </DoneNote>
-        {undoable !== null && (
-          <button ref={undoRef} type="button" onClick={undo} className={BUTTON_TERTIARY}>
-            {/* 매칭의 실행 취소 띠와 같은 글자다(대장 36) */}
-            실행 취소
-          </button>
-        )}
-      </div>
+      {/* 상태 한 줄 — 올리는 동안 · 끝난 뒤 잠깐. 상자는 늘 서 있어 바뀐 글자를 화면 읽기가 읽는다 */}
+      <DoneNote className="text-note font-medium leading-5 text-foreground">
+        {status}
+        {overflowed && status !== '' && ' · '}
+        {overflowed && PHOTO_LIMIT_NOTE}
+      </DoneNote>
 
       <p className="text-small leading-5 text-cream-ink">{PHOTO_NOTE}</p>
       <PhotoFramer {...framer} />
+      {/* 지울지 묻는 창 — 첫 초점은 「취소」, Esc · 바깥 누름도 「취소」다(ADR 0166). 지우는 동안은 안 닫힌다 */}
+      <ConfirmDialog
+        open={asking !== null}
+        onClose={() => answer('cancel')}
+        lead={
+          asking === null ? undefined : (
+            /* 지울 그 장 — 칸과 같은 주소 · 같은 보일 자리(이미 받아 둔 그림이라 곧바로 선다) */
+            <span
+              aria-hidden="true"
+              className="block aspect-[3/4] w-20 rounded-2xl bg-surface-sunken bg-cover"
+              style={{
+                backgroundImage: `url(/me/photo/${userId}/${asking.position}?v=${asking.version}&s=card)`,
+                backgroundPosition: focusPosition(focusOfPhoto(asking)),
+              }}
+            />
+          )
+        }
+        title={PHOTO_REMOVE_TITLE}
+        confirmLabel={working ? '삭제 중…' : PHOTO_REMOVE_CONFIRM}
+        onConfirm={() => answer('confirm')}
+        danger
+        busy={working}
+        failure={askFailure}
+      />
       {failure !== null && (
         <FailureLine>{failure}</FailureLine>
       )}

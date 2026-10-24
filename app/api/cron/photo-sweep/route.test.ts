@@ -22,6 +22,7 @@ const { GET } = await import('./route');
  */
 const SECRET = 'cron-secret-for-test';
 const KEY = 'photos/0f8b2f6e-1c2d-4e5f-8a9b-0c1d2e3f4a5b/7e6d5c4b-3a29-4180-9f7e-6d5c4b3a2918';
+const RUN = '5d1c8a2e-9b7f-4e3a-8c6d-2f1e0a9b8c7d';
 const request = (authorization?: string) =>
   new Request('http://localhost/api/cron/photo-sweep', {
     headers: authorization === undefined ? {} : { authorization },
@@ -81,11 +82,13 @@ describe('사진 청소기', () => {
     expect(keyedClient).not.toHaveBeenCalled();
   });
 
-  it('켜졌으면 남은 표를 옮기고 지울 줄의 두 벌을 지우고 결과를 적는다', async () => {
+  it('켜졌으면 임대를 잡고 남은 표를 옮기고 지울 줄의 두 벌을 지우고 결과를 적은 뒤 임대를 놓는다', async () => {
     turnOn();
     rpc.mockImplementation(async (name: string) => {
+      if (name === 'photo_sweep_begin') return { data: RUN, error: null };
       if (name === 'photo_sweep_tickets') return { data: 1, error: null };
       if (name === 'photo_trash_batch') return { data: [{ object_key: KEY, attempts: 0 }], error: null };
+      if (name === 'photo_sweep_finish') return { data: true, error: null };
       return { data: false, error: null };
     });
 
@@ -94,22 +97,58 @@ describe('사진 청소기', () => {
     expect(response.status).toBe(200);
     expect(remove).toHaveBeenCalledWith([`${KEY}/card`, `${KEY}/large`]);
     expect(rpc).toHaveBeenCalledWith('photo_trash_settle', { p_deleted: [KEY], p_failed: [], p_error_class: '' });
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'photo_sweep_begin',
+      'photo_sweep_tickets',
+      'photo_trash_batch',
+      'photo_trash_settle',
+      'photo_sweep_finish',
+    ]);
+    expect(rpc).toHaveBeenLastCalledWith('photo_sweep_finish', { p_holder: RUN, p_deleted: 1, p_failed: 0 });
     expect(await response.json()).toMatchObject({ ticketsMoved: 1, deleted: 1, failed: 0 });
   });
 
-  it('못 지운 객체가 있으면 500 — 크론의 실패로 드러난다', async () => {
+  it('다른 실행이 임대를 쥐고 있으면(pg_cron 과 Vercel 이 겹침) 200 「도는 중」이고 저장소에 안 닿는다', async () => {
+    turnOn();
+    rpc.mockImplementation(async (name: string) =>
+      name === 'photo_sweep_begin' ? { data: null, error: null } : { data: false, error: null },
+    );
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ busy: true });
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual(['photo_sweep_begin']);
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('못 지운 객체가 있으면 끝까지 돈 것으로 적고 500 — 크론의 실패로 드러난다', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     turnOn();
     remove.mockResolvedValue({ failed: [`${KEY}/large`] });
     rpc.mockImplementation(async (name: string) => {
+      if (name === 'photo_sweep_begin') return { data: RUN, error: null };
       if (name === 'photo_sweep_tickets') return { data: 0, error: null };
       if (name === 'photo_trash_batch') return { data: [{ object_key: KEY, attempts: 0 }], error: null };
-      return { data: false, error: null };
+      return { data: true, error: null };
     });
 
     const response = await GET(request(`Bearer ${SECRET}`));
 
     expect(response.status).toBe(500);
     expect(rpc).toHaveBeenCalledWith('photo_trash_settle', { p_deleted: [], p_failed: [KEY], p_error_class: 'delete:partial' });
+    expect(rpc).toHaveBeenLastCalledWith('photo_sweep_finish', { p_holder: RUN, p_deleted: 0, p_failed: 1 });
+  });
+
+  it('임대 문이 실패하면 500 이고 저장소에 안 닿는다 — 분류만 기록에', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    turnOn();
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } });
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(response.status).toBe(500);
+    expect(remove).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith('photo-sweep failed', 'PGRST202');
   });
 });

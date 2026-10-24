@@ -25,11 +25,13 @@ OAuth 되돌아옴 · 복구기 주소 · OpenAI 웹훅 · 옛 주소 넘김이 
 | 8 | 안 했다 | 2026-10-23 `curl` — 옛 별칭 `/` 200 | 5 · 6 이 새 도메인으로 선 뒤 |
 | 9 | 했다 | `deploy.md` 는 주소 대신 이 문서를 가리킨다(ADR 0152) | — |
 | 10 | 해당 없음 | 2026-10-23 `db:remote` — Vault `push_dispatch_url` 이 없다(웹 푸시는 G-71 보류) | 켜는 날 새 도메인으로 넣는다(`docs/ops/runbook/push.md`) |
+| 11 | 해당 없음 | 2026-10-23 — Vault `photo_sweep_url` 은 `20261229090000` 이 처음 쓰는 이름이고 사진 저장소가 꺼져 있다(G-120) | 켜는 날 새 도메인으로 넣는다(`docs/ops/runbook/photo-store.md` 「사진 저장소로 바꾼다」 6) |
 
 처음 이 표를 쓸 때(2026-09-30)는 자기 도메인이 없었다. 코드는 주소를
 안 적으므로(`app/site-url.ts` 가 배포판이 아는 값을 읽는다) **바꿀 것은 전부 코드 밖이다.** 2026-09-30 에 저장소에서
 주소를 드는 자리를 셌다(`grep -rn "saju-snowy\|SITE_URL\|redirectTo\|vault.create_secret"`) — 아래 아홉이다. 2026-10-08 에
-웹 푸시의 배달 주소(Vault `push_dispatch_url`, ADR 0156)가 더해져 열이다 — 2026-10-23 에 다시 세며 찾았다.
+웹 푸시의 배달 주소(Vault `push_dispatch_url`, ADR 0156)가 더해져 열이다 — 2026-10-23 에 다시 세며 찾았다. 같은 날 사진 청소의
+주소(Vault `photo_sweep_url`, ADR 0204)가 더해져 열하나다.
 
 **순서가 뜻을 갖는다 — 옛 주소를 끝까지 살려 둔다.** 밖에서 우리를 부르는 것(복구기 · OpenAI 의 webhook · 구글 로그인의
 되돌아옴)은 `POST` 나 한 번뿐인 되돌림이라 **308 넘김을 믿을 수 없다.** 새 주소가 서고, 부르는 쪽을 다 옮기고, 새 주소로
@@ -47,6 +49,7 @@ OAuth 되돌아옴 · 복구기 주소 · OpenAI 웹훅 · 옛 주소 넘김이 
 | 8 | **옛 주소를 넘김으로** | 1~6 을 새 주소로 본 뒤, Vercel Domains 에서 `saju-snowy.vercel.app` 을 새 도메인으로 308 넘긴다. **지우지 않는다** — 이미 보낸 공유 링크(`/share/…`)가 그 주소를 들고 있다 | 옛 링크가 죽는다 | `curl -sI https://saju-snowy.vercel.app/share/x` 가 308 · `location: https://<새 도메인>/share/x` |
 | 9 | **`docs/ops/runbook/deploy.md`** | 「배포」의 운영 주소 · 「묶음 배포」 3 의 Aliases · 「CSP 가 화면을 막을 때」의 `curl` 이 옛 별칭을 든다. 새 도메인으로 고치는 PR 을 같은 날 넣는다. `scripts/check-share.mjs` 의 `HOST` 는 흉내 낸 값이라 그대로다 | 다음 사람이 옛 주소로 smoke 한다 | `grep -rn saju-snowy docs/ops` 가 넘김 설명 한 줄만 |
 | 10 | **Vault `push_dispatch_url`** | 웹 푸시를 켰으면(G-71) **8 전에** `select vault.update_secret((select id from vault.secrets where name = 'push_dispatch_url'), 'https://<새 도메인>/api/push/dispatch');` — 배달 줄이 생길 때와 1분마다 `pg_net` 이 부르는 주소(`docs/ops/runbook/push.md`). 켜지 않았으면 켜는 날 새 도메인으로 넣는다 | 넘김으로 바꾼 뒤 배달 깨움이 308 을 받는다 → `net-request-failed` · 새 메시지 알림이 안 간다 | 2분 뒤 `net._http_response` 에 200 |
+| 11 | **Vault `photo_sweep_url`** | 사진 저장소를 켰으면(G-120) **8 전에** `select vault.update_secret((select id from vault.secrets where name = 'photo_sweep_url'), 'https://<새 도메인>/api/cron/photo-sweep');` — 매시 33분 `pg_net` 이 부르는 사진 청소 주소(ADR 0204, `docs/ops/runbook/photo-store.md`). 켜지 않았으면 켜는 날 새 도메인으로 넣는다 | 넘김으로 바꾼 뒤 청소가 308 을 받는다 → `net-request-failed`, 세 시간 뒤 `photo-sweep-stale` — 예비인 Vercel 의 하루 한 번만 돈다 | 다음 매시 33분 뒤 `photo_sweep_state.last_finished_at` 이 방금 |
 
 **안 바뀌는 것.** CSP(`next.config.ts`)는 `'self'` 와 Supabase 주소뿐이다. Vercel Cron(`vercel.json`)은 경로만 든다. 접속기록
 반출의 AWS 역할은 Vercel OIDC 의 팀 · 프로젝트로 믿으므로 도메인과 상관없다(`docs/ops/runbook/security.md` 「반출 — 매일 S3」). 알림 주소(`ops_alert_url`)는

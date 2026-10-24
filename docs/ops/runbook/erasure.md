@@ -128,10 +128,11 @@ select count(*) as 따로둔_신고, min(retained_at) + retention.report_period(
 from retention.report;
 ```
 
-**프로필 사진은 손으로 안 지운다.** 바이트가 Postgres 안에 있고 `app_user` 에 cascade 로
-매여 있어서, 계정이 사라지면 함께 사라진다(ADR 0040). 파일 저장소에 뒀다면 이 절차에
-한 단계가 늘고 그 단계는 DB 밖에 있었을 것이다 — 위 표에 0 이 아닌 수가 남으면 그것이
-이 결정이 깨졌다는 뜻이다.
+**프로필 사진은 손으로 안 지운다.** 줄은 `app_user` 에 cascade 로 매여 있어서, 계정이
+사라지면 함께 사라진다(ADR 0040). 사진 저장소(AWS S3 서울, ADR 0202)를 켠 뒤에는 바이트가
+DB 밖에 산다 — 줄이 사라질 때 트리거가 열쇠를 지울 줄에 넣고 청소 크론이 객체를 지운다.
+그 단계는 아래 「DB 밖」의 사진 저장소 줄이다. 위 표에 0 이 아닌 수가 남으면 cascade 가
+깨졌다는 뜻이다.
 
 **영수증은 마지막이다.** `reading_webhook_event` 는 도착을 적는 자리라 어느 FK 에도 안
 매여 있다. 생성이 도는 중에 지우면 그 사이 도착한 응답을 두 번 집을 수 있다. 순서는
@@ -157,6 +158,7 @@ delete from public.signup_code;
 | --- | --- | --- |
 | Supabase Auth | 로그인 신원·세션·토큰 | `auth.users` 삭제가 identities·sessions·one_time_tokens·mfa_factors 를 cascade 로 데려간다(확인함). 감사 로그·flow state 는 FK 가 없어 `forget_user` 가 손으로 지운다 |
 | Supabase 백업 | 지운 행이 스냅숏에 남는다 | **Free 플랜에는 자동 일일 백업과 PITR 이 없다.** 운영자가 손으로 dump 를 뜬 적이 없으면 남는 것이 없다. 플랜을 올리면 이 줄을 다시 쓴다 |
+| AWS S3 사진 저장소(켠 뒤, G-120) | 프로필 사진 두 벌(`photos/{계정 id}/…`) | 처리방침의 「탈퇴 신청 후 3일 이내」에 든다. 줄이 지워지면 지울 줄(`photo_object_trash`)에 들고 매시간 청소가 지운다 — 첫 실패에 알림, 미실행 · 잔류는 감시가 알린다(#821). 장치가 실패하면 기한 전에 사람이 `docs/ops/runbook/photo-store.md` 대로 조치한다. 지울 줄이 비어야 「파기했습니다」다. 버킷은 버전 관리를 꺼 이전 판이 안 남는다. 꺼져 있으면 이 줄은 없다 |
 | Vercel 로그 | 요청 로그. 출생 원문은 안 적는다(`prd-archive` 로그 규율) | **Hobby 플랜의 런타임 로그 보존은 1시간.** 플랜을 올리면 이 줄을 다시 쓴다 |
 | OpenAI | 프롬프트에 여덟 글자와 그 위의 사실이 들어간다. 정확한 생년월일시·출생지·분 단위는 안 나간다(ADR 0008) | `store: false` 로 보내되 `background: true` 라 회수용으로 **약 10분** 들고 있다. 그와 별개로 기본 abuse monitoring 로그가 **최대 30일**, 프롬프트 캐시가 마지막 사용 후 **최소 30분**이다 |
 

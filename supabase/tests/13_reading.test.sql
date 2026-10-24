@@ -978,13 +978,13 @@ select is(
     'note_taste_checks',
     'open_reading_jobs',
     /**
-     * 사진 저장소의 문 일곱(`20261227090000`, G-120) — 옮기는 도구의 표 · 옛 바이트 · 옮긴 표시 · 열쇠 목록(사람만 돌리는
-     * `scripts/photo-move.mjs` · `photo-verify.mjs`)과 청소 크론의 남은 표 · 지울 줄 둘. 로그인한 사람은 못 부른다(`99_photo_object_store`)
+     * 사진 저장소의 문 넷(`20261227090000`, G-120) — 열쇠 목록(사람만 돌리는 월 점검 `scripts/photo-verify.mjs`)과 청소 크론의
+     * 남은 표 · 지울 줄 둘. 옮기는 도구의 문 셋은 `20261227150000` 이 걷었다. 로그인한 사람은 못 부른다(`99_photo_object_store`)
      */
-    'photo_bytes_moved',
-    'photo_bytes_to_move',
-    'photo_move_begin',
     'photo_object_keys',
+    /** 매시 청소의 임대를 여닫는 문 둘 — 겹쳐 돌면 하나만(`20261229090000`, ADR 0204 · `99_photo_sweep_hourly`) */
+    'photo_sweep_begin',
+    'photo_sweep_finish',
     'photo_sweep_tickets',
     'photo_trash_batch',
     'photo_trash_settle',
