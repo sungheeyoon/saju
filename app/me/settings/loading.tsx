@@ -2,43 +2,28 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
 import { COLUMN } from '../../ui/surfaces';
 
 /**
- * 계정 관리의 뼈대 — 제목 · 한 줄 설명, 무리 여섯(작은 제목 · 흰 판의 줄)(`page.tsx` · `card.tsx`). 무리는 실제 화면의
- * 차례다 — 프로필 한 줄 · 어떤 상대 · 인연 찾기 · 선택 동의(설명과 세 줄) · 로그인 정보 · 탈퇴. 줄은 `SETTINGS_ROW` 처럼
- * 폰에서 글 아래 오른쪽 끝에 손잡이가 서고 넓은 화면에서 한 줄이다 — 넷이 같은 높이의 판이면 다 불러온 순간 화면이 출렁였다
- * (2026-10-09 화면 갤러리 감사). 이 기기의 알림 줄은 공개 열쇠가 있는 배포에만 서므로 뼈대에 두지 않는다.
+ * 계정 관리의 뼈대 — 제목 · 한 줄 설명, 무리 여섯(작은 이름 · 위아래 구분선 사이의 줄)(`page.tsx` · `card.tsx`). 무리는 실제 화면의
+ * 차례다 — 프로필 한 줄 · 어떤 상대 · 인연 찾기 · 선택 동의(설명과 세 줄) · 로그인 정보(이메일 · 로그아웃), 그 아래 탈퇴 글자 줄.
+ * 이 기기의 알림 줄은 공개 열쇠가 있는 배포에만 서므로 뼈대에 두지 않는다.
+ *
+ * 2026-10-25 설정 목록 재배치로 판(카드)이 걷히고 켜고 끄기가 스위치가 됐다 — 스위치 줄은 폰에서도 손잡이가 글 옆에 서므로 뼈대도
+ * 줄 오른쪽에 작은 알약(스위치 자리)을 세운다. 성별 칸만 폰에서 글 아래로 내려온다.
  *
  * 머리글의 톱니에서 여는 화면이다. 탭 넷과 같은 까닭으로 뼈대를 둔다(ADR 0116) — 로그인을 읽는 동적 화면이라 뼈대가
  * 없으면 누른 뒤 서버 응답이 다 올 때까지 지금 화면에 머문다. 이 폴더는 이 화면 하나만 품고 `notFound()` 가 없다.
  */
-/**
- * 줄마다 글 상자의 높이(폰 · 넓은 화면)와 손잡이 폭 — 2026-10-10 에 실제 화면을 390 · 1280 에서 잰 값이다. 같은 높이의 줄로 두면
- * 넓은 화면에서 어떤 상대 판이 86 대 162px, 선택 동의 판이 240 대 336px 로 어긋났다(2026-10-09 화면 갤러리 감사). 어떤 상대는
- * 줄이 둘(성별 세 칸 · 그 아래 설명 줄)이고, 선택 동의의 셋은 설명이 두세 줄이다.
- */
-const GROUPS = [
-  { link: true, description: false, rows: [] },
+type Row = { kind: 'link' } | { kind: 'switch'; text: string } | { kind: 'choice' } | { kind: 'text'; text: string };
+
+const GROUPS: { description: boolean; rows: Row[] }[] = [
+  { description: false, rows: [{ kind: 'link' }] },
+  { description: false, rows: [{ kind: 'choice' }, { kind: 'text', text: 'h-5' }] },
+  { description: false, rows: [{ kind: 'switch', text: 'h-16 sm:h-12' }] },
   {
-    link: false,
-    description: false,
-    rows: [
-      { text: 'h-5', handle: 'w-64' },
-      /* 성별은 고르면 곧 저장해 이 줄에 단추가 없다 — 설명 한 줄뿐이다 */
-      { text: 'h-5', handle: null },
-    ],
-  },
-  { link: false, description: false, rows: [{ text: 'h-17 sm:h-12', handle: 'w-32' }] },
-  {
-    link: false,
     description: true,
-    rows: [
-      { text: 'h-19', handle: 'w-40' },
-      { text: 'h-30 sm:h-25', handle: 'w-48' },
-      { text: 'h-13', handle: 'w-32' },
-    ],
+    rows: [{ kind: 'switch', text: 'h-19' }, { kind: 'switch', text: 'h-24 sm:h-19' }, { kind: 'link' }],
   },
-  { link: false, description: false, rows: [{ text: 'h-6', handle: 'w-24' }] },
-  { link: false, description: false, rows: [{ text: 'h-18 sm:h-12', handle: 'w-16' }] },
-] as const;
+  { description: false, rows: [{ kind: 'text', text: 'h-5' }, { kind: 'text', text: 'h-6' }] },
+];
 
 export default function SettingsLoading() {
   return (
@@ -48,48 +33,46 @@ export default function SettingsLoading() {
         <Bone className="h-5 w-64 max-w-full rounded-full" />
       </div>
       {GROUPS.map((group, at) => (
-        <div key={at} className="flex flex-col gap-2">
-          <div className="flex flex-col gap-1 px-1">
-            <Bone className="h-6 w-28 rounded-full" />
+        <div key={at} className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 pb-1">
+            <Bone className="h-5 w-24 rounded-full" />
             {group.description && <Bone className="h-5 w-full rounded-full" />}
           </div>
-          <div className="flex flex-col rounded-card border border-border bg-surface px-4 py-1 sm:px-5">
-            {group.link && (
-              <div className="flex min-h-14 items-center gap-3 py-3">
-                <Bone className="size-11 shrink-0 rounded-full" />
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <Bone className="h-5 w-24 rounded-full" />
-                  <Bone className="h-4 w-36 rounded-full" />
-                </div>
-              </div>
-            )}
+          <div className="flex flex-col border-y border-border">
             {group.rows.map((row, line) => (
-              <div
-                key={line}
-                className="flex flex-col gap-3 border-t border-border py-4 first:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-              >
-                {/*
-                  글 상자 — 제목 한 줄과, 남는 높이에 다 드는 만큼의 설명 줄. 세로로 접히는(`flex-wrap`) 단이라 다 들지 못한 줄은
-                  오른쪽 다음 단으로 넘어가 잘린다 — 반쯤 잘린 줄이 남지 않는다
-                */}
-                <div className={`flex min-w-0 flex-col flex-wrap content-start gap-x-8 gap-y-1 overflow-hidden sm:flex-1 ${row.text}`}>
-                  <span className="flex w-full shrink-0">
-                    <Bone className="h-5 w-32 max-w-full rounded-full" />
-                  </span>
-                  {[0, 1, 2, 3, 4].map((sentence) => (
-                    <span key={sentence} className="flex w-full shrink-0 items-center">
-                      <Bone className="h-4 w-full max-w-sm rounded-full" />
-                    </span>
-                  ))}
-                </div>
-                {row.handle !== null && (
-                  <Bone className={`h-11 max-w-full shrink-0 self-end rounded-full sm:self-auto ${row.handle}`} />
+              <div key={line} className="border-t border-border py-4 first:border-0">
+                {row.kind === 'link' && (
+                  <div className="flex min-h-12 items-center gap-3">
+                    <Bone className="size-11 shrink-0 rounded-full" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <Bone className="h-5 w-24 rounded-full" />
+                      <Bone className="h-4 w-36 rounded-full" />
+                    </div>
+                  </div>
                 )}
+                {row.kind === 'switch' && (
+                  <div className="flex items-center gap-4">
+                    <div className={`flex min-w-0 flex-1 flex-col gap-2 overflow-hidden ${row.text}`}>
+                      <Bone className="h-5 w-32 max-w-full shrink-0 rounded-full" />
+                      <Bone className="h-4 w-full max-w-sm shrink-0 rounded-full" />
+                      <Bone className="h-4 w-3/4 max-w-sm shrink-0 rounded-full" />
+                    </div>
+                    <Bone className="h-8 w-[3.25rem] shrink-0 rounded-full" />
+                  </div>
+                )}
+                {row.kind === 'choice' && (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Bone className="h-5 w-12 rounded-full" />
+                    <Bone className="h-11 w-full rounded-cell sm:w-64" />
+                  </div>
+                )}
+                {row.kind === 'text' && <Bone className={`${row.text} w-48 max-w-full rounded-full`} />}
               </div>
             ))}
           </div>
         </div>
       ))}
+      <Bone className="h-5 w-10 rounded-full" />
     </SkeletonMain>
   );
 }

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -12,7 +10,7 @@ import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
-import { SETTINGS_QUIET, SettingsCard, SettingsLinkRow, SettingsRow } from './card';
+import { SettingsCard, SettingsLinkRow, SettingsRow } from './card';
 import { SignOutRow } from './sign-out-row';
 import { PushRow } from './push-row';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
@@ -27,10 +25,10 @@ export const metadata = {
 };
 
 /**
- * 계정 관리 — **무리 지은 목록 하나** (5차, 부드러움).
+ * 계정 관리 — **무리 지은 목록 하나**(2026-10-25 설정 목록 재배치 — 판 없이 이름 · 구분선 · 줄).
  *
- * 위에서 아래로 「나 → 만남 → 동의 → 로그인 → 떠나기」 차례다. 자주 바꾸는 것이 위, 되돌리기
- * 어려운 것이 맨 아래다. 모양은 `card.tsx` 한 벌이 든다.
+ * 위에서 아래로 「나 → 만남 → 알림 → 동의 → 로그인 → 떠나기」 차례다. 자주 바꾸는 것이 위, 되돌리기 어려운 것이 맨 아래다.
+ * 켜고 끄기는 스위치, 다른 화면으로 가는 줄은 「›」, 로그아웃 · 탈퇴는 글자 줄 — 모양은 `card.tsx` 한 벌이 든다.
  */
 export default async function SettingsPage() {
   const supabase = await supabaseOnServer();
@@ -117,7 +115,8 @@ export default async function SettingsPage() {
             **처리 안내도 이 무리의 한 줄이다.** 여기서 사용자가 찾는 것 셋(무엇을 켰나 · 무엇을
             껐나 · 무엇을 확인했나) 중 하나라, 위의 선택 항목 둘과 같은 줄 모양으로 선다.
           */}
-          <SettingsRow
+          <SettingsLinkRow
+            href="/privacy"
             label="개인정보 처리 안내"
             help={
               account.notice_ack_at === null
@@ -129,23 +128,20 @@ export default async function SettingsPage() {
                 ? '안내가 새로 바뀌어 다시 보여 드립니다.'
                 : undefined
             }
-          >
-            <Link href="/privacy" className={SETTINGS_QUIET}>
-              처리방침 보기
-            </Link>
-          </SettingsRow>
+          />
         </SettingsCard>
       )}
 
+      {/*
+        **떠나는 누름은 맨 아래의 글자 줄이다**(2026-10-25) — 로그아웃은 로그인 정보 무리의 마지막 줄, 탈퇴는 그 아래 작은 회색 줄.
+        토스 · 카카오톡 · iOS 설정처럼 자주 바꾸는 것이 위, 떠나는 것이 맨 아래다.
+      */}
       <SettingsCard title="로그인 정보">
-        <SignOutRow email={user.email} />
+        {user.email !== undefined && <SettingsRow help={user.email} />}
+        <SignOutRow />
       </SettingsCard>
 
-      {state.kind === 'active' && (
-        <SettingsCard title="탈퇴">
-          <RequestDeletion />
-        </SettingsCard>
-      )}
+      {state.kind === 'active' && <RequestDeletion />}
     </main>
   );
 }

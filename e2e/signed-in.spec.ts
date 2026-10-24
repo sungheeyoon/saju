@@ -2171,8 +2171,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(account.getByRole('button', { name: '탈퇴', exact: true })).toBeVisible();
     const cardTitles = await account.getByRole('heading', { level: 2 }).allTextContents();
     expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
-    expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('탈퇴'));
-    expect(cardTitles.at(-1)).toBe('탈퇴');
+    expect(cardTitles.at(-1)).toBe('로그인 정보');
+    /*
+      **떠나는 누름은 맨 아래의 글자 줄이다**(2026-10-25) — 로그아웃 다음에 탈퇴, 그 뒤에는 누를 것이 없다. 알약이 아니라 글자 줄이어도
+      누를 자리는 44px 을 지킨다.
+    */
+    const presses = await account.getByRole('button').allTextContents();
+    expect(presses.indexOf('로그아웃')).toBe(presses.length - 2);
+    expect(presses.at(-1)).toBe('탈퇴');
+    await expectTargets({
+      로그아웃: account.getByRole('button', { name: '로그아웃' }),
+      탈퇴: account.getByRole('button', { name: '탈퇴', exact: true }),
+    });
 
     /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
     await expectTargets(
@@ -2195,27 +2205,61 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **버튼의 이름은 「끄기」다.**
+   * **선택 동의는 스위치이고, 남긴 답을 지우는 끄기는 먼저 묻는다**(ADR 0022 「2026-10-25 덧」).
    *
-   * 「철회하기」라고 적혀 있었다 — 서류의 말이지 누르는 것의 이름이 아니다. 처리 안내가
-   * 「계정 관리 화면에서 켜고 끄실 수 있습니다」라고 약속하므로 화면도 그 낱말을 쓴다.
-   * 끄는 일 자체는 그대로다 — 없애면 처리방침이 약속한 것이 화면에 없게 된다.
+   * 「철회하기」라고 적혀 있었다 — 서류의 말이지 누르는 것의 이름이 아니다. 처리 안내가 「계정 관리 화면에서 켜고 끄실 수
+   * 있습니다」라고 약속하므로 화면도 켜고 끄는 손잡이(스위치)다. 끄는 일 자체는 그대로다 — 없애면 처리방침이 약속한 것이 화면에
+   * 없게 된다. 개선 활용을 끄면 남긴 설문 답변이 같은 트랜잭션에서 지워지므로, 스위치를 누르면 확인 창이 먼저 서고 「취소」는
+   * 아무것도 안 바꾼다.
    */
-  test('선택 동의는 켜고 끄는 말로 서고, 끄면 남긴 답도 지운다고 미리 말한다', async ({
-    page,
-    reader,
-  }) => {
-    expect(reader.account.email).not.toBe('');
+  test('선택 동의는 스위치로 서고, 개선 활용을 끄면 남긴 답을 지운다고 먼저 묻는다', async ({ page, reader }) => {
+    answerReading(reader.runId, reader.account.email, `지울 답 ${Date.now()}`);
+    const answers = () =>
+      sql(`select count(*) from public.reading_feedback f join auth.users u on u.id = f.respondent_user_id
+           where u.email = '${reader.account.email}'`);
+    const consent = () =>
+      sql(`select improvement_consent from public.app_user a join auth.users u on u.id = a.id
+           where u.email = '${reader.account.email}'`);
+    expect(answers()).toBe('1');
+
     await page.goto('/me/settings');
+    const main = page.getByRole('main');
+    await expect(main.getByRole('button', { name: '철회하기' })).toHaveCount(0);
+    await expect(main.getByRole('button', { name: '끄기', exact: true })).toHaveCount(0);
 
-    const consent = page.getByRole('main');
-    await expect(consent.getByRole('button', { name: '철회하기' })).toHaveCount(0);
+    /* `reader` 는 개선 활용에 동의한 계정이라 그 스위치가 켜져 있다 — 이름은 줄의 이름, 상태는 aria-checked */
+    const improvement = main.getByRole('switch', { name: '풀이 개선에 답변 활용' });
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    /* 지움 문장은 제 줄이고 스위치의 설명으로 읽힌다 — 누르기 전에 들린다 */
+    await expect(improvement).toHaveAccessibleDescription(/동의를 끄면 지금까지 남긴 설문 답변을 삭제합니다\./);
+    await expect(main.getByRole('switch', { name: '다음 테스트 소식 받기' })).toHaveAttribute('aria-checked', 'false');
+    await expectTargets({ 개선: improvement });
 
-    /* `reader` 는 개선 활용에 동의한 계정이라 그 줄이 켜져 있다 */
-    await expect(consent.getByRole('button', { name: '끄기' }).first()).toBeVisible();
-    /* 지움 문장은 상태 줄의 꼬리가 아니라 제 줄이다 — 켜져 있든 아니든 선다 */
-    await expect(consent.getByText('동의를 끄면 지금까지 남긴 설문 답변을 삭제합니다.')).toBeVisible();
-    await expect(consent.getByText('현재 동의 중').first()).toBeVisible();
+    /* 누르면 창이 먼저 — 첫 초점은 「취소」이고, 취소하면 켜진 채 답도 그대로다 */
+    await improvement.click();
+    const asked = page.getByRole('dialog', { name: '풀이 개선에 답변 활용을 끌까요?' });
+    await expect(asked).toBeVisible();
+    await expect(asked.getByText('삭제한 답변은 되돌릴 수 없습니다.')).toBeVisible();
+    await expect(asked.getByRole('button', { name: '취소' })).toBeFocused();
+    await asked.getByRole('button', { name: '취소' }).click();
+    await expect(asked).toBeHidden();
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    expect(consent()).toBe('t');
+    expect(answers()).toBe('1');
+
+    /* 「끄고 삭제하기」를 누르면 꺼지고 답이 지워진다 */
+    await improvement.click();
+    await asked.getByRole('button', { name: '끄고 삭제하기' }).click();
+    await expect(asked).toBeHidden();
+    await expect(improvement).toHaveAttribute('aria-checked', 'false');
+    await expect.poll(consent).toBe('f');
+    expect(answers()).toBe('0');
+
+    /* 다시 켜는 것은 묻지 않는다 — 잃을 것이 없다 */
+    await improvement.click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(consent).toBe('t');
   });
 
   test('입력을 고치면 새 판본으로 다시 그린다', async ({ page, signedIn }) => {

@@ -1,17 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 
 import { actionAnswer } from '../../ui/action-answer';
 import { DoneNote, useDoneNote } from '../../ui/done-note';
 
-import {
-  SETTINGS_PRIMARY,
-  SETTINGS_QUIET,
-  SETTINGS_ROW,
-  SettingsCard,
-  SettingsRow,
-} from '../settings/card';
+import { SETTINGS_ROW, SettingsCard, SettingsSwitchRow } from '../settings/card';
 import { savePreferGender, setDiscoveryParticipation } from './actions';
 import { saveLatest } from './save-latest';
 import type { PreferGender } from '@/src/lib/discovery';
@@ -119,9 +113,11 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
         가는 동안의 「저장하는 중…」과, 마지막으로 고른 값까지 저장된 뒤 잠깐 서는 「저장했어요」. 그 상자(`DoneNote`)는 늘 서
         있고 글자만 바뀌어 화면 읽기도 바뀐 말을 읽는다.
       */}
-      <SettingsRow note="서로 고른 성별이 맞는 사람끼리 소개돼요.">
-        <DoneNote className="text-xs text-muted">{progress}</DoneNote>
-      </SettingsRow>
+      {/* 폰에서도 한 줄이다 — 손잡이 자리로 내려 세우면 비어 있는 상태 상자가 줄 높이만큼 빈 자리를 남겼다 */}
+      <div className="flex items-center justify-between gap-3 border-t border-border py-4">
+        <p className="text-small leading-5 text-muted">서로 고른 성별이 맞는 사람끼리 소개돼요.</p>
+        <DoneNote className="shrink-0 text-xs text-muted">{progress}</DoneNote>
+      </div>
 
       {failure !== null && (
         <FailureLine id="prefer-gender-failure" className="border-t border-border pt-4">
@@ -133,76 +129,51 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
 }
 
 /**
- * 매칭 참여를 켜고 끄는 자리 — **이제 여기가 켜는 자리가 아니다.**
+ * 인연 찾기 참여를 켜고 끄는 자리 — **스위치 하나다**(2026-10-25 설정 목록 재배치).
  *
- * 참여는 기본으로 켜져 있고(PRD 「추천은 여섯 자리 덱이다」), 무엇이 나가는지는 가입 관문이 읽힌다
- * (`notice-v4`). 여기 남은 일은 **끄는 것과, 껐던 것을 되돌리는 것** 둘이다.
+ * 참여는 기본으로 켜져 있고(PRD 「추천은 여섯 자리 덱이다」), 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v4`). 여기 남은 일은
+ * **쉬는 것과, 쉬던 것을 다시 시작하는 것** 둘이고 누르면 곧 적용된다 — 알약 둘(「인연 찾기 쉬기」 · 「인연 찾기 다시 시작」)이던
+ * 것을 스위치 하나로 세운다. 스위치의 이름은 무리 이름 「인연 찾기」다(보이는 줄 이름이 따로 없다).
  *
- * 그래도 목록은 양쪽에 그대로 선다. 끄기 직전에도 무엇을 거두는지 보여야 하고, 되돌리기
- * 직전에도 무엇이 다시 나가는지 보여야 한다 — 두 누름 다 남에게 보이는 범위를 바꾼다.
+ * 설명은 양쪽에 그대로 선다. 쉬기 직전에도 무엇을 거두는지, 다시 켜기 직전에도 무엇이 다시 나가는지 보여야 한다 — 두 누름 다
+ * 남에게 보이는 범위를 바꾼다. **제목은 기능의 이름이고 상태는 줄의 글이 든다** — 상태마다 제목이 갈리면(「참여 중」 · 「쉬는 중」)
+ * 설정을 찾아온 사람이 두 칸으로 읽는다.
+ *
+ * 누르면 스위치가 곧 넘어가고(`useOptimistic`), 거절되면 서버가 든 값으로 돌아오며 까닭이 선다.
  */
 export function ParticipationToggle({ resting }: { resting: boolean }) {
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
+  const [on, show] = useOptimistic(!resting, (_now: boolean, next: boolean) => next);
 
-  const toggle = (on: boolean) => {
+  const toggle = (next: boolean) => {
     setFailure(null);
     startWorking(async () => {
-      const result = await actionAnswer(setDiscoveryParticipation(on));
+      show(next);
+      const result = await actionAnswer(setDiscoveryParticipation(next));
       if (!result.ok) setFailure(result.message);
     });
   };
 
-  if (!resting) {
-    return (
-      <SettingsCard title="인연 찾기">
-        {/*
-          **제목은 기능의 이름이고, 상태는 줄이 든다.** 「인연 찾기 참여 중」·「인연 찾기
-          쉬는 중」으로 제목이 갈려 있었다. 같은 칸이 상태마다 다른 이름을 쓰니 설정을
-          찾아온 사람이 **두 개의 다른 칸**으로 읽는다.
-        */}
-        <SettingsRow
-          help="현재 다른 사람에게 내 프로필이 소개되고 있어요."
-          note="내 프로필과 오행 요약이 인연을 찾는 다른 사람에게 보여요."
-        >
-          <button
-            type="button"
-            onClick={() => toggle(false)}
-            disabled={working}
-            className={SETTINGS_QUIET}
-          >
-            {working ? '끄는 중…' : '인연 찾기 쉬기'}
-          </button>
-        </SettingsRow>
-        {failure !== null && (
-          <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
-        )}
-      </SettingsCard>
-    );
-  }
-
-  /*
-    **쉬는 중인 사람에게만 서는 자리다.** 「아직 안 켠 사람」이 없어졌으므로 여기 설 수
-    있는 것은 직접 끈 사람뿐이고, 그래서 문장이 권유가 아니라 **지금 상태의 설명**이다.
-  */
   return (
     <SettingsCard title="인연 찾기">
-      <SettingsRow
-        help="지금은 다른 사람에게 내 프로필이 소개되지 않고 있어요."
-        note="다시 시작하면 내 프로필과 오행 요약이 인연을 찾는 다른 사람에게 보여요."
-      >
-        <button
-          type="button"
-          onClick={() => toggle(true)}
-          disabled={working}
-          className={SETTINGS_PRIMARY}
-        >
-          {working ? '켜는 중…' : '인연 찾기 다시 시작'}
-        </button>
-      </SettingsRow>
-      {failure !== null && (
-        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
-      )}
+      <SettingsSwitchRow
+        name="인연 찾기"
+        help={
+          on
+            ? '현재 다른 사람에게 내 프로필이 소개되고 있어요.'
+            : '지금은 다른 사람에게 내 프로필이 소개되지 않고 있어요.'
+        }
+        note={
+          on
+            ? '내 프로필과 오행 요약이 인연을 찾는 다른 사람에게 보여요.'
+            : '다시 시작하면 내 프로필과 오행 요약이 인연을 찾는 다른 사람에게 보여요.'
+        }
+        checked={on}
+        onChange={toggle}
+        busy={working}
+      />
+      {failure !== null && <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>}
     </SettingsCard>
   );
 }
