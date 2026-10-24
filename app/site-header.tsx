@@ -23,7 +23,7 @@ import { READING_CREDITS_MOVED } from './me/credits/credits-signal';
 import { readRequestsToAnswer, readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
-import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
+import { BUTTON_SECONDARY_SMALL, ICON_BUTTON_BARE, ICON_BUTTON_BARE_ACTIVE } from './ui/buttons';
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
@@ -222,7 +222,7 @@ export function SiteHeader() {
             거짓말을 보고, 톱니를 먼저 세우면 그 반대다. 자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
           */}
           {memberNavigation ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1">
               {/*
                 **세션을 확인한 뒤에만 세운다.** 풀이권은 이 글의 성질이 아니라 **계정의 성질**이라 계정이
                 사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.
@@ -343,14 +343,14 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
   );
 }
 
-/** 상단 잔액은 설정처럼 펼친다(B안, 운영자 2026-10-12). 폰은 표 그림, 넓은 폭은 잔액 알약이다. */
+/** 상단 잔액은 설정처럼 펼친다(B안, 운영자 2026-10-12). 폰은 테 없는 표 그림, 넓은 폭은 테 없는 크림 잔액 알약이다(2026-10-24). */
 function Credits({ available }: { available: number }) {
   const label = readingCreditsLabel({ available });
   return (
     <CreditsMenu
       available={available}
       label={label}
-      className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-cream text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-95 sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:px-3 sm:text-fine sm:font-semibold sm:tabular-nums sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1"
+      className={`${ICON_BUTTON_BARE} sm:inline-flex sm:size-auto sm:min-h-9 sm:items-center sm:gap-1.5 sm:bg-cream sm:px-3 sm:text-fine sm:font-semibold sm:tabular-nums sm:text-cream-ink sm:after:absolute sm:after:inset-x-0 sm:after:-inset-y-1`}
     >
       <Icon name="ticket" className="size-5 sm:size-4" />
       <span aria-hidden="true" className="hidden translate-y-[0.625px] sm:inline">{label}</span>
@@ -368,7 +368,7 @@ function NewsBell({ count, active }: { count: number; active: boolean }) {
       href="/me/requests"
       aria-current={active ? 'page' : undefined}
       title="소식"
-      className={active ? ICON_BUTTON_ACTIVE : ICON_BUTTON}
+      className={active ? ICON_BUTTON_BARE_ACTIVE : ICON_BUTTON_BARE}
     >
       <Icon name="bell" />
       <span className="sr-only">소식</span>
@@ -485,7 +485,7 @@ function SettingsMenu({
   return (
     <details ref={panel} className="group relative shrink-0">
       <summary
-        className={`${ICON_BUTTON} list-none [&::-webkit-details-marker]:hidden`}
+        className={`${ICON_BUTTON_BARE} list-none [&::-webkit-details-marker]:hidden`}
         aria-label="설정 메뉴"
       >
         <Icon name="gear" />
