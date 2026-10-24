@@ -17,7 +17,14 @@ const { pushSender, postWithin } = await import('./send');
 const curve = createECDH('prime256v1');
 curve.generateKeys();
 const PUBLIC = curve.getPublicKey().toString('base64url');
-const PRIVATE = curve.getPrivateKey().toString('base64url');
+/**
+ * 개인 열쇠는 32바이트로 채운다 — `getPrivateKey()` 는 앞자리 0 바이트를 떼어 256번에 한 번꼴로 31바이트를 내고,
+ * 송신기는 32바이트가 아니면 설정 안 됨으로 본다(`vapidDetails`). 진짜 열쇠는 `web-push` 가 채워 만든다
+ */
+const PRIVATE = (() => {
+  const raw = curve.getPrivateKey();
+  return Buffer.concat([Buffer.alloc(32 - raw.length), raw]).toString('base64url');
+})();
 const MATCH = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const TARGET = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'p', auth: 'a' };
 const BUILT = { method: 'POST', headers: { TTL: 3600 }, body: Buffer.from('x'), endpoint: TARGET.endpoint };
