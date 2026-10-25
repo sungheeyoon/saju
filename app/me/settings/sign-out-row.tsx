@@ -18,7 +18,7 @@ export function SignOutRow() {
   const { leaving, failure, signOut } = useSignOut();
 
   return (
-    <div className="flex flex-col border-t border-border first:border-0">
+    <div className="flex flex-col">
       <button
         type="button"
         onClick={() => {
@@ -29,7 +29,7 @@ export function SignOutRow() {
       >
         {leaving ? SIGN_OUT_PENDING : '로그아웃'}
       </button>
-      {failure !== null && <FailureLine className="pb-4">{failure}</FailureLine>}
+      {failure !== null && <FailureLine className="px-6 pb-3">{failure}</FailureLine>}
     </div>
   );
 }

@@ -2168,20 +2168,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
-    await expect(account.getByRole('button', { name: '탈퇴', exact: true })).toBeVisible();
+    await expect(account.getByRole('button', { name: '탈퇴하기', exact: true })).toBeVisible();
     const cardTitles = await account.getByRole('heading', { level: 2 }).allTextContents();
-    expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
-    expect(cardTitles.at(-1)).toBe('로그인 정보');
+    expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('계정'));
+    expect(cardTitles.at(-1)).toBe('계정');
     /*
-      **떠나는 누름은 맨 아래의 글자 줄이다**(2026-10-25) — 로그아웃 다음에 탈퇴, 그 뒤에는 누를 것이 없다. 알약이 아니라 글자 줄이어도
+      **떠나는 누름은 맨 아래의 글자 줄이다**(2026-10-25 · 26) — 로그아웃 다음에 탈퇴하기, 그 뒤에는 누를 것이 없다. 알약이 아니라 글자 줄이어도
       누를 자리는 44px 을 지킨다.
     */
     const presses = await account.getByRole('button').allTextContents();
     expect(presses.indexOf('로그아웃')).toBe(presses.length - 2);
-    expect(presses.at(-1)).toBe('탈퇴');
+    expect(presses.at(-1)).toBe('탈퇴하기');
     await expectTargets({
       로그아웃: account.getByRole('button', { name: '로그아웃' }),
-      탈퇴: account.getByRole('button', { name: '탈퇴', exact: true }),
+      탈퇴하기: account.getByRole('button', { name: '탈퇴하기', exact: true }),
     });
 
     /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
@@ -3138,7 +3138,7 @@ test.describe('가입 관문', () => {
    */
   test('프로필 사진을 여러 장 올리고, 길게 눌러 끌거나 ← → 로 옮기고, × 로 지운다', async ({ openAs }) => {
     const { page } = await openAs({ selfPerson: true });
-    /* 사진이 없으면 계정 관리 맨 위 「나」 줄 끝에 「사진 추가」가 선다(대장 47) — 있으면 안 선다(이 시험 끝) */
+    /* 사진이 없으면 계정 관리 맨 위 내 프로필 줄 끝에 「사진 추가」가 선다(대장 47) — 있으면 안 선다(이 시험 끝) */
     await page.goto('/me/settings');
     await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toBeVisible();
     await page.goto('/me/profile');

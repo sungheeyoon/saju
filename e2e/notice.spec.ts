@@ -246,8 +246,8 @@ test.describe('재확인 기준', () => {
     await expect(page).toHaveURL(/\/me$/);
 
     await page.goto('/me/settings');
-    await expect(page.getByText('처리 안내를 확인했습니다.', { exact: false })).toBeVisible();
-    await expect(page.getByText('안내가 새로 바뀌어 다시 보여 드립니다.')).toHaveCount(0);
+    await expect(page.getByText('에 확인했어요.', { exact: false })).toBeVisible();
+    await expect(page.getByText('안내가 바뀌어 다시 보여 드려요.')).toHaveCount(0);
 
     /* 지나가게 둔 것이지 새 판본을 본 것으로 고쳐 적은 것이 아니다 */
     expect(versionOf(signedIn.email)).toBe(NOTICE_ACK_FLOOR);

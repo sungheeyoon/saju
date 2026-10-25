@@ -10,7 +10,7 @@ import {
 } from '@/src/lib/push';
 
 import { readPushRowState, turnOffPush, turnOnPush } from '../push/browser';
-import { SettingsCard, SettingsRow, SettingsSwitchRow } from './card';
+import { SettingsGroup, SettingsRow, SettingsSwitchRow } from './card';
 import { FailureLine } from '../../ui/failure-line';
 
 /**
@@ -86,7 +86,7 @@ export function PushRow() {
   const switchable = state === 'off' || state === 'on';
 
   return (
-    <SettingsCard title="알림">
+    <SettingsGroup title="알림">
       {switchable ? (
         <SettingsSwitchRow
           label={COPY.label}
@@ -107,8 +107,8 @@ export function PushRow() {
         />
       )}
       {failure !== null && (
-        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
+        <FailureLine className="px-6 pb-3">{failure}</FailureLine>
       )}
-    </SettingsCard>
+    </SettingsGroup>
   );
 }

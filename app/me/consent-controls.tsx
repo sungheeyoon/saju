@@ -92,7 +92,7 @@ export function ConsentControls({ improvement, contact }: { improvement: boolean
         />
       ))}
 
-      {failure !== null && <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>}
+      {failure !== null && <FailureLine className="px-6 pb-3">{failure}</FailureLine>}
 
       <ConfirmDialog
         open={asking}

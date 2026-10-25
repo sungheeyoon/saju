@@ -248,8 +248,8 @@ test.describe('동의로 열리는 흐름', () => {
         켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v4`). 여기 남은
         누름은 끄는 것 하나다 — 그 버튼이 서 있는 것으로 「지금 켜져 있다」를 잰다.
       */
-      await expect(person.page.getByRole('heading', { name: '인연 찾기', exact: true })).toBeVisible();
-      await expect(person.page.getByText('현재 다른 사람에게 내 프로필이 소개되고 있어요.')).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '인연', exact: true })).toBeVisible();
+      await expect(person.page.getByText('내 프로필과 오행 요약이 다른 사람에게 소개되고 있어요.')).toBeVisible();
       await expect(person.page.getByRole('switch', { name: '인연 찾기' })).toHaveAttribute('aria-checked', 'true');
 
       /*
@@ -480,7 +480,7 @@ test.describe('동의로 열리는 흐름', () => {
     await pendingRequest(other, leaver);
 
     await leaver.page.goto('/me/settings');
-    await leaver.page.getByRole('button', { name: '탈퇴', exact: true }).click();
+    await leaver.page.getByRole('button', { name: '탈퇴하기', exact: true }).click();
     /* 한 번 더 묻는 것은 확인 창 한 벌이고 첫 초점은 「취소」다(운영자 2026-10-18 G-97 ③, ADR 0166) */
     const asked = leaver.page.getByRole('dialog', { name: '정말 탈퇴할까요?' });
     await expect(asked).toBeVisible();

@@ -21,8 +21,8 @@ import { SETTINGS_TEXT_ROW_QUIET } from './settings/card';
  * 묻는데 여기만 판이었다. 창에는 같은 안내 글이 서고, 첫 초점은 「취소」, 보내는 동안은 Esc · 바깥 누름 · 「취소」가 안 닫는다.
  * 거절되면 창이 열린 채 그 줄이 선다. 성공하면 이 화면이 통째로 「탈퇴를 신청한 계정입니다」로 바뀐다(`AccountNotice`).
  *
- * **여는 자리는 계정 관리 맨 아래의 작은 글자 줄이다**(`settings/card.tsx` 의 `SETTINGS_TEXT_ROW_QUIET`, 2026-10-25) — 토스(설정
- * 「하단의 '탈퇴하기'」) · 카카오톡(설정 › 개인/보안 › … › 탈퇴)처럼 찾을 수는 있되 눈에 덜 띄는 자리다. 알약이던 「탈퇴」를 걷었다.
+ * **여는 자리는 계정 관리 맨 아래, 무리 밖 회색 바탕 위의 작은 글자 「탈퇴하기」다**(`settings/card.tsx` 의 `SETTINGS_TEXT_ROW_QUIET`,
+ * 2026-10-26) — 토스 · 당근 설정 맨 아래의 「탈퇴하기」와 같은 자리 · 같은 말이다. 찾을 수는 있되 눈에 덜 띈다.
  */
 export function RequestDeletion() {
   const [asking, setAsking] = useState(false);
@@ -45,7 +45,7 @@ export function RequestDeletion() {
     */
     <>
       <button type="button" onClick={() => setAsking(true)} className={SETTINGS_TEXT_ROW_QUIET}>
-        탈퇴
+        탈퇴하기
       </button>
       {/* 안내 글이 길어 낮은 폰에서는 창이 화면을 넘는다 — 창 안에서 내려 읽는다 */}
       <ConfirmDialog
