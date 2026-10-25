@@ -280,4 +280,5 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 | 취소 실패 줄 `app/me/requests/actions.ts` | 요청을 거두지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 요청을 취소하지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 오류는 「무슨 일 + 할 일」(`docs/context/copy.md` §8). 토스 TDS 토스트 예 「결제에 실패했어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 차단 고지 `src/lib/consent` 의 `BLOCK_NOTE` | … 진행 중인 요청도 거둬집니다. … | … 진행 중인 요청도 취소됩니다. … | 운영자 결정 2026-10-26(화면의 「거두-」 전부). 합니다체는 되돌릴 수 없는 고지라 그대로(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로운 소식이 없어요 | 토스 TDS 토스트 예 「새로운 알림이 있어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 소식 화면 아래 안내 줄 `app/me/requests/page.tsx` | 소식은 앱 안에서만 볼 수 있어요. 이메일 · 문자 · 카카오톡으로는 보내지 않아요. | (걷음) | 운영자 결정으로 걷음(2026-10-26, 「왜 있는 거야」). 토스 · 당근 알림 목록에도 이런 줄이 없다 — 실사례 없음 |
 | 인연 기록이 없을 때의 한 줄 `app/me/matching/history/page.tsx` | (제목만) | 인연 요청을 주고받으면 여기에 기록이 남아요. | 당근 SEED Result Section 「Empty — 무엇을 해야 할지 알려주어 행동을 유도」(<https://seed-design.io/components/result-section>, 확인 2026-10-26) |
