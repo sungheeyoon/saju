@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
-import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { CALENDAR_KO, ELEMENTS, ELEMENT_PICTURE_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
@@ -132,21 +131,19 @@ export function SelfCard({
 
       {/*
         폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다. **반반이다**: 남는 폭을 나눠 갖게(`flex-1`) 두었더니
-        글자가 긴 「만세력 보기」가 폭을 더 가져가 「사주풀이 받기」가 두 줄로 접혔다(2026-10-08). 380px 아래와 「수정 전」 딱지가
-        붙은 때는 두 단추가 한 줄에 못 들어 쌓는다.
+        글자가 긴 「만세력 보기」가 폭을 더 가져가 「사주풀이 받기」가 두 줄로 접혔다(2026-10-08). **360px 에서도 늘 한 줄 나란히다**
+        (2026-10-26 운영자) — 홈 카드에는 「수정 전」 딱지를 두지 않는다(운영자 결정 — 단추 안 알약이 단추를 넓혀 두 줄로 깨뜨렸다. 풀이 글
+        화면 · 보관함의 표시는 그대로). 380px 아래에서는 주 단추의 그림을 걷어 「풀이 만드는 중…」도 든다.
       */}
       {personId === null ? (
         <div className="relative flex flex-wrap items-center gap-2">{actions}</div>
       ) : (
         <div
-          className={`relative grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center ${reading !== null && !reading.fromCurrentChart ? '' : 'min-[380px]:grid-cols-2'}`}
+          className="relative grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
         >
           <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY_FACE} whitespace-nowrap px-3 sm:min-w-52 sm:px-5`}>
-            <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
+            <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px] max-[379px]:hidden" />
             {reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}
-            {reading !== null && !reading.fromCurrentChart && (
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-tag">{READING_STALE_LABEL}</span>
-            )}
           </Link>
           {/*
             **글자는 단추 한가운데다**(2026-10-26 운영자 「심각하다」). 누른 표시(`LinkPending`)는 늘 그려 두고 투명도만 바꾸는 16px
