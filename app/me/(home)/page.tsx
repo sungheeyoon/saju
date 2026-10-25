@@ -216,7 +216,7 @@ async function Home({
           <OtherSaju />
         </div>
 
-        <ReceivedReadings readings={readings} makingSelf={makingSelf(running)} />
+        <ReceivedReadings readings={readings} />
       </div>
 
       {myPeople}

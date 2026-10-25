@@ -43,7 +43,8 @@ export function PersonTile({
   /** 그 사람의 사주풀이를 지금 만드는 중인가 — 글이 없을 때 「풀이 받기」 대신 이 일을 말한다(ADR 0157, 내 사주 카드와 같은 규칙) */
   making?: boolean;
 }) {
-  const detailHref = `/me/people/${person.personId}`;
+  /* 홈에서 연 사람 화면의 ← 가 홈으로 돌아온다(`?from=me`) */
+  const detailHref = `/me/people/${person.personId}?from=me`;
   const note = person.note?.trim() ?? '';
   const anchor = tileAnchor(person.personId);
 

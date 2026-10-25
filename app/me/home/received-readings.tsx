@@ -10,7 +10,7 @@ import type { ReadingEntry } from '@/src/lib/reading';
 import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
 import { MoreList } from './more-list';
 import { withFromMe } from './from-me';
-import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from './making';
+import { READING_CONTINUE_NOTE } from './making';
 
 /**
  * 구역 제목 — 「받은 사주풀이」(2026-10-26 2차, 전에는 「내가 받은 사주풀이」). 내 홈이라 「내가」는 군말이다 — 카카오톡 선물하기의
@@ -44,21 +44,21 @@ const SHOWN_OPEN = 10;
  * 든다. 그 길은 **늘 선다**(u2) — 셋이 다여도 보관함에는 궁합풀이 · 인연 궁합이 함께 있다. 표지는 결과 화면으로 가고 주소가
  * `from=me` 를 들어 ← 가 홈 탭으로 돌아온다.
  *
- * 내 사주풀이가 아직 없으면 줄 하나가 받는 자리로 간다. 만드는 중이면 그 줄이 「받기」 대신 만드는 중임을 말한다 — 같은
- * 자리(풀이 화면)로 가서 같은 목차를 본다.
+ * 내 사주풀이는 이 목록에 없다 — 받는 길 · 보는 길은 내 사주 카드의 단추 하나다(2026-10-26 운영자). 줄의 이름은 사람 이름만이다
+ * (「하은 사주」 → 「하은」).
  */
-export function ReceivedReadings({
-  readings,
-  makingSelf = false,
-}: {
-  readings: readonly ReadingEntry[];
-  /** 내 사주풀이를 지금 만드는 중인가 — 받는 줄이 「받기」 대신 이 일을 말한다(ADR 0157) */
-  makingSelf?: boolean;
-}) {
-  const singles = readings.map(bookOf).filter((book) => book.single);
-  const hasSelf = readings.some((entry) => entry.kind === 'self');
-  const narrow = hasSelf ? SHOWN : SHOWN - 1;
-  const wide = hasSelf ? SHOWN_WIDE : SHOWN_WIDE - 1;
+export function ReceivedReadings({ readings }: { readings: readonly ReadingEntry[] }) {
+  /*
+    **내 사주풀이는 이 목록에 없다**(2026-10-26 운영자) — 바로 위 내 사주 카드에 「사주풀이 보기」가 있다. 풀이 보관함(「모두 보기」)에는
+    그대로 선다. 개수(「3개」)도 이 목록 기준이다. 저장한 사람의 풀이가 하나도 없으면 이 구역이 안 선다
+  */
+  const singles = readings
+    .filter((entry) => entry.kind !== 'self')
+    .map(bookOf)
+    .filter((book) => book.single);
+  const narrow = SHOWN;
+  const wide = SHOWN_WIDE;
+  if (singles.length === 0) return null;
   const shown = singles.slice(0, SHOWN_OPEN);
 
   return (
@@ -99,15 +99,6 @@ export function ReceivedReadings({
             <ReadingRow book={book} />
           </li>
         ))}
-        {!hasSelf && (
-          <li className={HOME_ROW}>
-            <Link href={withFromMe('/me/readings/self')} className={HOME_ROW_LINK}>
-              <HomeMark element="木" />
-              <span className="min-w-0 flex-1 truncate text-body font-semibold">{makingSelf ? SELF_READING_MAKING : '사주풀이 받기'}</span>
-              <Icon name="chevron" className="size-4 shrink-0 text-muted" />
-            </Link>
-          </li>
-        )}
       </MoreList>
     </section>
   );
@@ -121,7 +112,7 @@ function ReadingRow({ book }: { book: Book }) {
       <HomeMark stem={subject !== null && isStem(subject.stem) ? subject.stem : null} element={subject?.element ?? null} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-baseline gap-2">
-          <span className="min-w-0 flex-1 truncate text-body font-semibold">{book.title}</span>
+          <span className="min-w-0 flex-1 truncate text-body font-semibold">{book.names[0] ?? book.title}</span>
           {book.stale && <span className={`shrink-0 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
           <time dateTime={book.dateTime} className="shrink-0 whitespace-nowrap text-fine tabular-nums text-muted">
             {book.date}

@@ -27,9 +27,10 @@ export function ReadingTabs({
 }) {
   return (
     <SegmentedNav
-      label={`${label}의 사주와 사주풀이`}
+      label={`${label}의 만세력과 사주풀이`}
       items={[
-        { href: chartHref, text: '사주', current: current === 'chart' },
+        /* 「만세력」 — 홈 카드의 「만세력 보기」와 같은 이름(운영자 결정 2026-10-26, 대장 home-03) */
+        { href: chartHref, text: '만세력', current: current === 'chart' },
         { href: readingHref, text: '사주풀이', current: current === 'reading' },
       ]}
     />
