@@ -87,11 +87,12 @@ export default async function MatchHistoryPage() {
 
       {/*
         **빈 기록은 빈 상태 한 벌이다**(`app/ui/empty-state.tsx`). 회색 한 줄만 서 있어 화면이 깨진 것처럼 보였다(화면 감사 2026-10-09).
-        단추 글자는 빈 채팅의 것을 그대로 쓴다 — 기록은 인연 탭의 덱에서 요청이 오가야 생긴다.
+        단추 글자는 빈 채팅의 것을 그대로 쓴다 — 기록은 인연 탭의 덱에서 요청이 오가야 생긴다. 그림은 인연 탭의 아이콘(사람 둘)이다 —
+        하트는 데이팅 느낌이라 걷었다(운영자 2026-10-26).
       */}
       {empty && (
         <EmptyState
-          icon="heart"
+          icon="people"
           title="아직 인연 기록이 없어요"
           action={{ href: '/me/matching', label: '오늘의 인연 보기', icon: 'people' }}
         >

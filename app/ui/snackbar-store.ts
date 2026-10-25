@@ -122,10 +122,10 @@ export function createSnackbarStore(timers: Timers = realTimers) {
 export const snackbar = createSnackbarStore();
 
 /**
- * 끝난 일을 바닥에 잠깐 말한다 — 「보낸 요청을 거뒀어요」 · 단추 하나(「되돌리기」).
+ * 끝난 일을 바닥에 잠깐 말한다 — 「보낸 요청을 취소했어요」 · 단추 하나(「되돌리기」).
  *
  * **곁의 한 줄(`DoneNote`)이 먼저다.** 말할 자리가 그대로 서 있으면 그 곁이 가깝다. 스낵바는 그 자리가 사라지는 일
- * (거둔 요청의 카드가 목록에서 빠진다)이나 되돌릴 길을 함께 줄 때 쓴다. 완료 안내는 그 일이 성공한 뒤에만 선다(대장 01).
+ * (취소한 요청의 카드가 목록에서 빠진다)이나 되돌릴 길을 함께 줄 때 쓴다. 완료 안내는 그 일이 성공한 뒤에만 선다(대장 01).
  */
 export function showSnackbar(message: string, action?: SnackbarAction): number {
   return snackbar.show(message, action ?? null);

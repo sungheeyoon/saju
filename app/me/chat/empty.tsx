@@ -38,8 +38,11 @@ export function NoRoomChosen({ empty = false }: { empty?: boolean }) {
 }
 
 /**
- * 말풍선 둘이 서로를 향해 기울고 사이에 작은 하트가 뜬다. 오행의 색을 빌린 꾸밈 그림이라(무엇을 가리키지
- * 않는다) 늘 `aria-hidden` 이고, 색은 토큰이라 다크에서 함께 가라앉는다.
+ * 말풍선 둘이 서로를 향해 기울고 사이에 작은 별이 뜬다. 오행의 색을 빌린 꾸밈 그림이라(무엇을 가리키지
+ * 않는다) 늘 `aria-hidden` 이고, 색은 토큰이라 다크에서 함께 가라앉는다. 다섯 기운이 한 번씩 선다 — 木 · 火 말풍선, 金 별, 土 반짝임,
+ * 水 점.
+ *
+ * **하트를 걷었다**(운영자 2026-10-26 — 「데이팅 느낌 나는 하트 모양은 뺀다」). 사이의 하트가 金 별이 됐다.
  */
 function ChatIllustration({ className }: { className: string }) {
   return (
@@ -78,9 +81,9 @@ function ChatIllustration({ className }: { className: string }) {
         />
       </g>
 
-      <g className={ELEMENT_TONE.火.scope}>
+      <g className={ELEMENT_TONE.金.scope}>
         <path
-          d="M132 40s-11-6.4-11-14.2a6.2 6.2 0 0 1 11-3.7 6.2 6.2 0 0 1 11 3.7c0 7.8-11 14.2-11 14.2Z"
+          d="M132 17 135.4 26.6 145 30l-9.6 3.4L132 43l-3.4-9.6L119 30l9.6-3.4Z"
           fill="var(--mid)"
           stroke="var(--ink)"
           strokeWidth="1.8"

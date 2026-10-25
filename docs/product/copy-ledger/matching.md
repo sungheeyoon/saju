@@ -260,19 +260,24 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 | 방 머리 「⋯」의 보조기기 이름(`ROOM_MENU_LABEL`, 대화방만) | 신고 · 차단 | 메뉴 | 실사례 없음 — 가장 가까운 사례는 카카오톡 채팅방 오른쪽 위 ☰(채팅방 서랍을 여는 단추, 실기기의 보조기기 이름은 확인 못 함, <https://forbes.tistory.com/827>, 확인 2026-10-24) |
 | 내 프로필 시트의 단추 `src/lib/chat/copy.ts` 의 `MY_PROFILE_EDIT_LABEL` | (없음) | 프로필 편집 | 카카오톡 내 프로필 화면의 「프로필 편집」(당근 「프로필 수정」 · 아만다 「프로필 수정하기」, <https://m.blog.naver.com/softman_777/223147254073>, 확인 2026-10-24) |
 
-## matching-09 확인 전 — 보낸 요청 거두기의 확인 창 · 거둔 뒤의 스낵바 · 빈 소식 · 빈 인연 기록 (2026-10-24 · 10-26 다듬음, ADR 0109 추기 「스낵바 · 빈 상태 · 상단 바」)
+## matching-09 확인 전 — 보낸 요청 취소의 확인 창 · 취소한 뒤의 스낵바 · 빈 소식 · 빈 인연 기록 (2026-10-24 · 10-26 다듬음, ADR 0109 추기 「스낵바 · 빈 상태 · 상단 바」)
 
-보낸 요청은 거두면 서버에서 되살릴 길이 없어(`cancel_match_request` 는 끝 상태로만 옮긴다 · 다시 보내면 새 요청과 새 소식) 스낵바
-「되돌리기」 대신 확인 창을 세웠다(운영자 결정 2026-10-24 「되돌릴 수 없으면 확인 창」). 거둔 뒤의 말은 카드가 빠지므로 바닥 스낵바에
-서고, 글자는 이미 있던 `REQUEST_STATUS_TEXT.cancelled.sent` 다 — 스낵바는 한 문장이면 끝 마침표를 뗀다(`snackbarMessage`). 동사
-「거두다」는 용어집의 **거둠**(`docs/context/matching.md`)이라 이 절에서 바꾸지 않았다 — 「요청 취소」로 옮기는 안은 #839 「정하실 것」.
-PR 은 머지하지 않고 올렸다.
+보낸 요청은 취소하면 서버에서 되살릴 길이 없어(`cancel_match_request` 는 끝 상태로만 옮긴다 · 다시 보내면 새 요청과 새 소식) 스낵바
+「되돌리기」 대신 확인 창을 세웠다(운영자 결정 2026-10-24 「되돌릴 수 없으면 확인 창」). 끝난 말은 카드가 빠지므로 바닥 스낵바에 서고,
+글자는 `REQUEST_STATUS_TEXT.cancelled.sent` 다 — 스낵바는 한 문장이면 끝 마침표를 뗀다(`snackbarMessage`). **화면 글자는 「거두-」가
+아니라 「취소」다**(운영자 결정 2026-10-26 — 「거두다」는 한국 서비스에서 안 쓰는 말). 개념 이름은 용어집의 **거둠** 그대로다
+(`docs/context/matching.md`). PR 은 머지하지 않고 올렸다.
 
 | 자리 | 이전 | 넣은 글자 | 출처 |
 | --- | --- | --- | --- |
-| 보낸 요청 거두기 확인 창 제목 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_TITLE` | (창 없이 바로 거둠) | 보낸 요청을 거둘까요? | 토스 TDS `useDialog` 예 「상담을 종료할까요?」 · `BottomSheet` 예 「결제를 취소할까요?」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 「보낸」은 거둔 뒤의 스낵바 「보낸 요청을 거뒀어요」와 짝 |
-| 같은 창 본문 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_NOTE` | (없음) | 거둔 요청은 되돌릴 수 없어요. 임시로 차감된 풀이권 1장은 바로 돌려드려요. | 토스 TDS 「결제를 취소하면 되돌릴 수 없어요.」 · 「상담을 종료하면 대화를 이어갈 수 없어요.」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 풀이권 줄은 요청을 보낼 때 읽은 말 「요청을 보내면 풀이권 1장이 임시로 차감됩니다 … 풀이권이 돌아옵니다」(`src/lib/reading/notes.ts`)를 받고, 끝은 토스 TDS `Result` 예 「요금이 나오면 알림을 보내드릴게요.」의 「~드려요」 |
-| 같은 창의 실행 · 닫기 | — | 요청 거두기 · 취소 (나란히, 왼쪽 「취소」) | 대장 01(실행은 결과를 말하는 동작명 · 닫기는 「취소」). 토스 TDS 「종료하기 · 취소」 · 당근 SEED Alert Dialog 가로 배열(<https://seed-design.io/components/alert-dialog>, 확인 2026-10-26) |
-| 거둔 뒤의 바닥 스낵바 `app/me/requests/cancel-answer.ts` → `showSnackbar` | (카드 곁 한 줄) 보낸 요청을 거뒀어요. | 보낸 요청을 거뒀어요 | 당근 SEED Snackbar 「한 문장이면 마침표를 생략」(<https://seed-design.io/components/snackbar>, 확인 2026-10-26) · 토스 TDS 토스트 예 「결제에 실패했어요」(마침표 없음) |
-| 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로운 소식이 없어요 | 토스 TDS 토스트 예 「새로운 알림이 있어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 빈 화면은 해요체(`docs/context/copy.md` §8) |
-| 인연 기록이 없을 때의 한 줄 `app/me/matching/history/page.tsx` | (제목만) | 인연 요청을 주고받으면 여기에 기록이 남아요. | 당근 SEED Result Section 「Empty — 사용자가 무엇을 해야 할지 알려주어 행동을 유도」(<https://seed-design.io/components/result-section>, 확인 2026-10-26) · 토스 TDS `Result` 예 「요금이 나오면 알림을 보내드릴게요.」의 「~하면 ~해요」 |
+| 카드 밑 단추 · 창의 실행 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_LABEL` | 요청 거두기 | 요청 취소 | 운영자 결정 2026-10-26. 토스 TDS `BottomSheet` 예 「결제를 취소할까요?」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 확인 창 제목 `CANCEL_REQUEST_TITLE` | (창 없이 바로 거둠) | 보낸 요청을 취소할까요? | 토스 TDS 「결제를 취소할까요?」 · 「상담을 종료할까요?」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 「보낸」은 스낵바 「보낸 요청을 취소했어요」와 짝 |
+| 확인 창 본문 `CANCEL_REQUEST_NOTE` | (없음) | 취소한 요청은 되돌릴 수 없어요. 임시로 차감된 풀이권 1장은 바로 돌려드려요. | 토스 TDS 「결제를 취소하면 되돌릴 수 없어요.」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 풀이권 줄은 보낼 때 읽은 「풀이권 1장이 임시로 차감됩니다」(`src/lib/reading/notes.ts`) |
+| 확인 창 닫기 · 진행 중 | — | 닫기 (왼쪽) · 취소하는 중… | 대장 01 의 예외(실행에 「취소」가 들면 닫기는 「닫기」, 운영자 2026-10-26). 토스 TDS `ConfirmDialog` 왼쪽 닫기(<https://tossmini-docs.toss.im/tds-mobile/components/Dialog/confirm-dialog/>, 확인 2026-10-26) |
+| 바닥 스낵바 · 기록 카드 문장 `REQUEST_STATUS_TEXT.cancelled.sent` | 보낸 요청을 거뒀어요. | 보낸 요청을 취소했어요 (스낵바, 마침표 없음) · 보낸 요청을 취소했어요. (카드) | 당근 SEED Snackbar 「한 문장이면 마침표를 생략」(<https://seed-design.io/components/snackbar>, 확인 2026-10-26) |
+| 상태 딱지 `REQUEST_STATUS_TEXT.cancelled.label` | 거둠 | 취소 | 운영자 결정 2026-10-26. 이웃 딱지 「거절」 · 「무효」 · 「만료」와 같은 두 글자 체언(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 받는 쪽 문장 `REQUEST_STATUS_TEXT.cancelled.received` | 상대가 거둔 요청이에요. | 상대가 취소한 요청이에요. | 운영자 결정 2026-10-26(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 취소 실패 줄 `app/me/requests/actions.ts` | 요청을 거두지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 요청을 취소하지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 오류는 「무슨 일 + 할 일」(`docs/context/copy.md` §8). 토스 TDS 토스트 예 「결제에 실패했어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 차단 고지 `src/lib/consent` 의 `BLOCK_NOTE` | … 진행 중인 요청도 거둬집니다. … | … 진행 중인 요청도 취소됩니다. … | 운영자 결정 2026-10-26(화면의 「거두-」 전부). 합니다체는 되돌릴 수 없는 고지라 그대로(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로운 소식이 없어요 | 토스 TDS 토스트 예 「새로운 알림이 있어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 인연 기록이 없을 때의 한 줄 `app/me/matching/history/page.tsx` | (제목만) | 인연 요청을 주고받으면 여기에 기록이 남아요. | 당근 SEED Result Section 「Empty — 무엇을 해야 할지 알려주어 행동을 유도」(<https://seed-design.io/components/result-section>, 확인 2026-10-26) |

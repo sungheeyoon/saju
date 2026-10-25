@@ -96,7 +96,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   if (error) return { ok: false, message: userFacingDbMessage(error, 'cancel_match_request') };
 
   const status = statusOf(data);
-  if (status === null) return { ok: false, message: '요청을 거두지 못했어요. 새로고침한 뒤 다시 시도해 주세요.' };
+  if (status === null) return { ok: false, message: '요청을 취소하지 못했어요. 새로고침한 뒤 다시 시도해 주세요.' };
 
   refresh('requests-changed');
   return { ok: true, credits: 'moved' as const, status };
