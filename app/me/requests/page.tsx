@@ -104,10 +104,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
     <section className="flex flex-col gap-3">
 
       {inbox.notifications.length === 0 ? (
-        <EmptyState
-          icon="bell"
-          title="새로 도착한 소식이 없어요"
-        >
+        <EmptyState icon="bell" title="새로운 소식이 없어요">
           새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.
         </EmptyState>
       ) : (

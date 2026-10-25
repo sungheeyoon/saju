@@ -26,6 +26,17 @@ const realTimers: Timers = {
   now: () => Date.now(),
 };
 
+/**
+ * **한 문장이면 끝 마침표를 뗀다** — 두 문장 이상이면 모든 문장에 둔다(SEED Snackbar 「마침표는 문장 수에 따라」,
+ * seed-design.io/components/snackbar, 확인 2026-10-26). 이 앱의 규칙도 같다 — 한 문장짜리 알림 제목에는 찍지 않는다
+ * (`docs/context/copy.md` §8). 부르는 쪽은 카드에 서는 문장(마침표 있음)을 그대로 넘겨도 된다 — 같은 사실은 상수 하나다.
+ */
+export function snackbarMessage(text: string): string {
+  const trimmed = text.trim();
+  const ends = trimmed.match(/[.?!](?=\s|$)/g)?.length ?? 0;
+  return ends === 1 && trimmed.endsWith('.') ? trimmed.slice(0, -1) : trimmed;
+}
+
 export function createSnackbarStore(timers: Timers = realTimers) {
   let current: Snack | null = null;
   let nextId = 1;
@@ -52,7 +63,7 @@ export function createSnackbarStore(timers: Timers = realTimers) {
 
   function show(message: string, action: SnackbarAction | null = null): number {
     const id = nextId++;
-    current = { id, message, action };
+    current = { id, message: snackbarMessage(message), action };
     remaining = SNACKBAR_SHOWN_MS;
     /* 멈춘 채 바뀌면(손가락이 앞 것 위에 있었다) 새 것도 멈춘 채 선다 — 손을 떼면 간다 */
     if (paused) stopClock();
@@ -111,7 +122,7 @@ export function createSnackbarStore(timers: Timers = realTimers) {
 export const snackbar = createSnackbarStore();
 
 /**
- * 끝난 일을 바닥에 잠깐 말한다 — 「보낸 요청을 거뒀어요.」 · 단추 하나(「되돌리기」).
+ * 끝난 일을 바닥에 잠깐 말한다 — 「보낸 요청을 거뒀어요」 · 단추 하나(「되돌리기」).
  *
  * **곁의 한 줄(`DoneNote`)이 먼저다.** 말할 자리가 그대로 서 있으면 그 곁이 가깝다. 스낵바는 그 자리가 사라지는 일
  * (거둔 요청의 카드가 목록에서 빠진다)이나 되돌릴 길을 함께 줄 때 쓴다. 완료 안내는 그 일이 성공한 뒤에만 선다(대장 01).

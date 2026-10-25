@@ -4,7 +4,7 @@ import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Pers
 
 import { REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
-import { CANCEL_REQUEST_NOTE } from '@/src/lib/matching/copy';
+import { CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 import { READING_FAILED_NOTE, READING_FIRST_FAILED_NOTE } from '@/src/lib/reading';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
@@ -492,7 +492,7 @@ test.describe('동의로 열리는 흐름', () => {
     const page = asker.page;
     await expect(page.getByRole('banner').getByLabel(readingCreditsLabel({ available: available - 1 }), { exact: true })).toBeVisible();
     const cancel = page.locator('#requests-log').getByRole('button', { name: '요청 거두기', exact: true });
-    const ask = page.getByRole('dialog', { name: '요청을 거둘까요?' });
+    const ask = page.getByRole('dialog', { name: CANCEL_REQUEST_TITLE });
 
     /* 「취소」는 아무 일도 안 한다 — 첫 초점도 「취소」다(되돌릴 수 없는 창) */
     await cancel.click();
@@ -508,7 +508,8 @@ test.describe('동의로 열리는 흐름', () => {
     await cancel.click();
     await ask.getByRole('button', { name: '요청 거두기', exact: true }).click();
     await expect(ask).toBeHidden();
-    await expect(page.locator('[data-snackbar]')).toHaveText(REQUEST_STATUS_TEXT.cancelled.sent);
+    /* 한 문장짜리 스낵바는 끝 마침표를 뗀다(`snackbarMessage`, SEED Snackbar) */
+    await expect(page.locator('[data-snackbar]')).toHaveText(REQUEST_STATUS_TEXT.cancelled.sent.replace(/\.$/, ''));
     await expect(cancel).toHaveCount(0);
     await expect(page.getByRole('banner').getByLabel(readingCreditsLabel({ available }), { exact: true })).toBeVisible();
   });

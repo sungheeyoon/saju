@@ -164,7 +164,12 @@ export function SiteHeader() {
   return (
     <>
       {/* 폰의 대화방에서는 이 머리글이 안 선다 — 방이 화면 전체다(`globals.css` 의 `data-chat-room`, ADR 0109 추기) */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
+      {/*
+        **아래 줄을 긋지 않는다**(2026-10-26) — 당근 SEED Top Navigation 은 「고정된 영역과 스크롤되는 영역을 구분하기 위해 별도의
+        시각적인 장치를 표시하지 않」는다(seed-design.io/components/top-navigation 「스크롤 시 동작」, 확인 2026-10-26). 토스 앱의 머리도
+        줄이 없다. 흐린 바탕(`backdrop-blur`)이 스크롤되는 글을 이미 가른다.
+      */}
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl">
         <div className="app-shell flex h-16 items-center gap-2 md:gap-5">
           <Link
             href={memberNavigation ? '/me' : '/'}
@@ -222,7 +227,13 @@ export function SiteHeader() {
             거짓말을 보고, 톱니를 먼저 세우면 그 반대다. 자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
           */}
           {memberNavigation ? (
-            <div className="flex shrink-0 items-center gap-1">
+            /*
+              **그림의 오른끝이 본문 오른끝(16px 여백)에 선다**(`-mr-3`) — 누를 자리는 44px 이고 그림은 20px 이라 양옆에 12px 씩
+              빈다. 그대로 두면 톱니가 본문보다 12px 안쪽에 서서 왼쪽 로고(여백에 붙음)와 짝이 안 맞았다(2026-10-26 390px 실측:
+              로고 왼끝 16 · 톱니 오른끝 362). 당근 SEED Top Navigation 이 같은 셈이다 — 판 여백 6px + 단추 안 여백 10px = 16px.
+              폰에서는 단추끼리 틈 없이 붙는다(그림 사이 24px) — 넓은 폭의 잔액 알약은 글자가 있어 4px 를 띄운다.
+            */
+            <div className="-mr-3 flex shrink-0 items-center sm:gap-1">
               {/*
                 **세션을 확인한 뒤에만 세운다.** 풀이권은 이 글의 성질이 아니라 **계정의 성질**이라 계정이
                 사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.

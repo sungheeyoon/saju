@@ -94,7 +94,9 @@ export default async function MatchHistoryPage() {
           icon="heart"
           title="아직 인연 기록이 없어요"
           action={{ href: '/me/matching', label: '오늘의 인연 보기', icon: 'people' }}
-        />
+        >
+          인연 요청을 주고받으면 여기에 기록이 남아요.
+        </EmptyState>
       )}
 
       {(!matchesWhole || matchCount > 0) && (

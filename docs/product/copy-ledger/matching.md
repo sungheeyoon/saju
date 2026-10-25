@@ -260,15 +260,19 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 | 방 머리 「⋯」의 보조기기 이름(`ROOM_MENU_LABEL`, 대화방만) | 신고 · 차단 | 메뉴 | 실사례 없음 — 가장 가까운 사례는 카카오톡 채팅방 오른쪽 위 ☰(채팅방 서랍을 여는 단추, 실기기의 보조기기 이름은 확인 못 함, <https://forbes.tistory.com/827>, 확인 2026-10-24) |
 | 내 프로필 시트의 단추 `src/lib/chat/copy.ts` 의 `MY_PROFILE_EDIT_LABEL` | (없음) | 프로필 편집 | 카카오톡 내 프로필 화면의 「프로필 편집」(당근 「프로필 수정」 · 아만다 「프로필 수정하기」, <https://m.blog.naver.com/softman_777/223147254073>, 확인 2026-10-24) |
 
-## matching-09 확인 전 — 보낸 요청 거두기의 확인 창 · 거둔 뒤의 스낵바 · 빈 소식 (2026-10-24, ADR 0109 추기 「스낵바 · 빈 상태 · 상단 바」)
+## matching-09 확인 전 — 보낸 요청 거두기의 확인 창 · 거둔 뒤의 스낵바 · 빈 소식 · 빈 인연 기록 (2026-10-24 · 10-26 다듬음, ADR 0109 추기 「스낵바 · 빈 상태 · 상단 바」)
 
 보낸 요청은 거두면 서버에서 되살릴 길이 없어(`cancel_match_request` 는 끝 상태로만 옮긴다 · 다시 보내면 새 요청과 새 소식) 스낵바
 「되돌리기」 대신 확인 창을 세웠다(운영자 결정 2026-10-24 「되돌릴 수 없으면 확인 창」). 거둔 뒤의 말은 카드가 빠지므로 바닥 스낵바에
-서고, 글자는 이미 있던 `REQUEST_STATUS_TEXT.cancelled.sent`(「보낸 요청을 거뒀어요.」)라 새 문구가 아니다. PR 은 머지하지 않고 올렸다.
+서고, 글자는 이미 있던 `REQUEST_STATUS_TEXT.cancelled.sent` 다 — 스낵바는 한 문장이면 끝 마침표를 뗀다(`snackbarMessage`). 동사
+「거두다」는 용어집의 **거둠**(`docs/context/matching.md`)이라 이 절에서 바꾸지 않았다 — 「요청 취소」로 옮기는 안은 #839 「정하실 것」.
+PR 은 머지하지 않고 올렸다.
 
 | 자리 | 이전 | 넣은 글자 | 출처 |
 | --- | --- | --- | --- |
-| 보낸 요청 거두기 확인 창 제목 `app/me/requests/manage.tsx` 의 `CancelButton` | (창 없이 바로 거둠) | 요청을 거둘까요? | 당근 SEED Alert Dialog 「모임을 삭제할까요?」(<https://seed-design.io/components/alert-dialog>, 확인 2026-10-25). 동사는 이 화면의 단추 「요청 거두기」 그대로 |
-| 같은 창 본문 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_NOTE` | (없음) | 거둔 요청은 되돌릴 수 없어요. 잡고 있던 풀이권 1장은 돌아와요. | SEED Alert Dialog 본문 「{Name}을 삭제하면 데이터를 복구할 수 없고 …」(<https://seed-design.io/components/alert-dialog>, 확인 2026-10-25). 풀이권 줄은 만료 소식 「… 잡고 있던 풀이권은 돌아왔어요.」(`REQUEST_STATUS_TEXT.expired.sent`)와 같은 말 |
-| 같은 창의 실행 · 닫기 | — | 요청 거두기 · 취소 | 대장 01(실행은 결과를 말하는 동작명 · 닫기는 「취소」). SEED Alert Dialog 의 「취소」 · 「삭제」(<https://seed-design.io/components/alert-dialog>, 확인 2026-10-25) |
-| 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로 도착한 소식이 없어요 | 빈 화면은 해요체(`docs/context/copy.md` §8 · 대장 25). SEED Result Section 「'나루로리롱'에 대한 검색 결과가 없어요」(<https://seed-design.io/components/result-section>, 확인 2026-10-25) |
+| 보낸 요청 거두기 확인 창 제목 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_TITLE` | (창 없이 바로 거둠) | 보낸 요청을 거둘까요? | 토스 TDS `useDialog` 예 「상담을 종료할까요?」 · `BottomSheet` 예 「결제를 취소할까요?」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 「보낸」은 거둔 뒤의 스낵바 「보낸 요청을 거뒀어요」와 짝 |
+| 같은 창 본문 `src/lib/matching/copy.ts` 의 `CANCEL_REQUEST_NOTE` | (없음) | 거둔 요청은 되돌릴 수 없어요. 임시로 차감된 풀이권 1장은 바로 돌려드려요. | 토스 TDS 「결제를 취소하면 되돌릴 수 없어요.」 · 「상담을 종료하면 대화를 이어갈 수 없어요.」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 풀이권 줄은 요청을 보낼 때 읽은 말 「요청을 보내면 풀이권 1장이 임시로 차감됩니다 … 풀이권이 돌아옵니다」(`src/lib/reading/notes.ts`)를 받고, 끝은 토스 TDS `Result` 예 「요금이 나오면 알림을 보내드릴게요.」의 「~드려요」 |
+| 같은 창의 실행 · 닫기 | — | 요청 거두기 · 취소 (나란히, 왼쪽 「취소」) | 대장 01(실행은 결과를 말하는 동작명 · 닫기는 「취소」). 토스 TDS 「종료하기 · 취소」 · 당근 SEED Alert Dialog 가로 배열(<https://seed-design.io/components/alert-dialog>, 확인 2026-10-26) |
+| 거둔 뒤의 바닥 스낵바 `app/me/requests/cancel-answer.ts` → `showSnackbar` | (카드 곁 한 줄) 보낸 요청을 거뒀어요. | 보낸 요청을 거뒀어요 | 당근 SEED Snackbar 「한 문장이면 마침표를 생략」(<https://seed-design.io/components/snackbar>, 확인 2026-10-26) · 토스 TDS 토스트 예 「결제에 실패했어요」(마침표 없음) |
+| 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로운 소식이 없어요 | 토스 TDS 토스트 예 「새로운 알림이 있어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26). 빈 화면은 해요체(`docs/context/copy.md` §8) |
+| 인연 기록이 없을 때의 한 줄 `app/me/matching/history/page.tsx` | (제목만) | 인연 요청을 주고받으면 여기에 기록이 남아요. | 당근 SEED Result Section 「Empty — 사용자가 무엇을 해야 할지 알려주어 행동을 유도」(<https://seed-design.io/components/result-section>, 확인 2026-10-26) · 토스 TDS `Result` 예 「요금이 나오면 알림을 보내드릴게요.」의 「~하면 ~해요」 |

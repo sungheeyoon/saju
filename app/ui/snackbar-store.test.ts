@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSnackbarStore, SNACKBAR_SHOWN_MS } from './snackbar-store';
+import { createSnackbarStore, SNACKBAR_SHOWN_MS, snackbarMessage } from './snackbar-store';
 
 /** 손으로 미는 시계 — 걸린 일을 시각 순서로 돈다 */
 function clock() {
@@ -34,9 +34,9 @@ describe('스낵바', () => {
   it('4초 서 있다가 걷힌다', () => {
     const time = clock();
     const store = createSnackbarStore(time.timers);
-    store.show('보낸 요청을 거뒀어요.');
+    store.show('보낸 요청을 거뒀어요');
     time.advance(SNACKBAR_SHOWN_MS - 1);
-    expect(store.get()?.message).toBe('보낸 요청을 거뒀어요.');
+    expect(store.get()?.message).toBe('보낸 요청을 거뒀어요');
     time.advance(1);
     expect(store.get()).toBeNull();
   });
@@ -102,5 +102,15 @@ describe('스낵바', () => {
     stop();
     store.show('둘');
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('한 문장이면 끝 마침표를 떼고, 두 문장 이상이면 그대로 둔다(SEED Snackbar 「마침표는 문장 수에 따라」)', () => {
+    const store = createSnackbarStore(clock().timers);
+    store.show('보낸 요청을 거뒀어요.');
+    expect(store.get()?.message).toBe('보낸 요청을 거뒀어요');
+    expect(snackbarMessage('7일 동안 답이 없어 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.')).toBe(
+      '7일 동안 답이 없어 요청이 만료됐어요. 잡고 있던 풀이권은 돌아왔어요.',
+    );
+    expect(snackbarMessage('저장했어요')).toBe('저장했어요');
   });
 });

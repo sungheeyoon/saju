@@ -76,12 +76,11 @@ export const ICON_BUTTON_ACTIVE = `${ICON_BUTTON_SHAPE} bg-accent text-on-accent
 /**
  * **머리글의 아이콘 단추** — 테도 면도 없는 44px(풀이권 · 종 · 톱니). 테 두른 흰 원 셋이 머리글에 나란히 서 무거웠다(2026-10-24 감사,
  * ADR 0109 추기 「머리글 아이콘」). 당근 SEED Top Navigation 의 오른쪽 아이콘처럼 그림만 서고, 누를 자리는 그대로 44px 이며 올리거나
- * 누르면 옅은 면이 비친다. 지금 선 자리(소식 화면의 종)는 가라앉은 면 한 벌(`ICON_BUTTON_BARE_ACTIVE`)이다 — 먹색 채움은 머리글에서
- * 가장 먼저 보여 주 단추처럼 읽혔다.
+ * 누르면 옅은 면이 비친다 — 화면 머리의 ←(`ICON_BUTTON_GHOST`)와 같은 한 벌에 배지 자리(`relative`)만 더했다. 지금 선 자리(소식
+ * 화면의 종)는 가라앉은 면 한 벌(`ICON_BUTTON_BARE_ACTIVE`)이다 — 먹색 채움은 머리글에서 가장 먼저 보여 주 단추처럼 읽혔다.
  */
-const ICON_BUTTON_BARE_SHAPE = 'relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-foreground active:scale-95';
-export const ICON_BUTTON_BARE = `${ICON_BUTTON_BARE_SHAPE} hover:bg-surface-soft`;
-export const ICON_BUTTON_BARE_ACTIVE = `${ICON_BUTTON_BARE_SHAPE} bg-surface-sunken`;
+export const ICON_BUTTON_BARE = `relative cursor-pointer ${ICON_BUTTON_GHOST}`;
+export const ICON_BUTTON_BARE_ACTIVE = `relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface-sunken text-foreground active:scale-95`;
 
 /**
  * 오행 판(`tone-*`) 안의 보조 — 반투명 흰 면이 판의 색을 조금 비치고, 글자는 그 오행의 진한 색이다.

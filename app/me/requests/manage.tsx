@@ -14,7 +14,7 @@ import {
   REQUEST_STATUS_TEXT,
   type RequestStatus,
 } from '@/src/lib/consent';
-import { CANCEL_REQUEST_NOTE } from '@/src/lib/matching/copy';
+import { CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 
 import {
   cancelRequest,
@@ -136,7 +136,9 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
  *
  * **한 번 더 묻는다**(2026-10-24). 거둔 요청은 서버에서 되살릴 길이 없다 — 거두는 문(`cancel_match_request`)은 끝 상태로만 옮기고, 같은
  * 사람에게 다시 보내면 풀이권을 새로 잡고 상대에게 「요청이 왔다」는 소식이 한 번 더 간다. 그래서 바닥 스낵바의 「되돌리기」로는 못
- * 무른다 — 되돌릴 수 없는 누름 앞의 확인 창(`ConfirmDialog`, 첫 초점 「취소」)이다. 거두면 카드가 목록에서 빠지므로 끝난 말은 카드 곁이
+ * 무른다 — 되돌릴 수 없는 누름 앞의 확인 창(`ConfirmDialog`, 첫 초점 「취소」)이다. 단추 둘은 나란히 선다(`actions="row"`) — 「취소」 ·
+ * 「요청 거두기」가 짧아 390px 에서도 한 줄에 들고, 당근 SEED Alert Dialog(가로 배열이 기본) · 토스 TDS `ConfirmDialog`(왼쪽 닫기 ·
+ * 오른쪽 실행)가 같은 꼴이다(확인 2026-10-26). 거두면 카드가 목록에서 빠지므로 끝난 말은 카드 곁이
  * 아니라 바닥 스낵바에 선다(`cancelledNote`).
  */
 export function CancelButton({ requestId }: { requestId: string }) {
@@ -172,12 +174,13 @@ export function CancelButton({ requestId }: { requestId: string }) {
           setAsking(false);
           setFailure(null);
         }}
-        title="요청을 거둘까요?"
+        title={CANCEL_REQUEST_TITLE}
         confirmLabel={working ? '거두는 중…' : '요청 거두기'}
         onConfirm={cancel}
         danger
         busy={working}
         failure={failure}
+        actions="row"
       >
         <p>{CANCEL_REQUEST_NOTE}</p>
       </ConfirmDialog>

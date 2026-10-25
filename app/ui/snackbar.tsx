@@ -30,8 +30,11 @@ function liftAboveDock(): number {
  * - **알림 자리는 늘 서 있고 글자만 바뀐다**(`aria-live="polite"`) — 새로 생긴 알림 자리는 화면 읽기가 못 읽고 지나간다(`DoneNote` 와
  *   같은 까닭). 역할(`role="status"`)은 달지 않는다 — 화면마다 하나뿐인 상태 줄을 역할로 찾는 시험이 있다.
  * - 한 번에 하나 · 4초 · 단추 하나 · 누르고 있거나 초점이 있으면 시계가 선다(`snackbar-store.ts`).
- * - 모양은 당근 SEED Snackbar — 먹색 판 · 밝은 글자 · 단추는 굵은 다른 색 · 높이 44px 이상 · 폭 464px 까지. 모서리는 SEED 의 8px 대신
- *   이 앱의 칸 단(`rounded-cell` 12px, 모서리 세 단)이다.
+ * - 모양은 당근 SEED Snackbar — 먹색 판 · 밝은 글자 · 단추는 굵은 다른 색 · 높이 44px 이상 · 폭 464px 까지 · 독과의 틈 8px(SEED
+ *   region 여백 `x2`). 모서리는 SEED 의 8px 대신 이 앱의 칸 단(`rounded-cell` 12px, 모서리 세 단)이다. 글자 15px 은 토스 TDS `Toast`
+ *   와 같다(tossmini-docs.toss.im/tds-mobile/components/toast, 2026-10-26 실측).
+ * - **양 끝은 독과 같은 줄에 선다**(`inset-x-3`, 독은 `fixed inset-x-3`). 본문 여백(16px)에 맞췄더니 바로 아래 독(12px)보다 양쪽이
+ *   4px 씩 들어가 두 떠 있는 판의 가장자리가 어긋났다(2026-10-26 390px 실측: 스낵바 16–374 · 독 12–378).
  * - 줄인 움직임이면 움직이지 않고 선다.
  */
 export function SnackbarHost() {
@@ -42,7 +45,7 @@ export function SnackbarHost() {
       aria-live="polite"
       aria-atomic="true"
       data-snackbar=""
-      className="pointer-events-none fixed inset-x-4 bottom-0 z-[60] flex justify-center"
+      className="pointer-events-none fixed inset-x-3 bottom-0 z-[60] flex justify-center"
     >
       {shown !== null && <SnackbarCard key={shown.id} snack={shown} />}
     </div>
@@ -59,6 +62,7 @@ function SnackbarCard({ snack }: { snack: Snack }) {
   }, []);
 
   const entered = lift !== null;
+  /* 오른쪽 여백은 단추가 있을 때만 줄인다 — 단추의 누를 자리(44px)가 제 안 여백을 든다. 글자뿐이면 양쪽이 16px 로 같다 */
   return (
     <div
       onPointerEnter={snackbar.pause}
@@ -68,7 +72,7 @@ function SnackbarCard({ snack }: { snack: Snack }) {
       onFocus={snackbar.pause}
       onBlur={snackbar.resume}
       style={{ marginBottom: lift === null || lift === 0 ? `calc(${FLOOR_GAP}px + env(safe-area-inset-bottom))` : `${lift}px` }}
-      className={`pointer-events-auto flex min-h-11 w-full max-w-[29rem] items-center gap-3 rounded-cell bg-accent py-1 pl-4 pr-1.5 text-on-accent shadow-float transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none ${
+      className={`pointer-events-auto flex min-h-11 w-full max-w-[29rem] items-center gap-3 rounded-cell bg-accent py-1 pl-4 ${snack.action === null ? 'pr-4' : 'pr-1.5'} text-on-accent shadow-float transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none ${
         entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
       }`}
     >
