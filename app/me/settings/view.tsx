@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import type { AccountState } from '@/src/lib/account';
 import { isBlocked } from '@/src/lib/account';
-import { PHOTO_ADD } from '@/src/lib/account/copy';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
 import type { DiscoveryProfile } from '@/src/lib/discovery';
 import { initialOf } from '@/src/lib/profile';
@@ -15,7 +14,7 @@ import { Avatar } from '../avatar';
 import { ConsentControls } from '../consent-controls';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { RequestDeletion } from '../leaving';
-import { SETTINGS_GROUP, SettingsGroup, SettingsLinkRow } from './card';
+import { SETTINGS_GROUP, SETTINGS_TEXT_WRAP, SettingsGroup, SettingsLinkRow } from './card';
 import { PushRow } from './push-row';
 import { SignOutRow } from './sign-out-row';
 
@@ -44,14 +43,14 @@ export type SettingsData = {
  * 위에서 아래로 「나 → 인연 → 알림 → 동의 → 계정 → 탈퇴하기」 차례다. 자주 바꾸는 것이 위, 되돌리기 어려운 것이 맨 아래다.
  *
  * **맨 위는 내 프로필이다** — 카카오톡 · 당근 설정의 맨 위처럼 동그란 사진(없으면 이름 첫 글자)과 굵은 이름, 그 아래 로그인 이메일.
- * 줄 전체가 프로필 화면(`/me/profile`)으로 간다. 이름 · 사진 · 소개는 앱 전체에서 불리는 값이라 제 화면이 있다.
+ * 줄 전체가 프로필 화면(`/me/profile`)으로 가고 오른쪽은 「›」 하나다 — 「사진 추가」 글자는 걷었다(운영자 2026-10-26). 이름 · 사진 · 소개는 앱 전체에서 불리는 값이라 제 화면이 있다.
  */
 export function SettingsView({ data }: { data: SettingsData }): ReactNode {
   const { state, account, discoveryProfile, photoless, email, userId, pushAvailable } = data;
   const active = state.kind === 'active';
   return (
     /* 화면 바탕이 가라앉은 면이고 무리 사이의 틈이 곧 회색 띠다(TDS `Border` 의 `height16`) — 폰에서는 무리가 화면 끝까지 간다 */
-    <main className="flex w-full flex-1 flex-col bg-surface-sunken">
+    <main className={`flex w-full flex-1 flex-col bg-surface-sunken ${SETTINGS_TEXT_WRAP}`}>
       <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12`}>
         <h1 className={`${TYPE_TITLE} px-6`}>계정 관리</h1>
 
@@ -84,7 +83,6 @@ export function SettingsView({ data }: { data: SettingsData }): ReactNode {
               }
               label={account.nickname ?? '내 프로필'}
               help={email}
-              trailing={photoless ? <>{PHOTO_ADD}</> : undefined}
             />
           </section>
         )}

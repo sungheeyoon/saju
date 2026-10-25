@@ -29,8 +29,15 @@ const ROW_LABEL = 'text-body font-semibold leading-6 text-foreground';
 const ROW_HELP = 'text-small leading-5 text-secondary';
 const ROW_NOTE = 'text-small leading-5 text-muted';
 
+/**
+ * 설정 글의 줄바꿈 — **한국어는 어절 단위로 끊고(`break-keep`), 마지막 줄에 한 낱말만 떨어지지 않게 한다(`text-pretty`).** 두 성질은
+ * 물려받으므로 화면 바깥(`view.tsx` 의 `main`)과 무리 한 덩이에 건다 — 무리를 다른 자리에서 세워도 같은 끊김이다(2026-10-26, #838
+ * 운영자 「줄바꿈이 고려가 안 됐다」 — 「소개되고 / 있어요.」처럼 한 낱말이 다음 줄로 떨어졌다).
+ */
+export const SETTINGS_TEXT_WRAP = 'break-keep text-pretty';
+
 /** 무리 한 덩이 — 흰 면, 폰에서는 화면 끝까지 */
-export const SETTINGS_GROUP = 'flex flex-col bg-surface-raised py-2 sm:rounded-card';
+export const SETTINGS_GROUP = `flex flex-col bg-surface-raised py-2 sm:rounded-card ${SETTINGS_TEXT_WRAP}`;
 
 export function SettingsGroup({
   title,
@@ -83,8 +90,10 @@ export function SettingsRow({
 }
 
 /**
- * 켜고 끄는 줄 — **글은 왼쪽, 스위치는 같은 줄 오른쪽이다**(카카오톡 「친구」 설정의 줄과 같은 꼴). 스위치의 이름은 `label` 이고
- * (`aria-labelledby`), 아래 두 줄은 설명(`aria-describedby`)이다. `label` 이 없으면 `name` 이 보이지 않는 이름이다.
+ * 켜고 끄는 줄 — **이름과 스위치가 한 줄, 설명은 그 아래 줄 폭을 다 쓴다**(카카오톡 「친구」 설정 · 토스 설정의 스위치 줄과 같은 꼴).
+ * 설명을 스위치 왼쪽 좁은 칸에 가두면 폰 폭에서 한 줄이 두세 줄로 꺾이고 마지막 줄에 한 낱말만 떨어졌다(2026-10-26, #838). 스위치의
+ * 이름은 `label` 이고(`aria-labelledby`), 아래 두 줄은 설명(`aria-describedby`)이다. `label` 이 없으면 `name` 이 보이지 않는
+ * 이름이고 첫 설명 줄이 스위치 옆에 선다.
  *
  * 끄면 지워지는 것처럼 누르기 직전에 읽혀야 하는 말은 `note` 자리에 선다(ADR 0028).
  */
@@ -112,33 +121,41 @@ export function SettingsSwitchRow({
     .filter((one) => one !== null)
     .join(' ');
   return (
-    <div className={`flex min-h-14 items-center gap-4 ${ROW_PAD} py-3`}>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        {label !== undefined && (
-          <p id={`${id}-label`} className={ROW_LABEL}>
-            {label}
-          </p>
-        )}
-        {help !== undefined && (
-          <p id={`${id}-help`} className={ROW_HELP}>
-            {help}
-          </p>
-        )}
-        {note !== undefined && (
-          <p id={`${id}-note`} className={ROW_NOTE}>
-            {note}
-          </p>
-        )}
+    <div className={`flex min-h-14 flex-col justify-center gap-1 ${ROW_PAD} py-3`}>
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          {label !== undefined ? (
+            <p id={`${id}-label`} className={ROW_LABEL}>
+              {label}
+            </p>
+          ) : (
+            help !== undefined && (
+              <p id={`${id}-help`} className={ROW_HELP}>
+                {help}
+              </p>
+            )
+          )}
+        </div>
+        <Switch
+          checked={checked}
+          onChange={onChange}
+          busy={busy}
+          disabled={disabled}
+          labelledBy={label !== undefined ? `${id}-label` : undefined}
+          label={name}
+          describedBy={described === '' ? undefined : described}
+        />
       </div>
-      <Switch
-        checked={checked}
-        onChange={onChange}
-        busy={busy}
-        disabled={disabled}
-        labelledBy={label !== undefined ? `${id}-label` : undefined}
-        label={name}
-        describedBy={described === '' ? undefined : described}
-      />
+      {label !== undefined && help !== undefined && (
+        <p id={`${id}-help`} className={ROW_HELP}>
+          {help}
+        </p>
+      )}
+      {note !== undefined && (
+        <p id={`${id}-note`} className={ROW_NOTE}>
+          {note}
+        </p>
+      )}
     </div>
   );
 }

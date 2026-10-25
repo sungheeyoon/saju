@@ -47,12 +47,13 @@ export default function SettingsLoading() {
             {group.rows.map((row, line) => (
               <div key={line} className="px-6 py-3">
                 {row.kind === 'switch' && (
-                  <div className="flex items-center gap-4">
-                    <div className={`flex min-w-0 flex-1 flex-col gap-2 overflow-hidden ${row.text}`}>
-                      <Bone className="h-5 w-32 max-w-full shrink-0 rounded-full" />
-                      <Bone className="h-4 w-full max-w-sm shrink-0 rounded-full" />
+                  /* 이름과 스위치가 한 줄, 설명은 그 아래 줄 폭을 다 쓴다(`SettingsSwitchRow`) */
+                  <div className={`flex flex-col gap-2 overflow-hidden ${row.text}`}>
+                    <div className="flex items-center gap-4">
+                      <Bone className="h-5 w-32 max-w-full rounded-full" />
+                      <Bone className="ml-auto h-8 w-[3.25rem] shrink-0 rounded-full" />
                     </div>
-                    <Bone className="h-8 w-[3.25rem] shrink-0 rounded-full" />
+                    <Bone className="h-4 w-full max-w-sm shrink-0 rounded-full" />
                   </div>
                 )}
                 {row.kind === 'choice' && (

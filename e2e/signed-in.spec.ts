@@ -3138,9 +3138,9 @@ test.describe('가입 관문', () => {
    */
   test('프로필 사진을 여러 장 올리고, 길게 눌러 끌거나 ← → 로 옮기고, × 로 지운다', async ({ openAs }) => {
     const { page } = await openAs({ selfPerson: true });
-    /* 사진이 없으면 계정 관리 맨 위 내 프로필 줄 끝에 「사진 추가」가 선다(대장 47) — 있으면 안 선다(이 시험 끝) */
+    /* 계정 관리 맨 위 내 프로필 줄에는 「사진 추가」가 서지 않는다 — 오른쪽은 「›」 하나다(대장 settings-09, 2026-10-26) */
     await page.goto('/me/settings');
-    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toBeVisible();
+    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toHaveCount(0);
     await page.goto('/me/profile');
 
     const lead = page.getByRole('group', { name: '대표 사진' });
