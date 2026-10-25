@@ -242,7 +242,7 @@ function OtherSaju() {
           <Icon name="search" className="size-5" />
         </span>
         <span className="min-w-0 flex-1 text-body font-semibold">다른 사람 사주 보기</span>
-        <Icon name="chevron" className="size-5 shrink-0 text-secondary" />
+        <Icon name="chevron" className="size-4 shrink-0 text-muted" />
       </Link>
     </div>
   );

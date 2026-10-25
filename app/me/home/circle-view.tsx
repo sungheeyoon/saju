@@ -118,7 +118,7 @@ function SavedPeople({
           <AddRow />
         </ul>
       ) : (
-        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2`}>
+        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2 lg:[&>li:nth-child(2)]:before:hidden`}>
           {people.map((person) => (
             <PersonTile key={person.personId} person={person} {...tileOf(person)} fromMe={fromMe} />
           ))}

@@ -12,16 +12,17 @@ import { CARD_FRAME } from '../../ui/surfaces';
   점선 「사람 추가」. 토스 · 카카오뱅크 홈은 맨 위 하나만 색 면이고 그 아래는 흰 판 안의 줄 목록이며, 줄 왼쪽의 작은 동그라미가
   무엇인지를 말한다. 그 문법을 따른다 — 오행 파스텔은 주인공 판에만, 줄은 흰 면 위 작은 오행 표시(`HomeMark`)만 색을 입는다.
 
-  **줄 사이에 선이 없다**(2026-10-26 운영자 「줄 표시는 굳이 있어야 하나」) — 토스 홈의 계좌 목록 · 토스증권의 주식 목록 · 카카오톡
-  친구 목록은 구분선 없이 줄 높이와 간격으로 나눈다. 판 위아래에 8px 를 두고, 누르면 줄이 둥근 칸으로 가라앉는다(토스 목록의 누름).
-  글이 시작하는 자리는 판 안쪽 16px + 표시 40px + 틈 12px = 68px 로 판마다 같다.
+  **줄 사이에 안쪽 구분선이 있다**(2026-10-26 운영자 「줄 있는 버전」 — 2차에서 걷었다가 되살렸다). 선은 글이 시작하는 자리(판 안쪽
+  16px + 표시 40px + 틈 12px = 68px)에서 시작해 판 안쪽 16px 앞에서 끝난다 — 토스 · 카카오톡 목록의 안쪽 구분선(표시 아래로는 선이
+  안 지난다). 첫 줄 위에는 없다. 판 위아래에 8px 를 두고, 누르면 줄이 둥근 칸으로 가라앉는다(토스 목록의 누름).
 */
 
 /** 줄을 드는 흰 판 — `<ul>` 에 단다 */
 export const HOME_LIST = `${CARD_FRAME} flex flex-col py-2`;
 
-/** 판 안의 줄 하나(`<li>`) — 선 없이 높이로 나눈다 */
-export const HOME_ROW = 'min-w-0';
+/** 판 안의 줄 하나(`<li>`) — 둘째 줄부터 위에 안쪽 구분선(글 시작선 68px ~ 오른쪽 16px 앞) */
+export const HOME_ROW =
+  "relative min-w-0 not-first:before:absolute not-first:before:top-0 not-first:before:left-[4.25rem] not-first:before:right-4 not-first:before:h-px not-first:before:bg-border not-first:before:content-['']";
 
 /** 줄 안쪽의 배치 — 표시 · 글 · 끝(화살표나 단추). 누름 칸이 판 가장자리에서 8px 안쪽의 둥근 칸이라 글은 판에서 16px 에 선다 */
 export const HOME_ROW_INNER = 'mx-2 flex min-h-16 items-center gap-3 rounded-cell px-2 py-2.5';

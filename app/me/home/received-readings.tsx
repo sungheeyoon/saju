@@ -85,7 +85,7 @@ export function ReceivedReadings({
             <Link href={withFromMe('/me/readings/self')} className={HOME_ROW_LINK}>
               <HomeMark element="木" />
               <span className="min-w-0 flex-1 truncate text-body font-semibold">{makingSelf ? SELF_READING_MAKING : '사주풀이 받기'}</span>
-              <Icon name="chevron" className="size-5 shrink-0 text-secondary" />
+              <Icon name="chevron" className="size-4 shrink-0 text-muted" />
             </Link>
           </li>
         )}
