@@ -260,10 +260,10 @@ body {
   - **어절 단위로 꺾는다**(`word-break: keep-all`, 위 `body`). 당근 SEED `Article` 「한국어 문서에서는 한 어절 안에서 줄바꿈이
     발생하지 않도록 하고 … 컨테이너를 벗어날 정도로 긴 단어 안에서는 줄바꿈이 발생합니다」(seed-design.io/react/llms-full.txt
     components/article, 확인 2026-10-26) · 토스 TDS 의 글 부품도 `keep-all`(tossmini-docs.toss.im 2026-10-26 실측).
-  - **넘칠 만큼 긴 낱말(주소 · 긴 영문 · 띄어쓰기 없는 이름)은 어디서든 꺾는다**(`overflow-wrap: anywhere`). `body` 의
-    `break-word` 는 한 줄 안에서만 듣고, 판의 폭을 셀 때(가로로 늘어선 칸의 최소 폭)는 낱말을 통째로 세서 칸을 밀어냈다.
-    토스 TDS 확인 창의 글이 `keep-all` + `anywhere` 다(2026-10-26 실측). 넓히면 가로 줄의 칸들이 어절 가운데까지 줄어들 수
-    있어 **글 덩어리에만** 준다 — 문단 · 목록 · 링크 · 창 · 스낵바.
+  - **넘칠 만큼 긴 낱말은 `body` 의 `break-word` 가 줄 안에서 꺾는다 — 전역 `anywhere` 는 두지 않는다.** 빈 화면 · 확인 창 ·
+    스낵바에 서는 글은 정해진 문구와 닉네임(최대 8자, `NICKNAME_MAX`)뿐이라 넘칠 낱말이 없다(2026-10-26 390px 에서 실제 가장 긴
+    글로 확인 — 8자 닉네임의 차단 창 · 무효 스낵바). 띄어쓰기 없이 길어질 수 있는 사람이 쓴 글(소개 300자 · 메모 · 대화 · 신고
+    사유)은 그 화면이 이미 제 자리에서 꺾는다(`break-words` · `break-all` — 대화 말풍선 · 상대 시트 · 운영 화면).
   - **마지막 줄에 한 낱말이 외톨이로 남지 않게**(`text-wrap-style: pretty`) — 문단의 기본. 제목과 가운데 정렬 글은 줄 길이를
     고르게(`balance`) — 가운데 정렬에서 한 줄만 길면 축이 기울어 보인다. `text-wrap` 줄임말이 아니라 `-style` 만 적는다 —
     줄임말은 줄바꿈 여부(`-mode`)까지 덮어 `whitespace-nowrap` 안의 제목을 꺾었다.
@@ -272,7 +272,6 @@ body {
 @layer base {
   body { text-wrap-style: pretty; }
   :where(h1, h2, h3, h4, h5, h6, .text-center) { text-wrap-style: balance; }
-  :where(p, li, dd, dt, blockquote, figcaption, a, dialog, [data-snackbar]) { overflow-wrap: anywhere; }
 }
 
 button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }

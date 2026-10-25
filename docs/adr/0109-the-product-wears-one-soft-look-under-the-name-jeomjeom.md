@@ -271,8 +271,8 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
 - **확인 창의 두 단추는 나란히**(`actions="row"`, 왼쪽 「취소」 · 오른쪽 실행) — SEED Alert Dialog 는 가로 배열이 기본이고 토스 TDS
   `ConfirmDialog` 도 왼쪽 닫기 · 오른쪽 실행이다. 지금은 보낸 요청 취소 창만 옮겼다 — 다른 확인 창의 기본(`stack`)은 그대로다.
 - **한글 줄바꿈 한 벌**(`app/globals.css`, 2026-10-26 운영자 「줄바꿈이 전혀 고려가 안 됐다」) — 어절 단위(`word-break: keep-all`,
-  당근 SEED `Article` · 토스 TDS 글 부품), 넘칠 만큼 긴 낱말(주소 · 영문)은 글 덩어리(문단 · 목록 · 링크 · 창 · 스낵바)에서만
-  어디서든 꺾고(`overflow-wrap: anywhere`, 토스 TDS 확인 창 실측), 문단은 마지막 줄 외톨이를 피하고(`text-wrap-style: pretty`) 제목 ·
-  가운데 정렬 글은 줄 길이를 고르게(`balance`). 모두 `@layer base` 라 화면의 유틸리티가 이긴다.
+  당근 SEED `Article` · 토스 TDS 글 부품), 문단은 마지막 줄 외톨이를 피하고(`text-wrap-style: pretty`) 제목 · 가운데 정렬 글은 줄
+  길이를 고르게(`balance`). 모두 `@layer base` 라 화면의 유틸리티가 이긴다. 전역 `overflow-wrap: anywhere` 는 두지 않는다 — 이 부품들에
+  서는 글이 정해진 문구와 8자 닉네임뿐이라 넘칠 낱말이 없고(실제 가장 긴 글로 확인), 사람이 쓴 긴 글은 그 화면이 제 자리에서 꺾는다.
 - **하트를 쓰지 않는다**(운영자 2026-10-26 「데이팅 느낌 나는 하트 모양은 뺀다」) — 인연 기록 빈 화면은 인연 탭의 사람 그림, 빈
   채팅 그림의 하트는 金 별. 앱에 남은 하트(인연 덱 · 소식 · 로그인 안내 · 공유 그림)는 #839 본문의 목록으로 넘긴다.
