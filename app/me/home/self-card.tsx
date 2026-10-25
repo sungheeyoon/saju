@@ -87,12 +87,13 @@ export function SelfCard({
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
-      <header className="relative flex min-w-0 flex-col gap-2 pr-20 sm:gap-3">
+      <header className="relative flex min-w-0 flex-col gap-2 sm:gap-3">
         {/*
           머리의 높이는 정수 px 여야 한다 — 소수면 아래 결과 바로가기가 반 픽셀 자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e
           (`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836). 원(56px)과 이름(35px)이 한 줄이라 56px 다
         */}
-        <div className="flex min-w-0 items-center gap-3">
+        {/* 오른쪽 위 일간 딱지 자리(80px)는 이 이름 줄에만 비운다 — 한 줄 평 · 출생 정보는 카드 안쪽 폭을 끝까지 쓴다(2026-10-26 운영자) */}
+        <div className="flex min-w-0 items-center gap-3 pr-20">
           {face !== undefined && <SelfProfile {...face} stem={saju.pillars.dayMaster} />}
           {/*
             이름 — 고칠 수 없는 자리다. 닉네임은 프로필 수정 화면이 든다(원을 누르면 오는 시트의 「프로필 편집」). 한국어는 어절로
@@ -102,11 +103,12 @@ export function SelfCard({
         </div>
         {reading?.metaphor != null && (
           /*
-            줄인 판은 폰에서 두 줄까지 — 어절로 끊고(`break-keep`) 끝 줄에 낱말 하나만 남지 않게(`text-pretty`), 넘치면 둘째 줄 끝에서
-            말줄임이다(`line-clamp-2`, 토스 · 카카오톡의 두 줄 미리보기). 한 줄로 자르던 때는 「…들풀처럼 …」처럼 낱말 가운데서 끊겼다
+            줄인 판은 폰에서 두 줄까지 — 카드 안쪽 폭을 끝까지 쓰고 어절로 끊으며(`break-keep`), 넘치면 둘째 줄 끝에서 말줄임이다
+            (`line-clamp-2`, 토스 · 카카오톡의 두 줄 미리보기). 줄을 고르게 맞추는 `text-pretty` 는 안 쓴다 — 넘치지 않는데도 줄을 일찍
+            꺾어 오른쪽이 비었다(운영자 「두 줄 넘어가면 … 이면 되는데 왜 우측 공간을 더 안 쓰나」, 2026-10-26)
           */
           <p
-            className={`break-keep text-pretty font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
+            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
           >
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
