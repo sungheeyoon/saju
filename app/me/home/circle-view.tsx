@@ -3,13 +3,12 @@ import Link from 'next/link';
 import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import type { PersonSlots } from '@/src/lib/people';
 
-import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { TYPE_SECTION } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import type { Circle } from './circle';
 import { compatHrefOf, pairWithSelf, readingOf, type HomePerson } from './map/model';
-import { HOME_LIST, HOME_ROW, HOME_ROW_INNER, HOME_ROW_LINK } from './home-list';
+import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_LIST, HOME_ROW, HOME_ROW_INNER, HOME_ROW_LINK } from './home-list';
 import { PersonTile } from './person-tile';
 
 /**
@@ -92,20 +91,20 @@ function SavedPeople({
 
   return (
     <section aria-labelledby="home-people" className="flex min-w-0 flex-col gap-2 sm:gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-        <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
+      <div className={HOME_HEAD}>
+        <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-1.5`}>
           저장한 사람
           {slots !== null && (
-            <span className="font-sans text-small font-semibold tabular-nums text-secondary">
+            <span className={HOME_HEAD_COUNT}>
               {slots.used}/{slots.limit}명
             </span>
           )}
         </h2>
         {people.length > 0 && (
           /* 바로 위 제목이 「저장한 사람」이라 화면 글자는 「관리」, 읽는 이름은 온전히 */
-          <Link href="/me/people" className={BUTTON_TERTIARY} aria-label="저장한 사람 관리">
+          <Link href="/me/people" className={HOME_HEAD_LINK} aria-label="저장한 사람 관리">
             관리
-            <Icon name="arrow" className="size-4" />
+            <Icon name="chevron" className="size-4" />
           </Link>
         )}
       </div>
@@ -116,14 +115,14 @@ function SavedPeople({
           <li className={HOME_ROW}>
             <p className={`${HOME_ROW_INNER} text-body leading-6 text-secondary`}>가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
           </li>
-          <AddRow slots={null} />
+          <AddRow />
         </ul>
       ) : (
-        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2 lg:[&>li:nth-child(odd)]:border-r`}>
+        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2`}>
           {people.map((person) => (
             <PersonTile key={person.personId} person={person} {...tileOf(person)} fromMe={fromMe} />
           ))}
-          {!full && <AddRow slots={slots} />}
+          {!full && <AddRow />}
         </ul>
       )}
       {slots !== null && full && <p className="text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
@@ -131,8 +130,11 @@ function SavedPeople({
   );
 }
 
-/** 목록 끝의 「사람 추가」 줄 — 사람 줄과 같은 높이 · 같은 표시 자리라 「한 자리 더」로 읽힌다 */
-function AddRow({ slots }: { slots: PersonSlots | null }) {
+/**
+ * 목록 끝의 「사람 추가」 줄 — 사람 줄과 같은 높이 · 같은 표시 자리라 「한 자리 더」로 읽힌다(카카오톡 친구 탭의 「친구 추가」 꼴).
+ * 몇 자리를 썼는지는 바로 위 머리(「5/10명」)가 말한다 — 이 줄에 같은 수를 또 세우지 않는다(2026-10-26 2차)
+ */
+function AddRow() {
   return (
     <li className={HOME_ROW}>
       <Link href="/me/people" className={HOME_ROW_LINK}>
@@ -140,11 +142,6 @@ function AddRow({ slots }: { slots: PersonSlots | null }) {
           <Icon name="plus" className="size-5" />
         </span>
         <span className="min-w-0 flex-1 text-body font-semibold">사람 추가</span>
-        {slots !== null && (
-          <span className="shrink-0 text-small tabular-nums text-secondary">
-            {slots.used}/{slots.limit}명
-          </span>
-        )}
       </Link>
     </li>
   );

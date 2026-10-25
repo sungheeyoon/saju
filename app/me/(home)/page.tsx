@@ -8,7 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { Icon } from '../../ui/icons';
-import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { CARD_FRAME, COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
@@ -22,11 +22,12 @@ import { runningReadings } from '../home/running';
 import { RunningReadings } from '../home/running-band';
 import { makingPeopleOf, makingSelf } from '../home/running-line';
 import { SelfCard } from '../home/self-card';
+import { NO_FACE, myHomeFace } from '../home/self-face';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { FailureLine } from '../../ui/failure-line';
-import { HOME_LIST, HOME_ROW_LINK } from '../home/home-list';
+import { HOME_ROW_LINK } from '../home/home-list';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -64,7 +65,7 @@ export default async function MePage() {
           ) : (
             <>
               <Greeting name={nickname} />
-              <Home selfPersonId={selfPersonId} />
+              <Home selfPersonId={selfPersonId} userId={user.id} nickname={nickname} />
             </>
           )}
         </>
@@ -109,16 +110,19 @@ function Greeting({ name }: { name: string }) {
  * **참여를 여는 문은 아무것도 안 그린다**(ADR 0070 · 0076) — 후보 탐색은 매칭에서만 하고 참여를 여는 일은 홈에도 남는다.
  * 못 열어도 홈을 오류로 세우지 않는다(`openDiscoveryParticipation`).
  */
-async function Home({ selfPersonId }: { selfPersonId: string }) {
+async function Home({ selfPersonId, userId, nickname }: { selfPersonId: string; userId: string; nickname: string }) {
   const supabase = await supabaseOnServer();
 
-  const [circle, self, readings, profile, runningRead] = await Promise.all([
+  const [circle, self, readings, profile, runningRead, faceRead] = await Promise.all([
     myCircle(supabase, selfPersonId),
     storedInputOf(supabase, selfPersonId),
     myReadings(),
     myDiscoveryProfile(),
     runningReadings(),
+    myHomeFace(supabase),
   ]);
+  /* 대표 사진 — 꾸밈이다. 못 읽었으면 사진 없는 나(일간 그림)로 선다(ADR 0078) */
+  const face = { userId, nickname, ...(faceRead.ok ? faceRead.value : NO_FACE) };
   /* 못 읽었으면 만드는 중인 것이 없는 것처럼 선다 — 부속 정보다(ADR 0078). 단추는 「받기」로 돌아간다 */
   const running = runningRead.ok ? runningRead.value : [];
 
@@ -152,6 +156,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         saju={stood.saju}
         reading={selfReadingOf(readings)}
         making={makingSelf(running)}
+        face={face}
         compact
       />
     );
@@ -215,16 +220,19 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
  * 처음에는 저장한 사람 구역 끝의 작은 보조 링크였다 — 홈의 주인공은 내 사주와 저장한 사람이라는 판단이었다. 남의 사주를 보는
  * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 목록들과 같은 흰 판의 줄 하나다
  * (`home/home-list.tsx`) — 검색 표시도 오행 파스텔을 벗었다(2026-10-25 홈 위계 정리).
+ *
+ * **줄어들지 않는다(`shrink-0`)** — 넓은 화면에서 카드가 칸을 다 채우게(`h-full`) 세로 flex 안에 서는데, 판이 `overflow-hidden` 이라
+ * 최소 높이가 0 으로 풀려 폰에서 이 줄이 49px 로 눌렸다(표시 원의 아래가 잘리고 글자가 가운데를 벗어났다, 2026-10-26 2차).
  */
 function OtherSaju() {
   return (
-    <div className={HOME_LIST}>
+    <div className={`${CARD_FRAME} shrink-0 py-1`}>
       <Link href={SAJU_PATH} className={HOME_ROW_LINK}>
         <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-foreground">
           <Icon name="search" className="size-5" />
         </span>
         <span className="min-w-0 flex-1 text-body font-semibold">다른 사람 사주 보기</span>
-        <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+        <Icon name="chevron" className="size-5 shrink-0 text-secondary" />
       </Link>
     </div>
   );

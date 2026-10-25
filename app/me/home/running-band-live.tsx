@@ -74,7 +74,7 @@ export function RunningBandLive({ initial }: { initial: readonly RunningLine[] }
                 </span>
                 <span className={`${TYPE_META} truncate`}>{line.stage}</span>
               </span>
-              <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+              <Icon name="chevron" className="size-5 shrink-0 text-secondary" />
             </Link>
           </li>
         ))}

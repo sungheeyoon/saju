@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { isStem } from '../../ui/stem-symbol';
 import { STALE_CHIP, TYPE_SECTION } from '../../ui/surfaces';
@@ -8,9 +7,18 @@ import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { bookOf, type Book } from '../(shelf)/readings/book';
 import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 import type { ReadingEntry } from '@/src/lib/reading';
-import { HOME_LIST, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
+import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_LIST, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
 import { withFromMe } from './from-me';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from './making';
+
+/**
+ * 구역 제목 — 「받은 사주풀이」(2026-10-26 2차, 전에는 「내가 받은 사주풀이」). 내 홈이라 「내가」는 군말이다 — 카카오톡 선물하기의
+ * 「받은 선물」과 같은 꼴. 확인 전 문구(대장 `home-01`)
+ */
+const RECEIVED_READINGS_TITLE = '받은 사주풀이';
+
+/** 머리 오른쪽 링크의 글자 — 궁합 탭 · 인연 탭이 보관함으로 가던 링크와 같은 글자(대장 05 「모두 보기」) */
+const SEE_ALL = '모두 보기';
 
 /** 홈 탭에 서는 줄 수 — **셋**(u2, 운영자 2026-09-29). 전부는 보관함이 든다 */
 const SHOWN = 3;
@@ -22,7 +30,7 @@ const SHOWN = 3;
 const SHOWN_WIDE = 4;
 
 /**
- * **내가 받은 사주풀이** — 한 사람 풀이(나 · 저장한 사람)만(ADR 0129). 책장의 표지가 들던 것(일간 · 이름 · 비유 · 날짜 · 「수정 전」)을
+ * **받은 사주풀이** — 한 사람 풀이(나 · 저장한 사람)만(ADR 0129). 책장의 표지가 들던 것(일간 · 이름 · 비유 · 날짜 · 「수정 전」)을
  * 흰 판 안의 줄로 든다(2026-10-25 홈 위계 정리, `home-list.tsx`).
  *
  * 차례는 DB 가 준 그대로(최근 것이 앞)이고 앞의 셋(`lg` 는 넷)만 세운다 — 전부는 「풀이 보관함」의 사주풀이 칸(`/me/readings?kind=saju`)이
@@ -47,16 +55,17 @@ export function ReceivedReadings({
 
   return (
     <section aria-labelledby="home-readings" className="flex min-w-0 flex-col gap-2 sm:gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-        <h2 id="home-readings" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
-          내가 받은 사주풀이
-          {singles.length > 0 && (
-            <span className="font-sans text-small font-semibold tabular-nums text-secondary">{singles.length}개</span>
-          )}
+      <div className={HOME_HEAD}>
+        <h2 id="home-readings" className={`${TYPE_SECTION} flex items-baseline gap-1.5`}>
+          {RECEIVED_READINGS_TITLE}
+          {singles.length > 0 && <span className={HOME_HEAD_COUNT}>{singles.length}개</span>}
         </h2>
-        <Link href={withShelfKind('/me/readings', 'saju')} className={BUTTON_TERTIARY}>
-          {SHELF_TITLE}
-          <Icon name="arrow" className="size-4" />
+        {/*
+          화면 글자는 「모두 보기」(App Store 의 구역 머리 · 궁합 탭이 쓰던 같은 글자, 대장 05), 읽는 이름은 가는 곳의 이름을 앞에 단다
+        */}
+        <Link href={withShelfKind('/me/readings', 'saju')} className={HOME_HEAD_LINK} aria-label={`${SHELF_TITLE} ${SEE_ALL}`}>
+          {SEE_ALL}
+          <Icon name="chevron" className="size-4" />
         </Link>
       </div>
 
@@ -76,7 +85,7 @@ export function ReceivedReadings({
             <Link href={withFromMe('/me/readings/self')} className={HOME_ROW_LINK}>
               <HomeMark element="木" />
               <span className="min-w-0 flex-1 truncate text-body font-semibold">{makingSelf ? SELF_READING_MAKING : '사주풀이 받기'}</span>
-              <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
+              <Icon name="chevron" className="size-5 shrink-0 text-secondary" />
             </Link>
           </li>
         )}

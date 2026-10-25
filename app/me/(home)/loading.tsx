@@ -35,9 +35,13 @@ export default function HomeLoading() {
           {/* 줄인 내 사주 카드 — 폰에서는 오행 칸과 출생 정보 상자가 없어 낮고(224px), 넓은 화면은 그 둘이 선다(594px) */}
           <div className="flex min-h-56 flex-col justify-between gap-3 rounded-card bg-surface p-4 sm:min-h-[37.125rem] sm:gap-6 sm:p-8">
             <div className="flex flex-col gap-2 sm:gap-3">
-              <div className="flex flex-col gap-1">
-                <Bone className="h-8 w-20 rounded-full" />
-                <Bone className="h-8 w-40 rounded-full sm:h-[2.875rem] sm:w-56" />
+              {/* 동그란 내 프로필(56px)과 딱지 · 이름 — 원은 이름 묶음의 가운데에 선다(`home/self-card.tsx`) */}
+              <div className="flex items-center gap-3">
+                <Bone className="size-14 shrink-0 rounded-full" />
+                <div className="flex flex-col gap-1">
+                  <Bone className="h-8 w-20 rounded-full" />
+                  <Bone className="h-8 w-40 rounded-full sm:h-[2.875rem] sm:w-56" />
+                </div>
               </div>
               <Bone className="h-[1.6rem] w-3/4 rounded-full sm:h-[1.875rem]" />
             </div>
@@ -55,17 +59,17 @@ export default function HomeLoading() {
               <Bone className="h-12 rounded-full sm:w-44" />
             </div>
           </div>
-          {/* 「다른 사람 사주 보기」 한 줄 — 흰 판의 줄 하나(64px 와 테 둘, `home/home-list.tsx`) */}
-          <Bone className="h-[4.125rem] w-full rounded-card" />
+          {/* 「다른 사람 사주 보기」 한 줄 — 흰 판의 줄 하나(64px 와 위아래 4px · 테 둘, `app/me/(home)/page.tsx`) */}
+          <Bone className="h-[4.625rem] w-full shrink-0 rounded-card" />
         </div>
 
         {/*
-          내가 받은 사주풀이 — 흰 판 안의 줄 셋(`home/received-readings.tsx`). 줄은 64px 와 구분선이다. lg 에서는 넷까지 서지만 몇
-          줄인지 모른다 — 셋만 둔다. 머리 줄은 「풀이 보관함」 단추 높이(44px)다
+          받은 사주풀이 — 흰 판 안의 줄 셋(`home/received-readings.tsx`). 줄은 64px 이고 선이 없다. lg 에서는 넷까지 서지만 몇
+          줄인지 모른다 — 셋만 둔다. 머리 줄은 구역 제목의 줄 높이(29px)다 — 오른쪽 링크는 음수 여백으로 머리를 안 늘인다
         */}
         <div className="flex min-w-0 flex-col gap-2 sm:gap-4">
-          <div className="flex h-11 items-end">
-            <Bone className="h-8 w-48 rounded-full" />
+          <div className="flex h-[1.8125rem] items-center">
+            <Bone className="h-6 w-48 rounded-full" />
           </div>
           <RowsBone rows={3} />
         </div>
@@ -73,11 +77,11 @@ export default function HomeLoading() {
 
       {/*
         저장한 사람 — 흰 판 안의 줄 목록(`home/circle-view.tsx`). 사람 줄 둘과 끝의 「사람 추가」 줄. 사람 줄은 단추(44px)와 여백이라
-        68px 다
+        64px 다
       */}
       <div className="flex flex-col gap-2 sm:gap-4">
-        <div className="flex h-11 items-end">
-          <Bone className="h-8 w-40 rounded-full" />
+        <div className="flex h-[1.8125rem] items-center">
+          <Bone className="h-6 w-40 rounded-full" />
         </div>
         <RowsBone rows={3} />
       </div>
@@ -85,12 +89,12 @@ export default function HomeLoading() {
   );
 }
 
-/** 흰 판 안의 줄 뼈대 — 동그란 표시와 글 두 줄 */
+/** 흰 판 안의 줄 뼈대 — 동그란 표시와 글 두 줄. 선이 없고 판 위아래에 8px(`home/home-list.tsx`) */
 function RowsBone({ rows }: { rows: number }) {
   return (
-    <div className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+    <div className="flex flex-col overflow-hidden rounded-card border border-border bg-surface py-2">
       {Array.from({ length: rows }, (_, row) => (
-        <div key={row} className="flex min-h-16 items-center gap-3 px-4 py-3">
+        <div key={row} className="mx-2 flex min-h-16 items-center gap-3 px-2 py-2.5">
           <Bone className="size-10 shrink-0 rounded-full" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Bone className="h-4 w-24 rounded-full" />

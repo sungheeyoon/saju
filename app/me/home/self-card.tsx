@@ -18,6 +18,8 @@ import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';
 import { TYPE_TITLE } from '../../ui/surfaces';
+import { Avatar } from '../avatar';
+import type { HomeFace } from './self-face';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -42,6 +44,7 @@ export function SelfCard({
   reading,
   making = false,
   actions,
+  face,
   compact = false,
 }: {
   /**
@@ -62,6 +65,12 @@ export function SelfCard({
   making?: boolean;
   /** 저장 전 카드의 단추 줄 — 저장된 카드에서는 안 쓴다 */
   actions?: ReactNode;
+  /**
+   * **홈의 동그란 내 프로필**(2026-10-26 운영자) — 주면 이름 왼쪽에 56px 원이 선다. 대표 사진이 있으면 그 사진, 없으면 내 일간의
+   * 천간 그림이다. 카카오톡 친구 탭의 「내 프로필」 줄 · 토스 전체 탭의 내 이름 줄처럼 이름과 한 줄이다. 저장 전 카드(로그인 전 결과 ·
+   * 사주 이어 보기)에는 아직 계정의 얼굴이 없어 안 준다.
+   */
+  face?: HomeFace & { userId: string; nickname: string };
   /**
    * **홈 탭의 줄인 판**(u2, 운영자 2026-09-29) — 폰에서 오행 분포 다섯 칸을 걷는다. 그 칸은 「사주 자세히 보기」가 든다.
    * 출생 정보 한 줄은 남긴다 — 고친 입력이 홈 탭에서 보이게 2026-09-25 에 일부러 둔 줄이다. 폰 첫 화면에 카드 아래의 받은
@@ -84,15 +93,29 @@ export function SelfCard({
           딱지를 줄 상자(본문 줄 높이 1.65 의 26.4px 줄)에 세우면 이 머리가 소수 px 높이가 되어, 아래 결과 바로가기가 반 픽셀
           자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836) — 세로 flex 로 줄 상자를 없앤다
         */}
-        <div className="flex flex-col items-start">
-          {/*
-            저장한 사람 타일과 같은 문법 — 딱지 하나, 그 아래 이름. 「나」 알약 · 「내 사주」 글자는 걷었다: 홈 맨 위의 큰
-            카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
-          */}
-          <DayMasterChip stem={saju.pillars.dayMaster} />
-          <h2 className={`mt-1 break-all ${TYPE_TITLE}`}>
-            {label}
-          </h2>
+        <div className="flex min-w-0 items-center gap-3">
+          {face !== undefined && (
+            /* 원은 이름 묶음(딱지 + 이름)의 가운데에 선다 — 카카오톡 「내 프로필」 줄처럼 원 · 이름이 한 줄이다 */
+            <Avatar
+              userId={face.userId}
+              nickname={face.nickname}
+              hasPhoto={face.hasPhoto}
+              focus={face.focus}
+              size={56}
+              faceClass="bg-surface text-[var(--ink)]"
+              fallback={<StemSymbol stem={saju.pillars.dayMaster} className="size-8" />}
+            />
+          )}
+          <div className="flex min-w-0 flex-col items-start">
+            {/*
+              저장한 사람 타일과 같은 문법 — 딱지 하나, 그 아래 이름. 「나」 알약 · 「내 사주」 글자는 걷었다: 홈 맨 위의 큰
+              카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
+            */}
+            <DayMasterChip stem={saju.pillars.dayMaster} />
+            <h2 className={`mt-1 break-all ${TYPE_TITLE}`}>
+              {label}
+            </h2>
+          </div>
         </div>
         {reading?.metaphor != null && (
           /* 줄인 판은 폰에서 한 줄로 자른다 — 두 줄로 꺾이면 아래 저장한 사람 머리가 첫 화면 밖으로 나간다 */

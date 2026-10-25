@@ -8,7 +8,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
-import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_INNER, HomeMark } from './home-list';
+import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
@@ -17,9 +17,15 @@ import { tileAnchor, type HomePerson } from './map/model';
   일간 천간 그림이고 색은 그 표시만 입는다 — 오행 파스텔 면은 홈의 주인공(내 사주 카드) 하나에만 선다. 그림 이름(「햇빛」)은
   읽는 이름이 든다. 여덟 글자(한자)는 줄에 없다 — 「자세히」(상세)가 든다(운영자 2026-09-27).
 
-  줄 전체가 상세로 가는 링크다(이름 링크의 `after:` 가 줄을 덮는다). 끝의 단추 둘(풀이 · 궁합)은 그 위에 떠서 따로 눌린다 —
-  토스 홈 · 카카오톡 친구 줄의 끝 단추 꼴이다. **관계 지도의 원이 자바스크립트 없이 오는 자리**이기도 하다(`id`) — 그래서 이 줄이
-  그 사람의 길을 전부 든다.
+  줄 전체가 상세로 가는 링크다(이름 링크의 `after:` 가 줄을 덮는다). 끝의 둘(풀이 단추 · 궁합 값)은 그 위에 떠서 따로 눌린다.
+  **관계 지도의 원이 자바스크립트 없이 오는 자리**이기도 하다(`id`) — 그래서 이 줄이 그 사람의 길을 전부 든다.
+
+  **오른쪽은 폭이 고정된 두 칸이다**(2026-10-26 2차) — 단추(76px, 토스 계좌 줄의 「송금」)와 맨 끝의 값(48px, 토스증권 주식 줄의
+  가격). 전에는 「풀이 보기」 · 「풀이 받기」 단추와 「67점」 · 태극 알약의 폭이 저마다 달라 줄마다 왼쪽 끝이 어긋났다.
+
+  **둘째 줄은 내가 적은 메모(관계 · 생일)다**(카카오톡 친구 줄의 상태 메시지 자리). 메모가 이름 옆에 서던 동안 이름 · 단추 사이에
+  끼어 몇 글자에서 잘렸다. 메모가 없으면 그 사람 풀이의 비유 한 줄, 그것도 없으면 둘째 줄 없이 이름만 가운데 선다 — 「풀이 없음」은
+  바로 옆 「풀이 받기」 단추가 이미 말한다.
 */
 
 /** 지도에서 건너온 줄을 짚는다 — 자바스크립트 없이 `#person-…` 로 왔을 때. 판이 테 밖을 자르므로 면으로 짚는다 */
@@ -57,9 +63,13 @@ export function PersonTile({
             </p>
             <p className="truncate text-small leading-5 text-secondary">{person.chart.message}</p>
           </div>
-          <Link href={detailHref} className={`${HOME_ROW_ACTION} relative z-10 shrink-0`}>
-            자세히
-          </Link>
+          <div className="relative z-10 flex shrink-0 items-center gap-2">
+            <Link href={detailHref} className={HOME_ROW_ACTION}>
+              자세히
+            </Link>
+            {/* 값 칸 자리 — 비워 두어 단추가 다른 줄의 단추와 한 줄에 선다 */}
+            <span aria-hidden="true" className="w-12" />
+          </div>
         </div>
       </li>
     );
@@ -67,6 +77,9 @@ export function PersonTile({
 
   const { saju } = person.chart;
   const dayMaster = saju.pillars.dayMaster;
+  /* 둘째 줄 — 메모가 먼저, 없으면 풀이의 비유, 만드는 중이면 그 일. 만드는 중에 「풀이 없음」 같은 반대말은 안 선다 */
+  const second =
+    note !== '' ? note : reading !== null ? (reading.metaphor ?? READING_CONTINUE_NOTE) : making ? SELF_READING_MAKING : null;
 
   return (
     <li id={anchor} className={`${HOME_ROW} ${TARGET} relative`}>
@@ -74,46 +87,39 @@ export function PersonTile({
         <HomeMark stem={dayMaster} />
 
         <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-baseline gap-1.5">
+          <p className="flex min-w-0">
             <Name href={detailHref} label={person.label} />
             <span className="sr-only">일간 {STEM_PICTURE[dayMaster]}</span>
-            {note !== '' && <span className="min-w-0 truncate text-fine text-muted">{note}</span>}
           </p>
-          {/* 만드는 중이면 「풀이 없음」이 아니다 — 같은 줄의 단추가 그 일을 말하는 동안 이 줄이 반대말을 하지 않는다 */}
-          <p className="truncate text-small leading-5">
-            {reading === null ? (
-              <span className="text-secondary">{making ? SELF_READING_MAKING : '풀이 없음'}</span>
-            ) : (
-              <>
-                {!reading.fromCurrentChart && <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
-                <span className="text-secondary">{reading.metaphor ?? READING_CONTINUE_NOTE}</span>
-              </>
-            )}
-          </p>
+          {second !== null && (
+            <p className="truncate text-small leading-5 text-secondary">
+              {reading !== null && !reading.fromCurrentChart && <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
+              {second}
+            </p>
+          )}
         </div>
 
         {/*
-          끝의 단추 둘 — 폰 390px 에서 이름 칸을 남기려고 궁합 단추는 좁은 폭(400px 아래)에서 하트(점수가 있으면 점수)만 든다. 이름은
-          `aria-label` 이 늘 든다.
+          끝의 두 칸 — 단추(풀이)와 값(나와 궁합). 둘 다 폭이 고정이라 어느 사람이든 세로로 한 줄에 선다. 값 칸의 이름은 `aria-label` 이
+          늘 든다(태극만 보일 때도).
         */}
-        <div className="relative z-10 flex shrink-0 items-center gap-1.5">
+        <div className="relative z-10 flex shrink-0 items-center gap-2">
           <Link
             href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
-            className={`${HOME_ROW_ACTION} whitespace-nowrap`}
+            className={HOME_ROW_ACTION}
           >
             {reading !== null ? '풀이 보기' : making ? TILE_READING_MAKING : '풀이 받기'}
           </Link>
           {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
           <CompatFillLink
             href={fromMe ? withFromMe(compat.href) : compat.href}
-            className={`${HOME_ROW_ACTION} min-w-11 whitespace-nowrap`}
+            className={HOME_ROW_VALUE}
             aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
           >
-            <Icon name="taiji" className={`size-4 ${compat.score !== null ? 'max-[399px]:hidden' : ''}`} />
             {compat.score !== null ? (
               <span className="tabular-nums">{compat.score}점</span>
             ) : (
-              <span className="max-[399px]:sr-only">궁합</span>
+              <Icon name="taiji" className="size-5 text-secondary" />
             )}
           </CompatFillLink>
         </div>
