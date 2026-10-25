@@ -24,7 +24,7 @@ import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { myReadings } from '../../reading/current';
 import { compatHrefOf, pairWithSelf, readingOf, selfReadingOf } from '../../home/map/model';
-import { HOME_LIST, HOME_ROW, HOME_ROW_LINK, HOME_ROW_VALUE } from '../../home/home-list';
+import { HOME_HEAD_COUNT, HOME_LIST, HOME_ROW, HOME_ROW_LINK, HOME_ROW_VALUE } from '../../home/home-list';
 
 export const metadata = {
   title: '사주 상세',
@@ -49,7 +49,7 @@ export default async function PersonSajuPage({
    * 계정입니다」를 세우고 있었다. `app_user` 의 select 정책은 `id = auth.uid()` 하나이고
    * `status` 를 안 보므로 — 정지된 계정도 자기 행을 읽는다 — 그 말은 참일 수가 없었다.
    */
-  const { state } = await readAccount(supabase);
+  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname']);
   if (isBlocked(state)) {
     return (
       <main className={`app-shell flex ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
@@ -107,6 +107,26 @@ export default async function PersonSajuPage({
   const pair = mine ? null : pairWithSelf(readings, selfPersonId, person.personId);
   const readingHref = mine ? '/me/readings/self' : `/me/readings/${person.personId}`;
   const compatHref = pair !== null ? compatHrefOf(pair, selfPersonId, person.personId) : compatHrefFor(selfPersonId, person.personId);
+  /*
+    **이 사람이 들어간 궁합풀이 전부**(2026-10-26 운영자) — 나와의 것만이 아니다. 저장한 다른 사람과 본 궁합도 이 사람의 것이다. 최근 순.
+    줄 제목은 두 사람 이름을 나란히(내 자리는 닉네임) — 누구의 눈으로 본 것인지 말하지 않는다
+  */
+  const nickname = account?.nickname?.trim() || '나';
+  const pairs = mine
+    ? []
+    : readings
+        .filter((entry) => entry.kind === 'private' && (entry.personA === person.personId || entry.personB === person.personId))
+        .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((entry) => ({
+          key: `${entry.personA}:${entry.personB}`,
+          names: [
+            entry.personA === selfPersonId ? nickname : (entry.labelA ?? ''),
+            entry.personB === selfPersonId ? nickname : (entry.labelB ?? ''),
+          ].join(' · '),
+          score: entry.score,
+          metaphor: entry.metaphor,
+          href: compatHrefOf(entry, selfPersonId, person.personId),
+        }));
 
   const readingButton = (primary: boolean) => (
     <Link href={readingHref} className={`${primary ? BUTTON_PRIMARY_FACE : BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
@@ -173,7 +193,7 @@ export default async function PersonSajuPage({
       />
 
       {gathered ? (
-        <GatheredReadings name={person.name} own={own} ownHref={readingHref} pair={mine ? undefined : pair} compatHref={compatHref} />
+        <GatheredReadings name={person.name} own={own} ownHref={readingHref} pairs={mine ? undefined : pairs} compatHref={compatHref} />
       ) : (
         <SajuResult saju={person.saju} />
       )}
@@ -182,21 +202,21 @@ export default async function PersonSajuPage({
 }
 
 /**
- * **사주풀이 탭에 이 사람의 풀이를 모은 안(시안, `?tab=reading`)** — 운영자 물음(2026-10-26): 이 사람의 사주풀이와 나와의 궁합풀이를
- * 두 구역으로 세운다. 받은 것은 줄을 누르면 그 글, 없는 것은 그 구역에 받기 · 보러 가기 줄 하나. 지금 구조(사주풀이 탭 = 개인 풀이
- * 화면 `/me/readings/[id]`)와 나란히 견주려고 둔다.
+ * **사주풀이 탭에 이 사람의 풀이를 모은 안(시안, `?tab=reading`)** — 운영자 물음(2026-10-26): 두 구역 「사주풀이」 · 「궁합」. 사주풀이는 이 사람의
+ * 글 하나(없으면 받기 줄), 궁합은 이 사람이 들어간 궁합풀이 전부(나와 · 저장한 다른 사람과, 최근 순 — 두 이름 · 점수 ☯ · 한 줄 평 · ›).
+ * 궁합이 하나도 없을 때만 「궁합 보러 가기」 줄. 지금 구조(사주풀이 탭 = 개인 풀이 화면 `/me/readings/[id]`)와 나란히 견주려고 둔다.
  */
 function GatheredReadings({
   name,
   own,
   ownHref,
-  pair,
+  pairs,
   compatHref,
 }: {
   name: string;
   own: ReadingEntry | null;
   ownHref: string;
-  pair: ReadingEntry | null | undefined;
+  pairs: readonly { key: string; names: string; score: number | null; metaphor: string | null; href: string }[] | undefined;
   compatHref: string;
 }) {
   return (
@@ -215,25 +235,39 @@ function GatheredReadings({
           </li>
         </ul>
       </section>
-      {pair !== undefined && (
-        <section aria-labelledby="gathered-pair" className="flex flex-col gap-2">
-          <h2 id="gathered-pair" className={TYPE_SECTION}>나와의 궁합</h2>
+      {pairs !== undefined && (
+        <section aria-labelledby="gathered-pairs" className="flex flex-col gap-2">
+          <h2 id="gathered-pairs" className={`${TYPE_SECTION} flex items-baseline gap-1.5`}>
+            궁합
+            {pairs.length > 0 && <span className={HOME_HEAD_COUNT}>{pairs.length}개</span>}
+          </h2>
           <ul className={HOME_LIST}>
-            <li className={HOME_ROW}>
-              <Link href={compatHref} className={HOME_ROW_LINK}>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-body font-semibold">{pair === null ? COMPAT_ENTRY_LABEL : '궁합풀이'}</span>
-                  {pair?.metaphor != null && <span className="truncate text-small leading-5 text-secondary">{pair.metaphor}</span>}
-                </span>
-                {pair !== null && (
-                  <span className={HOME_ROW_VALUE}>
-                    {pair.score}점
-                    <Icon name="taiji" className="size-4 text-secondary" />
-                  </span>
-                )}
-                <Icon name="chevron" className="size-4 shrink-0 text-muted" />
-              </Link>
-            </li>
+            {pairs.length === 0 ? (
+              <li className={HOME_ROW}>
+                <Link href={compatHref} className={HOME_ROW_LINK}>
+                  <span className="min-w-0 flex-1 truncate text-body font-semibold">{COMPAT_ENTRY_LABEL}</span>
+                  <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+                </Link>
+              </li>
+            ) : (
+              pairs.map((pair) => (
+                <li key={pair.key} className={HOME_ROW}>
+                  <Link href={pair.href} className={HOME_ROW_LINK}>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-body font-semibold">{pair.names}</span>
+                      {pair.metaphor !== null && <span className="truncate text-small leading-5 text-secondary">{pair.metaphor}</span>}
+                    </span>
+                    {pair.score !== null && (
+                      <span className={HOME_ROW_VALUE}>
+                        {pair.score}점
+                        <Icon name="taiji" className="size-4 text-secondary" />
+                      </span>
+                    )}
+                    <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+                  </Link>
+                </li>
+              ))
+            )}
           </ul>
         </section>
       )}
