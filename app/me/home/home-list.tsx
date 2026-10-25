@@ -30,19 +30,9 @@ export const HOME_ROW_INNER = 'flex min-h-16 items-center gap-3 px-4 py-3';
 export const HOME_ROW_LINK = `${HOME_ROW_INNER} text-foreground hover:bg-surface-sunken active:bg-surface-sunken`;
 
 /**
- * **줄 끝의 작은 단추** — 회색 알약 32px(카카오톡 생일인 친구 줄의 「선물하기」 · 토스 홈 계좌 줄의 「송금」과 같은 높이 · 13px 글자).
- * 폭이 고정이다(72px) — 「풀이 받기」 · 「풀이 중…」 · 「자세히」가 섞여도 줄마다 한 줄에 선다. 보이는 알약은 32px 이고 누를 자리는
- * 위아래로 6px 씩 넓혀 44px 다(`after:`). 주 단추(먹색)는 홈에 하나 — 내 사주 카드의 사주풀이 단추 — 만 선다.
- */
-export const HOME_ROW_ACTION =
-  "relative inline-flex h-8 w-18 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-surface-sunken text-small font-semibold text-foreground after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] hover:bg-[color-mix(in_srgb,var(--foreground)_10%,var(--surface-sunken))] active:scale-[0.96]";
-
-/** 단추 칸 자리 — 단추가 없는 줄도 같은 폭을 비워 값 칸이 줄마다 한 줄에 선다 */
-export const HOME_ROW_ACTION_SLOT = 'inline-flex w-18 shrink-0 items-center justify-end';
-
-/**
  * **본 궁합의 값** — 「84점 ☯」. 면 없는 글자라 단추가 아니라 값으로 읽힌다(토스증권 주식 줄의 가격 · 당근 프로필의 「36.5°C 😊」처럼
- * 값 뒤에 그 값의 표시). 폭이 고정이고(64px) 오른쪽 끝 맞춤이라 줄마다 숫자 · 표시가 한 줄에 선다.
+ * 값 뒤에 그 값의 표시). 폭이 고정이고(64px) 오른쪽 끝 맞춤이라 줄마다 숫자 · 표시가 한 줄에 선다. 줄에는 단추가 없다 — 줄 전체가 그 사람
+ * 화면으로 간다(2026-10-26 운영자, 카카오톡 친구 목록).
  */
 export const HOME_ROW_VALUE = 'inline-flex w-16 shrink-0 items-center justify-end gap-1 text-body font-semibold tabular-nums text-foreground';
 

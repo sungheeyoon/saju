@@ -71,7 +71,7 @@ export function MyPeople({
   /** 사주풀이를 지금 만드는 중인 사람들(ADR 0157) */
   making?: ReadonlySet<string>;
 }) {
-  return <SavedPeople people={people} slots={circle.slots} tileOf={tileOfWith(readings, selfPersonId, making)} fromMe />;
+  return <SavedPeople people={people} slots={circle.slots} tileOf={tileOfWith(readings, selfPersonId, making)} />;
 }
 
 /**
@@ -84,12 +84,10 @@ function SavedPeople({
   people,
   slots,
   tileOf,
-  fromMe = false,
 }: {
   people: readonly HomePerson[];
   slots: PersonSlots | null;
-  tileOf: (person: HomePerson) => Omit<Parameters<typeof PersonTile>[0], 'person' | 'fromMe'>;
-  fromMe?: boolean;
+  tileOf: (person: HomePerson) => Omit<Parameters<typeof PersonTile>[0], 'person'>;
 }) {
   const full = slots !== null && slots.remaining <= 0;
 
@@ -132,7 +130,7 @@ function SavedPeople({
           more={people.length > PEOPLE_SHOWN}
         >
           {people.map((person) => (
-            <PersonTile key={person.personId} person={person} {...tileOf(person)} fromMe={fromMe} />
+            <PersonTile key={person.personId} person={person} {...tileOf(person)} />
           ))}
           {!full && <AddRow />}
         </MoreList>

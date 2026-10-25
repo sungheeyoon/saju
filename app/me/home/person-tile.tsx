@@ -6,9 +6,8 @@ import { STEM_PICTURE } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
-import { withFromMe } from './from-me';
-import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_ACTION_SLOT, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
-import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
+import { HOME_ROW, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
@@ -35,7 +34,6 @@ export function PersonTile({
   reading,
   compat,
   making = false,
-  fromMe = false,
 }: {
   person: HomePerson;
   /** 그 사람의 사주풀이 — 없으면 `null` */
@@ -44,8 +42,6 @@ export function PersonTile({
   compat: { href: string; score: number | null };
   /** 그 사람의 사주풀이를 지금 만드는 중인가 — 글이 없을 때 「풀이 받기」 대신 이 일을 말한다(ADR 0157, 내 사주 카드와 같은 규칙) */
   making?: boolean;
-  /** 홈 탭에 선 줄 — 결과로 가는 링크가 `from=me` 를 든다(`from-me.ts`) */
-  fromMe?: boolean;
 }) {
   const detailHref = `/me/people/${person.personId}`;
   const note = person.note?.trim() ?? '';
@@ -61,13 +57,6 @@ export function PersonTile({
               <Name href={detailHref} label={person.label} />
             </p>
             <p className="truncate text-small leading-5 text-secondary">{person.chart.message}</p>
-          </div>
-          <div className="relative z-10 flex shrink-0 items-center gap-2">
-            {/* 값 칸 자리 — 비워 두어 단추가 다른 줄의 단추와 한 줄에 선다 */}
-            <span aria-hidden="true" className="w-16" />
-            <Link href={detailHref} className={HOME_ROW_ACTION}>
-              자세히
-            </Link>
           </div>
         </div>
       </li>
@@ -98,36 +87,16 @@ export function PersonTile({
         </div>
 
         {/*
-          **끝의 두 칸 — 값 · 단추**(2026-10-26 운영자). 「풀이 보기」 단추는 없다 — 줄(이름)을 누르면 그 사람 화면에서 풀이 · 궁합을 본다.
-          - 나와 궁합을 봤으면 값 칸에 「84점 ☯」(면 없는 글자 — 값이다). 누르면 그 궁합풀이로 간다
-          - 그 사람의 사주풀이를 아직 안 받았으면 단추 칸에 「풀이 받기」(만드는 중이면 「풀이 중…」) 하나
-          둘 다면 둘 다. 하나라도 서면 두 칸 모두 같은 폭을 차지해 줄마다 세로로 한 줄에 선다. 둘 다 아니면 두 칸을 걷어 메모가 그 폭을 쓴다
+          **줄 끝은 본 궁합의 값 하나뿐이다**(2026-10-26 운영자 「단추를 다 없앤다」). 줄 전체가 그 사람 화면(`/me/people/[personId]`)으로 가고,
+          풀이를 받는 일 · 궁합을 보는 일은 그 화면의 「사주풀이」 탭 · 궁합 단추가 든다 — 카카오톡 친구 목록처럼 줄에는 단추도 꺾쇠도 없다.
+          나와 궁합을 봤으면 「84점 ☯」(오른쪽 맞춤 · 고정 폭이라 줄마다 한 줄), 안 봤으면 비워 메모가 그 폭을 쓴다
         */}
-        {(compat.score !== null || reading === null) && (
-          <div className="relative z-10 flex shrink-0 items-center gap-2">
-            {compat.score !== null ? (
-              <Link
-                href={fromMe ? withFromMe(compat.href) : compat.href}
-                aria-label={`나와 궁합 ${compat.score}점`}
-                className={`${HOME_ROW_VALUE} min-h-11 hover:underline`}
-              >
-                {compat.score}점
-                <Icon name="taiji" className="size-4 text-secondary" />
-              </Link>
-            ) : (
-              <span aria-hidden="true" className="w-16" />
-            )}
-            <span className={HOME_ROW_ACTION_SLOT}>
-              {reading === null && (
-                <Link
-                  href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
-                  className={HOME_ROW_ACTION}
-                >
-                  {making ? TILE_READING_MAKING : '풀이 받기'}
-                </Link>
-              )}
-            </span>
-          </div>
+        {compat.score !== null && (
+          <span className={HOME_ROW_VALUE}>
+            <span className="sr-only">나와 궁합 </span>
+            {compat.score}점
+            <Icon name="taiji" className="size-4 text-secondary" />
+          </span>
         )}
       </div>
     </li>

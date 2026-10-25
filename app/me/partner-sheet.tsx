@@ -65,7 +65,7 @@ const PHOTO_FRAME =
  * (운영자 2026-10-26 「굳이 들어가서 내 자기소개가 뭔지 봐야 하나」). 범블 · 스카이피플의 프로필 미리보기처럼 사진 바로 아래 소개가 첫 화면에
  * 걸린다. 사진은 보일 자리(G-98)로 잘린다.
  */
-const PHOTO_FRAME_SHORT = 'relative w-full aspect-[4/3] select-none overflow-hidden rounded-card';
+const PHOTO_FRAME_SHORT = 'relative w-full aspect-[4/3] select-none overflow-hidden rounded-card lg:aspect-[2/1]';
 
 /**
  * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리 · 요청 카드의 얼굴이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
