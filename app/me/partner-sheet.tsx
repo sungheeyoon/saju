@@ -61,6 +61,13 @@ const PHOTO_FRAME =
   'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] select-none overflow-hidden rounded-card lg:mx-0 lg:max-w-none';
 
 /**
+ * **내 프로필 시트의 사진 판** — 가로 4:3(폰 390 에서 약 262px). 세로 4:5 로 두면 사진이 첫 화면을 다 먹어 바로 아래 「소개」가 안 보였다
+ * (운영자 2026-10-26 「굳이 들어가서 내 자기소개가 뭔지 봐야 하나」). 범블 · 스카이피플의 프로필 미리보기처럼 사진 바로 아래 소개가 첫 화면에
+ * 걸린다. 사진은 보일 자리(G-98)로 잘린다.
+ */
+const PHOTO_FRAME_SHORT = 'relative w-full aspect-[4/3] select-none overflow-hidden rounded-card';
+
+/**
  * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리 · 요청 카드의 얼굴이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
  *
  * 별도 화면이 아니라 시트다 — 방의 스크롤 자리 · 더 불러 둔 이전 말 · 쓰던 글이 그대로 남는다. 판은 오늘의 인연 ⓘ · 지나친 인연
@@ -78,12 +85,21 @@ export function PartnerSheet({
   partner,
   toMatch,
   menu,
+  short = false,
+  emptyIntro,
+  footer,
 }: {
   control: PartnerSheetControl;
   partner: PartnerProfile;
   /** 인연 궁합으로 가는 단추 — 없으면 `null` */
   toMatch: ReactNode | null;
   menu?: ReactNode;
+  /** 사진을 가로 4:3 으로 줄여 소개를 첫 화면에 건다 — 홈의 「내 프로필」 시트(2026-10-26) */
+  short?: boolean;
+  /** 소개가 비었을 때 「소개」 구역에 세울 것 — 내 시트는 「소개를 써 보세요」 링크. 없으면 그 구역을 뺀다 */
+  emptyIntro?: ReactNode;
+  /** 몸의 맨 아래 — 내 시트의 「프로필 편집」 */
+  footer?: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
@@ -106,10 +122,10 @@ export function PartnerSheet({
     >
       <div
         data-partner-sheet=""
-        className={`flex flex-col gap-5 ${hasPhoto ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
+        className={`flex flex-col gap-5 ${hasPhoto && !short ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
       >
         {hasPhoto ? (
-          <div ref={frame} className={`${PHOTO_FRAME} bg-surface-sunken`}>
+          <div ref={frame} className={`${short ? PHOTO_FRAME_SHORT : PHOTO_FRAME} bg-surface-sunken`}>
             <CardPhotos card={face} bounce={frame} />
           </div>
         ) : (
@@ -118,17 +134,22 @@ export function PartnerSheet({
             <CandidatePhoto card={face} initialClass="text-figure" />
           </div>
         )}
-        {(toMatch !== null || intro !== null) && (
+        {(toMatch !== null || intro !== null || emptyIntro !== undefined || footer !== undefined) && (
           <div className="flex min-w-0 flex-col gap-5">
             {toMatch}
-            {intro !== null && (
+            {(intro !== null || emptyIntro !== undefined) && (
               <section className="flex flex-col gap-2 border-t border-border pt-4">
                 <h3 className={TYPE_META}>
                   {INTRO_HEADING}
                 </h3>
-                <p className="whitespace-pre-wrap break-words text-body leading-[1.7] text-foreground">{intro}</p>
+                {intro !== null ? (
+                  <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
+                ) : (
+                  emptyIntro
+                )}
               </section>
             )}
+            {footer}
           </div>
         )}
       </div>

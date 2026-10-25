@@ -7,7 +7,8 @@ import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { bookOf, type Book } from '../(shelf)/readings/book';
 import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 import type { ReadingEntry } from '@/src/lib/reading';
-import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_LIST, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
+import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
+import { MoreList } from './more-list';
 import { withFromMe } from './from-me';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from './making';
 
@@ -28,6 +29,12 @@ const SHOWN = 3;
  * 폭에서 숨는다.
  */
 const SHOWN_WIDE = 4;
+
+/**
+ * **「더보기」로 펴면 열까지**(2026-10-26 운영자 「많을 때 더보기」). 그 너머는 머리의 「모두 보기」(풀이 보관함)가 든다 — 홈에 끝없이
+ * 늘어나는 목록을 두지 않는다(당근페이 홈 「진행 중인 거래」의 「전체보기 ⌄」도 몇 줄만 더 편다).
+ */
+const SHOWN_OPEN = 10;
 
 /**
  * **받은 사주풀이** — 한 사람 풀이(나 · 저장한 사람)만(ADR 0129). 책장의 표지가 들던 것(일간 · 이름 · 비유 · 날짜 · 「수정 전」)을
@@ -51,7 +58,8 @@ export function ReceivedReadings({
   const singles = readings.map(bookOf).filter((book) => book.single);
   const hasSelf = readings.some((entry) => entry.kind === 'self');
   const narrow = hasSelf ? SHOWN : SHOWN - 1;
-  const shown = singles.slice(0, hasSelf ? SHOWN_WIDE : SHOWN_WIDE - 1);
+  const wide = hasSelf ? SHOWN_WIDE : SHOWN_WIDE - 1;
+  const shown = singles.slice(0, SHOWN_OPEN);
 
   return (
     <section aria-labelledby="home-readings" className="flex min-w-0 flex-col gap-2 sm:gap-4">
@@ -74,9 +82,20 @@ export function ReceivedReadings({
         왼쪽의 작은 표시가 그 사람의 일간이고, 이름 · 날짜 · 비유 한 줄이 선다. 넓은 화면에서는 내 사주 카드 오른쪽 칸에 넷까지 선다
         — 넷째 줄은 그 아래 폭에서 숨는다. 전부는 보관함이 든다.
       */}
-      <ul className={HOME_LIST}>
+      {/*
+        접힌 동안 폰은 앞의 셋(내 사주풀이가 없으면 둘), 넓은 화면은 넷까지 — 나머지 줄은 `data-fold` 로 숨고 판 아래 「더보기」가 편다
+      */}
+      <MoreList
+        collapsed="[&>li[data-fold]]:hidden lg:[&>li[data-fold=wide]]:block"
+        more={shown.length > narrow}
+        moreWide={shown.length > wide}
+      >
         {shown.map((book, index) => (
-          <li key={book.key} className={`${HOME_ROW} ${index < narrow ? '' : 'hidden lg:block'}`}>
+          <li
+            key={book.key}
+            data-fold={index < narrow ? undefined : index < wide ? 'wide' : 'all'}
+            className={HOME_ROW}
+          >
             <ReadingRow book={book} />
           </li>
         ))}
@@ -89,7 +108,7 @@ export function ReceivedReadings({
             </Link>
           </li>
         )}
-      </ul>
+      </MoreList>
     </section>
   );
 }

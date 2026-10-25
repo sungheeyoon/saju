@@ -10,6 +10,10 @@ import type { Circle } from './circle';
 import { compatHrefOf, pairWithSelf, readingOf, type HomePerson } from './map/model';
 import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_LIST, HOME_ROW, HOME_ROW_INNER, HOME_ROW_LINK } from './home-list';
 import { PersonTile } from './person-tile';
+import { MoreList } from './more-list';
+
+/** 접힌 동안 서는 사람 수 — 다섯(폰 한 화면). 「사람 추가」 줄은 따로 늘 선다 */
+const PEOPLE_SHOWN = 5;
 
 /**
  * **나와 내가 저장한 사람 — 관계 지도와 사람 타일이 같이 쓰는 것.**
@@ -118,12 +122,20 @@ function SavedPeople({
           <AddRow />
         </ul>
       ) : (
-        <ul className={`${HOME_LIST} lg:grid lg:grid-cols-2 lg:[&>li:nth-child(2)]:before:hidden`}>
+        /*
+          **다섯 명이 넘으면 「더보기」**(2026-10-26 운영자) — 폰 한 화면에 머리 · 다섯 줄 · 「사람 추가」가 든다(64px × 6 + 머리). 여섯째부터는
+          접혀 있다가 판 아래 「더보기 ⌄」가 그 자리에서 편다. 「사람 추가」 줄은 접혀도 늘 선다(맨 끝 줄)
+        */
+        <MoreList
+          listClass="lg:grid lg:grid-cols-2"
+          collapsed={full ? '[&>li:nth-child(n+6)]:hidden' : '[&>li:nth-child(n+6):not(:last-child)]:hidden'}
+          more={people.length > PEOPLE_SHOWN}
+        >
           {people.map((person) => (
             <PersonTile key={person.personId} person={person} {...tileOf(person)} fromMe={fromMe} />
           ))}
           {!full && <AddRow />}
-        </ul>
+        </MoreList>
       )}
       {slots !== null && full && <p className="break-keep text-pretty text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
     </section>

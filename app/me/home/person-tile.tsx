@@ -2,13 +2,12 @@ import Link from 'next/link';
 
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
-import { CompatFillLink } from '../../compat-fill-link';
 import { STEM_PICTURE } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
-import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_GHOST, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
+import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_ACTION_SLOT, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
@@ -65,7 +64,7 @@ export function PersonTile({
           </div>
           <div className="relative z-10 flex shrink-0 items-center gap-2">
             {/* 값 칸 자리 — 비워 두어 단추가 다른 줄의 단추와 한 줄에 선다 */}
-            <span aria-hidden="true" className="w-14" />
+            <span aria-hidden="true" className="w-16" />
             <Link href={detailHref} className={HOME_ROW_ACTION}>
               자세히
             </Link>
@@ -78,8 +77,7 @@ export function PersonTile({
   const { saju } = person.chart;
   const dayMaster = saju.pillars.dayMaster;
   /* 둘째 줄 — 메모가 먼저, 없으면 풀이의 비유, 만드는 중이면 그 일. 만드는 중에 「풀이 없음」 같은 반대말은 안 선다 */
-  const second =
-    note !== '' ? note : reading !== null ? (reading.metaphor ?? READING_CONTINUE_NOTE) : making ? SELF_READING_MAKING : null;
+  const second = note !== '' ? note : reading !== null ? (reading.metaphor ?? READING_CONTINUE_NOTE) : making ? SELF_READING_MAKING : null;
 
   return (
     <li id={anchor} className={`${HOME_ROW} ${TARGET} relative`}>
@@ -100,36 +98,37 @@ export function PersonTile({
         </div>
 
         {/*
-          끝의 두 칸 — **값 · 단추 차례**(2026-10-26 운영자 「점수랑 풀이 보기/받기를 스왑하든가」). 본 궁합은 단추 왼쪽의 값(「84점」 ·
-          「궁합」)이고, 안 본 궁합은 같은 폭의 테두리 단추(「궁합」)다. 맨 끝은 폭이 고정된 풀이 단추. 토스 홈 계좌 줄의 「금액 · 송금」 꼴이다.
-          두 칸 다 폭이 고정이라 어느 사람이든 세로로 한 줄에 선다
+          **끝의 두 칸 — 값 · 단추**(2026-10-26 운영자). 「풀이 보기」 단추는 없다 — 줄(이름)을 누르면 그 사람 화면에서 풀이 · 궁합을 본다.
+          - 나와 궁합을 봤으면 값 칸에 「84점 ☯」(면 없는 글자 — 값이다). 누르면 그 궁합풀이로 간다
+          - 그 사람의 사주풀이를 아직 안 받았으면 단추 칸에 「풀이 받기」(만드는 중이면 「풀이 중…」) 하나
+          둘 다면 둘 다. 하나라도 서면 두 칸 모두 같은 폭을 차지해 줄마다 세로로 한 줄에 선다. 둘 다 아니면 두 칸을 걷어 메모가 그 폭을 쓴다
         */}
-        <div className="relative z-10 flex shrink-0 items-center gap-2">
-          {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
-          <CompatFillLink
-            href={fromMe ? withFromMe(compat.href) : compat.href}
-            className={compat.score !== null ? HOME_ROW_VALUE : HOME_ROW_GHOST}
-            aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
-          >
+        {(compat.score !== null || reading === null) && (
+          <div className="relative z-10 flex shrink-0 items-center gap-2">
             {compat.score !== null ? (
-              <>
-                <span className="text-body font-semibold leading-5 text-foreground">{compat.score}점</span>
-                <span className="text-tag font-medium leading-4 text-secondary">궁합</span>
-              </>
+              <Link
+                href={fromMe ? withFromMe(compat.href) : compat.href}
+                aria-label={`나와 궁합 ${compat.score}점`}
+                className={`${HOME_ROW_VALUE} min-h-11 hover:underline`}
+              >
+                {compat.score}점
+                <Icon name="taiji" className="size-4 text-secondary" />
+              </Link>
             ) : (
-              <>
-                <Icon name="taiji" className="size-3.5" />
-                궁합
-              </>
+              <span aria-hidden="true" className="w-16" />
             )}
-          </CompatFillLink>
-          <Link
-            href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
-            className={HOME_ROW_ACTION}
-          >
-            {reading !== null ? '풀이 보기' : making ? TILE_READING_MAKING : '풀이 받기'}
-          </Link>
-        </div>
+            <span className={HOME_ROW_ACTION_SLOT}>
+              {reading === null && (
+                <Link
+                  href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
+                  className={HOME_ROW_ACTION}
+                >
+                  {making ? TILE_READING_MAKING : '풀이 받기'}
+                </Link>
+              )}
+            </span>
+          </div>
+        )}
       </div>
     </li>
   );

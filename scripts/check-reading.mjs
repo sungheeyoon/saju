@@ -232,7 +232,7 @@ try {
   {
     const mine = await body('/me/readings/self', cookie.a);
     check('내 사주풀이 전용 화면이 선다', plain(mine).includes('내 사주풀이'));
-    check('풀이 화면에 사주를 다시 싣지 않는다', !plain(mine).includes('사주 자세히 보기'));
+    check('풀이 화면에 사주를 다시 싣지 않는다', !plain(mine).includes('만세력 보기'));
     check('아직 없으면 없다고 말한다', plain(mine).includes('아직 받은 사주풀이가 없어요'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     /**
