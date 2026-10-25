@@ -8,7 +8,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
-import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
+import { HOME_ROW, HOME_ROW_ACTION, HOME_ROW_GHOST, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
 import { READING_CONTINUE_NOTE, SELF_READING_MAKING, TILE_READING_MAKING } from './making';
 import { tileAnchor, type HomePerson } from './map/model';
 
@@ -64,11 +64,11 @@ export function PersonTile({
             <p className="truncate text-small leading-5 text-secondary">{person.chart.message}</p>
           </div>
           <div className="relative z-10 flex shrink-0 items-center gap-2">
+            {/* 값 칸 자리 — 비워 두어 단추가 다른 줄의 단추와 한 줄에 선다 */}
+            <span aria-hidden="true" className="w-14" />
             <Link href={detailHref} className={HOME_ROW_ACTION}>
               자세히
             </Link>
-            {/* 값 칸 자리 — 비워 두어 단추가 다른 줄의 단추와 한 줄에 선다 */}
-            <span aria-hidden="true" className="w-12" />
           </div>
         </div>
       </li>
@@ -100,28 +100,35 @@ export function PersonTile({
         </div>
 
         {/*
-          끝의 두 칸 — 단추(풀이)와 값(나와 궁합). 둘 다 폭이 고정이라 어느 사람이든 세로로 한 줄에 선다. 값 칸의 이름은 `aria-label` 이
-          늘 든다(태극만 보일 때도).
+          끝의 두 칸 — **값 · 단추 차례**(2026-10-26 운영자 「점수랑 풀이 보기/받기를 스왑하든가」). 본 궁합은 단추 왼쪽의 값(「84점」 ·
+          「궁합」)이고, 안 본 궁합은 같은 폭의 테두리 단추(「궁합」)다. 맨 끝은 폭이 고정된 풀이 단추. 토스 홈 계좌 줄의 「금액 · 송금」 꼴이다.
+          두 칸 다 폭이 고정이라 어느 사람이든 세로로 한 줄에 선다
         */}
         <div className="relative z-10 flex shrink-0 items-center gap-2">
+          {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
+          <CompatFillLink
+            href={fromMe ? withFromMe(compat.href) : compat.href}
+            className={compat.score !== null ? HOME_ROW_VALUE : HOME_ROW_GHOST}
+            aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
+          >
+            {compat.score !== null ? (
+              <>
+                <span className="text-body font-semibold leading-5 text-foreground">{compat.score}점</span>
+                <span className="text-tag font-medium leading-4 text-secondary">궁합</span>
+              </>
+            ) : (
+              <>
+                <Icon name="taiji" className="size-3.5" />
+                궁합
+              </>
+            )}
+          </CompatFillLink>
           <Link
             href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
             className={HOME_ROW_ACTION}
           >
             {reading !== null ? '풀이 보기' : making ? TILE_READING_MAKING : '풀이 받기'}
           </Link>
-          {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
-          <CompatFillLink
-            href={fromMe ? withFromMe(compat.href) : compat.href}
-            className={HOME_ROW_VALUE}
-            aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
-          >
-            {compat.score !== null ? (
-              <span className="tabular-nums">{compat.score}점</span>
-            ) : (
-              <Icon name="taiji" className="size-5 text-secondary" />
-            )}
-          </CompatFillLink>
         </div>
       </div>
     </li>

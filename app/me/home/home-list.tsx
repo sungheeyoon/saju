@@ -33,18 +33,26 @@ export const HOME_ROW_LINK = `${HOME_ROW_INNER} text-foreground hover:bg-surface
  * 줄 끝의 작은 단추 — 흰 면 위의 회색 알약(토스 홈 계좌 줄의 「송금」 · 카카오톡 생일인 친구 줄의 「선물하기」 꼴). 주 단추(먹색)는
  * 홈에 하나 — 내 사주 카드의 사주풀이 단추 — 만 선다. 누를 자리는 44px 이다.
  *
- * **폭이 고정이다**(76px) — 토스의 「송금」 단추는 줄마다 같은 폭이라 세로로 한 줄에 선다. 「풀이 보기」 · 「풀이 받기」 · 「풀이 중…」 ·
- * 「자세히」가 섞여도 단추의 왼쪽 끝이 한 줄에 선다.
+ * **폭이 고정이고 줄의 맨 끝이다**(76px) — 토스의 「송금」 단추는 줄마다 같은 폭 · 같은 자리라 세로로 한 줄에 선다. 「풀이 보기」 ·
+ * 「풀이 받기」 · 「풀이 중…」 · 「자세히」가 섞여도 단추의 양 끝이 한 줄에 선다.
  */
 export const HOME_ROW_ACTION =
   'inline-flex min-h-11 w-19 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full bg-surface-sunken text-small font-semibold text-foreground hover:bg-[color-mix(in_srgb,var(--foreground)_10%,var(--surface-sunken))] active:scale-[0.96]';
 
 /**
- * 줄 맨 끝의 값 칸 — 토스증권 주식 목록의 가격 칸처럼 **폭이 고정이고 오른쪽 끝에 선다**(48px). 본 궁합이면 「84점」 글자, 안 봤으면
- * 태극 표시 — 어느 쪽이든 칸 폭이 같아 위 단추와 함께 세로로 한 줄이다. 누를 자리는 44px.
+ * **본 궁합의 값** — 단추 왼쪽의 값 칸(56px). 「84점」 위 · 「궁합」 아래, 오른쪽 끝 맞춤이다 — 토스 홈 계좌 줄이 금액(값)을 글로 세우고
+ * 그 오른쪽에 「송금」 단추를 두는 꼴, 토스증권 · 뱅크샐러드 목록의 오른쪽 값(굵은 수 위 · 작은 이름 아래). 면이 없어 값으로 읽히고,
+ * 누르면 그 궁합풀이로 간다(누를 자리 44px).
  */
 export const HOME_ROW_VALUE =
-  'inline-flex min-h-11 w-12 shrink-0 items-center justify-end rounded-cell text-body font-semibold tabular-nums text-foreground hover:underline';
+  'inline-flex min-h-11 w-14 shrink-0 flex-col items-end justify-center rounded-cell tabular-nums hover:underline';
+
+/**
+ * **안 본 궁합의 단추** — 값 칸과 같은 폭(56px)의 테두리 알약. 「풀이 보기/받기」(채운 알약)보다 한 단 가볍다 — 두 단추가 다 누르는 것으로
+ * 보이되 주인은 풀이다(카카오톡 친구 줄 끝의 「선물하기」 같은 테두리 단추).
+ */
+export const HOME_ROW_GHOST =
+  'inline-flex min-h-11 w-14 shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-full border border-border bg-surface text-small font-semibold text-foreground hover:border-border-strong active:scale-[0.96]';
 
 /*
   **구역 머리** — 제목 · 개수 · 오른쪽 링크가 **한 기준선**에 선다(카카오톡 「생일인 친구 2」 · 토스증권 「내 계좌 … 16:50 기준 >」).

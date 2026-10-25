@@ -46,7 +46,7 @@ export default async function MePage() {
   if (!user) return redirectToSignIn();
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname']);
+  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname', 'intro']);
   const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
   const nickname = account?.nickname?.trim() ?? '';
 
@@ -65,7 +65,7 @@ export default async function MePage() {
           ) : (
             <>
               <Greeting name={nickname} />
-              <Home selfPersonId={selfPersonId} userId={user.id} nickname={nickname} />
+              <Home selfPersonId={selfPersonId} userId={user.id} nickname={nickname} intro={account?.intro ?? null} />
             </>
           )}
         </>
@@ -91,7 +91,7 @@ function Greeting({ name }: { name: string }) {
   return (
     <header className="sr-only flex flex-col gap-1 sm:not-sr-only">
       <p className={TYPE_META}>{today}</p>
-      <h1 className={TYPE_TITLE}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
+      <h1 className={`break-keep text-pretty ${TYPE_TITLE}`}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
     </header>
   );
 }
@@ -110,7 +110,17 @@ function Greeting({ name }: { name: string }) {
  * **참여를 여는 문은 아무것도 안 그린다**(ADR 0070 · 0076) — 후보 탐색은 매칭에서만 하고 참여를 여는 일은 홈에도 남는다.
  * 못 열어도 홈을 오류로 세우지 않는다(`openDiscoveryParticipation`).
  */
-async function Home({ selfPersonId, userId, nickname }: { selfPersonId: string; userId: string; nickname: string }) {
+async function Home({
+  selfPersonId,
+  userId,
+  nickname,
+  intro,
+}: {
+  selfPersonId: string;
+  userId: string;
+  nickname: string;
+  intro: string | null;
+}) {
   const supabase = await supabaseOnServer();
 
   const [circle, self, readings, profile, runningRead, faceRead] = await Promise.all([
@@ -119,10 +129,10 @@ async function Home({ selfPersonId, userId, nickname }: { selfPersonId: string; 
     myReadings(),
     myDiscoveryProfile(),
     runningReadings(),
-    myHomeFace(supabase),
+    myHomeFace(supabase, userId),
   ]);
-  /* 대표 사진 — 꾸밈이다. 못 읽었으면 사진 없는 나(일간 그림)로 선다(ADR 0078) */
-  const face = { userId, nickname, ...(faceRead.ok ? faceRead.value : NO_FACE) };
+  /* 내 사진들 — 꾸밈이다. 못 읽었으면 사진 없는 나(일간 그림)로 선다(ADR 0078). 원을 누르면 오는 「내 프로필」 시트가 같은 값을 쓴다 */
+  const face = { userId, nickname, intro, ...(faceRead.ok ? faceRead.value : NO_FACE) };
   /* 못 읽었으면 만드는 중인 것이 없는 것처럼 선다 — 부속 정보다(ADR 0078). 단추는 「받기」로 돌아간다 */
   const running = runningRead.ok ? runningRead.value : [];
 

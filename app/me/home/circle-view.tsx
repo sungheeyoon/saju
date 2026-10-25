@@ -113,7 +113,7 @@ function SavedPeople({
         /* 아무도 없으면 같은 판에 설명 한 줄과 「사람 추가」 줄 — 주 단추(먹색)는 내 사주 카드에만 선다 */
         <ul className={HOME_LIST}>
           <li className={HOME_ROW}>
-            <p className={`${HOME_ROW_INNER} text-body leading-6 text-secondary`}>가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
+            <p className={`${HOME_ROW_INNER} break-keep text-pretty text-body leading-6 text-secondary`}>가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
           </li>
           <AddRow />
         </ul>
@@ -125,7 +125,7 @@ function SavedPeople({
           {!full && <AddRow />}
         </ul>
       )}
-      {slots !== null && full && <p className="text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
+      {slots !== null && full && <p className="break-keep text-pretty text-small text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
     </section>
   );
 }

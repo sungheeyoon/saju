@@ -12,14 +12,13 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
-import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';
 import { TYPE_TITLE } from '../../ui/surfaces';
-import { Avatar } from '../avatar';
 import type { HomeFace } from './self-face';
+import { SelfProfile } from './self-profile';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -67,10 +66,10 @@ export function SelfCard({
   actions?: ReactNode;
   /**
    * **홈의 동그란 내 프로필**(2026-10-26 운영자) — 주면 이름 왼쪽에 56px 원이 선다. 대표 사진이 있으면 그 사진, 없으면 내 일간의
-   * 천간 그림이다. 카카오톡 친구 탭의 「내 프로필」 줄 · 토스 전체 탭의 내 이름 줄처럼 이름과 한 줄이다. 저장 전 카드(로그인 전 결과 ·
-   * 사주 이어 보기)에는 아직 계정의 얼굴이 없어 안 준다.
+   * 천간 그림이다. 누르면 「내 프로필」 시트(`self-profile.tsx`). 저장 전 카드(로그인 전 결과 · 사주 이어 보기)에는 아직 계정의
+   * 얼굴이 없어 안 준다.
    */
-  face?: HomeFace & { userId: string; nickname: string };
+  face?: HomeFace & { userId: string; nickname: string; intro: string | null };
   /**
    * **홈 탭의 줄인 판**(u2, 운영자 2026-09-29) — 폰에서 오행 분포 다섯 칸을 걷는다. 그 칸은 「사주 자세히 보기」가 든다.
    * 출생 정보 한 줄은 남긴다 — 고친 입력이 홈 탭에서 보이게 2026-09-25 에 일부러 둔 줄이다. 폰 첫 화면에 카드 아래의 받은
@@ -88,38 +87,27 @@ export function SelfCard({
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
-      <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
+      <header className="relative flex min-w-0 flex-col gap-2 pr-20 sm:gap-3">
         {/*
-          딱지를 줄 상자(본문 줄 높이 1.65 의 26.4px 줄)에 세우면 이 머리가 소수 px 높이가 되어, 아래 결과 바로가기가 반 픽셀
-          자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836) — 세로 flex 로 줄 상자를 없앤다
+          머리의 높이는 정수 px 여야 한다 — 소수면 아래 결과 바로가기가 반 픽셀 자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e
+          (`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836). 원(56px)과 이름(35px)이 한 줄이라 56px 다
         */}
         <div className="flex min-w-0 items-center gap-3">
-          {face !== undefined && (
-            /* 원은 이름 묶음(딱지 + 이름)의 가운데에 선다 — 카카오톡 「내 프로필」 줄처럼 원 · 이름이 한 줄이다 */
-            <Avatar
-              userId={face.userId}
-              nickname={face.nickname}
-              hasPhoto={face.hasPhoto}
-              focus={face.focus}
-              size={56}
-              faceClass="bg-surface text-[var(--ink)]"
-              fallback={<StemSymbol stem={saju.pillars.dayMaster} className="size-8" />}
-            />
-          )}
-          <div className="flex min-w-0 flex-col items-start">
-            {/*
-              저장한 사람 타일과 같은 문법 — 딱지 하나, 그 아래 이름. 「나」 알약 · 「내 사주」 글자는 걷었다: 홈 맨 위의 큰
-              카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
-            */}
-            <DayMasterChip stem={saju.pillars.dayMaster} />
-            <h2 className={`mt-1 break-all ${TYPE_TITLE}`}>
-              {label}
-            </h2>
-          </div>
+          {face !== undefined && <SelfProfile {...face} stem={saju.pillars.dayMaster} />}
+          {/*
+            이름 — 고칠 수 없는 자리다. 닉네임은 프로필 수정 화면이 든다(원을 누르면 오는 시트의 「프로필 편집」). 한국어는 어절로
+            끊고(`break-keep`), 띄어 쓰지 않은 긴 이름만 아무 데서나 끊는다(`overflow-wrap: anywhere`)
+          */}
+          <h2 className={`min-w-0 break-keep [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{label}</h2>
         </div>
         {reading?.metaphor != null && (
-          /* 줄인 판은 폰에서 한 줄로 자른다 — 두 줄로 꺾이면 아래 저장한 사람 머리가 첫 화면 밖으로 나간다 */
-          <p className={`font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}>
+          /*
+            줄인 판은 폰에서 두 줄까지 — 어절로 끊고(`break-keep`) 끝 줄에 낱말 하나만 남지 않게(`text-pretty`), 넘치면 둘째 줄 끝에서
+            말줄임이다(`line-clamp-2`, 토스 · 카카오톡의 두 줄 미리보기). 한 줄로 자르던 때는 「…들풀처럼 …」처럼 낱말 가운데서 끊겼다
+          */
+          <p
+            className={`break-keep text-pretty font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
+          >
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
             {reading.metaphor}
@@ -128,16 +116,13 @@ export function SelfCard({
         )}
       </header>
 
-      {/* 모서리 손잡이 — 단추는 카드의 오른쪽 맨 위에 뜨고, 펴지는 폼은 여기(머리 아래)에 선다 */}
       {/*
-        `display: contents` 라 이 상자는 판에 자리를 안 차지한다 — 단추만 판의 오른쪽 맨 위로 띄운다(공용
-        `ICON_BUTTON` 의 `relative` 가 손잡이의 `absolute` 를 이겨 단추가 흐름에 떨어지던 것을 여기서 누른다).
+        **일간 딱지는 오른쪽 맨 위다**(2026-10-26 운영자 — 연필이 있던 자리). 출생 정보를 고치는 연필은 걷었다: 사진 · 닉네임 · 소개 ·
+        출생 정보를 프로필 수정 화면(`/me/profile`) 한 곳에서 고친다 — 원을 누르면 「내 프로필」 시트, 그 안의 「프로필 편집」.
       */}
-      {personId !== null && (
-        <div className="contents [&>button]:absolute [&>button]:right-4 [&>button]:top-4 sm:[&>button]:right-5 sm:[&>button]:top-5">
-          <EditInput personId={personId} current={query} editableName={false} confirmsRequests />
-        </div>
-      )}
+      <div className="absolute right-4 top-4 sm:right-5 sm:top-5">
+        <DayMasterChip stem={saju.pillars.dayMaster} />
+      </div>
 
       <BirthLine query={query} saved={personId !== null} />
 
@@ -161,11 +146,19 @@ export function SelfCard({
               <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-tag">{READING_STALE_LABEL}</span>
             )}
           </Link>
-          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
+          {/*
+            **글자는 단추 한가운데다**(2026-10-26 운영자 「심각하다」). 누른 표시(`LinkPending`)는 늘 그려 두고 투명도만 바꾸는 16px
+            고리라 흐름 안에 두면 안 보여도 틈과 함께 24px 를 차지해 글자가 왼쪽으로 12px 밀렸다 — 단추 오른쪽 안쪽에 띄운다(`absolute`).
+            넓은 화면의 화살표는 누른 동안 숨겨 고리와 겹치지 않는다
+          */}
+          <Link
+            href={`/me/people/${personId}`}
+            className={`${BUTTON_SECONDARY_FACE} group relative whitespace-nowrap px-3 sm:px-5`}
+          >
             사주 자세히 보기
-            {/* 이 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누른 것이 보이게(`LinkPending`) */}
-            <LinkPending className={LINK_PENDING_SPINNER} />
-            <Icon name="arrow" className="hidden size-4 sm:block" />
+            <Icon name="arrow" className="hidden size-4 group-has-[[data-link-pending]]:invisible sm:block" />
+            {/* 이 화면은 뼈대가 없어 다 그려질 때까지 여기 머문다 — 누른 것이 보이게 */}
+            <LinkPending className={`${LINK_PENDING_SPINNER} absolute right-4 top-1/2 -mt-2 sm:right-5`} />
           </Link>
         </div>
       )}

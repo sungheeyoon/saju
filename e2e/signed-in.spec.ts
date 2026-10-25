@@ -10,6 +10,7 @@ import {
   test,
 } from './session';
 
+import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 import { calculateChart, chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, queryFromSearchParams } from '@/src/lib/input/query';
 import { READING_REPLACES_NOTE, readingEvidenceOf } from '@/src/lib/reading';
@@ -481,7 +482,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     );
     await expect(mine.getByRole('list', { name: '여덟 글자' })).toHaveCount(0);
     await expect(mine.getByText('1990-05-15 14:30')).toBeVisible();
-    await expect(mine.getByRole('button', { name: '출생 정보 수정' })).toBeVisible();
+    /* 출생 정보를 고치는 연필은 카드에 없다 — 동그란 내 프로필이 「내 프로필」 시트를 열고, 그 「프로필 편집」이 한 화면에서 고친다(2026-10-26) */
+    await expect(mine.getByRole('button', { name: '출생 정보 수정' })).toHaveCount(0);
+    await mine.getByRole('button', { name: '내 프로필' }).click();
+    await expect(page.getByRole('link', { name: MY_PROFILE_EDIT_LABEL, exact: true })).toHaveAttribute('href', '/me/profile');
+    await page.keyboard.press('Escape');
     await expect(mine.getByRole('link', { name: /사주 자세히 보기/ })).toHaveAttribute(
       'href',
       `/me/people/${signedIn.selfPersonId}`,
@@ -2220,11 +2225,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
   test('입력을 고치면 새 판본으로 다시 그린다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/me');
+    /* 내 출생 정보는 프로필 수정 화면의 「출생 정보」 판에서 고친다(2026-10-26 — 홈 카드의 연필을 걷고 한 화면에 모았다) */
+    await page.goto('/me/profile');
 
     await expect(page.getByText('1990-05-15')).toBeVisible();
 
     const handle = page.getByRole('button', { name: '출생 정보 수정' });
+    /* 누르면 그 판 자리에 폼이 펴져 단추가 사라진다 — 자리는 누르기 전에 잰다 */
+    const from = (await handle.boundingBox())!;
     await handle.click();
 
     /**
@@ -2235,11 +2243,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
      * 일어났다. **시험은 초록이었다** — 채우기 전에 스크롤해 주기 때문이다. 사람은
      * 스크롤하지 않는다. 그래서 여기서 재는 것은 「폈는가」가 아니라 「어디에 폈는가」다.
      */
-    const from = (await handle.boundingBox())!;
     const to = (await page.getByLabel('출생연도').boundingBox())!;
     expect(to.y - from.y).toBeLessThan(page.viewportSize()!.height);
     await expect(page.getByLabel('이름')).toHaveCount(0);
-    await expect(page.getByText('내 이름은 프로필 닉네임으로 보여요.')).toBeVisible();
+    /* 바로 위에 닉네임 칸이 있는 화면이라 「내 이름은 프로필 닉네임으로 보여요」 상자는 안 선다 */
+    await expect(page.getByText('내 이름은 프로필 닉네임으로 보여요.')).toHaveCount(0);
 
     /*
       **고친 것이 없어도 저장은 누름을 받는다**(운영자 2026-10-18 G-97 ④, ADR 0160 의 3) — 가라앉은 모양이고, 누르면 「바뀐 것이 없어요.」가
