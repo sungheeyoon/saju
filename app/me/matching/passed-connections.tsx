@@ -74,13 +74,18 @@ export function PassedConnections({
       )}
 
       {cards.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-card border-2 border-dashed border-border-strong p-6">
-          <span className="grid size-12 place-items-center rounded-full bg-cream text-cream-ink">
-            <Icon name="undo" />
+        /*
+          **그림은 제목 왼쪽에 붙고, 설명은 제목 시작선에서 그 아래**(운영자 2026-10-26 — 동그라미가 혼자 한 줄에 서서 이상했다).
+          판(점선 상자)은 걷었다 — 빈 상태는 판 없이 선다(ADR 0109 추기 「빈 상태」, #839). 그림 40px 의 가운데가 제목 줄의
+          가운데에 오도록 두 칸 격자로 세운다.
+        */
+        <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
+          <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-surface-sunken text-cream-ink">
+            <Icon name="undo" className="size-5" />
           </span>
           <h3 className={TYPE_NAME}>지나친 인연이 여기에 모여요</h3>
           {/* 쉼표에서 꺾는다 — 두 줄로 읽히게(운영자 2026-10-26). 넓은 화면에서도 같은 자리에서 꺾인다 */}
-          <p className="text-body leading-6 text-secondary">
+          <p className="col-start-2 text-body leading-6 text-secondary">
             다시 궁금해진 사람을 살펴보고,{' '}
             <br />한 번 더 알아갈 수 있는 자리예요.
           </p>
@@ -117,10 +122,15 @@ export function PassedConnections({
         </ul>
       )}
 
-      <div className="flex flex-col gap-2">{feedback}</div>
+      {/*
+        되돌리기 줄 · 실패 줄은 이 판의 칸으로 바로 선다(`contents`) — 감싼 칸이 비어 있어도(보조기기 줄만 있을 때) 판의 틈(20px)을
+        한 번 더 먹어 빈 상태와 아래 「오늘의 인연 계속 보기」 사이가 40px 로 벌어졌다.
+      */}
+      <div className="contents">{feedback}</div>
 
-      <div className="flex flex-col items-start gap-1">
-        <button type="button" onClick={onBack} className={BUTTON_TERTIARY}>
+      <div className="mt-1 flex flex-col items-start gap-1">
+        {/* 글자 단추의 안 여백(4px)만큼 내밀어 글자가 본문 왼끝에 선다 */}
+        <button type="button" onClick={onBack} className={`${BUTTON_TERTIARY} -ml-1`}>
           오늘의 인연 계속 보기
           <Icon name="arrow" className="size-4" />
         </button>

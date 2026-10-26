@@ -325,9 +325,11 @@ export const CONSENT_FLOW_STEPS = [
 export const CONSENT_FLOW_CAVEAT =
   '요청은 보낼 때 저장된 두 사람의 출생 정보로 계산해요. 답을 기다리는 동안 한쪽이 생년월일시 · 출생지 · 계산 옵션을 바꾸면 그 요청은 무효가 돼요. 바뀐 정보로 다시 요청해 주세요.';
 
-/** 받은 요청 카드에서 수락 전에 읽는 한 문장 질문. */
-export const MATCH_CONSENT_QUESTION =
-  '수락하면 당신의 사주팔자 여덟 글자가 상대에게 공개됩니다. 상대와 자세한 궁합을 함께 보는 데 동의하시겠어요?';
+/**
+ * 수락하면 일어나는 일(`MATCH_ACCEPT_OPENS`)의 머리 — 보내는 창은 상대가, 받은 카드는 내가 수락한다. 목록은 같은 한 벌이다
+ * (운영자 결정 2026-10-26 A안, 대장 matching-12).
+ */
+export const MATCH_ACCEPT_HEAD = { sent: '상대가 수락하면', received: '수락하면' } as const;
 
 /**
  * 내 출생 정보를 바꾸기 **직전**에 서는 확인 창.

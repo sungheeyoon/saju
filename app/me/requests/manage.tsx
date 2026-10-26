@@ -9,7 +9,9 @@ import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from 
 
 import { REPORT_DONE, REPORT_NOTE } from '@/src/lib/account';
 import {
-  MATCH_CONSENT_QUESTION,
+  MATCH_ACCEPT_HEAD,
+  MATCH_ACCEPT_HIDDEN,
+  MATCH_ACCEPT_OPENS,
   REJECTION_IS_FINAL_NOTE,
   REQUEST_STATUS_TEXT,
   type RequestStatus,
@@ -39,12 +41,22 @@ import { showSnackbar } from '../../ui/snackbar-store';
 const QUIET_LINK =
   'relative inline-flex min-h-11 items-center rounded-cell px-1 text-sm font-semibold text-secondary after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground active:opacity-70 disabled:opacity-55';
 
-/** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
-export function MatchConsentQuestion() {
+/**
+ * 수락하면 무엇이 일어나는가 — **받은 요청 카드와 보내는 확인 창이 같은 한 벌을 읽는다**(ADR 0008, 운영자 결정 2026-10-26 A안).
+ * 머리만 자리마다 다르다(`MATCH_ACCEPT_HEAD`) — 받은 카드는 「수락하면」, 보내는 창은 「상대가 수락하면」. 토스 TDS `BottomInfo` 처럼
+ * 고지는 짧은 목록으로 둔다.
+ */
+export function MatchAcceptNotice({ side }: { side: keyof typeof MATCH_ACCEPT_HEAD }) {
   return (
-    <p className="rounded-cell bg-cream px-4 py-3 text-sm leading-6 text-cream-ink">
-      {MATCH_CONSENT_QUESTION}
-    </p>
+    <div className="rounded-cell bg-cream px-4 py-3 text-sm leading-6 text-cream-ink">
+      <p className="font-semibold">{MATCH_ACCEPT_HEAD[side]}</p>
+      <ul className="mt-1 list-disc pl-5">
+        {MATCH_ACCEPT_OPENS.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <p className="mt-1 text-small">{MATCH_ACCEPT_HIDDEN}</p>
+    </div>
   );
 }
 
@@ -52,7 +64,7 @@ export function MatchConsentQuestion() {
  * 받은 요청에 답하는 자리.
  *
  * **동의 질문은 이 버튼이 들고 있지 않다.** 카드가 열릴 때부터 위에 서 있다
- * (인연 탭의 `requests-lead.tsx` 가 `MatchConsentQuestion` 을 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
+ * (인연 탭의 `requests-lead.tsx` 가 `MatchAcceptNotice` 를 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
  * 보장하지 못하고, 서버가 내려보낸 화면에 그 문장이 있는지 밖에서 잴 수도 없다.
  *
  * **거절은 한 번 더 묻는다**(운영자 결정 2026-10-11) — 거절하면 그 사람은 다시 안 나타난다. 그 경고는 카드에 늘 서 있지 않고

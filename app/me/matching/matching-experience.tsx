@@ -2,17 +2,11 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 
-import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_TEASER } from '@/src/lib/discovery/copy';
-import { REQUEST_OPENS_CHAT_NOTE } from '@/src/lib/matching/copy';
-import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 
 import { elementScope } from '../../ui/element-tone';
-import { ConfirmDialog } from '../../ui/confirm-dialog';
-import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
 import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
-import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 import type { MeMark } from './me-mark';
 import { ApproachMap, Legend } from './orbit-map';
@@ -20,6 +14,7 @@ import { PassedConnections } from './passed-connections';
 import { ReportBlock } from '../requests/report-block';
 import { DeckButtons, DeckDots, TodayCard } from './today-card';
 import { DetailSheet, openSheet } from '../../ui/sheet';
+import { RequestConfirm } from './request-confirm';
 import { Letter } from './letter';
 import { useDeck } from './use-deck';
 import { Feedback } from './deck-feedback';
@@ -288,44 +283,18 @@ export function MatchingExperience({
         </DetailSheet>
       )}
 
-      {/*
-        **요청 확인 창은 목록과 같은 말을 한다.** 문구가 화면마다 갈리면 어느 쪽이
-        실제로 나가는 약속인지 알 수 없다 — 둘 다 정책이 지어 온 문장이다. 「채팅은 아직 없다」는
-        제한문은 채팅이 선 뒤(ADR 0091) 걷었다 — 대화방은 수락하는 순간 열린다(#147).
-      */}
+      {/* 요청 확인 창 — 받는 쪽 카드와 같은 한 벌을 읽는다(`request-confirm.tsx`) */}
       {profile && (
-        <ConfirmDialog
+        <RequestConfirm
+          profile={profile}
           open={asking}
           onClose={() => setAsking(false)}
-          /* 풀이권 확인 창과 같은 판 · 같은 단추 줄이다(확인 창 한 벌 — 첫 초점은 「취소」, ADR 0166) */
-          className={elementScope(supplyOf(profile))}
-          lead={
-            <div className="flex items-center gap-3">
-              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-heading ring-2 ring-[var(--tile)]">
-                <CandidatePhoto card={profile} />
-              </span>
-              <span className="grid size-10 place-items-center rounded-full bg-[var(--tile)]">
-                <ElementSymbol element={supplyOf(profile)} className="size-6" />
-              </span>
-            </div>
-          }
-          title={`${profile.nickname} 님에게 상세 궁합을 요청할까요?`}
-          confirmLabel={
-            <>
-              <Icon name="taiji" className="size-[18px]" />
-              요청 보내기
-            </>
-          }
           onConfirm={() => {
             setAsking(false);
             send();
           }}
           busy={working}
-        >
-          <p>{REQUEST_RESERVES_NOTE}</p>
-          <p>{MATCH_PILLARS_DISCLOSURE}</p>
-          <p>{REQUEST_OPENS_CHAT_NOTE}</p>
-        </ConfirmDialog>
+        />
       )}
       {buy.notice}
     </main>

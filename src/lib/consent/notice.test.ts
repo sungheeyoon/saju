@@ -227,7 +227,7 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v10');
+  expect(NOTICE_VERSION).toBe('notice-v11');
 });
 
 /**

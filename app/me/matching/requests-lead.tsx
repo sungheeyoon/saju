@@ -10,7 +10,7 @@ import {
   BlockButton,
   BlockedCount,
   CancelButton,
-  MatchConsentQuestion,
+  MatchAcceptNotice,
   ReportButton,
   RespondButtons,
 } from '../requests/manage';
@@ -63,7 +63,7 @@ export function ReceivedRequests({ loaded }: { loaded: RequestsRead }) {
               카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
               아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
             */}
-            <MatchConsentQuestion />
+            <MatchAcceptNotice side="received" />
             <RespondButtons requestId={request.requestId} nickname={request.nickname} />
             {/*
               신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
