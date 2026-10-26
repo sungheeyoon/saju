@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BUTTON_SECONDARY_FACE } from '../../ui/buttons';
+import { BUTTON_SECONDARY_FACE, ICON_BUTTON } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
@@ -68,9 +68,16 @@ const IDLE = '공유 링크 복사';
  */
 export function ShareReadingButton({
   target,
+  look = 'label',
 }: {
   /** 무엇을 보내는가 — 글은 서버가 이 대상으로 다시 읽는다 */
   target: ReadingTarget;
+  /**
+   * **`icon` — 글자 없는 둥근 아이콘 단추**(2026-10-26 운영자 「공유 링크 복사가 이렇게 길 필요가 있나」). 네이버 · 다음 뉴스 글 화면의 공유가
+   * 머리 오른쪽 아이콘 하나인 것과 같다. 이름(「공유 링크 복사」 → 「복사했습니다」)은 읽는 이름이 들고, 된 것은 그림이 체크로 바뀌고 그 아래
+   * 작은 말풍선이 잠깐 선다 — 말풍선은 흐름 밖에 떠서 화면이 안 밀린다
+   */
+  look?: 'label' | 'icon';
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [link, setLink] = useState<string | null>(null);
@@ -156,6 +163,47 @@ export function ShareReadingButton({
    * 화면을 흔드는 것은 고장처럼 보인다. 같은 말이 두 자리에 있을 이유도 없다.
    */
   const label = phase === 'working' ? '만드는 중…' : phase === 'copied' ? '복사했습니다' : IDLE;
+
+  if (look === 'icon') {
+    return (
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          onClick={start}
+          disabled={phase === 'working'}
+          aria-label={label}
+          title={IDLE}
+          className={ICON_BUTTON}
+        >
+          <Icon name={phase === 'copied' ? 'check' : 'link'} className="size-5" />
+        </button>
+        {phase === 'copied' && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-small font-semibold text-on-accent shadow-float"
+          >
+            {label}
+          </span>
+        )}
+        {phase === 'failed' && notice !== null && (
+          /* 실패는 읽어야 하는 말이라 단추 아래 판으로 뜬다 — 폭이 좁은 아이콘 칸에 끼우지 않는다 */
+          <div className="absolute right-0 top-full z-10 mt-1.5 flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-card bg-surface p-3 shadow-float ring-1 ring-border">
+            <FailureLine>{notice}</FailureLine>
+            {link !== null && (
+              <input
+                ref={address}
+                readOnly
+                value={link}
+                aria-label="공유 주소"
+                onFocus={() => address.current?.select()}
+                className="min-h-11 w-full rounded-cell border border-border bg-surface-sunken px-3 text-field text-secondary"
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     /*
