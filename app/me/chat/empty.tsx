@@ -19,7 +19,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
       action={
         hasSelf
           ? { href: '/me/matching', label: '오늘의 인연 보기', icon: 'people' }
-          : { href: '/me', label: '내 명식 등록', trailingIcon: 'arrow' }
+          : { href: '/me', label: '내 사주 등록하기', trailingIcon: 'arrow' }
       }
     >
       {CHAT_EMPTY_DETAIL}

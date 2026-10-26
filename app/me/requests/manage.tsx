@@ -16,7 +16,8 @@ import {
   REQUEST_STATUS_TEXT,
   type RequestStatus,
 } from '@/src/lib/consent';
-import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
+import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE } from '@/src/lib/matching';
+import { CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 
 import {
   cancelRequest,
@@ -190,18 +191,18 @@ export function CancelButton({ requestId }: { requestId: string }) {
           setFailure(null);
         }}
         title={CANCEL_REQUEST_TITLE}
-        confirmLabel={working ? '취소하는 중…' : <>{CANCEL_REQUEST_LABEL}</>}
+        confirmLabel={working ? '취소하는 중…' : CANCEL_REQUEST_LABEL}
         cancelLabel="닫기"
         onConfirm={cancel}
         danger
         busy={working}
         failure={failure}
         actions="row"
+        irreversible={CANCEL_REQUEST_NOTE}
       >
         <p>
           임시로 차감된 <strong>풀이권 1장</strong>은 바로 돌려드려요.
         </p>
-        <p className="font-medium text-foreground">{CANCEL_REQUEST_NOTE}</p>
       </ConfirmDialog>
     </div>
   );

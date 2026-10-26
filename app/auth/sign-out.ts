@@ -7,7 +7,7 @@ import { forgetThisDevicePush } from '../me/push/browser';
 import { supabaseInBrowser } from './browser-client';
 
 /**
- * 로그아웃 한 벌 — 머리글의 톱니 판 · 계정 관리 · 가입 화면의 나가는 길이 같이 부른다.
+ * 로그아웃 한 벌 — 머리글의 톱니 판 · 설정 · 가입 화면의 나가는 길이 같이 부른다.
  *
  * **실패하면 그 자리에서 말한다.** 세 자리가 저마다 `signOut()` 을 부르던 동안 둘은 오류를 버리고 첫 화면으로
  * 보냈다 — 세션이 그대로인데 나간 것처럼 보였다(2026-09-26). 실패 문장은 부른 자리가 `role="alert"` 로 세운다.

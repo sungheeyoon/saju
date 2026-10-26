@@ -44,7 +44,7 @@ export function useBrowserSession(): BrowserSessionState {
       }
     });
 
-    /* 톱니 메뉴나 계정 관리 화면에서 로그아웃하면 이 값을 읽는 자리가 바로 공개 모양으로 돌아간다 */
+    /* 톱니 메뉴나 설정 화면에서 로그아웃하면 이 값을 읽는 자리가 바로 공개 모양으로 돌아간다 */
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setState((now) => {
         const after = stateOf(next);

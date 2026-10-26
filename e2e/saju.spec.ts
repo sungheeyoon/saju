@@ -764,7 +764,7 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   await page.getByRole('button', { name: '결과 링크 복사' }).click();
-  await expect(page.getByRole('button', { name: '복사했습니다' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '복사했어요' })).toBeVisible();
 
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toBe(page.url());

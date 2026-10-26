@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 /**
- * 계정 관리 — 여기는 **읽기만** 한다. 그림(무리의 차례 · 맨 위 내 프로필)은 `view.tsx`, 줄의 모양은 `card.tsx` 한 벌이 든다.
+ * 설정 화면 — 여기는 **읽기만** 한다. 그림(무리의 차례 · 맨 위 내 프로필)은 `view.tsx`, 줄의 모양은 `card.tsx` 한 벌이 든다.
  */
 export default async function SettingsPage() {
   const supabase = await supabaseOnServer();

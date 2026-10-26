@@ -83,9 +83,7 @@ function Pair({ toMe, toThem, partner }: { toMe: readonly Element[]; toThem: rea
         </div>
       ))}
       <span className="absolute left-1/2 top-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-surface text-secondary ring-1 ring-border">
-        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 8.5h13.5M15 5l3.5 3.5L15 12M19 15.5H5.5M9 12l-3.5 3.5L9 19" />
-        </svg>
+        <Icon name="exchange" className="size-4" />
       </span>
     </div>
   );

@@ -1463,7 +1463,32 @@ export function copyConstantMisuses(ts, file, source, names, module = null, tabl
     for (let up = holder; up !== undefined; up = up.parent) {
       if (ts.isJsxElement(up) && tags.has(up.openingElement.tagName.getText(tree))) return false;
     }
-    return true;
+    return !bareFragmentProp(holder);
+  };
+  /**
+   * 글자 하나만 감싼 프래그먼트가 속성의 값으로 넘어가는가 — `confirmLabel={<>{NOTE}</>}` 는 `confirmLabel={NOTE}` 와 같은 프롭인데
+   * 자식 식처럼 보여 이 잠금을 지나갔다(2026-10-26 감사, #852). 부품은 그 프롭을 글자로 잴 수 있다 — 확인 창은 단추 글자 길이로 단추 줄을
+   * 고른다. 요소(`<Link>…{NOTE}</Link>`)를 프롭으로 넘기는 자리(빈 칸 · 바닥 단추)는 화면이 그리는 글자라 그대로 된다
+   */
+  const bareFragmentProp = (holder) => {
+    if (!ts.isJsxFragment(holder)) return false;
+    /* 공백만인 글자(`<> {NOTE}</>`) · 공백 글자 식(`{" "}`) · 빈 식(`{}`)은 자식으로 세지 않는다 — 그 꼴로도 피해 갔다(#853 검토) */
+    const blank = (one) =>
+      (ts.isJsxText(one) && one.text.trim() === '') ||
+      (ts.isJsxExpression(one) &&
+        (one.expression === undefined ||
+          ((ts.isStringLiteral(one.expression) || ts.isNoSubstitutionTemplateLiteral(one.expression)) && one.expression.text.trim() === '')));
+    const filled = holder.children.filter((one) => !blank(one));
+    if (filled.length !== 1) return false;
+    let up = holder;
+    for (;;) {
+      const parent = up.parent;
+      if (parent === undefined) return false;
+      if (ts.isParenthesizedExpression(parent)) up = parent;
+      else if (ts.isConditionalExpression(parent) && parent.condition !== up) up = parent;
+      else if (ts.isBinaryExpression(parent) && parent.right === up) up = parent;
+      else return ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent);
+    }
   };
   const naming = (node) => {
     const parent = node.parent;

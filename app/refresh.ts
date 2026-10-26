@@ -87,7 +87,7 @@ export type Changed =
   /** 계정이 닫혔다 — 상태 하나가 모든 화면의 답을 바꾸고, 여기에만 정적 라우트가 걸린다 */
   | 'account-closed'
   /**
-   * 선택 동의를 켜거나 껐다 — 계정 관리 화면 밖에서도 켠다(설문의 「동의하고 설문 열기」, `app/me/survey/consent-switch.tsx`).
+   * 선택 동의를 켜거나 껐다 — 설정 화면 밖에서도 켠다(설문의 「동의하고 설문 열기」, `app/me/survey/consent-switch.tsx`).
    * 누른 화면은 `THIS_SCREEN` 이 다시 그린다 — 경로 표에 그 화면이 없어도 브라우저가 따로 다시 읽지 않는다.
    */
   | 'consent-changed'

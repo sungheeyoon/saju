@@ -4,7 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { COLUMN, TYPE_BODY, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ProfileForm } from './form';
@@ -81,8 +81,8 @@ export default async function ProfilePage() {
       {birth.kind === 'ready' && <BirthSection personId={birth.personId} query={birth.query} />}
       {birth.kind === 'unreadable' && (
         <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-5 sm:p-6">
-          <p className="text-sm">{birth.message}</p>
-          <p className="text-small text-muted">{UNREADABLE_INPUT_NOTE}</p>
+          <p className={TYPE_BODY}>{birth.message}</p>
+          <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
         </section>
       )}
     </main>

@@ -377,9 +377,9 @@ export function RemoveConfirm({
       danger
       busy={removing}
       failure={failure === null ? null : `삭제하지 못했어요. ${failure}`}
+      irreversible="삭제한 사람은 되돌릴 수 없어요."
     >
       <p>삭제하면 저장한 출생 정보와 이 사람의 풀이가 목록에서 사라져요.</p>
-      <p>삭제한 사람은 되돌릴 수 없어요.</p>
     </ConfirmDialog>
   );
 }
