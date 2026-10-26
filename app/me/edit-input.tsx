@@ -12,83 +12,24 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { actionAnswer } from '../ui/action-answer';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY, ICON_BUTTON_QUIET } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
 import { ConfirmDialog } from '../ui/confirm-dialog';
-import { Icon } from '../ui/icons';
 import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
 import { FailureLine } from '../ui/failure-line';
 
 /**
- * 저장된 출생 정보를 고치는 자리.
+ * 저장된 출생 정보를 고치는 폼 — **여는 자리를 밖에서 정한다.** 익명 화면과 **같은 폼**(`BirthFields`)을 쓴다.
  *
- * 접어 둔다. 이 화면의 주된 일은 저장된 사주를 보는 것이고, 고치는 것은 가끔이다.
- * 폼을 늘 펼쳐 두면 「지금 보고 있는 것」과 「고치는 중인 것」이 한 화면에서 섞인다.
- *
- * 여기서도 익명 화면과 **같은 폼**을 쓴다.
- *
- * **여는 손잡이는 카드 모서리의 아이콘 하나다.** 저장한 사람 카드가 손대는 것들을 오른쪽 위 구석의 아이콘
- * 하나로 모은 뒤로 내 명식 카드만 밑줄 친 글자로 열고 있었다 — 두 화면이 같은 일을 다른 모양으로 내밀면
- * 사용자는 그것이 같은 일인지부터 확인해야 한다. 글자 손잡이 갈래(`variant='link'`)는 부르는 곳이 없어
- * 2026-09-27 에 걷었다. **부르는 이름은 그대로 「출생 정보 수정」이다** — 보조기기와 시험이 읽는 이름이다.
- */
-export function EditInput({
-  personId,
-  current,
-  editableName = true,
-  confirmsRequests = false,
-}: {
-  personId: string;
-  current: Query;
-  /**
-   * 여덟 글자를 바꾸기 전에 **요청이 취소된다고 한 번 묻는가.**
-   *
-   * 인연 요청은 내 명식에만 걸리므로 내 사주(`/me`)만 켠다. 저장한 사람을 고치는 자리는
-   * 걸린 요청이 없어 물을 것이 없다.
-   */
-  confirmsRequests?: boolean;
-  /** selfPerson 은 계정 닉네임으로 부르므로 이 폼에서 이름을 고치지 않는다 */
-  editableName?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen((now) => !now)}
-        aria-expanded={open}
-        aria-label="출생 정보 수정"
-        className={`${ICON_BUTTON_QUIET} absolute right-4 top-4 sm:right-5 sm:top-5`}
-      >
-        <Icon name="pencil" className="size-4.5" />
-      </button>
-      {open && (
-        <div className="mt-5">
-          <EditInputForm
-            personId={personId}
-            current={current}
-            editableName={editableName}
-            confirmsRequests={confirmsRequests}
-            onDone={() => setOpen(false)}
-            onCancel={() => setOpen(false)}
-          />
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * 고치는 폼 그 자체 — **여는 자리를 밖에서 정한다.**
- *
- * `/me` 는 버튼 하나로 열고(`EditInput`), 저장한 사람 목록은 카드의 관리 메뉴에서
- * 연다(`PersonActions`). 여는 방법이 둘이라고 폼이 둘이면 한쪽만 고쳐진다.
+ * 내 출생 정보는 프로필 수정 화면(`/me/profile`)의 「출생 정보」 칸이 열고(`profile/birth-section.tsx`, 2026-10-26 — 홈 카드의 연필을
+ * 걷고 사진 · 닉네임 · 소개와 한 화면에 모았다), 저장한 사람은 카드의 관리 메뉴에서 연다(`PersonActions`). 여는 방법이 둘이라고
+ * 폼이 둘이면 한쪽만 고쳐진다.
  */
 export function EditInputForm({
   personId,
   current,
   editableName = true,
   confirmsRequests = false,
+  nameNote = true,
   onDone,
   onCancel,
 }: {
@@ -96,6 +37,11 @@ export function EditInputForm({
   current: Query;
   editableName?: boolean;
   confirmsRequests?: boolean;
+  /**
+   * 이름을 못 고칠 때 「닉네임 ○ — 내 이름은 프로필 닉네임으로 보여요」 상자를 세우는가. 프로필 수정 화면은 바로 위에 닉네임 칸이
+   * 있어 안 세운다
+   */
+  nameNote?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -154,7 +100,7 @@ export function EditInputForm({
         <p className="text-body leading-6 text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
       </header>
 
-      {!editableName && (
+      {!editableName && nameNote && (
         <div className="rounded-cell bg-surface-sunken px-3.5 py-2.5 text-body">
           <span className="text-secondary">닉네임</span>{' '}
           <strong className="font-semibold">{current.name}</strong>

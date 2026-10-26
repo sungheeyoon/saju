@@ -410,7 +410,8 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('button', { name: '수락하고 대화하기' })).toBeVisible();
 
     // 보낸 쪽이 Evidence 를 바꾼다 — 이름이 아니라 여덟 글자를 바꾸는 수정이다.
-    await asker.page.goto('/me');
+    /* 내 출생 정보는 프로필 수정 화면에서 고친다(2026-10-26 — 홈 카드의 연필을 걷었다) */
+    await asker.page.goto('/me/profile');
     await asker.page.getByRole('button', { name: '출생 정보 수정' }).click();
     await fillBirthDate(asker.page, '1988-02-11');
     await asker.page.getByRole('button', { name: '변경 사항 저장' }).click();

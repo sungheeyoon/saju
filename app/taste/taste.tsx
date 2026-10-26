@@ -24,7 +24,7 @@ import { CARD, TYPE_META, TYPE_NAME } from '../ui/surfaces';
  * 로그인 전 결과의 첫머리 — **내 사주 카드와 잠긴 목차**(흐름 시안 g 의 2~3단계, ADR 0131 의 6 · 7 · ADR 0143).
  *
  * 차례는 **내 사주 카드(천간 그림) → 전체 사주풀이 목차(첫 절에 로그인 전 사주 문단) → 로그인** 이고, 표는 지우지 않고
- * 「사주 자세히 보기」에 접힌다.
+ * 「만세력 보기」에 접힌다.
  *
  * ## 로그인 전 사주 문단은 목차의 첫 절 자리에 선다
  *
@@ -90,7 +90,7 @@ export function Taste({
       <details id="saju-detail" data-fold="" className="group/detail scroll-mt-24">
         <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-card border border-border bg-surface px-5 py-4 hover:border-border-strong sm:px-6 [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
-            <span className={TYPE_NAME}>사주 자세히 보기</span>
+            <span className={TYPE_NAME}>만세력 보기</span>
             <span className="mt-0.5 block text-small leading-5 text-secondary">여덟 글자 · 신살 · 오행 · 용신 · 관계 · 운</span>
           </span>
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open/detail:rotate-180">

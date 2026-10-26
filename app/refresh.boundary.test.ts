@@ -423,7 +423,7 @@ describe('표가 가리키는 것', () => {
 describe('표의 값은 계약과 글자까지 같다', () => {
   const EXPECTED: Readonly<Record<Changed, readonly ({ path: string; scope?: 'layout' } | typeof THIS_SCREEN)[]>> = {
     'self-person-saved': [{ path: '/me' }],
-    'person-input-edited': [{ path: '/me' }, { path: '/me/people' }],
+    'person-input-edited': [{ path: '/me' }, { path: '/me/people' }, { path: '/me/profile' }],
     'person-list-changed': [{ path: '/me/people' }],
     'account-changed': [{ path: '/me', scope: 'layout' }],
     'account-closed': [{ path: '/', scope: 'layout' }],
