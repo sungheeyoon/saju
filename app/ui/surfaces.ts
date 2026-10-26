@@ -158,8 +158,9 @@ export const CONFIRM_ROW = 'flex flex-col gap-2 sm:flex-row-reverse';
 export const DIALOG_ACTIONS = `mt-6 ${CONFIRM_ROW}`;
 
 /**
- * 확인 창의 단추 줄 — **폭과 상관없이 나란히**, 「취소」가 왼쪽 · 실행이 오른쪽이고 둘이 반씩 나눈다. 단추가 짧은(「삭제」 ·
- * 「취소」) 창이 쓴다 — 카카오톡 · 토스 · 당근 · iOS 경고창의 꼴(ADR 0205 추기, 2026-10-24). 글이 긴 단추는 `DIALOG_ACTIONS`
+ * 확인 창의 단추 줄 — **폭과 상관없이 나란히**, 닫기가 왼쪽 · 실행이 오른쪽이고 둘이 반씩 나눈다. **확인 창의 기본이다**(운영자 승인
+ * 2026-10-26, `ConfirmDialog` 의 `autoActions`) — 카카오톡 · 토스 · 당근 · iOS 경고창의 꼴(ADR 0205 추기, 2026-10-24). 글이 반 칸을
+ * 넘는 단추는 `DIALOG_ACTIONS`(위아래)
  */
 export const DIALOG_ACTIONS_ROW = 'mt-6 flex flex-row-reverse gap-2 *:min-w-0 *:flex-1';
 

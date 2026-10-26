@@ -84,7 +84,7 @@ export function PersonActions({
             {note.trim() === '' ? '메모 넣기' : '메모 고치기'}
           </MenuItem>
           <MenuItem icon="remove" tone="danger" onClick={() => choose('remove')}>
-            목록에서 빼기
+            삭제
           </MenuItem>
         </div>
       </details>

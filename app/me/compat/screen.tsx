@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { notFound, redirect } from 'next/navigation';
 
@@ -24,10 +23,9 @@ import { payloadForViewer, type PersonPayload } from '../payload';
 import { currentReading } from '../reading/current';
 import { ReadingSection } from '../reading/section';
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { StemSymbol } from '../../ui/stem-symbol';
-import { Icon } from '../../ui/icons';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { TopBar } from '../../ui/top-bar';
 import { backOf, placeOf, type Back } from '../../came-from';
 import { COMPAT_ENTRY_LABEL } from '../../service-features';
 
@@ -127,13 +125,11 @@ export async function CompatScreen({ params, frame }: { params: CompatQuery; fra
    */
   return (
     <Frame frame={frame}>
-      <header className="flex flex-col gap-3">
-        <Link href="/compat" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
-          <Icon name="back" className="size-4" />
-          {COMPAT_ENTRY_LABEL}
-        </Link>
-        <p className="text-small font-semibold text-secondary">궁합</p>
-        <Title frame={frame}>궁합을 볼 수 없습니다</Title>
+      <header>
+        <TopBar back={{ href: '/compat', label: COMPAT_ENTRY_LABEL }}>
+          <p className="text-small font-semibold text-secondary">궁합</p>
+          <Title frame={frame}>궁합을 볼 수 없습니다</Title>
+        </TopBar>
       </header>
 
       <Result outcome={outcome} />
@@ -172,19 +168,17 @@ async function ResultPage({
           되돌아가는 자리는 **온 곳**이다(ADR 0134) — 궁합 탭에서 열었으면 「궁합」, 보관함에서 열었으면 들어온 칩의
           「풀이 보관함」, 주소를 직접 열었으면 궁합 탭 첫 화면.
         */}
-        <Link href={back.href} className={`${BUTTON_TERTIARY} -ml-1 self-start ${frame === 'shelf' && besideShelf ? 'lg:hidden' : ''}`}>
-          <Icon name="back" className="size-4" />
-          {back.label}
-        </Link>
-        <div className="flex items-center gap-4">
-          <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
-          <div className="min-w-0">
-            <p className="text-small font-semibold text-secondary">궁합</p>
-            <Title frame={frame}>
-              {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
-            </Title>
+        <TopBar back={back} backHiddenOnWide={frame === 'shelf' && besideShelf}>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
+            <div className="min-w-0">
+              <p className="text-small font-semibold text-secondary">궁합</p>
+              <Title frame={frame}>
+                {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
+              </Title>
+            </div>
           </div>
-        </div>
+        </TopBar>
       </header>
 
       <Result outcome={outcome} />
