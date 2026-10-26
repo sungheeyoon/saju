@@ -15,7 +15,7 @@ import { supplyOf, type DeckCard } from './deck-card';
  *
  * **받는 쪽 카드와 같은 목록을 읽는다**(`MatchAcceptNotice`, ADR 0008 「같은 한 벌」) — 문구가 화면마다 갈리면 어느 쪽이 실제로
  * 나가는 약속인지 알 수 없다. 본문은 풀이권 한 문단(핵심 값 「풀이권 1장」은 굵게)과 「상대가 수락하면」 목록이다(운영자 결정
- * 2026-10-26 A안, 대장 matching-10). 풀이권은 값을 치르는 사실이라 누르기 전에 선다(ADR 0038).
+ * 2026-10-26 A안, 대장 matching-12). 풀이권은 값을 치르는 사실이라 누르기 전에 선다(ADR 0038).
  */
 export function RequestConfirm({
   profile,
