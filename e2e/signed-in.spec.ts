@@ -157,7 +157,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await settingsMenu.click();
     for (const [name, href] of [
       ['프로필', '/me/profile'],
-      ['계정 관리', '/me/settings'],
+      ['설정', '/me/settings'],
       ['서비스 설문', '/me/survey'],
     ] as const) {
       await expect(banner.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
@@ -1558,7 +1558,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
 
     /*
-      **타일이 내는 길은 셋이다** — 이름(타일 전체)은 그 사람의 사주로, 먹색 단추는 사주풀이로, 하트는
+      **타일이 내는 길은 셋이다** — 이름(타일 전체)은 그 사람의 사주로, 먹색 단추는 사주풀이로, 궁합 단추는
       나와의 궁합으로. 사주와 풀이는 다음 화면의 탭으로도 오가므로 같은 길을 두 번 세우지 않는다.
     */
     const readingLink = friendCard.getByRole('link', { name: /사주풀이 받기/ });
@@ -2012,9 +2012,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(chips.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(cover).toBeVisible();
 
-    /* 모르는 값은 전체다 */
+    /*
+      모르는 값은 전체다 — 「전체」 칩은 이름 대신 주소(`/me/readings`, 칸 없음)로 집는다. 같은 글자가 인연 성별 칩의 문구 상수
+      (`PREFER_GENDER_KO.any`)에 서서, 시험이 그 글자를 따옴표로 적으면 문구 상수 가드(`scripts/ci-plan.test.ts`, G-90)에 걸린다.
+    */
     await page.goto('/me/readings?kind=nope');
-    await expect(chips.getByRole('link', { name: '전체', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(chips.locator('a[href="/me/readings"]')).toHaveAttribute('aria-current', 'page');
     await expect(chips.getByRole('link', { name: '인연 궁합', exact: true })).toHaveAttribute('href', '/me/readings?kind=match');
   });
 
@@ -2166,16 +2169,26 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 프로필도 같은 메뉴에서 닿는다 — 이름은 앱 전체의 것이라 길도 앱 전체의 자리에 선다 */
     await expect(page.getByRole('link', { name: '프로필' })).toBeVisible();
 
-    await page.getByRole('link', { name: '계정 관리' }).click();
+    await page.getByRole('link', { name: '설정', exact: true }).click();
 
-    await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '설정', exact: true })).toBeVisible();
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
-    await expect(account.getByRole('button', { name: '탈퇴', exact: true })).toBeVisible();
+    await expect(account.getByRole('button', { name: '탈퇴하기', exact: true })).toBeVisible();
     const cardTitles = await account.getByRole('heading', { level: 2 }).allTextContents();
-    expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
-    expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('탈퇴'));
-    expect(cardTitles.at(-1)).toBe('탈퇴');
+    expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('계정'));
+    expect(cardTitles.at(-1)).toBe('계정');
+    /*
+      **떠나는 누름은 맨 아래의 글자 줄이다**(2026-10-25 · 26) — 로그아웃 다음에 탈퇴하기, 그 뒤에는 누를 것이 없다. 알약이 아니라 글자 줄이어도
+      누를 자리는 44px 을 지킨다.
+    */
+    const presses = await account.getByRole('button').allTextContents();
+    expect(presses.indexOf('로그아웃')).toBe(presses.length - 2);
+    expect(presses.at(-1)).toBe('탈퇴하기');
+    await expectTargets({
+      로그아웃: account.getByRole('button', { name: '로그아웃' }),
+      탈퇴하기: account.getByRole('button', { name: '탈퇴하기', exact: true }),
+    });
 
     /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
     await expectTargets(
@@ -2198,27 +2211,61 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **버튼의 이름은 「끄기」다.**
+   * **선택 동의는 스위치이고, 남긴 답을 지우는 끄기는 먼저 묻는다**(ADR 0022 「2026-10-25 덧」).
    *
-   * 「철회하기」라고 적혀 있었다 — 서류의 말이지 누르는 것의 이름이 아니다. 처리 안내가
-   * 「계정 관리 화면에서 켜고 끄실 수 있습니다」라고 약속하므로 화면도 그 낱말을 쓴다.
-   * 끄는 일 자체는 그대로다 — 없애면 처리방침이 약속한 것이 화면에 없게 된다.
+   * 「철회하기」라고 적혀 있었다 — 서류의 말이지 누르는 것의 이름이 아니다. 처리 안내가 「계정 관리 화면에서 켜고 끄실 수
+   * 있습니다」라고 약속하므로 화면도 켜고 끄는 손잡이(스위치)다. 끄는 일 자체는 그대로다 — 없애면 처리방침이 약속한 것이 화면에
+   * 없게 된다. 개선 활용을 끄면 남긴 설문 답변이 같은 트랜잭션에서 지워지므로, 스위치를 누르면 확인 창이 먼저 서고 「취소」는
+   * 아무것도 안 바꾼다.
    */
-  test('선택 동의는 켜고 끄는 말로 서고, 끄면 남긴 답도 지운다고 미리 말한다', async ({
-    page,
-    reader,
-  }) => {
-    expect(reader.account.email).not.toBe('');
+  test('선택 동의는 스위치로 서고, 개선 활용을 끄면 남긴 답을 지운다고 먼저 묻는다', async ({ page, reader }) => {
+    answerReading(reader.runId, reader.account.email, `지울 답 ${Date.now()}`);
+    const answers = () =>
+      sql(`select count(*) from public.reading_feedback f join auth.users u on u.id = f.respondent_user_id
+           where u.email = '${reader.account.email}'`);
+    const consent = () =>
+      sql(`select improvement_consent from public.app_user a join auth.users u on u.id = a.id
+           where u.email = '${reader.account.email}'`);
+    expect(answers()).toBe('1');
+
     await page.goto('/me/settings');
+    const main = page.getByRole('main');
+    await expect(main.getByRole('button', { name: '철회하기' })).toHaveCount(0);
+    await expect(main.getByRole('button', { name: '끄기', exact: true })).toHaveCount(0);
 
-    const consent = page.getByRole('main');
-    await expect(consent.getByRole('button', { name: '철회하기' })).toHaveCount(0);
+    /* `reader` 는 개선 활용에 동의한 계정이라 그 스위치가 켜져 있다 — 이름은 줄의 이름, 상태는 aria-checked */
+    const improvement = main.getByRole('switch', { name: '풀이 개선에 답변 활용' });
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    /* 지움 문장은 제 줄이고 스위치의 설명으로 읽힌다 — 누르기 전에 들린다 */
+    await expect(improvement).toHaveAccessibleDescription(/동의를 끄면 지금까지 남긴 설문 답변을 삭제합니다\./);
+    await expect(main.getByRole('switch', { name: '다음 테스트 소식 받기' })).toHaveAttribute('aria-checked', 'false');
+    await expectTargets({ 개선: improvement });
 
-    /* `reader` 는 개선 활용에 동의한 계정이라 그 줄이 켜져 있다 */
-    await expect(consent.getByRole('button', { name: '끄기' }).first()).toBeVisible();
-    /* 지움 문장은 상태 줄의 꼬리가 아니라 제 줄이다 — 켜져 있든 아니든 선다 */
-    await expect(consent.getByText('동의를 끄면 지금까지 남긴 설문 답변을 삭제합니다.')).toBeVisible();
-    await expect(consent.getByText('현재 동의 중').first()).toBeVisible();
+    /* 누르면 창이 먼저 — 첫 초점은 「취소」이고, 취소하면 켜진 채 답도 그대로다 */
+    await improvement.click();
+    const asked = page.getByRole('dialog', { name: '풀이 개선에 답변 활용을 끌까요?' });
+    await expect(asked).toBeVisible();
+    await expect(asked.getByText('삭제한 답변은 되돌릴 수 없습니다.')).toBeVisible();
+    await expect(asked.getByRole('button', { name: '취소' })).toBeFocused();
+    await asked.getByRole('button', { name: '취소' }).click();
+    await expect(asked).toBeHidden();
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    expect(consent()).toBe('t');
+    expect(answers()).toBe('1');
+
+    /* 「끄고 삭제하기」를 누르면 꺼지고 답이 지워진다 */
+    await improvement.click();
+    await asked.getByRole('button', { name: '끄고 삭제하기' }).click();
+    await expect(asked).toBeHidden();
+    await expect(improvement).toHaveAttribute('aria-checked', 'false');
+    await expect.poll(consent).toBe('f');
+    expect(answers()).toBe('0');
+
+    /* 다시 켜는 것은 묻지 않는다 — 잃을 것이 없다 */
+    await improvement.click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(improvement).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(consent).toBe('t');
   });
 
   test('입력을 고치면 새 판본으로 다시 그린다', async ({ page, signedIn }) => {
@@ -3100,9 +3147,9 @@ test.describe('가입 관문', () => {
    */
   test('프로필 사진을 여러 장 올리고, 길게 눌러 끌거나 ← → 로 옮기고, × 로 지운다', async ({ openAs }) => {
     const { page } = await openAs({ selfPerson: true });
-    /* 사진이 없으면 계정 관리 맨 위 「나」 줄 끝에 「사진 추가」가 선다(대장 47) — 있으면 안 선다(이 시험 끝) */
+    /* 계정 관리 맨 위 내 프로필 줄에는 「사진 추가」가 서지 않는다 — 오른쪽은 「›」 하나다(대장 settings-09, 2026-10-26) */
     await page.goto('/me/settings');
-    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toBeVisible();
+    await expect(page.locator('main a[href="/me/profile"]').getByText('사진 추가', { exact: true })).toHaveCount(0);
     await page.goto('/me/profile');
 
     const lead = page.getByRole('group', { name: '대표 사진' });

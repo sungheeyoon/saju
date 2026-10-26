@@ -10,14 +10,15 @@ import {
 } from '@/src/lib/push';
 
 import { readPushRowState, turnOffPush, turnOnPush } from '../push/browser';
-import { SETTINGS_PRIMARY, SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
+import { SettingsGroup, SettingsRow, SettingsSwitchRow } from './card';
 import { FailureLine } from '../../ui/failure-line';
 
 /**
  * 계정 관리의 「새 메시지 알림」 — **이 기기에서** 켜고 끈다(ADR 0156). 기본은 꺼짐이다.
  *
  * 상태는 브라우저만 안다(권한 · 구독)라서 그린 뒤에 잰다. 재는 동안은 설명 줄을 비우되 꺼짐의 자리(설명 · 무엇이 안 보이나)를
- * 보이지 않게 지켜 다 잰 뒤 줄이 밀리지 않고, 누름은 안 세운다 — 켜진 사람에게 「켜기」가 잠깐 서면 두 번 누르게 된다. 판정은
+ * 보이지 않게 지켜 다 잰 뒤 줄이 밀리지 않고, 스위치는 안 세운다 — 켜진 사람에게 꺼진 스위치가 잠깐 서면 두 번 누르게 된다.
+ * 켜고 끄기는 스위치 한 벌이다(`app/ui/switch.tsx`, 2026-10-25 — 「알림 켜기」 · 「알림 끄기」 알약을 걷었다). 판정은
  * `src/lib/push` 의 `pushRowState` · `pushPrivacyNoteShown` · `pushToggleFailure` 다.
  *
  * 문구는 운영자 확정이다(2026-10-10, 문구 대장 33).
@@ -30,10 +31,6 @@ const COPY = {
   denied: '이 브라우저에서 알림이 차단되어 있어요. 브라우저 설정에서 이 사이트의 알림을 허용해 주세요.',
   unsupported: '이 브라우저에서는 알림을 받을 수 없어요.',
   iosNotInstalled: '홈 화면에 추가하면 알림을 켤 수 있어요. 공유 버튼 → 「홈 화면에 추가」',
-  turnOn: '알림 켜기',
-  turningOn: '켜는 중…',
-  turnOff: '알림 끄기',
-  turningOff: '끄는 중…',
 } as const;
 
 const HELP: Record<PushRowState, string> = {
@@ -85,29 +82,33 @@ export function PushRow() {
     });
   };
 
+  /* 재는 동안(`null`)과 켤 수 없는 갈래(차단 · 미지원 · 홈 화면 미설치)에는 스위치가 없다 — 글이 그 까닭과 길을 말한다 */
+  const switchable = state === 'off' || state === 'on';
+
   return (
-    <SettingsCard title="알림">
-      <SettingsRow
-        label={COPY.label}
-        help={state === null ? <Reserved>{COPY.off}</Reserved> : HELP[state]}
-        note={
-          state === null ? <Reserved>{COPY.privacy}</Reserved> : pushPrivacyNoteShown(state) ? COPY.privacy : undefined
-        }
-      >
-        {state === 'off' && (
-          <button type="button" onClick={() => toggle(true)} disabled={working} className={SETTINGS_PRIMARY}>
-            {working ? COPY.turningOn : COPY.turnOn}
-          </button>
-        )}
-        {state === 'on' && (
-          <button type="button" onClick={() => toggle(false)} disabled={working} className={SETTINGS_QUIET}>
-            {working ? COPY.turningOff : COPY.turnOff}
-          </button>
-        )}
-      </SettingsRow>
-      {failure !== null && (
-        <FailureLine className="border-t border-border pt-4">{failure}</FailureLine>
+    <SettingsGroup title="알림">
+      {switchable ? (
+        <SettingsSwitchRow
+          label={COPY.label}
+          help={HELP[state]}
+          note={pushPrivacyNoteShown(state) ? COPY.privacy : undefined}
+          /* 미리 넘기지 않는다 — 브라우저 권한 창과 구독이 끝나야 켜짐이다. 그동안은 손잡이가 깜박인다(`busy`) */
+          checked={state === 'on'}
+          onChange={toggle}
+          busy={working}
+        />
+      ) : (
+        <SettingsRow
+          label={COPY.label}
+          help={state === null ? <Reserved>{COPY.off}</Reserved> : HELP[state]}
+          note={
+            state === null ? <Reserved>{COPY.privacy}</Reserved> : pushPrivacyNoteShown(state) ? COPY.privacy : undefined
+          }
+        />
       )}
-    </SettingsCard>
+      {failure !== null && (
+        <FailureLine className="px-6 pb-3">{failure}</FailureLine>
+      )}
+    </SettingsGroup>
   );
 }

@@ -1,78 +1,70 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
-import { BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
+import { Switch } from '../../ui/switch';
 
 /**
- * 계정 관리의 **무리 지은 목록 한 벌.**
+ * 계정 관리의 **무리 지은 목록 한 벌** — 회색 바탕 위에 흰 무리가 쌓이고, 무리 사이는 회색 띠다(2026-10-26, #838 운영자 피드백).
  *
- * 이 화면은 성질이 다른 칸 여섯이 위에서 아래로 쌓인 자리다(프로필 · 상대 조건 · 인연 찾기 ·
- * 선택 동의 · 로그인 정보 · 탈퇴). 각 칸을 만든 날이 달라서 **같은 뜻의 부품이 카드마다 다른
- * 모양**을 쓰고 있었다 — 제목 굵기 둘, 버튼 네 벌, 구분선이 있는 카드와 없는 카드. 다섯이 겹치면
- * 같은 화면이 아니라 다섯 화면으로 보인다. 그래서 모양을 이 파일 한 곳에 둔다. 인연 찾기의 두
- * 칸(`discovery/manage.tsx`)도 이 파일을 불러 같은 모양으로 선다.
+ * 토스 · 카카오톡 · 당근의 설정을 다시 봤다(그림과 출처는 #838 본문). 셋 다 **줄이 화면 끝까지 가고 글자만 안쪽에 선다** — 앞의
+ * 판(2026-10-25)은 줄 전체를 화면 안쪽 기둥에 넣고 위아래 구분선을 그 기둥 폭으로 그어서, 구분선이 화면 안쪽에서 시작해 안쪽에서
+ * 끝났고 흰 바탕과 화면 바탕이 거의 같은 색이라 무리가 바탕에 녹았다. 그래서 토스 TDS 의 목록 규칙을 그대로 따른다.
  *
- * ## 규칙 셋 (5차, 부드러움)
+ * ## 규칙 다섯
  *
- * 1. **무리는 제목과 한 장의 줄 목록이다.** 제목은 판 밖 위에, 줄은 한 장의 흰 판 안에 서고
- *    줄 사이는 실선 하나(설정 앱의 무리 지은 목록).
- * 2. **누름은 줄의 오른쪽이다.** 좁은 화면에서는 글 아래 제 줄로 내려오되 **오른쪽 끝을 맞춘다** — 차례는
- *    그대로다(2026-10-09, 운영자). 상태 글자가 함께 서는 줄(선택 동의의 「현재 동의 중」)은 상태가 왼쪽 끝,
- *    누름이 오른쪽 끝이다(`ROW_STATUS`). 다른 화면으로 가는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다(`SettingsLinkRow`).
- * 3. **버튼은 공용 단추의 작은 층이다**(`app/ui/buttons.ts`). 먹색은 시작하는 누름, 흰 알약은
- *    되돌릴 수 있는 누름, 붉은 글자는 되돌리기 어려운 누름.
+ * 1. **무리는 흰 면(`bg-surface-raised`)이고 폰에서는 화면 끝까지 간다.** 넓은 화면에서만 기둥 안의 카드 모서리를 입는다.
+ * 2. **무리 사이는 16px 회색 띠다** — 화면 바탕이 가라앉은 면(`bg-surface-sunken`)이고 무리 사이 틈(`gap-4`)이 곧 띠다. TDS `Border`
+ *    의 「구간을 나눈다면 `height16`」.
+ * 3. **글자는 양쪽 24px 안쪽에 선다**(`px-6`) — TDS `ListRow` · `Border` 의 `padding24`. 무리 안의 줄 사이에는 선을 긋지 않는다(토스 설정).
+ * 4. **무리 이름은 무리 면 안 맨 위의 작은 회색 글자다**(TDS `ListHeader` · 카카오톡 「친구 등록 관리」) — 바탕 위에 따로 떠 있지 않다.
+ * 5. **켜고 끄기는 스위치, 다른 화면으로 가는 줄은 줄 전체가 링크와 「›」, 로그아웃은 글자 줄, 탈퇴는 맨 아래 바탕 위의 작은 회색 글자.**
  */
 
-/** 시작하는 누름 — 한 무리에 하나뿐이다 */
-export const SETTINGS_PRIMARY = BUTTON_PRIMARY_SMALL;
+/** 줄 하나의 안쪽 여백 — 글자는 양쪽 24px 안쪽(TDS `padding24`) */
+const ROW_PAD = 'px-6';
 
-/** 되돌릴 수 있는 누름 */
-export const SETTINGS_QUIET = BUTTON_SECONDARY_SMALL;
+/** 줄의 이름 · 아래 한 줄 · 그 아래 작은 한 줄 */
+const ROW_LABEL = 'text-body font-semibold leading-6 text-foreground';
+const ROW_HELP = 'text-small leading-5 text-secondary';
+const ROW_NOTE = 'text-small leading-5 text-muted';
 
 /**
- * 되돌리기 어려운 누름의 **여는 단추** — 흰 알약에 위험 색 글자. 되돌릴 수 없는 마지막 누름은
- * 채운 `BUTTON_DANGER` 가 든다(탈퇴 신청). 둘을 가르는 것은 「한 번 더 묻는가」다.
+ * 설정 글의 줄바꿈 — **한국어는 어절 단위로 끊고(`break-keep`), 마지막 줄에 한 낱말만 떨어지지 않게 한다(`text-pretty`).** 두 성질은
+ * 물려받으므로 화면 바깥(`view.tsx` 의 `main`)과 무리 한 덩이에 건다 — 무리를 다른 자리에서 세워도 같은 끊김이다(2026-10-26, #838
+ * 운영자 「줄바꿈이 고려가 안 됐다」 — 「소개되고 / 있어요.」처럼 한 낱말이 다음 줄로 떨어졌다).
  */
-export const SETTINGS_DANGER =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-danger hover:border-danger active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55';
+export const SETTINGS_TEXT_WRAP = 'break-keep text-pretty';
 
-/** 누름과 함께 서는 상태 글자 — 폰에서 누름이 오른쪽 끝으로 가도 상태는 왼쪽 끝에 남는다(규칙 2) */
-export const ROW_STATUS = 'max-sm:mr-auto';
+/** 무리 한 덩이 — 흰 면, 폰에서는 화면 끝까지 */
+export const SETTINGS_GROUP = `flex flex-col bg-surface-raised py-2 sm:rounded-card ${SETTINGS_TEXT_WRAP}`;
 
-/** 줄 하나의 껍데기 — 직접 `<fieldset>` 으로 감싸야 하는 자리가 있어 클래스도 내준다 */
-export const SETTINGS_ROW =
-  'flex flex-col gap-3 border-t border-border py-4 first:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6';
-
-export function SettingsCard({
+export function SettingsGroup({
   title,
   description,
   children,
 }: {
-  title: string;
+  title?: string;
   description?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex flex-col gap-1 px-1">
-        <h2 className="text-body font-bold leading-6 text-foreground">{title}</h2>
-        {description !== undefined && (
-          <p className="text-small leading-5 text-secondary">{description}</p>
-        )}
-      </div>
-      <div className="flex flex-col overflow-hidden rounded-card border border-border bg-surface px-4 py-1 sm:px-5 [&>[role=alert]]:pb-4">
-        {children}
-      </div>
+    <section className={SETTINGS_GROUP}>
+      {title !== undefined && (
+        <div className={`flex flex-col gap-0.5 ${ROW_PAD} pb-1 pt-3`}>
+          <h2 className="text-small font-semibold leading-5 text-secondary">{title}</h2>
+          {description !== undefined && <p className={ROW_NOTE}>{description}</p>}
+        </div>
+      )}
+      <div className="flex flex-col [&>[role=alert]]:px-6 [&>[role=alert]]:pb-3">{children}</div>
     </section>
   );
 }
 
 /**
- * 줄 하나 — **왼쪽은 무엇에 대한 것인지, 오른쪽은 그것을 바꾸는 손잡이.**
+ * 줄 하나 — **왼쪽은 무엇에 대한 것인지, 오른쪽은 그것을 바꾸는 손잡이.** 손잡이가 없으면 글만 선다.
  *
- * `help` 는 라벨 아래 한 줄이고 `note` 는 그 아래 작은 한 줄이다. 선택 동의의 「끄면
- * 지워진다」가 `note` 자리에 서고, 그래서 **누르기 직전에** 읽힌다(ADR 0028).
+ * `help` 는 라벨 아래 한 줄이고 `note` 는 그 아래 작은 한 줄이다.
  */
 export function SettingsRow({
   label,
@@ -86,48 +78,120 @@ export function SettingsRow({
   children?: ReactNode;
 }) {
   return (
-    <div className={SETTINGS_ROW}>
-      <div className="flex min-w-0 flex-col gap-1 sm:flex-1">
-        {label !== undefined && <p className="text-body font-semibold leading-6">{label}</p>}
-        {help !== undefined && <p className="text-sm leading-6 text-secondary">{help}</p>}
-        {note !== undefined && <p className="text-small leading-5 text-muted">{note}</p>}
+    <div className={`flex min-h-14 items-center gap-4 ${ROW_PAD} py-3`}>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {label !== undefined && <p className={ROW_LABEL}>{label}</p>}
+        {help !== undefined && <p className={ROW_HELP}>{help}</p>}
+        {note !== undefined && <p className={ROW_NOTE}>{note}</p>}
       </div>
-      {children !== undefined && (
-        <div className="flex flex-wrap items-center justify-end gap-3 sm:shrink-0">
-          {children}
+      {children !== undefined && <div className="flex shrink-0 items-center gap-3">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * 켜고 끄는 줄 — **이름과 스위치가 한 줄, 설명은 그 아래 줄 폭을 다 쓴다**(카카오톡 「친구」 설정 · 토스 설정의 스위치 줄과 같은 꼴).
+ * 설명을 스위치 왼쪽 좁은 칸에 가두면 폰 폭에서 한 줄이 두세 줄로 꺾이고 마지막 줄에 한 낱말만 떨어졌다(2026-10-26, #838). 스위치의
+ * 이름은 `label` 이고(`aria-labelledby`), 아래 두 줄은 설명(`aria-describedby`)이다. `label` 이 없으면 `name` 이 보이지 않는
+ * 이름이고 첫 설명 줄이 스위치 옆에 선다.
+ *
+ * 끄면 지워지는 것처럼 누르기 직전에 읽혀야 하는 말은 `note` 자리에 선다(ADR 0028).
+ */
+export function SettingsSwitchRow({
+  label,
+  name,
+  help,
+  note,
+  checked,
+  onChange,
+  busy,
+  disabled,
+}: {
+  label?: ReactNode;
+  name?: string;
+  help?: ReactNode;
+  note?: ReactNode;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  busy?: boolean;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  const described = [help !== undefined ? `${id}-help` : null, note !== undefined ? `${id}-note` : null]
+    .filter((one) => one !== null)
+    .join(' ');
+  return (
+    <div className={`flex min-h-14 flex-col justify-center gap-1 ${ROW_PAD} py-3`}>
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          {label !== undefined ? (
+            <p id={`${id}-label`} className={ROW_LABEL}>
+              {label}
+            </p>
+          ) : (
+            help !== undefined && (
+              <p id={`${id}-help`} className={ROW_HELP}>
+                {help}
+              </p>
+            )
+          )}
         </div>
+        <Switch
+          checked={checked}
+          onChange={onChange}
+          busy={busy}
+          disabled={disabled}
+          labelledBy={label !== undefined ? `${id}-label` : undefined}
+          label={name}
+          describedBy={described === '' ? undefined : described}
+        />
+      </div>
+      {label !== undefined && help !== undefined && (
+        <p id={`${id}-help`} className={ROW_HELP}>
+          {help}
+        </p>
+      )}
+      {note !== undefined && (
+        <p id={`${id}-note`} className={ROW_NOTE}>
+          {note}
+        </p>
       )}
     </div>
   );
 }
 
 /**
- * 다른 화면으로 가는 줄 — **줄 전체가 누를 자리다.** 왼쪽에 그림(선택)과 이름, 오른쪽에
- * 셰브론. 누를 자리는 56px 을 넘는다.
+ * 다른 화면으로 가는 줄 — **줄 전체가 누를 자리다**(화면 끝에서 끝까지). 왼쪽에 그림(선택)과 이름, 오른쪽에 「›」.
  */
 export function SettingsLinkRow({
   href,
   leading,
   label,
   help,
+  note,
   trailing,
+  big = false,
 }: {
   href: string;
   leading?: ReactNode;
   label: ReactNode;
   help?: ReactNode;
+  note?: ReactNode;
   /** 화살표 앞에 작게 서는 글자 — 그 줄이 지금 무엇을 기다리는지(예: 사진이 없을 때 「사진 추가」) */
   trailing?: ReactNode;
+  /** 맨 위 프로필 줄 — 이름이 한 단 크다(카카오톡 · 당근 설정의 맨 위 내 프로필) */
+  big?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="-mx-4 flex min-h-14 items-center gap-3 border-t border-border px-4 py-3 first:border-0 hover:bg-surface-soft sm:-mx-5 sm:px-5"
+      className={`flex items-center gap-4 ${ROW_PAD} ${big ? 'min-h-20 py-4' : 'min-h-14 py-3'} hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent`}
     >
       {leading}
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-body font-semibold leading-6">{label}</span>
-        {help !== undefined && <span className="text-small leading-5 text-secondary">{help}</span>}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={`truncate ${big ? 'text-lead font-bold leading-6 text-foreground' : ROW_LABEL}`}>{label}</span>
+        {help !== undefined && <span className={`truncate ${ROW_HELP}`}>{help}</span>}
+        {note !== undefined && <span className={ROW_NOTE}>{note}</span>}
       </span>
       {trailing !== undefined && <span className="shrink-0 text-small font-semibold text-secondary">{trailing}</span>}
       <span aria-hidden="true" className="text-muted">
@@ -136,3 +200,15 @@ export function SettingsLinkRow({
     </Link>
   );
 }
+
+/**
+ * 글자 줄 — **로그아웃처럼 화면을 떠나는 누름.** 줄 전체가 단추이고 알약이 없다.
+ */
+export const SETTINGS_TEXT_ROW = `flex min-h-14 w-full items-center ${ROW_PAD} text-left text-body font-semibold text-foreground hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent aria-disabled:cursor-default aria-disabled:opacity-55`;
+
+/**
+ * 탈퇴 — **맨 아래 무리 밖, 회색 바탕 위의 작은 회색 글자다.** 토스(설정 맨 아래 「탈퇴하기」) · 당근(설정 맨 아래 「탈퇴하기」)처럼
+ * 찾을 수는 있되 눈에 덜 띄는 자리. 글자는 줄의 글자와 같은 24px 안쪽에 선다.
+ */
+export const SETTINGS_TEXT_ROW_QUIET =
+  'mx-4 inline-flex min-h-11 min-w-11 items-center self-start rounded-cell px-2 text-small font-medium text-muted underline-offset-4 hover:text-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:mx-4';

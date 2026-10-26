@@ -64,7 +64,7 @@ credits-01 · 02 · 03 이다(개정 기록 · 옛 PR 본문의 옛 번호는 �
 ## credits-04 확정 문구 — 머리글의 풀이권 칸 · 부족할 때의 풀이권 창 (운영자 결정 2026-10-12, 대화 · ADR 0171 「덧」 · G-21, #674)
 
 머리글의 풀이권 칸(`app/site-header.tsx`)과, 풀이권 0개일 때의 누름(풀이 · 궁합풀이의 만드는 단추 `app/me/reading/panel.tsx`, 인연 요청의
-하트 `app/me/matching/matching-experience.tsx`)이 여는 풀이권 창(`app/me/credits/buy-credits.tsx`). 상수는 `src/lib/reading/notes.ts`.
+궁합 요청 단추 `app/me/matching/matching-experience.tsx`)이 여는 풀이권 창(`app/me/credits/buy-credits.tsx`). 상수는 `src/lib/reading/notes.ts`.
 **머리글 칸은 이제 창을 열지 않는다** — 누르면 설정처럼 펼치는 메뉴(`app/me/credits/credits-menu.tsx`, credits-06)가 서고, 풀이권 창은
 만들려다 부족할 때만 뜬다(#675 · #676). 처음 정할 때는 운세 앱의 꼴이었다 — 폰에서는 둥근 아이콘 단추(표 그림)만, 누르면 곧장 옮기지 않고 보유 수를 말하는 창 하나. 「판매가 열리면 알려 드릴게요.」는 알림을 보낼 수단이 코드에
 없어 뺐고, 「비공개 베타 기간이라」는 앱의 다른 자리(「지금은 비공개 베타라 …」)에 맞췄다. 닫힌 꼴의 「확인」 하나는 대장 01 의 「확인 같은
