@@ -143,7 +143,7 @@ export type Changed =
  */
 const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'self-person-saved': [{ path: '/me' }],
-  'person-input-edited': [{ path: '/me' }, { path: '/me/people' }],
+  'person-input-edited': [{ path: '/me' }, { path: '/me/people' }, { path: '/me/profile' }],
   'person-list-changed': [{ path: '/me/people' }],
   'account-changed': [{ path: '/me', scope: 'layout' }],
   'account-closed': [{ path: '/', scope: 'layout' }],

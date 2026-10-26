@@ -8,7 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { Icon } from '../../ui/icons';
-import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { CARD_FRAME, COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
@@ -22,10 +22,12 @@ import { runningReadings } from '../home/running';
 import { RunningReadings } from '../home/running-band';
 import { makingPeopleOf, makingSelf } from '../home/running-line';
 import { SelfCard } from '../home/self-card';
+import { NO_FACE, myHomeFace } from '../home/self-face';
 import { Onboarding } from '../onboarding';
 import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { FailureLine } from '../../ui/failure-line';
+import { HOME_ROW_LINK } from '../home/home-list';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -44,12 +46,12 @@ export default async function MePage() {
   if (!user) return redirectToSignIn();
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname']);
+  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname', 'intro']);
   const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-4 sm:gap-12 sm:py-12">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
@@ -63,7 +65,7 @@ export default async function MePage() {
           ) : (
             <>
               <Greeting name={nickname} />
-              <Home selfPersonId={selfPersonId} />
+              <Home selfPersonId={selfPersonId} userId={user.id} nickname={nickname} intro={account?.intro ?? null} />
             </>
           )}
         </>
@@ -89,7 +91,7 @@ function Greeting({ name }: { name: string }) {
   return (
     <header className="sr-only flex flex-col gap-1 sm:not-sr-only">
       <p className={TYPE_META}>{today}</p>
-      <h1 className={TYPE_TITLE}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
+      <h1 className={`break-keep text-pretty ${TYPE_TITLE}`}>{name === '' ? '반가워요' : `${name} 님, 오늘도 반가워요`}</h1>
     </header>
   );
 }
@@ -108,16 +110,29 @@ function Greeting({ name }: { name: string }) {
  * **참여를 여는 문은 아무것도 안 그린다**(ADR 0070 · 0076) — 후보 탐색은 매칭에서만 하고 참여를 여는 일은 홈에도 남는다.
  * 못 열어도 홈을 오류로 세우지 않는다(`openDiscoveryParticipation`).
  */
-async function Home({ selfPersonId }: { selfPersonId: string }) {
+async function Home({
+  selfPersonId,
+  userId,
+  nickname,
+  intro,
+}: {
+  selfPersonId: string;
+  userId: string;
+  nickname: string;
+  intro: string | null;
+}) {
   const supabase = await supabaseOnServer();
 
-  const [circle, self, readings, profile, runningRead] = await Promise.all([
+  const [circle, self, readings, profile, runningRead, faceRead] = await Promise.all([
     myCircle(supabase, selfPersonId),
     storedInputOf(supabase, selfPersonId),
     myReadings(),
     myDiscoveryProfile(),
     runningReadings(),
+    myHomeFace(supabase, userId),
   ]);
+  /* 내 사진들 — 꾸밈이다. 못 읽었으면 사진 없는 나(일간 그림)로 선다(ADR 0078). 원을 누르면 오는 「내 프로필」 시트가 같은 값을 쓴다 */
+  const face = { userId, nickname, intro, ...(faceRead.ok ? faceRead.value : NO_FACE) };
   /* 못 읽었으면 만드는 중인 것이 없는 것처럼 선다 — 부속 정보다(ADR 0078). 단추는 「받기」로 돌아간다 */
   const running = runningRead.ok ? runningRead.value : [];
 
@@ -151,6 +166,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         saju={stood.saju}
         reading={selfReadingOf(readings)}
         making={makingSelf(running)}
+        face={face}
         compact
       />
     );
@@ -194,13 +210,13 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
         내가 받은 사주풀이가 선다.
       */}
-      <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3">
           {selfCard}
           <OtherSaju />
         </div>
 
-        <ReceivedReadings readings={readings} makingSelf={makingSelf(running)} />
+        <ReceivedReadings readings={readings} />
       </div>
 
       {myPeople}
@@ -212,19 +228,22 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
  * **다른 사람 사주 보기** — 저장하지 않고 한 사람을 계산하는 자리(`/saju`, ADR 0144)로 가는 길. 내 사주 카드 바로 아래 한 줄이다.
  *
  * 처음에는 저장한 사람 구역 끝의 작은 보조 링크였다 — 홈의 주인공은 내 사주와 저장한 사람이라는 판단이었다. 남의 사주를 보는
- * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 알림 띠와 같은 줄이다.
+ * 것도 이 서비스를 쓰는 까닭일 수 있는데 폰에서는 화면을 다 내려야 보였다(운영자 2026-10-08). 모양은 아래 목록들과 같은 흰 판의 줄 하나다
+ * (`home/home-list.tsx`) — 검색 표시도 오행 파스텔을 벗었다(2026-10-25 홈 위계 정리).
+ *
+ * **줄어들지 않는다(`shrink-0`)** — 넓은 화면에서 카드가 칸을 다 채우게(`h-full`) 세로 flex 안에 서는데, 판이 `overflow-hidden` 이라
+ * 최소 높이가 0 으로 풀려 폰에서 이 줄이 49px 로 눌렸다(표시 원의 아래가 잘리고 글자가 가운데를 벗어났다, 2026-10-26 2차).
  */
 function OtherSaju() {
   return (
-    <Link
-      href={SAJU_PATH}
-      className="flex min-h-14 items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-body font-semibold text-foreground hover:border-border-strong active:scale-[0.99]"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-water-soft text-water">
-        <Icon name="search" className="size-[18px]" />
-      </span>
-      <span className="min-w-0 flex-1">다른 사람 사주 보기</span>
-      <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
-    </Link>
+    <div className={`${CARD_FRAME} shrink-0 py-1`}>
+      <Link href={SAJU_PATH} className={HOME_ROW_LINK}>
+        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-foreground">
+          <Icon name="search" className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1 text-body font-semibold">다른 사람 사주 보기</span>
+        <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+      </Link>
+    </div>
   );
 }
