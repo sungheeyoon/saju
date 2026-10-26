@@ -492,7 +492,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.keyboard.press('Escape');
     await expect(mine.getByRole('link', { name: /만세력 보기/ })).toHaveAttribute(
       'href',
-      `/me/people/${signedIn.selfPersonId}`,
+      `/me/people/${signedIn.selfPersonId}?tab=chart`,
     );
 
     /* 이번 달 흐름은 걷었다(ADR 0129 「2026-09-29 u2」) */
@@ -518,7 +518,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('만세력 보기')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
     /* 풀이 화면에는 사주/사주풀이 탭이 없다 — 두 자리는 각 화면의 입구에서 연다 */
-    await expect(page.getByRole('navigation', { name: '내 사주의 만세력과 사주풀이' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: '내 사주의 사주풀이와 만세력' })).toHaveCount(0);
 
     /*
       **풀이권은 머리글에 선다 — 설정 옆이다.**
@@ -790,9 +790,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
 
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
-    const tabs = page.getByRole('navigation', { name: '내 사주의 만세력과 사주풀이' });
-    await tabs.getByRole('link', { name: '사주풀이', exact: true }).click();
-
+    const tabs = page.getByRole('navigation', { name: '내 사주의 사주풀이와 만세력' });
+    /* 사주풀이 탭이 기본이고 이 화면 안에 풀이를 모은다(운영자 확정 2026-10-26) — 그 카드가 내 사주풀이 화면으로 간다 */
+    await expect(tabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('region', { name: '사주풀이' }).getByRole('link').click();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
     await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
   });
@@ -820,9 +821,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
     await expect(
-      page.getByRole('navigation', { name: '내 사주의 만세력과 사주풀이' })
+      page.getByRole('navigation', { name: '내 사주의 사주풀이와 만세력' })
         .getByRole('link', { name: '사주풀이', exact: true }),
-    ).toHaveAttribute('href', '/me/readings/self');
+    ).toHaveAttribute('href', `/me/people/${signedIn.selfPersonId}`);
   });
 
   /** 저장된 글이 그 사람의 화면에 실제로 서는가 — 위 시험은 빈 자리까지만 본다 */
@@ -846,7 +847,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('어머니의 결')).toBeVisible();
     await expect(page.getByText('만세력 보기')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
-    await expect(page.getByRole('navigation', { name: '어머니의 만세력과 사주풀이' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: '어머니의 사주풀이와 만세력' })).toHaveCount(0);
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
     await expect(page.getByText('궁합풀이 점수')).toBeHidden();
@@ -1159,14 +1160,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: `${kin}의 사주풀이`, exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 받은 사주풀이가 없어요')).toBeVisible();
 
-    await expect(page.getByRole('navigation', { name: `${kin}의 만세력과 사주풀이` })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: `${kin}의 사주풀이와 만세력` })).toHaveCount(0);
 
     /* 명식은 목록의 이름에서 열고, 명식 화면의 탭이 풀이로 돌려보낸다 */
     const readingUrl = page.url();
     await page.goto('/me/people');
     await page.getByRole('link', { name: kin, exact: true }).first().click();
     await expect(page.getByRole('heading', { level: 1, name: kin, exact: true })).toBeVisible();
-    await page.getByRole('link', { name: '사주풀이', exact: true }).click();
+    /* 사주풀이 탭이 기본이고 이 화면 안에 풀이를 모은다(운영자 확정 2026-10-26) — 「사주풀이 받기」가 그 글 화면이다 */
+    await page.getByRole('region', { name: '사주풀이' }).getByRole('link', { name: '사주풀이 받기' }).click();
     await expect(page).toHaveURL(readingUrl);
 
     const make = page.getByRole('button', { name: '사주풀이 받기' });
@@ -1231,20 +1233,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me');
 
     await page.getByRole('link', { name: '만세력 보기' }).click();
-    await expect(page).toHaveURL(new RegExp(`/me/people/${signedIn.selfPersonId}$`));
-    /*
-      **머리 안에서 잰다.** 눈썹이 「내 명식」이던 동안에는 이 글자가 화면에 하나뿐이라
-      아무 데서나 찾아도 됐다. 이제 「내 사주」는 메뉴의 줄과도 같은 글자라, 어디서
-      찾는지를 적지 않으면 셋이 걸린다.
-    */
-    await expect(
-      page.locator('main header').first().getByText('내 사주', { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByRole('heading', { name: `${signedIn.label}의 사주`, exact: true })).toBeVisible();
+    /* 사람 화면의 만세력 탭으로 연다 — 그 화면은 사주풀이 탭이 기본이다(2026-10-26) */
+    await expect(page).toHaveURL(new RegExp(`/me/people/${signedIn.selfPersonId}\\?tab=chart$`));
+    await expect(page.getByRole('heading', { level: 1, name: signedIn.label, exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '궁합 보러 가기' })).toBeVisible();
 
-    await page.getByRole('link', { name: '내 사주로' }).click();
+    /* ← 는 판 밖 위의 작은 글자 「홈」(2026-10-26) — 머리글의 「홈」 탭과 갈라 본문 안에서 찾는다 */
+    await page.getByRole('main').getByRole('link', { name: '홈', exact: true }).click();
     await expect(page).toHaveURL(/\/me$/);
     await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname} 님, 오늘도 반가워요` })).toBeVisible();
   });
@@ -1590,10 +1585,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /* 명식은 카드의 이름에서 연다 — 풀이 화면에는 사주로 가는 탭이 없다 */
     await friendCard.getByRole('link', { name: '친구', exact: true }).click();
-    await expect(
-      page.getByRole('heading', { name: '친구의 사주', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: '친구', exact: true })).toBeVisible();
+    /* 사람 화면은 사주풀이 탭이 기본이다(2026-10-26) — 만세력 탭에 표가 선다 */
+    await page.getByRole('link', { name: '만세력', exact: true }).click();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+    /* 궁합으로 가는 길은 사주풀이 탭의 「궁합」 구역 끝 줄이다 */
+    await page.getByRole('link', { name: '사주풀이', exact: true }).click();
 
     /*
       **사람 상세가 궁합으로 가는 길을 낸다**(ADR 0036). 저장한 사람을 보고 있는 사람이
@@ -1604,7 +1601,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       page.getByRole('link', { name: '궁합 보러 가기' }),
     ).toHaveAttribute('href', /^\/compat#a\.person=.+/);
 
-    await page.getByRole('link', { name: '사람 목록으로' }).click();
+    await page.getByRole('main').getByRole('link', { name: '저장한 사람', exact: true }).click();
     await expect(page).toHaveURL(/\/me\/people$/);
 
     /*
@@ -3590,7 +3587,7 @@ test.describe('자바스크립트 없이 여는 홈', () => {
     await dot.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     await dot.click();
     await expect(page).toHaveURL(new RegExp(`${target}$`));
-    await expect(page.getByRole('heading', { name: '어머니의 사주', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: '어머니', exact: true })).toBeVisible();
   });
 });
 

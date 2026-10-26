@@ -85,13 +85,16 @@ export default async function CompatPage() {
     return chart.ok ? chart.saju.pillars.dayMaster : null;
   };
 
-  const people = listed.map((edge) => ({
-    personId: edge.personId,
-    label: edge.label,
-    isSelfPerson: edge.personId === selfPersonId,
-    element: elementOf(edge.personId, edge.label),
-    stem: stemOf(edge.personId, edge.label),
-  }));
+  /* 고르는 목록 맨 위는 「나」 — 사람 화면의 「궁합 보러 가기」가 그 사람만 앉히고 다른 칸을 비워 둔다(2026-10-26). 나머지 차례는 그대로 */
+  const people = listed
+    .map((edge) => ({
+      personId: edge.personId,
+      label: edge.label,
+      isSelfPerson: edge.personId === selfPersonId,
+      element: elementOf(edge.personId, edge.label),
+      stem: stemOf(edge.personId, edge.label),
+    }))
+    .toSorted((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
 
   return (
     <main className="app-shell flex max-w-[58rem] flex-1 flex-col gap-8 py-6 sm:gap-10 sm:py-12">

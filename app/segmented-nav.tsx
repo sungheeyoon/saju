@@ -16,15 +16,39 @@ import Link from 'next/link';
  *
  * 모양은 머리글 메뉴와 같은 **알약 분할**이다 — 켜진 쪽이 먹색으로 채워진다(5차 warm). 색만으로 말하지
  * 않는다: 켜진 쪽은 `aria-current` 가 함께 든다.
+ *
+ * **밑줄 꼴(`look="underline"`)** — 켜진 쪽은 진한 글자 + 아래 2px 줄, 나머지는 흐린 글자(토스 · 카카오톡의 화면 안 탭). 먹색 알약은
+ * 「눌러서 초점이 간 것」처럼 무거웠다(운영자 2026-10-26). 지금 이 부품을 부르는 곳은 사람 화면의 탭(`ReadingTabs`) 하나뿐이고 그 탭이
+ * 밑줄 꼴을 쓴다.
  */
 export function SegmentedNav({
   label,
   items,
+  look = 'pill',
 }: {
   /** 보조기기가 읽는 이 줄의 이름 — 화면에는 안 선다 */
   label: string;
   items: readonly { readonly href: string; readonly text: string; readonly current: boolean }[];
+  look?: 'pill' | 'underline';
 }) {
+  if (look === 'underline') {
+    return (
+      <nav aria-label={label} className="flex border-b border-border">
+        {items.map((one) => (
+          <Link
+            key={one.href}
+            href={one.href}
+            aria-current={one.current ? 'page' : undefined}
+            className={`-mb-px flex min-h-12 flex-1 items-center justify-center border-b-2 px-4 text-body font-semibold transition-colors ${
+              one.current ? 'border-foreground text-foreground' : 'border-transparent text-muted hover:text-secondary'
+            }`}
+          >
+            {one.text}
+          </Link>
+        ))}
+      </nav>
+    );
+  }
   return (
     <nav
       aria-label={label}

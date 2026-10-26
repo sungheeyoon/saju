@@ -14,16 +14,16 @@ import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
 import { elementScope } from '../../../ui/element-tone';
-import { BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE, BUTTON_TERTIARY } from '../../../ui/buttons';
+import { BUTTON_PRIMARY_FACE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { COLUMN, TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { CARD_FRAME, COLUMN, TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { readingNoneNote } from '@/src/lib/reading/notes';
 import { DayMasterChip } from '../chart-bits';
 import { StemSymbol } from '../../../ui/stem-symbol';
-import { compatHrefFor } from '../compat-href';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { myReadings } from '../../reading/current';
-import { compatHrefOf, pairWithSelf, readingOf, selfReadingOf } from '../../home/map/model';
+import { compatHrefOf, readingOf, selfReadingOf } from '../../home/map/model';
 import { HOME_HEAD_COUNT, HOME_LIST, HOME_ROW, HOME_ROW_LINK, HOME_ROW_VALUE } from '../../home/home-list';
 
 export const metadata = {
@@ -95,18 +95,27 @@ export default async function PersonSajuPage({
   const query = await searchParams;
   /* 홈의 줄(`?from=me`)이나 내 사주에서 왔으면 ← 홈, 저장한 사람 목록에서 왔으면 ← 저장한 사람 */
   const fromHome = mine || query.from === 'me';
-  /* 사주풀이 탭을 이 화면 안에 모은 안(시안) — `?tab=reading`. 기본 탭 링크는 아직 풀이 화면(`/me/readings/…`)이다 */
-  const gathered = query.tab === 'reading';
+  /* **사주풀이 탭이 기본**이다(운영자 2026-10-26) — 만세력은 `?tab=chart` */
+  const gathered = query.tab !== 'chart';
+  const here = `/me/people/${person.personId}`;
+  const keepFrom = fromHome && !mine ? 'from=me' : '';
+  const withQuery = (...parts: string[]) => {
+    const joined = parts.filter((part) => part !== '').join('&');
+    return joined === '' ? here : `${here}?${joined}`;
+  };
 
   /*
-    **단추 둘의 상태**(2026-10-26 운영자) — 이 사람의 사주풀이와 나와의 궁합을 이미 받았나. 목록 문(`my_readings`)이 홈과 같은 값을
-    준다. 못 읽으면 「받기 · 보러 가기」로 선다 — 그 화면이 다시 읽어 맞는 글을 세운다(부속 정보, ADR 0078)
+    **이 사람에게서 받은 것** — 이 사람의 사주풀이와 이 사람이 들어간 궁합풀이. 목록 문(`my_readings`)이 홈과 같은 값을 준다. 못 읽으면
+    「받기 · 보러 가기」로 선다 — 그 화면이 다시 읽어 맞는 글을 세운다(부속 정보, ADR 0078)
   */
   const readings = await myReadings().catch(() => [] as const);
   const own = mine ? selfReadingOf(readings) : readingOf(readings, person.personId);
-  const pair = mine ? null : pairWithSelf(readings, selfPersonId, person.personId);
   const readingHref = mine ? '/me/readings/self' : `/me/readings/${person.personId}`;
-  const compatHref = pair !== null ? compatHrefOf(pair, selfPersonId, person.personId) : compatHrefFor(selfPersonId, person.personId);
+  /*
+    **「궁합 보러 가기」는 이 사람만 앉힌다**(운영자 2026-10-26) — 다른 칸은 비워 두고 사용자가 고른다(고르는 목록 맨 위가 「나」). 나와의
+    궁합으로 미리 정하지 않는다 — 이 사람과 다른 저장한 사람의 궁합도 이 길이다. 다른 진입(홈 · 궁합 탭)은 그대로다
+  */
+  const compatHref = `/compat#a.person=${person.personId}`;
   /*
     **이 사람이 들어간 궁합풀이 전부**(2026-10-26 운영자) — 나와의 것만이 아니다. 저장한 다른 사람과 본 궁합도 이 사람의 것이다. 최근 순.
     줄 제목은 두 사람 이름을 나란히(내 자리는 닉네임) — 누구의 눈으로 본 것인지 말하지 않는다
@@ -119,36 +128,21 @@ export default async function PersonSajuPage({
         .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map((entry) => ({
           key: `${entry.personA}:${entry.personB}`,
+          /* 이 사람이 늘 앞 — 「하은 · 엄마」, 「하은 · 도윤」(내 자리는 닉네임) */
           names: [
-            entry.personA === selfPersonId ? nickname : (entry.labelA ?? ''),
-            entry.personB === selfPersonId ? nickname : (entry.labelB ?? ''),
+            person.name,
+            entry.personA === person.personId
+              ? entry.personB === selfPersonId
+                ? nickname
+                : (entry.labelB ?? '')
+              : entry.personA === selfPersonId
+                ? nickname
+                : (entry.labelA ?? ''),
           ].join(' · '),
           score: entry.score,
           metaphor: entry.metaphor,
           href: compatHrefOf(entry, selfPersonId, person.personId),
         }));
-
-  const readingButton = (primary: boolean) => (
-    <Link href={readingHref} className={`${primary ? BUTTON_PRIMARY_FACE : BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
-      <Icon name={own === null ? 'spark' : 'reading'} className="size-[18px]" />
-      {own === null ? '사주풀이 받기' : '사주풀이 보기'}
-    </Link>
-  );
-  const compatButton = (primary: boolean) => (
-    <Link href={compatHref} className={`${primary ? BUTTON_PRIMARY_FACE : BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
-      <Icon name="taiji" className="size-[18px]" />
-      {pair === null ? (
-        COMPAT_ENTRY_LABEL
-      ) : (
-        <>
-          궁합 보기
-          <span className="rounded-full bg-[color-mix(in_srgb,currentColor_12%,transparent)] px-2 py-0.5 text-small font-semibold tabular-nums">
-            {pair.score}점
-          </span>
-        </>
-      )}
-    </Link>
-  );
 
   return (
     /* 저장한 사람 목록(`../page.tsx`)과 같은 기둥에 선다(`COLUMN`) — 목록에서 들어와도 제목 자리가 안 옮긴다 */
@@ -163,10 +157,10 @@ export default async function PersonSajuPage({
       </Link>
 
       {/*
-        **머리는 홈의 내 사주 카드 꼴이다**(2026-10-26 운영자) — 그 사람의 일간 색 판, 동그란 일간 그림 + 이름, 오른쪽 위 일간 딱지,
-        아래 주 단추 + 보조 단추. 아직 풀이를 안 받았으면 「사주풀이 받기」가 주 단추, 받았으면 「궁합」이 주 단추다 — 다음에 할 일이 진하다.
+        **머리는 이름과 일간 딱지뿐이다**(2026-10-26 운영자) — 그 사람의 일간 색 판에 큰 이름, 오른쪽 위 일간 딱지(일간은 이 딱지가 말한다 —
+        이름 옆 그림은 걷었다). 단추는 없다 — 받는 일 · 보러 가는 일은 아래 사주풀이 탭의 카드 · 줄이 든다.
       */}
-      <header className={`${elementScope(element)} relative flex flex-col gap-4 overflow-hidden rounded-card bg-[var(--tile)] p-4 sm:gap-6 sm:p-8`}>
+      <header className={`${elementScope(element)} relative flex flex-col overflow-hidden rounded-card bg-[var(--tile)] p-5 sm:p-8`}>
         <StemSymbol
           stem={person.saju.pillars.dayMaster}
           className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56"
@@ -174,21 +168,13 @@ export default async function PersonSajuPage({
         <div className="absolute right-4 top-4 sm:right-5 sm:top-5">
           <DayMasterChip stem={person.saju.pillars.dayMaster} />
         </div>
-        <div className="relative flex min-w-0 items-center gap-3 pr-20">
-          <span aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-full bg-surface text-[var(--ink)]">
-            <StemSymbol stem={person.saju.pillars.dayMaster} className="size-8" />
-          </span>
-          <h1 className={`min-w-0 break-keep [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{person.name}</h1>
-        </div>
-        <div className="relative grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
-          {mine ? readingButton(true) : own === null ? <>{readingButton(true)}{compatButton(false)}</> : <>{compatButton(true)}{readingButton(false)}</>}
-        </div>
+        <h1 className={`relative min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{person.name}</h1>
       </header>
 
       <ReadingTabs
         current={gathered ? 'reading' : 'chart'}
-        chartHref={`/me/people/${person.personId}${fromHome && !mine ? '?from=me' : ''}`}
-        readingHref={readingHref}
+        chartHref={withQuery(keepFrom, 'tab=chart')}
+        readingHref={withQuery(keepFrom)}
         label={mine ? '내 사주' : person.name}
       />
 
@@ -202,9 +188,12 @@ export default async function PersonSajuPage({
 }
 
 /**
- * **사주풀이 탭에 이 사람의 풀이를 모은 안(시안, `?tab=reading`)** — 운영자 물음(2026-10-26): 두 구역 「사주풀이」 · 「궁합」. 사주풀이는 이 사람의
- * 글 하나(없으면 받기 줄), 궁합은 이 사람이 들어간 궁합풀이 전부(나와 · 저장한 다른 사람과, 최근 순 — 두 이름 · 점수 ☯ · 한 줄 평 · ›).
- * 궁합이 하나도 없을 때만 「궁합 보러 가기」 줄. 지금 구조(사주풀이 탭 = 개인 풀이 화면 `/me/readings/[id]`)와 나란히 견주려고 둔다.
+ * **사주풀이 탭 — 이 사람의 풀이를 모은다**(기본 탭, 운영자 확정 2026-10-26). 두 구역:
+ *
+ * - 「사주풀이」 — 받았으면 그 풀이 카드(누르면 글), 안 받았으면 「사주풀이 받기」 카드(설명 한 줄 + 주 단추 — 이 화면에서 유일한 진한 것).
+ *   설명은 풀이 화면의 빈 칸 안내와 같은 글(`readingNoneNote`, 대장 15)
+ * - 「궁합」 — 이 사람이 들어간 궁합풀이 전부(나와 · 저장한 다른 사람과, 최근 순 — 이 사람 이름이 앞 · 점수 ☯ · 한 줄 평 · ›), 그리고 맨 끝에
+ *   늘 「궁합 보러 가기 ›」 줄(궁합이 있어도 다른 사람과 더 볼 수 있다 — 누르면 이 사람만 앉은 궁합 화면)
  */
 function GatheredReadings({
   name,
@@ -223,17 +212,27 @@ function GatheredReadings({
     <div className="flex flex-col gap-6">
       <section aria-labelledby="gathered-own" className="flex flex-col gap-2">
         <h2 id="gathered-own" className={TYPE_SECTION}>사주풀이</h2>
-        <ul className={HOME_LIST}>
-          <li className={HOME_ROW}>
-            <Link href={ownHref} className={HOME_ROW_LINK}>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-body font-semibold">{own === null ? '사주풀이 받기' : `${name}의 사주풀이`}</span>
-                {own?.metaphor != null && <span className="truncate text-small leading-5 text-secondary">{own.metaphor}</span>}
-              </span>
-              <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+        {own === null ? (
+          <div className={`${CARD_FRAME} flex flex-col gap-4 p-5`}>
+            <p className="break-keep text-body leading-6 text-secondary">{readingNoneNote('사주풀이')}</p>
+            <Link href={ownHref} className={`${BUTTON_PRIMARY_FACE} px-5`}>
+              <Icon name="spark" className="size-[18px]" />
+              사주풀이 받기
             </Link>
-          </li>
-        </ul>
+          </div>
+        ) : (
+          <ul className={HOME_LIST}>
+            <li className={HOME_ROW}>
+              <Link href={ownHref} className={HOME_ROW_LINK}>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-body font-semibold">{`${name}의 사주풀이`}</span>
+                  {own.metaphor != null && <span className="truncate text-small leading-5 text-secondary">{own.metaphor}</span>}
+                </span>
+                <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+              </Link>
+            </li>
+          </ul>
+        )}
       </section>
       {pairs !== undefined && (
         <section aria-labelledby="gathered-pairs" className="flex flex-col gap-2">
@@ -242,32 +241,29 @@ function GatheredReadings({
             {pairs.length > 0 && <span className={HOME_HEAD_COUNT}>{pairs.length}개</span>}
           </h2>
           <ul className={HOME_LIST}>
-            {pairs.length === 0 ? (
-              <li className={HOME_ROW}>
-                <Link href={compatHref} className={HOME_ROW_LINK}>
-                  <span className="min-w-0 flex-1 truncate text-body font-semibold">{COMPAT_ENTRY_LABEL}</span>
+            {pairs.map((pair) => (
+              <li key={pair.key} className={HOME_ROW}>
+                <Link href={pair.href} className={HOME_ROW_LINK}>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-body font-semibold">{pair.names}</span>
+                    {pair.metaphor !== null && <span className="truncate text-small leading-5 text-secondary">{pair.metaphor}</span>}
+                  </span>
+                  {pair.score !== null && (
+                    <span className={HOME_ROW_VALUE}>
+                      {pair.score}점
+                      <Icon name="taiji" className="size-4 text-secondary" />
+                    </span>
+                  )}
                   <Icon name="chevron" className="size-4 shrink-0 text-muted" />
                 </Link>
               </li>
-            ) : (
-              pairs.map((pair) => (
-                <li key={pair.key} className={HOME_ROW}>
-                  <Link href={pair.href} className={HOME_ROW_LINK}>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-body font-semibold">{pair.names}</span>
-                      {pair.metaphor !== null && <span className="truncate text-small leading-5 text-secondary">{pair.metaphor}</span>}
-                    </span>
-                    {pair.score !== null && (
-                      <span className={HOME_ROW_VALUE}>
-                        {pair.score}점
-                        <Icon name="taiji" className="size-4 text-secondary" />
-                      </span>
-                    )}
-                    <Icon name="chevron" className="size-4 shrink-0 text-muted" />
-                  </Link>
-                </li>
-              ))
-            )}
+            ))}
+            <li className={HOME_ROW}>
+              <Link href={compatHref} className={HOME_ROW_LINK}>
+                <span className="min-w-0 flex-1 truncate text-body font-semibold">{COMPAT_ENTRY_LABEL}</span>
+                <Icon name="chevron" className="size-4 shrink-0 text-muted" />
+              </Link>
+            </li>
           </ul>
         </section>
       )}
