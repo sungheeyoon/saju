@@ -24,4 +24,5 @@ export const REQUEST_OPENS_CHAT_NOTE = '상대가 수락하면 채팅방이 열�
  */
 export const CANCEL_REQUEST_LABEL = '요청 취소';
 export const CANCEL_REQUEST_TITLE = '보낸 요청을 취소할까요?';
-export const CANCEL_REQUEST_NOTE = '취소한 요청은 되돌릴 수 없어요. 임시로 차감된 풀이권 1장은 바로 돌려드려요.';
+/** 되돌릴 수 없다는 말 — 따로 한 문단(운영자 2026-10-26). 풀이권이 돌아온다는 줄은 「풀이권 1장」을 굵게 세우려 화면이 든다 */
+export const CANCEL_REQUEST_NOTE = '취소한 요청은 되돌릴 수 없어요.';

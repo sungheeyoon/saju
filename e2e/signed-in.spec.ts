@@ -1,3 +1,4 @@
+import { endsWithBatchim } from '@/src/lib/saju/text/batchim';
 import {
   E2E_CODE,
   answerReading,
@@ -1709,7 +1710,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '궁합풀이 받기' })).toBeVisible();
   });
 
-  test('사람을 목록에서 빼기 전에 확인 창을 띄우고 취소하면 그대로 둔다', async ({
+  test('사람을 삭제하기 전에 확인 창을 띄우고 취소하면 그대로 둔다', async ({
     page,
     signedIn,
   }) => {
@@ -1721,12 +1722,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       has: page.getByRole('heading', { name: kin, exact: true }),
     });
     await card.getByLabel(`${kin} 관리`, { exact: true }).click();
-    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+    await card.getByRole('button', { name: /^삭제$/ }).click();
 
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByRole('heading', { name: `${kin} 님을 목록에서 뺄까요?` })).toBeVisible();
-    await expect(asking.getByText('되돌릴 수 없습니다', { exact: false })).toBeVisible();
+    /* 이름표에 「님」을 겹치지 않는다 — 조사만 붙는다(운영자 2026-10-26) */
+    await expect(asking.getByRole('heading', { name: `${kin}${endsWithBatchim(kin) ? '을' : '를'} 삭제할까요?` })).toBeVisible();
+    await expect(asking.getByText('삭제한 사람은 되돌릴 수 없어요.', { exact: true })).toBeVisible();
     await asking.getByRole('button', { name: '취소' }).click();
 
     await expect(asking).toBeHidden();
@@ -1768,7 +1770,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /* 좁혀진 카드도 그대로 쓴다 — 관리 메뉴가 열린다 */
     await shown.getByLabel('민지 관리', { exact: true }).click();
-    await expect(shown.getByRole('button', { name: '목록에서 빼기' })).toBeVisible();
+    await expect(shown.getByRole('button', { name: /^삭제$/ })).toBeVisible();
 
     await find.fill('없는이름');
     await expect(cards.filter({ visible: true })).toHaveCount(0);
@@ -4083,7 +4085,7 @@ test.describe('누름 하나는 요청 하나다', () => {
    * 두 번 그리고, 화면은 둘째가 끝나야 섰다(2026-10-08 에 쟀다). 화면이 바뀐 것까지 보고 요청을 센다 — 응답이 화면을
    * 안 실어 왔다면 메모가 안 선다.
    */
-  test('메모 저장과 목록에서 빼기는 액션 요청 하나로 화면을 다시 그린다', async ({ page, signedIn }) => {
+  test('메모 저장과 삭제는 액션 요청 하나로 화면을 다시 그린다', async ({ page, signedIn }) => {
     const kin = signedIn.managed[0];
     expect(kin).not.toBe(undefined);
     await page.goto('/me/people');
@@ -4111,9 +4113,9 @@ test.describe('누름 하나는 요청 하나다', () => {
     expect(sent).toEqual(['action']);
 
     await card.getByLabel(`${kin} 관리`, { exact: true }).click();
-    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+    await card.getByRole('button', { name: /^삭제$/ }).click();
     sent.length = 0;
-    await page.getByRole('dialog').getByRole('button', { name: '목록에서 빼기' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /^삭제$/ }).click();
     await expect(page.getByRole('heading', { name: kin, exact: true })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     expect(sent).toEqual(['action']);

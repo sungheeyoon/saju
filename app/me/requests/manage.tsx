@@ -186,7 +186,10 @@ export function CancelButton({ requestId }: { requestId: string }) {
         failure={failure}
         actions="row"
       >
-        <p>{CANCEL_REQUEST_NOTE}</p>
+        <p>
+          임시로 차감된 <strong>풀이권 1장</strong>은 바로 돌려드려요.
+        </p>
+        <p className="font-medium text-foreground">{CANCEL_REQUEST_NOTE}</p>
       </ConfirmDialog>
     </div>
   );

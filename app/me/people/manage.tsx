@@ -1,5 +1,6 @@
 'use client';
 
+import { endsWithBatchim } from '@/src/lib/saju/text/batchim';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -369,14 +370,16 @@ export function RemoveConfirm({
     <ConfirmDialog
       open
       onClose={onCancel}
-      title={`${label} 님을 목록에서 뺄까요?`}
-      confirmLabel={removing ? '빼는 중…' : '목록에서 빼기'}
+      /* 「어머니 님」은 이름표에 존칭이 겹친다 — 이름표 그대로에 조사만(운영자 2026-10-26, 토스 TDS 「삭제할까요?」) */
+      title={`${label}${endsWithBatchim(label) ? '을' : '를'} 삭제할까요?`}
+      confirmLabel={removing ? '삭제하는 중…' : '삭제'}
       onConfirm={remove}
       danger
       busy={removing}
-      failure={failure === null ? null : `빼지 못했어요. ${failure}`}
+      failure={failure === null ? null : `삭제하지 못했어요. ${failure}`}
     >
-      <p>저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.</p>
+      <p>삭제하면 저장한 출생 정보와 이 사람의 풀이가 목록에서 사라져요.</p>
+      <p>삭제한 사람은 되돌릴 수 없어요.</p>
     </ConfirmDialog>
   );
 }

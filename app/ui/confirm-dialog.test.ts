@@ -9,7 +9,7 @@ describe('확인 창의 단추 줄 — 나란히가 기본, 글자가 반 칸을
     expect(autoActions('삭제', '취소')).toBe('row');
     expect(autoActions('요청 취소', '닫기')).toBe('row');
     expect(autoActions('탈퇴 신청하기', '취소')).toBe('row');
-    expect(autoActions('목록에서 빼기', '취소')).toBe('row');
+    expect(autoActions('삭제', '취소')).toBe('row');
   });
 
   it('여섯 자(띄어쓰기 빼고)를 넘는 단추가 하나라도 있으면 위아래 — 390px 반 칸에 안 든다', () => {

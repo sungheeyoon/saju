@@ -3,6 +3,7 @@
 import { Children, isValidElement, useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react';
 
 import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from './buttons';
+import { Icon, type IconName } from './icons';
 import { DIALOG, DIALOG_ACTIONS, DIALOG_ACTIONS_ROW, TYPE_NAME } from './surfaces';
 import { FailureLine } from './failure-line';
 
@@ -45,6 +46,11 @@ export function pressedOutside(event: MouseEvent<HTMLDialogElement>): boolean {
  *   (`DIALOG_ACTIONS`, 실행이 위)로 선다 — 390px 폰에서 반 칸(약 150px)에 15px 굵은 글 일곱 자와 좌우 여백이 안 든다
  *   (「사주풀이 다시 받기」 · 「바꾸고 저장하기」). 부르는 쪽이 `actions` 를 주면 그것이 이긴다.
  * - 닫는 X 는 없다 — 닫는 것은 「취소」다(대장 01). 실행 글자에 「취소」가 들면 닫기는 「닫기」다(대장 01 의 예외).
+ * - **글의 규칙**(운영자 2026-10-26 「문구와 가독성이 별로」, ADR 0166 추기) — 제목은 「대상을 동작할까요?」 한 줄, 본문은 한두 문장.
+ *   무엇이 일어나는지 한 문단, 「되돌릴 수 없어요」는 **따로 한 문단**, 핵심 값(「풀이권 1장」)은 `<strong>` 으로 굵게 — 토스 TDS
+ *   「삭제할까요? / 이 작업은 되돌릴 수 없어요.」 · 당근 SEED 「이 작업은 되돌릴 수 없습니다.」 · 카카오톡 「차단하시겠습니까? / 차단하면
+ *   …」. 굵은 값은 이 판이 글자색(`foreground`)으로 올린다.
+ * - 제목 곁의 그림(`titleIcon`) — 무엇을 쓰는 창인지 한눈에(풀이권 창의 표, 머리글의 풀이권 그림과 같은 것).
  * - **첫 초점은 「취소」다** — Enter 한 번에 되돌릴 수 없는 일이 나지 않게. 풀이권 처음 받기처럼 잃을 것이 없는 창만
  *   `firstFocus="confirm"` 이다.
  * - Esc · 바깥 누름 · 「취소」는 같은 일(닫기)이다. 보내는 동안(`busy`)은 셋 다 안 닫는다.
@@ -59,6 +65,7 @@ export function ConfirmDialog({
   title,
   children,
   lead,
+  titleIcon,
   confirmLabel,
   onConfirm,
   danger = false,
@@ -76,6 +83,8 @@ export function ConfirmDialog({
   children?: ReactNode;
   /** 제목 위에 서는 그림(아이콘 · 사진) */
   lead?: ReactNode;
+  /** 제목 앞에 같은 줄로 서는 그림 — 무엇을 쓰는 창인지(풀이권 창의 `ticket`) */
+  titleIcon?: IconName;
   confirmLabel: ReactNode;
   onConfirm: () => void;
   /** 되돌릴 수 없는 실행이면 위험 색 */
@@ -125,10 +134,11 @@ export function ConfirmDialog({
       className={className === undefined ? DIALOG : `${DIALOG} ${className}`}
     >
       {lead}
-      <h2 id={titleId} className={lead === undefined ? TYPE_NAME : `mt-4 ${TYPE_NAME}`}>
-        {title}
+      <h2 id={titleId} className={`${lead === undefined ? '' : 'mt-4 '}${TYPE_NAME} ${titleIcon === undefined ? '' : 'flex items-start gap-2'}`}>
+        {titleIcon !== undefined && <Icon name={titleIcon} className="mt-0.5 size-5 shrink-0 text-cream-ink" />}
+        <span>{title}</span>
       </h2>
-      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary">{children}</div>}
+      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary [&_strong]:font-semibold [&_strong]:text-foreground">{children}</div>}
       {failure !== null && failure !== undefined && (
         <FailureLine className="mt-3">{failure}</FailureLine>
       )}

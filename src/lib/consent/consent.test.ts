@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { READING_KINDS, type ReadingKind } from '../reading';
 
 import {
+  BLOCK_FINAL_NOTE,
+  BLOCK_KEEPS_NOTE,
   BLOCK_NOTE,
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
@@ -372,6 +374,8 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
       ...INPUT_EDIT_CHANGE_CONFIRM.body,
       REJECTION_IS_FINAL_NOTE,
       BLOCK_NOTE,
+      BLOCK_KEEPS_NOTE,
+      BLOCK_FINAL_NOTE,
       MATCH_RESULT_PINNED_NOTE,
       MATCH_RESULT_ENGINE_NOTE,
       MATCH_RESULT_CLOSED_NOTE,
@@ -402,7 +406,7 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
     // 무효는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
     expect(said).toContain('다시 요청');
     // 이미 만든 것은 안 사라진다 — 안 적으면 고칠 것을 못 고친다.
-    expect(said).toContain('그대로 남습니다');
+    expect(said).toContain('그대로 남아요');
   });
 
   it('거절이 되돌아오지 않는다는 것을 먼저 말한다', () => {
@@ -411,10 +415,10 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
 
   it('차단이 무엇을 함께 거두는지와 되돌릴 수 없다는 것을 말한다', () => {
     expect(BLOCK_NOTE).toContain('요청');
-    expect(BLOCK_NOTE).toContain('함께 보던 궁합');
+    expect(BLOCK_KEEPS_NOTE).toContain('함께 보던 궁합');
     // 용어집: 차단은 양방향으로 접촉을 막고 **되돌리지 않는다**. 푸는 문이 없으므로
     // 누르기 전에 그렇게 말해야 한다.
-    expect(BLOCK_NOTE).toContain('되돌릴 수 없습니다');
+    expect(BLOCK_FINAL_NOTE).toContain('되돌릴 수 없어요');
   });
 });
 
