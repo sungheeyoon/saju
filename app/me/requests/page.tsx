@@ -77,8 +77,8 @@ async function InboxSections() {
  * 그림은 훑어볼 때의 손잡이일 뿐이고, 그래서 늘 `aria-hidden` 이다.
  */
 const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
-  request_received: 'heart',
-  request_accepted: 'heart',
+  request_received: 'taiji',
+  request_accepted: 'taiji',
   request_rejected: 'close',
   request_invalidated: 'alert',
   request_expired: 'ticket',

@@ -26,7 +26,6 @@ export type IconName =
   | 'chevron'
   | 'close'
   | 'plus'
-  | 'heart'
   | 'taiji'
   | 'search'
   | 'spark'
@@ -74,9 +73,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   chevron: <path d="m9 5.5 6.5 6.5L9 18.5" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
-  /** 궁합 — 첫 화면 입구의 태극과 같은 몸(`entry-marks.tsx`). 하트는 인연 쪽(호감 · 요청)에만 남는다 */
+  /** 궁합 — 첫 화면 입구의 태극과 같은 몸(`entry-marks.tsx`). 궁합 요청 · 요청 소식도 이 그림이다 — 하트는 앱에서 걷었다(운영자 2026-10-26) */
   taiji: <TaijiShapes />,
-  heart: <path d="M12 19.5s-7.5-4.4-7.5-9.7A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5c0 5.3-7.5 9.7-7.5 9.7Z" />,
   search: (
     <>
       <circle cx="10.5" cy="10.5" r="6" />
