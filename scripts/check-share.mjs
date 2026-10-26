@@ -47,7 +47,7 @@ const HOST = 'saju-snowy.vercel.app';
  */
 const SITE_IMAGE = `https://${HOST}/brand/saju-share-v4.jpg`;
 const READING_IMAGE = `https://${HOST}/brand/reading-share-v4.jpg`;
-const COMPAT_IMAGE = `https://${HOST}/brand/compat-share-v4.jpg`;
+const COMPAT_IMAGE = `https://${HOST}/brand/compat-share-v5.jpg`;
 
 /**
  * JPEG 가 스스로 말하는 가로세로 — **적어 둔 수가 맞는지 재려고 읽는다.**
@@ -428,7 +428,7 @@ check('첫 화면은 색인에서 안 빠진다',
 for (const [label, address, said] of [
   ['서비스 소개', '/brand/saju-share-v4.jpg', homeHtml],
   ['풀이 전용', '/brand/reading-share-v4.jpg', html],
-  ['궁합 전용', '/brand/compat-share-v4.jpg', compatHtml],
+  ['궁합 전용', '/brand/compat-share-v5.jpg', compatHtml],
 ]) {
   const image = await get(address);
   const bytes = await image.arrayBuffer();

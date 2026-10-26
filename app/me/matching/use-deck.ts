@@ -59,7 +59,7 @@ export function useDeck({ cards, passedFromServer }: { cards: readonly DeckCard[
   const [checkingCredits, setCheckingCredits] = useState(false);
 
   /**
-   * 하트 — **풀이권이 0개면 요청 확인 창 대신 풀이권 창이다**(`useBuyCredits`). 요청 한 건이 풀이권 한 번을 잡으므로(ADR 0038) 0개인
+   * 궁합 요청 단추 — **풀이권이 0개면 요청 확인 창 대신 풀이권 창이다**(`useBuyCredits`). 요청 한 건이 풀이권 한 번을 잡으므로(ADR 0038) 0개인
    * 사람의 요청은 DB 가 거절한다 — 그 거절을 받으러 확인 창을 지나게 하지 않는다. 잔액은 누를 때 머리글과 같은 문으로 묻는다 —
    * 화면을 그릴 때 묻지 않는다. 못 물었으면 확인 창이고 DB 가 판정한다.
    */
@@ -155,7 +155,7 @@ export function useDeck({ cards, passedFromServer }: { cards: readonly DeckCard[
     });
   }
 
-  /** 하트와 오른쪽 스와이프 모두 확인 창을 거친 뒤에 요청한다. */
+  /** 궁합 요청 단추와 오른쪽 스와이프 모두 확인 창을 거친 뒤에 요청한다. */
   function send() {
     if (!profile || busy.current || exit) return;
     const sending = profile;
