@@ -5,7 +5,7 @@ import { readReadingCredits } from './remaining';
 import { mySaleIsOpen } from './sale';
 
 /**
- * **누를 때 브라우저에서 묻는 둘** — 풀이권 구매 길(`buy-credits.tsx`)과 인연 요청의 하트(`matching-experience.tsx`)가 쓴다.
+ * **누를 때 브라우저에서 묻는 둘** — 풀이권 구매 길(`buy-credits.tsx`)과 인연의 궁합 요청 단추(`matching-experience.tsx`)가 쓴다.
  *
  * 화면을 그릴 때 묻지 않는다 — 머리글은 모든 화면에 서고, 누르는 사람은 드물다. 문은 서버와 같은 것이다(`sale.ts` · `remaining.ts`).
  */

@@ -485,11 +485,11 @@ function SettingsMenu({
   }, [pathname, close]);
 
   const links = ended
-    ? [{ href: '/me/settings', label: '계정 관리' }]
+    ? [{ href: '/me/settings', label: '설정' }]
     : [
         /* 이름은 앱 전체의 것이라 길도 앱 전체의 자리(톱니)에 선다 */
         { href: '/me/profile', label: '프로필' },
-        { href: '/me/settings', label: '계정 관리' },
+        { href: '/me/settings', label: '설정' },
         { href: '/me/survey', label: SURVEY_COPY.tab },
       ];
 

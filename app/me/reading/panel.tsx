@@ -268,9 +268,9 @@ export function ReadingPanel({
       {(heading !== null || chrome.canShare || chrome.makeInHeader) && (
       <header className={headingHidden && !chrome.canShare && !chrome.makeInHeader ? 'sr-only' : 'flex flex-col gap-3'}>
         {/*
-          **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.** 좁은 화면에서는 위에서 아래로 쌓이고, 그때
-          버튼 둘은 **줄을 반씩 나눠 쓴다** — 가운데에 모아 두면 누르는 자리가 화면마다 옮겨 다닌다. 400px 아래
-          폰에서는 반쪽에 「사주풀이 다시 받기」가 두 줄로 꺾이므로 위아래로 쌓는다.
+          **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.** 공유는 글자 없는 둥근 아이콘 하나(네이버 · 다음 뉴스 글 화면의 공유 꼴),
+          「다시 받기」는 그 왼쪽 단추라 360px 폰에서도 한 줄이다(2026-10-26 운영자 「공유 링크 복사가 이렇게 길 필요가 있나」 — 전에는
+          400px 아래에서 두 단추가 위아래로 쌓였다).
         */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           {heading !== null && <h2 className={headingHidden ? 'sr-only' : TYPE_NAME}>{heading}</h2>}
@@ -280,15 +280,9 @@ export function ReadingPanel({
             손잡이가 여럿이면 어느 것이 무엇인지 세어 봐야 한다.
           */}
           {(chrome.canShare || chrome.makeInHeader) && (
-            <div
-              className={
-                chrome.canShare && chrome.makeInHeader
-                  ? 'grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:flex sm:shrink-0'
-                  : 'flex sm:shrink-0'
-              }
-            >
-              {chrome.canShare && <ShareReadingButton target={target} />}
+            <div className="flex items-center justify-end gap-2 sm:shrink-0">
               {chrome.makeInHeader && makeButton('pill', stale || !chrome.canShare ? 'primary' : 'secondary')}
+              {chrome.canShare && <ShareReadingButton target={target} look="icon" />}
             </div>
           )}
         </div>
