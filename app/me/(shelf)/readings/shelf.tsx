@@ -197,7 +197,13 @@ function MiniCover({ subjects, score }: { subjects: readonly (DayMaster | null)[
   const face = coverFace(subjects.map((one) => one?.element ?? null));
   const single = subjects.length === 1;
   return (
-    <span aria-hidden="true" className={`${elementScope(subjects[0]?.element ?? null)} ${MINI}`} style={{ background: face.background }}>
+    /* `data-stem` — 표지가 어느 일간으로 섰는지(그 글을 만들 때의 사본, G-59). 흐름 검사가 「수정 전」 책의 표지를 이것으로 잰다 */
+    <span
+      aria-hidden="true"
+      data-stem={single ? (subjects[0]?.stem ?? undefined) : undefined}
+      className={`${elementScope(subjects[0]?.element ?? null)} ${MINI}`}
+      style={{ background: face.background }}
+    >
       <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: face.spine }} />
       {single ? (
         <FaceSymbol stem={subjects[0]?.stem} element={subjects[0]?.element ?? null} className="size-8" />

@@ -141,15 +141,15 @@ export function ReadingFeedback({
   const head = (
     <span className="flex min-w-0 flex-1 flex-col">
       <span className={TYPE_NAME}>이 풀이는 어떠셨어요?</span>
-      <span className="mt-1 text-small leading-5 text-secondary">{shown ? FEEDBACK_SCOPE_NOTE : FEEDBACK_FOLDED_NOTE}</span>
+      <span className="mt-1 text-small leading-5 text-secondary">{foldable ? FEEDBACK_FOLDED_NOTE : FEEDBACK_SCOPE_NOTE}</span>
     </span>
   );
 
   return (
     <div className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
       {/*
-        머리 한 줄이 접고 펴는 단추다 — 펼친 뒤에도 같은 자리에 남아 초점을 잃지 않는다. 접힌 동안 곁의 말은 몇 문항인지,
-        펼친 뒤에는 이 답이 어느 글에 매이는지다(`FEEDBACK_SCOPE_NOTE`)
+        머리 한 줄이 접고 펴는 단추다 — 펼친 뒤에도 같은 자리에 남아 초점을 잃지 않는다. 곁의 말은 몇 문항인지이고, 이 답이 어느 글에
+        매이는지(`FEEDBACK_SCOPE_NOTE`)는 펼친 폼의 맨 위다
       */}
       {foldable ? (
         <button
@@ -166,10 +166,15 @@ export function ReadingFeedback({
         <header className="flex px-5 pt-6 sm:px-7">{head}</header>
       )}
 
-    {shown && (
+    {/*
+      **접혀 있어도 폼은 실려 온다 — 숨길 뿐이다**(`hidden`). 머리 단추가 가리키는 자리(`aria-controls`)가 늘 있고, 서버가 그린 화면에
+      설문의 물음이 그대로 실린다 — 흐름 검사(`scripts/check-reading.mjs`)가 JS 없이 그 배선을 잰다
+    */}
+    {(foldable || shown) && (
     /* 폼이다 — 고르는 칸에서 Enter 가 곧 「의견 보내기」다(덜 골랐으면 빈 질문으로 데려간다). 적는 칸의 Enter 는 줄바꿈이다 */
     <form
       id={`feedback-${runId}`}
+      hidden={!shown}
       ref={form}
       onSubmit={(event) => {
         event.preventDefault();
@@ -177,6 +182,8 @@ export function ReadingFeedback({
       }}
     >
       <div className="flex flex-col gap-7 px-5 py-5 sm:px-7 sm:py-6">
+        {/* 펼친 뒤 맨 위 — 이 답이 어느 글에 매이는지(머리의 곁말은 몇 문항인지다) */}
+        {foldable && <p className="-mt-2 text-small leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>}
         <div className="flex flex-col gap-4">
           <Scale
             name={`useful-${runId}`}
