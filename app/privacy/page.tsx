@@ -128,9 +128,9 @@ export default async function PrivacyPage() {
             <h2 className={TYPE_NAME}>{RIGHTS_TITLE}</h2>
             <ul className="flex flex-col gap-2">
               <li className={DOT_LINE}>저장된 출생 정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
-              <li className={DOT_LINE}>선택 동의는 계정 관리 화면에서 켜고 끌 수 있습니다.</li>
+              <li className={DOT_LINE}>선택 동의는 설정 화면에서 켜고 끌 수 있습니다.</li>
               <li className={DOT_LINE}>
-                계정과 저장된 정보의 삭제는 계정 관리 화면에서 요청하실 수 있습니다. 상세
+                계정과 저장된 정보의 삭제는 설정 화면에서 요청하실 수 있습니다. 상세
                 궁합이 열려 있던 상대가 있다면 그 결과는 양쪽 화면에서 함께 사라집니다.
               </li>
               <li className={DOT_LINE}>

@@ -119,15 +119,15 @@ try {
    */
   {
     const moved = await get('/me/discovery', myCookie);
-    check('옛 인연 설정 주소는 계정 관리로 잇는다',
+    check('옛 인연 설정 주소는 설정 화면으로 잇는다',
       moved.status === 307 && moved.headers.get('location')?.endsWith('/me/settings'),
       `${moved.status} → ${moved.headers.get('location')}`);
 
     const response = await get('/me/settings', myCookie);
     const body = await response.text();
-    check('계정 관리가 열린다', response.status === 200, String(response.status));
+    check('설정 화면이 열린다', response.status === 200, String(response.status));
     check('참여를 끄는 손잡이가 거기 있다',
-      body.includes('현재 다른 사람에게 내 프로필이 소개되고 있어요') && body.includes('인연 찾기 쉬기'));
+      body.includes('내 프로필과 오행 요약이 다른 사람에게 소개되고 있어요') && /role="switch" aria-checked="true" aria-labelledby="[^"]+"/.test(body));
 
     /**
      * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름으로 말하고 점수까지 세우므로,

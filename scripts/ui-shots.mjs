@@ -361,7 +361,7 @@ const PLAN = [
       { id: 'skeleton-matching-history', via: '/me/matching', at: '/me/matching/history', name: '뼈대 — 인연 지난 기록' },
       { id: 'skeleton-chat', via: '/me/requests', at: '/me/chat', name: '뼈대 — 대화 목록' },
       { id: 'skeleton-readings', via: '/me/requests', at: '/me/readings', name: '뼈대 — 사주풀이' },
-      { id: 'skeleton-settings', via: '/me/requests', at: '/me/settings', name: '뼈대 — 계정 관리' },
+      { id: 'skeleton-settings', via: '/me/requests', at: '/me/settings', name: '뼈대 — 설정' },
       { id: 'skeleton-profile', via: '/me/requests', at: '/me/profile', name: '뼈대 — 프로필' },
       { id: 'skeleton-survey', via: '/me/requests', at: '/me/survey', name: '뼈대 — 설문' },
     ],
