@@ -504,7 +504,7 @@ test.describe('동의로 열리는 흐름', () => {
       leaver.page.getByText('상대 화면에서도 사라지고', { exact: false }),
     ).toBeVisible();
 
-    await asked.getByRole('button', { name: '탈퇴 신청하기' }).click();
+    await asked.getByRole('button', { name: '탈퇴', exact: true }).click();
 
     /*
       **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는
