@@ -16,6 +16,7 @@ import {
 } from '../requests/manage';
 import { when } from '../requests/when';
 import type { DecidedRequest, PastRequests } from './history';
+import { ElementExchange } from './element-exchange';
 import { RequestFace } from './request-face';
 import { RequestsBand } from './requests-band';
 import { FailureLine } from '../../ui/failure-line';
@@ -242,19 +243,7 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
       {request.intro !== null && <p className="text-sm leading-6 text-secondary">{request.intro}</p>}
 
       {/* 내 자리 기준이다 — 방향은 DB 가 뒤집어 준다 */}
-      <div className="flex flex-wrap gap-2">
-        {request.suppliedToMe !== null && <InfoChip>{request.suppliedToMe}</InfoChip>}
-        {request.suppliedToThem !== null && <InfoChip>{request.suppliedToThem}</InfoChip>}
-        <InfoChip>{request.balanceLabel}</InfoChip>
-      </div>
+      <ElementExchange exchange={request} partner={{ nickname: request.nickname }} />
     </div>
-  );
-}
-
-function InfoChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-cell bg-surface-sunken px-3 py-1.5 text-small font-medium leading-5 text-secondary">
-      {children}
-    </span>
   );
 }
