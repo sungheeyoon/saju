@@ -5,7 +5,7 @@ import { SUPPORT_EMAIL } from '@/src/lib/brand';
 import { BUTTON_SECONDARY } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { OpenHashed } from './open-hashed';
-import { CARD, DISCLOSURE_SUMMARY_FACE, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, COLUMN, DISCLOSURE_SUMMARY_FACE, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 
 export const metadata = {
   title: '자주 묻는 질문',
@@ -126,7 +126,7 @@ const GROUPS: readonly {
 
 export default function HelpPage() {
   return (
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-8 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
       <OpenHashed />
       <header className="flex flex-col gap-2">
         <h1 className={TYPE_TITLE}>자주 묻는 질문</h1>

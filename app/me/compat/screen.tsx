@@ -200,7 +200,7 @@ async function ResultPage({
  */
 function Frame({ frame, children }: { frame: CompatFrame; children: ReactNode }) {
   return frame === 'page' ? (
-    <main className="app-shell flex max-w-[58rem] flex-1 flex-col gap-6 py-8 sm:py-12">{children}</main>
+    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-8 sm:py-12">{children}</main>
   ) : (
     <article className="flex min-w-0 flex-col gap-6">{children}</article>
   );

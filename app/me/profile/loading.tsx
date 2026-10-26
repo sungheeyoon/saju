@@ -12,7 +12,7 @@ import { COLUMN } from '../../ui/surfaces';
  */
 export default function ProfileLoading() {
   return (
-    <SkeletonMain name="profile" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12 lg:max-w-4xl`}>
+    <SkeletonMain name="profile" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12 lg:max-w-none`}>
       <div className="flex flex-col gap-1">
         <Bone className="h-[2.275rem] w-28 rounded-full sm:h-[2.6rem]" />
         <Bone className="h-5 w-60 max-w-full rounded-full" />

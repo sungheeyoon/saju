@@ -51,14 +51,15 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12">
+    /* 넓은 화면에서도 한 줄 기둥(`COLUMN`, 46rem)이다 — 내 사주 카드 → 받은 사주풀이 → 저장한 사람이 위에서 아래로 선다(시안, `ui/desktop-width`) */
+    <main className={`app-shell flex w-full ${COLUMN} min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12`}>
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
         <>
           {selfPersonId === null ? (
             /* 등록 전에는 폼 판 한 장이 본문이다 — 인사와 판을 폼의 기둥에 묶어 가운데 세운다. 홈 전폭으로 펴면 폼 오른쪽이 통째로 빈다 */
-            <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-3 sm:gap-12`}>
+            <div className="flex w-full flex-col gap-3 sm:gap-12">
               <Greeting name={nickname} />
               <Onboarding nickname={account?.nickname ?? ''} />
             </div>
@@ -190,13 +191,9 @@ async function Home({
   if (isFirstVisit({ readings, running, people: circle.people.length })) {
     return (
       <>
-        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-          <div className="min-w-0">{selfCard}</div>
-        </div>
+        <div className="min-w-0">{selfCard}</div>
         {myPeople}
-        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-          <OtherSaju />
-        </div>
+        <OtherSaju />
       </>
     );
   }
@@ -210,14 +207,12 @@ async function Home({
         **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
         내가 받은 사주풀이가 선다.
       */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-3">
-          {selfCard}
-          <OtherSaju />
-        </div>
-
-        <ReceivedReadings readings={readings} />
+      <div className="flex min-w-0 flex-col gap-3">
+        {selfCard}
+        <OtherSaju />
       </div>
+
+      <ReceivedReadings readings={readings} />
 
       {myPeople}
     </>
