@@ -145,7 +145,7 @@ describe('처리방침이 갖춰야 하는 것', () => {
    */
   it('거부하면 무엇이 안 되는지도 적는다', () => {
     expect(text).toContain('받을 수 없고 인연 궁합 요청을 수락할 수 없지만');
-    expect(text).toContain('가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다');
+    expect(text).toContain('가입하지 않거나 설정에서 탈퇴를 신청하시면 됩니다');
   });
 
   /**
@@ -227,7 +227,7 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v9');
+  expect(NOTICE_VERSION).toBe('notice-v10');
 });
 
 /**
@@ -309,7 +309,7 @@ describe('첫 화면의 짧은 사주 문단', () => {
     /* 본체와 하위 처리자를 가른다 — 「미국에서만」이라고 쓰지 않는다 */
     expect(outward).toContain('미국, 그리고 하위 처리자가 있는 여러 나라');
     expect(outward).not.toContain('미국에서만');
-    expect(outward).toContain('가입하지 않거나 계정 관리에서 탈퇴를 신청하시면 됩니다');
+    expect(outward).toContain('가입하지 않거나 설정에서 탈퇴를 신청하시면 됩니다');
     expect(text).toContain('풀이와 첫 화면의 짧은 사주 문단 생성은 OpenAI 에 맡깁니다');
   });
 

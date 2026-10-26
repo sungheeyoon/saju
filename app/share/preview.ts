@@ -37,7 +37,7 @@ const PREVIEW: Record<ShareKind, { title: string; description: string; image: st
   private: {
     title: `두 사람의 궁합이 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 궁합풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/compat-share-v4.jpg',
+    image: '/brand/compat-share-v5.jpg',
     alt: ALT,
   },
 };

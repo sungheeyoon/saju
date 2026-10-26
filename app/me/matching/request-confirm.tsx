@@ -49,7 +49,7 @@ export function RequestConfirm({
       title={`${profile.nickname} 님에게 상세 궁합을 요청할까요?`}
       confirmLabel={
         <>
-          <Icon name="heart" className="size-[18px]" />
+          <Icon name="taiji" className="size-[18px]" />
           요청 보내기
         </>
       }

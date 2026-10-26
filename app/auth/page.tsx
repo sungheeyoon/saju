@@ -75,5 +75,5 @@ const UNLOCKS: readonly { icon: IconName; text: string }[] = [
   { icon: 'reading', text: '내 사주를 읽고 쓴 사주풀이' },
   { icon: 'people', text: '가족 · 친구를 저장하고 그 사람의 풀이도' },
   { icon: 'taiji', text: '두 사람의 궁합풀이와 점수' },
-  { icon: 'heart', text: '사주로 어울리는 인연 만나기' },
+  { icon: 'people', text: '사주로 어울리는 인연 만나기' },
 ];

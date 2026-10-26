@@ -7,10 +7,10 @@
  *
  * - `saju` (첫 화면 · 사람 공유) — 가운데 나, 안쪽 궤도에 다섯 기운, 바깥 점선 궤도. 로고와 같은 짜임이다
  * - `reading` (풀이 공유) — 여덟 글자 판. 기둥 넷의 글자가 제 기운의 파스텔 면에 선다
- * - `compat` (궁합 공유) — 두 사람의 궤도가 겹치고, 둘 사이의 선 가운데 하트
+ * - `compat` (궁합 공유) — 두 사람의 궤도가 겹치고, 둘 사이의 선 가운데 태극(앱의 궁합 그림 — 하트는 2026-10-26 걷었다, v5)
  *
  * 색은 `app/globals.css` 의 밝은 토큰을 읽는다(새 색을 짓지 않는다). 다섯 상징의 모양은 `app/ui/element-symbol.tsx`,
- * 하트 · 반짝임은 `app/ui/icons.tsx` 와 같은 선이다 — 거기를 바꾸면 여기도 옮긴다. **그림의 글자는 `SERVICE_NAME` ·
+ * 태극(`app/ui/entry-marks.tsx`) · 반짝임은 `app/ui/icons.tsx` 와 같은 선이다 — 거기를 바꾸면 여기도 옮긴다. **그림의 글자는 `SERVICE_NAME` ·
  * `SERVICE_TAGLINE` 둘과 여덟 글자(한자)뿐이다** — 새 문구는 없다.
  *
  * 왜 `opengraph-image.tsx` 가 아니라 구워 둔 JPEG 인가: 공유본 미리보기는 첫 HTML 에 상수로 실려야 하고
@@ -93,7 +93,12 @@ const badge = (name, cx, cy, r, { dashed = false } = {}) =>
 const orbit = (cx, cy, r, { gap = 13, width = 4, color = T['border-strong'] } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="0.1 ${gap}"/>`;
 
-const HEART = 'M12 19.5s-7.5-4.4-7.5-9.7A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5c0 5.3-7.5 9.7-7.5 9.7Z';
+/** 태극 — `app/ui/entry-marks.tsx` 의 `TaijiShapes` 와 같은 몸(흰 반 · 먹색 반 · 두 점) */
+const taiji = (cx, cy, size) =>
+  `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${size / 24})">` +
+  `<circle cx="12" cy="12" r="9" fill="${T.surface}" stroke="${T.foreground}" stroke-width="1.6"/>` +
+  `<path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9ZM13.4 16.5a1.4 1.4 0 1 0-2.8 0 1.4 1.4 0 1 0 2.8 0Z" fill="${T.foreground}" fill-rule="evenodd"/>` +
+  `<circle cx="12" cy="7.5" r="1.4" fill="${T.foreground}"/></g>`;
 const SPARK = 'M12 3.5 13.9 10l6.6 2-6.6 2L12 20.5 10.1 14l-6.6-2 6.6-2Z';
 const icon = (d, cx, cy, size, { fill = 'none', stroke = T.foreground, width = 1.8 } = {}) =>
   `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${size / 24})"><path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/></g>`;
@@ -204,7 +209,7 @@ function readingArt() {
     </g>`;
 }
 
-/** 궁합 공유 — 두 사람의 궤도가 겹치고, 둘을 잇는 선 가운데 하트. 궤도 위에 각자의 기운 */
+/** 궁합 공유 — 두 사람의 궤도가 겹치고, 둘을 잇는 선 가운데 태극. 궤도 위에 각자의 기운 */
 function compatArt() {
   const a = [748, 318];
   const b = [1018, 318];
@@ -220,7 +225,7 @@ function compatArt() {
     <circle cx="${b[0]}" cy="${b[1]}" r="64" fill="${T['water-soft']}" stroke="${T.water}" stroke-width="4"/>
     ${symbol('water', b[0], b[1], 70)}
     <circle cx="${mid[0]}" cy="${mid[1] - 28}" r="34" fill="${T.surface}" stroke="${T.foreground}" stroke-width="3"/>
-    ${icon(HEART, mid[0], mid[1] - 27, 38, { fill: T['fire-mid'], stroke: T.foreground, width: 1.6 })}
+    ${taiji(mid[0], mid[1] - 28, 46)}
     ${badge('wood', a[0] - r * Math.cos(0.9), a[1] - r * Math.sin(0.9), 34)}
     ${badge('earth', a[0] - r * Math.cos(-0.75), a[1] - r * Math.sin(-0.75), 30)}
     ${badge('metal', b[0] + r * Math.cos(0.85), b[1] - r * Math.sin(0.85), 34)}
@@ -250,7 +255,7 @@ const CORNERS = {
 const SHOTS = [
   { kind: 'saju', target: 'saju-share-v4.jpg', art: sajuArt },
   { kind: 'reading', target: 'reading-share-v4.jpg', art: readingArt },
-  { kind: 'compat', target: 'compat-share-v4.jpg', art: compatArt },
+  { kind: 'compat', target: 'compat-share-v5.jpg', art: compatArt },
 ];
 
 function page(shot) {
