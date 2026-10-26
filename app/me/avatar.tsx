@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { focusPosition, initialOf, type PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
@@ -25,6 +25,8 @@ export function Avatar({
   focus,
   size = 40,
   tone,
+  fallback,
+  faceClass,
 }: {
   userId: string;
   nickname: string;
@@ -38,6 +40,12 @@ export function Avatar({
    * 누구의 색인지 남는다. `null` 은 「모른다」의 회색 한 벌, 안 주면 고리 없는 예전 모양이다. 색은 꾸밈이다.
    */
   tone?: Element | null;
+  /**
+   * 사진이 없거나 못 받았을 때 원 안에 세울 것 — 안 주면 이름의 첫 글자다. 홈의 내 사주 카드는 일간 그림을 준다(2026-10-26)
+   */
+  fallback?: ReactNode;
+  /** 고리 없는 원의 면 · 글자색 — 안 주면 가라앉은 회색 면. 파스텔 카드 위의 원은 흰 면이다 */
+  faceClass?: string;
 }) {
   const box = `${size}px`;
   const ringed = tone !== undefined;
@@ -63,7 +71,9 @@ export function Avatar({
     >
       <span
         className={`flex h-full w-full items-center justify-center overflow-hidden rounded-full ${
-          ringed ? 'bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] text-[var(--ink)]' : 'bg-surface-sunken text-secondary'
+          ringed
+            ? 'bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] text-[var(--ink)]'
+            : (faceClass ?? 'bg-surface-sunken text-secondary')
         }`}
         style={{ fontSize: `${Math.round(size * (ringed ? 0.36 : 0.4))}px` }}
       >
@@ -80,7 +90,7 @@ export function Avatar({
             onError={() => setFailedFor(photoKey)}
           />
         ) : (
-          <span className="font-semibold">{initialOf(nickname)}</span>
+          (fallback ?? <span className="font-semibold">{initialOf(nickname)}</span>)
         )}
       </span>
     </span>

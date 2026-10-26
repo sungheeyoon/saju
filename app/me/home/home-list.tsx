@@ -1,0 +1,68 @@
+import { STEM_INFO, type Element, type Stem } from '@/src/lib/saju';
+
+import { elementScope } from '../../ui/element-tone';
+import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
+import { CARD_FRAME } from '../../ui/surfaces';
+
+/*
+  **홈의 목록 한 벌**(2026-10-25 홈 위계 정리 · 2026-10-26 2차) — 주인공(내 사주 카드) 아래의 것은 모두 흰 판 한 장 안의 줄이다.
+
+  고치기 전 홈은 한 화면에 판 모양이 다섯 벌이었다 — 진행 띠 · 오행 파스텔 큰 판 · 검색 줄 카드 · 색띠 표지 가로 줄 · 오행 타일 2열과
+  점선 「사람 추가」. 토스 · 카카오뱅크 홈은 맨 위 하나만 색 면이고 그 아래는 흰 판 안의 줄 목록이며, 줄 왼쪽의 작은 동그라미가
+  무엇인지를 말한다. 그 문법을 따른다 — 오행 파스텔은 주인공 판에만, 줄은 흰 면 위 작은 오행 표시(`HomeMark`)만 색을 입는다.
+
+  **줄 사이의 선은 판 왼쪽 끝부터 오른쪽 끝까지다**(2026-10-26 운영자 「예전처럼 끝까지」 — 2차에서 걷고 3차에서 안쪽 선으로 되살렸다가 처음
+  모양으로 돌렸다). 줄의 경계는 위 테다(`-mt-px border-t`). 판이 `overflow-hidden` 이라 맨 윗줄의 테는 판 밖으로 밀려 잘린다 — 줄 사이에만
+  선이 남는다. 판 위아래 여백은 없다.
+*/
+
+/** 줄을 드는 흰 판 — `<ul>` 에 단다 */
+export const HOME_LIST = `${CARD_FRAME} flex flex-col`;
+
+/** 판 안의 줄 하나(`<li>`) — 위 테가 구분선이다 */
+export const HOME_ROW = 'relative min-w-0 -mt-px border-t border-border';
+
+/** 줄 안쪽의 배치 — 표시 · 글 · 끝(화살표나 단추) */
+export const HOME_ROW_INNER = 'flex min-h-16 items-center gap-3 px-4 py-3';
+
+/** 줄 전체가 링크일 때 — 누르면 면이 한 단 가라앉는다 */
+export const HOME_ROW_LINK = `${HOME_ROW_INNER} text-foreground hover:bg-surface-sunken active:bg-surface-sunken`;
+
+/**
+ * **본 궁합의 값** — 「84점 ☯」. 면 없는 글자라 단추가 아니라 값으로 읽힌다(토스증권 주식 줄의 가격 · 당근 프로필의 「36.5°C 😊」처럼
+ * 값 뒤에 그 값의 표시). 폭이 고정이고(64px) 오른쪽 끝 맞춤이라 줄마다 숫자 · 표시가 한 줄에 선다. 줄에는 단추가 없다 — 줄 전체가 그 사람
+ * 화면으로 간다(2026-10-26 운영자, 카카오톡 친구 목록).
+ */
+export const HOME_ROW_VALUE = 'inline-flex w-16 shrink-0 items-center justify-end gap-1 text-body font-semibold tabular-nums text-foreground';
+
+/*
+  **구역 머리** — 제목 · 개수 · 오른쪽 링크가 **한 기준선**에 선다(카카오톡 「생일인 친구 2」 · 토스증권 「내 계좌 … 16:50 기준 >」).
+  링크는 밑줄 없는 회색 글자와 꺾쇠(>)다 — 토스증권 「보기 >」 꼴. 누를 자리 44px 는 위아래 음수 여백으로 머리 높이를 늘이지 않는다.
+*/
+
+/** 머리 한 줄 — 제목 묶음과 링크가 글자의 기준선으로 맞선다 */
+export const HOME_HEAD = 'flex items-baseline justify-between gap-4';
+
+/** 제목 옆 개수 — 「3개」 · 「5/10명」 */
+export const HOME_HEAD_COUNT = 'font-sans text-small font-semibold tabular-nums text-secondary';
+
+/** 머리 오른쪽 링크 — 회색 글자 + 꺾쇠 */
+export const HOME_HEAD_LINK =
+  '-my-3 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-cell text-small font-medium text-secondary hover:text-foreground';
+
+/**
+ * 줄 왼쪽의 작은 표시 — **오행 색은 여기만 입는다.** 사람이면 그 일간의 천간 그림, 모르면 회색 오행 기호다. 색만으로 말하지 않게
+ * 이름(「햇빛」)은 줄의 글이나 읽는 이름이 든다.
+ */
+export function HomeMark({ stem, element = null }: { stem?: Stem | null; element?: Element | null }) {
+  const tone = stem != null ? STEM_INFO[stem].element : element;
+  return (
+    <span
+      aria-hidden="true"
+      className={`${elementScope(tone)} grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]`}
+    >
+      {stem != null ? <StemSymbol stem={stem} className="size-6" /> : <ElementSymbol element={tone} className="size-6" />}
+    </span>
+  );
+}
