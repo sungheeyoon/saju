@@ -46,8 +46,8 @@ export type Gender = 'male' | 'female';
 export const GENDERS: readonly Gender[] = ['female', 'male'];
 
 export const GENDER_KO: Record<Gender, string> = {
-  female: '여자',
-  male: '남자',
+  female: '여성',
+  male: '남성',
 };
 
 /**

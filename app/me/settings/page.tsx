@@ -1,36 +1,18 @@
-import Link from 'next/link';
-
-import { isBlocked } from '@/src/lib/account';
-
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { FailureLine } from '../../ui/failure-line';
-import { Icon } from '../../ui/icons';
-import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
-import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
-import { RequestDeletion } from '../leaving';
-import { ConsentControls } from '../consent-controls';
-import { SETTINGS_QUIET, SettingsCard, SettingsLinkRow, SettingsRow } from './card';
-import { SignOutRow } from './sign-out-row';
-import { PushRow } from './push-row';
-import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
-import { PHOTO_ADD } from '@/src/lib/account/copy';
 import { myPhotos } from '../profile/photos';
-import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
+import { SettingsView } from './view';
 
 export const metadata = {
-  title: '계정 관리',
+  title: '설정',
   description: '로그인 정보와 계정 상태를 확인하고 계정을 관리합니다.',
 };
 
 /**
- * 계정 관리 — **무리 지은 목록 하나** (5차, 부드러움).
- *
- * 위에서 아래로 「나 → 만남 → 동의 → 로그인 → 떠나기」 차례다. 자주 바꾸는 것이 위, 되돌리기
- * 어려운 것이 맨 아래다. 모양은 `card.tsx` 한 벌이 든다.
+ * 계정 관리 — 여기는 **읽기만** 한다. 그림(무리의 차례 · 맨 위 내 프로필)은 `view.tsx`, 줄의 모양은 `card.tsx` 한 벌이 든다.
  */
 export default async function SettingsPage() {
   const supabase = await supabaseOnServer();
@@ -52,100 +34,16 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
-      <header className="flex flex-col gap-1">
-        <h1 className={TYPE_TITLE}>계정 관리</h1>
-        <p className={TYPE_META}>로그인과 계정에 관한 일을 여기서 관리해요.</p>
-      </header>
-
-      {isBlocked(state) && <AccountNotice state={state} />}
-
-      {/*
-        **프로필은 여기서 고치지 않고 그 화면으로 간다.** 이름 · 사진 · 소개는 앱 전체에서 불리는
-        값이라 제 화면(`/me/profile`)이 있다 — 설정 앱이 맨 위에 「나」를 한 줄로 세우는 것과 같다.
-      */}
-      {state.kind === 'active' && account !== null && (
-        <SettingsCard title="프로필">
-          <SettingsLinkRow
-            href="/me/profile"
-            leading={
-              <span
-                aria-hidden="true"
-                className="grid size-11 shrink-0 place-items-center rounded-full bg-cream text-cream-ink"
-              >
-                <Icon name="people" />
-              </span>
-            }
-            label={account.nickname ?? '프로필'}
-            help="닉네임 · 사진 · 소개"
-            trailing={photoless ? <>{PHOTO_ADD}</> : undefined}
-          />
-        </SettingsCard>
-      )}
-
-      {/*
-        못 읽었으면 두 칸 대신 실패 줄 하나가 선다 — 기본값으로 메우면 끈 사람에게 「켜져 있다」고 말하고(ADR 0078), 말없이 비우면
-        그 설정이 있는 줄도 모른다(ADR 0164 덧).
-      */}
-      {state.kind === 'active' &&
-        (discoveryProfile.ok ? (
-          <>
-            <PreferenceForm current={discoveryProfile.value?.preferGender ?? 'any'} />
-            <ParticipationToggle resting={discoveryProfile.value?.optedOut ?? false} />
-          </>
-        ) : (
-          <SettingsCard title="인연 찾기">
-            <FailureLine retry className="py-3">
-              인연 찾기 설정을 불러오지 못했어요. {discoveryProfile.reason}
-            </FailureLine>
-          </SettingsCard>
-        ))}
-
-      {/*
-        이 기기의 새 메시지 알림 — 상태는 브라우저만 알아 줄이 스스로 잰다(ADR 0156). **공개 열쇠가 없는 배포에는 안 세운다** —
-        운영에 열쇠를 넣기 전(G-71)에 세우면 모든 사람에게 「이 브라우저에서는 알림을 받을 수 없어요」라는 거짓을 말한다.
-      */}
-      {state.kind === 'active' && process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY && <PushRow />}
-
-      {state.kind === 'active' && account !== null && (
-        <SettingsCard title="선택 동의" description={OPTIONAL_CONSENT_NOTE}>
-          <ConsentControls
-            improvement={account.improvement_consent === true}
-            contact={account.contact_consent === true}
-          />
-          {/*
-            **처리 안내도 이 무리의 한 줄이다.** 여기서 사용자가 찾는 것 셋(무엇을 켰나 · 무엇을
-            껐나 · 무엇을 확인했나) 중 하나라, 위의 선택 항목 둘과 같은 줄 모양으로 선다.
-          */}
-          <SettingsRow
-            label="개인정보 처리 안내"
-            help={
-              account.notice_ack_at === null
-                ? '아직 처리 안내를 확인하지 않았습니다.'
-                : `${asKoreanDay(account.notice_ack_at.slice(0, 10))} 처리 안내를 확인했습니다.`
-            }
-            note={
-              !noticeAckHolds(account.notice_version)
-                ? '안내가 새로 바뀌어 다시 보여 드립니다.'
-                : undefined
-            }
-          >
-            <Link href="/privacy" className={SETTINGS_QUIET}>
-              처리방침 보기
-            </Link>
-          </SettingsRow>
-        </SettingsCard>
-      )}
-
-      <SettingsCard title="로그인 정보">
-        <SignOutRow email={user.email} />
-      </SettingsCard>
-
-      {state.kind === 'active' && (
-        <SettingsCard title="탈퇴">
-          <RequestDeletion />
-        </SettingsCard>
-      )}
-    </main>
+    <SettingsView
+      data={{
+        state,
+        account,
+        discoveryProfile,
+        photoless,
+        email: user.email,
+        userId: user.id,
+        pushAvailable: Boolean(process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY),
+      }}
+    />
   );
 }

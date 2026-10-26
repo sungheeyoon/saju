@@ -54,12 +54,12 @@ export default async function ClosedPage() {
           <p>{betaOverNote(notice.dates)}</p>
           <p>함께해 주셔서 고맙습니다. 남은 문의는 {SUPPORT_EMAIL}으로 보내 주세요.</p>
           {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
-          <p>선택 동의 철회와 탈퇴 신청은 계정 관리에서 계속하실 수 있습니다.</p>
+          <p>선택 동의 철회와 탈퇴 신청은 설정에서 계속하실 수 있습니다.</p>
         </>
       }
       actions={
         <Link href="/me/settings" className={BUTTON_PRIMARY}>
-          계정 관리
+          설정
         </Link>
       }
     />

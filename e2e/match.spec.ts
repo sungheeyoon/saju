@@ -244,16 +244,16 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('저장했어요')).toBeVisible();
 
       await person.page.goto('/me/settings');
-      await expect(person.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '설정', exact: true })).toBeVisible();
 
       /*
         **누를 버튼이 없다**(PRD §4.1, ADR 0037). 참여가 기본으로 켜진 뒤로 이 화면에서
         켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v4`). 여기 남은
         누름은 끄는 것 하나다 — 그 버튼이 서 있는 것으로 「지금 켜져 있다」를 잰다.
       */
-      await expect(person.page.getByRole('heading', { name: '인연 찾기', exact: true })).toBeVisible();
-      await expect(person.page.getByText('현재 다른 사람에게 내 프로필이 소개되고 있어요.')).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '인연 찾기 쉬기' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '인연', exact: true })).toBeVisible();
+      await expect(person.page.getByText('내 프로필과 오행 요약이 다른 사람에게 소개되고 있어요.')).toBeVisible();
+      await expect(person.page.getByRole('switch', { name: '인연 찾기' })).toHaveAttribute('aria-checked', 'true');
 
       /*
         **참여가 실제로 열리는 자리는 홈이다.** 요약은 DB 가 못 만들어서 앱이 넣고, 그
@@ -526,7 +526,7 @@ test.describe('동의로 열리는 흐름', () => {
     await pendingRequest(other, leaver);
 
     await leaver.page.goto('/me/settings');
-    await leaver.page.getByRole('button', { name: '탈퇴', exact: true }).click();
+    await leaver.page.getByRole('button', { name: '탈퇴하기', exact: true }).click();
     /* 한 번 더 묻는 것은 확인 창 한 벌이고 첫 초점은 「취소」다(운영자 2026-10-18 G-97 ③, ADR 0166) */
     const asked = leaver.page.getByRole('dialog', { name: '정말 탈퇴할까요?' });
     await expect(asked).toBeVisible();
@@ -543,13 +543,13 @@ test.describe('동의로 열리는 흐름', () => {
       시험이 틀린 약속을 잠그고 있었던 것이다. 지금 계약을 잠근다.
     */
     await expect(
-      leaver.page.getByText('탈퇴 신청 후 3일 이내에 자동으로 지웁니다', { exact: false }),
+      leaver.page.getByText('신청 후 3일 안에 지워져요', { exact: false }),
     ).toBeVisible();
     await expect(
-      leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
+      leaver.page.getByText('상대 화면에서도 사라지고', { exact: false }),
     ).toBeVisible();
 
-    await asked.getByRole('button', { name: '탈퇴 신청하기' }).click();
+    await asked.getByRole('button', { name: '탈퇴', exact: true }).click();
 
     /*
       **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 제한된 계정이에요」는
