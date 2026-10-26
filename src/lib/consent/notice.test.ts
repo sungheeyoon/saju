@@ -396,3 +396,16 @@ it('가입 안내도 상세 궁합의 양방향 여덟 글자 공개를 직접 �
   expect(text).toContain(MATCH_PILLARS_DISCLOSURE);
   expect(text).not.toContain('드러날 수 있습니다');
 });
+
+/** v12 — 출생 정보를 고치는 자리는 둘이다: 내 것은 프로필 화면, 가족·친구 것은 저장한 사람 화면(#852 · #853). 옛 「내 사주 화면」은 없다 */
+it('권리 줄이 내 출생 정보와 가족·친구의 출생 정보를 고치는 화면을 따로 말한다', () => {
+  const text = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  )
+    .flatMap((section) => section.lines)
+    .join(' ');
+
+  expect(text).toContain('내 출생 정보는 프로필 화면에서, 등록한 가족·친구의 출생 정보는 저장한 사람 화면에서 직접 고치실 수 있고');
+  expect(text).not.toContain('내 사주 화면');
+});

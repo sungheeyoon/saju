@@ -31,7 +31,7 @@ export function CopyValue({ value, label }: { value: string; label: string }) {
       }}
       className={`${BUTTON_SECONDARY_SMALL} shrink-0`}
     >
-      {state === 'copied' ? '복사했습니다' : state === 'failed' ? '복사하지 못했습니다 — 옆의 값을 긁어 주세요' : label}
+      {state === 'copied' ? '복사했어요' : state === 'failed' ? '복사하지 못했습니다 — 옆의 값을 긁어 주세요' : label}
     </button>
   );
 }

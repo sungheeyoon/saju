@@ -109,7 +109,7 @@ function Name({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className={`max-w-full shrink-0 truncate text-body font-semibold text-foreground after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:-outline-offset-[3px] focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]`}
+      className={`max-w-full shrink-0 truncate text-body font-semibold text-foreground after:absolute after:inset-0 after:content-[''] hover:opacity-70 active:opacity-55 focus-visible:outline-none focus-visible:after:outline focus-visible:after:-outline-offset-[3px] focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_55%,transparent)]`}
     >
       {label}
     </Link>

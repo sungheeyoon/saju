@@ -202,7 +202,7 @@ function DecidedLine({ request }: { request: DecidedRequest }) {
   return (
     <span className="flex flex-col gap-1">
       <span className="flex flex-wrap items-center gap-2">
-        <strong className="font-semibold group-hover:underline">{request.nickname}</strong>
+        <strong className="font-semibold group-hover:opacity-70">{request.nickname}</strong>
         <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-fine font-medium text-secondary">
           {REQUEST_STATUS_TEXT[request.status].label}
         </span>
