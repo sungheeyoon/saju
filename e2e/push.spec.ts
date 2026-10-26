@@ -87,19 +87,19 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     await page.goto('/me/settings');
     const section = row(page);
     await expect(section.getByText('새 메시지 알림', { exact: true })).toBeVisible();
-    await expect(section.getByRole('button', { name: '알림 켜기' })).toBeVisible();
+    await expect(section.getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'false');
     expect(subscriptionsOf(signedIn.email)).toBe(0);
 
-    await section.getByRole('button', { name: '알림 켜기' }).click();
-    await expect(section.getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await section.getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(section.getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
     expect(subscriptionsOf(signedIn.email)).toBe(1);
 
     // 다시 열어도 켜짐이다 — 브라우저 구독과 서버 줄이 같은 것을 가리킨다
     await page.reload();
-    await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
 
-    await row(page).getByRole('button', { name: '알림 끄기' }).click();
-    await expect(row(page).getByRole('button', { name: '알림 켜기' })).toBeVisible();
+    await row(page).getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'false');
     expect(subscriptionsOf(signedIn.email)).toBe(0);
   });
 
@@ -113,8 +113,8 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     await fakePushService(context);
 
     await page.goto('/me/settings');
-    await row(page).getByRole('button', { name: '알림 켜기' }).click();
-    await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await row(page).getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
 
     // 같은 브라우저에 다른 계정의 쿠키만 갈아 끼운다 — 로그아웃을 안 거친 계정 전환
     const other = await openAs({ selfPerson: true });
@@ -127,12 +127,12 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     expect(before).not.toBeNull();
 
     await page.goto('/me/settings');
-    await expect(row(page).getByRole('button', { name: '알림 켜기' })).toBeVisible();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'false');
     // 앞 계정의 구독은 이 브라우저에서 풀린다 — 앞 계정의 메시지 통보가 이 기기에 안 선다(`app/me/push/owner.ts`)
     await expect.poll(() => page.evaluate(() => localStorage.getItem('e2e-fake-push-subscription'))).toBeNull();
 
-    await row(page).getByRole('button', { name: '알림 켜기' }).click();
-    await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await row(page).getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
     expect(subscriptionsOf(other.account.email)).toBe(1);
     const after = await page.evaluate(() => localStorage.getItem('e2e-fake-push-subscription'));
     expect(after).not.toBe(before);
@@ -145,8 +145,8 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     await fakePushService(context);
 
     await page.goto('/me/settings');
-    await row(page).getByRole('button', { name: '알림 켜기' }).click();
-    await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await row(page).getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
     expect(subscriptionsOf(signedIn.email)).toBe(1);
 
     await page.getByRole('button', { name: '로그아웃' }).click();
@@ -162,7 +162,7 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
 
     await page.goto('/me/settings');
     await expect(row(page).getByText('브라우저 설정에서 이 사이트의 알림을 허용해 주세요', { exact: false })).toBeVisible();
-    await expect(row(page).getByRole('button', { name: '알림 켜기' })).toHaveCount(0);
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveCount(0);
   });
 
   test('서비스 워커는 푸시를 받으면 서비스명과 한 줄만 세운다 — 닉네임 · 본문이 없다', async ({ page, context, signedIn }) => {
@@ -171,8 +171,8 @@ test.describe('새 메시지 알림 (ADR 0156)', () => {
     await fakePushService(context);
 
     await page.goto('/me/settings');
-    await row(page).getByRole('button', { name: '알림 켜기' }).click();
-    await expect(row(page).getByRole('button', { name: '알림 끄기' })).toBeVisible();
+    await row(page).getByRole('switch', { name: '새 메시지 알림' }).click();
+    await expect(row(page).getByRole('switch', { name: '새 메시지 알림' })).toHaveAttribute('aria-checked', 'true');
 
     // 진짜 워커의 진짜 처리기에 PushEvent 를 넘긴다 — 페이로드에 다른 칸이 끼어 와도 옮기지 않는지까지
     const matchId = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
