@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react';
+import { Children, isValidElement, useEffect, useId, useRef, type MouseEvent, type ReactNode } from 'react';
 
 import { BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY } from './buttons';
+import { Icon, type IconName } from './icons';
 import { DIALOG, DIALOG_ACTIONS, DIALOG_ACTIONS_ROW, TYPE_NAME } from './surfaces';
 import { FailureLine } from './failure-line';
 
@@ -39,7 +40,17 @@ export function pressedOutside(event: MouseEvent<HTMLDialogElement>): boolean {
  * 모양 · 몸짓이 창마다 갈렸다 — 단추 차례(차단은 확인이 왼쪽), 바깥 누름(닫히는 창 · 안 닫히는 창), 첫 초점(실행 단추에
  * 선 창 셋). 여기서 한 벌로 묶는다:
  *
- * - 단추는 `DIALOG_ACTIONS` — 실행이 오른쪽(좁은 화면에서 위), 「취소」가 그 옆. 닫는 X 는 없다 — 닫는 것은 「취소」다(대장 01).
+ * - **단추는 나란히 선다**(`DIALOG_ACTIONS_ROW`, 운영자 승인 2026-10-26) — 왼쪽 닫기 · 오른쪽 실행이 반씩 나눈다. 당근 SEED Alert
+ *   Dialog 는 가로 배열이 기본이고 「Action Button Label 길이가 긴 경우 세로 배열」(responsive-wrapping)이다 — 토스 TDS
+ *   `ConfirmDialog` 도 왼쪽 닫기 · 오른쪽 실행. 그래서 **어느 단추든 글자가 여섯 자(띄어쓰기 빼고)를 넘으면 위아래**
+ *   (`DIALOG_ACTIONS`, 실행이 위)로 선다 — 390px 폰에서 반 칸(약 150px)에 15px 굵은 글 일곱 자와 좌우 여백이 안 든다
+ *   (「사주풀이 다시 받기」 · 「바꾸고 저장하기」). 부르는 쪽이 `actions` 를 주면 그것이 이긴다.
+ * - 닫는 X 는 없다 — 닫는 것은 「취소」다(대장 01). 실행 글자에 「취소」가 들면 닫기는 「닫기」다(대장 01 의 예외).
+ * - **글의 규칙**(운영자 2026-10-26 「문구와 가독성이 별로」, ADR 0166 추기) — 제목은 「대상을 동작할까요?」 한 줄, 본문은 한두 문장.
+ *   무엇이 일어나는지 한 문단, 「되돌릴 수 없어요」는 **따로 한 문단**, 핵심 값(「풀이권 1장」)은 `<strong>` 으로 굵게 — 토스 TDS
+ *   「삭제할까요? / 이 작업은 되돌릴 수 없어요.」 · 당근 SEED 「이 작업은 되돌릴 수 없습니다.」 · 카카오톡 「차단하시겠습니까? / 차단하면
+ *   …」. 굵은 값은 이 판이 글자색(`foreground`)으로 올린다.
+ * - 제목 곁의 그림(`titleIcon`) — 무엇을 쓰는 창인지 한눈에(풀이권 창의 표, 머리글의 풀이권 그림과 같은 것).
  * - **첫 초점은 「취소」다** — Enter 한 번에 되돌릴 수 없는 일이 나지 않게. 풀이권 처음 받기처럼 잃을 것이 없는 창만
  *   `firstFocus="confirm"` 이다.
  * - Esc · 바깥 누름 · 「취소」는 같은 일(닫기)이다. 보내는 동안(`busy`)은 셋 다 안 닫는다.
@@ -54,6 +65,7 @@ export function ConfirmDialog({
   title,
   children,
   lead,
+  titleIcon,
   confirmLabel,
   onConfirm,
   danger = false,
@@ -61,7 +73,7 @@ export function ConfirmDialog({
   failure = null,
   firstFocus = 'cancel',
   cancelLabel = '취소',
-  actions = 'stack',
+  actions,
   className,
 }: {
   open: boolean;
@@ -71,6 +83,8 @@ export function ConfirmDialog({
   children?: ReactNode;
   /** 제목 위에 서는 그림(아이콘 · 사진) */
   lead?: ReactNode;
+  /** 제목 앞에 같은 줄로 서는 그림 — 무엇을 쓰는 창인지(풀이권 창의 `ticket`) */
+  titleIcon?: IconName;
   confirmLabel: ReactNode;
   onConfirm: () => void;
   /** 되돌릴 수 없는 실행이면 위험 색 */
@@ -81,7 +95,7 @@ export function ConfirmDialog({
   firstFocus?: 'cancel' | 'confirm';
   /** `null` 이면 「취소」를 안 세운다 — 고를 것이 없는 고지 */
   cancelLabel?: string | null;
-  /** 단추 줄 — `stack` 은 좁으면 위아래(기본), `row` 는 늘 나란히(짧은 두 단추, `DIALOG_ACTIONS_ROW`) */
+  /** 단추 줄 — 주지 않으면 글자 길이로 고른다(`autoActions`). `row` 는 늘 나란히, `stack` 은 좁으면 위아래 */
   actions?: 'stack' | 'row';
   /** 판에 덧붙이는 것 — 오행 색(`elementScope`) · 자리 */
   className?: string;
@@ -120,14 +134,15 @@ export function ConfirmDialog({
       className={className === undefined ? DIALOG : `${DIALOG} ${className}`}
     >
       {lead}
-      <h2 id={titleId} className={lead === undefined ? TYPE_NAME : `mt-4 ${TYPE_NAME}`}>
-        {title}
+      <h2 id={titleId} className={`${lead === undefined ? '' : 'mt-4 '}${TYPE_NAME} ${titleIcon === undefined ? '' : 'flex items-start gap-2'}`}>
+        {titleIcon !== undefined && <Icon name={titleIcon} className="mt-0.5 size-5 shrink-0 text-cream-ink" />}
+        <span>{title}</span>
       </h2>
-      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary">{children}</div>}
+      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary [&_strong]:font-semibold [&_strong]:text-foreground">{children}</div>}
       {failure !== null && failure !== undefined && (
         <FailureLine className="mt-3">{failure}</FailureLine>
       )}
-      <div className={actions === 'row' ? DIALOG_ACTIONS_ROW : DIALOG_ACTIONS}>
+      <div className={(actions ?? autoActions(confirmLabel, cancelLabel)) === 'row' ? DIALOG_ACTIONS_ROW : DIALOG_ACTIONS}>
         <button
           type="button"
           onClick={onConfirm}
@@ -151,4 +166,21 @@ export function ConfirmDialog({
       </div>
     </dialog>
   );
+}
+
+/** 반 칸에 드는 단추 글자 — 띄어쓰기를 뺀 글자 수. 390px 폰의 반 칸(약 150px)에 15px 굵은 글과 좌우 20px 여백이 드는 끝 */
+const ROW_LABEL_MAX = 6;
+
+/** 단추 글자(문자열 · 그림과 함께 선 글자)를 이어 붙인다 — 길이만 잰다 */
+function labelText(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(labelText).join('');
+  if (isValidElement<{ children?: ReactNode }>(node)) return Children.toArray(node.props.children).map(labelText).join('');
+  return '';
+}
+
+/** 두 단추가 반 칸씩 들면 나란히, 하나라도 길면 위아래(SEED Alert Dialog 의 responsive-wrapping) */
+export function autoActions(confirmLabel: ReactNode, cancelLabel: string | null): 'row' | 'stack' {
+  const longest = Math.max(labelText(confirmLabel).replace(/\s/g, '').length, (cancelLabel ?? '').replace(/\s/g, '').length);
+  return longest > ROW_LABEL_MAX ? 'stack' : 'row';
 }

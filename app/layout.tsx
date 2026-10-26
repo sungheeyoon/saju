@@ -9,6 +9,7 @@ import { PushOwnerCheck } from './me/push/push-owner';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 import { siteUrl } from './site-url';
+import { SnackbarHost } from './ui/snackbar';
 import './globals.css';
 
 const TITLE = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
@@ -104,6 +105,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         {/* 사업자 정보는 서버에서 환경변수로 읽어 넘긴다 — 바닥글은 클라이언트라 직접 못 읽는다(ADR 0172) */}
         <SiteFooter business={currentBusinessInfo()} />
+        {/* 바닥 스낵바 한 자리 — 화면은 `showSnackbar` 만 부른다(ADR 0109 추기 2026-10-24) */}
+        <SnackbarHost />
       </body>
     </html>
   );

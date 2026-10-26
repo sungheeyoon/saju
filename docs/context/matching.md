@@ -79,10 +79,12 @@ _Avoid_: 매칭 신청, 대기, MatchRequest
 
 **무효** — `match_request.status` 의 `invalidated` · `invalidate_pending_requests` : 어느 한쪽의
 **저장된 입력**이 바뀌어 **pending 요청**이 성립할 수 없게 된 상태. 사람이 거둔 것이 아니다.
-_Avoid_: 취소, 만료
+_Avoid_: 취소, 만료 — 화면의 「취소」는 **거둠**의 글자다(아래). 무효를 「취소」로 부르지 않는다
 
 **거둠** — `match_request.status` 의 `cancelled` · `cancelRequest` : 요청한 쪽이 스스로 물린
-상태. 받는 쪽에게는 알리지 않고, 그 요청의 통보도 서지 않는다.
+상태. 받는 쪽에게는 알리지 않고, 그 요청의 통보도 서지 않는다. **화면 글자는 「취소」다** — 단추 「요청 취소」 · 상태
+「취소」 · 「보낸 요청을 취소했어요」(운영자 결정 2026-10-26 — 「거두다」는 한국 서비스에서 안 쓰는 말). 개념 · 코드 ·
+문서의 이름은 거둠 그대로다. **무효**는 화면에서도 「무효」라 둘이 섞이지 않는다.
 _Avoid_: 무효, 삭제
 
 **동의 화면** — `MATCH_DISCLOSURE` · `CONSENT_FLOW_STEPS` · `respond_to_match_request` : 수락하면

@@ -2,8 +2,11 @@ import type { Locator } from '@playwright/test';
 
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
+import { INPUT_EDIT_CHANGE_CONFIRM, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
+import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 import { READING_FAILED_NOTE, READING_FIRST_FAILED_NOTE } from '@/src/lib/reading';
+import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
 import { fillBirthDate } from './birth-form';
 import { hydrated } from './hydrated';
@@ -416,7 +419,7 @@ test.describe('동의로 열리는 흐름', () => {
     await fillBirthDate(asker.page, '1988-02-11');
     await asker.page.getByRole('button', { name: '변경 사항 저장' }).click();
     // 요청이 취소된다는 확인을 거쳐야 저장된다 — 경고는 그 누름 직전에 선다.
-    await asker.page.getByRole('button', { name: '바꾸고 저장하기' }).click();
+    await asker.page.getByRole('button', { name: INPUT_EDIT_CHANGE_CONFIRM.confirm, exact: true }).click();
     await expect(asker.page.getByText('1988-02-11')).toBeVisible();
 
     /*
@@ -468,6 +471,48 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(receiver.page.getByRole('button', { name: '수락하고 대화하기' })).toBeVisible();
     await expect(receiver.page.getByText('차단한 사람', { exact: false })).toHaveCount(0);
+  });
+
+  /**
+   * **보낸 요청을 취소하기 전에 한 번 묻는다**(2026-10-24, 화면 글자 「취소」 2026-10-26). 취소한 요청은 되살릴 길이 없어(같은 사람에게
+   * 다시 보내면 새 요청 · 새 소식) 스낵바의 「되돌리기」가 아니라 확인 창이다. 「닫기」는 아무 일도 안 하고, 취소하면 카드가 빠지고 풀이권이 돌아오며 끝난 말은 바닥
+   * 스낵바에 선다.
+   */
+  test('보낸 요청은 확인 창을 지나야 취소되고, 취소하면 풀이권이 돌아오고 바닥에 한 줄이 선다', async ({ openAs }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+
+    const before = await asker.api.rpc('my_reading_credits');
+    const available = before.data?.[0]?.available;
+    if (available === undefined) throw new Error(`풀이권을 못 읽었습니다 — ${before.error?.message}`);
+    await pendingRequest(asker, receiver);
+
+    await openRequestHistory(asker);
+    const page = asker.page;
+    await expect(page.getByRole('banner').getByLabel(readingCreditsLabel({ available: available - 1 }), { exact: true })).toBeVisible();
+    const cancel = page.locator('#requests-log').getByRole('button', { name: CANCEL_REQUEST_LABEL, exact: true });
+    const ask = page.getByRole('dialog', { name: CANCEL_REQUEST_TITLE });
+
+    /* 「닫기」는 아무 일도 안 한다 — 첫 초점도 「닫기」다(되돌릴 수 없는 창). 실행이 「요청 취소」라 닫기는 「취소」가 아니다 */
+    await cancel.click();
+    await expect(ask).toBeVisible();
+    await expect(ask.getByText(CANCEL_REQUEST_NOTE)).toBeVisible();
+    await expect(ask.getByRole('button', { name: '닫기', exact: true })).toBeFocused();
+    await ask.getByRole('button', { name: '닫기', exact: true }).click();
+    await expect(ask).toBeHidden();
+    await expect(cancel).toBeVisible();
+    const still = await asker.api.rpc('my_match_requests');
+    expect((still.data as { direction: string; status: string }[]).filter((row) => row.direction === 'sent').map((row) => row.status)).toEqual(['pending']);
+
+    await cancel.click();
+    await ask.getByRole('button', { name: CANCEL_REQUEST_LABEL, exact: true }).click();
+    await expect(ask).toBeHidden();
+    /* 한 문장짜리 스낵바는 끝 마침표를 뗀다(`snackbarMessage`, SEED Snackbar) */
+    await expect(page.locator('[data-snackbar]')).toHaveText(REQUEST_STATUS_TEXT.cancelled.sent.replace(/\.$/, ''));
+    await expect(cancel).toHaveCount(0);
+    await expect(page.getByRole('banner').getByLabel(readingCreditsLabel({ available }), { exact: true })).toBeVisible();
   });
 
   test('탈퇴를 신청하면 그 자리에서 모든 화면이 닫히고 이유를 갈라서 말한다', async ({

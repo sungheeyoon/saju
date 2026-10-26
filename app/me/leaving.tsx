@@ -39,7 +39,7 @@ export function RequestDeletion() {
 
   return (
     /*
-      **여는 누름은 아무것도 안 지운다.** 창을 여는 것이고, 되돌릴 수 없는 누름은 그 안의 「탈퇴」다(2026-10-26 「탈퇴 신청하기」에서 줄임 — 단추 둘이 나란히 선다). 이름은 PRD 「계정이
+      **여는 누름은 아무것도 안 지운다.** 창을 여는 것이고, 되돌릴 수 없는 누름은 그 안의 「탈퇴」다(2026-10-26 「탈퇴 신청하기」에서 줄임 — 짧은 두 단추라 확인 창의 기본대로 나란히 선다, `autoActions`). 이름은 PRD 「계정이
       멈추는 자리」 의 표(2026-09-23) — 계정 상태에 「삭제」를 안 쓴다. 무엇이 지워지는지는 창이 먼저 말한다(`DELETION_NOTE`) — 그래서
       여는 줄에 설명을 두 번 적지 않는다(2026-10-25).
     */
@@ -58,7 +58,6 @@ export function RequestDeletion() {
         confirmLabel={working ? '보내는 중…' : '탈퇴'}
         onConfirm={leave}
         danger
-        actions="row"
         busy={working}
         failure={failure}
         className="max-h-[85dvh] overflow-y-auto"

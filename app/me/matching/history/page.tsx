@@ -1,14 +1,12 @@
-import Link from 'next/link';
-
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
 import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { answerOfThrown, read, type SkippableRead } from '../../../db-error';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icons';
-import { PAPER_FACE, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { EmptyState } from '../../../ui/empty-state';
+import { TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { TopBar } from '../../../ui/top-bar';
 import { MakingShelf, PairCover } from '../../(shelf)/readings/shelf';
 import { readAccount } from '../../account';
 import { AccountNotice } from '../../account-notice';
@@ -81,27 +79,25 @@ export default async function MatchHistoryPage() {
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
-      <header className="flex flex-col gap-2">
-        <Link href="/me/matching" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
-          <Icon name="back" className="size-4" />
-          인연
-        </Link>
-        <h1 className={TYPE_TITLE}>인연 기록</h1>
+      <header>
+        <TopBar back={{ href: '/me/matching', label: '인연' }}>
+          <h1 className={TYPE_TITLE}>인연 기록</h1>
+        </TopBar>
       </header>
 
       {/*
-        **빈 기록은 채팅 탭의 빈 화면과 같은 판이다**(`../../chat/empty.tsx` — 크림 종이 · 큰 말 · 주 단추 하나). 회색 한 줄만
-        서 있어 화면이 깨진 것처럼 보였다(화면 감사 2026-10-09). 단추 글자는 빈 채팅의 것을 그대로 쓴다 — 기록은 인연 탭의
-        덱에서 요청이 오가야 생긴다.
+        **빈 기록은 빈 상태 한 벌이다**(`app/ui/empty-state.tsx`). 회색 한 줄만 서 있어 화면이 깨진 것처럼 보였다(화면 감사 2026-10-09).
+        단추 글자는 빈 채팅의 것을 그대로 쓴다 — 기록은 인연 탭의 덱에서 요청이 오가야 생긴다. 그림은 인연 탭의 아이콘(사람 둘)이다 —
+        하트는 데이팅 느낌이라 걷었다(운영자 2026-10-26).
       */}
       {empty && (
-        <section className={`${PAPER_FACE} flex flex-col items-center gap-6 px-6 py-10 text-center sm:px-8 sm:py-14`}>
-          <h2 className={TYPE_SECTION}>아직 인연 기록이 없어요</h2>
-          <Link href="/me/matching" className={BUTTON_PRIMARY}>
-            <Icon name="people" className="size-[18px]" />
-            오늘의 인연 보기
-          </Link>
-        </section>
+        <EmptyState
+          icon="people"
+          title="아직 인연 기록이 없어요"
+          action={{ href: '/me/matching', label: '오늘의 인연 보기', icon: 'people' }}
+        >
+          인연 요청을 주고받으면 여기에 기록이 남아요.
+        </EmptyState>
       )}
 
       {(!matchesWhole || matchCount > 0) && (

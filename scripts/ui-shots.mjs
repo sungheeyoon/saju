@@ -204,7 +204,7 @@ const PLAN = [
         name: '저장한 사람 — 빼기 확인',
         act: async (page) => {
           await page.locator('summary[aria-label$="관리"]').first().click();
-          await page.getByText('목록에서 빼기').first().click();
+          await page.getByText('삭제', { exact: true }).first().click();
           await page.waitForTimeout(500);
         },
       },
