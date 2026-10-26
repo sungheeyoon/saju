@@ -498,10 +498,10 @@ test.describe('동의로 열리는 흐름', () => {
       시험이 틀린 약속을 잠그고 있었던 것이다. 지금 계약을 잠근다.
     */
     await expect(
-      leaver.page.getByText('탈퇴 신청 후 3일 이내에 자동으로 지웁니다', { exact: false }),
+      leaver.page.getByText('신청 후 3일 안에 지워져요', { exact: false }),
     ).toBeVisible();
     await expect(
-      leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
+      leaver.page.getByText('상대 화면에서도 사라지고', { exact: false }),
     ).toBeVisible();
 
     await asked.getByRole('button', { name: '탈퇴 신청하기' }).click();

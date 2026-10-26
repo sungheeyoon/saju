@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
+import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE, DELETION_SHARED_NOTE } from '@/src/lib/account';
 
 import { actionAnswer } from '../ui/action-answer';
 import { ConfirmDialog } from '../ui/confirm-dialog';
@@ -62,9 +62,31 @@ export function RequestDeletion() {
         failure={failure}
         className="max-h-[85dvh] overflow-y-auto"
       >
-        <p>{DELETION_NOTE}</p>
-        <p className="text-small leading-5 text-muted">{DELETION_IRREVERSIBLE_NOTE}</p>
+        <p className="break-keep text-pretty">
+          <Bolded text={DELETION_NOTE} />
+        </p>
+        <p className="break-keep text-pretty text-small leading-5">
+          <Bolded text={DELETION_SHARED_NOTE} />
+        </p>
+        <p className="text-small font-semibold leading-5 text-foreground">{DELETION_IRREVERSIBLE_NOTE}</p>
       </ConfirmDialog>
+    </>
+  );
+}
+
+/** `**낱말**` 을 굵게 — 탈퇴 창의 핵심 낱말(남은 풀이권 · 인연 궁합 · 메시지) */
+function Bolded({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/\*\*(.+?)\*\*/).map((part, at) =>
+        at % 2 === 1 ? (
+          <strong key={at} className="font-semibold text-foreground">
+            {part}
+          </strong>
+        ) : (
+          part
+        ),
+      )}
     </>
   );
 }
