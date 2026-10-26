@@ -61,7 +61,7 @@ export function MatchIndexCard({
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr] lg:items-center">
         {/*
           수 하나가 크게 서되 **「베타 탐색 지표」라는 이름이 늘 곁에 붙는다** — 정답처럼 읽히지 않게.
-          크림 원은 홈 · 지도의 「나와 궁합 ♥78」과 같은 말투다.
+          크림 원은 홈 · 지도의 「나와 궁합 78」과 같은 말투다.
         */}
         <div className="flex flex-col items-center gap-1 rounded-card bg-cream px-5 py-6 text-center">
           <p className="text-small font-semibold text-cream-ink">

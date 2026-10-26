@@ -142,7 +142,7 @@ export function MatchingExperience({
             onClick={() => setView(view === 'today' ? 'passed' : 'today')}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-small font-semibold text-foreground ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
           >
-            {view === 'today' ? <Icon name="undo" className="size-4" /> : <Icon name="heart" className="size-4" />}
+            {view === 'today' ? <Icon name="undo" className="size-4" /> : <Icon name="people" className="size-4" />}
             {view === 'today' ? '지나친 인연' : '오늘의 인연'}
             <span className="tabular-nums text-secondary">
               {view === 'today' ? passed.length : remaining.length}
@@ -151,7 +151,7 @@ export function MatchingExperience({
           </button>
         </div>
         <div role="group" aria-label="보기" className="hidden grid-cols-2 gap-1 rounded-full bg-surface p-1 ring-1 ring-border sm:grid">
-          <ViewButton on={view === 'today'} onClick={() => setView('today')} icon="heart" label="오늘의 인연" count={remaining.length} />
+          <ViewButton on={view === 'today'} onClick={() => setView('today')} icon="people" label="오늘의 인연" count={remaining.length} />
           <ViewButton on={view === 'passed'} onClick={() => setView('passed')} icon="undo" label="지나친 인연" count={passed.length} />
         </div>
       </header>
@@ -312,7 +312,7 @@ export function MatchingExperience({
           title={`${profile.nickname} 님에게 상세 궁합을 요청할까요?`}
           confirmLabel={
             <>
-              <Icon name="heart" className="size-[18px]" />
+              <Icon name="taiji" className="size-[18px]" />
               요청 보내기
             </>
           }

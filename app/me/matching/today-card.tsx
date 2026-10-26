@@ -260,7 +260,7 @@ export function DeckButtons({ actions }: { actions: DeckActions }) {
         onClick={actions.request}
         className={`${BUTTON_PRIMARY} min-h-14! flex-[1.3] whitespace-nowrap px-3!`}
       >
-        <Icon name="heart" className="size-5" />
+        <Icon name="taiji" className="size-5" />
         궁합 요청
       </button>
     </div>
