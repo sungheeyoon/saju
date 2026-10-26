@@ -32,7 +32,8 @@ import { BUTTON_ON_TILE, BUTTON_ON_TILE_FACE, BUTTON_ON_TILE_PRIMARY, BUTTON_SEC
 import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
-import { COLUMN, EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
+import { EmptyState } from '../../ui/empty-state';
+import { COLUMN, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 import { LINK_PENDING_RING, LinkPending } from '../../ui/link-pending';
 
 /*
@@ -182,9 +183,10 @@ function PeopleList({
 }) {
   if (people.length === 0) {
     return (
-      <p className={`${EMPTY_SLOT} text-body leading-6 text-secondary`}>
-        아직 저장한 사람이 없어요. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
-      </p>
+      /* 빈 상태 한 벌 — 단추는 없다. 「사람 추가」가 바로 위에 서 있다(같은 길을 두 번 세우지 않는다, PRD §3.2) */
+      <EmptyState icon="people" title="아직 저장한 사람이 없어요">
+        이름과 출생 정보를 입력해 사람을 추가해 보세요.
+      </EmptyState>
     );
   }
 

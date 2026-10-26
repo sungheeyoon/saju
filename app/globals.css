@@ -254,6 +254,26 @@ body {
   overflow-wrap: break-word;
 }
 
+/*
+  **한글 줄바꿈 한 벌**(2026-10-26, ADR 0109 추기 「덧」 — 운영자 「글이 있을 때 줄바꿈이 전혀 고려가 안 됐다」).
+
+  - **어절 단위로 꺾는다**(`word-break: keep-all`, 위 `body`). 당근 SEED `Article` 「한국어 문서에서는 한 어절 안에서 줄바꿈이
+    발생하지 않도록 하고 … 컨테이너를 벗어날 정도로 긴 단어 안에서는 줄바꿈이 발생합니다」(seed-design.io/react/llms-full.txt
+    components/article, 확인 2026-10-26) · 토스 TDS 의 글 부품도 `keep-all`(tossmini-docs.toss.im 2026-10-26 실측).
+  - **넘칠 만큼 긴 낱말은 `body` 의 `break-word` 가 줄 안에서 꺾는다 — 전역 `anywhere` 는 두지 않는다.** 빈 화면 · 확인 창 ·
+    스낵바에 서는 글은 정해진 문구와 닉네임(최대 8자, `NICKNAME_MAX`)뿐이라 넘칠 낱말이 없다(2026-10-26 390px 에서 실제 가장 긴
+    글로 확인 — 8자 닉네임의 차단 창 · 무효 스낵바). 띄어쓰기 없이 길어질 수 있는 사람이 쓴 글(소개 300자 · 메모 · 대화 · 신고
+    사유)은 그 화면이 이미 제 자리에서 꺾는다(`break-words` · `break-all` — 대화 말풍선 · 상대 시트 · 운영 화면).
+  - **마지막 줄에 한 낱말이 외톨이로 남지 않게**(`text-wrap-style: pretty`) — 문단의 기본. 제목과 가운데 정렬 글은 줄 길이를
+    고르게(`balance`) — 가운데 정렬에서 한 줄만 길면 축이 기울어 보인다. `text-wrap` 줄임말이 아니라 `-style` 만 적는다 —
+    줄임말은 줄바꿈 여부(`-mode`)까지 덮어 `whitespace-nowrap` 안의 제목을 꺾었다.
+  - `@layer base` 안에 둔다 — 화면이 유틸리티(`text-pretty` · `break-all` …)로 고르면 그것이 이긴다.
+*/
+@layer base {
+  body { text-wrap-style: pretty; }
+  :where(h1, h2, h3, h4, h5, h6, .text-center) { text-wrap-style: balance; }
+}
+
 button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }
 button, a, summary {
   transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease,
@@ -288,7 +308,7 @@ button, a, summary {
   틀은 가운데 서므로 양옆 중 큰 값의 두 배를 폭에서 뺀다(노치가 없으면 0 이라 그대로다).
 */
 /*
-  **넓은 화면의 폭은 두 단이다**(시안, `ui/desktop-width`). 틀(`.app-shell`)은 넓은 단 60rem(960px)에서 멈추고 가운데 선다 — 두 칸
+  **넓은 화면의 폭은 두 단이다**(ADR 0161 추기). 틀(`.app-shell`)은 넓은 단 60rem(960px)에서 멈추고 가운데 선다 — 두 칸
   화면(채팅 · 보관함 · 오늘의 인연 · 궁합 · 프로필)과 머리글 · 바닥글이 이 폭이다. 한 줄로 읽는 화면은 그 안에서 좁은 단
   `COLUMN`(46rem, `app/ui/surfaces.ts`)으로 가운데 선다. 운영 화면은 표가 넓어 72rem 그대로다(`app/ops/layout.tsx`).
 */

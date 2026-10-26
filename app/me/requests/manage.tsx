@@ -14,6 +14,7 @@ import {
   REQUEST_STATUS_TEXT,
   type RequestStatus,
 } from '@/src/lib/consent';
+import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 
 import {
   cancelRequest,
@@ -22,11 +23,13 @@ import {
   respondToRequest,
 } from './actions';
 import { BlockDialog, ReportForm } from './report-block';
+import { cancelledNote } from './cancel-answer';
 import { actionAnswer } from '../../ui/action-answer';
 import { FailureLine } from '../../ui/failure-line';
+import { showSnackbar } from '../../ui/snackbar-store';
 
 /**
- * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 취소) — 셋째 단추의 기하에 보조 글자색.
+ * 카드 밑단의 조용한 누름(차단 · 신고 · 요청 취소) — 셋째 단추의 기하에 보조 글자색.
  * 수락 · 거절보다 한 층 아래로 읽혀야 한다: 같은 무게로 서면 차단이 답처럼 보인다.
  *
  * **눌리는 자리는 글자보다 좌우로 8px 씩 넓다**(`after:`). 「차단」 · 「신고」는 글자 둘이라 폭이 32px 로
@@ -128,9 +131,22 @@ export function RespondButtons({ requestId, nickname }: { requestId: string; nic
   );
 }
 
-/** 보낸 요청을 거둔다 — 상대에게 알리지 않는다 */
+/**
+ * 보낸 요청을 취소한다(용어로는 **거둠**, `cancelled`) — 상대에게 알리지 않는다.
+ *
+ * **화면 글자는 「취소」다**(운영자 결정 2026-10-26 — 「거두다」는 한국 서비스에서 안 쓰는 말). 용어집의 개념 이름은 거둠 그대로다
+ * (`docs/context/matching.md`).
+ *
+ * **한 번 더 묻는다**(2026-10-24). 취소한 요청은 서버에서 되살릴 길이 없다 — 문(`cancel_match_request`)은 끝 상태로만 옮기고, 같은
+ * 사람에게 다시 보내면 풀이권을 새로 잡고 상대에게 「요청이 왔다」는 소식이 한 번 더 간다. 그래서 바닥 스낵바의 「되돌리기」로는 못
+ * 무른다 — 되돌릴 수 없는 누름 앞의 확인 창(`ConfirmDialog`, 첫 초점은 닫기)이다. 실행이 「요청 취소」라 **닫기는 「닫기」다** —
+ * 한 창에 「취소」 · 「요청 취소」가 함께 서면 어느 쪽이 무르는 것인지 헷갈린다(대장 01 의 예외, 운영 환불 창과 같은 꼴). 단추 둘은
+ * 나란히 선다(`actions="row"`) — 당근 SEED Alert Dialog(가로 배열이 기본) · 토스 TDS `ConfirmDialog`(왼쪽 닫기 · 오른쪽 실행). 취소하면
+ * 카드가 목록에서 빠지므로 끝난 말은 카드 곁이 아니라 바닥 스낵바에 선다(`cancelledNote`).
+ */
 export function CancelButton({ requestId }: { requestId: string }) {
   const [failure, setFailure] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const [working, startWorking] = useTransition();
 
   const cancel = () => {
@@ -138,16 +154,43 @@ export function CancelButton({ requestId }: { requestId: string }) {
     startWorking(async () => {
       const result = await actionAnswer(cancelRequest(requestId));
       announceIfMoved(result);
-      if (!result.ok) setFailure(result.message);
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      setAsking(false);
+      const note = cancelledNote(result.status);
+      if (note !== null) showSnackbar(note);
     });
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={cancel} disabled={working} className={QUIET_LINK}>
-        {working ? '거두는 중…' : '요청 거두기'}
+      <button type="button" onClick={() => setAsking(true)} disabled={working} className={QUIET_LINK}>
+        {CANCEL_REQUEST_LABEL}
       </button>
-      {failure !== null && <FailureLine>{failure}</FailureLine>}
+      {failure !== null && !asking && <FailureLine>{failure}</FailureLine>}
+
+      <ConfirmDialog
+        open={asking}
+        onClose={() => {
+          setAsking(false);
+          setFailure(null);
+        }}
+        title={CANCEL_REQUEST_TITLE}
+        confirmLabel={working ? '취소하는 중…' : <>{CANCEL_REQUEST_LABEL}</>}
+        cancelLabel="닫기"
+        onConfirm={cancel}
+        danger
+        busy={working}
+        failure={failure}
+        actions="row"
+      >
+        <p>
+          임시로 차감된 <strong>풀이권 1장</strong>은 바로 돌려드려요.
+        </p>
+        <p className="font-medium text-foreground">{CANCEL_REQUEST_NOTE}</p>
+      </ConfirmDialog>
     </div>
   );
 }

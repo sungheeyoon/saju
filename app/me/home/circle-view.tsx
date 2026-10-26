@@ -125,7 +125,7 @@ function SavedPeople({
           접혀 있다가 판 아래 「더보기 ⌄」가 그 자리에서 편다. 「사람 추가」 줄은 접혀도 늘 선다(맨 끝 줄)
         */
         <MoreList
-          /* 넓은 화면에서도 한 열이다 — 홈이 한 줄 기둥(46rem)에 서서 줄 하나가 그 폭을 다 쓴다(시안, `ui/desktop-width`) */
+          /* 넓은 화면에서도 한 열이다 — 홈이 한 줄 기둥(46rem)에 서서 줄 하나가 그 폭을 다 쓴다(ADR 0161 추기) */
           collapsed={full ? '[&>li:nth-child(n+6)]:hidden' : '[&>li:nth-child(n+6):not(:last-child)]:hidden'}
           more={people.length > PEOPLE_SHOWN}
         >

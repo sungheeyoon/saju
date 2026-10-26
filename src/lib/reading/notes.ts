@@ -43,7 +43,7 @@ export const readingNoneNote = (noun: string) =>
  * 풀이를 만들기 전 확인 창의 약속 — 쓰이는 것과 실패하면 돌아오는 것. 글자 그대로가 계약이다
  * (`scripts/copy-contracts.test.ts`, #147). 화면(`panel.tsx`)에만 있던 문장을 여기로 옮겼다 — 글자는 같다.
  */
-export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1장이 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
+export const READING_USES_TICKET_NOTE = '만들지 못하면 풀이권은 돌려드려요.';
 
 /**
  * 새로 만들면 지금 것은 사라진다 — **누르는 그때 읽힌다.**
@@ -56,8 +56,7 @@ export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1장이 사용�
  * 참이지만 이 화면에서 **한 번도 틀린 적이 없는** 사실이라, 옆에 선 「출생 정보를
  * 수정하기 전에 만든 풀이입니다」처럼 실제로 갈리는 한 줄까지 같이 안 읽히게 만들고 있었다.
  */
-export const READING_REPLACES_NOTE =
-  '새로 만들면 지금 풀이와 점수를 대신합니다. 이전 것은 남기지 않습니다.';
+export const READING_REPLACES_NOTE = '새로 받으면 지금 풀이와 점수는 남지 않아요.';
 
 /**
  * 만든 때의 명식이 지금 명식과 다르다 — 고장이 아니라 그렇게 하기로 한 것이다.

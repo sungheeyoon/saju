@@ -51,7 +51,7 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    /* 넓은 화면에서도 한 줄 기둥(`COLUMN`, 46rem)이다 — 내 사주 카드 → 받은 사주풀이 → 저장한 사람이 위에서 아래로 선다(시안, `ui/desktop-width`) */
+    /* 넓은 화면에서도 한 줄 기둥(`COLUMN`, 46rem)이다 — 내 사주 카드 → 받은 사주풀이 → 저장한 사람이 위에서 아래로 선다(ADR 0161 추기) */
     <main className={`app-shell flex w-full ${COLUMN} min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12`}>
       {isBlocked(state) ? (
         <AccountNotice state={state} />

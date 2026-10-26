@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { ELEMENTS, type Element, type Stem } from '@/src/lib/saju';
@@ -9,10 +8,10 @@ import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
-import { EMPTY_SLOT_FACE, PAPER, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
+import { EmptyState } from '../../../ui/empty-state';
+import { EMPTY_SLOT_FACE, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
-import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
@@ -328,48 +327,25 @@ export function MakingShelf({
 /**
  * 아직 한 권도 없을 때 — **어디서 만드는지를 말한다.** 빈 화면만 남으면 고장으로 읽힌다.
  *
- * 만드는 자리는 홈 탭(내 사주풀이 · 저장한 사람)과 궁합 탭에 있다(ADR 0126). 표지 셋은 그 자리로 **곧장**
- * 간다 — 탭을 한 번 더 지나게 하지 않는다.
+ * 빈 상태 한 벌(`EmptyState`)이다 — 그림 · 제목 · 한 줄 · 단추 하나. 단추는 가장 가까운 첫 풀이(내 사주풀이, 내 사주가 없으면 등록)로
+ * **곧장** 간다. 저장한 사람 · 궁합은 한 줄이 어디서 시작하는지 말하고 아래 탭이 그 길을 든다(ADR 0126) — 표지 셋(2026-10-10 화면 점검
+ * A10)을 단추 하나로 줄였다(2026-10-24 빈 상태 한 벌).
  */
 export function Nothing({ hasSelf }: { hasSelf: boolean }) {
-  /*
-    **그림은 그 자리의 탭 아이콘이다**(2026-10-10 화면 점검 A10) — 책 · 사람 · 태극. 오행 기호는 다른 화면에서 실제 뜻(오행 분포)을
-    나르므로 장식으로 쓰면 뜻이 있는 것처럼 읽혔다. 바탕색만 표지와 같은 결을 입는다.
-  */
-  const slots = [
-    hasSelf
-      ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const, icon: 'reading' as const }
-      : { href: '/me', label: '내 사주 등록하기', element: '木' as const, icon: 'reading' as const },
-    { href: '/me/people', label: '저장한 사람 보기', element: '土' as const, icon: 'people' as const },
-    { href: '/compat', label: COMPAT_ENTRY_LABEL, element: '火' as const, icon: 'taiji' as const },
-  ];
   return (
-    <section className={`${PAPER} flex flex-col gap-6`}>
-      <div className="flex flex-col gap-2">
-        <h2 className={TYPE_SECTION}>아직 만든 풀이가 없어요</h2>
-        <p className="text-body leading-7 text-secondary">
-          내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
-        </p>
-      </div>
-      {/* 폰은 한 줄에 한 타일이다 — 세 칸으로 나누면 칸이 좁아 이름이 두 줄로 꺾였다(A10) */}
-      <ul className="flex flex-col gap-2.5 sm:grid sm:grid-cols-3 sm:gap-3">
-        {slots.map((slot) => (
-          <li key={slot.href}>
-            <Link
-              href={slot.href}
-              className={`${elementScope(slot.element)} relative flex h-full min-h-16 items-center gap-3 overflow-hidden rounded-card bg-[var(--tile)] py-3 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-36 sm:flex-col sm:justify-center sm:pl-4 sm:pr-2 sm:text-center`}
-            >
-              <Spine background="var(--mid)" />
-              <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-[var(--ink)] sm:size-12">
-                <Icon name={slot.icon} className="size-5 sm:size-6" />
-              </span>
-              <span className="text-body font-semibold leading-5 text-foreground">{slot.label}</span>
-              <Icon name="chevron" className="ml-auto size-4 shrink-0 text-secondary sm:hidden" />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <EmptyState
+      icon="reading"
+      title="아직 만든 풀이가 없어요"
+      action={
+        hasSelf
+          ? { href: '/me/readings/self', label: '사주풀이 받기', icon: 'reading' }
+          : { href: '/me', label: '내 사주 등록하기', trailingIcon: 'arrow' }
+      }
+    >
+      {/* 쉼표에서 꺾는다 — 가운데 정렬의 두 줄이 「…홈 탭에서, 두 / 사람의…」로 낱말 하나를 윗줄에 남겼다(2026-10-26 390px) */}
+      내 사주와 저장한 사람의 풀이는 홈 탭에서,{' '}
+      <br />두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
+    </EmptyState>
   );
 }
 

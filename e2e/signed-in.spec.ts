@@ -1,3 +1,5 @@
+import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
+import { endsWithBatchim } from '@/src/lib/saju/text/batchim';
 import {
   E2E_CODE,
   answerReading,
@@ -13,7 +15,7 @@ import {
 import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 import { calculateChart, chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, queryFromSearchParams } from '@/src/lib/input/query';
-import { READING_REPLACES_NOTE, readingEvidenceOf } from '@/src/lib/reading';
+import { READING_REPLACES_NOTE, READING_USES_TICKET_NOTE, readingEvidenceOf } from '@/src/lib/reading';
 import { TASTE_RUN_VERSIONS, tasteEvidenceOf, tasteFingerprintOf } from '@/src/lib/reading/taste-run';
 import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, EVIDENCE_CONTRACT, chartSnapshotOf } from '@/src/lib/saju';
@@ -536,8 +538,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('button', { name: '사주풀이 받기' }).click();
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
-    await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
+    await expect(asking.getByText(READING_USES_TICKET_NOTE, { exact: true })).toBeVisible();
+    await expect(asking.getByText(READING_REPLACES_NOTE, { exact: true })).toHaveCount(0);
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
@@ -1087,8 +1089,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 닫힌 `<dialog>` 는 접근성 트리에 없다 — 그래서 이 자리가 「열렸는가」를 잰다 */
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
-    await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText(READING_USES_TICKET_NOTE, { exact: true })).toBeVisible();
+    await expect(asking.getByText(READING_REPLACES_NOTE, { exact: true })).toBeVisible();
 
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
@@ -1709,7 +1711,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '궁합풀이 받기' })).toBeVisible();
   });
 
-  test('사람을 목록에서 빼기 전에 확인 창을 띄우고 취소하면 그대로 둔다', async ({
+  test('사람을 삭제하기 전에 확인 창을 띄우고 취소하면 그대로 둔다', async ({
     page,
     signedIn,
   }) => {
@@ -1721,12 +1723,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       has: page.getByRole('heading', { name: kin, exact: true }),
     });
     await card.getByLabel(`${kin} 관리`, { exact: true }).click();
-    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+    await card.getByRole('button', { name: /^삭제$/ }).click();
 
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByRole('heading', { name: `${kin} 님을 목록에서 뺄까요?` })).toBeVisible();
-    await expect(asking.getByText('되돌릴 수 없습니다', { exact: false })).toBeVisible();
+    /* 이름표에 「님」을 겹치지 않는다 — 조사만 붙는다(운영자 2026-10-26) */
+    await expect(asking.getByRole('heading', { name: `${kin}${endsWithBatchim(kin) ? '을' : '를'} 삭제할까요?` })).toBeVisible();
+    await expect(asking.getByText('삭제한 사람은 되돌릴 수 없어요.', { exact: true })).toBeVisible();
     await asking.getByRole('button', { name: '취소' }).click();
 
     await expect(asking).toBeHidden();
@@ -1768,7 +1771,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /* 좁혀진 카드도 그대로 쓴다 — 관리 메뉴가 열린다 */
     await shown.getByLabel('민지 관리', { exact: true }).click();
-    await expect(shown.getByRole('button', { name: '목록에서 빼기' })).toBeVisible();
+    await expect(shown.getByRole('button', { name: /^삭제$/ })).toBeVisible();
 
     await find.fill('없는이름');
     await expect(cards.filter({ visible: true })).toHaveCount(0);
@@ -1940,15 +1943,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없어요' })).toBeVisible();
     /*
-      「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
-      표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
+      빈 화면은 만드는 자리로 **곧장** 가는 단추 하나를 세운다(빈 상태 한 벌, 2026-10-24) — 내 사주가 있는 사람에게는 내 사주풀이
+      화면이다. 저장한 사람 · 궁합은 한 줄이 어디서 시작하는지 말하고 아래 탭이 그 길을 든다.
     */
     const mine = page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true });
     await expect(mine).toHaveAttribute('href', '/me/readings/self');
-    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람 보기', exact: true })).toHaveAttribute(
-      'href',
-      '/me/people',
-    );
+    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람 보기', exact: true })).toHaveCount(0);
   });
 
   /**
@@ -2263,7 +2263,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     // 내 사주는 여덟 글자를 바꾸기 전에 한 번 묻는다 — 걸린 인연 요청이 취소되기 때문이다.
     await expect(page.getByRole('dialog', { name: '출생 정보를 바꿀까요?' })).toBeVisible();
-    await page.getByRole('button', { name: '바꾸고 저장하기' }).click();
+    await page.getByRole('button', { name: INPUT_EDIT_CHANGE_CONFIRM.confirm, exact: true }).click();
 
     await expect(page.getByText('1990-06-20')).toBeVisible();
     await expect(page.getByText('1990-05-15')).toHaveCount(0);
@@ -4086,7 +4086,7 @@ test.describe('누름 하나는 요청 하나다', () => {
    * 두 번 그리고, 화면은 둘째가 끝나야 섰다(2026-10-08 에 쟀다). 화면이 바뀐 것까지 보고 요청을 센다 — 응답이 화면을
    * 안 실어 왔다면 메모가 안 선다.
    */
-  test('메모 저장과 목록에서 빼기는 액션 요청 하나로 화면을 다시 그린다', async ({ page, signedIn }) => {
+  test('메모 저장과 삭제는 액션 요청 하나로 화면을 다시 그린다', async ({ page, signedIn }) => {
     const kin = signedIn.managed[0];
     expect(kin).not.toBe(undefined);
     await page.goto('/me/people');
@@ -4114,9 +4114,9 @@ test.describe('누름 하나는 요청 하나다', () => {
     expect(sent).toEqual(['action']);
 
     await card.getByLabel(`${kin} 관리`, { exact: true }).click();
-    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+    await card.getByRole('button', { name: /^삭제$/ }).click();
     sent.length = 0;
-    await page.getByRole('dialog').getByRole('button', { name: '목록에서 빼기' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /^삭제$/ }).click();
     await expect(page.getByRole('heading', { name: kin, exact: true })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     expect(sent).toEqual(['action']);
