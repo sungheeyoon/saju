@@ -296,7 +296,7 @@ export function SignupForm({
           </h2>
           <Link
             href="/privacy"
-            className="inline-flex min-h-11 items-center text-small font-semibold text-foreground underline decoration-border-strong decoration-2 underline-offset-[6px] hover:decoration-foreground"
+            className="inline-flex min-h-11 items-center text-small font-semibold text-foreground hover:opacity-70 active:opacity-55"
           >
             개인정보 처리방침
           </Link>

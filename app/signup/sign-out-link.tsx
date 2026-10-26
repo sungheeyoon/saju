@@ -20,7 +20,7 @@ export function SignOutLink() {
         type="button"
         disabled={leaving}
         onClick={signOut}
-        className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] hover:text-foreground hover:decoration-foreground disabled:opacity-55"
+        className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-secondary hover:text-foreground active:opacity-55"
       >
         {leaving ? SIGN_OUT_PENDING : '다른 계정으로 로그인하기'}
       </button>
