@@ -2,7 +2,7 @@ import { Bone, SkeletonMain } from '../ui/skeleton';
 
 /**
  * 궁합 탭의 뼈대 — 「궁합 새로 보기」와 흰 고르는 판(두 칸 · 사이를 묻는 띠) · 한 줄 안내, 관계 지도
- * (`page.tsx` · `compat-picker.tsx` · `home/map/relation-map.tsx`, 「2026-09-29 u2」). 폭(`max-w-[58rem]`)과 판의 모양을
+ * (`page.tsx` · `compat-picker.tsx` · `home/map/relation-map.tsx`, 「2026-09-29 u2」). 폭(뿌리 틀의 넓은 단 60rem, ADR 0161 추기)과 판의 모양을
  * 실제 화면에 맞춘다 — 어긋나면 다 불러온 순간 화면이 출렁인다(2026-10-09 화면 갤러리 감사).
  *
  * **궁합풀이 한 줄(`archive.tsx` 의 `CompatSummary`)은 자리를 두지 않는다**(2026-10-10). 본 궁합이 있을 때만 서는 줄이라 늘
