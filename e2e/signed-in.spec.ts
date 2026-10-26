@@ -339,7 +339,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     // 저장하면 폼이 사라지고 저장된 입력이 선다. 미리 계산해 보여준 값이 아니다.
     await expect(page.getByRole('heading', { name: '내 사주 등록' })).toBeHidden();
-    await expect(page.getByText('1990-05-15')).toBeVisible();
+    await expect(page.getByText('1990-05-15').filter({ visible: true })).toBeVisible();
   });
 
   /**
@@ -394,7 +394,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /* 줄인 카드도 출생 정보 한 줄은 든다(2026-09-25 에 일부러 남긴 줄) */
     const mine = page.getByRole('region', { name: '내 사주' });
-    await expect(mine.getByText('1990-05-15', { exact: false })).toBeVisible();
+    await expect(mine.getByText('1990-05-15', { exact: false }).filter({ visible: true })).toBeVisible();
     await expect(mine.getByRole('link', { name: /사주풀이 보기/ })).toHaveAttribute('href', '/me/readings/self?from=me');
 
     /*
@@ -474,15 +474,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /*
       홈의 내 카드 — 저장된 출생 정보, 고치는 손잡이, 상세로 가는 길. 여덟 글자(한자)는 카드에 없고 「만세력 보기」가
-      든다(운영자 2026-09-27). **폰에서는 줄인 판**이라 오행 분포 다섯 칸도 거기로 내려간다 — 출생 정보 한 줄은 남는다(u2)
+      든다(운영자 2026-09-27). **폰에서는 줄인 판**이라 오행이 알약 다섯 개 한 줄이고(이름표 없이 읽는 이름만, 운영자 결정 2026-10-26 —
+      u2 의 「폰에서 걷는다」를 바꿨다), 출생 정보는 이름 아래 한 줄이다. 넓은 화면은 다섯 칸 그대로다
     */
     const mine = page.getByRole('region', { name: '내 사주' });
+    const phone = testInfo.project.name.includes('mobile');
     await expect(mine.getByRole('heading', { name: signedIn.label, exact: true })).toBeVisible();
-    await expect(mine.getByRole('list', { name: '오행 분포' }).getByRole('listitem')).toHaveCount(
-      testInfo.project.name.includes('mobile') ? 0 : 5,
-    );
+    await expect(mine.getByRole('list', { name: '오행 분포' }).getByRole('listitem')).toHaveCount(phone ? 0 : 5);
+    if (phone) await expect(mine.getByRole('list', { name: /^오행 분포 — 나무 \d, 불 \d, 흙 \d, 쇠 \d, 물 \d$/ })).toBeVisible();
     await expect(mine.getByRole('list', { name: '여덟 글자' })).toHaveCount(0);
-    await expect(mine.getByText('1990-05-15 14:30')).toBeVisible();
+    /* 폰은 이름 아래 줄, 넓은 화면은 출생 정보 상자 — 둘 다 그려 두고 폭마다 하나만 보인다 */
+    await expect(mine.getByText('1990-05-15 14:30').filter({ visible: true })).toBeVisible();
     /* 출생 정보를 고치는 연필은 카드에 없다 — 동그란 내 프로필이 「내 프로필」 시트를 열고, 그 「프로필 편집」이 한 화면에서 고친다(2026-10-26) */
     await expect(mine.getByRole('button', { name: '출생 정보 수정' })).toHaveCount(0);
     await mine.getByRole('button', { name: '내 프로필' }).click();

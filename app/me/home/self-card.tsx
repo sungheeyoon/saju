@@ -70,9 +70,9 @@ export function SelfCard({
    */
   face?: HomeFace & { userId: string; nickname: string; intro: string | null };
   /**
-   * **홈 탭의 줄인 판**(u2, 운영자 2026-09-29) — 폰에서 오행 분포 다섯 칸을 걷는다. 그 칸은 「만세력 보기」가 든다.
-   * 출생 정보 한 줄은 남긴다 — 고친 입력이 홈 탭에서 보이게 2026-09-25 에 일부러 둔 줄이다. 폰 첫 화면에 카드 아래의 받은
-   * 사주풀이와 저장한 사람 머리까지 들게 하려는 것이다. 넓은 화면은 그대로다.
+   * **홈 탭의 줄인 판** — 폰에서 오행 분포의 큰 다섯 칸 대신 **알약 다섯 개 한 줄**(그림 + 수, `ElementStrip`)이 서고, 출생 정보는
+   * 이름 아래 한 줄, 한 줄 평은 한 줄이다(운영자 결정 2026-10-26 — 2026-09-29 u2 의 「폰에서 오행 분포를 걷는다」를 바꿨다. 그때 걷은
+   * 까닭인 폰 첫 화면의 높이는 알약 줄 · 한 줄 평 · 출생 정보 자리 옮김으로 그대로다: 카드 319 → 315px, 390 폭). 넓은 화면은 그대로다.
    */
   compact?: boolean;
 }) {
@@ -91,23 +91,41 @@ export function SelfCard({
           머리의 높이는 정수 px 여야 한다 — 소수면 아래 결과 바로가기가 반 픽셀 자리에 서고 누르는 자리를 반 픽셀씩 재는 e2e
           (`e2e/target.ts`)가 44px 칸을 43.5 로 쟀다(#836). 원(56px)과 이름(35px)이 한 줄이라 56px 다
         */}
-        {/* 오른쪽 위 일간 딱지 자리(80px)는 이 이름 줄에만 비운다 — 한 줄 평 · 출생 정보는 카드 안쪽 폭을 끝까지 쓴다(2026-10-26 운영자) */}
-        <div className="flex min-w-0 items-center gap-3 pr-20">
+        {/*
+          오른쪽 위 일간 딱지 자리(80px)는 이름에만 비운다 — 이름 아래 출생 정보 줄 · 한 줄 평은 카드 안쪽 폭을 끝까지 쓴다(2026-10-26 운영자).
+          딱지는 이름 높이 안에서 끝나 그 아래 줄과 안 겹친다
+        */}
+        <div className="flex min-w-0 items-center gap-3">
           {face !== undefined && <SelfProfile {...face} stem={saju.pillars.dayMaster} />}
           {/*
             이름 — 고칠 수 없는 자리다. 닉네임은 프로필 수정 화면이 든다(원을 누르면 오는 시트의 「프로필 편집」). 한국어는 어절로
             끊고(`break-keep`), 띄어 쓰지 않은 긴 이름만 아무 데서나 끊는다(`overflow-wrap: anywhere`)
           */}
-          <h2 className={`min-w-0 break-keep [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{label}</h2>
+          <div className="flex min-w-0 flex-col">
+            <h2 className={`min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{label}</h2>
+            {/*
+              **폰은 출생 정보가 이름 바로 아래 한 줄이다**(운영자 결정 2026-10-26) — 「생년월일 시각 · 출생지」, 시각을 모르면 시각 자리를
+              비우고 끝에 「· 출생 시각 모름」(`HOUR_UNKNOWN_LABEL`, 그 낱말은 끊지 않는다). 넓은 화면은 아래 출생 정보 상자(`BirthLine`)가 든다
+            */}
+            <p className="text-small tabular-nums text-secondary sm:hidden">
+              {query.date}
+              {query.hourKnown === false ? '' : ` ${query.time}`} · {query.city}
+              {query.hourKnown === false && (
+                <>
+                  {' · '}
+                  <span className="whitespace-nowrap">{HOUR_UNKNOWN_LABEL}</span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
         {reading?.metaphor != null && (
           /*
-            줄인 판은 폰에서 두 줄까지 — 카드 안쪽 폭을 끝까지 쓰고 어절로 끊으며(`break-keep`), 넘치면 둘째 줄 끝에서 말줄임이다
-            (`line-clamp-2`, 토스 · 카카오톡의 두 줄 미리보기). 줄을 고르게 맞추는 `text-pretty` 는 안 쓴다 — 넘치지 않는데도 줄을 일찍
-            꺾어 오른쪽이 비었다(운영자 「두 줄 넘어가면 … 이면 되는데 왜 우측 공간을 더 안 쓰나」, 2026-10-26)
+            줄인 판은 폰에서 **한 줄**이고 넘치면 그 줄 끝에서 말줄임이다(운영자 결정 2026-10-26 — 출생 정보 줄 · 오행 알약이 들어오며
+            두 줄을 한 줄로 줄였다). 넓은 화면은 어절로 끊어(`break-keep`) 다 선다
           */
           <p
-            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
+            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}
           >
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
@@ -125,7 +143,13 @@ export function SelfCard({
         <DayMasterChip stem={saju.pillars.dayMaster} />
       </div>
 
-      <BirthLine query={query} saved={personId !== null} />
+      {/* 넓은 화면의 출생 정보 상자 — 폰은 이름 아래 한 줄이 든다(위) */}
+      <div className="max-sm:hidden">
+        <BirthLine query={query} saved={personId !== null} />
+      </div>
+
+      {/* 폰의 줄인 판은 오행을 알약 다섯 개 한 줄로 — 넓은 화면은 아래 다섯 칸(`ElementCounts`) 그대로 */}
+      {compact && <ElementStrip saju={saju} />}
 
       <ElementCounts saju={saju} compact={compact} />
 
@@ -231,5 +255,34 @@ function BirthLine({ query, saved }: { query: Query; saved: boolean }) {
         ))}
       </dl>
     </section>
+  );
+}
+
+/**
+ * **폰의 오행 한 줄** — 알약 다섯 개(그림 + 수), 0 인 기운은 흐리게(운영자 결정 2026-10-26). 「오행 분포」 이름표와 기운 이름(나무 · 불 …)은
+ * 화면에 없고 읽는 이름이 든다 — 「오행 분포 — 나무 0, 불 2, …」, 출생 시각을 모르면 「출생 시각을 몰라 여섯 글자로 셌어요」를 덧붙인다
+ * (시주를 지어내지 않는다 — 여섯 글자로 센 그대로). 알약 하나하나는 읽는 이름에서 빠진다 — 목록 이름이 다섯을 다 말한다.
+ */
+function ElementStrip({ saju }: { saju: Saju }) {
+  const { counts, glyphCount } = saju.analysis.elements;
+  const said =
+    ELEMENTS.map((element) => `${ELEMENT_PICTURE_KO[element]} ${counts[element]}`).join(', ') +
+    (glyphCount !== 8 ? '. 출생 시각을 몰라 여섯 글자로 셌어요' : '');
+  return (
+    <ul aria-label={`오행 분포 — ${said}`} className="relative flex gap-1.5 sm:hidden">
+      {ELEMENTS.map((element) => {
+        const count = counts[element];
+        return (
+          <li
+            key={element}
+            aria-hidden="true"
+            className={`${elementScope(element)} inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-surface py-1.5 text-small font-semibold tabular-nums text-[var(--ink)] ${count === 0 ? 'opacity-40' : ''}`}
+          >
+            <ElementSymbol element={element} className="size-4" />
+            {count}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
