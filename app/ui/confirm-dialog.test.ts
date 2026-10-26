@@ -17,6 +17,12 @@ describe('확인 창의 단추 줄 — 나란히가 기본, 글자가 반 칸을
     expect(autoActions('바꾸고 저장하기', '취소')).toBe('stack');
   });
 
+  it('창 안의 실행 글자를 줄이면 나란히 든다 — 다시 받기 · 출생 정보 바꾸기 창(운영자 2026-10-26)', () => {
+    expect(autoActions('다시 받기', '취소')).toBe('row');
+    expect(autoActions('바꾸기', '취소')).toBe('row');
+    expect(autoActions('사주풀이 받기', '취소')).toBe('row');
+  });
+
   it('그림과 함께 선 글자도 글자만 잰다', () => {
     expect(
       autoActions(createElement(Fragment, null, createElement('svg'), '요청 보내기'), '취소'),

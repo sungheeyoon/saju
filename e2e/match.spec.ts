@@ -2,7 +2,7 @@ import type { Locator } from '@playwright/test';
 
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
-import { REQUEST_STATUS_TEXT } from '@/src/lib/consent';
+import { INPUT_EDIT_CHANGE_CONFIRM, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
 import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 import { READING_FAILED_NOTE, READING_FIRST_FAILED_NOTE } from '@/src/lib/reading';
@@ -419,7 +419,7 @@ test.describe('동의로 열리는 흐름', () => {
     await fillBirthDate(asker.page, '1988-02-11');
     await asker.page.getByRole('button', { name: '변경 사항 저장' }).click();
     // 요청이 취소된다는 확인을 거쳐야 저장된다 — 경고는 그 누름 직전에 선다.
-    await asker.page.getByRole('button', { name: '바꾸고 저장하기' }).click();
+    await asker.page.getByRole('button', { name: INPUT_EDIT_CHANGE_CONFIRM.confirm, exact: true }).click();
     await expect(asker.page.getByText('1988-02-11')).toBeVisible();
 
     /*

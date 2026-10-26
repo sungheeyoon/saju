@@ -362,7 +362,8 @@ export function ReadingPanel({
         titleIcon="ticket"
         title="풀이권 1장을 사용하시겠어요?"
         /* 지금 글을 잃는 누름은 위험 색이다 — 「목록에서 빼기」 창과 같은 무게(B5). 잃을 글이 없으면 첫 초점도 받기 쪽이다 */
-        confirmLabel={reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
+        /* 창 안의 실행은 짧게 — 제목이 무엇을 쓰는지 말하므로 「다시 받기」로 두 단추가 나란히 든다(운영자 2026-10-26) */
+        confirmLabel={reading === null ? `${noun} 받기` : '다시 받기'}
         onConfirm={confirmGenerate}
         danger={reading !== null}
         firstFocus={reading === null ? 'confirm' : 'cancel'}

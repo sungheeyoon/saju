@@ -1,3 +1,4 @@
+import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 import { endsWithBatchim } from '@/src/lib/saju/text/batchim';
 import {
   E2E_CODE,
@@ -14,7 +15,7 @@ import {
 import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 import { calculateChart, chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, queryFromSearchParams } from '@/src/lib/input/query';
-import { READING_REPLACES_NOTE, readingEvidenceOf } from '@/src/lib/reading';
+import { READING_REPLACES_NOTE, READING_USES_TICKET_NOTE, readingEvidenceOf } from '@/src/lib/reading';
 import { TASTE_RUN_VERSIONS, tasteEvidenceOf, tasteFingerprintOf } from '@/src/lib/reading/taste-run';
 import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, EVIDENCE_CONTRACT, chartSnapshotOf } from '@/src/lib/saju';
@@ -537,8 +538,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('button', { name: '사주풀이 받기' }).click();
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
-    await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
+    await expect(asking.getByText(READING_USES_TICKET_NOTE, { exact: true })).toBeVisible();
+    await expect(asking.getByText(READING_REPLACES_NOTE, { exact: true })).toHaveCount(0);
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
@@ -1088,8 +1089,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 닫힌 `<dialog>` 는 접근성 트리에 없다 — 그래서 이 자리가 「열렸는가」를 잰다 */
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
-    await expect(asking.getByText('풀이권 1장이 사용됩니다', { exact: false })).toBeVisible();
-    await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText(READING_USES_TICKET_NOTE, { exact: true })).toBeVisible();
+    await expect(asking.getByText(READING_REPLACES_NOTE, { exact: true })).toBeVisible();
 
     await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
@@ -2262,7 +2263,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     // 내 사주는 여덟 글자를 바꾸기 전에 한 번 묻는다 — 걸린 인연 요청이 취소되기 때문이다.
     await expect(page.getByRole('dialog', { name: '출생 정보를 바꿀까요?' })).toBeVisible();
-    await page.getByRole('button', { name: '바꾸고 저장하기' }).click();
+    await page.getByRole('button', { name: INPUT_EDIT_CHANGE_CONFIRM.confirm, exact: true }).click();
 
     await expect(page.getByText('1990-06-20')).toBeVisible();
     await expect(page.getByText('1990-05-15')).toHaveCount(0);
