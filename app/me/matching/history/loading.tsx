@@ -1,4 +1,5 @@
 import { Bone, SkeletonMain } from '../../../ui/skeleton';
+import { COLUMN } from '../../../ui/surfaces';
 
 /**
  * 인연 기록의 뼈대 — ← 줄 · 제목 · 인연 궁합 표지 두 권 · 지난 요청(작은 제목과 줄 카드 둘)(`page.tsx` ·
@@ -10,7 +11,7 @@ import { Bone, SkeletonMain } from '../../../ui/skeleton';
  */
 export default function MatchHistoryLoading() {
   return (
-    <SkeletonMain name="match-history" className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
+    <SkeletonMain name="match-history" className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-7 py-6 sm:py-12`}>
       <div className="flex flex-col gap-2">
         <Bone className="h-11 w-16 rounded-full" />
         <Bone className="h-[2.275rem] w-36 rounded-full sm:h-[2.6rem]" />

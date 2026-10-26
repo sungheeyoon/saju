@@ -8,9 +8,10 @@ import { OpsHeader } from './ops-header';
  */
 export default function OpsLayout({ children }: LayoutProps<'/ops'>) {
   return (
-    <>
+    /* 운영 화면은 표가 넓어 틀의 상한을 72rem 으로 둔다(`globals.css` 의 `.app-shell`) — `contents` 라 배치는 그대로다 */
+    <div className="contents [--shell-max:72rem]">
       <OpsHeader />
       {children}
-    </>
+    </div>
   );
 }

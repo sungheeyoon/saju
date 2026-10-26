@@ -1,4 +1,5 @@
 import { Bone, SkeletonMain } from '../../ui/skeleton';
+import { COLUMN } from '../../ui/surfaces';
 
 /**
  * 홈의 뼈대 — 인사 · 줄인 내 사주 카드와 그 아래 「다른 사람 사주 보기」 줄 · 내가 받은 사주풀이 줄 · 저장한 사람 줄
@@ -16,7 +17,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
  */
 export default function HomeLoading() {
   return (
-    <SkeletonMain name="home" className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12">
+    <SkeletonMain name="home" className={`app-shell flex w-full ${COLUMN} min-w-0 flex-1 flex-col gap-6 py-4 sm:gap-12 sm:py-12`}>
       {/*
         인사는 폰에서 제목으로만 남는다 — 뼈대도 넓은 화면에서만 자리를 둔다.
 
@@ -30,7 +31,7 @@ export default function HomeLoading() {
         <Bone className="h-[2.925rem] w-72 max-w-full rounded-full" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+      <div className="contents">
         <div className="flex min-w-0 flex-col gap-3">
           {/* 줄인 내 사주 카드 — 폰에서는 오행 칸과 출생 정보 상자가 없어 낮고(224px), 넓은 화면은 그 둘이 선다(594px) */}
           <div className="flex min-h-56 flex-col justify-between gap-3 rounded-card bg-surface p-4 sm:min-h-[37.125rem] sm:gap-6 sm:p-8">

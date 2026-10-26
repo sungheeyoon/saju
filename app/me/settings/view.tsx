@@ -51,8 +51,9 @@ export function SettingsView({ data }: { data: SettingsData }): ReactNode {
   return (
     /* 화면 바탕이 가라앉은 면이고 무리 사이의 틈이 곧 회색 띠다(TDS `Border` 의 `height16`) — 폰에서는 무리가 화면 끝까지 간다 */
     <main className={`flex w-full flex-1 flex-col bg-surface-sunken ${SETTINGS_TEXT_WRAP}`}>
-      <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12`}>
-        <h1 className={`${TYPE_TITLE} px-6`}>설정</h1>
+      {/* 넓은 화면(lg)에서는 다른 좁은 단 화면과 같은 기둥(46rem)의 왼쪽 끝에 제목과 무리가 선다(ADR 0161 추기) — 1280 에서 x=272 */}
+      <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12 lg:px-0`}>
+        <h1 className={`${TYPE_TITLE} px-6 lg:px-0`}>설정</h1>
 
         {isBlocked(state) && (
           <div className="px-4 sm:px-0">

@@ -307,9 +307,14 @@ button, a, summary {
   **본문 틀은 노치를 비킨다.** 뿌리 레이아웃이 `viewport-fit=cover` 라 가로로 누인 폰에서는 화면이 노치 밑까지 깔린다 —
   틀은 가운데 서므로 양옆 중 큰 값의 두 배를 폭에서 뺀다(노치가 없으면 0 이라 그대로다).
 */
+/*
+  **넓은 화면의 폭은 두 단이다**(ADR 0161 추기). 틀(`.app-shell`)은 넓은 단 60rem(960px)에서 멈추고 가운데 선다 — 두 칸
+  화면(채팅 · 보관함 · 오늘의 인연 · 궁합 · 프로필)과 머리글 · 바닥글이 이 폭이다. 한 줄로 읽는 화면은 그 안에서 좁은 단
+  `COLUMN`(46rem, `app/ui/surfaces.ts`)으로 가운데 선다. 운영 화면은 표가 넓어 72rem 그대로다(`app/ops/layout.tsx`).
+*/
 .app-shell {
   --safe-inline: calc(2 * max(env(safe-area-inset-left), env(safe-area-inset-right)));
-  width: min(100% - 2.5rem - var(--safe-inline), 72rem);
+  width: min(100% - 2.5rem - var(--safe-inline), var(--shell-max, 60rem));
   margin-inline: auto;
 }
 .eyebrow {
@@ -336,7 +341,7 @@ button, a, summary {
   }
 }
 @media (max-width: 640px) {
-  .app-shell { width: min(100% - 2rem - var(--safe-inline), 72rem); }
+  .app-shell { width: min(100% - 2rem - var(--safe-inline), var(--shell-max, 60rem)); }
 }
 /* 하단 독(`site-header.tsx`)이 서는 폭 — 떠 있는 판의 높이와 아래 틈만큼 본문 끝을 비운다 */
 @media (max-width: 767px) {

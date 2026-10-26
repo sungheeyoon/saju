@@ -189,12 +189,12 @@ async function ResultPage({
 /**
  * 틀 — 제 주소면 한 화면(`main`), 보관함이면 옆 칸의 글 한 편(`article`)이다. 보관함의 `main` 은 레이아웃이 이미 세웠다.
  *
- * **제 주소의 폭은 고르는 화면(`app/compat/page.tsx`)과 같은 58rem** — 한 흐름의 두 걸음인데 고르는 화면은 928px,
- * 결과는 1152px 로 넓어져 누르는 순간 판이 옆으로 퍼졌다(2026-10-09 화면 감사).
+ * **제 주소의 폭은 고르는 화면(`app/compat/page.tsx`)과 같다** — 둘 다 뿌리 틀의 넓은 단 60rem 이다(ADR 0161 추기). 한 흐름의 두 걸음인데
+ * 고르는 화면은 928px, 결과는 1152px 로 넓어져 누르는 순간 판이 옆으로 퍼진 적이 있다(2026-10-09 화면 감사).
  */
 function Frame({ frame, children }: { frame: CompatFrame; children: ReactNode }) {
   return frame === 'page' ? (
-    <main className="app-shell flex max-w-[58rem] flex-1 flex-col gap-6 py-8 sm:py-12">{children}</main>
+    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-8 sm:py-12">{children}</main>
   ) : (
     <article className="flex min-w-0 flex-col gap-6">{children}</article>
   );

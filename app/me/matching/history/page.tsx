@@ -5,7 +5,7 @@ import { signedInUser } from '../../../auth/signed-in';
 import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { answerOfThrown, read, type SkippableRead } from '../../../db-error';
 import { EmptyState } from '../../../ui/empty-state';
-import { TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
+import { COLUMN, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
 import { TopBar } from '../../../ui/top-bar';
 import { MakingShelf, PairCover } from '../../(shelf)/readings/shelf';
 import { readAccount } from '../../account';
@@ -46,7 +46,7 @@ export default async function MatchHistoryPage() {
   const { state } = await readAccount(supabase, ['status']);
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">
+      <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-7 py-8 sm:py-12`}>
         <AccountNotice state={state} />
       </main>
     );
@@ -78,7 +78,7 @@ export default async function MatchHistoryPage() {
   const empty = matchesWhole && requests.ok && matchCount === 0 && pastCount === 0 && past?.blocked === 0;
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-6 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-7 py-6 sm:py-12`}>
       <header>
         <TopBar back={{ href: '/me/matching', label: '인연' }}>
           <h1 className={TYPE_TITLE}>인연 기록</h1>

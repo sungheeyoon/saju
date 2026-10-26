@@ -7,7 +7,7 @@ import { currentBusinessInfo } from '../business-info';
 import { HomeLink } from '../home-link';
 import { LegalBody } from '../legal-body';
 import { BUTTON_TERTIARY } from '../ui/buttons';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { COLUMN, TYPE_TITLE } from '../ui/surfaces';
 
 export const metadata = {
   title: '환불정책',
@@ -22,7 +22,7 @@ export const metadata = {
 export default function RefundPage() {
   const policy = refundPolicyFor(currentBusinessInfo());
   return (
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-4 py-8 sm:py-12`}>
       <header className="mb-2 rounded-card bg-cream px-6 py-7 sm:px-8">
         <p className="text-small font-semibold text-cream-ink">환불정책</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>{SERVICE_NAME} 환불정책</h1>

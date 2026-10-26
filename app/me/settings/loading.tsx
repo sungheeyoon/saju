@@ -26,8 +26,8 @@ const GROUPS: { title: boolean; description: boolean; rows: Row[] }[] = [
 export default function SettingsLoading() {
   return (
     <SkeletonMain name="settings" className="flex w-full flex-1 flex-col bg-surface-sunken">
-      <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12`}>
-        <Bone className="mx-6 h-[2.275rem] w-36 rounded-full sm:h-[2.6rem]" />
+      <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12 lg:px-0`}>
+        <Bone className="mx-6 h-[2.275rem] lg:mx-0 w-36 rounded-full sm:h-[2.6rem]" />
         {/* 맨 위 내 프로필 — 56px 동그라미와 이름 · 이메일 */}
         <div className={SETTINGS_GROUP}>
           <div className="flex min-h-20 items-center gap-4 px-6 py-4">

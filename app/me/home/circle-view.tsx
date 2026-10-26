@@ -125,11 +125,7 @@ function SavedPeople({
           접혀 있다가 판 아래 「더보기 ⌄」가 그 자리에서 편다. 「사람 추가」 줄은 접혀도 늘 선다(맨 끝 줄)
         */
         <MoreList
-          /*
-            넓은 화면의 두 열 사이에 세로선 — 없으면 같은 높이의 두 사람이 한 줄로 읽혔다(엄마 · 아빠가 한 칸처럼, 운영자 2026-10-26).
-            판 가운데 세로선 하나가 판 위아래 끝까지 이어진다(숨은 줄 · 「사람 추가」가 어느 열에 서도 같은 자리)
-          */
-          listClass="lg:relative lg:grid lg:grid-cols-2 lg:before:absolute lg:before:inset-y-0 lg:before:left-1/2 lg:before:w-px lg:before:bg-border lg:before:content-['']"
+          /* 넓은 화면에서도 한 열이다 — 홈이 한 줄 기둥(46rem)에 서서 줄 하나가 그 폭을 다 쓴다(ADR 0161 추기) */
           collapsed={full ? '[&>li:nth-child(n+6)]:hidden' : '[&>li:nth-child(n+6):not(:last-child)]:hidden'}
           more={people.length > PEOPLE_SHOWN}
         >

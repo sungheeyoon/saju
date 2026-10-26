@@ -1,5 +1,5 @@
 import { BUTTON_TERTIARY } from '../ui/buttons';
-import { CARD, TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, COLUMN, TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
 import {
   NOTICE_NOT_READY,
   OPTIONAL_CONSENTS,
@@ -52,7 +52,7 @@ export default async function PrivacyPage() {
   const titles = [...sections.map((section) => section.title), OPTIONAL_TITLE, RIGHTS_TITLE];
 
   return (
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-8 sm:py-12">
+    <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-4 py-8 sm:py-12`}>
       {/*
         **읽는 모양만 5차의 것이다** — 글자는 고지한 판 그대로다. 줄이 길면 눈이 다음 줄 머리를 놓치므로
         글줄을 3xl(48rem)로 묶고, 조항마다 카드 한 장 · 둥근 제목 · 점 목록으로 선다.
