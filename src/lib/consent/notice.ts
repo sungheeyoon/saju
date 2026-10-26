@@ -1,5 +1,6 @@
 import { DISCOVERY_DISCLOSURE } from '../discovery';
 import { ACTIVITY_PRIVACY_LINE } from '../presence';
+import { MATCH_ACCEPT_HIDDEN, MATCH_ACCEPT_OPENS } from './disclosure';
 
 /**
  * 처리 안내 — **일정 하나만 비어 있다.**
@@ -78,8 +79,13 @@ import { ACTIVITY_PRIVACY_LINE } from '../presence';
  * `v9` → `v10`: **표현 개정 — 메뉴 이름만.** 화면 이름 「계정 관리」가 「설정」으로 바뀌어(운영자 결정 2026-10-26, #838) 그 화면을
  * 가리키는 세 문장(거부 방법 · 이용자의 권리 · 인연 찾기 끄기)의 「계정 관리」를 「설정」으로 고친다. 처리 항목 · 목적 · 보유기간 ·
  * 국외 이전 · 상대에게 보이는 것은 그대로라 **기준은 `notice-v8` 에 둔다 — 확인한 사람은 다시 안 본다.**
+ *
+ * `v10` → `v11`: **표현 개정 — 상세 궁합 공개 줄을 해요체로.** 「수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자
+ * 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.」를 요청 창 · 받은 카드와 같은 글(「수락하면 서로의
+ * 사주팔자 여덟 글자가 공개돼요. 정확한 생년월일시 · 출생지는 공개되지 않아요.」)로 맞췄다(운영자 결정 2026-10-26, 대장 matching-10).
+ * 서로 공개된다는 것 · 생년월일시 · 출생지가 닫힌다는 것은 그대로라 **기준은 `notice-v8` 에 둔다 — 확인한 사람은 다시 안 본다**(ADR 0095).
  */
-export const NOTICE_VERSION = 'notice-v10';
+export const NOTICE_VERSION = 'notice-v11';
 
 /**
  * 재확인 기준 — **이 판본 이상을 확인했으면 유효하다**(ADR 0095).
@@ -124,9 +130,11 @@ export const noticeAckHolds = (version: string | null): boolean => {
   return seen !== null && floor !== null && seen >= floor;
 };
 
-/** 요청하는 사람과 요청받은 사람이 수락 전에 똑같이 읽는 핵심 공개 안내. */
-export const MATCH_PILLARS_DISCLOSURE =
-  '수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.';
+/**
+ * 처리방침의 상세 궁합 공개 줄 — 요청 창 · 받은 카드의 목록 첫 줄과 비공개 줄을 이어 쓴다(같은 한 벌, 운영자 결정 2026-10-26).
+ * 「수락하면 서로의 사주팔자 여덟 글자가 공개돼요. 정확한 생년월일시 · 출생지는 공개되지 않아요.」 — `notice-v11` 의 표현 개정.
+ */
+export const MATCH_PILLARS_DISCLOSURE = `수락하면 ${MATCH_ACCEPT_OPENS[0]} ${MATCH_ACCEPT_HIDDEN}`;
 
 /**
  * 지금 일정 — **표에서 온다**(`current_beta_schedule`).

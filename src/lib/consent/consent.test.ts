@@ -8,7 +8,9 @@ import {
   BLOCK_NOTE,
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
-  MATCH_CONSENT_NOTICE,
+  MATCH_ACCEPT_HEAD,
+  MATCH_ACCEPT_HIDDEN,
+  MATCH_ACCEPT_OPENS,
   MATCH_DISCLOSURE,
   MATCH_PILLARS_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
@@ -256,12 +258,13 @@ describe('완성 소식은 무엇이 다 됐는지 말한다', () => {
  * 앞에 붙는 말만 다르다.
  */
 describe('Match 가 여는 범위는 한 벌이다', () => {
-  /** 보내는 창과 받은 카드가 같은 두 문장이다 — 나가는 것 하나, 안 나가는 것 하나(운영자 2026-10-26) */
-  it('요청 창과 받은 요청 카드는 무엇이 공개되고 무엇은 안 되는지 같은 두 문장으로 말한다', () => {
-    expect([...MATCH_CONSENT_NOTICE]).toEqual([
-      '내 사주팔자 여덟 글자가 상대에게 공개돼요.',
-      '정확한 생년월일시 · 출생지는 공개되지 않아요.',
-    ]);
+  /** 보내는 창과 받은 카드는 같은 목록이고 머리만 다르다(운영자 결정 2026-10-26 A안) */
+  it('요청 창과 받은 요청 카드는 수락하면 무엇이 일어나는지 같은 목록으로 말한다', () => {
+    expect(MATCH_ACCEPT_HEAD).toEqual({ sent: '상대가 수락하면', received: '수락하면' });
+    expect(MATCH_ACCEPT_OPENS[0]).toContain('서로의 사주팔자 여덟 글자가 공개');
+    expect(MATCH_ACCEPT_OPENS.join(' ')).toContain('채팅방');
+    expect(MATCH_ACCEPT_HIDDEN).toContain('생년월일시');
+    expect(MATCH_ACCEPT_HIDDEN).toContain('출생지');
   });
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
@@ -287,8 +290,8 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
     expect(shown).toContain('여덟 글자');
     expect(shown).toContain('년주·월주·일주·시주');
-    expect(MATCH_PILLARS_DISCLOSURE).toContain('내 사주팔자 여덟 글자가 상대에게 공개');
-    expect(MATCH_PILLARS_DISCLOSURE).toContain('상대의 사주팔자 여덟 글자도 나에게 공개');
+    expect(MATCH_PILLARS_DISCLOSURE).toContain('수락하면 서로의 사주팔자 여덟 글자가 공개');
+    expect(MATCH_PILLARS_DISCLOSURE).toContain('정확한 생년월일시 · 출생지는 공개되지 않아요');
     expect(MATCH_DISCLOSURE.hidden.join(' ')).not.toContain('여덟 글자');
   });
 });

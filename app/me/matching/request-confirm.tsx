@@ -1,21 +1,21 @@
 'use client';
 
-import { MATCH_CONSENT_NOTICE } from '@/src/lib/consent';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
+import { MatchAcceptNotice } from '../requests/manage';
 import { CandidatePhoto } from './candidate-photo';
 import { supplyOf, type DeckCard } from './deck-card';
 
 /**
  * 인연 요청을 보내기 직전의 확인 창.
  *
- * **받는 쪽 카드와 같은 두 문장을 읽는다**(`MATCH_CONSENT_NOTICE`, ADR 0008 「같은 한 벌」) — 문구가 화면마다 갈리면 어느 쪽이
- * 실제로 나가는 약속인지 알 수 없다. 본문은 그 두 문장과 풀이권 한 줄뿐이다(운영자 2026-10-26 「글이 너무 길다」, 대장 `matching-10`).
- * 풀이권은 값을 치르는 사실이라 누르기 전에 남겼고(ADR 0038), 차감의 확정 · 궁합풀이 · 대화방은 「궁합 요청은 어떻게 진행되나요?」가 든다.
+ * **받는 쪽 카드와 같은 목록을 읽는다**(`MatchAcceptNotice`, ADR 0008 「같은 한 벌」) — 문구가 화면마다 갈리면 어느 쪽이 실제로
+ * 나가는 약속인지 알 수 없다. 본문은 풀이권 한 문단(핵심 값 「풀이권 1장」은 굵게)과 「상대가 수락하면」 목록이다(운영자 결정
+ * 2026-10-26 A안, 대장 matching-10). 풀이권은 값을 치르는 사실이라 누르기 전에 선다(ADR 0038).
  */
 export function RequestConfirm({
   profile,
@@ -57,15 +57,9 @@ export function RequestConfirm({
       busy={busy}
     >
       <p>
-        {MATCH_CONSENT_NOTICE.map((line) => (
-          <span key={line} className="block">
-            {line}
-          </span>
-        ))}
+        요청하면 <strong>풀이권 1장</strong>이 임시로 차감되고, 상대가 수락하면 확정돼요. {REQUEST_RESERVES_NOTE}
       </p>
-      <p>
-        <strong>풀이권 1장</strong>을 써요. {REQUEST_RESERVES_NOTE}
-      </p>
+      <MatchAcceptNotice side="sent" />
     </ConfirmDialog>
   );
 }
