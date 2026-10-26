@@ -56,10 +56,12 @@ const asText = (url: string) => new Blob([url], { type: 'text/plain' });
  * 움직인다. 한동안 가장 긴 글자에 맞춰 `min-w` 를 박아 뒀더니 **평소에 여백만 남았다** —
  * 자리는 안 흔들렸지만 버튼이 제 크기가 아니었다.
  *
- * 그래서 **바뀌는 글자를 이것보다 짧게** 두고(「만드는 중…」·「복사했습니다」), 폭은
+ * 그래서 **바뀌는 글자를 이것보다 짧게** 두고(「만드는 중…」·「복사했어요」), 폭은
  * 이 말이 정하게 한다. 숫자를 안 적으므로 글자를 고치면 폭도 따라온다.
  */
 const IDLE = '공유 링크 복사';
+/** 복사가 된 뒤의 단추 글자 · 말풍선 · 알림 자리가 읽는 말 — 해요체 완료 안내(대장 01) */
+const COPIED = '복사했어요';
 
 /**
  * **늘 보조 단추다**(2026-10-10 화면 점검 B12). 한동안 평소엔 이것이 주 단추였는데, 풀이를 읽으러 온 사람에게 글보다 먼저
@@ -74,7 +76,7 @@ export function ShareReadingButton({
   target: ReadingTarget;
   /**
    * **`icon` — 글자 없는 둥근 아이콘 단추**(2026-10-26 운영자 「공유 링크 복사가 이렇게 길 필요가 있나」). 네이버 · 다음 뉴스 글 화면의 공유가
-   * 머리 오른쪽 아이콘 하나인 것과 같다. 이름(「공유 링크 복사」 → 「복사했습니다」)은 읽는 이름이 들고, 된 것은 그림이 체크로 바뀌고 그 아래
+   * 머리 오른쪽 아이콘 하나인 것과 같다. 이름(「공유 링크 복사」 → 「복사했어요」)은 읽는 이름이 들고, 된 것은 그림이 체크로 바뀌고 그 아래
    * 작은 말풍선이 잠깐 선다 — 말풍선은 흐름 밖에 떠서 화면이 안 밀린다
    */
   look?: 'label' | 'icon';
@@ -84,7 +86,7 @@ export function ShareReadingButton({
   const [notice, setNotice] = useState<string | null>(null);
   const address = useRef<HTMLInputElement>(null);
 
-  /* 「복사했습니다」는 잠깐만 — 다음에 눌렀을 때 눌린 줄 알아야 한다 */
+  /* 「복사했어요」는 잠깐만 — 다음에 눌렀을 때 눌린 줄 알아야 한다 */
   useEffect(() => {
     if (phase !== 'copied') return;
     const timer = setTimeout(() => setPhase('idle'), 4000);
@@ -161,8 +163,21 @@ export function ShareReadingButton({
    * 그리고 **된 것은 버튼이 혼자 말한다.** 한동안 버튼 아래에 「링크를 복사했습니다」가
    * 한 줄 더 섰는데, 그 줄이 생기면서 아래 있던 것들이 통째로 밀렸다 — 잘 된 일이
    * 화면을 흔드는 것은 고장처럼 보인다. 같은 말이 두 자리에 있을 이유도 없다.
+   *
+   * 말투는 해요체 완료 안내다(「복사했어요」, 대장 01 — 2026-10-26 감사 #852). 바뀐 이름은 화면 읽기가 다시 읽지 않으므로 된 것은
+   * 늘 서 있는 알림 자리(`aria-live`, 아래 `copiedNews`)가 한 번 말한다.
    */
-  const label = phase === 'working' ? '만드는 중…' : phase === 'copied' ? '복사했습니다' : IDLE;
+  const label = phase === 'working' ? '만드는 중…' : phase === 'copied' ? COPIED : IDLE;
+  /*
+    **복사가 된 것을 보조기기도 안다** — 단추의 이름 · 글자가 바뀌어도 화면 읽기는 초점이 그 자리에 있으면 다시 읽지 않는다. 알림 자리는
+    늘 서 있고 글자만 바뀐다(`DoneNote` · 스낵바와 같은 까닭). 역할(`role="status"`)은 달지 않는다 — 화면마다 하나뿐인 상태 줄을 역할로
+    찾는 시험이 있다(`app/ui/snackbar.tsx`)
+  */
+  const copiedNews = (
+    <span aria-live="polite" className="sr-only">
+      {phase === 'copied' ? COPIED : ''}
+    </span>
+  );
 
   if (look === 'icon') {
     return (
@@ -177,6 +192,7 @@ export function ShareReadingButton({
         >
           <Icon name={phase === 'copied' ? 'check' : 'link'} className="size-5" />
         </button>
+        {copiedNews}
         {phase === 'copied' && (
           <span
             aria-hidden="true"
@@ -234,6 +250,7 @@ export function ShareReadingButton({
           </span>
         </span>
       </button>
+      {copiedNews}
       {/*
         **말이 서는 것은 실패했을 때뿐이다.** 그때는 화면이 밀려도 된다 — 읽어야 하는
         말이고, 읽으라고 자리를 만드는 것이다. 잘 된 일은 버튼이 혼자 말한다.

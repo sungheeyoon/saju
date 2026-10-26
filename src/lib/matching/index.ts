@@ -27,6 +27,18 @@ import {
 import { combinedCountBalanceOf, mutualDeficitComplementOf } from '../discovery/element-axes';
 
 /**
+ * 보낸 요청을 취소하는 단추 · 묻는 창의 실행 글자(대장 matching-09). 창의 제목 · 본문과 달리 문구 파일(`copy.ts`)에 두지 않는다 —
+ * 확인 창의 `confirmLabel` 프롭으로 넘어가고, 창은 그 글자 길이로 단추 줄을 고른다(`autoActions`). 문구 파일의 상수는 JSX 자식 ·
+ * 글자 속성으로만 쓴다(`docs/agents/code-rules/screen-copy.md` 「화면 문구」) — 프래그먼트로 감싸 넘기던 것을 걷었다(#852).
+ */
+export const CANCEL_REQUEST_LABEL = '요청 취소';
+/**
+ * 그 창의 「되돌릴 수 없어요」 문단 — 확인 창의 `irreversible` 프롭이 세운다(같은 까닭으로 `copy.ts` 밖). 풀이권이 돌아온다는 줄은
+ * 「풀이권 1장」을 굵게 세우려 화면이 든다(운영자 2026-10-26)
+ */
+export const CANCEL_REQUEST_NOTE = '취소한 요청은 되돌릴 수 없어요.';
+
+/**
  * 궁합 결과 화면의 「궁합 베타」 지표 — 점수의 축을 **무게까지** 공개해 보인다.
  *
  * 명리의 정답이나 관계의 좋고 나쁨을 판정하지 않는다. 축이 몇 개인지는 정책이 정한다 — 연인용 셋, 일반 둘,

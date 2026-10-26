@@ -35,6 +35,7 @@ function liftAboveDock(): number {
  *   와 같다(tossmini-docs.toss.im/tds-mobile/components/toast, 2026-10-26 실측).
  * - **양 끝은 독과 같은 줄에 선다**(`inset-x-3`, 독은 `fixed inset-x-3`). 본문 여백(16px)에 맞췄더니 바로 아래 독(12px)보다 양쪽이
  *   4px 씩 들어가 두 떠 있는 판의 가장자리가 어긋났다(2026-10-26 390px 실측: 스낵바 16–374 · 독 12–378).
+ * - **단추의 초점 테는 밝은 글자색(`on-accent`) 안쪽 테다** — 기본 초점 테(먹색 55%, `globals.css`)는 먹색 판 위에서 안 보였다(2026-10-26 감사, #852).
  * - 줄인 움직임이면 움직이지 않고 선다.
  */
 export function SnackbarHost() {
@@ -81,7 +82,7 @@ function SnackbarCard({ snack }: { snack: Snack }) {
         <button
           type="button"
           onClick={snackbar.act}
-          className="inline-flex min-h-11 shrink-0 items-center rounded-cell px-2.5 text-body font-bold text-accent-soft hover:bg-accent-strong active:opacity-70"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-cell px-2.5 text-body font-bold text-accent-soft hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-on-accent active:opacity-70"
         >
           {snack.action.label}
         </button>

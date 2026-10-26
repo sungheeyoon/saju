@@ -275,10 +275,10 @@ export function BlockDialog({
       danger
       busy={working}
       failure={failure}
+      irreversible={BLOCK_FINAL_NOTE}
     >
       <p>{BLOCK_NOTE}</p>
       <p>{BLOCK_KEEPS_NOTE}</p>
-      <p className="font-medium text-foreground">{BLOCK_FINAL_NOTE}</p>
     </ConfirmDialog>
   );
 }

@@ -61,6 +61,7 @@ export function RequestDeletion() {
         busy={working}
         failure={failure}
         className="max-h-[85dvh] overflow-y-auto"
+        irreversible={DELETION_IRREVERSIBLE_NOTE}
       >
         <p className="break-keep text-pretty">
           <Bolded text={DELETION_NOTE} />
@@ -68,7 +69,6 @@ export function RequestDeletion() {
         <p className="break-keep text-pretty text-small leading-5">
           <Bolded text={DELETION_SHARED_NOTE} />
         </p>
-        <p className="text-small font-semibold leading-5 text-foreground">{DELETION_IRREVERSIBLE_NOTE}</p>
       </ConfirmDialog>
     </>
   );

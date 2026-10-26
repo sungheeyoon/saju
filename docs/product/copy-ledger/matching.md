@@ -266,7 +266,7 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 「되돌리기」 대신 확인 창을 세웠다(운영자 결정 2026-10-24 「되돌릴 수 없으면 확인 창」). 끝난 말은 카드가 빠지므로 바닥 스낵바에 서고,
 글자는 `REQUEST_STATUS_TEXT.cancelled.sent` 다 — 스낵바는 한 문장이면 끝 마침표를 뗀다(`snackbarMessage`). **화면 글자는 「거두-」가
 아니라 「취소」다**(운영자 결정 2026-10-26 — 「거두다」는 한국 서비스에서 안 쓰는 말). 개념 이름은 용어집의 **거둠** 그대로다
-(`docs/context/matching.md`). PR 은 머지하지 않고 올렸다.
+(`docs/context/matching.md`). 운영자가 캡처를 보고 승인해 #839 로 머지했다 — 글자는 아직 「확인 전」이다.
 
 | 자리 | 이전 | 넣은 글자 | 출처 |
 | --- | --- | --- | --- |
@@ -278,7 +278,7 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 | 상태 딱지 `REQUEST_STATUS_TEXT.cancelled.label` | 거둠 | 취소 | 운영자 결정 2026-10-26. 이웃 딱지 「거절」 · 「무효」 · 「만료」와 같은 두 글자 체언(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 받는 쪽 문장 `REQUEST_STATUS_TEXT.cancelled.received` | 상대가 거둔 요청이에요. | 상대가 취소한 요청이에요. | 운영자 결정 2026-10-26(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 취소 실패 줄 `app/me/requests/actions.ts` | 요청을 거두지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 요청을 취소하지 못했어요. 새로고침한 뒤 다시 시도해 주세요. | 오류는 「무슨 일 + 할 일」(`docs/context/copy.md` §8). 토스 TDS 토스트 예 「결제에 실패했어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
-| 차단 고지 `src/lib/consent` 의 `BLOCK_NOTE` | … 진행 중인 요청도 거둬집니다. … | … 진행 중인 요청도 취소됩니다. … | 운영자 결정 2026-10-26(화면의 「거두-」 전부). 합니다체는 되돌릴 수 없는 고지라 그대로(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
+| 차단 고지 `src/lib/consent` 의 `BLOCK_NOTE` | … 진행 중인 요청도 거둬집니다. … | … 진행 중인 요청도 취소됩니다. … — 그 뒤 같은 날 all-04 가 해요체 세 문단으로 나눴다(지금 글자: 「차단하면 서로의 인연 목록에서 사라지고, 진행 중인 요청은 취소돼요.」 · `BLOCK_KEEPS_NOTE` · `BLOCK_FINAL_NOTE`) | 운영자 결정 2026-10-26(화면의 「거두-」 전부 · 되돌릴 수 없다는 고지도 해요체, 대장 all-04)(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 소식이 없을 때의 제목 `app/me/requests/page.tsx` | 새로 도착한 소식이 없습니다 | 새로운 소식이 없어요 | 토스 TDS 토스트 예 「새로운 알림이 있어요」(<https://tossmini-docs.toss.im/tds-mobile/llms-full.txt>, 확인 2026-10-26) |
 | 소식 화면 아래 안내 줄 `app/me/requests/page.tsx` | 소식은 앱 안에서만 볼 수 있어요. 이메일 · 문자 · 카카오톡으로는 보내지 않아요. | (걷음) | 운영자 결정으로 걷음(2026-10-26, 「왜 있는 거야」). 토스 · 당근 알림 목록에도 이런 줄이 없다 — 실사례 없음 |
 | 인연 기록이 없을 때의 한 줄 `app/me/matching/history/page.tsx` | (제목만) | 인연 요청을 주고받으면 여기에 기록이 남아요. | 당근 SEED Result Section 「Empty — 무엇을 해야 할지 알려주어 행동을 유도」(<https://seed-design.io/components/result-section>, 확인 2026-10-26) |
@@ -302,7 +302,7 @@ matching-01 의 「이름 곁에 궁합 단추」 배치를 바꾸므로 운영�
 
 | 자리 | 이전 | 넣은 글자 | 출처 |
 | --- | --- | --- | --- |
-| 빈 칸 `ELEMENT_EXCHANGE_LABEL.none` | (그 줄이 안 섰다) | 없어요 | 실사례 없음 — 한쪽만 채우는 요청에서 칸이 비지 않게 |
+| 빈 칸 `ELEMENT_EXCHANGE_LABEL.none` | (그 줄이 안 섰다) | 없어요 | 실사례 없음 — 한쪽만 채우는 요청에서 칸이 비지 않게. 가장 가까운 사례는 이 대장의 빈 소식 제목 「새로운 소식이 없어요」(matching-09, 빈 자리를 해요체 「없어요」로 말한다, 확인 2026-10-26) |
 
 ## matching-12 확정 문구 — 인연 요청 보내기 창 · 받은 요청 카드 · 처리방침의 상세 궁합 공개를 같은 목록으로 (운영자 결정 2026-10-26, ADR 0008 「같은 한 벌」)
 

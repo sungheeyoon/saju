@@ -106,9 +106,9 @@ export function ConsentControls({ improvement, contact }: { improvement: boolean
         danger
         busy={saving}
         failure={askFailure}
+        irreversible={IMPROVEMENT_OFF_IRREVERSIBLE}
       >
         <p>{improvementErasure}</p>
-        <p className="text-small leading-5 text-muted">{IMPROVEMENT_OFF_IRREVERSIBLE}</p>
       </ConfirmDialog>
     </>
   );

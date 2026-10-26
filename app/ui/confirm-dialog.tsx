@@ -47,7 +47,7 @@ export function pressedOutside(event: MouseEvent<HTMLDialogElement>): boolean {
  *   (「사주풀이 다시 받기」 · 「바꾸고 저장하기」). 부르는 쪽이 `actions` 를 주면 그것이 이긴다.
  * - 닫는 X 는 없다 — 닫는 것은 「취소」다(대장 01). 실행 글자에 「취소」가 들면 닫기는 「닫기」다(대장 01 의 예외).
  * - **글의 규칙**(운영자 2026-10-26 「문구와 가독성이 별로」, ADR 0166 추기) — 제목은 「대상을 동작할까요?」 한 줄, 본문은 한두 문장.
- *   무엇이 일어나는지 한 문단, 「되돌릴 수 없어요」는 **따로 한 문단**, 핵심 값(「풀이권 1장」)은 `<strong>` 으로 굵게 — 토스 TDS
+ *   무엇이 일어나는지 한 문단, 「되돌릴 수 없어요」는 **따로 한 문단**(`irreversible` — 모양은 이 판이 든다), 핵심 값(「풀이권 1장」)은 `<strong>` 으로 굵게 — 토스 TDS
  *   「삭제할까요? / 이 작업은 되돌릴 수 없어요.」 · 당근 SEED 「이 작업은 되돌릴 수 없습니다.」 · 카카오톡 「차단하시겠습니까? / 차단하면
  *   …」. 굵은 값은 이 판이 글자색(`foreground`)으로 올린다.
  * - 제목 곁의 그림(`titleIcon`) — 무엇을 쓰는 창인지 한눈에(풀이권 창의 표, 머리글의 풀이권 그림과 같은 것).
@@ -64,6 +64,7 @@ export function ConfirmDialog({
   onClose,
   title,
   children,
+  irreversible,
   lead,
   titleIcon,
   confirmLabel,
@@ -81,6 +82,11 @@ export function ConfirmDialog({
   title: ReactNode;
   /** 제목 아래 본문 — 문단 하나 이상 */
   children?: ReactNode;
+  /**
+   * 되돌릴 수 없다는 한 문단(「삭제한 사진은 되돌릴 수 없어요.」) — 본문 끝에 따로 서고 모양은 이 판이 정한다(대장 all-04, ADR 0166 「덧」).
+   * 창마다 문단을 다시 꾸몄더니 굵기 · 크기 · 색이 다섯 벌이었다(2026-10-26 감사, #852)
+   */
+  irreversible?: ReactNode;
   /** 제목 위에 서는 그림(아이콘 · 사진) */
   lead?: ReactNode;
   /** 제목 앞에 같은 줄로 서는 그림 — 무엇을 쓰는 창인지(풀이권 창의 `ticket`) */
@@ -138,7 +144,12 @@ export function ConfirmDialog({
         {titleIcon !== undefined && <Icon name={titleIcon} className="mt-0.5 size-5 shrink-0 text-cream-ink" />}
         <span>{title}</span>
       </h2>
-      {children !== undefined && <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary [&_strong]:font-semibold [&_strong]:text-foreground">{children}</div>}
+      {(children !== undefined || irreversible !== undefined) && (
+        <div className="mt-2 flex flex-col gap-2 text-body leading-6 text-secondary [&_strong]:font-semibold [&_strong]:text-foreground">
+          {children}
+          {irreversible !== undefined && <p className={CONFIRM_IRREVERSIBLE}>{irreversible}</p>}
+        </div>
+      )}
       {failure !== null && failure !== undefined && (
         <FailureLine className="mt-3">{failure}</FailureLine>
       )}
@@ -167,6 +178,9 @@ export function ConfirmDialog({
     </dialog>
   );
 }
+
+/** 되돌릴 수 없다는 문단의 모양 — 본문과 같은 크기, 글자색 · 한 단 굵게(차단 · 요청 취소 창이 먼저 쓴 꼴) */
+const CONFIRM_IRREVERSIBLE = 'font-medium text-foreground';
 
 /** 반 칸에 드는 단추 글자 — 띄어쓰기를 뺀 글자 수. 390px 폰의 반 칸(약 150px)에 15px 굵은 글과 좌우 20px 여백이 드는 끝 */
 const ROW_LABEL_MAX = 6;
