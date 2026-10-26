@@ -269,7 +269,7 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
 - **스낵바의 양 끝은 하단 독과 같은 줄**(`inset-x-3`) — 본문 여백(16)에 맞췄더니 바로 아래 독(12)과 4px 씩 어긋났다. 단추가 없으면 오른쪽
   여백도 16px. **한 문장이면 끝 마침표를 뗀다**(`snackbarMessage`, SEED Snackbar 「마침표는 문장 수에 따라」) — 두 문장 이상이면 둔다.
 - **확인 창의 두 단추는 나란히**(`actions="row"`, 왼쪽 「취소」 · 오른쪽 실행) — SEED Alert Dialog 는 가로 배열이 기본이고 토스 TDS
-  `ConfirmDialog` 도 왼쪽 닫기 · 오른쪽 실행이다. 지금은 보낸 요청 취소 창만 옮겼다 — 다른 확인 창의 기본(`stack`)은 그대로다.
+  `ConfirmDialog` 도 왼쪽 닫기 · 오른쪽 실행이다. 처음엔 보낸 요청 취소 창만 옮겼고, 운영자 승인(2026-10-26)으로 **모든 확인 창의 기본이 나란히**다 — 단추 글자가 반 칸을 넘으면 위아래(ADR 0166 추기).
 - **한글 줄바꿈 한 벌**(`app/globals.css`, 2026-10-26 운영자 「줄바꿈이 전혀 고려가 안 됐다」) — 어절 단위(`word-break: keep-all`,
   당근 SEED `Article` · 토스 TDS 글 부품), 문단은 마지막 줄 외톨이를 피하고(`text-wrap-style: pretty`) 제목 · 가운데 정렬 글은 줄
   길이를 고르게(`balance`). 모두 `@layer base` 라 화면의 유틸리티가 이긴다. 전역 `overflow-wrap: anywhere` 는 두지 않는다 — 이 부품들에
