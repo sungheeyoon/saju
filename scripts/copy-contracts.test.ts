@@ -16,7 +16,6 @@ import { describe, expect, it } from 'vitest';
 import { RATE_LIMITED_TEXT } from '../src/lib/chat';
 import { CONSENT_FLOW_STEPS } from '../src/lib/consent';
 import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS } from '../src/lib/consent/notice';
-import { REQUEST_OPENS_CHAT_NOTE } from '../src/lib/matching/copy';
 import { READING_USES_TICKET_NOTE, REQUEST_RESERVES_NOTE } from '../src/lib/reading';
 
 describe('계약 문구', () => {
@@ -31,13 +30,8 @@ describe('계약 문구', () => {
   });
 
   it('수락하면 무엇이 공개되고 무엇은 안 되나', () => {
-    expect(MATCH_PILLARS_DISCLOSURE).toBe(
-      '수락하면 내 사주팔자 여덟 글자가 상대에게 공개되고, 상대의 사주팔자 여덟 글자도 나에게 공개됩니다. 정확한 생년월일시와 출생지는 공개되지 않습니다.',
-    );
-  });
-
-  it('요청 창은 수락이 채팅방을 연다고 말한다', () => {
-    expect(REQUEST_OPENS_CHAT_NOTE).toBe('상대가 수락하면 채팅방이 열려요.');
+    /* 운영자 결정 2026-10-26 — 처리방침 줄도 요청 창 · 받은 카드와 같은 해요체(notice-v11, 표현 개정, 대장 matching-12) */
+    expect(MATCH_PILLARS_DISCLOSURE).toBe('수락하면 서로의 사주팔자 여덟 글자가 공개돼요. 정확한 생년월일시 · 출생지는 공개되지 않아요.');
   });
 
   it('요청을 보내는 것만으로는 상대에게 열리는 것이 없다', () => {
@@ -46,10 +40,9 @@ describe('계약 문구', () => {
     );
   });
 
-  it('풀이권 — 요청의 임시 차감 · 확정 · 돌아옴', () => {
-    expect(REQUEST_RESERVES_NOTE).toBe(
-      '요청을 보내면 풀이권 1장이 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.',
-    );
+  it('풀이권 — 요청이 쓰는 풀이권이 돌아오는 길', () => {
+    /* 운영자 결정 2026-10-26 — 앞머리 「요청하면 풀이권 1장이 임시로 차감되고, 상대가 수락하면 확정돼요.」는 창이 「풀이권 1장」을 굵게 세워 들고, 이 줄은 돌려받는 길(대장 matching-12) */
+    expect(REQUEST_RESERVES_NOTE).toBe('상대가 거절하거나 7일 동안 답이 없으면 돌려드려요.');
   });
 
   it('풀이권 — 내 풀이의 사용과 실패 시 복구', () => {

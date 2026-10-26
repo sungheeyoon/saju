@@ -2340,11 +2340,11 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     // 2026-10-09 검토 에이전트가 센 리터럴 315 개 — 그 뒤 시험이 늘면 늘 뿐 줄지 않게(줄면 셈이 빠진 것인지 본다)
     expect(walked).toBeGreaterThanOrEqual(315);
     expect(literals).toBeGreaterThanOrEqual(walked);
-    // 검색만 보면 G-86 한 줄이 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` 등)의 `.exec` ·
+    // 검색만 보면 문구 한 줄이(요청 취소 창의 되돌릴 수 없다는 줄 — G-86 의 채팅방 줄은 2026-10-26 걷혔다) 전부를 부른다 — 글자 없는 정규식이 도우미(`e2e/birth-form.ts` 등)의 `.exec` ·
     // `.test` 에 선다. 그래도 문구 판정은 좁히기만 하므로 계획은 지금 규칙(core)보다 넓어지지 않는다
     const note = 'src/lib/matching/copy.ts';
     const noteBefore = readFileSync(resolve(ROOT, note), 'utf8');
-    const noteTexts = copyOnlyChanged(ts, note, noteBefore, noteBefore.replace('채팅방이 열려요', '대화방이 열려요'))!;
+    const noteTexts = copyOnlyChanged(ts, note, noteBefore, noteBefore.replace("'취소한 요청은 되돌릴 수 없어요.'", "'취소한 요청도 되돌릴 수 없어요.'"))!;
     const sources = files.map((file) => [file, readFileSync(resolve(ROOT, file), 'utf8')] as const);
     expect(lanesFor(new Map([[note, noteTexts]]), sources).lanes).toBeNull();
     // 다른 파일은 디스크에서 읽는다 — 아무 경로에나 같은 소스를 주면 관문의 import 를 끝없이 따라간다
@@ -2359,7 +2359,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       files: [note],
       stage: '운영 베타',
       ts,
-      sourceOf: (one) => (one === note ? noteBefore.replace('채팅방이 열려요', '대화방이 열려요') : disk(one)),
+      sourceOf: (one) => (one === note ? noteBefore.replace("'취소한 요청은 되돌릴 수 없어요.'", "'취소한 요청도 되돌릴 수 없어요.'") : disk(one)),
       baseSourceOf: (one) => (one === note ? noteBefore : disk(one)),
     });
     expect(notePlan.lanes).toEqual(CORE_ONLY);
