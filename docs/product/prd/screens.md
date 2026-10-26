@@ -18,7 +18,7 @@
 | 홈 · 저장한 사람 · 풀이 | 홈 · 풀이 보관함 · 한 사람 풀이 · 사람 — §3.0 홈 | `docs/product/prd/screens/home.md` |
 | 궁합 | 궁합 보기 · 궁합 결과 — §3.1 궁합 보기 | `docs/product/prd/screens/compat.md` |
 | 인연 · 채팅 · 소식 | 매칭 · 인연 기록 · 채팅 · 소식 · 인연 궁합 결과 | `docs/product/prd/screens/matching.md` |
-| 설정 · 프로필 · 설문 | 프로필 · 계정 관리 · 서비스 설문 | `docs/product/prd/screens/settings.md` |
+| 설정 · 프로필 · 설문 | 프로필 · 설정(옛 「계정 관리」) · 서비스 설문 | `docs/product/prd/screens/settings.md` |
 | 결제 · 풀이권 | 풀이권 구매 · 결제 뒤 · 결제 내역 — §7.0 | `docs/product/prd/screens/credits.md` |
 | 운영 화면 · 작업대 | 검산 · 설문 요약 · 신고 열람 | `docs/product/prd/screens/ops.md` |
 

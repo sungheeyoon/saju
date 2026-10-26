@@ -128,7 +128,7 @@ test.describe('시작하기 전에', () => {
     /* 끝나도 나가는 길은 열려 있다 */
     await page.goto('/me/settings');
     await expect(page).toHaveURL(/\/me\/settings$/);
-    await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '설정', exact: true })).toBeVisible();
 
     scheduleBeta(scheduledEndsOn());
   });

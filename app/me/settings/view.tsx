@@ -52,7 +52,7 @@ export function SettingsView({ data }: { data: SettingsData }): ReactNode {
     /* 화면 바탕이 가라앉은 면이고 무리 사이의 틈이 곧 회색 띠다(TDS `Border` 의 `height16`) — 폰에서는 무리가 화면 끝까지 간다 */
     <main className={`flex w-full flex-1 flex-col bg-surface-sunken ${SETTINGS_TEXT_WRAP}`}>
       <div className={`mx-auto flex w-full ${COLUMN} flex-col gap-4 pb-10 pt-8 sm:px-5 sm:pb-14 sm:pt-12`}>
-        <h1 className={`${TYPE_TITLE} px-6`}>계정 관리</h1>
+        <h1 className={`${TYPE_TITLE} px-6`}>설정</h1>
 
         {isBlocked(state) && (
           <div className="px-4 sm:px-0">

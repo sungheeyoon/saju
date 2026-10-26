@@ -101,8 +101,8 @@ const GROUPS: readonly {
       {
         id: 'matching-off',
         q: '인연 찾기에서 내 프로필을 숨기려면요?',
-        a: ['계정 관리의 「인연 찾기」에서 쉴 수 있어요. 쉬는 동안에는 다른 사람에게 소개되지 않아요.'],
-        link: { href: '/me/settings', label: '계정 관리' },
+        a: ['설정의 「인연 찾기」에서 쉴 수 있어요. 쉬는 동안에는 다른 사람에게 소개되지 않아요.'],
+        link: { href: '/me/settings', label: '설정' },
       },
     ],
   },
@@ -112,8 +112,8 @@ const GROUPS: readonly {
       {
         id: 'leave',
         q: '탈퇴는 어떻게 하나요?',
-        a: ['계정 관리 맨 아래 「탈퇴하기」를 누르면 신청하기 전에 자세한 내용을 먼저 보여 드려요.'],
-        link: { href: '/me/settings', label: '계정 관리' },
+        a: ['설정 맨 아래 「탈퇴하기」를 누르면 신청하기 전에 자세한 내용을 먼저 보여 드려요.'],
+        link: { href: '/me/settings', label: '설정' },
       },
       {
         id: 'contact',

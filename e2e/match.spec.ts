@@ -241,7 +241,7 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('저장했어요')).toBeVisible();
 
       await person.page.goto('/me/settings');
-      await expect(person.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '설정', exact: true })).toBeVisible();
 
       /*
         **누를 버튼이 없다**(PRD §4.1, ADR 0037). 참여가 기본으로 켜진 뒤로 이 화면에서

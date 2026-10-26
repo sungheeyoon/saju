@@ -42,7 +42,7 @@ export const DISCOVERY_EMPTY = {
  * 꺼내 쓰는 화면(`PREFER_GENDER_KO[value]`)의 타입 검사가 잡는다
  */
 export const PREFER_GENDER_KO = {
-  any: '모두',
-  female: '여자',
-  male: '남자',
+  any: '전체',
+  female: '여성',
+  male: '남성',
 } as const;

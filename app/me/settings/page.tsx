@@ -7,7 +7,7 @@ import { myPhotos } from '../profile/photos';
 import { SettingsView } from './view';
 
 export const metadata = {
-  title: '계정 관리',
+  title: '설정',
   description: '로그인 정보와 계정 상태를 확인하고 계정을 관리합니다.',
 };
 

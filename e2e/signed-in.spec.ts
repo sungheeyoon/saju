@@ -154,7 +154,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await settingsMenu.click();
     for (const [name, href] of [
       ['프로필', '/me/profile'],
-      ['계정 관리', '/me/settings'],
+      ['설정', '/me/settings'],
       ['서비스 설문', '/me/survey'],
     ] as const) {
       await expect(banner.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
@@ -2009,9 +2009,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(chips.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(cover).toBeVisible();
 
-    /* 모르는 값은 전체다 */
+    /*
+      모르는 값은 전체다 — 「전체」 칩은 이름 대신 주소(`/me/readings`, 칸 없음)로 집는다. 같은 글자가 인연 성별 칩의 문구 상수
+      (`PREFER_GENDER_KO.any`)에 서서, 시험이 그 글자를 따옴표로 적으면 문구 상수 가드(`scripts/ci-plan.test.ts`, G-90)에 걸린다.
+    */
     await page.goto('/me/readings?kind=nope');
-    await expect(chips.getByRole('link', { name: '전체', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(chips.locator('a[href="/me/readings"]')).toHaveAttribute('aria-current', 'page');
     await expect(chips.getByRole('link', { name: '인연 궁합', exact: true })).toHaveAttribute('href', '/me/readings?kind=match');
   });
 
@@ -2163,9 +2166,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 프로필도 같은 메뉴에서 닿는다 — 이름은 앱 전체의 것이라 길도 앱 전체의 자리에 선다 */
     await expect(page.getByRole('link', { name: '프로필' })).toBeVisible();
 
-    await page.getByRole('link', { name: '계정 관리' }).click();
+    await page.getByRole('link', { name: '설정', exact: true }).click();
 
-    await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '설정', exact: true })).toBeVisible();
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
     await expect(account.getByRole('button', { name: '탈퇴하기', exact: true })).toBeVisible();
