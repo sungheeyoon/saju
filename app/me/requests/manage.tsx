@@ -178,7 +178,7 @@ export function CancelButton({ requestId }: { requestId: string }) {
           setFailure(null);
         }}
         title={CANCEL_REQUEST_TITLE}
-        confirmLabel={working ? '취소하는 중…' : CANCEL_REQUEST_LABEL}
+        confirmLabel={working ? '취소하는 중…' : <>{CANCEL_REQUEST_LABEL}</>}
         cancelLabel="닫기"
         onConfirm={cancel}
         danger
