@@ -859,14 +859,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **점수가 없어도 비유는 선다.** 그 칸은 둘 중 하나만 있어도 열린다 — 자기 풀이와
       저장한 사람 풀이에는 점수가 없고 비유만 있다.
 
-      길게 심어 둔 문장을 그대로 잰다. 화면이 줄여 쓰거나 자르면 여기서 걸린다. **`exact` 로 글의 표지만
-      잡는다** — 넓은 화면에서는 옆 칸 책장의 표지도 같은 비유를 따옴표에 넣어 든다(거기서는 잘려도 된다).
+      길게 심어 둔 문장을 그대로 잰다. 화면이 줄여 쓰거나 자르면 여기서 걸린다. **글의 표지(`blockquote`)만
+      잡는다** — 책장의 줄도 같은 요약을 든다(거기서는 두 줄에서 잘려도 된다, 2026-10-26 안 D).
     */
-    await expect(
-      page.getByText('서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.', {
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(page.locator('blockquote')).toHaveText(
+      '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.',
+    );
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
     await expectReadingCredits(page, '풀이권 4장');
@@ -898,7 +896,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
      */
     await expect(page.getByRole('button', { name: '자세히 보기', exact: true })).toHaveCount(0);
     await expect(page.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-    await expect(page.getByText('이 풀이는 어떠셨어요')).toBeVisible();
+
+    /*
+      **의견은 글 끝에 한 줄로 접혀 선다**(2026-10-26 운영자 결정 「안 A」) — 머리 한 줄이 접고 펴는 단추이고, 누르면 그 자리에서
+      설문이 펼쳐진다. 접힌 동안은 문항이 안 선다
+    */
+    const fold = page.getByRole('button', { name: /이 풀이는 어떠셨어요/ });
+    await expect(fold).toHaveAttribute('aria-expanded', 'false');
+    await expect(fold).toContainText('필수 질문 3개 · 1분이면 돼요');
+    await expect(page.getByRole('radio', { name: '5 — 많이 됐어요' })).toHaveCount(0);
+    await fold.click();
+    await expect(fold).toHaveAttribute('aria-expanded', 'true');
 
     /* **세 가지를 다 고르기 전에는 못 보낸다** — 안 고른 것이 어느 값으로든 저장되면 안 된다 */
     const send = page.getByRole('button', { name: '의견 보내기' });
@@ -3484,7 +3492,7 @@ test.describe('사주풀이 공유하기', () => {
     /*
       **손잡이는 하나다.** 제목 옆과 본문 아래에 같은 버튼이 둘 서 있었다 — 글이 길다는
       까닭이었는데, 같은 문 앞에 손잡이가 둘이면 어느 것이 무엇인지 세어 봐야 한다.
-      지금은 머리에서 「다시 받기」와 나란히 한 쌍으로 선다(`panel.tsx`).
+      지금은 글 끝에서 「다시 받기」와 반반으로 한 쌍으로 선다(`panel.tsx`, 2026-10-26 운영자 결정 「안 A」).
     */
     await expect(page.getByRole('button', { name: SHARE })).toHaveCount(1);
 
@@ -3496,16 +3504,20 @@ test.describe('사주풀이 공유하기', () => {
      * 읽는다. 말로 고치면 다음에 또 밀리므로 **자리를 값으로 잡아 둔다.**
      */
     const anchor = page.getByText('이 풀이는 어떠셨어요').first();
+    /* 단추가 글 끝에 있어 누르면 그 자리로 굴러간다 — 먼저 굴려 두고 재야 자리는 화면이 흔들린 것만 센다 */
+    await page.getByRole('button', { name: SHARE }).first().scrollIntoViewIfNeeded();
     const before = {
       button: await page.getByRole('button', { name: SHARE }).first().boundingBox(),
       below: await anchor.boundingBox(),
     };
 
     await page.getByRole('button', { name: SHARE }).first().click();
-    await expect(page.getByRole('button', { name: '복사했습니다' }).first()).toBeVisible();
+    /* 다 된 말은 #852(PR #853)가 「복사했어요」로 고친다 — 어느 쪽이 먼저 들어도 서도록 둘 다 받는다 */
+    const copiedButton = page.getByRole('button', { name: /^복사했/ }).first();
+    await expect(copiedButton).toBeVisible();
 
     const after = {
-      button: await page.getByRole('button', { name: '복사했습니다' }).first().boundingBox(),
+      button: await copiedButton.boundingBox(),
       below: await anchor.boundingBox(),
     };
     expect(after.button?.width).toBe(before.button?.width);

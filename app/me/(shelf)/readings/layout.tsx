@@ -16,9 +16,9 @@ import { withCameFrom } from '../../../came-from';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
 import { bookOf, shelfNamesOf } from './book';
 import { ReadingsFrame, ShelfItem, type NextBook } from './frame';
-import { shelfKindOfReading, type ShelfKind } from './kind';
+import { SHELF_KIND_LABEL, shelfKindOfReading, type ShelfKind } from './kind';
 import type { ShelfLists } from './opening';
-import { BlankBook, MakingCover, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
+import { BlankBook, MakingGroup, MakingMatchRow, MakingRow, Nothing, Shelf, ShelfRow } from './shelf';
 
 /**
  * **풀이 보관함** — 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
@@ -88,7 +88,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   );
   const making = matches.filter((match) => !madeMatchIds.has(match.matchId));
 
-  const books = readings.map((entry) => ({ book: bookOf(entry), kind: shelfKindOfReading(entry.kind) }));
+  const books = readings.map((entry) => ({ book: bookOf(entry), kind: shelfKindOfReading(entry.kind), matchId: entry.matchId }));
   /* 구역 안의 차례는 DB 가 준 그대로다 — 가르기만 하고 다시 세우지 않는다 */
   const singles = books.flatMap(({ book }) => (book.single ? [book] : []));
   const pairsOf = (only: 'compat' | 'match' | null) =>
@@ -98,7 +98,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   /*
     **만드는 중인 한 사람 풀이 · 궁합풀이도 책장에 선다**(2026-10-10 화면 점검 B3) — 홈에서 「만드는 중」을 보고 오면 그 풀이가
     사라진 것처럼 읽혔다. 무엇이 도는가는 DB 가 정하고(`my_running_readings`), 여기서는 **이미 꽂힌 권을 한 번 더 세우지 않는
-    것**만 가른다 — 다시 받는 중인 글은 제 표지가 그대로 선다. 인연 궁합은 위의 편지(`MakingShelf`)가 든다. 못 읽으면 안 선다(부속
+    것**만 가른다 — 다시 받는 중인 글은 제 표지가 그대로 선다. 인연 궁합은 `making` 이 든다. 못 읽으면 안 선다(부속
     정보, ADR 0078).
   */
   const shelved = new Set(books.map(({ book }) => book.href));
@@ -119,75 +119,111 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   const makingSingles = runningBooks.filter((one) => one.single);
   const makingPairs = runningBooks.filter((one) => !one.single);
   const makingSelfReading = runningBooks.some((one) => one.href === readingHrefOf({ kind: 'self' }));
-  const makingCovers = (entries: typeof runningBooks) =>
-    entries.map((one) => (
-      <ShelfItem key={one.key} href={one.href}>
-        <MakingCover href={one.href} name={one.name} from="shelf" />
-      </ShelfItem>
-    ));
+  /* 인연 궁합 줄은 그 Match 의 받는 기운 · 균형을 든다(#849) — 같은 Match 를 두 번 읽지 않게 위에서 읽은 목록에서 찾는다 */
+  const matchOf = new Map(matches.map((match) => [match.matchId, match]));
+  const privates = pairsOf('compat');
+  const fated = pairsOf('match');
 
-  const sajuShelf = (
+  /*
+    **맨 위의 「만드는 중」**(2026-10-26 운영자 결정 「안 D」) — 아직 도는 것은 종류와 상관없이 칩 · 찾기 바로 아래에 모인다. 차례는
+    인연 궁합 → 사주풀이 → 궁합풀이(아래 묶음과 같은 차례)다. 전체 칸에서는 묶음 밖이라 줄마다 종류를 달고 머리 「만드는 중」이
+    선다. 칩 하나를 고르면 그 종류의 것만 머리 없이 선다.
+  */
+  const makingRows = (only: Exclude<ShelfKind, 'all'> | null) => {
+    const shelfKind: ShelfKind = only ?? 'all';
+    const tagged = only === null;
+    const rows = [
+      ...(only === null || only === 'match'
+        ? making.map((match) => (
+            <ShelfItem key={match.matchId} href={`/me/match/${match.matchId}`}>
+              <MakingMatchRow
+                match={match}
+                href={withCameFrom(`/me/match/${match.matchId}`, 'shelf', shelfKind)}
+                kind={tagged ? SHELF_KIND_LABEL.match : undefined}
+              />
+            </ShelfItem>
+          ))
+        : []),
+      ...(only === null || only === 'saju' ? makingSingles : []).map((one) => (
+        <ShelfItem key={one.key} href={one.href}>
+          <MakingRow href={one.href} name={one.name} from="shelf" kind={tagged ? SHELF_KIND_LABEL.saju : undefined} />
+        </ShelfItem>
+      )),
+      ...(only === null || only === 'compat' ? makingPairs : []).map((one) => (
+        <ShelfItem key={one.key} href={one.href}>
+          <MakingRow href={one.href} name={one.name} from="shelf" kind={tagged ? SHELF_KIND_LABEL.compat : undefined} />
+        </ShelfItem>
+      )),
+    ];
+    return rows;
+  };
+  const allMaking = makingRows(null);
+
+  /*
+    묶음의 머리는 전체 칸에만 선다 — 칩 하나를 고르면 칩이 이미 무엇을 보는지 말한다(안 D). 그때 그 종류의 만드는 중인 줄은 같은
+    목록의 맨 위에 붙는다(한 열이 끊기지 않게)
+  */
+  const sajuShelf = (titled: boolean) => (
     /*
-      **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
-      보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
+      **사주풀이 묶음은 비어도 선다 — 점선 한 줄로.** 내 사주풀이가 아직 없으면 그 받는 자리가 끝에 선다. 내 사주가 없으면 등록이다.
     */
-    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이예요.">
-      {makingCovers(makingSingles)}
+    <Shelf {...(titled ? { title: '사주풀이', description: '나와 저장한 사람을 한 사람씩 본 풀이예요.' } : {})}>
+      {!titled && makingRows('saju')}
       {singles.map((book) => (
         <ShelfItem key={book.key} href={book.href}>
-          <SingleCover book={book} from="shelf" />
+          <ShelfRow book={book} from="shelf" />
         </ShelfItem>
       ))}
       {selfPersonId === null ? (
-        <BlankBook href="/me" element="木" label="내 사주 등록하기" />
+        <BlankBook href="/me" element="木" label="내 사주 등록하기" wide />
       ) : (
-        !hasSelfReading && !makingSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
+        !hasSelfReading && !makingSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" wide />
       )}
     </Shelf>
   );
 
-  /**
-   * 궁합 표지에는 **어디서 왔는지** 딱지가 선다 — 직접 고른 궁합과 인연 궁합이 한 구역에 섞이고, 칩으로 갈라 볼 때도
-   * 표지만 보고 알 수 있어야 한다(ADR 0133). 딱지 말은 궁합 탭의 보관함과 같다(ADR 0129).
-   */
-  const pairShelf = (only: 'compat' | 'match' | null, blank: ReactNode) => {
-    const pairs = pairsOf(only);
-    /* 직접 본 궁합(`private`)만 여기서 만드는 중으로 선다 — 인연 궁합은 편지가 든다 */
-    const makingHere = only === 'match' ? [] : makingPairs;
-    return (
-      <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이예요.">
-        {makingCovers(makingHere)}
-        {pairs.map(({ book, kind }) => (
-          <ShelfItem key={book.key} href={book.href}>
-            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" />
-          </ShelfItem>
-        ))}
-        {pairs.length === 0 && makingHere.length === 0 && blank}
-      </Shelf>
-    );
-  };
-  const toCompat = <BlankBook href="/compat" element="火" label={COMPAT_ENTRY_LABEL} wide />;
-  const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && (
-    <MakingShelf matches={making} hrefOf={(matchId) => withCameFrom(`/me/match/${matchId}`, 'shelf', shelfKind)} />
+  /* 직접 본 궁합 — 비면 궁합 탭으로 가는 점선 한 줄. 만드는 중인 것은 맨 위에 있으므로 그때는 점선을 안 세운다 */
+  const compatShelf = (titled: boolean) => (
+    <Shelf {...(titled ? { title: '궁합풀이', description: '두 사람을 함께 맞대어 본 풀이예요.' } : {})}>
+      {!titled && makingRows('compat')}
+      {privates.map(({ book }) => (
+        <ShelfItem key={book.key} href={book.href}>
+          <ShelfRow book={book} from="shelf" />
+        </ShelfItem>
+      ))}
+      {privates.length === 0 && makingPairs.length === 0 && (
+        <BlankBook href="/compat" element="火" label={COMPAT_ENTRY_LABEL} wide />
+      )}
+    </Shelf>
   );
 
-  /* 필터 칸마다의 책장(ADR 0133) — 어느 칸을 세울지는 주소를 읽는 `frame.tsx` 가 고른다 */
+  /* 인연 궁합 — 다 된 글. 전체 칸에서는 한 권도 없으면 묶음이 안 선다. 인연 궁합 칩에서 아무것도 없으면 오늘의 인연으로 가는 점선 한 줄 */
+  const fatedShelf = (titled: boolean) =>
+    (fated.length > 0 || !titled) && (
+      <Shelf {...(titled ? { title: '인연 궁합', description: '서로 동의해 두 사람이 함께 보는 궁합풀이예요.' } : {})}>
+        {!titled && makingRows('match')}
+        {fated.map(({ book, matchId }) => (
+          <ShelfItem key={book.key} href={book.href}>
+            <ShelfRow book={book} from="shelf" match={(matchId === null ? undefined : matchOf.get(matchId)) ?? null} />
+          </ShelfItem>
+        ))}
+        {fated.length === 0 && making.length === 0 && <BlankBook href="/me/matching" element="水" label="오늘의 인연" wide />}
+      </Shelf>
+    );
+
+  /* 필터 칸마다의 책장(ADR 0133) — 어느 칸을 세울지는 주소를 읽는 `frame.tsx` 가 고른다. 차례는 안 D(운영자 2026-10-26) */
   const shelves: Record<ShelfKind, ReactNode> = {
     all: (
       <>
-        {makingShelf('all')}
-        {sajuShelf}
-        {pairShelf(null, toCompat)}
+        {allMaking.length > 0 && <MakingGroup>{allMaking}</MakingGroup>}
+        {fatedShelf(true)}
+        {sajuShelf(true)}
+        {compatShelf(true)}
       </>
     ),
-    saju: sajuShelf,
-    compat: pairShelf('compat', toCompat),
-    match: (
-      <>
-        {makingShelf('match')}
-        {pairShelf('match', <BlankBook href="/me/matching" element="水" label="오늘의 인연" wide />)}
-      </>
-    ),
+    saju: sajuShelf(false),
+    compat: compatShelf(false),
+    match: fatedShelf(false),
   };
 
   /* 한 권도 없으면 목록 주소에는 두 칸 대신 안내 한 장이 선다 — 글 주소(`/me/readings/self`)는 그래도 두 칸이다 */
@@ -196,13 +232,20 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   /* 칩마다 책장에 선 차례 그대로의 주소 — 넓은 화면에서 목록만 열면 이 가운데 한 권을 편다(`opening.ts`) */
   const makingHrefs = making.map((match) => `/me/match/${match.matchId}`);
   const hrefsOf = (entries: readonly { book: { href: string } }[]) => entries.map(({ book }) => book.href);
-  const singleHrefs = [...makingSingles.map((one) => one.href), ...singles.map((book) => book.href)];
-  const pairHrefsOf = (only: 'compat' | null) => [...makingPairs.map((one) => one.href), ...hrefsOf(pairsOf(only))];
+  const runningSingleHrefs = makingSingles.map((one) => one.href);
+  const runningPairHrefs = makingPairs.map((one) => one.href);
   const lists: ShelfLists = {
-    all: [...makingHrefs, ...singleHrefs, ...pairHrefsOf(null)],
-    saju: singleHrefs,
-    compat: pairHrefsOf('compat'),
-    match: [...makingHrefs, ...hrefsOf(pairsOf('match'))],
+    all: [
+      ...makingHrefs,
+      ...runningSingleHrefs,
+      ...runningPairHrefs,
+      ...hrefsOf(fated),
+      ...singles.map((book) => book.href),
+      ...hrefsOf(privates),
+    ],
+    saju: [...runningSingleHrefs, ...singles.map((book) => book.href)],
+    compat: [...runningPairHrefs, ...hrefsOf(privates)],
+    match: [...makingHrefs, ...hrefsOf(fated)],
   };
 
   const nextBooks: NextBook[] = singles.map((book) => ({
