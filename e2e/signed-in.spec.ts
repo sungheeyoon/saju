@@ -2253,7 +2253,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await improvement.click();
     const asked = page.getByRole('dialog', { name: '풀이 개선에 답변 활용을 끌까요?' });
     await expect(asked).toBeVisible();
-    await expect(asked.getByText('삭제한 답변은 되돌릴 수 없습니다.')).toBeVisible();
+    await expect(asked.getByText('삭제한 답변은 되돌릴 수 없어요.')).toBeVisible();
     await expect(asked.getByRole('button', { name: '취소' })).toBeFocused();
     await asked.getByRole('button', { name: '취소' }).click();
     await expect(asked).toBeHidden();
@@ -3499,7 +3499,7 @@ test.describe('사주풀이 공유하기', () => {
     /**
      * **누르기 전후로 화면이 안 움직여야 한다.**
      *
-     * 버튼 글자가 「공유 링크 복사」에서 「링크를 복사했습니다」로 바뀌고, 한동안은
+     * 버튼 글자가 「공유 링크 복사」에서 「복사했어요」로 바뀌고, 한동안은
      * 그 아래 안내 줄까지 새로 섰다 — 잘 된 일이 화면을 흔들면 사용자는 고장으로
      * 읽는다. 말로 고치면 다음에 또 밀리므로 **자리를 값으로 잡아 둔다.**
      */
@@ -3512,8 +3512,7 @@ test.describe('사주풀이 공유하기', () => {
     };
 
     await page.getByRole('button', { name: SHARE }).first().click();
-    /* 다 된 말은 #852(PR #853)가 「복사했어요」로 고친다 — 어느 쪽이 먼저 들어도 서도록 둘 다 받는다 */
-    const copiedButton = page.getByRole('button', { name: /^복사했/ }).first();
+    const copiedButton = page.getByRole('button', { name: '복사했어요' }).first();
     await expect(copiedButton).toBeVisible();
 
     const after = {
@@ -3567,7 +3566,7 @@ test.describe('사주풀이 공유하기', () => {
     await page.goto(`/me/readings/${personReader.personId}`);
 
     await page.getByRole('button', { name: SHARE }).first().click();
-    await expect(page.getByRole('button', { name: '복사했습니다' }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: '복사했어요' }).first()).toBeVisible();
 
     const copied = (await page.evaluate(() => navigator.clipboard.readText())).trim();
     expect(copied).toMatch(/^https?:\/\/[^\s]+\/share\/people\/[0-9a-f]{32}$/);

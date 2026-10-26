@@ -5,7 +5,7 @@ import { Icon } from '../../ui/icons';
 import { Switch } from '../../ui/switch';
 
 /**
- * 계정 관리의 **무리 지은 목록 한 벌** — 회색 바탕 위에 흰 무리가 쌓이고, 무리 사이는 회색 띠다(2026-10-26, #838 운영자 피드백).
+ * 설정 화면의 **무리 지은 목록 한 벌** — 회색 바탕 위에 흰 무리가 쌓이고, 무리 사이는 회색 띠다(2026-10-26, #838 운영자 피드백).
  *
  * 토스 · 카카오톡 · 당근의 설정을 다시 봤다(그림과 출처는 #838 본문). 셋 다 **줄이 화면 끝까지 가고 글자만 안쪽에 선다** — 앞의
  * 판(2026-10-25)은 줄 전체를 화면 안쪽 기둥에 넣고 위아래 구분선을 그 기둥 폭으로 그어서, 구분선이 화면 안쪽에서 시작해 안쪽에서
@@ -208,7 +208,8 @@ export const SETTINGS_TEXT_ROW = `flex min-h-14 w-full items-center ${ROW_PAD} t
 
 /**
  * 탈퇴 — **맨 아래 무리 밖, 회색 바탕 위의 작은 회색 글자다.** 토스(설정 맨 아래 「탈퇴하기」) · 당근(설정 맨 아래 「탈퇴하기」)처럼
- * 찾을 수는 있되 눈에 덜 띄는 자리. 글자는 줄의 글자와 같은 24px 안쪽에 선다.
+ * 찾을 수는 있되 눈에 덜 띄는 자리. 글자는 줄의 글자와 같은 24px 안쪽에 선다. 마우스를 올리면 밑줄 대신 옅어진다 — 테 없는 글자 단추의
+ * 누름(`BUTTON_TERTIARY_FACE`, ADR 0109 덧 #845)과 같다(#852).
  */
 export const SETTINGS_TEXT_ROW_QUIET =
-  'mx-4 inline-flex min-h-11 min-w-11 items-center self-start rounded-cell px-2 text-small font-medium text-muted underline-offset-4 hover:text-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:mx-4';
+  'mx-4 inline-flex min-h-11 min-w-11 items-center self-start rounded-cell px-2 text-small font-medium text-muted hover:opacity-70 active:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:mx-4';

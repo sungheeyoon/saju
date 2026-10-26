@@ -12,10 +12,10 @@ export function asksBeforeTurningOff(key: 'improvement' | 'contact', next: boole
 /**
  * 묻는 창의 글자 — 대장 `docs/product/copy-ledger/settings.md` settings-08(확인 전).
  *
- * 본문 첫 줄은 줄 아래 글(`OPTIONAL_CONSENTS` 의 `erasure`)을 그대로 쓴다 — 같은 사실은 상수 하나. 말투는 합니다체다 — 되돌리기
- * 어려운 결과의 고지이고(`docs/context/copy.md` §8), 대장 「검토 대기」의 「동의 재확인」 줄이 이 자리의 합니다체를 남겼다.
+ * 본문 첫 줄은 줄 아래 글(`OPTIONAL_CONSENTS` 의 `erasure`)을 그대로 쓴다 — 같은 사실은 상수 하나. 되돌릴 수 없다는 줄은 다른 확인 창과
+ * 같은 해요체 · 같은 자리(`ConfirmDialog` 의 `irreversible`)다 — 「삭제한 사진은 되돌릴 수 없어요.」와 같은 꼴(대장 all-04, #852).
  */
 export const IMPROVEMENT_OFF_TITLE = '풀이 개선에 답변 활용을 끌까요?';
-export const IMPROVEMENT_OFF_IRREVERSIBLE = '삭제한 답변은 되돌릴 수 없습니다.';
+export const IMPROVEMENT_OFF_IRREVERSIBLE = '삭제한 답변은 되돌릴 수 없어요.';
 export const IMPROVEMENT_OFF_CONFIRM = '끄고 삭제하기';
 export const IMPROVEMENT_OFF_PENDING = '삭제하는 중…';

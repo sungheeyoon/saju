@@ -17,9 +17,7 @@
  * 결제를 취소하면 되돌릴 수 없어요.」와 같은 꼴. 개념 이름은 용어집의 **거둠**(`cancelled`) 그대로다(`docs/context/matching.md`).
  *
  * 제목은 취소한 뒤의 스낵바(「보낸 요청을 취소했어요」)와 짝을 이룬다. 풀이권 줄의 「풀이권 1장」은 요청을 보낼 때 읽은 말(「풀이권
- * 1장을 써요.」, `app/me/matching/request-confirm.tsx`)을 받는다.
+ * 1장을 써요.」, `app/me/matching/request-confirm.tsx`)을 받는다. 단추 글자 「요청 취소」(`CANCEL_REQUEST_LABEL`)와 되돌릴 수
+ * 없다는 줄(`CANCEL_REQUEST_NOTE`)은 확인 창의 프롭으로 넘어가 이 파일 밖(`src/lib/matching/index.ts`)에 산다(#852).
  */
-export const CANCEL_REQUEST_LABEL = '요청 취소';
 export const CANCEL_REQUEST_TITLE = '보낸 요청을 취소할까요?';
-/** 되돌릴 수 없다는 말 — 따로 한 문단(운영자 2026-10-26). 풀이권이 돌아온다는 줄은 「풀이권 1장」을 굵게 세우려 화면이 든다 */
-export const CANCEL_REQUEST_NOTE = '취소한 요청은 되돌릴 수 없어요.';

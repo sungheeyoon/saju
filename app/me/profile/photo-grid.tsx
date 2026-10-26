@@ -497,9 +497,8 @@ export function PhotoGrid({
         danger
         busy={working}
         failure={askFailure}
-      >
-        <p>{PHOTO_REMOVE_NOTE}</p>
-      </ConfirmDialog>
+        irreversible={PHOTO_REMOVE_NOTE}
+      />
       {failure !== null && (
         <FailureLine>{failure}</FailureLine>
       )}

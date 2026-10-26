@@ -71,7 +71,7 @@ export function SelfProfile({
         toMatch={null}
         short
         emptyPhoto={
-          /* 빈 사진 칸 가운데 아래 「사진 추가」 — 계정 관리 프로필 줄의 같은 글자(`PHOTO_ADD`, 대장 47) */
+          /* 빈 사진 칸 가운데 아래 「사진 추가」 — 프로필 화면 사진 판의 빈 칸과 같은 글자(`PHOTO_ADD`, 대장 47) */
           <Link
             href="/me/profile"
             className={`${BUTTON_SECONDARY_SMALL_FACE} absolute bottom-3 left-1/2 min-h-11 -translate-x-1/2 px-4`}

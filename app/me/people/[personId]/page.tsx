@@ -145,7 +145,7 @@ export default async function PersonSajuPage({
 
   return (
     /* 저장한 사람 목록(`../page.tsx`)과 같은 기둥에 선다(`COLUMN`) — 목록에서 들어와도 제목 자리가 안 옮긴다 */
-    <main className={`app-shell flex ${COLUMN} flex-1 flex-col gap-5 py-6 sm:gap-6 sm:py-12`}>
+    <main className={`app-shell flex ${COLUMN} flex-1 flex-col gap-5 py-8 sm:gap-6 sm:py-12`}>
       {/*
         **뒤로 가기는 판 밖 위의 작은 글자 하나**(2026-10-26 운영자 「너무 크다」) — 사주풀이 화면의 「← 홈」(`ReadingBack`)과 같은 꼴 ·
         같은 자리. 글자는 돌아갈 화면의 이름이다(토스 · 카카오톡 상세의 ← 는 이름 없이 화살표뿐이고, 이 앱은 화면 이름을 단다).

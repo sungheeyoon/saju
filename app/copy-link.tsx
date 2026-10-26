@@ -55,7 +55,7 @@ export function CopyLinkButton() {
         onClick={copy}
         className={BUTTON_SECONDARY}
       >
-        {state === 'copied' ? '복사했습니다' : '결과 링크 복사'}
+        {state === 'copied' ? '복사했어요' : '결과 링크 복사'}
       </button>
       {state !== 'idle' && (
         <span className="text-small text-secondary">

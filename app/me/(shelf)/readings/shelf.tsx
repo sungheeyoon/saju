@@ -71,7 +71,7 @@ export function Shelf({ title, description, children }: { title?: string; descri
  */
 const SHELF_ROWS = 'flex flex-col [&>li:not([hidden])~li:not([hidden])]:border-t [&>li]:border-border';
 
-/** **만드는 중** — 책장 맨 위의 묶음 머리(안 D). 무엇이든 도는 동안만 선다. 확인 전 문구(대장 home-08) */
+/** **만드는 중** — 책장 맨 위의 묶음 머리(안 D). 무엇이든 도는 동안만 선다. 확정 문구(대장 home-08, 운영자 승인 2026-10-26) */
 export const SHELF_MAKING_HEAD = '만드는 중';
 
 /**

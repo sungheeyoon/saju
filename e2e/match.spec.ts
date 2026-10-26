@@ -4,7 +4,8 @@ import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Pers
 
 import { INPUT_EDIT_CHANGE_CONFIRM, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery/copy';
-import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE, CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
+import { CANCEL_REQUEST_LABEL, CANCEL_REQUEST_NOTE } from '@/src/lib/matching';
+import { CANCEL_REQUEST_TITLE } from '@/src/lib/matching/copy';
 import { READING_FAILED_NOTE, READING_FIRST_FAILED_NOTE } from '@/src/lib/reading';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
