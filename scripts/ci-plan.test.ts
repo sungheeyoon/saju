@@ -2138,6 +2138,10 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     // 글자 하나만 감싼 프래그먼트를 프롭으로 넘기면 그 글자를 넘긴 것과 같다(#852 — 확인 창은 단추 글자 길이를 잰다)
     expect(misuse('<Dialog confirmLabel={<>{NOTE}</>} />')).toEqual(['NOTE:2']);
     expect(misuse('<Dialog confirmLabel={busy ? "a" : <>{NOTE}</>} />')).toEqual(['NOTE:2']);
+    // 공백 글자 · 공백 식을 곁들여도 같다(#853 검토)
+    expect(misuse('<Dialog confirmLabel={<> {NOTE}</>} />')).toEqual(['NOTE:2']);
+    expect(misuse('<Dialog confirmLabel={<>{NOTE}{" "}</>} />')).toEqual(['NOTE:2']);
+    expect(misuse('<Dialog confirmLabel={<>\n  {NOTE}\n</>} />')).toEqual(['NOTE:3']);
     // 요소를 프롭으로 넘겨 그리는 자리(빈 칸 · 바닥 단추)는 된다
     expect(misuse('<Sheet footer={<a href="/me">{NOTE}</a>} />')).toEqual([]);
     expect(misuse('<Sheet footer={<><i />{NOTE}</>} />')).toEqual([]);

@@ -1472,7 +1472,13 @@ export function copyConstantMisuses(ts, file, source, names, module = null, tabl
    */
   const bareFragmentProp = (holder) => {
     if (!ts.isJsxFragment(holder)) return false;
-    const filled = holder.children.filter((one) => !(ts.isJsxText(one) && one.containsOnlyTriviaWhiteSpaces));
+    /* 공백만인 글자(`<> {NOTE}</>`) · 공백 글자 식(`{" "}`) · 빈 식(`{}`)은 자식으로 세지 않는다 — 그 꼴로도 피해 갔다(#853 검토) */
+    const blank = (one) =>
+      (ts.isJsxText(one) && one.text.trim() === '') ||
+      (ts.isJsxExpression(one) &&
+        (one.expression === undefined ||
+          ((ts.isStringLiteral(one.expression) || ts.isNoSubstitutionTemplateLiteral(one.expression)) && one.expression.text.trim() === '')));
+    const filled = holder.children.filter((one) => !blank(one));
     if (filled.length !== 1) return false;
     let up = holder;
     for (;;) {
