@@ -14,10 +14,9 @@ import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
 import { elementScope } from '../../../ui/element-tone';
-import { BUTTON_PRIMARY_FACE, BUTTON_TERTIARY } from '../../../ui/buttons';
+import { BUTTON_PRIMARY_FACE, BUTTON_SECONDARY_FACE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { CARD_FRAME, COLUMN, TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
-import { readingNoneNote } from '@/src/lib/reading/notes';
+import { COLUMN, TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../../ui/surfaces';
 import { DayMasterChip } from '../chart-bits';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { COMPAT_ENTRY_LABEL } from '../../../service-features';
@@ -157,8 +156,9 @@ export default async function PersonSajuPage({
       </Link>
 
       {/*
-        **머리는 이름과 일간 딱지뿐이다**(2026-10-26 운영자) — 그 사람의 일간 색 판에 큰 이름, 오른쪽 위 일간 딱지(일간은 이 딱지가 말한다 —
-        이름 옆 그림은 걷었다). 단추는 없다 — 받는 일 · 보러 가는 일은 아래 사주풀이 탭의 카드 · 줄이 든다.
+        **머리는 큰 이름 · 일간 딱지 · 단추 둘이다**(운영자 결정 2026-10-26, 안 2) — 그 사람의 일간 색 판, 오른쪽 위 일간 딱지(일간은 이
+        딱지가 말한다 — 이름 옆 그림은 걷었다). 단추는 늘 같은 둘 · 같은 차례: 왼쪽 「사주풀이 받기」(진한 주 단추 — 받았으면 같은 자리의 흰
+        「사주풀이 보기」, 같은 풀이를 두 번 사지 않게), 오른쪽 「궁합 보러 가기」(이 사람만 앉은 궁합 화면). 점수는 사주풀이 탭의 궁합 줄이 든다.
       */}
       <header className={`${elementScope(element)} relative flex flex-col overflow-hidden rounded-card bg-[var(--tile)] p-5 sm:p-8`}>
         <StemSymbol
@@ -169,6 +169,16 @@ export default async function PersonSajuPage({
           <DayMasterChip stem={person.saju.pillars.dayMaster} />
         </div>
         <h1 className={`relative min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{person.name}</h1>
+        <div className="relative mt-4 grid grid-cols-2 gap-2 sm:mt-6 sm:flex sm:flex-wrap sm:items-center">
+          <Link href={readingHref} className={`${own === null ? BUTTON_PRIMARY_FACE : BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
+            <Icon name={own === null ? 'spark' : 'reading'} className="size-[18px] max-[379px]:hidden" />
+            {own === null ? '사주풀이 받기' : '사주풀이 보기'}
+          </Link>
+          <Link href={compatHref} className={`${BUTTON_SECONDARY_FACE} whitespace-nowrap px-3 sm:px-5`}>
+            <Icon name="taiji" className="size-[18px] max-[379px]:hidden" />
+            {COMPAT_ENTRY_LABEL}
+          </Link>
+        </div>
       </header>
 
       <ReadingTabs
@@ -179,7 +189,7 @@ export default async function PersonSajuPage({
       />
 
       {gathered ? (
-        <GatheredReadings name={person.name} own={own} ownHref={readingHref} pairs={mine ? undefined : pairs} compatHref={compatHref} />
+        <GatheredReadings name={person.name} own={own} ownHref={readingHref} pairs={mine ? undefined : pairs} />
       ) : (
         <SajuResult saju={person.saju} />
       )}
@@ -188,38 +198,35 @@ export default async function PersonSajuPage({
 }
 
 /**
- * **사주풀이 탭 — 이 사람의 풀이를 모은다**(기본 탭, 운영자 확정 2026-10-26). 두 구역:
+ * **사주풀이 탭 — 이 사람의 풀이를 모은다**(기본 탭, 운영자 결정 2026-10-26, 안 2). 두 구역:
  *
- * - 「사주풀이」 — 받았으면 그 풀이 카드(누르면 글), 안 받았으면 「사주풀이 받기」 카드(설명 한 줄 + 주 단추 — 이 화면에서 유일한 진한 것).
- *   설명은 풀이 화면의 빈 칸 안내와 같은 글(`readingNoneNote`, 대장 15)
- * - 「궁합」 — 이 사람이 들어간 궁합풀이 전부(나와 · 저장한 다른 사람과, 최근 순 — 이 사람 이름이 앞 · 점수 ☯ · 한 줄 평 · ›), 그리고 맨 끝에
- *   늘 「궁합 보러 가기 ›」 줄(궁합이 있어도 다른 사람과 더 볼 수 있다 — 누르면 이 사람만 앉은 궁합 화면)
+ * - 「사주풀이」 — 받았으면 그 풀이 줄(누르면 글), 안 받았으면 빈 문구 한 줄 「아직 받은 사주풀이가 없어요.」
+ * - 「궁합」 — 이 사람이 들어간 궁합풀이 전부(나와 · 저장한 다른 사람과, 최근 순 — 이 사람 이름이 앞 · 점수 ☯ · 한 줄 평 · ›), 없으면
+ *   「아직 본 궁합이 없어요.」 한 줄
+ *
+ * 받는 일 · 보러 가는 일은 머리의 단추 둘이 든다 — 탭 안에는 받기 카드도 보러 가기 줄도 없다.
  */
+/** 빈 문구 — 운영자 결정 2026-10-26(대장 home-07). 앞 줄은 풀이 화면의 빈 칸 안내(`readingNoneNote`, 대장 15)의 첫 문장과 같다 */
+const NO_READING_YET = '아직 받은 사주풀이가 없어요.';
+const NO_COMPAT_YET = '아직 본 궁합이 없어요.';
+
 function GatheredReadings({
   name,
   own,
   ownHref,
   pairs,
-  compatHref,
 }: {
   name: string;
   own: ReadingEntry | null;
   ownHref: string;
   pairs: readonly { key: string; names: string; score: number | null; metaphor: string | null; href: string }[] | undefined;
-  compatHref: string;
 }) {
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="gathered-own" className="flex flex-col gap-2">
         <h2 id="gathered-own" className={TYPE_SECTION}>사주풀이</h2>
         {own === null ? (
-          <div className={`${CARD_FRAME} flex flex-col gap-4 p-5`}>
-            <p className="break-keep text-body leading-6 text-secondary">{readingNoneNote('사주풀이')}</p>
-            <Link href={ownHref} className={`${BUTTON_PRIMARY_FACE} px-5`}>
-              <Icon name="spark" className="size-[18px]" />
-              사주풀이 받기
-            </Link>
-          </div>
+          <p className="text-body text-secondary">{NO_READING_YET}</p>
         ) : (
           <ul className={HOME_LIST}>
             <li className={HOME_ROW}>
@@ -240,7 +247,8 @@ function GatheredReadings({
             궁합
             {pairs.length > 0 && <span className={HOME_HEAD_COUNT}>{pairs.length}개</span>}
           </h2>
-          <ul className={HOME_LIST}>
+          {pairs.length === 0 && <p className="text-body text-secondary">{NO_COMPAT_YET}</p>}
+          <ul className={`${HOME_LIST} ${pairs.length === 0 ? 'hidden' : ''}`}>
             {pairs.map((pair) => (
               <li key={pair.key} className={HOME_ROW}>
                 <Link href={pair.href} className={HOME_ROW_LINK}>
@@ -258,12 +266,6 @@ function GatheredReadings({
                 </Link>
               </li>
             ))}
-            <li className={HOME_ROW}>
-              <Link href={compatHref} className={HOME_ROW_LINK}>
-                <span className="min-w-0 flex-1 truncate text-body font-semibold">{COMPAT_ENTRY_LABEL}</span>
-                <Icon name="chevron" className="size-4 shrink-0 text-muted" />
-              </Link>
-            </li>
           </ul>
         </section>
       )}

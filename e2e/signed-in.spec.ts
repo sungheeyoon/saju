@@ -791,9 +791,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
     const tabs = page.getByRole('navigation', { name: '내 사주의 사주풀이와 만세력' });
-    /* 사주풀이 탭이 기본이고 이 화면 안에 풀이를 모은다(운영자 확정 2026-10-26) — 그 카드가 내 사주풀이 화면으로 간다 */
+    /* 사주풀이 탭이 기본이다(운영자 결정 2026-10-26, 안 2) — 받는 길은 머리의 「사주풀이 받기」, 탭 안은 빈 문구 한 줄 */
     await expect(tabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute('aria-current', 'page');
-    await page.getByRole('region', { name: '사주풀이' }).getByRole('link').click();
+    await expect(page.getByRole('region', { name: '사주풀이' }).getByText('아직 받은 사주풀이가 없어요.')).toBeVisible();
+    await page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true }).click();
     await expect(page).toHaveURL(/\/me\/readings\/self$/);
     await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
   });
@@ -1167,8 +1168,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me/people');
     await page.getByRole('link', { name: kin, exact: true }).first().click();
     await expect(page.getByRole('heading', { level: 1, name: kin, exact: true })).toBeVisible();
-    /* 사주풀이 탭이 기본이고 이 화면 안에 풀이를 모은다(운영자 확정 2026-10-26) — 「사주풀이 받기」가 그 글 화면이다 */
-    await page.getByRole('region', { name: '사주풀이' }).getByRole('link', { name: '사주풀이 받기' }).click();
+    /* 사주풀이 탭이 기본이다(운영자 결정 2026-10-26, 안 2) — 머리의 「사주풀이 받기」가 그 글 화면이다 */
+    await page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true }).click();
     await expect(page).toHaveURL(readingUrl);
 
     const make = page.getByRole('button', { name: '사주풀이 받기' });
@@ -1589,8 +1590,6 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 사람 화면은 사주풀이 탭이 기본이다(2026-10-26) — 만세력 탭에 표가 선다 */
     await page.getByRole('link', { name: '만세력', exact: true }).click();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
-    /* 궁합으로 가는 길은 사주풀이 탭의 「궁합」 구역 끝 줄이다 */
-    await page.getByRole('link', { name: '사주풀이', exact: true }).click();
 
     /*
       **사람 상세가 궁합으로 가는 길을 낸다**(ADR 0036). 저장한 사람을 보고 있는 사람이

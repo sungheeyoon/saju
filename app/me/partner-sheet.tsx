@@ -87,6 +87,7 @@ export function PartnerSheet({
   menu,
   short = false,
   emptyIntro,
+  emptyPhoto,
   footer,
 }: {
   control: PartnerSheetControl;
@@ -98,6 +99,8 @@ export function PartnerSheet({
   short?: boolean;
   /** 소개가 비었을 때 「소개」 구역에 세울 것 — 내 시트는 「소개를 써 보세요」 링크. 없으면 그 구역을 뺀다 */
   emptyIntro?: ReactNode;
+  /** 사진이 없을 때 빈 사진 칸 위에 세울 것 — 내 시트의 「사진 추가」. `short` 일 때만 */
+  emptyPhoto?: ReactNode;
   /** 몸의 맨 아래 — 내 시트의 「프로필 편집」 */
   footer?: ReactNode;
 }) {
@@ -129,9 +132,13 @@ export function PartnerSheet({
             <CardPhotos card={face} bounce={frame} />
           </div>
         ) : (
-          /* 사진이 없는 사람 — 빈 사진 칸 대신 그 사람의 색 띠 하나. 덱 카드의 첫 글자 판과 같은 모양이다(`CandidatePhoto`) */
-          <div className="relative h-32 overflow-hidden rounded-card">
+          /*
+            사진이 없는 사람 — 그 사람의 색 판에 첫 글자(덱 카드의 첫 글자 판과 같은 모양, `CandidatePhoto`). **내 시트(`short`)는 사진이 있을
+            때와 같은 비율의 칸**이다(폰 4:3 · 넓은 화면 2:1) — 사진이 있든 없든 팝업 높이가 같다(운영자 2026-10-26). 그 칸 위에 「사진 추가」
+          */
+          <div className={short ? PHOTO_FRAME_SHORT : 'relative h-32 overflow-hidden rounded-card'}>
             <CandidatePhoto card={face} initialClass="text-figure" />
+            {short && emptyPhoto}
           </div>
         )}
         {(toMatch !== null || intro !== null || emptyIntro !== undefined || footer !== undefined) && (
@@ -142,11 +149,14 @@ export function PartnerSheet({
                 <h3 className={TYPE_META}>
                   {INTRO_HEADING}
                 </h3>
-                {intro !== null ? (
-                  <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
-                ) : (
-                  emptyIntro
-                )}
+                {/* 내 시트는 소개 칸이 세 줄 높이를 잡는다 — 소개가 비어도 팝업 높이가 같다 */}
+                <div className={short ? 'min-h-[4.8rem]' : ''}>
+                  {intro !== null ? (
+                    <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
+                  ) : (
+                    emptyIntro
+                  )}
+                </div>
               </section>
             )}
             {footer}

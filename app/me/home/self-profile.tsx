@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 
+import { PHOTO_ADD } from '@/src/lib/account/copy';
 import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 import type { PhotoFocus } from '@/src/lib/profile';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
@@ -69,6 +70,16 @@ export function SelfProfile({
         partner={{ userId, nickname, intro, photoUrls, photoFocus, tone: STEM_INFO[stem].element }}
         toMatch={null}
         short
+        emptyPhoto={
+          /* 빈 사진 칸 가운데 아래 「사진 추가」 — 계정 관리 프로필 줄의 같은 글자(`PHOTO_ADD`, 대장 47) */
+          <Link
+            href="/me/profile"
+            className={`${BUTTON_SECONDARY_SMALL_FACE} absolute bottom-3 left-1/2 min-h-11 -translate-x-1/2 px-4`}
+          >
+            <Icon name="plus" className="size-4" />
+            {PHOTO_ADD}
+          </Link>
+        }
         emptyIntro={
           /* 소개가 비었으면 그 자리에서 바로 편집으로 — 프로필 화면의 소개 칸과 같은 글자(`form.tsx` 의 자리표시) */
           <Link href="/me/profile" className="-mx-2 flex min-h-11 items-center justify-between gap-2 rounded-cell px-2 text-body text-muted hover:bg-surface-sunken">
