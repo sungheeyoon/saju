@@ -1,39 +1,29 @@
-import Link from 'next/link';
-
 import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat/copy';
 
 import { ELEMENT_TONE } from '../../ui/element-tone';
-import { BUTTON_PRIMARY } from '../../ui/buttons';
-import { Icon } from '../../ui/icons';
-import { TYPE_TITLE } from '../../ui/surfaces';
+import { EmptyState } from '../../ui/empty-state';
 
 /**
- * **아직 방이 없을 때** — 목록 판(`RoomListPanel`) 안에 선다. 폰은 제목 아래 크림 판에 그림과 함께, 넓은 화면은 21rem 판 안에
- * 글과 단추만 서고 그림은 오른쪽 칸(`NoRoomChosen`)이 든다 — 방이 생겨도 틀이 그대로다(화면 점검 C9).
+ * **아직 방이 없을 때** — 목록 판(`RoomListPanel`) 안에 선다. 빈 상태 한 벌(`EmptyState`)이다 — 폰은 제목 아래 크림 판에 그림과 함께,
+ * 넓은 화면은 21rem 판 안에 글과 단추만 서고(`panel`) 그림은 오른쪽 칸(`NoRoomChosen`)이 든다 — 방이 생겨도 틀이 그대로다(화면 점검 C9).
  *
  * 문구는 승인된 두 줄 그대로이고 갈 길은 하나다. 방은 매칭에서 요청이 수락돼야 서므로 매칭으로 보내고,
  * 내 사주가 아직 없으면 매칭에 설 수 없으므로 그 자리에 등록(홈)이 선다.
  */
 export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
   return (
-    <section className="flex flex-col items-center gap-6 rounded-card bg-cream p-6 py-10 text-center sm:p-8 sm:py-14 lg:mx-4 lg:mb-4 lg:mt-3 lg:items-start lg:gap-4 lg:p-5 lg:text-left">
-      <ChatIllustration className="h-auto w-[14rem] sm:w-[16rem] lg:hidden" />
-      <div className="flex max-w-md flex-col gap-2">
-        <h2 className={`${TYPE_TITLE} lg:text-heading! lg:leading-7`}>{CHAT_EMPTY_TITLE}</h2>
-        <p className="text-body leading-6 text-secondary lg:text-note lg:leading-[1.375rem]">{CHAT_EMPTY_DETAIL}</p>
-      </div>
-      {hasSelf ? (
-        <Link href="/me/matching" className={BUTTON_PRIMARY}>
-          <Icon name="people" className="size-[18px]" />
-          오늘의 인연 보기
-        </Link>
-      ) : (
-        <Link href="/me" className={BUTTON_PRIMARY}>
-          내 명식 등록
-          <Icon name="arrow" className="size-4" />
-        </Link>
-      )}
-    </section>
+    <EmptyState
+      panel
+      art={<ChatIllustration className="h-auto w-[14rem] sm:w-[16rem]" />}
+      title={CHAT_EMPTY_TITLE}
+      action={
+        hasSelf
+          ? { href: '/me/matching', label: '오늘의 인연 보기', icon: 'people' }
+          : { href: '/me', label: '내 명식 등록', trailingIcon: 'arrow' }
+      }
+    >
+      {CHAT_EMPTY_DETAIL}
+    </EmptyState>
   );
 }
 
@@ -48,8 +38,11 @@ export function NoRoomChosen({ empty = false }: { empty?: boolean }) {
 }
 
 /**
- * 말풍선 둘이 서로를 향해 기울고 사이에 작은 하트가 뜬다. 오행의 색을 빌린 꾸밈 그림이라(무엇을 가리키지
- * 않는다) 늘 `aria-hidden` 이고, 색은 토큰이라 다크에서 함께 가라앉는다.
+ * 말풍선 둘이 서로를 향해 기울고 사이에 작은 별이 뜬다. 오행의 색을 빌린 꾸밈 그림이라(무엇을 가리키지
+ * 않는다) 늘 `aria-hidden` 이고, 색은 토큰이라 다크에서 함께 가라앉는다. 다섯 기운이 한 번씩 선다 — 木 · 火 말풍선, 金 별, 土 반짝임,
+ * 水 점.
+ *
+ * **하트를 걷었다**(운영자 2026-10-26 — 「데이팅 느낌 나는 하트 모양은 뺀다」). 사이의 하트가 金 별이 됐다.
  */
 function ChatIllustration({ className }: { className: string }) {
   return (
@@ -88,9 +81,9 @@ function ChatIllustration({ className }: { className: string }) {
         />
       </g>
 
-      <g className={ELEMENT_TONE.火.scope}>
+      <g className={ELEMENT_TONE.金.scope}>
         <path
-          d="M132 40s-11-6.4-11-14.2a6.2 6.2 0 0 1 11-3.7 6.2 6.2 0 0 1 11 3.7c0 7.8-11 14.2-11 14.2Z"
+          d="M132 17 135.4 26.6 145 30l-9.6 3.4L132 43l-3.4-9.6L119 30l9.6-3.4Z"
           fill="var(--mid)"
           stroke="var(--ink)"
           strokeWidth="1.8"

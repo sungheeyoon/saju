@@ -8,6 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
+import { EmptyState } from '../../ui/empty-state';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -103,16 +104,9 @@ function Notifications({ inbox }: { inbox: Inbox }) {
     <section className="flex flex-col gap-3">
 
       {inbox.notifications.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-card border-2 border-dashed border-border-strong px-5 py-7 text-center">
-          <span
-            aria-hidden="true"
-            className="grid size-11 place-items-center rounded-full bg-surface-sunken text-muted"
-          >
-            <Icon name="bell" />
-          </span>
-          <p className="text-sm font-semibold">새로 도착한 소식이 없습니다</p>
-          <p className={TYPE_META}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
-        </div>
+        <EmptyState icon="bell" title="새로운 소식이 없어요">
+          새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.
+        </EmptyState>
       ) : (
         <ul className="overflow-hidden rounded-card border border-border bg-surface">
           {inbox.notifications.map((notification) => {
@@ -184,9 +178,8 @@ function Notifications({ inbox }: { inbox: Inbox }) {
         </ul>
       )}
 
-      <p className={TYPE_META}>
-        소식은 앱 안에서만 볼 수 있어요. 이메일 · 문자 · 카카오톡으로는 보내지 않아요.
-      </p>
+      {/* 「소식은 앱 안에서만 볼 수 있어요 …」 안내 줄은 걷었다 — 운영자 결정(2026-10-26, 「왜 있는 거야」). 앱 밖으로 안 나가는 것은 제품의
+          규칙(PRD §6.4)이지 소식마다 말할 일이 아니다 */}
     </section>
   );
 }

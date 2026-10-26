@@ -9,7 +9,7 @@ import {
   REPORT_REASONS,
   type ReportReason,
 } from '@/src/lib/account';
-import { BLOCK_NOTE } from '@/src/lib/consent';
+import { BLOCK_FINAL_NOTE, BLOCK_KEEPS_NOTE, BLOCK_NOTE } from '@/src/lib/consent';
 
 import type { SaveResult } from '../../save-result';
 import { BUTTON_PRIMARY_SMALL, BUTTON_TERTIARY, BUTTON_TERTIARY_DANGER, ICON_BUTTON, ICON_BUTTON_GHOST, ICON_BUTTON_ON_PHOTO } from '../../ui/buttons';
@@ -277,6 +277,8 @@ export function BlockDialog({
       failure={failure}
     >
       <p>{BLOCK_NOTE}</p>
+      <p>{BLOCK_KEEPS_NOTE}</p>
+      <p className="font-medium text-foreground">{BLOCK_FINAL_NOTE}</p>
     </ConfirmDialog>
   );
 }
