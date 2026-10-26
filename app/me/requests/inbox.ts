@@ -1,4 +1,5 @@
-import { balanceLabelOf } from '@/src/lib/discovery';
+import { balanceLabelOf, balanceShortOf, knownElementsOf } from '@/src/lib/discovery';
+import type { Element } from '@/src/lib/saju';
 import type { RpcRow } from '@/src/lib/db';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
@@ -59,7 +60,12 @@ export type InboxRequest = {
   readonly suppliedToMe: string | null;
   /** 내가 상대에게 채우는 오행 */
   readonly suppliedToThem: string | null;
+  /** 위 두 문장의 오행 그대로 — 요청 카드가 그림으로 세운다(`../matching/element-exchange.tsx`). 문장은 보조기기 이름이 된다 */
+  readonly elementsToMe: readonly Element[];
+  readonly elementsToThem: readonly Element[];
   readonly balanceLabel: string;
+  /** 같은 균형의 짧은 꼴 — 주고받기 그림 아래 한 줄 */
+  readonly balanceShort: string;
   readonly createdAt: string;
   readonly decidedAt: string | null;
 };
@@ -223,7 +229,10 @@ function requestOf(row: RequestRow): InboxRequest[] {
       status,
       suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
       suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),
+      elementsToMe: knownElementsOf(row.supplied_to_me),
+      elementsToThem: knownElementsOf(row.supplied_to_them),
       balanceLabel: balanceLabelOf(row.balance_band),
+      balanceShort: balanceShortOf(row.balance_band),
       createdAt: row.created_at,
       decidedAt: row.decided_at,
     },

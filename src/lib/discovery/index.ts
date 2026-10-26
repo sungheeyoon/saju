@@ -415,6 +415,20 @@ export const DISCOVERY_DISCLOSURE = {
 export const balanceLabelOf = (raw: string): string => BALANCE_LABEL[balanceBandOf(raw)];
 
 /**
+ * 균형 한 줄의 **짧은 꼴** — 요청 카드의 오행 주고받기(`app/me/matching/element-exchange.tsx`) 아래에 선다.
+ *
+ * 그 자리는 위에서 이미 「두 사람」의 기운을 그림으로 주고받았다 — 「두 사람의 오행을 함께 보면」을 다시 적으면
+ * 한 줄이 두 줄로 꺾인다(360px). 밴드 · 말끝은 `BALANCE_LABEL` 그대로다.
+ */
+const BALANCE_SHORT: Record<BalanceBand, string> = {
+  even: '균형이 고른 편이에요',
+  mixed: '대체로 균형이 맞아요',
+  skewed: '한쪽으로 기우는 편이에요',
+};
+
+export const balanceShortOf = (raw: string): string => BALANCE_SHORT[balanceBandOf(raw)];
+
+/**
  * 후보 한 줄을 사람 말로 — **어느 오행의 보완에 보탬이 되는지 말한다.**
  *
  * 이름을 감추면 「왜 이 사람인가」에 답할 수 없고, 답 못 하는 추천은 궁금해지지도
