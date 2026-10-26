@@ -9,7 +9,7 @@ import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from 
 
 import { REPORT_DONE, REPORT_NOTE } from '@/src/lib/account';
 import {
-  MATCH_CONSENT_QUESTION,
+  MATCH_CONSENT_NOTICE,
   REJECTION_IS_FINAL_NOTE,
   REQUEST_STATUS_TEXT,
   type RequestStatus,
@@ -39,11 +39,18 @@ import { showSnackbar } from '../../ui/snackbar-store';
 const QUIET_LINK =
   'relative inline-flex min-h-11 items-center rounded-cell px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
 
-/** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
-export function MatchConsentQuestion() {
+/**
+ * 받은 요청 카드의 동의 고지 — 보내는 쪽 확인 창과 **같은 두 문장**이다(`MATCH_CONSENT_NOTICE`, 운영자 2026-10-26). 조건(「수락하면」)은
+ * 바로 아래 단추 「수락하고 대화하기」가 든다.
+ */
+export function MatchConsentNotice() {
   return (
     <p className="rounded-cell bg-cream px-4 py-3 text-sm leading-6 text-cream-ink">
-      {MATCH_CONSENT_QUESTION}
+      {MATCH_CONSENT_NOTICE.map((line) => (
+        <span key={line} className="block">
+          {line}
+        </span>
+      ))}
     </p>
   );
 }
@@ -52,7 +59,7 @@ export function MatchConsentQuestion() {
  * 받은 요청에 답하는 자리.
  *
  * **동의 질문은 이 버튼이 들고 있지 않다.** 카드가 열릴 때부터 위에 서 있다
- * (인연 탭의 `requests-lead.tsx` 가 `MatchConsentQuestion` 을 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
+ * (인연 탭의 `requests-lead.tsx` 가 `MatchConsentNotice` 를 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
  * 보장하지 못하고, 서버가 내려보낸 화면에 그 문장이 있는지 밖에서 잴 수도 없다.
  *
  * **거절은 한 번 더 묻는다**(운영자 결정 2026-10-11) — 거절하면 그 사람은 다시 안 나타난다. 그 경고는 카드에 늘 서 있지 않고

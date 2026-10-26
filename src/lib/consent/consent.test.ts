@@ -8,7 +8,7 @@ import {
   BLOCK_NOTE,
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
-  MATCH_CONSENT_QUESTION,
+  MATCH_CONSENT_NOTICE,
   MATCH_DISCLOSURE,
   MATCH_PILLARS_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
@@ -256,9 +256,12 @@ describe('완성 소식은 무엇이 다 됐는지 말한다', () => {
  * 앞에 붙는 말만 다르다.
  */
 describe('Match 가 여는 범위는 한 벌이다', () => {
-  it('받은 요청 카드는 공개와 함께 보기를 한 문장으로 묻는다', () => {
-    expect(MATCH_CONSENT_QUESTION).toContain('당신의 사주팔자 여덟 글자가 상대에게 공개');
-    expect(MATCH_CONSENT_QUESTION).toContain('자세한 궁합을 함께 보는 데 동의');
+  /** 보내는 창과 받은 카드가 같은 두 문장이다 — 나가는 것 하나, 안 나가는 것 하나(운영자 2026-10-26) */
+  it('요청 창과 받은 요청 카드는 무엇이 공개되고 무엇은 안 되는지 같은 두 문장으로 말한다', () => {
+    expect([...MATCH_CONSENT_NOTICE]).toEqual([
+      '내 사주팔자 여덟 글자가 상대에게 공개돼요.',
+      '정확한 생년월일시 · 출생지는 공개되지 않아요.',
+    ]);
   });
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');

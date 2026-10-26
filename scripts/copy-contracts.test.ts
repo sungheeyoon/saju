@@ -16,7 +16,6 @@ import { describe, expect, it } from 'vitest';
 import { RATE_LIMITED_TEXT } from '../src/lib/chat';
 import { CONSENT_FLOW_STEPS } from '../src/lib/consent';
 import { MATCH_PILLARS_DISCLOSURE, NOTICE_ACK_LABEL, OPTIONAL_CONSENTS } from '../src/lib/consent/notice';
-import { REQUEST_OPENS_CHAT_NOTE } from '../src/lib/matching/copy';
 import { READING_USES_TICKET_NOTE, REQUEST_RESERVES_NOTE } from '../src/lib/reading';
 
 describe('계약 문구', () => {
@@ -36,20 +35,15 @@ describe('계약 문구', () => {
     );
   });
 
-  it('요청 창은 수락이 채팅방을 연다고 말한다', () => {
-    expect(REQUEST_OPENS_CHAT_NOTE).toBe('상대가 수락하면 채팅방이 열려요.');
-  });
-
   it('요청을 보내는 것만으로는 상대에게 열리는 것이 없다', () => {
     expect(CONSENT_FLOW_STEPS.find((step) => step.title === '요청을 보냅니다')?.body).toBe(
       '인연 목록에서 마음이 가는 사람에게 「상세 궁합을 함께 보자」고 청합니다. 보내는 것만으로 상대에게 열리는 것은 없고, 상대의 인연 탭에 요청이 하나 뜹니다.',
     );
   });
 
-  it('풀이권 — 요청의 임시 차감 · 확정 · 돌아옴', () => {
-    expect(REQUEST_RESERVES_NOTE).toBe(
-      '요청을 보내면 풀이권 1장이 임시로 차감됩니다. 상대가 수락하면 차감이 확정되고, 두 사람이 함께 볼 궁합풀이가 만들어집니다. 상대가 거절하거나 7일 동안 응답하지 않으면 풀이권이 돌아옵니다.',
-    );
+  it('풀이권 — 요청이 쓰는 풀이권이 돌아오는 길', () => {
+    /* 운영자 2026-10-26 「글이 너무 길다」 — 「풀이권 1장을 써요.」는 창이 굵게 세우고 본문은 돌려받는 길 한 줄(대장 matching-10) */
+    expect(REQUEST_RESERVES_NOTE).toBe('상대가 거절하거나 7일 동안 답이 없으면 돌려드려요.');
   });
 
   it('풀이권 — 내 풀이의 사용과 실패 시 복구', () => {

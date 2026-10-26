@@ -292,9 +292,9 @@ test.describe('동의로 열리는 흐름', () => {
 
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirmRequest = asker.page.getByRole('dialog');
-    await expect(confirmRequest).toContainText('풀이권 1장이 임시로 차감됩니다');
-    await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
-    await expect(confirmRequest).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
+    await expect(confirmRequest).toContainText('풀이권 1장을 써요');
+    await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개돼요');
+    await expect(confirmRequest).toContainText('정확한 생년월일시 · 출생지는 공개되지 않아요');
     await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 
@@ -314,8 +314,8 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receivedSection.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receivedSection.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
     const receivedCard = receivedSection.getByRole('listitem').filter({ hasText: `보내는${tag}` });
-    await expect(receivedCard).toContainText('당신의 사주팔자 여덟 글자가 상대에게 공개');
-    await expect(receivedCard).toContainText('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요?');
+    await expect(receivedCard).toContainText('내 사주팔자 여덟 글자가 상대에게 공개돼요');
+    await expect(receivedCard).toContainText('정확한 생년월일시 · 출생지는 공개되지 않아요');
 
     // 수락 전에도 상대의 정확한 출생 정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
@@ -594,7 +594,7 @@ test.describe('동의로 열리는 흐름', () => {
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).first().click();
 
     const dialog = asker.page.getByRole('dialog');
-    const scope = dialog.getByText('풀이권 1장이 임시로 차감됩니다', { exact: false });
+    const scope = dialog.getByText('7일 동안 답이 없으면 돌려드려요', { exact: false });
     const send = dialog.getByRole('button', { name: '요청 보내기' });
     await expect(scope).toBeVisible();
     await expect(send).toBeVisible();
@@ -854,8 +854,8 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     // ── 하트만으로는 안 나간다 ──────────────────────────────────────────────
     await asker.page.getByRole('button', { name: '궁합 요청', exact: true }).click();
     const confirming = asker.page.getByRole('dialog');
-    await expect(confirming).toContainText('풀이권 1장이 임시로 차감됩니다');
-    await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
+    await expect(confirming).toContainText('풀이권 1장을 써요');
+    await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개돼요');
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 
