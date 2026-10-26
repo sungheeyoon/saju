@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { inboxForViewer, matchOfAcceptedRequest } from './inbox';
+import { inboxForViewer, matchesForViewer, matchOfAcceptedRequest } from './inbox';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
@@ -113,5 +113,32 @@ describe('방금 수락한 요청의 인연 궁합', () => {
     });
 
     await expect(matchOfAcceptedRequest('r1')).rejects.toThrow();
+  });
+});
+
+/**
+ * **보관함의 인연 궁합 줄은 기운을 값으로 받는다**(#849). 앞서는 화면이 기운 이름 하나와 문장 전체(`suppliedToMe`)를 견줘
+ * 늘 맞지 않았고, 줄의 기운 그림이 한 번도 서지 않았다. 문장은 보조기기가 읽는 이름으로 남는다.
+ */
+describe('보관함의 인연 궁합 — 받는 기운', () => {
+  it('상대가 채워 주는 오행이 값(오행 글자)으로 오고, 균형은 짧은 꼴도 함께 온다', async () => {
+    answering({ my_matches: { data: [matchRow({ supplied_to_me: ['土', '金'], balance_band: 'even' })], error: null } });
+
+    const [match] = await matchesForViewer();
+    expect(match.elementsToMe).toEqual(['土', '金']);
+    expect(match.suppliedToMe).toContain('土');
+    expect(match.balanceShort).toBe('균형이 고른 편이에요');
+  });
+
+  it('모르는 글자는 버리고, 채워 주는 것이 없으면 빈 목록이다 — 그림이 안 선다', async () => {
+    answering({
+      my_matches: {
+        data: [matchRow({ match_id: 'a', supplied_to_me: ['土', '??'] }), matchRow({ match_id: 'b', supplied_to_me: null })],
+        error: null,
+      },
+    });
+
+    const matches = await matchesForViewer();
+    expect(matches.map((one) => one.elementsToMe)).toEqual([['土'], []]);
   });
 });

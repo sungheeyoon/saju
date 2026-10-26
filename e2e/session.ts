@@ -496,7 +496,14 @@ async function seed(
  * 매칭 풀에 내놓는 자기 요약이고, 우리가 재려는 것은 그 숫자가 아니라 **요청·수락·
  * 무효화가 이어지는가**다.
  */
-export async function optIn(api: SupabaseClient, nickname?: string): Promise<void> {
+export async function optIn(
+  api: SupabaseClient,
+  nickname?: string,
+  /**
+   * 오행 수 — 안 주면 모두가 같은 요약이라 서로 채워 줄 기운이 없다. 받는 기운 그림을 재는 시험(#849)만 어긋나게 준다
+   */
+  counts: Record<'木' | '火' | '土' | '金' | '水', number> = { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
+): Promise<void> {
   /*
     **이름은 이미 있다.** 가입할 때 짓기 때문이다(§5.1) — 여기서 이름을 넘기는 것은
     시험이 그 사람을 이름으로 잡아야 할 때뿐이다.
@@ -509,9 +516,11 @@ export async function optIn(api: SupabaseClient, nickname?: string): Promise<voi
   const on = await keyedRpc(api, 'set_discovery_participation', {
     p_on: true,
     p_summary: {
-      glyphCount: 8,
-      counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
-      ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
+      glyphCount: Object.values(counts).reduce((sum, one) => sum + one, 0),
+      counts,
+      ratios: Object.fromEntries(
+        Object.entries(counts).map(([element, count]) => [element, count / Object.values(counts).reduce((sum, one) => sum + one, 0)]),
+      ),
     },
     p_need: { primary: '木', heaviest: '金', rule: NEED_SUMMARY_RULE },
   });

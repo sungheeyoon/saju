@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 
 import {
   FEEDBACK_COMMENT,
+  FEEDBACK_FOLDED_NOTE,
   FEEDBACK_SCALE,
   FEEDBACK_SCOPE_NOTE,
   FEEDBACK_THANKS,
@@ -21,6 +22,7 @@ import {
 
 import { actionAnswer } from '../../ui/action-answer';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { Icon } from '../../ui/icons';
 import { TYPE_NAME } from '../../ui/surfaces';
 
 import { submitReadingFeedback } from './actions';
@@ -54,6 +56,12 @@ export function ReadingFeedback({
 }) {
   const [answer, setAnswer] = useState(given);
   const [open, setOpen] = useState(given === null);
+  /**
+   * **처음에는 한 줄로 접혀 선다**(2026-10-26 운영자 결정 「안 A」) — 글 끝에 설문 전체(폰 한 화면 남짓)가 늘 펼쳐져 있으면 다 읽은
+   * 사람이 글의 끝을 찾지 못했다. 머리 한 줄(「이 풀이는 어떠셨어요?」 · 몇 문항인지)을 누르면 그 자리에서 펼친다. 이미 답한
+   * 사람의 「답 고치기」는 펼친 채로 연다.
+   */
+  const [unfolded, setUnfolded] = useState(false);
   const [usefulness, setUsefulness] = useState<FeedbackScore | null>(given?.usefulness ?? null);
   const [fit, setFit] = useState<FeedbackScore | null>(given?.perceivedFit ?? null);
   const [feltLength, setFeltLength] = useState<FeltLength | null>(given?.feltLength ?? null);
@@ -127,22 +135,55 @@ export function ReadingFeedback({
     });
   };
 
+  /* 처음 답하는 사람은 접힌 한 줄에서 시작한다 — 답을 고치러 온 사람(`open`)은 펼친 채다 */
+  const foldable = given === null && answer === null;
+  const shown = foldable ? unfolded : true;
+  const head = (
+    <span className="flex min-w-0 flex-1 flex-col">
+      <span className={TYPE_NAME}>이 풀이는 어떠셨어요?</span>
+      <span className="mt-1 text-small leading-5 text-secondary">{foldable ? FEEDBACK_FOLDED_NOTE : FEEDBACK_SCOPE_NOTE}</span>
+    </span>
+  );
+
   return (
+    <div className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
+      {/*
+        머리 한 줄이 접고 펴는 단추다 — 펼친 뒤에도 같은 자리에 남아 초점을 잃지 않는다. 곁의 말은 몇 문항인지이고, 이 답이 어느 글에
+        매이는지(`FEEDBACK_SCOPE_NOTE`)는 펼친 폼의 맨 위다
+      */}
+      {foldable ? (
+        <button
+          type="button"
+          aria-expanded={shown}
+          aria-controls={`feedback-${runId}`}
+          onClick={() => setUnfolded(!shown)}
+          className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-surface-soft sm:px-7"
+        >
+          {head}
+          <Icon name="chevron" className={`size-5 shrink-0 text-secondary transition-transform ${shown ? '-rotate-90' : 'rotate-90'}`} />
+        </button>
+      ) : (
+        <header className="flex px-5 pt-6 sm:px-7">{head}</header>
+      )}
+
+    {/*
+      **접혀 있어도 폼은 실려 온다 — 숨길 뿐이다**(`hidden`). 머리 단추가 가리키는 자리(`aria-controls`)가 늘 있고, 서버가 그린 화면에
+      설문의 물음이 그대로 실린다 — 흐름 검사(`scripts/check-reading.mjs`)가 JS 없이 그 배선을 잰다
+    */}
+    {(foldable || shown) && (
     /* 폼이다 — 고르는 칸에서 Enter 가 곧 「의견 보내기」다(덜 골랐으면 빈 질문으로 데려간다). 적는 칸의 Enter 는 줄바꿈이다 */
     <form
+      id={`feedback-${runId}`}
+      hidden={!shown}
       ref={form}
       onSubmit={(event) => {
         event.preventDefault();
         if (!saving) send();
       }}
-      className="overflow-hidden rounded-card border border-border bg-surface shadow-card"
     >
-      <header className="px-5 pt-6 sm:px-7">
-        <p className={TYPE_NAME}>이 풀이는 어떠셨어요?</p>
-        <p className="mt-1 text-small leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
-      </header>
-
       <div className="flex flex-col gap-7 px-5 py-5 sm:px-7 sm:py-6">
+        {/* 펼친 뒤 맨 위 — 이 답이 어느 글에 매이는지(머리의 곁말은 몇 문항인지다) */}
+        {foldable && <p className="-mt-2 text-small leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>}
         <div className="flex flex-col gap-4">
           <Scale
             name={`useful-${runId}`}
@@ -256,6 +297,8 @@ export function ReadingFeedback({
         </div>
       </div>
     </form>
+    )}
+    </div>
   );
 }
 

@@ -79,7 +79,14 @@ export type InboxMatch = {
   /** 대표 사진의 보일 자리(G-98) */
   readonly photoFocus: PhotoFocus;
   readonly suppliedToMe: string | null;
+  /**
+   * 위 문장의 오행 그대로 — **값으로 넘긴다**(#849). 보관함의 인연 궁합 줄이 이것으로 기운 그림을 세운다. 앞서는 화면이 기운 이름과
+   * 문장 전체를 견줘 늘 맞지 않았고, 그림이 한 번도 서지 않았다. 요청 카드의 `elementsToMe` 와 같은 읽기(`knownElementsOf`)다
+   */
+  readonly elementsToMe: readonly Element[];
   readonly balanceLabel: string;
+  /** 같은 균형의 짧은 꼴 — 보관함 줄의 「받는 기운」 그림 뒤 한 줄(요청 카드와 같은 말, 대장 matching-10) */
+  readonly balanceShort: string;
   readonly createdAt: string;
 };
 
@@ -118,7 +125,9 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   hasPhoto: row.partner_has_photo === true,
   photoFocus: leadFocusOf(row.partner_photo_focus),
   suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
+  elementsToMe: knownElementsOf(row.supplied_to_me),
   balanceLabel: balanceLabelOf(row.balance_band),
+  balanceShort: balanceShortOf(row.balance_band),
   createdAt: row.created_at,
 });
 

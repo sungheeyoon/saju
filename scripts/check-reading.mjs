@@ -222,7 +222,8 @@ const bookOf = (html, href) => {
   for (const [link] of html.matchAll(found)) {
     if (!link.includes(`href="${href}"`)) continue;
     const tone = /class="(tone-[a-z]+)/.exec(link)?.[1] ?? null;
-    return { tone, text: link.replace(/<[^>]+>/g, '') };
+    const stem = /data-stem="([^"]+)"/.exec(link)?.[1] ?? null;
+    return { tone, stem, text: link.replace(/<[^>]+>/g, '') };
   }
   return null;
 };
@@ -805,8 +806,9 @@ try {
     check('책장의 안 고친 사람 책에는 「수정 전」이 없다',
       momBook !== null && !momBook.text.includes('수정 전'), momBook?.text ?? '책 없음');
     check('책장의 내 책 표지도 풀이를 만들 때의 일간이다',
-      selfBook?.tone === TONE_OF_STEM[stemBefore] && selfBook?.text.includes(PICTURE_OF_STEM[stemBefore]) === true,
-      `${selfBook?.tone ?? '책 없음'} · ${selfBook?.text ?? ''}`);
+      /* 줄의 작은 표지는 그림만이라 일간 이름 글자가 없다(2026-10-26 안 D) — 표지가 든 일간(`data-stem`)으로 잰다 */
+      selfBook?.tone === TONE_OF_STEM[stemBefore] && selfBook?.stem === stemBefore,
+      `${selfBook?.tone ?? '책 없음'} · ${selfBook?.stem ?? '일간 없음'} — 그때 ${stemBefore}`);
   }
 
   // ── 8. 실패는 알림함에 서고 다시 누를 자리까지 닿는다 ────────────────────

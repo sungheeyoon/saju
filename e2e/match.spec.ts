@@ -637,6 +637,33 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   /**
+   * **풀이 보관함의 인연 궁합 줄에 받는 기운 그림과 균형 한 줄이 선다**(#849). 앞서는 화면이 기운 이름 하나와 문장 전체를 견줘
+   * 그림이 한 번도 안 섰다 — 그래서 두 사람의 요약을 어긋나게 세운다: 보는 쪽에 土 · 金 이 비고 상대가 그 둘을 가졌다.
+   * 수락 직후라 글은 아직 없다(만드는 중) — 그 줄도 같은 그림을 든다. 그림은 보조기기에 숨고 원래 문장이 읽힌다.
+   */
+  test('풀이 보관함의 인연 궁합 줄에 받는 기운 그림과 균형 한 줄이 선다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await optIn(viewer.api, `가${tag}`, { 木: 3, 火: 3, 土: 0, 金: 0, 水: 2 });
+    await optIn(partner.api, `나${tag}`, { 木: 1, 火: 1, 土: 3, 金: 2, 水: 1 });
+    onlyTheseParticipate([viewer.account.email, partner.account.email]);
+    forgetBoards([viewer.account.email, partner.account.email]);
+    await pendingRequest(partner, viewer);
+    await respondThroughApi(viewer, true);
+
+    await viewer.page.goto('/me/readings?kind=match');
+    const row = viewer.page.getByRole('link', { name: new RegExp(`나${tag} 님과의 궁합풀이`) });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('받는 기운');
+    await expect(row).toContainText('흙');
+    await expect(row).toContainText('쇠');
+    await expect(row).toContainText(/균형이 고른 편이에요|대체로 균형이 맞아요|한쪽으로 기우는 편이에요/);
+    /* 그림은 보조기기에 숨고, 같은 사실을 문장으로 읽는다 */
+    await expect(row).toHaveAccessibleName(/나에게 부족한 .*土.* 기운을 이 사람이 채워 줘요\./);
+  });
+
+  /**
    * **인연 탭은 한 화면이다 — 받은 요청이 있는 날도**(운영자 답 2026-09-29 u2, 시안 u).
    *
    * 폰은 덱이 뷰포트에 묶여(`globals.css` 의 `data-deck-fit`) 넘친 것은 스크롤로도 못 본다 — #330 의 최근 인연 궁합과 지난

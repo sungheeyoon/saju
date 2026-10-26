@@ -220,10 +220,13 @@ export function CoverLink({
   href,
   from,
   className,
+  current: currentLook = 'ring-[3px] ring-accent ring-offset-2 ring-offset-background',
   style,
   children,
 }: {
   href: string;
+  /** 지금 펼친 글일 때 더할 모양 — 표지는 테, 책장의 줄(`ShelfRow`)은 면이다 */
+  current?: string;
   /** 이 표지가 선 자리 — 결과로 가는 표지에만 싣는다(ADR 0134). 보관함이면 켠 칩도 함께 든다 */
   from?: CameFrom;
   className: string;
@@ -240,7 +243,7 @@ export function CoverLink({
     <Link
       href={target}
       aria-current={current ? 'page' : undefined}
-      className={`${className} ${current ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-background' : ''}`}
+      className={`${className} ${current ? currentLook : ''}`}
       style={style}
     >
       {children}

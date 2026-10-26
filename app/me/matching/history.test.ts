@@ -37,7 +37,9 @@ const made = (matchId: string, nickname: string): InboxMatch => ({
   hasPhoto: false,
   photoFocus: FOCUS_CENTER,
   suppliedToMe: null,
+  elementsToMe: [],
   balanceLabel: '',
+  balanceShort: '',
   createdAt: '2026-09-03T00:00:00Z',
 });
 
