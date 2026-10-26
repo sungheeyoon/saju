@@ -6,7 +6,8 @@
  *
  * - **주**(`BUTTON_PRIMARY`): 먹색 채움 알약. 파스텔 위 어디에 놓여도 가장 먼저 보이도록 오행 색을 안 입는다. 한 영역에 하나.
  * - **보조**(`BUTTON_SECONDARY`): 흰 알약 + 가는 테.
- * - **셋째**(`BUTTON_TERTIARY`): 밑줄 글자(+ 화살표). 누를 자리는 글자보다 넓게 44px.
+ * - **셋째**(`BUTTON_TERTIARY`): 테 없는 글자(+ 화살표) — **밑줄 없이** 굵기와 색으로 누를 수 있음을 보인다(운영자 2026-10-26, 토스 TDS
+ *   `TextButton` · 당근 SEED ghost). 누를 자리는 글자보다 넓게 44px, 키보드 초점 테는 전역(`globals.css`) 그대로.
  * - **아이콘**(`ICON_BUTTON`): 동그란 흰 단추 44px — 창의 닫기. 머리글의 풀이권 · 종 · 톱니는 테 없는 한 벌(`ICON_BUTTON_BARE`)이다.
  *
  * 누르면 조금 줄어든다(`active:scale`) — 손가락 아래에서 「눌렸다」를 말하는 유일한 신호라 빼지 않는다.
@@ -40,8 +41,13 @@ export const BUTTON_PRIMARY = `${BUTTON_PRIMARY_FACE} px-5`;
 export const BUTTON_SECONDARY_FACE = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border bg-surface text-body font-semibold text-foreground hover:border-border-strong ${PRESS}`;
 export const BUTTON_SECONDARY = `${BUTTON_SECONDARY_FACE} px-5`;
 
-/** 셋째 단추의 면 — 글자 크기 · 굵기 · 색을 뺐다. 결제 화면의 작은 링크처럼 글자를 따로 정하는 자리가 쓴다 */
-export const BUTTON_TERTIARY_FACE = `inline-flex min-h-11 items-center gap-1 rounded-cell px-1 underline decoration-[color-mix(in_srgb,var(--foreground)_25%,transparent)] decoration-2 underline-offset-[6px] hover:decoration-foreground active:opacity-70 disabled:opacity-55`;
+/**
+ * 셋째 단추의 면 — 글자 크기 · 굵기 · 색을 뺐다. 결제 화면의 작은 링크처럼 글자를 따로 정하는 자리가 쓴다.
+ *
+ * **밑줄이 없다**(운영자 결정 2026-10-26) — 굵은 밑줄(2px · 6px 띄움)이 글자보다 먼저 보여 화면마다 줄이 그어진 것처럼 읽혔다. 올리면
+ * 옅게 흐려지고(`hover:opacity-70`) 누르면 더 흐려진다 — 토스 TDS `TextButton` 의 누름과 같은 꼴.
+ */
+export const BUTTON_TERTIARY_FACE = `inline-flex min-h-11 items-center gap-1 rounded-cell px-1 hover:opacity-70 active:opacity-55 disabled:opacity-55`;
 export const BUTTON_TERTIARY = `${BUTTON_TERTIARY_FACE} text-sm font-semibold text-foreground`;
 /** 셋째 단추의 위험 색 — 「차단으로 넘어가기」처럼 되돌리기 어려운 쪽으로 가는 글자 단추 */
 export const BUTTON_TERTIARY_DANGER = `${BUTTON_TERTIARY_FACE} text-sm font-semibold text-danger`;

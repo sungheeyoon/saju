@@ -79,7 +79,11 @@ export function PassedConnections({
             <Icon name="undo" />
           </span>
           <h3 className={TYPE_NAME}>지나친 인연이 여기에 모여요</h3>
-          <p className="text-body leading-6 text-secondary">다시 궁금해진 사람을 살펴보고, 한 번 더 알아갈 수 있는 자리예요.</p>
+          {/* 쉼표에서 꺾는다 — 두 줄로 읽히게(운영자 2026-10-26). 넓은 화면에서도 같은 자리에서 꺾인다 */}
+          <p className="text-body leading-6 text-secondary">
+            다시 궁금해진 사람을 살펴보고,{' '}
+            <br />한 번 더 알아갈 수 있는 자리예요.
+          </p>
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

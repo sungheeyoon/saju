@@ -243,7 +243,7 @@ export function ReadingPanel({
           <button
             type="button"
             onClick={generate}
-            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold underline underline-offset-4"
+            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold hover:opacity-70 active:opacity-55"
           >
             다시 시도하기
           </button>
@@ -253,7 +253,7 @@ export function ReadingPanel({
             type="button"
             onClick={skipCarry}
             disabled={skipping}
-            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold underline underline-offset-4"
+            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold hover:opacity-70 active:opacity-55"
           >
             전체 풀이만 보기
           </button>

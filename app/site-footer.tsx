@@ -45,7 +45,8 @@ export function SiteFooter({ business }: { business: BusinessInfo }) {
 
   if (inApp) {
     return (
-      <footer className="mt-auto border-t border-border">
+      /* 위 가로 줄을 걷었다(운영자 2026-10-26) — 본문과 바닥글은 여백이 가른다(당근 SEED Top Navigation 과 같은 생각: 영역을 줄로 가르지 않는다) */
+      <footer className="mt-auto">
         <div className="app-shell flex flex-col gap-1 pt-3 pb-6">
           {nav}
           <BusinessLines business={business} />
@@ -55,7 +56,7 @@ export function SiteFooter({ business }: { business: BusinessInfo }) {
   }
 
   return (
-    <footer className="mt-auto border-t border-border">
+    <footer className="mt-auto">
       <div className="app-shell flex flex-col gap-4 pt-8 pb-8 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="font-rounded text-lead text-foreground">{SERVICE_NAME}</p>
