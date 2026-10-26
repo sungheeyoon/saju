@@ -51,7 +51,7 @@ export function ElementExchange({ exchange, partner }: { exchange: Exchange; par
 
 /**
  * 두 칸 맞교환 — 송금 확인의 「보내는 쪽 → 받는 쪽」처럼 칸 머리가 방향(「이웃 → 나」)을 글자로 말하고, 가운데 ⇄ 가 둘이
- * 맞바꾸는 일임을 그림으로 말한다. 세 안(두 줄 장부 · 두 사람 사이 화살표 · 두 칸) 중 운영자 검토 전 권고안이다(PR 본문).
+ * 맞바꾸는 일임을 그림으로 말한다. 세 안(두 줄 장부 · 두 사람 사이 화살표 · 두 칸) 중 운영자가 고른 꼴이다(2026-10-26, #848).
  * 넓은 화면에서도 칸이 늘어지지 않게 폭을 묶는다.
  */
 function Pair({ toMe, toThem, partner }: { toMe: readonly Element[]; toThem: readonly Element[]; partner: Partner }) {
