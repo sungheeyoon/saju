@@ -219,7 +219,7 @@ function SaveCard({
           <p className="text-sm leading-6">{noRoom}</p>
           <Link
             href="/me/people"
-            className="self-start text-sm font-medium text-accent underline underline-offset-2"
+            className="self-start text-sm font-semibold text-accent hover:opacity-70"
           >
             저장한 사람 관리 →
           </Link>

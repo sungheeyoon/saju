@@ -31,7 +31,7 @@ import { FailureLine } from '../../ui/failure-line';
 import { showSnackbar } from '../../ui/snackbar-store';
 
 /**
- * 카드 밑단의 조용한 누름(차단 · 신고 · 요청 취소) — 셋째 단추의 기하에 보조 글자색.
+ * 카드 밑단의 조용한 누름(차단 · 신고 · 요청 취소) — 셋째 단추의 기하에 보조 글자색, **밑줄 없이**(운영자 2026-10-26).
  * 수락 · 거절보다 한 층 아래로 읽혀야 한다: 같은 무게로 서면 차단이 답처럼 보인다.
  *
  * **눌리는 자리는 글자보다 좌우로 8px 씩 넓다**(`after:`). 「차단」 · 「신고」는 글자 둘이라 폭이 32px 로
@@ -39,7 +39,7 @@ import { showSnackbar } from '../../ui/snackbar-store';
  * 나란히 선 둘 사이가 `gap-x-4`(16px)라 덮개 둘이 가운데서 맞닿고 겹치지 않는다.
  */
 const QUIET_LINK =
-  'relative inline-flex min-h-11 items-center rounded-cell px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
+  'relative inline-flex min-h-11 items-center rounded-cell px-1 text-sm font-semibold text-secondary after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground active:opacity-70 disabled:opacity-55';
 
 /**
  * 수락하면 무엇이 일어나는가 — **받은 요청 카드와 보내는 확인 창이 같은 한 벌을 읽는다**(ADR 0008, 운영자 결정 2026-10-26 A안).

@@ -167,7 +167,7 @@ export default function HelpPage() {
                       </p>
                     ))}
                     {item.link && (
-                      <Link href={item.link.href} className="w-fit text-small font-semibold leading-5 text-foreground underline underline-offset-4">
+                      <Link href={item.link.href} className="w-fit text-small font-semibold leading-5 text-foreground hover:opacity-70">
                         {item.link.label} →
                       </Link>
                     )}
