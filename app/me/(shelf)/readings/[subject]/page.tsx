@@ -11,6 +11,7 @@ import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
 import { currentReading } from '../../../reading/current';
 import { ReadingSection } from '../../../reading/section';
+import { ShareReadingButton } from '../../../reading/share-button';
 import { tasteCarryOfPage } from '../../../../taste/taste-carry';
 import { ReadingBack } from '../frame';
 import { SubjectTag } from '../shelf';
@@ -84,7 +85,7 @@ export default async function SingleReadingPage({
     <article aria-labelledby="reading-subject" className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-col gap-5">
         <ReadingBack className={`${BUTTON_TERTIARY} self-start`} />
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="flex items-end justify-between gap-x-4">
           <div className="flex min-w-0 flex-col gap-1.5">
             {/*
               **글의 이름은 머리 위 한 줄이다**(2026-10-10 화면 점검 B12) — 「사주풀이 · 딱지」 → 「{이름}」 → 풀이 칸의 「{이름}의
@@ -103,6 +104,11 @@ export default async function SingleReadingPage({
               {name}
             </h2>
           </div>
+          {/*
+            **제목 줄 끝의 공유**(2026-10-27 운영자 제안 「안 D」) — 들어오자마자 보내는 길이 보인다. 글 끝의 「공유 링크 복사」와 같은
+            일 · 같은 이름이고(보조기기에는 같은 일을 하는 단추 둘), 복사 뒤 말풍선 · 알림도 같은 부품이 든다. 글이 있을 때만 선다
+          */}
+          {reading !== null && <ShareReadingButton target={target} look="icon" />}
 
         </div>
       </header>

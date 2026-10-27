@@ -20,8 +20,10 @@ import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
+import type { CurrentReading } from '@/src/lib/reading';
 import { currentReading } from '../reading/current';
 import { ReadingSection } from '../reading/section';
+import { ShareReadingButton } from '../reading/share-button';
 import { elementScope } from '../../ui/element-tone';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
@@ -161,6 +163,12 @@ async function ResultPage({
   /** ← 가 보관함으로 가고 그 책장이 옆에 서 있다 — 넓은 화면에서는 ← 를 안 세운다(사주풀이의 `ReadingBack` 과 같다) */
   besideShelf: boolean;
 }) {
+  /*
+    **제목 줄 끝의 공유**(2026-10-27 운영자 제안 「안 D」) — 들어오자마자 보내는 길이 보인다. 글 끝의 「공유 링크 복사」와 같은 일 ·
+    같은 이름이다. 글이 있을 때만 선다 — 같은 글을 아래 칸(`Result`)이 다시 묻지 않게 여기서 읽어 넘긴다
+  */
+  const target = { kind: 'private', ...outcome.pair } as const;
+  const reading = await currentReading(target);
   return (
     <Frame frame={frame}>
       <header className="flex flex-col gap-3">
@@ -171,17 +179,18 @@ async function ResultPage({
         <TopBar back={back} backHiddenOnWide={frame === 'shelf' && besideShelf}>
           <div className="flex items-center gap-3 sm:gap-4">
             <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-small font-semibold text-secondary">궁합</p>
               <Title frame={frame}>
                 {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
               </Title>
             </div>
+            {reading !== null && <ShareReadingButton target={target} look="icon" />}
           </div>
         </TopBar>
       </header>
 
-      <Result outcome={outcome} />
+      <Result outcome={outcome} reading={reading} />
     </Frame>
   );
 }
@@ -293,7 +302,14 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
   };
 }
 
-async function Result({ outcome }: { outcome: Outcome }) {
+async function Result({
+  outcome,
+  reading: preloaded,
+}: {
+  outcome: Outcome;
+  /** 머리(`ResultPage`)가 이미 읽은 글 — 안 넘기면 여기서 읽는다. `null` 은 「읽었고 글이 없다」 */
+  reading?: CurrentReading | null;
+}) {
   /**
    * **아직 안 골랐으면 아무것도 안 그린다.**
    *
@@ -330,7 +346,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   const target = { kind: 'private', ...outcome.pair } as const;
   const [stored, reading] = await Promise.all([
     pairRelationFor(outcome.pair.personA, outcome.pair.personB),
-    currentReading(target),
+    preloaded === undefined ? currentReading(target) : preloaded,
   ]);
 
   /**
