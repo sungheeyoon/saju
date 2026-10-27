@@ -3491,27 +3491,35 @@ test.describe('사주풀이 공유하기', () => {
 
     /*
       **공유는 두 자리, 이름은 하나다**(2026-10-27 운영자 선택 「H′」) — 표지(한 줄 평 카드) 첫 줄 끝의 아이콘과 글 끝의 「공유 링크
-      복사」. 같은 일이라 보조기기에도 같은 이름으로 읽힌다. 아래 재는 것은 첫 것(표지의 아이콘)이다
+      복사」. 같은 일이라 보조기기에도 같은 이름으로 읽힌다. 표지 아이콘은 누르면 이름만 바뀌는지 재고, 자리는 글 끝 글자 단추로 잰다
     */
     await expect(page.getByRole('button', { name: SHARE })).toHaveCount(2);
+
+    /* 표지 아이콘 — 글자가 없어 폭은 늘 같다. 재는 것은 누른 뒤 읽는 이름이 「복사했어요」로 바뀌는 것이다 */
+    await page.getByRole('button', { name: SHARE }).first().click();
+    await expect(page.getByRole('button', { name: '복사했어요' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(1);
+    /* 「복사했어요」는 잠깐만 선다 — 이름이 돌아온 뒤에 글 끝 단추를 잰다 */
+    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(2, { timeout: 10_000 });
 
     /**
      * **누르기 전후로 화면이 안 움직여야 한다.**
      *
      * 버튼 글자가 「공유 링크 복사」에서 「복사했어요」로 바뀌고, 한동안은
      * 그 아래 안내 줄까지 새로 섰다 — 잘 된 일이 화면을 흔들면 사용자는 고장으로
-     * 읽는다. 말로 고치면 다음에 또 밀리므로 **자리를 값으로 잡아 둔다.**
+     * 읽는다. 말로 고치면 다음에 또 밀리므로 **자리를 값으로 잡아 둔다.** 글자가 바뀌는 것은 글 끝 단추(`.last()`)다
      */
+    const atEnd = page.getByRole('button', { name: SHARE }).last();
     const anchor = page.getByText('이 풀이는 어떠셨어요').first();
-    /* 단추가 글 끝에 있어 누르면 그 자리로 굴러간다 — 먼저 굴려 두고 재야 자리는 화면이 흔들린 것만 센다 */
-    await page.getByRole('button', { name: SHARE }).first().scrollIntoViewIfNeeded();
+    /* 글 끝 단추는 화면 아래에 있어 누르면 그 자리로 굴러간다 — 먼저 굴려 두고 재야 자리는 화면이 흔들린 것만 센다 */
+    await atEnd.scrollIntoViewIfNeeded();
     const before = {
-      button: await page.getByRole('button', { name: SHARE }).first().boundingBox(),
+      button: await atEnd.boundingBox(),
       below: await anchor.boundingBox(),
     };
 
-    await page.getByRole('button', { name: SHARE }).first().click();
-    const copiedButton = page.getByRole('button', { name: '복사했어요' }).first();
+    await atEnd.click();
+    const copiedButton = page.getByRole('button', { name: '복사했어요' }).last();
     await expect(copiedButton).toBeVisible();
 
     const after = {

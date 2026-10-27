@@ -35,7 +35,8 @@ export function Result({
   nicknames?: PairNicknames;
   /**
    * 표지 첫 줄(“ 의 줄) 오른쪽 끝에 공유 아이콘을 세우는가 — 세울지는 `panelChrome().canShare` 한 벌이 정한다(인연 궁합 · 예시 글 ·
-   * 만드는 중에는 안 선다). 글 끝의 「공유 링크 복사」와 같은 일 · 같은 이름이다
+   * 만드는 중에는 안 선다). 글 끝의 「공유 링크 복사」와 같은 일 · 같은 이름이다. 비유가 없는 글은 표지에 첫 줄이 없어 아이콘 없이
+   * 글 끝 단추만 선다
    */
   canShare?: boolean;
 }) {
@@ -81,19 +82,25 @@ export function Result({
       */}
       {reading.score !== null || metaphor !== null ? (
         <figure
-          className={`${elementScope(firstTone)} relative overflow-hidden rounded-card px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
+          className={`${elementScope(firstTone)} relative rounded-card px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
         >
           {/*
             한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징. **위 구석이 아니라
             비유 옆에 선다**(2026-10-27 운영자 선택 「H′」) — 위 구석은 공유 아이콘의 자리라, 그림이 단추 밑에 깔리지 않게 한 단 내렸다
           */}
+          {/*
+            **그림만 표지 밖을 자른다** — 표지 전체를 `overflow-hidden` 으로 두면 공유 아이콘의 실패 판(주소를 손으로 긁는 판)이 좁은 폰에서
+            표지 테에 잘렸다(320px, #855 검토). 자르는 층은 그림 한 겹이고, 판은 표지 위에 떠서 다 보인다
+          */}
           {single && (
-            <FaceSymbol
-              stem={reading.dayMasterA}
-              element={firstTone}
-              className="pointer-events-none absolute -right-10 top-16 size-48 opacity-20 sm:-right-14 sm:top-20 sm:size-56"
-            />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-card">
+              <FaceSymbol
+                stem={reading.dayMasterA}
+                element={firstTone}
+                className="absolute -right-10 top-16 size-48 opacity-20 sm:-right-14 sm:top-20 sm:size-56"
+              />
+            </span>
           )}
           {metaphor !== null ? (
             <>
