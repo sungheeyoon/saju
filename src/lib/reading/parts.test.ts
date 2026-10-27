@@ -226,6 +226,15 @@ describe('시키는 값과 막는 값', () => {
     }
     for (const kind of READING_KINDS.filter(isSolo)) {
       expect(READING_PROMPTS[kind], kind).toContain('에서 실제로 풀어 쓸 장점 하나**');
+      /* 개인 풀이는 첫 절 맨 앞이 비유를 푼다(운영자 결정 2026-10-27) — 비유 절과 첫 절이 같은 말을 한다 */
+      expect(READING_PROMPTS[kind], kind).toContain('첫 절 맨 앞에서 왜 이 비유인지 풀어 준다');
+      expect(READING_PROMPTS[kind], kind).toContain('**맨 앞에 한두 문장으로 한 줄 비유를 풀어 준다**');
+      expect(READING_PROMPTS[kind], kind).not.toContain('본문에는 이 줄을 다시 적지 않는다');
+    }
+    /* 궁합은 비유를 본문 뒤에 지어 본문이 비유를 모른다 — 그대로다 */
+    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
+      expect(READING_PROMPTS[kind], kind).toContain('본문에는 이 줄을 다시 적지 않는다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('한 줄 비유를 풀어 준다');
     }
   });
 
