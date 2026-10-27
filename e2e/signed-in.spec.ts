@@ -3490,11 +3490,10 @@ test.describe('사주풀이 공유하기', () => {
     await page.goto('/me/readings/self');
 
     /*
-      **손잡이는 하나다.** 제목 옆과 본문 아래에 같은 버튼이 둘 서 있었다 — 글이 길다는
-      까닭이었는데, 같은 문 앞에 손잡이가 둘이면 어느 것이 무엇인지 세어 봐야 한다.
-      지금은 글 끝에서 「다시 받기」와 반반으로 한 쌍으로 선다(`panel.tsx`, 2026-10-26 운영자 결정 「안 A」).
+      **공유는 두 자리, 이름은 하나다**(2026-10-27 운영자 제안 「안 D」) — 제목 줄 끝의 아이콘과 글 끝의 「공유 링크 복사」. 같은 일이라
+      보조기기에도 같은 이름으로 읽힌다. 아래 재는 것은 첫 것(제목 줄 아이콘)이다
     */
-    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(2);
 
     /**
      * **누르기 전후로 화면이 안 움직여야 한다.**
