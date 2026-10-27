@@ -19,11 +19,11 @@ export type PartnerProfile = {
   readonly userId: string;
   readonly nickname: string;
   readonly intro: string | null;
-  /** 대표가 먼저 — 없으면 빈 목록이고, 사진 칸 대신 첫 글자 동그라미가 선다 */
+  /** 대표가 먼저 — 없으면 빈 목록이고, 같은 4:5 사진 칸에 첫 글자가 선다 */
   readonly photoUrls: readonly string[];
   /** 장마다 보일 자리 — `photoUrls` 와 같은 차례 · 같은 수(G-98) */
   readonly photoFocus: readonly PhotoFocus[];
-  /** 그 사람의 일간 오행 — 사진이 없을 때 동그라미의 색. 모르면 `null`(회색) */
+  /** 그 사람의 일간 오행 — 사진이 없을 때 사진 칸의 색. 모르면 `null`(회색) */
   readonly tone: Element | null;
 };
 
@@ -53,19 +53,13 @@ export const partnerSheetName = (nickname: string): string => `${nickname} 님 �
 const INTRO_HEADING = '소개';
 
 /**
- * 사진 판의 크기 — **세로 4:5 한 벌**(오늘의 인연 카드 · 한국 데이팅 앱의 프로필 상세와 같은 세로 사진). 폰은 시트 폭을 다 쓰되
- * 높이가 화면의 56% 를 넘으면 폭을 줄여 4:5 를 지킨다 — 낮은 폰(375×667)에서도 사진 아래 궁합 단추가 첫 화면에 걸린다.
- * 넓은 화면(lg)은 왼쪽 열 18rem 한 칸이다.
+ * **사진 칸 한 벌 — 세로 4:5, 사진이 있든 없든 · 폰이든 넓은 화면이든 · 내 시트든 상대 시트든 같은 칸이다**(운영자 2026-10-27 「데스크톱에서도
+ * 비율 맞춰줘야지」 · 「사진 없을 때도 비율 똑같이」) — 오늘의 인연 카드의 넓은 화면(4:5)과 같은 세로 사진이다. **높이 때문에 비율을 깨지 않는다 — 폭을 줄인다**: 폰은 시트 폭을
+ * 다 쓰되 높이가 화면의 56%(폭 44.8dvh)를 넘으면 폭을 줄이고(낮은 폰에서도 사진 아래 단추가 첫 화면에 걸린다), 넓은 화면(lg)은 왼쪽 열
+ * 18rem 한 칸에 같은 높이 문턱을 둔다. 전에는 내 시트가 가로 4:3 · 넓은 화면 2:1, 사진 없는 상대가 높이 128px 띠였다.
  */
-const PHOTO_FRAME =
-  'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] select-none overflow-hidden rounded-card lg:mx-0 lg:max-w-none';
-
-/**
- * **내 프로필 시트의 사진 판** — 가로 4:3(폰 390 에서 약 262px). 세로 4:5 로 두면 사진이 첫 화면을 다 먹어 바로 아래 「소개」가 안 보였다
- * (운영자 2026-10-26 「굳이 들어가서 내 자기소개가 뭔지 봐야 하나」). 범블 · 스카이피플의 프로필 미리보기처럼 사진 바로 아래 소개가 첫 화면에
- * 걸린다. 사진은 보일 자리(G-98)로 잘린다.
- */
-const PHOTO_FRAME_SHORT = 'relative w-full aspect-[4/3] select-none overflow-hidden rounded-card lg:aspect-[2/1]';
+const PROFILE_PHOTO_FRAME =
+  'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] shrink-0 select-none overflow-hidden rounded-card lg:max-w-[min(100%,18rem,44.8dvh)]';
 
 /**
  * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리 · 요청 카드의 얼굴이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
@@ -76,7 +70,8 @@ const PHOTO_FRAME_SHORT = 'relative w-full aspect-[4/3] select-none overflow-hid
  *
  * 몸은 위에서부터 **사진(세로 4:5) → 궁합 단추(폭을 다 쓰는 한 줄) → 소개**다(스카이피플 · 아만다의 상세 — 사진 바로 아래 주 행동,
  * 그 아래 구역). 넓은 화면은 사진이 왼쪽 열, 궁합 · 소개가 오른쪽 열이다. 사진 넘기기는 오늘의 인연 카드와 같은 판(`CardPhotos` —
- * 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표). 사진이 없으면 그 사람의 색 판에 첫 글자(덱 카드와 같은 모양)가 낮은 띠로 선다.
+ * 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표). 사진이 없으면 **같은 4:5 칸**에 그 사람의 색 판과 첫 글자(덱 카드와 같은 모양)가 선다.
+ * 홈 · 대화방의 「내 프로필」도 이 시트 그대로다 — 칸 · 열이 상대 시트와 같다(`PROFILE_PHOTO_FRAME`).
  * 소개가 없으면 그 구역을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고
  * (`CompatChip` 의 `fill`), 인연 궁합 화면 · 요청 카드가 연 시트는 `null` 이라 안 선다.
  */
@@ -85,7 +80,6 @@ export function PartnerSheet({
   partner,
   toMatch,
   menu,
-  short = false,
   emptyIntro,
   emptyPhoto,
   footer,
@@ -95,11 +89,9 @@ export function PartnerSheet({
   /** 인연 궁합으로 가는 단추 — 없으면 `null` */
   toMatch: ReactNode | null;
   menu?: ReactNode;
-  /** 사진을 가로 4:3 으로 줄여 소개를 첫 화면에 건다 — 홈의 「내 프로필」 시트(2026-10-26) */
-  short?: boolean;
   /** 소개가 비었을 때 「소개」 구역에 세울 것 — 내 시트는 「소개를 써 보세요」 링크. 없으면 그 구역을 뺀다 */
   emptyIntro?: ReactNode;
-  /** 사진이 없을 때 빈 사진 칸 위에 세울 것 — 내 시트의 「사진 추가」. `short` 일 때만 */
+  /** 사진이 없을 때 빈 사진 칸 위에 세울 것 — 내 시트의 「사진 추가」 */
   emptyPhoto?: ReactNode;
   /** 몸의 맨 아래 — 내 시트의 「프로필 편집」 */
   footer?: ReactNode;
@@ -107,6 +99,7 @@ export function PartnerSheet({
   const frame = useRef<HTMLDivElement>(null);
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
   const hasPhoto = partner.photoUrls.length > 0;
+  const side = toMatch !== null || intro !== null || emptyIntro !== undefined || footer !== undefined;
   const face = {
     candidateUserId: partner.userId,
     nickname: partner.nickname,
@@ -125,32 +118,23 @@ export function PartnerSheet({
     >
       <div
         data-partner-sheet=""
-        className={`flex flex-col gap-5 ${hasPhoto && !short ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
+        className={`flex flex-col gap-5 ${side ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
       >
-        {hasPhoto ? (
-          <div ref={frame} className={`${short ? PHOTO_FRAME_SHORT : PHOTO_FRAME} bg-surface-sunken`}>
-            <CardPhotos card={face} bounce={frame} />
-          </div>
-        ) : (
-          /*
-            사진이 없는 사람 — 그 사람의 색 판에 첫 글자(덱 카드의 첫 글자 판과 같은 모양, `CandidatePhoto`). **내 시트(`short`)는 사진이 있을
-            때와 같은 비율의 칸**이다(폰 4:3 · 넓은 화면 2:1) — 사진이 있든 없든 팝업 높이가 같다(운영자 2026-10-26). 그 칸 위에 「사진 추가」
-          */
-          <div className={short ? PHOTO_FRAME_SHORT : 'relative h-32 overflow-hidden rounded-card'}>
-            <CandidatePhoto card={face} initialClass="text-figure" />
-            {short && emptyPhoto}
-          </div>
-        )}
-        {(toMatch !== null || intro !== null || emptyIntro !== undefined || footer !== undefined) && (
+        {/* 사진이 없어도 같은 4:5 칸 — 그 사람의 색 판에 첫 글자(`CandidatePhoto`), 내 시트는 그 위에 「사진 추가」 */}
+        <div ref={frame} className={`${PROFILE_PHOTO_FRAME} bg-surface-sunken`}>
+          {hasPhoto ? <CardPhotos card={face} bounce={frame} /> : <CandidatePhoto card={face} initialClass="text-figure" />}
+          {!hasPhoto && emptyPhoto}
+        </div>
+        {side && (
           <div className="flex min-w-0 flex-col gap-5">
             {toMatch}
             {(intro !== null || emptyIntro !== undefined) && (
-              <section className="flex flex-col gap-2 border-t border-border pt-4">
+              <section className="flex flex-col gap-2 border-t border-border pt-4 lg:first:border-t-0 lg:first:pt-0">
                 <h3 className={TYPE_META}>
                   {INTRO_HEADING}
                 </h3>
                 {/* 내 시트는 소개 칸이 세 줄 높이를 잡는다 — 소개가 비어도 팝업 높이가 같다 */}
-                <div className={short ? 'min-h-[4.8rem]' : ''}>
+                <div className={emptyIntro !== undefined ? 'min-h-[4.8rem]' : ''}>
                   {intro !== null ? (
                     <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
                   ) : (
