@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
+
+import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 
 import type { PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
@@ -8,6 +11,8 @@ import type { Element } from '@/src/lib/saju';
 import { Avatar } from './avatar';
 import { CandidatePhoto } from './matching/candidate-photo';
 import { CardPhotos } from './matching/card-photos';
+import { BUTTON_SECONDARY_SMALL_FACE } from '../ui/buttons';
+import { Icon } from '../ui/icons';
 import { closeSheet, DetailSheet, openSheet } from '../ui/sheet';
 import { TYPE_META } from '../ui/surfaces';
 
@@ -118,7 +123,7 @@ export function PartnerSheet({
     >
       <div
         data-partner-sheet=""
-        className={`flex flex-col gap-5 ${side ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''}`}
+        className={`flex flex-col gap-5 ${side ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''} ${footer !== undefined ? PINNED_SCROLL_MARGIN : ''}`}
       >
         {/* 사진이 없어도 같은 4:5 칸 — 그 사람의 색 판에 첫 글자(`CandidatePhoto`), 내 시트는 그 위에 「사진 추가」 */}
         <div ref={frame} className={`${PROFILE_PHOTO_FRAME} bg-surface-sunken`}>
@@ -148,6 +153,29 @@ export function PartnerSheet({
         )}
       </div>
     </DetailSheet>
+  );
+}
+
+/**
+ * 바닥에 붙은 판(`MyProfileEditFooter`)이 있는 시트 — 키보드로 옮긴 초점이 판 밑에 숨지 않게, 초점이 가는 것들은 판 높이(약 108px — 판 84 ·
+ * 페이드 24)만큼 아래를 비워 두고 스크롤된다. 폰만이다 — 넓은 화면은 판이 제자리다
+ */
+const PINNED_SCROLL_MARGIN = 'max-lg:[&_:is(a,button,[tabindex])]:scroll-mb-28';
+
+/**
+ * **「내 프로필」 시트의 「프로필 편집」 — 폰은 시트 바닥에 붙는다**(운영자 2026-10-27). 홈의 동그란 프로필 · 대화방 「⋯ → 내 프로필」이 같은
+ * 판을 쓴다(`footer`). 사진이 4:5 라 폰에서는 이 줄이 첫 화면 밖으로 밀렸다. 붙은 판 위 24px 는 바탕색으로 옅어져 그 아래 글이 반쪽으로 잘린
+ * 채 보이지 않고, 아래는 아이폰 홈 막대만큼 비운다(`env(safe-area-inset-bottom)`, 아래 판 `ActionSheet` 와 같은 셈). 끝까지 내리면 판이
+ * 제자리(소개 아래)에 서므로 마지막 줄이 다 보인다 — 위 틈(28px)이 페이드(24px)보다 넓다. 넓은 화면은 두 열이라 제자리다.
+ */
+export function MyProfileEditFooter() {
+  return (
+    <div className="sticky bottom-0 z-[1] -mx-5 -mb-10 mt-2 bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent lg:static lg:m-0 lg:bg-transparent lg:p-0 lg:before:hidden">
+      <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
+        <Icon name="pencil" className="size-4" />
+        {MY_PROFILE_EDIT_LABEL}
+      </Link>
+    </div>
   );
 }
 

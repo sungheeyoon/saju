@@ -186,7 +186,11 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.locator('[data-chat-room] header').getByRole('button', { name: `나${tag} 님 자세히`, exact: true }).click();
     const sheet = a.page.getByRole('dialog', { name: `나${tag} 님 자세히` });
     await expect(sheet).toBeVisible();
-    await sheet.getByRole('link', { name: /^궁합/ }).click();
+    /* 시트의 궁합 한 줄 — 머리 알약과 같은 곳 · 같은 상태, 읽는 이름은 「궁합」으로 시작하는 보이는 글자(2026-10-27) */
+    const sheetRow = sheet.getByRole('link', { name: /^궁합/ });
+    await expect(sheetRow).toHaveAttribute('href', `/me/match/${matchId}?from=chat`);
+    await expect(sheetRow).toHaveAttribute('data-compat', (await headChip.getAttribute('data-compat'))!);
+    await sheetRow.click();
     await expect(a.page).toHaveURL(new RegExp(`/me/match/${matchId}\\?from=chat$`));
     /* 제목이 상대를 부른다(화면 점검 C12) */
     await expect(a.page.getByRole('heading', { name: `나${tag} 님 궁합 결과`, exact: true })).toBeVisible();

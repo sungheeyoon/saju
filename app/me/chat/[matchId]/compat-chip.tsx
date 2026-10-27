@@ -6,7 +6,7 @@ import { BUTTON_SECONDARY_SMALL_FACE } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { Icon } from '../../../ui/icons';
 import { LINK_PENDING_SPINNER } from '../../../ui/link-pending';
-import type { RoomCompat } from './room-compat';
+import { compatRowParts, type RoomCompat } from './room-compat';
 
 /**
  * 상대의 파스텔을 입은 알약 — 원본 시안의 궁합 알약이다. 보조 단추와 같은 44px · 같은 글자 크기이고, 면과 글자가
@@ -74,23 +74,20 @@ export function CompatChip({
   );
 }
 
-/** 시트 줄 오른쪽 끝의 글자 — 볼 풀이가 있을 때만 「궁합풀이 보기」(§3.2 「보기」는 볼 것이 있을 때만), 실패면 「다시 받기」 */
-const ROW_TAIL_READY = '궁합풀이 보기';
-const ROW_TAIL_FAILED = '다시 받기';
-
 /**
  * **상대 프로필 시트의 궁합 한 줄**(운영자 선택 C, 2026-10-27) — 사진 바로 아래, 본문 크기의 한 줄이다: 왼쪽 「☯ 궁합 82점」, 오른쪽
- * 「궁합풀이 보기 ›」. 전에는 폭을 다 쓰는 48px 파스텔 알약(「☯ 82점」)이라 사진 다음으로 큰 면이었다(운영자 「점수가 너무 크다」).
- * 틴더 「별자리 모드」가 이름 아래 「성향의 조합」을 따로 한 구역으로 두는 것처럼 사진을 가리지 않는 따로 선 줄이다.
+ * 「궁합풀이 보기 ›」(실패면 「다시 받기 ›」). 전에는 폭을 다 쓰는 48px 파스텔 알약(「☯ 82점」)이라 사진 다음으로 큰 면이었다(운영자 「점수가
+ * 너무 크다」). 틴더 「별자리 모드」가 이름 아래 「성향의 조합」을 따로 한 구역으로 두는 것처럼 사진을 가리지 않는 따로 선 줄이다.
  *
- * 방 머리 알약과 같은 상태 넷 · 같은 곳 · 같은 읽는 이름(`compatChipName`)이다 — 누르면 언제나 인연 궁합 화면.
+ * 방 머리 알약과 같은 상태 넷 · 같은 곳이다 — 누르면 언제나 인연 궁합 화면. 읽는 이름은 보이는 글자 그대로다(`compatRowParts`) — 「궁합」으로
+ * 시작하는 것은 알약과 같다.
  */
 export function CompatRow({ compat, href }: { compat: RoomCompat; href: string }) {
-  const tail = compat.kind === 'ready' ? ROW_TAIL_READY : compat.kind === 'failed' ? ROW_TAIL_FAILED : null;
+  const { lead, tail, name } = compatRowParts(compat);
   return (
     <Link
       href={href}
-      aria-label={compatChipName(compat)}
+      aria-label={name}
       data-compat={compat.kind}
       className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-cell px-2 hover:bg-surface-sunken active:bg-surface-sunken"
     >
@@ -100,9 +97,11 @@ export function CompatRow({ compat, href }: { compat: RoomCompat; href: string }
         ) : (
           <Icon name="taiji" className="size-[18px] shrink-0" />
         )}
-        궁합
-        {compat.kind === 'ready' && <span className="tabular-nums">{compat.score}점</span>}
-        {compat.kind === 'making' && <span className="font-medium text-secondary">만드는 중…</span>}
+        {lead.map((word, at) => (
+          <span key={word} className={at === 0 ? '' : compat.kind === 'making' ? 'font-medium text-secondary' : 'tabular-nums'}>
+            {word}
+          </span>
+        ))}
       </span>
       <span className="inline-flex shrink-0 items-center gap-0.5 text-small font-semibold text-secondary">
         {tail}

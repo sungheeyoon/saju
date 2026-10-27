@@ -3,7 +3,6 @@
 import Link from 'next/link';
 
 import { PHOTO_ADD } from '@/src/lib/account/copy';
-import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 import type { PhotoFocus } from '@/src/lib/profile';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
@@ -11,7 +10,7 @@ import { BUTTON_SECONDARY_SMALL_FACE } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Avatar } from '../avatar';
-import { PartnerSheet, usePartnerSheet } from '../partner-sheet';
+import { MyProfileEditFooter, PartnerSheet, usePartnerSheet } from '../partner-sheet';
 
 /** 동그라미의 읽는 이름 — 누르면 「내 프로필」 시트가 열린다(카카오톡 친구 탭 맨 위 「내 프로필」) */
 const MY_PROFILE_LABEL = '내 프로필';
@@ -87,18 +86,8 @@ export function SelfProfile({
           </Link>
         }
         footer={
-          /*
-            고칠 때만 프로필 수정 화면으로 — 맨 아래 폭을 다 쓰는 한 줄(대화방 「내 프로필」 시트와 같은 단추). **폰은 시트 바닥에 붙는다**
-            (운영자 2026-10-27) — 사진이 4:5 라 390 폭에서도 이 줄이 첫 화면 밖으로 밀렸다. 붙은 판 위 24px 는 바탕색으로 옅어져 그 아래 글이
-            반쪽으로 잘린 채 보이지 않는다. 끝까지 내리면 판이 제자리(소개 아래)에 서므로 마지막 줄이 다 보인다 — 위 틈(28px)이 페이드(24px)보다
-            넓다. 넓은 화면은 두 열이라 제자리다
-          */
-          <div className="sticky bottom-0 z-[1] -mx-5 -mb-10 mt-2 bg-background px-5 pb-6 pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent lg:static lg:m-0 lg:bg-transparent lg:p-0 lg:before:hidden">
-            <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
-              <Icon name="pencil" className="size-4" />
-              {MY_PROFILE_EDIT_LABEL}
-            </Link>
-          </div>
+          /* 고칠 때만 프로필 수정 화면으로 — 폰은 시트 바닥에 붙은 판(대화방 「내 프로필」 시트와 같은 판) */
+          <MyProfileEditFooter />
         }
       />
     </>

@@ -19,6 +19,18 @@ export type RoomCompat =
   | { readonly kind: 'failed' }
   | { readonly kind: 'quiet' };
 
+/**
+ * **시트의 궁합 한 줄이 보이는 글자**(`CompatRow`) — 왼쪽 낱말들(「궁합」 · 「82점」 · 「만드는 중…」)과 오른쪽 끝 글자(볼 풀이가 있으면
+ * 「궁합풀이 보기」, 실패면 「다시 받기」). 읽는 이름(`name`)은 보이는 글자를 차례대로 이은 것이다 — 음성으로 누르는 사람이 보이는 글자로
+ * 부를 수 있게(WCAG 2.5.3). 아이콘 · 「›」는 글자가 아니다.
+ */
+export function compatRowParts(compat: RoomCompat): { lead: readonly string[]; tail: string | null; name: string } {
+  const lead =
+    compat.kind === 'ready' ? ['궁합', `${compat.score}점`] : compat.kind === 'making' ? ['궁합', '만드는 중…'] : ['궁합'];
+  const tail = compat.kind === 'ready' ? '궁합풀이 보기' : compat.kind === 'failed' ? '다시 받기' : null;
+  return { lead, tail, name: [...lead, ...(tail === null ? [] : [tail])].join(' ') };
+}
+
 /** 읽은 글 — 없으면 `null` */
 type ReadingSeen = { readonly score: number | null } | null;
 
