@@ -790,7 +790,7 @@ try {
       `${chip?.picture ?? '딱지 없음'} — 그때 ${PICTURE_OF_STEM[stemBefore]}(${stemBefore}), 지금 ${PICTURE_OF_STEM[stemAfter]}(${stemAfter})`);
     check('머리의 일간 딱지는 그때의 오행 색이다', chip?.tone === TONE_OF_STEM[stemBefore],
       `${chip?.tone ?? '딱지 없음'} — 그때 ${TONE_OF_STEM[stemBefore]}`);
-    const cover = /class="(tone-[a-z]+) relative overflow-hidden rounded-card/.exec(edited)?.[1];
+    const cover = /class="(tone-[a-z]+) relative (?:overflow-hidden )?rounded-card/.exec(edited)?.[1];
     check('글 표지는 풀이를 만들 때의 오행 색이다', cover === TONE_OF_STEM[stemBefore],
       `${cover ?? '표지 없음'} — 그때 ${TONE_OF_STEM[stemBefore]}, 지금 ${TONE_OF_STEM[stemAfter]}`);
     check('수정 전 글이면 머리의 다시 받기가 주 단추다',
