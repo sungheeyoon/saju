@@ -62,20 +62,37 @@ import { SAJU_TERMS } from './vocabulary';
  */
 
 /**
- * 비유가 **한 문장이 아니게 되는** 경계 — 「짧게 써라」는 프롬프트가 시키고 여기서는 안 센다.
+ * 한 줄 비유가 **폰 홈 카드 한 줄에 안 드는** 경계 — 「짧게 써라」는 프롬프트가 시키고 여기서는 적기만 한다(ADR 0163).
  *
- * 한동안 이 값이 60 이었고 프롬프트는 길이를 한 번도 말하지 않았다. 모델이 63자를 쓰자
- * 다 만든 글이 버려졌다 — **지킬 방법이 없는 계약을 검사만 들고 있던 것**이다.
+ * 한동안 이 값이 60, 그다음 120 이었다. 앞의 것은 프롬프트가 길이를 한 번도 말하지 않아 63자에 글이 버려졌고, 뒤의 것은
+ * 재보지도 않은 수였다 — 홈 카드가 한 줄 고정이 되자 120 안의 글이 거의 늘 잘렸다. 이제 이 값은 **잰 경계**다: 360px 폰
+ * 홈 카드 한 줄에 22자가 들고, 「…」 자리와 넓은 글자의 여유를 두고 20 이다(#842, ADR 0207). 프롬프트도 이 수를 말한다.
  *
- * 이제 시키는 값은 `metaphorLength.target` 이 들고 프롬프트가 그것을 말한다. 여기 남은
- * 것은 **배치가 깨지는 자리**다: 화면이 점수 위에 한 줄로 세우는데 문단이 오면 그 줄이
- * 무너진다. 「내 취향보다 길다」와 「이건 한 문장이 아니다」는 다른 물음이고, 막는 것은
- * 뒤엣것뿐이다.
- *
- * 문장 부호로 세지 않는 까닭은 그대로다 — 「돌고래가 물 만난 격」처럼 마침표 없이 끝나는
- * 말도 한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이다.
+ * 걸려도 저장한다 — 화면은 한 줄에서 「…」로 자른다. 문장 부호로 세지 않는 까닭은 그대로다 — 「돌고래가 물 만난 격」처럼
+ * 마침표 없이 끝나는 말도 한 줄이다.
  */
 const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
+
+/** 띄어쓰기 · 문장 부호를 걷은 꼴 — 본보기를 옮겼는지 견줄 때만 쓴다 */
+const bareOf = (text: string): string => text.replace(/[\s\p{P}\p{S}]/gu, '');
+
+const METAPHOR_EXAMPLE_BARES: readonly string[] = [
+  ...READING_POLICY.metaphorExamples.solo,
+  ...READING_POLICY.metaphorExamples.pair,
+].map(({ line }) => bareOf(line));
+
+/** 프롬프트 본보기가 통째로 들어 있는가 — 「본보기 + 같은 사람」처럼 꼬리만 붙인 것도 옮긴 것이다 */
+export const copiesMetaphorExample = (metaphor: string): boolean => {
+  const bare = bareOf(metaphor);
+  return bare !== '' && METAPHOR_EXAMPLE_BARES.some((example) => bare.includes(example));
+};
+
+/**
+ * 저장할 비유 — 비었거나 본보기를 옮겼으면 `null`(비유 없는 풀이). 회수(`app/me/reading/collect.ts`)가 저장 문에 넘긴다.
+ * 길이를 넘은 비유는 그대로 둔다 — 화면이 자른다(ADR 0163 · 0207).
+ */
+export const metaphorToStore = (metaphor: string): string | null =>
+  metaphor.trim() === '' || copiesMetaphorExample(metaphor) ? null : metaphor;
 
 /**
  * 검사 코드 — 막은 시도는 첫 막음 코드가 `reading_run.failure_code` 에, 걸린 검사 전부는 `reading_run.check_findings` 에 적힌다
@@ -102,7 +119,7 @@ export type ReadingCheckCode =
   | 'evidence-path-leaked'
   /** 본문에 샌 경로를 내보내기 전에 걷었다(`withoutLeakedPaths`) */
   | 'evidence-path-stripped'
-  /** 한 문장 비유가 비었거나(비유 없이 저장한다) 화면이 한 줄로 감당하는 길이를 넘었다 */
+  /** 한 줄 비유가 비었거나 본보기를 그대로 옮겼거나(둘 다 비유 없이 저장한다) 폰 한 줄에 안 드는 길이다 */
   | 'metaphor-out-of-contract'
   /** 이어쓰기 답이 계약(ADR 0143 의 2)을 어겼다 — 회수(`app/me/reading/collect.ts`)가 잰다 */
   | 'continuation-out-of-contract';
@@ -581,23 +598,25 @@ export function checkReading({
   const { markdown, score, metaphor } = output;
 
   /**
-   * **한 줄 요약** — 점수에서 내린 의미가 여기 얹혀 있으므로 비면 그 자리가 통째로 빈다.
+   * **한 줄 비유** — 점수에서 내린 의미가 여기 얹혀 있으므로 비면 그 자리가 통째로 빈다(ADR 0207).
    *
-   * 두 가지만 본다.
+   * 셋을 본다. 어느 것이든 품질로 적고 글은 내보낸다(ADR 0163).
    *
-   * 1. **있는가.** 구조화 출력이 채워 주긴 하지만 빈 문자열은 막지 않는다. 비면 품질로 적고 비유 없이 저장한다 — 화면은
-   *    비유가 없는 풀이를 그대로 그린다(회수가 빈 비유를 `null` 로 보낸다).
-   * 2. **한 문장인가.** 화면이 점수 아래 한 줄로 세우는 자리라, 문단이 오면 그 배치가
-   *    깨진다. 문장 부호로 세지 않고 **길이로 센다** — 「~격.」처럼 마침표가 없는 말도
-   *    한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이라 세는 자가 못 된다.
-   * 문장의 의미는 검사하지 않는다. 이 한 줄이 대상을 바로 알아보게 하는지는
-   * 모델에게 맡기고, 기계 검사는 화면 자리를 지키는 데만 쓴다(ADR 0056).
+   * 1. **있는가.** 비면 비유 없이 저장한다 — 화면은 비유가 없는 풀이를 그대로 그린다(`metaphorToStore`).
+   * 2. **본보기를 옮겼는가.** 프롬프트가 보여 준 본보기(`READING_POLICY.metaphorExamples`)를 그대로 쓰면 여러 사람에게 같은
+   *    비유가 서고 「왜 이 비유지?」의 답이 본문에 없다. 비유 없이 저장한다. 띄어쓰기 · 문장 부호를 걷고 본보기가 통째로
+   *    들어 있는지만 본다 — 조사 하나 바꾼 것은 못 잡는다(그것까지 막으려면 비슷함을 재야 하는데 그 문턱은 잰 적이 없다).
+   * 3. **폰 한 줄에 드는가.** 띄어쓰기 포함으로 센다(`METAPHOR_MAX`). 넘어도 그대로 저장한다 — 화면이 「…」로 자른다.
+   *
+   * 그림이 장점을 그리는지 · 본문에 기대는지는 검사하지 않는다 — 기계가 짚을 수 없고, 운영자가 실호출로 읽는다.
    */
   const said = metaphor.trim();
   if (said.length === 0) {
     failures.push({ code: 'metaphor-out-of-contract', detail: '비었습니다' });
+  } else if (copiesMetaphorExample(said)) {
+    failures.push({ code: 'metaphor-out-of-contract', detail: '프롬프트 본보기를 그대로 옮겼다 — 비유 없이 저장' });
   } else if (said.length > METAPHOR_MAX) {
-    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
+    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 폰 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
   }
 
   /**

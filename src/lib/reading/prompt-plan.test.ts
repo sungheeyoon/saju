@@ -158,7 +158,7 @@ const OPTIONAL_MARKERS = {
 const SEAMS = [
   { seam: '규칙', legacy: '## 근거의 층', guided: '## 말의 세기' },
   { seam: '근거 칸', legacy: '`넘어간 것` 을 `없음` 으로 채우고 싶은 유혹을 이겨라', guided: '여기 적은 한계와 기준 설명을 본문으로 옮기지 않는다' },
-  { seam: '한 줄 요약', legacy: '비유하지 말고 직접 요약한다', guided: '**본문을 다 쓴 뒤에** 쓴다' },
+  { seam: '한 줄 요약', legacy: '에서 실제로 풀어 쓸 장점 하나**', guided: '**본문을 다 쓴 뒤에** 쓴다' },
   { seam: '출력 계약', legacy: '프롬프트에서 JSON 모양을 되풀이하지 않는다', guided: '**`markdown` 에 본문을 끝까지 쓰고**' },
 ] as const;
 

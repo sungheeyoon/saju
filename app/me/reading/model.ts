@@ -52,8 +52,8 @@ const OUTPUT_SHAPE = {
     },
     metaphor: {
       type: 'string',
-      description:
-        '비유나 형세 표현 없이, 이 사람 또는 두 사람의 핵심 작동 방식을 직접 설명한 한 줄 요약',
+      /* 칸 이름은 옛 결과와의 호환으로 그대로다. 길이는 정책에서 읽는다 — 폰 홈 카드 한 줄이 잰 경계(ADR 0207) */
+      description: `이 사람 또는 두 사람 사이의 장점 하나를 그림 하나로 빗댄 한 줄 비유. 본문이 다룬 장점에 기댄다. 띄어쓰기 포함 ${READING_POLICY.metaphorLength.max}자 이하`,
     },
     markdown: { type: 'string', description: '사용자가 읽을 본문. Markdown 원문' },
   },
