@@ -61,10 +61,12 @@ const INTRO_HEADING = '소개';
  * **사진 칸 한 벌 — 세로 4:5, 사진이 있든 없든 · 폰이든 넓은 화면이든 · 내 시트든 상대 시트든 같은 칸이다**(운영자 2026-10-27 「데스크톱에서도
  * 비율 맞춰줘야지」 · 「사진 없을 때도 비율 똑같이」) — 오늘의 인연 카드의 넓은 화면(4:5)과 같은 세로 사진이다. **높이 때문에 비율을 깨지 않는다 — 폭을 줄인다**: 폰은 시트 폭을
  * 다 쓰되 높이가 화면의 56%(폭 44.8dvh)를 넘으면 폭을 줄이고(낮은 폰에서도 사진 아래 단추가 첫 화면에 걸린다), 넓은 화면(lg)은 왼쪽 열
- * 18rem 한 칸에 같은 높이 문턱을 둔다. 전에는 내 시트가 가로 4:3 · 넓은 화면 2:1, 사진 없는 상대가 높이 128px 띠였다.
+ * 20rem(320×400) 한 칸에 같은 높이 문턱을 둔다. **넓은 화면의 두 열은 아랫선이 사진 아래와 맞는다** — 시트를 46rem 으로 넓혀 오른쪽 열이
+ * 약 21.5rem 이고, 그 폭에서 소개 최대 길이(300자, `INTRO_MAX`) + 궁합 줄(내 시트는 「프로필 편집」)이 사진 높이(400) 안에 든다. 오른쪽 열은
+ * 사진 높이로 늘고(`items-stretch`) 「프로필 편집」은 그 맨 아래에 붙는다(운영자 2026-10-27 「사진이랑 소개글 아래 마진이 안 맞는다」). 전에는 내 시트가 가로 4:3 · 넓은 화면 2:1, 사진 없는 상대가 높이 128px 띠였다.
  */
 const PROFILE_PHOTO_FRAME =
-  'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] shrink-0 select-none overflow-hidden rounded-card lg:max-w-[min(100%,18rem,44.8dvh)]';
+  'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] shrink-0 select-none overflow-hidden rounded-card lg:max-w-[min(100%,20rem,44.8dvh)] lg:self-start';
 
 /**
  * **상대 프로필 시트** — 대화방 머리 · 말풍선 곁 사진과 인연 궁합 머리 · 요청 카드의 얼굴이 연다(운영자 결정 2026-10-11, ADR 0155 덧).
@@ -118,12 +120,13 @@ export function PartnerSheet({
       sheet={control.sheet}
       nickname={partner.nickname}
       label={partnerSheetName(partner.nickname)}
+      wide={side}
       menu={control.shown ? menu : null}
       onClose={control.closed}
     >
       <div
         data-partner-sheet=""
-        className={`flex flex-col gap-5 ${side ? 'lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start lg:gap-6' : ''} ${footer !== undefined ? PINNED_SCROLL_MARGIN : ''}`}
+        className={`flex flex-col gap-5 ${side ? 'lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-stretch lg:gap-6' : ''} ${footer !== undefined ? PINNED_SCROLL_MARGIN : ''}`}
       >
         {/* 사진이 없어도 같은 4:5 칸 — 그 사람의 색 판에 첫 글자(`CandidatePhoto`), 내 시트는 그 위에 「사진 추가」 */}
         <div ref={frame} className={`${PROFILE_PHOTO_FRAME} bg-surface-sunken`}>
@@ -166,11 +169,11 @@ const PINNED_SCROLL_MARGIN = 'max-lg:[&_:is(a,button,[tabindex])]:scroll-mb-28';
  * **「내 프로필」 시트의 「프로필 편집」 — 폰은 시트 바닥에 붙는다**(운영자 2026-10-27). 홈의 동그란 프로필 · 대화방 「⋯ → 내 프로필」이 같은
  * 판을 쓴다(`footer`). 사진이 4:5 라 폰에서는 이 줄이 첫 화면 밖으로 밀렸다. 붙은 판 위 24px 는 바탕색으로 옅어져 그 아래 글이 반쪽으로 잘린
  * 채 보이지 않고, 아래는 아이폰 홈 막대만큼 비운다(`env(safe-area-inset-bottom)`, 아래 판 `ActionSheet` 와 같은 셈). 끝까지 내리면 판이
- * 제자리(소개 아래)에 서므로 마지막 줄이 다 보인다 — 위 틈(28px)이 페이드(24px)보다 넓다. 넓은 화면은 두 열이라 제자리다.
+ * 제자리(소개 아래)에 서므로 마지막 줄이 다 보인다 — 위 틈(28px)이 페이드(24px)보다 넓다. 넓은 화면은 두 열의 오른쪽 맨 아래(사진 아랫선)다.
  */
 export function MyProfileEditFooter() {
   return (
-    <div className="sticky bottom-0 z-[1] -mx-5 -mb-10 mt-2 bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent lg:static lg:m-0 lg:bg-transparent lg:p-0 lg:before:hidden">
+    <div className="sticky bottom-0 z-[1] -mx-5 -mb-10 mt-2 bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent lg:static lg:mx-0 lg:mb-0 lg:mt-auto lg:bg-transparent lg:p-0 lg:before:hidden">
       <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
         <Icon name="pencil" className="size-4" />
         {MY_PROFILE_EDIT_LABEL}
