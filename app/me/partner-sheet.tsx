@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import { MY_PROFILE_EDIT_LABEL } from '@/src/lib/chat/copy';
 
@@ -62,8 +62,8 @@ const INTRO_HEADING = '소개';
  * 비율 맞춰줘야지」 · 「사진 없을 때도 비율 똑같이」) — 오늘의 인연 카드의 넓은 화면(4:5)과 같은 세로 사진이다. **높이 때문에 비율을 깨지 않는다 — 폭을 줄인다**: 폰은 시트 폭을
  * 다 쓰되 높이가 화면의 56%(폭 44.8dvh)를 넘으면 폭을 줄이고(낮은 폰에서도 사진 아래 단추가 첫 화면에 걸린다), 넓은 화면(lg)은 왼쪽 열
  * 20rem(320×400) 한 칸에 같은 높이 문턱을 둔다. **넓은 화면의 두 열은 아랫선이 사진 아래와 맞는다** — 시트를 46rem 으로 넓혀 오른쪽 열이
- * 약 21.5rem 이고, 그 폭에서 소개 최대 길이(300자, `INTRO_MAX`) + 궁합 줄(내 시트는 「프로필 편집」)이 사진 높이(400) 안에 든다. 오른쪽 열은
- * 사진 높이로 늘고(`items-stretch`) 「프로필 편집」은 그 맨 아래에 붙는다(운영자 2026-10-27 「사진이랑 소개글 아래 마진이 안 맞는다」). 전에는 내 시트가 가로 4:3 · 넓은 화면 2:1, 사진 없는 상대가 높이 128px 띠였다.
+ * 약 21.5rem 이다. 오른쪽 열은 사진 높이에 묶이고(`contain: size` · `items-stretch`) 「프로필 편집」은 그 맨 아래에 붙는다. 소개(최대 500자,
+ * `INTRO_MAX`)가 그 높이를 넘으면 그 칸 안에서 스크롤한다(`IntroBody`, 운영자 2026-10-27 「사진이랑 소개글 아래 마진이 안 맞는다」 · 「넘치면 스크롤」). 전에는 내 시트가 가로 4:3 · 넓은 화면 2:1, 사진 없는 상대가 높이 128px 띠였다.
  */
 const PROFILE_PHOTO_FRAME =
   'relative mx-auto aspect-[4/5] w-full max-w-[min(100%,44.8dvh)] shrink-0 select-none overflow-hidden rounded-card lg:max-w-[min(100%,20rem,44.8dvh)] lg:self-start';
@@ -104,6 +104,7 @@ export function PartnerSheet({
   footer?: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
+  const introHeadingId = useId();
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
   const hasPhoto = partner.photoUrls.length > 0;
   const side = toMatch !== null || intro !== null || emptyIntro !== undefined || footer !== undefined;
@@ -134,21 +135,27 @@ export function PartnerSheet({
           {!hasPhoto && emptyPhoto}
         </div>
         {side && (
-          <div className="flex min-w-0 flex-col gap-5">
+          /*
+            넓은 화면의 오른쪽 열은 사진 높이에 묶인다 — `contain: size` 라 이 열의 글이 행 높이를 늘리지 못하고(행은 사진 400), 늘어난 칸에
+            맞춰 선다. 넘치는 소개는 그 칸 안에서 스크롤하고(`IntroBody`), 궁합 줄 · 「프로필 편집」은 스크롤 밖 위아래에 그대로다
+          */
+          <div className="flex min-w-0 flex-col gap-5 lg:min-h-0 lg:[contain:size]">
             {toMatch}
             {(intro !== null || emptyIntro !== undefined) && (
-              <section className="flex flex-col gap-2 border-t border-border pt-4 lg:first:border-t-0 lg:first:pt-0">
-                <h3 className={TYPE_META}>
+              <section
+                aria-labelledby={introHeadingId}
+                className="flex flex-col gap-2 border-t border-border pt-4 lg:min-h-0 lg:flex-1 lg:first:border-t-0 lg:first:pt-0"
+              >
+                <h3 id={introHeadingId} className={TYPE_META}>
                   {INTRO_HEADING}
                 </h3>
-                {/* 내 시트는 소개 칸이 세 줄 높이를 잡는다 — 소개가 비어도 팝업 높이가 같다 */}
-                <div className={emptyIntro !== undefined ? 'min-h-[4.8rem]' : ''}>
+                <IntroBody labelledBy={introHeadingId} roomy={emptyIntro !== undefined}>
                   {intro !== null ? (
                     <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
                   ) : (
                     emptyIntro
                   )}
-                </div>
+                </IntroBody>
               </section>
             )}
             {footer}
@@ -156,6 +163,35 @@ export function PartnerSheet({
         )}
       </div>
     </DetailSheet>
+  );
+}
+
+/**
+ * **소개 글의 칸 — 넓은 화면에서 넘치면 그 칸 안에서 스크롤한다**(운영자 결정 2026-10-27 — 소개 최대 500자, 「넘치면 스크롤」). 오른쪽 열은
+ * 사진 높이에 묶여 있어 긴 소개는 여기서 잘리고, 아래 끝 32px 가 바탕색으로 옅어져 이어지는 글이 있음을 보인다(끝까지 내리면 그 띠는 글 아래
+ * 빈 자리에 선다 — 마지막 줄을 안 가린다). 넘칠 때만 키보드로 닿는다 — `tabIndex=0` 과 소개 머리를 이름으로 든 영역이라 Tab 으로 와서 화살표 ·
+ * Page Down 으로 내린다(마우스 휠은 늘). 폰은 묶이지 않아 넘치지 않는다 — 시트 전체가 스크롤한다. 내 시트는 소개가 비어도 세 줄 높이를 잡는다.
+ */
+function IntroBody({ labelledBy, roomy, children }: { labelledBy: string; roomy: boolean; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (el === null) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return (
+    <div
+      ref={box}
+      {...(overflows ? { tabIndex: 0, role: 'region', 'aria-labelledby': labelledBy } : {})}
+      className={`${roomy ? 'min-h-[4.8rem]' : ''} rounded-cell lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:after:pointer-events-none lg:after:sticky lg:after:bottom-0 lg:after:block lg:after:h-8 lg:after:bg-gradient-to-t lg:after:from-background lg:after:to-transparent lg:after:content-['']`}
+    >
+      {children}
+    </div>
   );
 }
 

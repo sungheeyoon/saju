@@ -3117,7 +3117,7 @@ test.describe('가입 관문', () => {
     await nickname.fill(fresh);
     await expect(two.page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
     await two.page.getByLabel('소개 (선택)').fill('주말엔 걷습니다');
-    await expect(two.page.locator('#intro-count')).toHaveText('8/300');
+    await expect(two.page.locator('#intro-count')).toHaveText('8/500');
     await save.click();
     await expect(two.page.getByRole('status').filter({ hasText: '저장했어요' })).toBeVisible();
     await two.page.reload();
