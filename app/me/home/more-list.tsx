@@ -5,9 +5,9 @@ import { useState, type ReactNode } from 'react';
 import { Icon } from '../../ui/icons';
 import { HOME_LIST } from './home-list';
 
-/** 접힌 목록 아래의 줄 글자 — 당근 · 카카오톡의 「더보기」 / 「접기」 */
-const MORE = '더보기';
-const LESS = '접기';
+/** 접힌 목록 아래의 줄 글자 — 당근 · 카카오톡의 「더보기」 / 「접기」. 프로필 시트의 접힌 소개(`../partner-sheet.tsx`)도 같은 글자다 */
+export const MORE = '더보기';
+export const LESS = '접기';
 
 /**
  * **홈 목록의 「더보기」** — 줄이 많으면 앞의 몇 줄만 서고, 판 맨 아래 가운데 「더보기 ⌄」가 그 자리에서 나머지를 편다(2026-10-26 운영자).

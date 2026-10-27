@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import type { PhotoFocus } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
 
 import { Avatar } from './avatar';
+import { LESS, MORE } from './home/more-list';
 import { CandidatePhoto } from './matching/candidate-photo';
 import { CardPhotos } from './matching/card-photos';
 import { closeSheet, DetailSheet, openSheet } from '../ui/sheet';
@@ -68,12 +69,12 @@ const PROFILE_PHOTO_FRAME =
  * 시트(`DetailSheet`)와 같은 한 벌이라 **이름이 머리에 선다** — 시트를 내려 읽는 동안에도 누구인지가 남고, 그 줄 끝에 「⋯」(신고 ·
  * 차단, 부르는 쪽이 준다)와 닫기가 선다(힌지 · 대화방 머리와 같은 줄). 폰은 아래에서 올라오고 넓은 화면(lg)은 가운데 대화상자다.
  *
- * 몸은 위에서부터 **사진(세로 4:5) → 궁합 단추(폭을 다 쓰는 한 줄) → 소개**다(스카이피플 · 아만다의 상세 — 사진 바로 아래 주 행동,
- * 그 아래 구역). 넓은 화면은 사진이 왼쪽 열, 궁합 · 소개가 오른쪽 열이다. 사진 넘기기는 오늘의 인연 카드와 같은 판(`CardPhotos` —
+ * 몸은 위에서부터 **사진(세로 4:5) → 궁합 한 줄(「☯ 궁합 82점 … 궁합풀이 보기 ›」, `CompatRow`) → 소개**다. 소개는 폰에서 두 줄로
+ * 접히고 「더보기」가 그 자리에서 편다(`FoldedIntro`, 2026-10-27). 넓은 화면은 사진이 왼쪽 열, 궁합 · 소개가 오른쪽 열이다. 사진 넘기기는 오늘의 인연 카드와 같은 판(`CardPhotos` —
  * 반 탭 · 막대 · 가로 쓸기 · 넓은 화면의 화살표). 사진이 없으면 **같은 4:5 칸**에 그 사람의 색 판과 첫 글자(덱 카드와 같은 모양)가 선다.
  * 홈 · 대화방의 「내 프로필」도 이 시트 그대로다 — 칸 · 열이 상대 시트와 같다(`PROFILE_PHOTO_FRAME`).
- * 소개가 없으면 그 구역을 뺀다. 궁합 단추는 부르는 쪽이 준다 — 대화방은 머리의 것과 같은 상태 · 같은 모양의 단추를 넘기고
- * (`CompatChip` 의 `fill`), 인연 궁합 화면 · 요청 카드가 연 시트는 `null` 이라 안 선다.
+ * 소개가 없으면 그 구역을 뺀다. 궁합 줄은 부르는 쪽이 준다 — 대화방은 머리의 알약과 같은 상태의 한 줄(`CompatRow`)을 넘기고,
+ * 인연 궁합 화면 · 요청 카드가 연 시트는 `null` 이라 그 줄만 빠진다.
  */
 export function PartnerSheet({
   control,
@@ -93,7 +94,7 @@ export function PartnerSheet({
   emptyIntro?: ReactNode;
   /** 사진이 없을 때 빈 사진 칸 위에 세울 것 — 내 시트의 「사진 추가」 */
   emptyPhoto?: ReactNode;
-  /** 몸의 맨 아래 — 내 시트의 「프로필 편집」 */
+  /** 몸의 맨 아래 — 내 시트의 「프로필 편집」(폰은 시트 바닥에 붙는다, `SelfProfile`) */
   footer?: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
@@ -134,9 +135,9 @@ export function PartnerSheet({
                   {INTRO_HEADING}
                 </h3>
                 {/* 내 시트는 소개 칸이 세 줄 높이를 잡는다 — 소개가 비어도 팝업 높이가 같다 */}
-                <div className={emptyIntro !== undefined ? 'min-h-[4.8rem]' : ''}>
+                <div className={`flex flex-col ${emptyIntro !== undefined ? 'min-h-[4.8rem]' : ''}`}>
                   {intro !== null ? (
-                    <p className="whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-body leading-[1.7] text-foreground">{intro}</p>
+                    <FoldedIntro text={intro} />
                   ) : (
                     emptyIntro
                   )}
@@ -184,5 +185,54 @@ export function PartnerFace({
       </button>
       <PartnerSheet control={control} partner={partner} toMatch={null} menu={menu} />
     </>
+  );
+}
+
+/** 「더보기」 · 「접기」 단추 — 글자 크기는 본문 그대로, 누름 영역은 위아래로 늘려 44px(줄 높이는 안 바뀐다) */
+const FOLD_BUTTON =
+  'inline-flex items-center gap-0.5 py-3 -my-3 font-medium text-secondary hover:text-foreground lg:hidden';
+
+/**
+ * **소개 — 폰에서는 두 줄로 접고, 둘째 줄 끝의 「… 더보기」가 그 자리에서 편다**(운영자 2026-10-27 「보통 저기서 스크롤 안 하고 …
+ * 더보기로 처리하지 않나」 · 「더보기는 어딨어?」). 사진(4:5)은 줄이지 않는다. 「더보기」는 따로 줄을 먹지 않고 둘째 줄 끝에 겹쳐 선다 —
+ * 인스타그램 캡션 · 당근 글의 「… 더보기」 꼴이고, 글자는 홈 목록의 「더보기 / 접기」(`MoreList`, 대장 home-04)와 같다. 단추 왼쪽은 바탕색으로
+ * 옅어져 잘린 글자가 반쪽으로 안 보인다. 펴면 글 끝에 「접기」가 붙는다. 두 줄 안에 드는 소개에는 단추가 안 선다(글의 실제 높이로 잰다).
+ * 넓은 화면(lg)은 오른쪽 열에 다 들어 접지 않는다. 접혀 있어도 글은 문서에 다 있고, 단추는 `aria-expanded` 를 든다.
+ */
+function FoldedIntro({ text }: { text: string }) {
+  const body = useRef<HTMLParagraphElement>(null);
+  const [open, setOpen] = useState(false);
+  /** 두 줄을 넘는가 — 접힌 채로 잰다 */
+  const [over, setOver] = useState(false);
+  useLayoutEffect(() => {
+    const el = body.current;
+    if (el === null || open) return;
+    const measure = () => setOver(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [open]);
+  const toggle = (
+    <button type="button" aria-expanded={open} onClick={() => setOpen((now) => !now)} className={FOLD_BUTTON}>
+      {open ? LESS : MORE}
+    </button>
+  );
+  return (
+    <div className="relative text-body leading-[1.7]">
+      <p
+        ref={body}
+        className={`whitespace-pre-wrap break-keep [overflow-wrap:anywhere] text-foreground ${open ? '' : 'line-clamp-2 lg:line-clamp-none'}`}
+      >
+        {text}
+        {open && <> {toggle}</>}
+      </p>
+      {over && !open && (
+        <span className="absolute bottom-0 right-0 flex items-center bg-[linear-gradient(to_right,transparent,var(--background)_2rem)] pl-10 lg:hidden">
+          <span aria-hidden="true" className="text-foreground">… </span>
+          {toggle}
+        </span>
+      )}
+    </div>
   );
 }

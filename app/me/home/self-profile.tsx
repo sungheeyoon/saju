@@ -23,7 +23,7 @@ const INTRO_PLACEHOLDER = '간단한 소개를 입력해 주세요';
  * **홈의 동그란 내 프로필** — 내 사주 카드 이름 왼쪽의 56px 원(2026-10-26 운영자).
  *
  * 누르면 아래에서 「내 프로필」 시트가 올라온다 — 다른 사람이 나를 볼 때와 같은 시트(`PartnerSheet`, 대화방 #833 · #834)로 이름 ·
- * 사진(넘김) · 「소개」를 그대로 보인다. 사진 칸은 상대 시트와 같은 세로 4:5 한 칸이고 넓은 화면은 사진 왼쪽 · 소개 오른쪽의 두 열이다
+ * 사진(넘김) · 「소개」(폰은 두 줄로 접고 「더보기」)를 그대로 보인다. 사진 칸은 상대 시트와 같은 세로 4:5 한 칸이고 넓은 화면은 사진 왼쪽 · 소개 오른쪽의 두 열이다
  * (운영자 2026-10-27 — 전의 가로 4:3 · 넓은 화면 2:1 을 걷었다). 소개가 비었으면 그 자리의 줄이 바로 편집으로 가고, 맨 아래 「프로필 편집」이 프로필 수정 화면(`/me/profile`)이다
  * — 고칠 때만 넘어간다(아만다 「마이」의 「프로필 수정하기」 · 틴더의 연필). 사진 · 닉네임 · 소개 · 출생 정보를 그 화면 한 곳에서 고친다(카드의 연필은
  * 걷었다).
@@ -87,11 +87,17 @@ export function SelfProfile({
           </Link>
         }
         footer={
-          /* 고칠 때만 프로필 수정 화면으로 — 맨 아래 폭을 다 쓰는 한 줄(대화방 「내 프로필」 시트와 같은 단추) */
-          <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
-            <Icon name="pencil" className="size-4" />
-            {MY_PROFILE_EDIT_LABEL}
-          </Link>
+          /*
+            고칠 때만 프로필 수정 화면으로 — 맨 아래 폭을 다 쓰는 한 줄(대화방 「내 프로필」 시트와 같은 단추). **폰은 시트 바닥에 붙는다**
+            (운영자 2026-10-27) — 사진이 4:5 라 390 폭에서도 이 줄이 첫 화면 밖으로 밀렸다. 붙은 판 위 24px 는 바탕색으로 옅어져 그 아래 글이
+            반쪽으로 잘린 채 보이지 않는다. 넓은 화면은 두 열이라 제자리다
+          */
+          <div className="sticky bottom-0 z-[1] -mx-5 -mb-10 bg-background px-5 pb-6 pt-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent lg:static lg:m-0 lg:bg-transparent lg:p-0 lg:before:hidden">
+            <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
+              <Icon name="pencil" className="size-4" />
+              {MY_PROFILE_EDIT_LABEL}
+            </Link>
+          </div>
         }
       />
     </>

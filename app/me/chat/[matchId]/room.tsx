@@ -17,7 +17,7 @@ import { dropDraft } from '../draft';
 import { droppable, withPending } from './pending';
 import { bubbleDaysOf, reportableOf, type ShownMessage } from './bubbles';
 import { BubbleRow } from './bubble-row';
-import { CompatChip } from './compat-chip';
+import { CompatRow } from './compat-chip';
 import { RoomHeader } from './room-header';
 import { RoomStart } from './room-start';
 import type { RoomView } from './room-view';
@@ -243,7 +243,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           control={profile}
           partner={partner}
           toMatch={
-            matchLink === null ? null : <CompatChip compat={room.compat ?? { kind: 'quiet' }} href={matchLink} tone={chipTone} fill />
+            matchLink === null ? null : <CompatRow compat={room.compat ?? { kind: 'quiet' }} href={matchLink} />
           }
           /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 신고 · 차단 창을 연다 */
           menu={
@@ -266,7 +266,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           control={myself}
           partner={me}
           toMatch={
-            /* 궁합 단추와 같은 자리 · 같은 폭 — 시트의 사진 아래 한 줄(`CompatChip` 의 `fill`) */
+            /* 상대 시트의 궁합 줄과 같은 자리 — 시트의 사진 아래 한 줄 */
             <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
               <Icon name="pencil" className="size-4" />
               {MY_PROFILE_EDIT_LABEL}

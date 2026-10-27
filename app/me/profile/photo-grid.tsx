@@ -459,7 +459,7 @@ export function PhotoGrid({
           {slot(1)}
         </div>
         {Array.from({ length: PHOTO_MAX_COUNT - 1 }, (_, index) => index + 2).map((position) => (
-          <div key={position} className="aspect-[3/4]">
+          <div key={position} className="aspect-[4/5]">
             {slot(position)}
           </div>
         ))}
