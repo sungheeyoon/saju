@@ -383,3 +383,35 @@ button, a, summary {
 @media (max-width: 767.98px) {
   html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
 }
+
+/*
+  **얇은 스크롤바 — 넘친 칸 하나에만 붙인다**(운영자 2026-10-27 「데스크톱 버전만 이쁜 스크롤바」). 프로필 시트의 넓은 화면 소개 칸
+  (`app/me/partner-sheet.tsx` 의 `IntroBody`)이 `scrollbar-quiet` 로 부르고, 넓은 화면(lg 와 같은 64rem)에서만 선다 — 전역 스크롤바는 그대로다. 트랙은 비우고 손잡이는 6px 둥근
+  옅은 글자색(`--text-muted` 를 옅게), 마우스를 올리면 조금 진하다. macOS 는 기본으로 스크롤바를 숨기지만 WebKit 의 `::-webkit-scrollbar` 를
+  주면 늘 그려진다. Chromium 은 표준 속성(`scrollbar-color`)을 주면 이 의사 요소를 무시하므로 표준 속성은 Firefox 에만 준다(손잡이 hover 가
+  없다 — 칸에 마우스를 올리면 진해진다). 넘칠 때만 보인다(`overflow-y: auto` 그대로). 색은 토큰이라 어두운 화면도 따라간다.
+*/
+@media (min-width: 64rem) {
+  .scrollbar-quiet::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-quiet::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-quiet::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  }
+  .scrollbar-quiet::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  }
+  @supports (-moz-appearance: none) {
+    .scrollbar-quiet {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--text-muted) 40%, transparent) transparent;
+    }
+    .scrollbar-quiet:hover {
+      scrollbar-color: color-mix(in srgb, var(--text-muted) 70%, transparent) transparent;
+    }
+  }
+}

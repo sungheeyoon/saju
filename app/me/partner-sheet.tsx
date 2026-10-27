@@ -169,8 +169,8 @@ export function PartnerSheet({
 /**
  * **소개 글의 칸 — 넓은 화면에서 넘치면 그 칸 안에서 스크롤한다**(운영자 결정 2026-10-27 — 소개 최대 500자, 「넘치면 스크롤」). 오른쪽 열은
  * 사진 높이에 묶여 있어 긴 소개는 여기서 잘리고, 아래 끝 32px 가 바탕색으로 옅어져 이어지는 글이 있음을 보인다(끝까지 내리면 그 띠는 글 아래
- * 빈 자리에 선다 — 마지막 줄을 안 가린다). 넘칠 때만 키보드로 닿는다 — `tabIndex=0` 과 소개 머리를 이름으로 든 영역이라 Tab 으로 와서 화살표 ·
- * Page Down 으로 내린다(마우스 휠은 늘). 폰은 묶이지 않아 넘치지 않는다 — 시트 전체가 스크롤한다. 내 시트는 소개가 비어도 세 줄 높이를 잡는다.
+ * 빈 자리에 선다 — 마지막 줄을 안 가린다). 넘칠 때만 키보드로 닿는다 — `tabIndex=0` 과 소개 머리를 이름으로 든 칸이라(구역은 바깥 `section` 하나, 초점 테는 앱의 한 벌) Tab 으로 와서 화살표 ·
+ * Page Down 으로 내린다(마우스 휠은 늘). 넓은 화면에는 얇은 스크롤바(`scrollbar-quiet`, `app/globals.css`)가 늘 선다. 폰은 묶이지 않아 넘치지 않는다 — 시트 전체가 스크롤한다. 내 시트는 소개가 비어도 세 줄 높이를 잡는다.
  */
 function IntroBody({ labelledBy, roomy, children }: { labelledBy: string; roomy: boolean; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
@@ -178,17 +178,26 @@ function IntroBody({ labelledBy, roomy, children }: { labelledBy: string; roomy:
   useEffect(() => {
     const el = box.current;
     if (el === null) return;
-    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    /*
+      글의 높이로 잰다 — 상자의 `scrollHeight` 에는 아래 페이드 띠(32px, 흐름 안의 `::after`)가 들어가 띠보다 짧게 넘치는 글도 넘친다고 읽었다.
+      상자와 글 둘 다 본다 — 글만 자라도(펼친 소개 · 바뀐 글) 다시 잰다
+    */
+    const measure = () => {
+      const text = el.firstElementChild as HTMLElement | null;
+      setOverflows(text !== null && text.offsetHeight > el.clientHeight + 1);
+    };
     measure();
     const watch = new ResizeObserver(measure);
     watch.observe(el);
+    if (el.firstElementChild !== null) watch.observe(el.firstElementChild);
     return () => watch.disconnect();
   }, []);
   return (
+    /* 이름은 바깥 `section`(「소개」)이 든다 — 이 상자는 겹 구역이 아니라 초점이 닿는 스크롤 칸이다(역할 없이 tabIndex · 이름) */
     <div
       ref={box}
-      {...(overflows ? { tabIndex: 0, role: 'region', 'aria-labelledby': labelledBy } : {})}
-      className={`${roomy ? 'min-h-[4.8rem]' : ''} rounded-cell lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:after:pointer-events-none lg:after:sticky lg:after:bottom-0 lg:after:block lg:after:h-8 lg:after:bg-gradient-to-t lg:after:from-background lg:after:to-transparent lg:after:content-['']`}
+      {...(overflows ? { tabIndex: 0, 'aria-labelledby': labelledBy } : {})}
+      className={`${roomy ? 'min-h-[4.8rem]' : ''} rounded-cell outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--accent)_55%,transparent)] lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain scrollbar-quiet lg:after:pointer-events-none lg:after:sticky lg:after:bottom-0 lg:after:block lg:after:h-8 lg:after:bg-gradient-to-t lg:after:from-background lg:after:to-transparent lg:after:content-['']`}
     >
       {children}
     </div>
