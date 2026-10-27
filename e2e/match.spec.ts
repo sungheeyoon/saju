@@ -1330,7 +1330,8 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
     const page = partner.page;
     await page.goto('/me/profile');
     /* 고르는 칸의 손(onChange)은 하이드레이션 뒤에 붙는다 — 그 전에 고르면 아무 일도 없다 */
-    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles(['e2e/fixtures/harin.webp']);
+    /* 가로 4:3 사진 — 4:5 틀에서 가로로 넘쳐 끌기가 자리를 옮긴다(4:5 사진은 4:5 틀에서 안 넘친다, 2026-10-27) */
+    await (await hydrated(page.getByLabel('사진 추가'))).setInputFiles(['e2e/fixtures/harin-wide.webp']);
     const framer = page.getByRole('dialog', { name: '위치 조정' });
     const frame = framer.getByRole('group', { name: '사진 위치' });
     await expect(frame).toBeFocused();
@@ -1352,7 +1353,7 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
     const cardPhoto = card.locator('img:not([aria-hidden="true"] img)').first();
     await expect(cardPhoto).toHaveCSS('object-position', '40% 30%');
 
-    /* 메뉴의 「위치 조정」 — 큰 틀을 끌어 다시 맞춘다. 3:4 틀에 4:5 사진이라 가로로 넘친다 */
+    /* 메뉴의 「위치 조정」 — 큰 틀을 끌어 다시 맞춘다. 4:5 틀에 4:3 사진이라 가로로 넘친다 */
     await hydrated(slot);
     await slot.click();
     /* 사진을 누르면 크게 보기 — 그 「⋯」(사진 메뉴)가 판을 연다 */

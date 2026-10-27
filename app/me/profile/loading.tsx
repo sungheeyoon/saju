@@ -23,7 +23,7 @@ export default function ProfileLoading() {
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <Bone className="col-span-2 row-span-2 h-full rounded-cell" />
             {[2, 3, 4, 5, 6].map((position) => (
-              <Bone key={position} className="aspect-[3/4] rounded-cell" />
+              <Bone key={position} className="aspect-[4/5] rounded-cell" />
             ))}
           </div>
           <Bone className="h-5 w-3/4 rounded-full" />

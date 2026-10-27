@@ -25,7 +25,7 @@ export const NICKNAME_AVAILABLE_NOTE = '사용할 수 있는 닉네임입니다.
 export const NICKNAME_TAKEN_NOTE = '이미 사용 중인 닉네임입니다.';
 
 /** 소개 길이 상한 — DB 검사식과 같은 수 */
-export const INTRO_MAX = 300;
+export const INTRO_MAX = 500;
 
 /** 사진 상한 — `profile_photo.bytes` 의 검사식과 같은 수 */
 export const PHOTO_MAX_BYTES = 512 * 1024;

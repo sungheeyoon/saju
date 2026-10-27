@@ -427,7 +427,7 @@ export function PhotoGrid({
       <header className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-body font-semibold text-foreground">{PHOTO_SECTION_TITLE}</h2>
-          {/* 찬 장 수 — 소개 칸의 글자 수(12/300)와 같은 꼴 */}
+          {/* 찬 장 수 — 소개 칸의 글자 수(12/500)와 같은 꼴 */}
           <p className="text-small font-medium leading-5 tabular-nums text-cream-ink">
             {total}/{PHOTO_MAX_COUNT}
           </p>
@@ -459,7 +459,7 @@ export function PhotoGrid({
           {slot(1)}
         </div>
         {Array.from({ length: PHOTO_MAX_COUNT - 1 }, (_, index) => index + 2).map((position) => (
-          <div key={position} className="aspect-[3/4]">
+          <div key={position} className="aspect-[4/5]">
             {slot(position)}
           </div>
         ))}

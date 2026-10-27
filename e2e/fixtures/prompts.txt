@@ -8,3 +8,6 @@ Use case: photorealistic-natural. Asset: fictional adult dating profile demo pho
 
 harin.webp
 Use case: photorealistic-natural. Asset: fictional adult dating profile demo photo for a refined Korean app. One single portrait of a fictional 29-year-old Korean woman with long dark hair, light blue cotton shirt, relaxed smile, a softly blurred riverside park. Natural realistic skin texture, warm soft daylight, authentic approachable everyday portrait, not glamour or commercial fashion. Vertical 4:5 composition, head and upper torso, face centered horizontally with full head comfortably inside central 60% of image, generous space above head. No text, logos, collage, graphics or watermark.
+
+harin-wide.webp
+harin.webp 를 잘라 만든 가로 4:3(900×675, 위에서 150px 아래부터) — 사진 칸 · 위치 조정 틀이 4:5 가 된 뒤(2026-10-27) 4:5 사진은 그 틀에서 넘치지 않아 끌기 시험(match.spec.ts 「위치를 맞춰 저장하면」)이 가로로 넘치는 사진을 쓴다.

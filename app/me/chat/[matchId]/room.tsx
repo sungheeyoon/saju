@@ -1,15 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { MY_PROFILE_EDIT_LABEL, NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
+import { NEW_MESSAGES_LABEL, OLDER_LOADING_LABEL, OLDER_MESSAGES_LABEL } from '@/src/lib/chat/copy';
 
 import { withCameFrom } from '../../../came-from';
-import { BUTTON_SECONDARY_SMALL, BUTTON_SECONDARY_SMALL_FACE } from '../../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { PartnerSheet, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
+import { MyProfileEditFooter, PartnerSheet, usePartnerSheet, type PartnerProfile } from '../../partner-sheet';
 import { BlockDialog, ReportBlockMenu, ReportDialog } from '../../requests/report-block';
 import { reportChatMessage } from '../actions';
 import { Composer } from '../composer';
@@ -17,7 +16,7 @@ import { dropDraft } from '../draft';
 import { droppable, withPending } from './pending';
 import { bubbleDaysOf, reportableOf, type ShownMessage } from './bubbles';
 import { BubbleRow } from './bubble-row';
-import { CompatChip } from './compat-chip';
+import { CompatRow } from './compat-chip';
 import { RoomHeader } from './room-header';
 import { RoomStart } from './room-start';
 import type { RoomView } from './room-view';
@@ -243,7 +242,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           control={profile}
           partner={partner}
           toMatch={
-            matchLink === null ? null : <CompatChip compat={room.compat ?? { kind: 'quiet' }} href={matchLink} tone={chipTone} fill />
+            matchLink === null ? null : <CompatRow compat={room.compat ?? { kind: 'quiet' }} href={matchLink} />
           }
           /* 시트의 「⋯」는 머리의 것과 같은 길이다 — 시트를 닫고 신고 · 차단 창을 연다 */
           menu={
@@ -265,13 +264,9 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         <PartnerSheet
           control={myself}
           partner={me}
-          toMatch={
-            /* 궁합 단추와 같은 자리 · 같은 폭 — 시트의 사진 아래 한 줄(`CompatChip` 의 `fill`) */
-            <Link href="/me/profile" className={`${BUTTON_SECONDARY_SMALL_FACE} min-h-12 w-full px-4`}>
-              <Icon name="pencil" className="size-4" />
-              {MY_PROFILE_EDIT_LABEL}
-            </Link>
-          }
+          toMatch={null}
+          /* 홈의 「내 프로필」과 같은 판 — 폰은 시트 바닥에 붙는다(운영자 2026-10-27) */
+          footer={<MyProfileEditFooter />}
         />
       )}
       {room.partnerUserId !== null && (

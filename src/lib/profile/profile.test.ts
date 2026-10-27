@@ -25,8 +25,8 @@ describe('프로필의 규칙 — 마이그레이션과 같은 수', () => {
     expect(NICKNAME_MAX).toBe(8);
   });
 
-  it('소개는 300자, 사진은 512KB 까지다', () => {
-    expect(INTRO_MAX).toBe(300);
+  it('소개는 500자, 사진은 512KB 까지다', () => {
+    expect(INTRO_MAX).toBe(500);
     expect(PHOTO_MAX_BYTES).toBe(524288);
   });
 

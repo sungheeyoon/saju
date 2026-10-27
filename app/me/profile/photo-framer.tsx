@@ -12,7 +12,7 @@ export const PHOTO_FRAME_TITLE = '위치 조정';
 /**
  * **사진의 보일 자리를 맞추는 창**(G-98) — 「사진 변경」 · 새 사진을 고른 뒤, 그리고 사진 칸 메뉴의 「위치 조정」이 연다.
  *
- * 실제로 보일 틀 둘에 그 사진을 담는다 — 큰 틀은 프로필 대표 칸 · 인연 카드의 비율(3:4), 작은 둥근 틀은 대화 · 요청 · 보관함의
+ * 실제로 보일 틀 둘에 그 사진을 담는다 — 큰 틀은 프로필 사진 칸 · 프로필 시트 · 넓은 화면 인연 카드의 비율(4:5, 2026-10-27 전에는 3:4), 작은 둥근 틀은 대화 · 요청 · 보관함의
  * 얼굴이다. 어느 틀에서 끌어도(손가락 · 마우스) 두 틀이 같이 움직인다 — 같은 두 수(`object-position`)를 보이니까. 큰 틀은 화살표
  * 키로도 옮긴다. 확대는 없다(위치만). 바이트는 안 바뀐다 — 「저장」은 두 수만 낸다.
  *
@@ -50,7 +50,7 @@ export function PhotoFramer({
             focus={focus}
             onFocus={onFocus}
             keyboard
-            className="aspect-[3/4] w-full max-w-[17rem] rounded-cell"
+            className="aspect-[4/5] w-full max-w-[17rem] rounded-cell"
           />
           <FocusFrame src={src} focus={focus} onFocus={onFocus} className="size-16 rounded-full" />
         </div>

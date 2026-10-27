@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { read, type SkippableRead } from '../../../db-error';
-import { roomCompatOf } from './room-compat';
+import { compatRowParts, roomCompatOf, type RoomCompat } from './room-compat';
 
 const missed: SkippableRead<never> = { ok: false, reason: '못 읽었어요' };
 
@@ -29,3 +29,27 @@ describe('roomCompatOf', () => {
     expect(roomCompatOf(read(null), missed)).toEqual({ kind: 'quiet' });
   });
 });
+
+describe('compatRowParts — 시트의 궁합 한 줄', () => {
+  const states: RoomCompat[] = [{ kind: 'ready', score: 82 }, { kind: 'making' }, { kind: 'failed' }, { kind: 'quiet' }];
+
+  it.each(states)('읽는 이름이 보이는 글자를 차례대로 다 품고 「궁합」으로 시작한다 (WCAG 2.5.3) — %o', (compat) => {
+    const { lead, tail, name } = compatRowParts(compat);
+    const shown = [...lead, ...(tail === null ? [] : [tail])];
+    let from = 0;
+    for (const word of shown) {
+      const at = name.indexOf(word, from);
+      expect(at, `「${word}」`).toBeGreaterThanOrEqual(from);
+      from = at + word.length;
+    }
+    expect(name).toMatch(/^궁합/);
+  });
+
+  it('볼 풀이가 있을 때만 「궁합풀이 보기」, 실패면 「다시 받기」, 그 밖에는 끝 글자가 없다', () => {
+    expect(compatRowParts({ kind: 'ready', score: 82 }).name).toBe('궁합 82점 궁합풀이 보기');
+    expect(compatRowParts({ kind: 'failed' }).name).toBe('궁합 다시 받기');
+    expect(compatRowParts({ kind: 'making' }).tail).toBeNull();
+    expect(compatRowParts({ kind: 'quiet' }).name).toBe('궁합');
+  });
+});
+
