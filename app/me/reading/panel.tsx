@@ -315,6 +315,7 @@ export function ReadingPanel({
           tones={tones}
           betweenSummaryAndBody={betweenSummaryAndBody}
           nicknames={nicknames}
+          canShare={chrome.canShare}
         />
       )}
 

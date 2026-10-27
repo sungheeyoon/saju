@@ -12,6 +12,7 @@ import { TYPE_SECTION } from '../../ui/surfaces';
 import type { CurrentReading } from '@/src/lib/reading';
 import { coverFace, readingMinutes } from './essay';
 import { Markdown, READING_COLUMN } from './markdown';
+import { ShareReadingButton } from './share-button';
 import type { ReadingTarget } from './target';
 import { when } from '../requests/when';
 
@@ -23,6 +24,7 @@ export function Result({
   tones,
   betweenSummaryAndBody,
   nicknames,
+  canShare = false,
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
@@ -31,6 +33,11 @@ export function Result({
   betweenSummaryAndBody?: ReactNode;
   /** 두 사람 글의 자리 호칭을 바꿔 넣을 닉네임 — 궁합 화면만 넘긴다 */
   nicknames?: PairNicknames;
+  /**
+   * 표지 첫 줄(“ 의 줄) 오른쪽 끝에 공유 아이콘을 세우는가 — 세울지는 `panelChrome().canShare` 한 벌이 정한다(인연 궁합 · 예시 글 ·
+   * 만드는 중에는 안 선다). 글 끝의 「공유 링크 복사」와 같은 일 · 같은 이름이다
+   */
+  canShare?: boolean;
 }) {
   /*
     **모델 글이 서는 두 자리(본문 · 한 줄 요약) 모두 자리 호칭을 지금의 닉네임으로 바꾼다.** 프롬프트에는 이름이
@@ -46,6 +53,8 @@ export function Result({
     회색 표지는 「못 읽은 명식」의 뜻이라, 몰라서 안 넘긴 자리에 쓰면 거짓말이 된다.
   */
   const face = tones === undefined ? null : coverFace(tones);
+  /** 한 사람 풀이의 표지 — 천간 그림이 선다 */
+  const single = tones !== undefined && tones.length === 1;
   const firstTone = tones?.[0] ?? null;
 
   const meta = (
@@ -75,20 +84,37 @@ export function Result({
           className={`${elementScope(firstTone)} relative overflow-hidden rounded-card px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
         >
-          {/* 한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징 */}
-          {tones !== undefined && tones.length === 1 && (
+          {/*
+            한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징. **위 구석이 아니라
+            비유 옆에 선다**(2026-10-27 운영자 선택 「H′」) — 위 구석은 공유 아이콘의 자리라, 그림이 단추 밑에 깔리지 않게 한 단 내렸다
+          */}
+          {single && (
             <FaceSymbol
               stem={reading.dayMasterA}
               element={firstTone}
-              className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
+              className="pointer-events-none absolute -right-10 top-16 size-48 opacity-20 sm:-right-14 sm:top-20 sm:size-56"
             />
           )}
           {metaphor !== null ? (
             <>
-              <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
-                “
+              {/*
+                **공유는 표지 첫 줄 끝에 아이콘 하나**(2026-10-27 운영자 선택 「H′」) — 들어오자마자 보내는 길이 글의 얼굴 곁에 보인다. 제목 줄
+                끝(안 D)에서 옮겼다. 줄 높이(h-10)는 그대로 두고 단추가 위 여백으로 조금 나간다 — 아이콘이 서도 비유가 안 밀린다
+              */}
+              <span className="relative flex h-10 items-start justify-between gap-3">
+                <span aria-hidden="true" className="block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
+                  “
+                </span>
+                {canShare && (
+                  <span className="-mr-2 -mt-2">
+                    <ShareReadingButton target={target} look="icon" />
+                  </span>
+                )}
               </span>
-              <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-title leading-[1.4] tracking-[-0.02em] text-foreground sm:text-figure">
+              {/* 내린 그림이 비유 끝 글자에 겹치지 않게, 그림이 선 표지는 글 오른쪽을 그림 폭만큼 비운다 */}
+              <blockquote
+                className={`relative mt-2 max-w-[18em] text-pretty font-rounded text-title leading-[1.4] tracking-[-0.02em] text-foreground sm:text-figure ${single ? 'sm:pr-28' : ''}`}
+              >
                 {metaphor}
               </blockquote>
             </>
