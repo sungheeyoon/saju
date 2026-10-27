@@ -274,7 +274,9 @@ describe('인연 궁합 4판의 읽는 법', () => {
       expect(legacyPrivate, phrase).toContain(phrase);
     }
     expect(legacyMatch).not.toContain('속도만 맞추면 시작과 완성을 함께 가져가는 사이');
-    expect(legacyMatch).toContain('**본문에서 실제로 풀어 쓸 장점 하나**');
+    /* 원복 조립의 궁합만 비유를 본문 앞에 짓는다(`writesSummaryLast`) — 「방금 쓴 본문」이 아니다 */
+    expect(legacyMatch).toContain('이 풀이의 본문으로 볼 때');
+    expect(legacyMatch).not.toContain('**본문을 다 쓴 뒤에** 쓴다');
   });
 
   it('고르는 안내·본문 뒤 요약·정확성 최소선이 선다', () => {

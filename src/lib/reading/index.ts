@@ -154,7 +154,6 @@ export {
 export {
   blockingFindingsOf,
   checkReading,
-  copiesMetaphorExample,
   findingForRecord,
   metaphorToStore,
   plainTermsIn,

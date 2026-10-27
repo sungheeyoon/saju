@@ -1,3 +1,5 @@
+import { bareOf } from './check';
+import { LEAD_SUMMARY } from './prompt';
 import type { ReadingOutput } from './policy';
 import { endsPolitely, plainTextSlips, sentencesOf, type TasteRunOutput } from './taste-run';
 
@@ -88,7 +90,7 @@ ${taste.supportingClaims.map((claim) => `- \`${claim}\``).join('\n')}
 - 이미 읽은 글을 다시 설명하지 않는다. 앞 글과 다른 성격으로 이 사람을 규정하지 않는다 — 앞 글이 세운 사람을 그대로 이어 간다.
 - 답의 방향과 그 방향이 기대는 자료에 기대어 답한다. 자료가 말하는 세기보다 세게 말하지 않는다.
 - ${target.min}~${target.max}자, 해요체 한 문단. 분류명과 한자는 쓰지 않는다.
-- **첫 절 「먼저 볼 핵심 세 가지」의 1번은 \`continuationAnswer\` 다** — 화면이 그 답을 1번 본문으로 한 번만 세운다.
+- **첫 절 「${LEAD_SUMMARY.title}」의 1번은 \`continuationAnswer\` 다** — 화면이 그 답을 1번 본문으로 한 번만 세운다.
   그래서 \`markdown\` 의 첫 절에는 **2번과 3번 두 항목만** 쓴다(\`2.\` · \`3.\` 으로 번호를 붙이고 \`1.\` 은 쓰지 않는다).
   둘은 그 답과 다른 축에서 고르고, 그 답을 요약하거나 다시 말하지 않는다. 나머지 절의 지시는 그대로다.`;
 }
@@ -106,7 +108,7 @@ const DEFERRING = /아래에서|아래 절|뒤에서|뒷부분|이어서 풀|이
 
 /** 낱자 n-gram — 빈칸 · 문장부호를 걷고 센다. 한국어는 낱말 경계가 조사로 흔들려 글자 조각이 덜 흔들린다 */
 const gramsOf = (text: string, size: number): Set<string> => {
-  const letters = [...text.replace(/[\s\p{P}\p{S}]/gu, '')];
+  const letters = [...bareOf(text)];
   const grams = new Set<string>();
   for (let at = 0; at + size <= letters.length; at += 1) grams.add(letters.slice(at, at + size).join(''));
   return grams;

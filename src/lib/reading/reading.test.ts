@@ -21,7 +21,6 @@ import {
 import {
   PLAIN_FORBIDDEN_TERMS,
   READING_BLOCKING_CODES,
-  copiesMetaphorExample,
   findingForRecord,
   metaphorToStore,
   plainTermsIn,
@@ -413,17 +412,46 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
       const one = ok('self');
       one.output.metaphor = line;
       expect(codesOf(checkReading(one)), line).toEqual(['metaphor-out-of-contract']);
-      expect(copiesMetaphorExample(line), line).toBe(true);
       expect(metaphorToStore(line), line).toBeNull();
     }
 
     for (const line of ['나무 위에서 쉬는 호랑이', '돌담 아래 핀 들풀', '같은 보폭으로 걷는 두 사람']) {
-      expect(copiesMetaphorExample(line), line).toBe(false);
+      const one = ok('self');
+      one.output.metaphor = line;
+      expect(codesOf(checkReading(one)), line).toEqual([]);
       expect(metaphorToStore(line), line).toBe(line);
     }
     expect(metaphorToStore('  ')).toBeNull();
     /* 길이를 넘은 비유는 그대로 저장한다 — 화면이 자른다(ADR 0163) */
     expect(metaphorToStore('가'.repeat(30))).toBe('가'.repeat(30));
+  });
+
+  /**
+   * **「저장하지 않을 비유」의 판정은 한 곳이다** — 회수가 저장에 넘기는 값(`metaphorToStore`)과 검사가 「비유 없이 저장」으로
+   * 적는 것이 늘 같다. 검사가 따로 판정하면 한쪽만 고쳐지는 날 「적었는데 저장됨」·「안 적었는데 빠짐」이 난다.
+   */
+  it('검사가 비유 없이 저장된다고 적는 것과 저장할 비유가 없는 것이 늘 같다', () => {
+    const samples = [
+      '',
+      '   ',
+      ...[...READING_POLICY.metaphorExamples.solo, ...READING_POLICY.metaphorExamples.pair].flatMap(({ line }) => [
+        line,
+        `${line}!`,
+        `${line} 같은 사이`,
+      ]),
+      '나무 위에서 쉬는 호랑이',
+      '가'.repeat(READING_POLICY.metaphorLength.max + 5),
+    ];
+    for (const metaphor of samples) {
+      const one = ok('self');
+      one.output.metaphor = metaphor;
+      const verdict = checkReading(one);
+      const said = verdict.ok
+        ? []
+        : verdict.failures.filter((f) => f.code === 'metaphor-out-of-contract').map((f) => f.detail);
+      const reportedDropped = said.some((detail) => detail === '비었습니다' || detail.includes('비유 없이 저장'));
+      expect(reportedDropped, JSON.stringify(metaphor)).toBe(metaphorToStore(metaphor) === null);
+    }
   });
 
   /**

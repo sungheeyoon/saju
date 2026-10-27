@@ -5,7 +5,7 @@ import { sectionCounter, type SectionCount } from './progress';
 /**
  * 모델이 내는 그대로 — **JSON 글자**다. 본문은 `markdown` 문자열 안에 이스케이프된 채 온다.
  *
- * 자기 풀이는 운영 차례(`score · metaphor · markdown`), 두 궁합 4판은 본문이 먼저다(`writesSummaryLast`).
+ * 옛 차례(`score · metaphor · markdown`)는 원복 조립의 궁합만, 개인 풀이와 두 궁합 4판은 본문이 먼저다(`writesSummaryLast`).
  */
 const BODY = [
   '## 먼저 볼 핵심 세 가지',
@@ -24,8 +24,8 @@ const BODY = [
   '이 사주의 핵심 — 결론 「…」 | 자료: charts.a [원국]',
 ].join('\n');
 
-const soloJson = JSON.stringify({ score: null, metaphor: '한 줄 요약', markdown: BODY });
-const pairJson = JSON.stringify({ markdown: BODY, score: 71, metaphor: '한 줄 요약' });
+const summaryFirstJson = JSON.stringify({ score: null, metaphor: '한 줄 요약', markdown: BODY });
+const bodyFirstJson = JSON.stringify({ markdown: BODY, score: 71, metaphor: '한 줄 요약' });
 
 const feedAll = (chunks: readonly string[]): SectionCount[] => {
   const counter = sectionCounter();
@@ -53,15 +53,15 @@ const splitRandomly = (text: string, seed: number): string[] => {
 
 describe('절 머리 세기', () => {
   it('한 번에 받으면 소제목 셋 · 본문 다 씀이다 — `###` 와 줄 가운데의 `##` 는 안 센다', () => {
-    expect(last(feedAll([soloJson]))).toEqual({ begun: 3, bodyWritten: true });
+    expect(last(feedAll([summaryFirstJson]))).toEqual({ begun: 3, bodyWritten: true });
   });
 
-  it('본문이 먼저인 차례(두 궁합 4판)도 같다', () => {
-    expect(last(feedAll([pairJson]))).toEqual({ begun: 3, bodyWritten: true });
+  it('본문이 먼저인 차례(개인 풀이 · 두 궁합 4판)도 같다', () => {
+    expect(last(feedAll([bodyFirstJson]))).toEqual({ begun: 3, bodyWritten: true });
   });
 
   it('**한 글자씩** 받아도 같다 — `\\` 와 `n` 사이, `#` 와 공백 사이에서 잘려도', () => {
-    const counts = feedAll([...soloJson]);
+    const counts = feedAll([...summaryFirstJson]);
     expect(last(counts)).toEqual({ begun: 3, bodyWritten: true });
 
     /* 값은 올라가기만 하고, 셋이 차례로 선다 — 한꺼번에 뛰지 않는다 */
@@ -72,8 +72,8 @@ describe('절 머리 세기', () => {
 
   it('조각을 어디서 잘라도 끝 값이 같다', () => {
     for (const seed of [1, 7, 42, 2026, 99_991]) {
-      expect(last(feedAll(splitRandomly(soloJson, seed)))).toEqual({ begun: 3, bodyWritten: true });
-      expect(last(feedAll(splitRandomly(pairJson, seed)))).toEqual({ begun: 3, bodyWritten: true });
+      expect(last(feedAll(splitRandomly(summaryFirstJson, seed)))).toEqual({ begun: 3, bodyWritten: true });
+      expect(last(feedAll(splitRandomly(bodyFirstJson, seed)))).toEqual({ begun: 3, bodyWritten: true });
     }
   });
 

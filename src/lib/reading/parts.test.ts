@@ -207,35 +207,45 @@ describe('시키는 값과 막는 값', () => {
     }
   });
 
-  it('한 줄 요약은 장점 하나를 그림 하나로 빗댄 한 줄 비유다', () => {
-    for (const kind of READING_KINDS) {
-      const prompt = READING_PROMPTS[kind];
-      expect(prompt, kind).toContain('## 한 줄 요약');
-      expect(prompt, kind).toContain(isSolo(kind) ? '**이 사람의 장점 하나를 그림 하나로 빗댄 한 줄 비유**' : '**이 관계의 장점 하나를 그림 하나로 빗댄 한 줄 비유**');
-      expect(prompt, kind).toContain('그림을 둘 이상 겹치지 않는다');
-      expect(prompt, kind).toContain('본문이 다루지 않는 장점을 새로 만들지 않는다');
-      /* 접었던 판(ADR 0056 개정)의 지시가 남지 않는다 */
-      expect(prompt, kind).not.toContain('비유하지 말고 직접 요약한다');
-      expect(prompt, kind).not.toContain('비유가 아니다');
-      expect(prompt, kind).not.toContain('## 한마디로 빗대면');
-    }
+  /** 한 줄 요약 절 — `## 한 줄 요약` 부터 다음 `## ` 앞까지 */
+  const metaphorSectionOf = (prompt: string): string => {
+    const from = prompt.indexOf('## 한 줄 요약');
+    const to = prompt.indexOf('\n## ', from + 1);
+    return prompt.slice(from, to === -1 ? undefined : to);
+  };
 
+  it('한 줄 요약은 방금 쓴 본문으로 이 사람(이 사이)을 한눈에 알아보게 하는 것 하나에 빗댄 한 줄 비유다', () => {
+    for (const kind of READING_KINDS) {
+      const section = metaphorSectionOf(READING_PROMPTS[kind]);
+      expect(section, kind).toContain('**본문을 다 쓴 뒤에** 쓴다');
+      expect(section, kind).toContain(
+        isSolo(kind)
+          ? '**이 사람을 한눈에 알아보게 하는 것 하나에 빗대면 무엇인가**'
+          : '**이 사이를 한눈에 알아보게 하는 것 하나에 빗대면 무엇인가**',
+      );
+      expect(section, kind).toContain('더 짧아도 된다');
+      /* 개인 · 궁합 같은 꼬리 — 비유는 본문 뒤에 지어지므로 본문이 비유를 알 수 없다 */
+      expect(section, kind).toContain('본문에는 이 줄을 다시 적지 않는다 — 화면이 따로 세운다.');
+      /* 「형상」·「형세」는 지시문에 안 쓴다(ADR 0056 의 실패 원인) — 「쓰지 마라」 본보기 한 줄만 그 실패를 보인다 */
+      const instruction = section.replace(/^이렇게 쓰지 마라 — .*$/m, '');
+      expect(instruction, kind).not.toMatch(/형상|형세/);
+      /* 접었던 판(ADR 0056 개정)의 지시가 남지 않는다 */
+      expect(section, kind).not.toContain('비유하지 말고 직접 요약한다');
+      expect(section, kind).not.toContain('## 한마디로 빗대면');
+    }
     for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
-      expect(READING_PROMPTS[kind], kind).toContain('본문을 다 쓴 뒤에');
-      expect(READING_PROMPTS[kind], kind).toContain('**방금 쓴 본문이 실제로 다룬 장점 하나**');
       expect(READING_PROMPTS[kind], kind).toContain('두 사람의 호칭을 넣지 않는다');
     }
-    for (const kind of READING_KINDS.filter(isSolo)) {
-      expect(READING_PROMPTS[kind], kind).toContain('에서 실제로 풀어 쓸 장점 하나**');
-      /* 개인 풀이는 첫 절 맨 앞이 비유를 푼다(운영자 결정 2026-10-27) — 비유 절과 첫 절이 같은 말을 한다 */
-      expect(READING_PROMPTS[kind], kind).toContain('첫 절 맨 앞에서 왜 이 비유인지 풀어 준다');
-      expect(READING_PROMPTS[kind], kind).toContain('**맨 앞에 한두 문장으로 한 줄 비유를 풀어 준다**');
-      expect(READING_PROMPTS[kind], kind).not.toContain('본문에는 이 줄을 다시 적지 않는다');
-    }
-    /* 궁합은 비유를 본문 뒤에 지어 본문이 비유를 모른다 — 그대로다 */
-    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
-      expect(READING_PROMPTS[kind], kind).toContain('본문에는 이 줄을 다시 적지 않는다');
+  });
+
+  /**
+   * **첫 절은 비유를 풀지 않는다**(ADR 0207 추기 「v21」) — 비유가 본문 뒤에 지어지므로 본문이 쓰일 때 비유는 아직 없다.
+   * v20 에서 첫 절 맨 앞의 「풀어 주는」 문장이 뜻을 풀지 않고 그림을 더 얹었다(운영 실호출 2026-10-27).
+   */
+  it('개인 풀이의 첫 절은 비유를 풀어 주라고 시키지 않는다', () => {
+    for (const kind of READING_KINDS) {
       expect(READING_PROMPTS[kind], kind).not.toContain('한 줄 비유를 풀어 준다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('왜 이 비유인지 풀어 준다');
     }
   });
 
@@ -452,11 +462,11 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이와 궁합이 함께 v19 다 — 한 줄 비유(ADR 0207)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v20');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v20');
+  it('개인 풀이와 궁합이 같은 판본 이름으로 오른다 — 한 줄 비유(ADR 0207)', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v21');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v21');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v20');
+      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v21');
     }
   });
 

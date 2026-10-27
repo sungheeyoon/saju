@@ -62,7 +62,7 @@ import { SAJU_TERMS } from './vocabulary';
  */
 
 /**
- * 한 줄 비유가 **폰 홈 카드 한 줄에 안 드는** 경계 — 「짧게 써라」는 프롬프트가 시키고 여기서는 적기만 한다(ADR 0163).
+ * 한 줄 비유가 **폰 화면의 가장 좁은 칸 한 줄에 안 드는** 경계 — 「짧게 써라」는 프롬프트가 시키고 여기서는 적기만 한다(ADR 0163).
  *
  * 한동안 이 값이 60, 그다음 120 이었다. 앞의 것은 프롬프트가 길이를 한 번도 말하지 않아 63자에 글이 버려졌고, 뒤의 것은
  * 재보지도 않은 수였다 — 홈 카드가 한 줄 고정이 되자 120 안의 글이 거의 늘 잘렸다. 이제 이 값은 **잰 경계**다: 처음에는 360px
@@ -74,8 +74,8 @@ import { SAJU_TERMS } from './vocabulary';
  */
 const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
 
-/** 띄어쓰기 · 문장 부호를 걷은 꼴 — 본보기를 옮겼는지 견줄 때만 쓴다 */
-const bareOf = (text: string): string => text.replace(/[\s\p{P}\p{S}]/gu, '');
+/** 띄어쓰기 · 문장 부호 · 기호를 걷은 꼴 — 글끼리 견줄 때 쓴다(본보기를 옮겼나 · 이어쓰기 답이 겹치나, `continuation.ts`) */
+export const bareOf = (text: string): string => text.replace(/[\s\p{P}\p{S}]/gu, '');
 
 const METAPHOR_EXAMPLE_BARES: readonly string[] = [
   ...READING_POLICY.metaphorExamples.solo,
@@ -83,13 +83,14 @@ const METAPHOR_EXAMPLE_BARES: readonly string[] = [
 ].map(({ line }) => bareOf(line));
 
 /** 프롬프트 본보기가 통째로 들어 있는가 — 「본보기 + 같은 사람」처럼 꼬리만 붙인 것도 옮긴 것이다 */
-export const copiesMetaphorExample = (metaphor: string): boolean => {
+const copiesMetaphorExample = (metaphor: string): boolean => {
   const bare = bareOf(metaphor);
-  return bare !== '' && METAPHOR_EXAMPLE_BARES.some((example) => bare.includes(example));
+  return METAPHOR_EXAMPLE_BARES.some((example) => bare.includes(example));
 };
 
 /**
- * 저장할 비유 — 비었거나 본보기를 옮겼으면 `null`(비유 없는 풀이). 회수(`app/me/reading/collect.ts`)가 저장 문에 넘긴다.
+ * 저장할 비유 — 비었거나 본보기를 옮겼으면 `null`(비유 없는 풀이). **「저장하지 않을 비유」의 판정은 여기 하나다** — 회수
+ * (`app/me/reading/collect.ts`)가 저장 문에 넘기고, 검사(`checkReading`)는 이 답을 읽어 적기만 한다.
  * 길이를 넘은 비유는 그대로 둔다 — 화면이 자른다(ADR 0163 · 0207).
  */
 export const metaphorToStore = (metaphor: string): string | null =>
@@ -612,10 +613,11 @@ export function checkReading({
    * 그림이 장점을 그리는지 · 본문에 기대는지는 검사하지 않는다 — 기계가 짚을 수 없고, 운영자가 실호출로 읽는다.
    */
   const said = metaphor.trim();
-  if (said.length === 0) {
-    failures.push({ code: 'metaphor-out-of-contract', detail: '비었습니다' });
-  } else if (copiesMetaphorExample(said)) {
-    failures.push({ code: 'metaphor-out-of-contract', detail: '프롬프트 본보기를 그대로 옮겼다 — 비유 없이 저장' });
+  if (metaphorToStore(metaphor) === null) {
+    failures.push({
+      code: 'metaphor-out-of-contract',
+      detail: said === '' ? '비었습니다' : '프롬프트 본보기를 그대로 옮겼다 — 비유 없이 저장',
+    });
   } else if (said.length > METAPHOR_MAX) {
     failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 폰 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
   }
