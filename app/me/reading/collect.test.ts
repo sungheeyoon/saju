@@ -212,7 +212,7 @@ describe('가져온 글은 막는 검사를 넘어야 저장된다', () => {
   /**
    * **한 줄 비유 — 본보기를 옮기면 비유 없이, 길면 그대로 저장한다**(ADR 0207 · 0163). 둘 다 적는다.
    */
-  it('프롬프트 본보기를 옮긴 비유는 비유 없이 저장하고, 20자를 넘은 비유는 그대로 저장한다', async () => {
+  it('프롬프트 본보기를 옮긴 비유는 비유 없이 저장하고, 막는 값(18자)을 넘은 비유는 그대로 저장한다', async () => {
     const example = READING_POLICY.metaphorExamples.solo[0].line;
     retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null, metaphor: `${example} 같은 사람` }));
     await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });

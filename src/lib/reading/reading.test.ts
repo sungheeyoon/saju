@@ -385,19 +385,19 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   });
 
   /**
-   * **막는 값은 폰 한 줄의 잰 경계다**(#842, ADR 0207) — 띄어쓰기를 넣어 센다. 20자는 지나고 21자는 걸린다.
+   * **막는 값은 폰 한 줄의 잰 경계다**(#842, ADR 0207 추기) — 띄어쓰기를 넣어 센다. 18자는 지나고 19자는 걸린다.
    */
-  it('한 줄 비유는 띄어쓰기 포함 20자까지 지나고 21자에서 걸린다', () => {
+  it('한 줄 비유는 띄어쓰기 포함 18자까지 지나고 19자에서 걸린다', () => {
     const fits = ok('self');
-    fits.output.metaphor = '가나다 라마바 사아자 차카타 파하가나';
-    expect(fits.output.metaphor.length).toBe(20);
+    fits.output.metaphor = '가나다 라마바 사아자 차카타 파하';
+    expect(fits.output.metaphor.length).toBe(18);
     expect(codesOf(checkReading(fits))).toEqual([]);
 
     const over = ok('self');
     over.output.metaphor = `${fits.output.metaphor}라`;
     expect(codesOf(checkReading(over))).toEqual(['metaphor-out-of-contract']);
     const verdict = checkReading(over);
-    expect(verdict.ok ? [] : verdict.failures.map((f) => f.detail)).toEqual(['21자 — 폰 한 줄에 안 든다 (20 이하)']);
+    expect(verdict.ok ? [] : verdict.failures.map((f) => f.detail)).toEqual(['19자 — 폰 한 줄에 안 든다 (18 이하)']);
   });
 
   /**

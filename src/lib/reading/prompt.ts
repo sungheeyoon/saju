@@ -1562,8 +1562,8 @@ const matchScope = (input: MatchInput, guided: boolean): string => {
  *
  * 처음 올릴 때 이 지시문에 길이가 한 줄도 없었는데 검사는 60자를 막고 있었다. 모델이
  * 63자를 쓰자 다 만든 글이 버려졌다 — **지킬 방법이 없는 계약**이었다. 숫자를 손으로 적지 않고
- * `READING_POLICY.metaphorLength` 를 꽂는다. 이제 막는 값(20)도 말한다 — 폰 홈 카드 한 줄이 잰
- * 경계라(#842) 시키는 값만 말하면 「안팎」이 그 경계를 넘는다.
+ * `READING_POLICY.metaphorLength` 를 꽂는다. 이제 막는 값(18)도 말한다 — 폰 화면의 가장 좁은 칸에서
+ * 잰 경계라(#842 · ADR 0207 추기) 시키는 값만 말하면 「안팎」이 그 경계를 넘는다.
  */
 const SUMMARY_SECTION = (kind: ReadingKind): string => metaphorSection(isSolo(kind) ? 'solo' : 'pair', false);
 

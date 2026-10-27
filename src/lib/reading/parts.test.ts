@@ -178,14 +178,15 @@ describe('시키는 값과 막는 값', () => {
   });
 
   /**
-   * **막는 값은 잰 경계 안이다**(#842, ADR 0207). 360px 폰 홈 카드 한 줄에 22자가 든다 — 막는 값이 그 위로 오르면 「…」로
-   * 잘리는 글을 검사가 지나 보낸다. 시키는 값은 막는 값보다 낮아야 「안팎」이 경계를 넘지 않는다.
+   * **막는 값은 잰 경계 안이다**(#842, ADR 0207 추기). 가장 좁은 칸(홈 「저장한 사람」 부제 · 360px · 점수 있음 · 166px)에
+   * 18자 본보기는 들고 20자는 잘렸다 — 막는 값이 그 위로 오르면 「…」로 잘리는 글을 검사가 지나 보낸다. 시키는 값은 막는
+   * 값보다 낮아야 「안팎」이 경계를 넘지 않는다.
    */
-  it('막는 값은 폰 한 줄(22자) 안이고, 시키는 값은 그보다 낮다', () => {
+  it('막는 값은 가장 좁은 칸에서 잰 18자 안이고, 시키는 값은 그보다 낮다', () => {
     const { target, max } = READING_POLICY.metaphorLength;
-    const HOME_CARD_360 = 22;
+    const NARROWEST_SLOT_360 = 18;
 
-    expect(max).toBeLessThanOrEqual(HOME_CARD_360);
+    expect(max).toBeLessThanOrEqual(NARROWEST_SLOT_360);
     expect(target).toBeLessThan(max);
   });
 
@@ -452,10 +453,10 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
   });
 
   it('개인 풀이와 궁합이 함께 v19 다 — 한 줄 비유(ADR 0207)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v19');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v19');
+    expect(READING_POLICY.version).toBe('reading-prompt-v20');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v20');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v19');
+      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v20');
     }
   });
 

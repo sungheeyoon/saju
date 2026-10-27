@@ -268,7 +268,7 @@ describe('인연 궁합 4판의 읽는 법', () => {
   it('원복 조립에는 그 문장들이 그대로 있다', () => {
     const legacyMatch = readingPromptOf(readingEvidenceOf('match', { a: A, b: B }, VIEWED_AT, 'legacy-v0'), LEGACY_PAIR_ASSEMBLY);
     const legacyPrivate = readingPromptOf(readingEvidenceOf('private', { a: A, b: B }, VIEWED_AT), LEGACY_PAIR_ASSEMBLY);
-    /* 한 줄 요약 절은 원복 조립도 새 규칙(한 줄 비유 · 20자, ADR 0207)을 따른다 — 원복해도 폰 한 줄은 그대로 좁다. 옛 요약 본보기는 거기서도 걷었다 */
+    /* 한 줄 요약 절은 원복 조립도 새 규칙(한 줄 비유 · 18자, ADR 0207)을 따른다 — 원복해도 폰 한 줄은 그대로 좁다. 옛 요약 본보기는 거기서도 걷었다 */
     for (const phrase of ['「자료 밖」이라고 먼저 적어라', '즉각적인 반응을 원하고 두 번째 분은 속으로 따져 본 뒤']) {
       expect(legacyMatch, phrase).toContain(phrase);
       expect(legacyPrivate, phrase).toContain(phrase);
