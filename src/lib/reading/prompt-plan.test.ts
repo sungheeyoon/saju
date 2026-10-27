@@ -9,6 +9,7 @@ import {
   promptSlotsOf,
   readingEvidenceOf,
   readingPromptOf,
+  writesSummaryLast,
   type PromptAssembly,
   type PromptSlot,
   type ReadingKind,
@@ -28,7 +29,8 @@ import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS } from '@/src/lab/reading/variants'
  * 1. **표가 적은 자리와 실제로 선 자리가 같은가** — 양방향. 표가 「안 선다」고 적은 절이
  *    글에 있으면 빨간불이고, 「선다」고 적은 절이 글에 없어도 빨간불이다.
  * 2. **한 글에 두 세대가 섞이지 않는가** — 한 자리만 다른 세대로 갈리는 것이 위 사고의
- *    모양이다. 이음매 넷(규칙 · 말투 · 근거 칸 · 한 줄 요약)을 세대별 표식으로 잰다.
+ *    모양이다. 이음매 셋(규칙 · 근거 칸 · 출력 계약)을 세대별 표식으로 잰다.
+ * 3. **「본문 뒤에 쓴다」는 지시와 스키마 차례가 같은 답인가** — 한 줄 요약의 차례는 세대가 아니라 `writesSummaryLast` 가 가른다.
  *
  * **글자는 안 잰다.** 프롬프트 본문이 바뀌었는지는 실호출 전에 따로 재고(ADR 0073·0074),
  * 여기서 잠그는 것은 **무엇이 서고 무엇이 안 서는가**뿐이다.
@@ -151,15 +153,15 @@ const OPTIONAL_MARKERS = {
 /**
  * **이음매마다 두 세대의 표식** — 한 자리가 다른 세대로 갈리면 여기서 잡힌다.
  *
- * 넷을 고른 까닭은 그 넷이 **세대마다 다른 글을 드는 자리**이기 때문이다. 규칙은 근거의
- * 층(옛 벌)과 말의 세기(4판)로, 말투는 개인 풀이 전용 절로, 근거 칸과 한 줄 요약은 각
- * 벌의 고유한 줄로 갈린다.
+ * 셋을 고른 까닭은 그 셋이 **세대마다 다른 글을 드는 자리**이기 때문이다. 규칙은 근거의
+ * 층(옛 벌)과 말의 세기(4판)로, 근거 칸과 출력 계약은 각 벌의 고유한 줄로 갈린다. 말투는 개인 풀이 전용 절이 아래에서
+ * 따로 잰다. 한 줄 요약은 이제 세대가 아니라 차례(`writesSummaryLast`)로 갈린다 — 개인 풀이도 본문 뒤다(ADR 0207 추기
+ * 「v21」) — 그래서 아래 「본문 뒤에 쓴다」가 따로 잰다.
  */
 const SEAMS = [
   { seam: '규칙', legacy: '## 근거의 층', guided: '## 말의 세기' },
   { seam: '근거 칸', legacy: '`넘어간 것` 을 `없음` 으로 채우고 싶은 유혹을 이겨라', guided: '여기 적은 한계와 기준 설명을 본문으로 옮기지 않는다' },
-  { seam: '한 줄 요약', legacy: '에서 실제로 풀어 쓸 장점 하나**', guided: '**본문을 다 쓴 뒤에** 쓴다' },
-  { seam: '출력 계약', legacy: '프롬프트에서 JSON 모양을 되풀이하지 않는다', guided: '**`markdown` 에 본문을 끝까지 쓰고**' },
+  { seam: '출력 계약', legacy: '프롬프트에서 JSON 모양을 되풀이하지 않는다', guided: '그다음 `score` 에' },
 ] as const;
 
 const guidedIn = (one: Case) => one.slots.includes('guide');
@@ -204,6 +206,33 @@ describe('한 글에 두 세대가 섞이지 않는다', () => {
     for (const selfOnly of ['## 누구에게 쓰는가', '## 마지막 규칙']) {
       expect(head.includes(selfOnly), `${one.id} · ${selfOnly}`).toBe(isSolo(one.kind));
     }
+  });
+});
+
+/**
+ * **지시문이 「본문을 다 쓴 뒤에」라고 말하면 스키마도 본문을 먼저 짓는다** — 둘이 한 술어(`summaryLastFor`)를 읽는다.
+ *
+ * v20 개인 풀이는 지시가 「본문에서 풀어 쓸 장점」을 시키는 동안 스키마가 비유를 먼저 지었다 — 모델은 아직 없는 본문 대신
+ * 자료에서 가장 쉬운 그림을 가져왔다(운영 실호출 2026-10-27, ADR 0207 추기 「v21」). 지시와 차례가 갈리면 그 일이 다시 난다.
+ */
+describe('「본문 뒤에 쓴다」는 지시와 스키마 차례가 같다', () => {
+  const AFTER = '**본문을 다 쓴 뒤에** 쓴다';
+  const BEFORE = '이 풀이의 본문';
+
+  it.each(CASES)('$id', (one) => {
+    const head = headOf(promptFor(one.kind, one.assembly));
+    const last = writesSummaryLast(one.kind, one.assembly);
+
+    expect(head.includes(AFTER), `${one.id} · 본문 뒤`).toBe(last);
+    expect(head.includes(BEFORE), `${one.id} · 본문 앞`).toBe(!last);
+  });
+
+  it('개인 풀이와 운영 궁합은 본문 뒤, 원복 조립의 궁합만 본문 앞이다', () => {
+    for (const kind of ['self', 'person', 'private', 'match'] as const) {
+      expect(writesSummaryLast(kind), kind).toBe(true);
+    }
+    expect(writesSummaryLast('private', LEGACY_PAIR_ASSEMBLY)).toBe(false);
+    expect(writesSummaryLast('match', LEGACY_PAIR_ASSEMBLY)).toBe(false);
   });
 });
 

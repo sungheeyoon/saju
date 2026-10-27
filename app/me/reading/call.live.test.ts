@@ -197,7 +197,8 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
         : { a: computeSaju(hourless ? HOURLESS : INPUT) };
       const viewedAt = new Date();
       const evidence = readingEvidenceOf(kind, charts, viewedAt);
-      const called = await callModel(readingPromptOf(evidence));
+      /* 운영 제출과 같은 차례로 받는다 — 개인 풀이와 4판 궁합은 본문이 먼저다(`writesSummaryLast`, ADR 0207 추기 「v21」) */
+      const called = await callModel(readingPromptOf(evidence), { summaryLast: writesSummaryLast(kind) });
 
       // 실패도 값으로 오므로 무엇이 막았는지 그대로 보인다.
       expect(called.ok ? '' : `${called.code}: ${called.detail}`).toBe('');
@@ -317,7 +318,9 @@ describe.skipIf(!variantsLive)('변형들이 같은 Evidence 에서 실제 출�
     const called = await Promise.all(
       PROMPT_VARIANTS.map(async (variant) => ({
         variant,
-        result: await callModel(readingPromptOf(evidence, variant.assembly)),
+        result: await callModel(readingPromptOf(evidence, variant.assembly), {
+          summaryLast: writesSummaryLast('self', variant.assembly),
+        }),
       })),
     );
 
@@ -445,7 +448,9 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
     const called = await Promise.all(
       PAIR_VARIANTS.map(async (variant) => ({
         variant,
-        result: await callModel(readingPromptOf(evidence, variant.assembly)),
+        result: await callModel(readingPromptOf(evidence, variant.assembly), {
+          summaryLast: writesSummaryLast('private', variant.assembly),
+        }),
       })),
     );
 

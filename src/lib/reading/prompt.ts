@@ -706,8 +706,6 @@ const PAIR_CLOSING = `### 근거 (검사용)
 
 **이 절은 사용자에게 안 나간다**(화면이 \`### 근거\` 앞에서 끊는다). 여기 적은 한계와 기준 설명을 본문으로 옮기지 않는다.`;
 
-const PAIR_SUMMARY_SECTION = metaphorSection('pair', true);
-
 const PAIR_OUTPUT_CONTRACT = `## 구조화 출력의 뜻
 
 응답 모양은 API의 Structured Outputs 스키마가 정한다. **\`markdown\` 에 본문을 끝까지 쓰고**, 그다음 \`score\` 에 ${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max} 정수를, 마지막으로 \`metaphor\` 에 그 본문에 기댄 한 줄 비유를 넣는다.
@@ -748,12 +746,16 @@ const voiceOf = (kind: ReadingKind, assembly: PromptAssembly): PromptVoice =>
   isSolo(kind) ? 'self' : usesPairGuide(kind, assembly) ? 'pair-guided' : 'pair-legacy';
 
 /**
- * 한 줄 요약을 **본문 뒤에** 받는가 — 출력 스키마의 차례를 고르는 자리(모델 호출 쪽)가 이 답을 쓴다.
+ * 한 줄 요약을 **본문 뒤에** 짓는 세대인가 — 지시문(`metaphorSection`)과 출력 스키마의 차례(`writesSummaryLast`)가 이 하나를 읽는다.
  *
- * 읽는 법 4판의 두 궁합만 그렇다. 개인 풀이는 운영 차례 그대로다.
+ * 개인 풀이와 읽는 법 4판의 두 궁합이 그렇다(ADR 0067 · ADR 0207 추기 「v21」). 옛 궁합(`pair-legacy`)은 원복의 길이라 운영
+ * 차례(`score · metaphor · markdown`) 그대로다.
  */
+const summaryLastFor = (voice: PromptVoice): boolean => voice !== 'pair-legacy';
+
+/** 한 줄 요약을 본문 뒤에 받는가 — 출력 스키마의 차례를 고르는 자리(모델 호출 쪽)가 이 답을 쓴다 */
 export const writesSummaryLast = (kind: ReadingKind, assembly: PromptAssembly = CONTROL): boolean =>
-  voiceOf(kind, assembly) === 'pair-guided';
+  summaryLastFor(voiceOf(kind, assembly));
 
 const relationshipCustomerVoice = (terminology: Terminology): string => `${CUSTOMER_TONE}
 
@@ -784,6 +786,9 @@ type Section = { readonly title: string; readonly body: string };
 const numbered = (sections: readonly Section[]): string =>
   sections.map(({ title, body }, at) => `**${at + 1}. ${title}** — ${body}`).join('\n\n');
 
+/** 강점 절의 제목 — 한 줄 비유 절이 이 이름을 꽂아 가리킨다(손으로 옮겨 적지 않는다) */
+const STRENGTH_TITLE = '강점과 타고난 복';
+
 /**
  * **긴 글에는 들어가는 문이 필요하다.**
  *
@@ -795,16 +800,13 @@ const numbered = (sections: readonly Section[]): string =>
  * 광고 문구는 안 된다. 「이게 바로 당신」류의 제목은 읽는 사람이 그 아래 문장을 광고로
  * 읽게 만들고, 그러면 정작 걸리는 이야기를 적어 둔 절까지 함께 가벼워진다.
  */
-const LEAD_SUMMARY: Section = {
+export const LEAD_SUMMARY: Section = {
   title: '먼저 볼 핵심 세 가지',
-  body: `**맨 앞에 한두 문장으로 한 줄 비유를 풀어 준다** — 그 그림이 이 사람의 어떤 장점을 뜻하는지,
-왜 이 사람에게 그 비유가 붙었는지. 비유 문장을 그대로 되풀이하지 말고 뜻을 푼다.
-
-그다음 이 사람에게 지금 **가장 두드러지는 것 셋**을 번호 붙인 목록으로, 한 줄에
+  body: `이 사람에게 지금 **가장 두드러지는 것 셋**을 번호 붙인 목록으로, 한 줄에
 한두 문장씩 적는다. 아래에서 길게 풀 이야기 중 가장 중요한 셋을 먼저 보여 주는
 자리다 — 다 읽지 못하는 사람도 이 셋은 가져간다.
 
-**여기서는 근거를 대지 않는다** — 비유를 푸는 문장도 장점의 뜻까지만 말한다. 어디서 나온 말인지도, 왜 그런지도 아래 절이 푼다.
+**여기서는 근거를 대지 않는다.** 어디서 나온 말인지도, 왜 그런지도 아래 절이 푼다.
 셋이 한 이야기의 세 조각이 되지 않게 서로 다른 축에서 고르고, 다른 사람에게 그대로
 붙여도 맞는 문장이면 지운다. **좋은 말만 모으는 자리도 아니다** — 지금 알아야 할 것이
 걸리는 이야기면 그것을 셋 중 하나로 놓는다.
@@ -854,7 +856,7 @@ const expertSelfSections = (
       }`,
     },
     {
-      title: '강점과 타고난 복',
+      title: STRENGTH_TITLE,
       body: `재능과 장점을 최소 네 갈래로 풍성하게 쓴다. 각 강점마다 「무엇을 남보다
 잘하는가 → 어떤 판에서 빛나는가 → 그 재능이 어떤 복으로 이어지는가」를 보여 준다.
 좋은 절에 약점을 매번 끼워 넣어 김을 빼지 마라.${
@@ -1543,6 +1545,28 @@ const matchScope = (input: MatchInput, guided: boolean): string => {
 };
 
 /**
+ * 개인 · 궁합이 갈리는 말 — **한 표에 둔다.** 자리마다 삼항으로 물으면 한 자리만 고쳐지는 날이 온다.
+ *
+ * 궁합은 호칭을 넣지 않는다 — 두 호칭만으로 열 자가 넘어 한 줄이 안 된다.
+ */
+const METAPHOR_WORDS = {
+  solo: {
+    whom: '이 사람을',
+    reader: '「어? 내가 왜 이런 비유지?」',
+    body: `본문(특히 「${STRENGTH_TITLE}」·「${LEAD_SUMMARY.title}」)`,
+    noun: '사람',
+    extra: '',
+  },
+  pair: {
+    whom: '이 사이를',
+    reader: '「어? 우리가 왜 이런 비유지?」',
+    body: '본문',
+    noun: '사이',
+    extra: '\n- 두 사람의 호칭을 넣지 않는다.',
+  },
+} as const;
+
+/**
  * **한 줄 비유** — 점수가 못 하는 일을 여기서 한다(ADR 0207 이 ADR 0056 을 대체한다).
  *
  * 실호출 산출물을 세어 보니 궁합 점수 열한 번이 전부 62~68 이었고, **같은 짝을 다시
@@ -1563,62 +1587,40 @@ const matchScope = (input: MatchInput, guided: boolean): string => {
  * 처음 올릴 때 이 지시문에 길이가 한 줄도 없었는데 검사는 60자를 막고 있었다. 모델이
  * 63자를 쓰자 다 만든 글이 버려졌다 — **지킬 방법이 없는 계약**이었다. 숫자를 손으로 적지 않고
  * `READING_POLICY.metaphorLength` 를 꽂는다. 이제 막는 값(18)도 말한다 — 폰 화면의 가장 좁은 칸에서
- * 잰 경계라(#842 · ADR 0207 추기) 시키는 값만 말하면 「안팎」이 그 경계를 넘는다.
- */
-const SUMMARY_SECTION = (kind: ReadingKind): string => metaphorSection(isSolo(kind) ? 'solo' : 'pair', false);
-
-/** 본보기 한 줄 — 「비유」(N자) — 그리는 장점. 글자 수는 띄어쓰기 포함으로 센다 */
-function exampleLine({ line, strength }: { line: string; strength: string }): string {
-  return `- 「${line}」(${line.length}자) — ${strength}`;
-}
-
-/**
- * 한 줄 비유 절 — 개인 · 궁합, 본문 앞 · 뒤의 네 꼴을 한 벌에서 짓는다.
+ * 잰 경계라(#842 · ADR 0207 추기) 시키는 값만 말하면 「안팎」이 그 경계를 넘는다. 「더 짧아도 된다」를 붙인다 — 짧은 비유를
+ * 16자에 맞추려 말을 덧붙이지 않게.
  *
- * `after` 는 구조화 출력이 본문을 먼저 짓는가다(`writesSummaryLast`). 개인 풀이는 운영 차례(`score · metaphor ·
- * markdown`)라 비유가 본문보다 먼저 지어지므로 「본문에서 풀어 쓸 장점」으로, 4판 궁합은 「방금 쓴 본문이 다룬
- * 장점」으로 시킨다. 궁합은 호칭을 넣지 않는다 — 두 호칭만으로 열 자가 넘어 한 줄이 안 된다.
+ * ## 세대(`PromptVoice`) 하나에서 짓는다
  *
- * **개인 풀이는 첫 절이 비유를 풀어 준다**(운영자 결정 2026-10-27) — 「먼저 볼 핵심 세 가지」(`LEAD_SUMMARY`) 맨 앞의 한두 문장이
- * 그 그림이 어떤 장점인지 말한다. 비유가 본문보다 먼저 지어지므로 그 뜻을 본문이 받아 쓸 수 있다. 궁합은 비유를 본문 뒤에
- * 지어 본문이 비유를 모르므로 그대로 「다시 적지 않는다」다.
+ * 본문 뒤에 쓰는가는 `summaryLastFor` 가 답한다 — 출력 스키마의 차례(`writesSummaryLast`)와 **같은 술어**다. 지시문이
+ * 「본문을 다 쓴 뒤에」라고 말하는데 스키마가 비유를 먼저 지으면 모델은 아직 없는 본문에 기댄다. v20 개인 풀이가 그랬다
+ * (운영 실호출 2026-10-27, ADR 0207 추기 「v21」) — 본문보다 먼저 지은 비유가 자료에서 가장 쉬운 그림(정화 → 등불)을 가져왔다.
+ *
+ * 그래서 개인 풀이의 첫 절은 비유를 풀지 않는다 — 본문이 지어질 때 비유는 아직 없다.
  */
-function metaphorSection(subject: 'solo' | 'pair', after: boolean): string {
+function metaphorSection(voice: PromptVoice): string {
   const { target, max } = READING_POLICY.metaphorLength;
-  const examples = READING_POLICY.metaphorExamples[subject];
-  const whose = subject === 'solo' ? '이 사람의 장점' : '이 관계의 장점';
-  const reader = subject === 'solo' ? '「어? 내가 왜 이런 비유지?」' : '「어? 우리가 왜 이런 비유지?」';
-  const where =
-    subject === 'solo'
-      ? '본문(특히 「강점과 타고난 복」·「먼저 볼 핵심 세 가지」)'
-      : '본문';
-  const pick = after
-    ? `**방금 쓴 ${where}이 실제로 다룬 장점 하나**를 고른다.`
-    : `**${where}에서 실제로 풀어 쓸 장점 하나**를 고른다.`;
-  const opener = after ? '**본문을 다 쓴 뒤에** 쓴다. ' : '';
+  const subject = voice === 'self' ? 'solo' : 'pair';
+  const words = METAPHOR_WORDS[subject];
+  const after = summaryLastFor(voice);
 
   return `## 한 줄 요약
 
-${opener}구조화 출력의 \`metaphor\` 칸이다. **${whose} 하나를 그림 하나로 빗댄 한 줄 비유**를 쓴다. 이 줄을 본 사람이 ${reader} 하고 본문을 열어 보고 싶어져야 하고, 그 답은 본문에 있어야 한다.
+${after ? '**본문을 다 쓴 뒤에** 쓴다. ' : ''}구조화 출력의 \`metaphor\` 칸이다. ${
+    after ? '방금 쓴' : '이 풀이의'
+  } ${words.body}으로 볼 때, **${words.whom} 한눈에 알아보게 하는 것 하나에 빗대면 무엇인가** — 그 답을 한 줄 비유로 쓴다. 이 줄을 본 사람이 ${words.reader} 하고 본문을 열어 보고 싶어져야 하고, 그 답은 본문에 있어야 한다.
 
-- ${pick} 본문이 다루지 않는 장점을 새로 만들지 않는다. 약점이나 조심할 점은 그리지 않는다.
-- **그 장점을 그림 하나로 옮긴다.** 소재는 자유다 — 동물·식물·사물·장면 무엇이든 되고 오행 물상에 얽매이지 않는다. 그림 안의 자리나 움직임에서 장점이 보여야 한다.
-- 그림을 둘 이상 겹치지 않는다. 「~하는 모습이에요」·「~형세」로 감싸지 않는다. 분위기만 있고 무엇이 장점인지 말하지 않는 문장은 실패다.${
-    subject === 'pair' ? '\n- 두 사람의 호칭을 넣지 않는다.' : ''
-  }
-- 해요체로 닫지 않아도 된다 — 명사로 끝내도 되고 「~ 같은 ${subject === 'solo' ? '사람' : '사이'}」처럼 끝내도 된다.
-- **띄어쓰기를 넣어 ${target}자 안팎, 많아도 ${max}자.** 폰 화면 한 줄에 다 들어가야 한다.
+- 본문이 다룬 장점에서 고른다. 본문에 없는 이야기를 새로 만들지 않고, 약점이나 조심할 점은 빗대지 않는다.
+- 소재는 자유다 — 오행 물상에 얽매이지 않는다.${words.extra}
+- 해요체로 닫지 않아도 된다 — 명사로 끝내도 되고 「~ 같은 ${words.noun}」처럼 끝내도 된다.
+- **띄어쓰기를 넣어 ${target}자 안팎, 많아도 ${max}자. 더 짧아도 된다.** 폰 화면 한 줄에 다 들어가야 한다.
 
-본보기 — **그대로 쓰지 않는다.** 그림과 장점이 어떻게 짝을 이루는지만 본다:
-${examples.map(exampleLine).join('\n')}
+본보기 — **그대로 쓰지 않는다.** 비유도, 옆에 붙인 설명의 말도 이 줄이나 본문에 옮기지 않는다. 비유와 그 뜻이 어떻게 짝을 이루는지만 본다:
+${READING_POLICY.metaphorExamples[subject].map(({ line, strength }) => `- 「${line}」(${line.length}자) — ${strength}`).join('\n')}
 
 이렇게 쓰지 마라 — 「차가운 물가에서 작은 불씨가 길을 밝히며 다음 자리를 찾는 형세」(그림이 겹치고, 무엇이 장점인지 말하지 않는다)
 
-설명을 덧붙이지 말고 이 한 줄만 쓴다. ${
-    subject === 'solo'
-      ? '본문에 비유 문장을 그대로 되풀이하지 말고, 첫 절 맨 앞에서 왜 이 비유인지 풀어 준다 — 비유는 화면이 따로 세운다.'
-      : '본문에는 이 줄을 다시 적지 않는다 — 화면이 따로 세운다.'
-  }`;
+설명을 덧붙이지 말고 이 한 줄만 쓴다. 본문에는 이 줄을 다시 적지 않는다 — 화면이 따로 세운다.`;
 }
 
 const OUTPUT_CONTRACT = (kind: ReadingKind): string => `## 구조화 출력의 뜻
@@ -1627,7 +1629,7 @@ const OUTPUT_CONTRACT = (kind: ReadingKind): string => `## 구조화 출력의 �
 ${
   isScored(kind)
     ? `\`score\`에는 ${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max} 정수를, \`metaphor\`에는 한 줄 비유를, \`markdown\`에는 본문을 넣는다.`
-    : '\`score\`는 반드시 \`null\`이고, \`metaphor\`에는 한 줄 비유를, \`markdown\`에는 본문을 넣는다.'
+    : '**\`markdown\` 에 본문을 끝까지 쓰고**, \`score\`는 반드시 \`null\`이며, 마지막으로 \`metaphor\` 에 그 본문에 기댄 한 줄 비유를 넣는다.'
 }
 
 본문에 JSON 코드 감싸개를 두르지 않는다. 표는 쓰지 않는다. 소제목·문단·목록·굵게만 쓴다.`;
@@ -1750,7 +1752,7 @@ const planOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout
     body: solo
       ? selfSections(assembly)
       : compatSections(kind as PairKind, assembly, about, voice),
-    summary: guided ? PAIR_SUMMARY_SECTION : SUMMARY_SECTION(kind),
+    summary: metaphorSection(voice),
     output: guided ? PAIR_OUTPUT_CONTRACT : OUTPUT_CONTRACT(kind),
   };
 };

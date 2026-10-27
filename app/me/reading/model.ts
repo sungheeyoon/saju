@@ -52,8 +52,8 @@ const OUTPUT_SHAPE = {
     },
     metaphor: {
       type: 'string',
-      /* 칸 이름은 옛 결과와의 호환으로 그대로다. 길이는 정책에서 읽는다 — 폰 홈 카드 한 줄이 잰 경계(ADR 0207) */
-      description: `이 사람 또는 두 사람 사이의 장점 하나를 그림 하나로 빗댄 한 줄 비유. 본문이 다룬 장점에 기댄다. 띄어쓰기 포함 ${READING_POLICY.metaphorLength.max}자 이하`,
+      /* 칸 이름은 옛 결과와의 호환으로 그대로다. 길이는 정책에서 읽는다 — 폰 화면의 가장 좁은 칸(360px 홈 「저장한 사람」 줄)에서 잰 경계(ADR 0207 추기) */
+      description: `본문으로 볼 때 이 사람 또는 두 사람 사이를 한눈에 알아보게 하는 것 하나에 빗댄 한 줄 비유. 띄어쓰기 포함 ${READING_POLICY.metaphorLength.max}자 이하`,
     },
     markdown: { type: 'string', description: '사용자가 읽을 본문. Markdown 원문' },
   },
@@ -62,10 +62,12 @@ const OUTPUT_SHAPE = {
 } satisfies JSONSchema7;
 
 /**
- * **본문을 먼저, 한 줄 요약을 마지막에** — 두 궁합의 읽는 법 4판이 쓴다(ADR 0067, `writesSummaryLast`).
+ * **본문을 먼저, 한 줄 요약을 마지막에** — 개인 풀이와 두 궁합의 읽는 법 4판이 쓴다(`writesSummaryLast`, ADR 0067 ·
+ * ADR 0207 추기 「v21」).
  *
- * 운영 모양은 `score · metaphor · markdown` 차례라 요약이 본문보다 먼저 지어진다. 구조화 출력은 속성 차례대로
- * 짓으므로, 요약을 본문의 핵심으로 쓰게 하려면 차례를 바꿔야 한다. 필드와 뜻은 같다.
+ * 옛 모양(`OUTPUT_SHAPE`)은 `score · metaphor · markdown` 차례라 요약이 본문보다 먼저 지어진다. 구조화 출력은 속성 차례대로
+ * 지으므로, 요약이 방금 쓴 본문에 기대게 하려면 차례를 바꿔야 한다. 필드와 뜻은 같다. 옛 모양은 원복 조립의 궁합
+ * (`pair-legacy`)만 쓴다.
  */
 const SUMMARY_LAST_SHAPE = {
   ...OUTPUT_SHAPE,
@@ -80,16 +82,16 @@ const SUMMARY_LAST_SHAPE = {
 /**
  * **이어쓰기 답을 맨 앞에** — 맛보기를 읽고 가입한 사람의 자기 풀이 실험이 쓴다(`continuationBlockOf`,
  * `docs/notes/2026-10-03-taste-run-experiment.md`). 구조화 출력은 속성 차례대로 지으므로, 답을 본문보다 먼저 쓰게 하려면
- * 차례가 앞이어야 한다. 나머지 셋은 운영 모양 그대로다. 운영 제출(`submitBackgroundReading`)은 이어진 세션이 있을 때만
- * 이 모양으로 낸다(ADR 0143).
+ * 차례가 앞이어야 한다. 나머지 셋은 개인 풀이의 차례(본문 → 점수 → 한 줄 요약) 그대로다. 운영 제출(`submitBackgroundReading`)은
+ * 이어진 세션이 있을 때만 이 모양으로 낸다(ADR 0143).
  */
 const CONTINUATION_SHAPE = {
-  ...OUTPUT_SHAPE,
+  ...SUMMARY_LAST_SHAPE,
   properties: {
     continuationAnswer: CONTINUATION_ANSWER_PROPERTY,
-    ...OUTPUT_SHAPE.properties,
+    ...SUMMARY_LAST_SHAPE.properties,
   },
-  required: ['continuationAnswer', ...OUTPUT_SHAPE.required],
+  required: ['continuationAnswer', ...SUMMARY_LAST_SHAPE.required],
 } satisfies JSONSchema7;
 
 /** 실험이 견주는 추론 세기 — provider 가 받는 값 가운데 우리가 부르는 넷 */
@@ -296,14 +298,14 @@ export async function submitBackgroundReading(
   prompt: string,
   runId: string,
   /**
-   * 한 줄 요약을 본문 뒤에 받는가 — **두 궁합의 4판만**(`writesSummaryLast`, ADR 0067). 필드와 뜻은 같고
-   * 차례만 다르다. 안 넘기면 운영 차례 그대로다.
+   * 한 줄 요약을 본문 뒤에 받는가 — 개인 풀이와 두 궁합의 4판(`writesSummaryLast`, ADR 0067 · ADR 0207 추기). 필드와 뜻은
+   * 같고 차례만 다르다. 안 넘기면 옛 차례(`score · metaphor · markdown`)다.
    */
   options: {
     summaryLast?: boolean;
     /**
      * 이어쓰기 답(`continuationAnswer`)을 맨 앞 칸으로 받는가 — 귀속된 맛보기가 이 시도에 이어졌을 때만(ADR 0143). 안 넘기면
-     * 운영 모양 그대로다. 자기 풀이에만 오므로 두 궁합의 차례(`summaryLast`)와 함께 오지 않는다.
+     * 이어쓰기 없는 모양이다. 자기 풀이에만 오고, 그 뒤 차례는 자기 풀이의 것(본문 → 한 줄 요약)이다.
      */
     continuation?: boolean;
   } = {},
