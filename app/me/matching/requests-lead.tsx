@@ -218,7 +218,9 @@ function DecidedLine({ request }: { request: DecidedRequest }) {
 }
 
 /**
- * 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행**. 얼굴 · 이름 줄을 누르면 상대 프로필 시트가 열린다(`RequestFace`, G-103)
+ * 요청 한 장의 머리 — 닉네임·사진과 **양쪽 방향의 오행**. 얼굴 · 이름 줄(이름 곁 「›」)을 누르면 상대 프로필 시트가 열린다(`RequestFace`, G-103).
+ * **소개는 카드에 없다 — 그 시트에서만 본다**(운영자 결정 2026-10-27 「자기소개는 그냥 해당 사람 프로필 눌러서 보는 게 낫지 않냐」). 소개가
+ * 최대 500자가 된 뒤 받은 요청 카드에서 소개가 폰 17줄이라 「수락」이 화면 아래로 밀렸다. 소개 글은 시트의 `partner.intro` 로만 간다.
  */
 function RequestHead({ request, large = false }: { request: InboxRequest; large?: boolean }) {
   return (
@@ -239,8 +241,6 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
           </time>
         }
       />
-
-      {request.intro !== null && <p className="text-sm leading-6 text-secondary">{request.intro}</p>}
 
       {/* 내 자리 기준이다 — 방향은 DB 가 뒤집어 준다 */}
       <ElementExchange exchange={request} partner={{ nickname: request.nickname }} />
