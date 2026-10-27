@@ -21,7 +21,9 @@ import {
 import {
   PLAIN_FORBIDDEN_TERMS,
   READING_BLOCKING_CODES,
+  copiesMetaphorExample,
   findingForRecord,
+  metaphorToStore,
   plainTermsIn,
   secretForms,
   type BirthSecret,
@@ -228,7 +230,7 @@ const OK_MARKDOWN = `## 한 줄로\n${'두 사람 사이에 성립하는 것을 
 
 const ok = (kind: ReadingKind) => ({
   kind,
-  output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: isScored(kind) ? 72 : null, markdown: OK_MARKDOWN },
+  output: { metaphor: '같은 보폭으로 걷는 두 사람', score: isScored(kind) ? 72 : null, markdown: OK_MARKDOWN },
   evidenceText: JSON.stringify(evidenceFor(kind).evidence),
   secrets: [SECRET],
 });
@@ -269,7 +271,7 @@ describe('검사의 두 갈래 — 막는 것과 내보내고 적는 것', () =>
   it.each<[string, Parameters<typeof checkReading>[0], string]>([
     ['짧은 본문', withBody('self', '## 한 줄로\n짧은 글입니다.'), 'length-out-of-contract'],
     ['긴 본문', withBody('self', `## 한 줄로\n${'긴 글입니다. '.repeat(2_000)}`), 'length-out-of-contract'],
-    ['긴 비유', withBody('self', OK_MARKDOWN, { metaphor: '가'.repeat(121) }), 'metaphor-out-of-contract'],
+    ['긴 비유', withBody('self', OK_MARKDOWN, { metaphor: '가'.repeat(READING_POLICY.metaphorLength.max + 1) }), 'metaphor-out-of-contract'],
     ['빈 비유', withBody('self', OK_MARKDOWN, { metaphor: ' ' }), 'metaphor-out-of-contract'],
     ['자기 풀이의 점수', withBody('self', OK_MARKDOWN, { score: 70 }), 'score-out-of-contract'],
     ['기준점에서 멀리 간 점수', { ...withBody('match', OK_MARKDOWN, { score: 99 }), baseline: 40 }, 'score-out-of-contract'],
@@ -383,6 +385,48 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   });
 
   /**
+   * **막는 값은 폰 한 줄의 잰 경계다**(#842, ADR 0207) — 띄어쓰기를 넣어 센다. 20자는 지나고 21자는 걸린다.
+   */
+  it('한 줄 비유는 띄어쓰기 포함 20자까지 지나고 21자에서 걸린다', () => {
+    const fits = ok('self');
+    fits.output.metaphor = '가나다 라마바 사아자 차카타 파하가나';
+    expect(fits.output.metaphor.length).toBe(20);
+    expect(codesOf(checkReading(fits))).toEqual([]);
+
+    const over = ok('self');
+    over.output.metaphor = `${fits.output.metaphor}라`;
+    expect(codesOf(checkReading(over))).toEqual(['metaphor-out-of-contract']);
+    const verdict = checkReading(over);
+    expect(verdict.ok ? [] : verdict.failures.map((f) => f.detail)).toEqual(['21자 — 폰 한 줄에 안 든다 (20 이하)']);
+  });
+
+  /**
+   * **본보기를 옮기면 적고 비유 없이 저장한다**(ADR 0207). 띄어쓰기 · 문장 부호를 바꾸거나 꼬리만 붙여도 옮긴 것이다.
+   * 본보기와 소재만 같은 다른 문장은 옮긴 것이 아니다 — 같은 낱말(호랑이 · 들풀)을 막는 것이 아니다.
+   */
+  it('프롬프트 본보기를 그대로 옮긴 비유는 걸리고, 저장할 비유가 없다', () => {
+    const [first] = READING_POLICY.metaphorExamples.solo;
+    const [pairFirst] = READING_POLICY.metaphorExamples.pair;
+    const copied = [first.line, ` ${first.line}.`, first.line.replaceAll(' ', ''), `${first.line} 같은 사람`, `「${pairFirst.line}」`];
+
+    for (const line of copied) {
+      const one = ok('self');
+      one.output.metaphor = line;
+      expect(codesOf(checkReading(one)), line).toEqual(['metaphor-out-of-contract']);
+      expect(copiesMetaphorExample(line), line).toBe(true);
+      expect(metaphorToStore(line), line).toBeNull();
+    }
+
+    for (const line of ['나무 위에서 쉬는 호랑이', '돌담 아래 핀 들풀', '같은 보폭으로 걷는 두 사람']) {
+      expect(copiesMetaphorExample(line), line).toBe(false);
+      expect(metaphorToStore(line), line).toBe(line);
+    }
+    expect(metaphorToStore('  ')).toBeNull();
+    /* 길이를 넘은 비유는 그대로 저장한다 — 화면이 자른다(ADR 0163) */
+    expect(metaphorToStore('가'.repeat(30))).toBe('가'.repeat(30));
+  });
+
+  /**
    * **실제 호출이 여기서 떨어졌다.** 프롬프트 9절이 「문답 형식」만 시키니 모델이
    * `**Q. 공부나 자격증은 잘 맞나요?**` 로 썼고, 자기 풀이 본문의 라틴 문자 한 종
    * (`Q`)에 `non-korean-self-body` 가 걸렸다.
@@ -394,7 +438,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     const withQuestion = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**질문 1. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
     const withLatin = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**Q. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
 
-    const self = (markdown: string) => ({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown } });
+    const self = (markdown: string) => ({ ...ok('self'), output: { metaphor: '같은 보폭으로 걷는 두 사람', score: null, markdown } });
 
     expect(codesOf(checkReading(self(withQuestion)))).toEqual([]);
     expect(codesOf(checkReading(self(withLatin)))).toContain('non-korean-self-body');
@@ -413,7 +457,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   describe('자료 경로가 본문에 새면 걸린다', () => {
     const withBody = (kind: ReadingKind, body: string) => ({
       ...ok(kind),
-      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
+      output: { metaphor: '같은 보폭으로 걷는 두 사람', score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
     });
 
     it('점 찍힌 경로가 본문에 있으면 걸린다', () => {
@@ -802,25 +846,25 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   );
 
   it('점수는 있어야 할 때 있고 없어야 할 때 없다', () => {
-    const withScore = checkReading({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 70, markdown: OK_MARKDOWN } });
+    const withScore = checkReading({ ...ok('self'), output: { metaphor: '같은 보폭으로 걷는 두 사람', score: 70, markdown: OK_MARKDOWN } });
     expect(codesOf(withScore)).toContain('score-out-of-contract');
 
-    const without = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: OK_MARKDOWN } });
+    const without = checkReading({ ...ok('match'), output: { metaphor: '같은 보폭으로 걷는 두 사람', score: null, markdown: OK_MARKDOWN } });
     expect(codesOf(without)).toContain('score-unreadable');
   });
 
   it.each([-1, 101, 72.5])('점수 %s 는 읽을 수 없는 점수다 — 막는다', (score) => {
-    const result = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score, markdown: OK_MARKDOWN } });
+    const result = checkReading({ ...ok('match'), output: { metaphor: '같은 보폭으로 걷는 두 사람', score, markdown: OK_MARKDOWN } });
     expect(codesOf(result)).toContain('score-unreadable');
     expect(blockingFindingsOf(result.ok ? [] : result.failures).map((f) => f.code)).toEqual(['score-unreadable']);
   });
 
   it('빈 글은 지나가지 못한다 — 근거 절만 있고 본문이 빈 글도', () => {
-    const result = checkReading({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: '   ' } });
+    const result = checkReading({ ...ok('self'), output: { metaphor: '같은 보폭으로 걷는 두 사람', score: null, markdown: '   ' } });
     expect(codesOf(result)).toContain('body-unstorable');
     const groundingOnly = checkReading({
       ...ok('self'),
-      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: `### 근거 (검사용)\n\n${'근거 줄. '.repeat(100)}` },
+      output: { metaphor: '같은 보폭으로 걷는 두 사람', score: null, markdown: `### 근거 (검사용)\n\n${'근거 줄. '.repeat(100)}` },
     });
     expect(codesOf(groundingOnly)).toContain('body-unstorable');
   });

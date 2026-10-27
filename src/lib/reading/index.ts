@@ -154,7 +154,9 @@ export {
 export {
   blockingFindingsOf,
   checkReading,
+  copiesMetaphorExample,
   findingForRecord,
+  metaphorToStore,
   plainTermsIn,
   withoutLeakedPaths,
   type BirthSecret,

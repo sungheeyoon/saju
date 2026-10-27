@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { baselineIn } from '@/src/lib/reading';
+import { READING_POLICY, baselineIn } from '@/src/lib/reading';
 import { CITY_LONGITUDES, computeSaju } from '@/src/lib/saju';
 
 import { readingInputOf } from './generator';
@@ -99,7 +99,7 @@ const jobOf = (kind: 'self' | 'match') => {
 };
 
 const GOOD = `## 한 줄로\n${'스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20)}`;
-const METAPHOR = '결정은 빠르지만 끝에서 다시 확인해 완성에서 강해지는 사람';
+const METAPHOR = '끝에서 한 번 더 다지는 목수';
 const USAGE = {
   inputTokens: 1200,
   noCacheTokens: 1200,
@@ -207,6 +207,24 @@ describe('가져온 글은 막는 검사를 넘어야 저장된다', () => {
     for (const finding of noted()?.p_findings ?? []) expect(finding.detail).not.toContain('짧은 글입니다');
     const order = keyedRpc.mock.calls.map(([name]) => name);
     expect(order.indexOf('note_reading_checks')).toBeGreaterThan(order.indexOf('save_reading'));
+  });
+
+  /**
+   * **한 줄 비유 — 본보기를 옮기면 비유 없이, 길면 그대로 저장한다**(ADR 0207 · 0163). 둘 다 적는다.
+   */
+  it('프롬프트 본보기를 옮긴 비유는 비유 없이 저장하고, 20자를 넘은 비유는 그대로 저장한다', async () => {
+    const example = READING_POLICY.metaphorExamples.solo[0].line;
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null, metaphor: `${example} 같은 사람` }));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1]).toMatchObject({ p_metaphor: null });
+    expect(noted()?.p_findings.map((f) => f.code)).toEqual(['metaphor-out-of-contract']);
+
+    keyedRpc.mockClear();
+    const long = '가'.repeat(READING_POLICY.metaphorLength.max + 1);
+    retrieve.mockResolvedValue(answered({ markdown: GOOD, score: null, metaphor: long }));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1]).toMatchObject({ p_metaphor: long });
+    expect(noted()?.p_findings.map((f) => f.code)).toEqual(['metaphor-out-of-contract']);
   });
 
   it('본문에 샌 경로는 괄호째 걷어 저장하고 걷었다고 적는다', async () => {

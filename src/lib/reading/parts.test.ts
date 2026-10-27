@@ -169,41 +169,72 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
  * 곧 실패가 되고, 그것이 방금 겪은 그 일이다.
  */
 describe('시키는 값과 막는 값', () => {
-  it('비유 길이를 네 kind 모두에게 말한다', () => {
-    const { target } = READING_POLICY.metaphorLength;
-
-    for (const kind of READING_KINDS) {
-      expect(READING_PROMPTS[kind], kind).toContain(`${target}자 안팎`);
-    }
-  });
-
-  it('막는 값이 시키는 값보다 넉넉하다 — 한 자 넘었다고 버리지 않는다', () => {
+  it('비유 길이를 네 kind 모두에게 말한다 — 시키는 값과 막는 값을 함께', () => {
     const { target, max } = READING_POLICY.metaphorLength;
 
-    expect(max).toBeGreaterThan(target);
-    /* 「조금 길다」가 아니라 「한 문장이 아니다」를 막는 자리다 — 두 배는 떨어져 있어야 한다 */
-    expect(max).toBeGreaterThanOrEqual(target * 2);
+    for (const kind of READING_KINDS) {
+      expect(READING_PROMPTS[kind], kind).toContain(`${target}자 안팎, 많아도 ${max}자`);
+    }
   });
 
-  it('한 줄 요약은 비유 없이 대상 고유의 작동 방식을 직접 말한다', () => {
-    expect(READING_PROMPTS.self).toContain('이 사람의 핵심 작동 방식');
+  /**
+   * **막는 값은 잰 경계 안이다**(#842, ADR 0207). 360px 폰 홈 카드 한 줄에 22자가 든다 — 막는 값이 그 위로 오르면 「…」로
+   * 잘리는 글을 검사가 지나 보낸다. 시키는 값은 막는 값보다 낮아야 「안팎」이 경계를 넘지 않는다.
+   */
+  it('막는 값은 폰 한 줄(22자) 안이고, 시키는 값은 그보다 낮다', () => {
+    const { target, max } = READING_POLICY.metaphorLength;
+    const HOME_CARD_360 = 22;
 
-    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
-      expect(READING_PROMPTS[kind], kind).toContain('## 한 줄 요약');
-      expect(READING_PROMPTS[kind], kind).toContain('본문을 다 쓴 뒤에');
-      expect(READING_PROMPTS[kind], kind).toContain('비유가 아니다');
-      expect(READING_PROMPTS[kind], kind).toContain('자연 풍경·오행 물상으로 돌려 말하지 않는다');
-      expect(READING_PROMPTS[kind], kind).toContain('누구에게나 붙는 말이면 다시 쓴다');
-      expect(READING_PROMPTS[kind], kind).not.toContain('## 한마디로 빗대면');
+    expect(max).toBeLessThanOrEqual(HOME_CARD_360);
+    expect(target).toBeLessThan(max);
+  });
+
+  it('본보기는 막는 값 안이고, 그 kind 의 지시문에 장점과 함께 선다', () => {
+    const { max } = READING_POLICY.metaphorLength;
+    const { solo, pair } = READING_POLICY.metaphorExamples;
+
+    for (const { line, strength } of [...solo, ...pair]) {
+      expect(line.length, line).toBeLessThanOrEqual(max);
+      expect(strength, line).not.toBe('');
+    }
+    for (const kind of READING_KINDS) {
+      const own = isSolo(kind) ? solo : pair;
+      const other = isSolo(kind) ? pair : solo;
+      for (const { line, strength } of own) expect(READING_PROMPTS[kind], kind).toContain(`「${line}」(${line.length}자) — ${strength}`);
+      for (const { line } of other) expect(READING_PROMPTS[kind], kind).not.toContain(line);
+      expect(READING_PROMPTS[kind], kind).toContain('본보기 — **그대로 쓰지 않는다.**');
+    }
+  });
+
+  it('한 줄 요약은 장점 하나를 그림 하나로 빗댄 한 줄 비유다', () => {
+    for (const kind of READING_KINDS) {
+      const prompt = READING_PROMPTS[kind];
+      expect(prompt, kind).toContain('## 한 줄 요약');
+      expect(prompt, kind).toContain(isSolo(kind) ? '**이 사람의 장점 하나를 그림 하나로 빗댄 한 줄 비유**' : '**이 관계의 장점 하나를 그림 하나로 빗댄 한 줄 비유**');
+      expect(prompt, kind).toContain('그림을 둘 이상 겹치지 않는다');
+      expect(prompt, kind).toContain('본문이 다루지 않는 장점을 새로 만들지 않는다');
+      /* 접었던 판(ADR 0056 개정)의 지시가 남지 않는다 */
+      expect(prompt, kind).not.toContain('비유하지 말고 직접 요약한다');
+      expect(prompt, kind).not.toContain('비유가 아니다');
+      expect(prompt, kind).not.toContain('## 한마디로 빗대면');
     }
 
+    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
+      expect(READING_PROMPTS[kind], kind).toContain('본문을 다 쓴 뒤에');
+      expect(READING_PROMPTS[kind], kind).toContain('**방금 쓴 본문이 실제로 다룬 장점 하나**');
+      expect(READING_PROMPTS[kind], kind).toContain('두 사람의 호칭을 넣지 않는다');
+    }
     for (const kind of READING_KINDS.filter(isSolo)) {
-      expect(READING_PROMPTS[kind], kind).toContain('## 한 줄 요약');
-      expect(READING_PROMPTS[kind], kind).toContain('비유하지 말고 직접 요약한다');
-      expect(READING_PROMPTS[kind], kind).toContain('자연 풍경이나 오행의 물상');
-      expect(READING_PROMPTS[kind], kind).toContain('누구에게나 붙는 운세 문구는 실패다');
-      expect(READING_PROMPTS[kind], kind).not.toContain('## 한마디로 빗대면');
-      expect(READING_PROMPTS[kind], kind).not.toContain('비유의 소재와 문장 꼴은 자유롭게 고른다');
+      expect(READING_PROMPTS[kind], kind).toContain('에서 실제로 풀어 쓸 장점 하나**');
+      /* 개인 풀이는 첫 절 맨 앞이 비유를 푼다(운영자 결정 2026-10-27) — 비유 절과 첫 절이 같은 말을 한다 */
+      expect(READING_PROMPTS[kind], kind).toContain('첫 절 맨 앞에서 왜 이 비유인지 풀어 준다');
+      expect(READING_PROMPTS[kind], kind).toContain('**맨 앞에 한두 문장으로 한 줄 비유를 풀어 준다**');
+      expect(READING_PROMPTS[kind], kind).not.toContain('본문에는 이 줄을 다시 적지 않는다');
+    }
+    /* 궁합은 비유를 본문 뒤에 지어 본문이 비유를 모른다 — 그대로다 */
+    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
+      expect(READING_PROMPTS[kind], kind).toContain('본문에는 이 줄을 다시 적지 않는다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('한 줄 비유를 풀어 준다');
     }
   });
 
@@ -420,11 +451,11 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이는 v15, 궁합은 v17 이다', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v18');
+  it('개인 풀이와 궁합이 함께 v19 다 — 한 줄 비유(ADR 0207)', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v19');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v19');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v18');
+      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v19');
     }
   });
 

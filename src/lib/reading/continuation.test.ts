@@ -144,6 +144,19 @@ describe('첫 절의 1번은 이어쓰기 답이다 — 한 번만 선다', () =
     expect(shown).toContain('1. 첫 문장이에요. 둘째 문장이에요.\n2. ');
   });
 
+  /**
+   * **첫 절 맨 앞에 비유를 푸는 문단이 서도 1번은 그 뒤 2번 앞에 든다**(ADR 0207 덧, 2026-10-27) — 문단은 번호가 없어 항목으로
+   * 안 센다.
+   */
+  it('비유를 푸는 머리 문단이 있어도 답은 2번 앞에 든다', () => {
+    const lead = '높은 가지의 호랑이는 서두르지 않고 때를 보는 눈을 뜻해요.';
+    const withLead = MARKDOWN.replace('## 먼저 볼 핵심 세 가지\n\n', `## 먼저 볼 핵심 세 가지\n\n${lead}\n\n`);
+    expect(reasonsOf({ markdown: withLead }).join(' / ')).not.toContain('첫 절 항목 번호');
+    const shown = continuedMarkdownOf(ANSWER, withLead);
+    expect(firstSectionItemNumbersOf(shown)).toEqual([1, 2, 3]);
+    expect(shown).toContain(`${lead}\n\n1. ${ANSWER}\n2. `);
+  });
+
   it('2번이 없으면 지어내 끼우지 않는다', () => {
     const plain = '## 먼저 볼 핵심 세 가지\n\n본문만 있어요.';
     expect(continuedMarkdownOf(ANSWER, plain)).toBe(plain);

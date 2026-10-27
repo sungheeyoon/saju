@@ -4,6 +4,7 @@ import {
   checkReading,
   findingForRecord,
   isScored,
+  metaphorToStore,
   withoutLeakedPaths,
   type BirthSecret,
   type CheckFinding,
@@ -268,8 +269,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_run_id: job.run_id,
     p_output: output.markdown,
     p_score: isScored(job.kind) ? output.score : null,
-    /* 빈 비유는 비유가 없는 것이다 — 화면은 비유 없는 풀이를 그린다(`metaphor-out-of-contract` 로 적었다) */
-    p_metaphor: metaphor.trim() === '' ? null : metaphor,
+    /* 빈 비유 · 본보기를 옮긴 비유는 비유가 없는 것이다 — 화면은 비유 없는 풀이를 그린다(`metaphor-out-of-contract` 로 적었다, ADR 0207) */
+    p_metaphor: metaphorToStore(metaphor),
     p_evidence: job.evidence,
     p_prompt: job.prompt,
     p_prompt_version: job.prompt_version,
