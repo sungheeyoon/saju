@@ -40,6 +40,9 @@ type Pillar = { readonly stem: Stem; readonly branch: Branch } | null;
  *
  * 시각을 모르면 그 칸은 비워 두고 보조기기에만 「출생 시각 모름」을 말한다 — 좁은 칸에 네 글자를 욱여넣으면
  * 폰 폭에서 줄이 넘친다.
+ *
+ * **큰 띠(`lg`)는 천간을 위, 지지를 아래로 세운다** — 명식표가 기둥을 읽는 차례 그대로다. 궁합 화면은 두 사람의 띠가
+ * 넓은 화면에서도 반쪽 폭(보관함 오른쪽 판에서 칸 안쪽 약 36px)에 서서, 26px 두 글자를 옆으로 놓으면 칸 밖으로 나갔다.
  */
 export function PillarStrip({
   pillars,
@@ -51,7 +54,7 @@ export function PillarStrip({
   name: string;
   size?: 'md' | 'lg';
 }) {
-  const glyph = size === 'lg' ? 'text-title' : 'text-lead';
+  const glyph = size === 'lg' ? 'flex flex-col items-center text-title' : 'text-lead';
 
   return (
     <div role="group" aria-label={`${name}의 네 기둥`} className="grid grid-cols-4 gap-1.5">
