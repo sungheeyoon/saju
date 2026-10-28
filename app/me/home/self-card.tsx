@@ -15,7 +15,6 @@ import type { ReadingEntry } from '@/src/lib/reading';
 import { withFromMe } from './from-me';
 import { SELF_READING_MAKING } from './making';
 import { LINK_PENDING_SPINNER, LinkPending } from '../../ui/link-pending';
-import { TYPE_TITLE } from '../../ui/surfaces';
 import type { HomeFace } from './self-face';
 import { SelfProfile } from './self-profile';
 
@@ -33,6 +32,14 @@ import { SelfProfile } from './self-profile';
   **이 카드에는 고치는 손잡이가 없다**(2026-10-26 운영자) — 모서리에 뜨던 연필(「출생 정보 수정」)은 걷었고, 출생 정보는 프로필
   화면(`/me/profile`)의 「출생 정보」 판에서 고친다. 그 자리는 일간 딱지가 든다(아래 머리).
 */
+
+/**
+ * 카드 머리의 이름 — 폰 20/28 · 넓은 화면 26/35, **시스템 서체 600**(운영자 결정 2026-10-28 「T1」). 둥근 서체는 굵기가 400 하나라 굵게
+ * 주면 가짜 굵기가 선다(`app/ui/scale.test.ts`) — 운영자가 이 이름 하나만 시스템 서체 굵게로 골랐다. 다른 제목은 둥근 서체 그대로다.
+ * 줄 높이는 정수 px 다 — 머리 높이가 소수면 아래 결과 바로가기가 반 픽셀 자리에 선다(`TYPE_TITLE` 의 주석, #836)
+ */
+const NAME_FACE =
+  'text-heading font-semibold leading-7 tracking-[-0.01em] text-foreground sm:text-title sm:leading-[2.1875rem] sm:tracking-[-0.02em]';
 
 export function SelfCard({
   personId,
@@ -83,7 +90,11 @@ export function SelfCard({
       aria-label="내 사주"
       className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-card bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
-      <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
+      {/* 오행 칸이 채움을 벗은 뒤(2026-10-28) 넓은 화면에서 이 그림이 「물」 칸 숫자 뒤로 비쳐 — 넓은 화면은 더 아래 · 더 옅게 */}
+      <StemSymbol
+        stem={saju.pillars.dayMaster}
+        className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:-bottom-20 sm:size-56 sm:opacity-10"
+      />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
       <header className="relative flex min-w-0 flex-col gap-2 sm:gap-3">
@@ -102,12 +113,16 @@ export function SelfCard({
             끊고(`break-keep`), 띄어 쓰지 않은 긴 이름만 아무 데서나 끊는다(`overflow-wrap: anywhere`)
           */}
           <div className="flex min-w-0 flex-col">
-            <h2 className={`min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${TYPE_TITLE}`}>{label}</h2>
+            {/*
+              **이름은 구역 제목 단(20px) 굵게, 넓은 화면은 26px**(운영자 결정 2026-10-28 「T1」) — 화면 제목 단(26 · 30)은 카드 안 한 사람의
+              이름에 너무 커서 아래 출생 정보 줄과 균형이 맞지 않았다
+            */}
+            <h2 className={`min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${NAME_FACE}`}>{label}</h2>
             {/*
               **폰은 출생 정보가 이름 바로 아래 한 줄이다**(운영자 결정 2026-10-26) — 「생년월일 시각 · 출생지」, 시각을 모르면 시각 자리를
               비우고 끝에 「· 출생 시각 모름」(`HOUR_UNKNOWN_LABEL`, 그 낱말은 끊지 않는다). 넓은 화면은 아래 출생 정보 상자(`BirthLine`)가 든다
             */}
-            <p className="text-small tabular-nums text-secondary sm:hidden">
+            <p className="mt-0.5 text-fine tabular-nums text-secondary sm:hidden">
               {query.date}
               {query.hourKnown === false ? '' : ` ${query.time}`} · {query.city}
               {query.hourKnown === false && (
@@ -124,8 +139,12 @@ export function SelfCard({
             줄인 판은 폰에서 **두 줄**까지이고 넘치면 둘째 줄 끝에서 말줄임이다(운영자 결정 2026-10-28 — 비유의 상한이 결과 카드
             세 줄이 되며 한 줄에서 두 줄로 늘렸다, ADR 0207 추기 「v23」). 넓은 화면은 어절로 끊어(`break-keep`) 다 선다
           */
+          /*
+            **비유는 옅은 띠 안이다**(운영자 결정 2026-10-28 「C」) — 이름 줄과 오행 줄 사이에 맨글로 끼어 답답해 보였다. 띠의 위아래로 숨을
+            두고 안쪽 여백을 줘 비유가 한 덩어리로 따로 읽힌다(근접성)
+          */
           <p
-            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
+            className={`mt-1.5 mb-1 break-keep rounded-cell bg-surface/55 px-3.5 py-2.5 font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
           >
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
@@ -190,7 +209,10 @@ export function SelfCard({
   );
 }
 
-/** 오행 분포 — 다섯 칸, 상징 · 이름 · 개수. 0 인 칸은 점선으로 비운다 */
+/**
+ * 오행 분포 — 다섯 칸, 상징 · 이름 · 개수. **칸은 채우지 않는다**(운영자 결정 2026-10-28 「E3」) — 흰 칸이 곁의 「만세력 보기」 단추와
+ * 같은 겉모양이었다. 0 인 칸은 옅게 둔다(폰 줄과 같다)
+ */
 function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
   const { counts, glyphCount } = saju.analysis.elements;
   return (
@@ -202,9 +224,7 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
           return (
             <li
               key={element}
-              className={`${elementScope(element)} flex flex-col items-center gap-1 rounded-cell px-1 py-3 sm:gap-1.5 sm:py-5 ${
-                count === 0 ? 'border border-dashed border-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : 'bg-surface'
-              }`}
+              className={`${elementScope(element)} flex flex-col items-center gap-1 px-1 py-2 sm:gap-1.5 ${count === 0 ? 'opacity-40' : ''}`}
             >
               <ElementSymbol element={element} className="size-7 sm:size-10" />
               <span className="text-fine font-medium text-secondary sm:text-note">{ELEMENT_PICTURE_KO[element]}</span>
@@ -270,14 +290,21 @@ function ElementStrip({ saju }: { saju: Saju }) {
     ELEMENTS.map((element) => `${ELEMENT_PICTURE_KO[element]} ${counts[element]}`).join(', ') +
     (glyphCount !== 8 ? '. 출생 시각을 몰라 여섯 글자로 셌어요' : '');
   return (
-    <ul aria-label={`오행 분포 — ${said}`} className="relative flex gap-1.5 sm:hidden">
+    /*
+      **채움 없이 「오행」 이름을 앞에 단 한 줄**(운영자 결정 2026-10-28 「E3」) — 흰 알약 다섯이 아래 두 단추와 같은 겉모양이라 누를 것처럼
+      보였다. 정보는 채움 · 알약을 벗고, 무엇의 수인지 이름이 말한다. 누를 것은 단추만 알약이다
+    */
+    <ul aria-label={`오행 분포 — ${said}`} className="relative flex items-center justify-between gap-1 px-0.5 sm:hidden">
+      <li aria-hidden="true" className="border-r border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] pr-2.5 text-fine font-medium text-secondary">
+        오행
+      </li>
       {ELEMENTS.map((element) => {
         const count = counts[element];
         return (
           <li
             key={element}
             aria-hidden="true"
-            className={`${elementScope(element)} inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-surface py-1.5 text-small font-semibold tabular-nums text-[var(--ink)] ${count === 0 ? 'opacity-40' : ''}`}
+            className={`${elementScope(element)} inline-flex items-center gap-1 py-0.5 text-small font-semibold tabular-nums text-[var(--ink)] ${count === 0 ? 'opacity-40' : ''}`}
           >
             <ElementSymbol element={element} className="size-4" />
             {count}
