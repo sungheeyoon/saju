@@ -60,6 +60,19 @@ export async function deniedAmong(
   return DENIED;
 }
 
+/**
+ * 두 번째 요소를 안 지난 세션의 거절 — **운영자 문을 부르지 않고** 운영자가 아닌 사람과 같은 줄로 적는다(ADR 0209,
+ * `second-factor.ts`). 운영자의 aal1 세션이면 DB 의 `is_operator()` 가 이미 운영자가 아니라고 답하므로 `note_operator_denial` 이
+ * 그 줄을 적는다. 화면은 404 · 액션은 거절 글자를 그대로 낸다 — 적지 못해도 답은 같다.
+ */
+export async function refuseBeforeTheDoor(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  action: DeniedAction,
+  target: RefusedTarget = {},
+): Promise<void> {
+  await noteDenial(supabase, action, idOf(target.reportId) ?? null);
+}
+
 async function noteDenial(
   supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
   action: DeniedAction,

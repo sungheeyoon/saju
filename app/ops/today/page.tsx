@@ -5,6 +5,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { DENIED, operatorTodayFigures } from './read';
 import { TodayView } from './today-view';
+import { secondFactorGate } from '../second-factor';
 
 export const metadata = {
   title: '오늘의 숫자',
@@ -22,6 +23,7 @@ export default async function OperatorTodayPage() {
 
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
+  await secondFactorGate(supabase, 'today.figures', '/ops/today');
 
   const figures = await operatorTodayFigures();
   if (figures === DENIED) notFound();

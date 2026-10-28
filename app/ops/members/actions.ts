@@ -7,6 +7,7 @@ import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { UUID } from '../../uuid';
 import { noteWriteRefusal } from '../denial';
+import { writeWithoutSecondFactor } from '../second-factor';
 import { GRANT_MAX, NOTE_MAX, isGrantReason, type GrantRequest } from './credit-grant';
 import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from './suspension';
 
@@ -35,6 +36,8 @@ export async function bookCreditGrant(input: GrantRequest): Promise<Answer> {
   const action = input.kind === 'grant' ? 'credits.grant' : 'credits.revoke';
   const problem = shapeProblem(input);
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, action, { userId: input.userId });
+  if (unpassed !== null) return unpassed;
   if (problem !== null) {
     await noteWriteRefusal(supabase, action, '22023', { userId: input.userId });
     return { ok: false, message: problem };
@@ -97,6 +100,8 @@ export async function changeMemberStatus(input: StatusRequest): Promise<Answer> 
   const action = input.kind === 'unsuspend' ? 'members.unsuspend' : 'members.suspend';
   const problem = statusProblem(input);
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, action, { userId: input.userId });
+  if (unpassed !== null) return unpassed;
   if (problem !== null) {
     await noteWriteRefusal(supabase, action, '22023', { userId: input.userId });
     return { ok: false, message: problem };

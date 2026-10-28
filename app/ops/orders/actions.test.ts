@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 /** 부른 문을 적고, 문마다 정한 답을 내는 가짜 — 기록하는 두 문은 늘 성공 */
 const calls: { fn: string; args: Record<string, unknown> }[] = [];
 const answers = new Map<string, { data: unknown; error: { code: string; message: string } | null }>();
+/** 세션의 인증 수준 — 운영 액션은 aal2 가 아니면 문을 안 부른다(ADR 0209) */
+let aal = 'aal2';
 vi.mock('../../auth/server-client', () => ({
   supabaseOnServer: async () => ({
+    auth: { getClaims: async () => ({ data: { claims: { aal } }, error: null }) },
     rpc: async (fn: string, args: Record<string, unknown>) => {
       calls.push({ fn, args });
       return answers.get(fn) ?? { data: null, error: null };
@@ -25,6 +28,7 @@ const notes = () => calls.filter((call) => call.fn.startsWith('note_'));
 beforeEach(() => {
   calls.length = 0;
   answers.clear();
+  aal = 'aal2';
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -36,6 +40,22 @@ beforeEach(() => {
  * 적는지를 잰다.
  */
 describe('환불 누름의 거절 기록', () => {
+  it('2단계 인증 전의 세션(aal1)이면 세 누름 다 문을 안 부르고 denied 한 줄만 적는다', async () => {
+    aal = 'aal1';
+    const answers = [
+      await holdRefund({ orderId: ORDER, credits: 1, reason: 'other', expectedAmount: 0, requestId: HOLD }),
+      await bookRefund({ orderId: ORDER, holdId: HOLD, refundId: 'pg-1' }),
+      await releaseRefund({ orderId: ORDER, holdId: HOLD }),
+    ];
+    expect(answers.every((answer) => !answer.ok)).toBe(true);
+    expect(calls.map((call) => call.args.p_action)).toEqual([
+      'credits.refund_hold',
+      'credits.refund_book',
+      'credits.refund_release',
+    ]);
+    expect(calls.every((call) => call.fn === 'note_operator_denial')).toBe(true);
+  });
+
   it('확보 — 모양으로 거른 것은 두 기록 문을 다 부른다(운영자가 아니어도 denied 로 선다)', async () => {
     const answer = await holdRefund({ orderId: ORDER, credits: 0, reason: 'other', expectedAmount: 0, requestId: HOLD });
     expect(answer.ok).toBe(false);

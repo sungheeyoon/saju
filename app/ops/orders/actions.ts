@@ -6,6 +6,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { deniedAmong, noteWriteRefusal, type RefusedTarget, type WriteAction } from '../denial';
+import { writeWithoutSecondFactor } from '../second-factor';
 import { bookRefusalTarget } from './book-refusal';
 import { isRefundReason } from './labels';
 import type { PrepareRequest } from './refund-confirm';
@@ -47,6 +48,8 @@ export async function holdRefund(input: PrepareRequest): Promise<Answer<{ readon
       ? '걷을 회차를 1장 이상 골라 주세요.'
       : null;
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, 'credits.refund_hold', { orderId: input.orderId });
+  if (unpassed !== null) return unpassed;
   if (problem !== null) {
     await noteWriteRefusal(supabase, 'credits.refund_hold', '22023', { orderId: input.orderId });
     return { ok: false, message: problem };
@@ -79,6 +82,8 @@ export async function bookRefund(input: {
 }): Promise<Answer<{ readonly status: string }>> {
   const refundId = input.refundId.trim();
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, 'credits.refund_book', { orderId: input.orderId });
+  if (unpassed !== null) return unpassed;
   if (refundId === '') {
     await noteWriteRefusal(supabase, 'credits.refund_book', '22023', await bookRefusalTarget(supabase, '22023', input));
     return { ok: false, message: 'PG 취소 번호를 적어 주세요.' };
@@ -104,6 +109,8 @@ export async function bookRefund(input: {
  */
 export async function releaseRefund(input: { readonly orderId: string; readonly holdId: string }): Promise<Answer> {
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, 'credits.refund_release', { orderId: input.orderId });
+  if (unpassed !== null) return unpassed;
 
   const held = await supabase.rpc(
     'operator_reading_refund_hold',

@@ -11,6 +11,7 @@ import { FIELD } from '../../ui/fields';
 import { CARD } from '../../ui/surfaces';
 import { Asked, Departed, Others } from './order-view';
 import { DENIED, NO_ORDER, refundBasis } from './read';
+import { backTo, secondFactorGate } from '../second-factor';
 
 export const metadata = {
   title: '주문',
@@ -39,7 +40,10 @@ export default async function OperatorOrdersPage({
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const raw = (await searchParams).order;
+  const params = await searchParams;
+  await secondFactorGate(supabase, 'credits.refund_basis', backTo('/ops/orders', params));
+
+  const raw = params.order;
   const typed = typeof raw === 'string' ? raw.trim() : '';
   const orderId = typed === '' ? null : readingOrderIdOf(typed);
 
