@@ -395,7 +395,7 @@ export function ApproachMap({
             )}
             {!arc && (now || status === 'kept') && (
               <span className={`${ORBIT_NAME_TAG} pointer-events-none ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`} style={{ boxShadow: ORBIT_RING.tag }}>
-                <span className="font-rounded text-body">{card.nickname}</span>
+                <span className="font-semibold text-body">{card.nickname}</span>
                 {now && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>}
               </span>
             )}
@@ -464,7 +464,7 @@ function PickedCard({ card, now }: { card: DeckCard; now: boolean }) {
       >
         <CandidatePhoto card={card} />
       </span>
-      <span className="font-rounded min-w-0 truncate text-body text-foreground">{card.nickname}</span>
+      <span className="min-w-0 truncate text-body font-semibold text-foreground">{card.nickname}</span>
       <span className="text-small font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>
       {supply !== null && (
         <span className="ml-auto flex shrink-0 items-center gap-1 text-fine font-semibold text-secondary">
@@ -496,7 +496,7 @@ function Me({ me, arc, small, ripple }: { me: MeMark | null; arc: boolean; small
         <span
           className={`${place} pointer-events-none absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-dashed border-[color-mix(in_srgb,var(--foreground)_30%,transparent)] bg-[var(--surface)]`}
         >
-          <span className={`font-rounded ${arc ? '-translate-y-3 text-body' : 'text-lead'} text-secondary`}>나</span>
+          <span className={`font-semibold ${arc ? '-translate-y-3 text-body' : 'text-lead'} text-secondary`}>나</span>
         </span>
       </>
     );

@@ -74,11 +74,12 @@
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /*
-    **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
-    라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
-    제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
+    **글씨는 부산단디명조 하나다**(ADR 0109 추기, 운영자 결정 2026-10-28 — 2026-09-30 의 「본문은 기기 글꼴」과 2026-10-24 의
+    「제목은 고운돋움」을 바꿨다). 기기 서체(`--font-system`)는 글꼴을 받기 전의 자리 · 한자 그림(`.glyph`)에만 남는다.
   */
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  /* 앱의 글씨 — 부산단디명조(`public/fonts/busan-dandi/`), 받기 전에는 기기 서체(ADR 0109 추기 2026-10-28) */
+  --font-app: "Busan Dandi Myeongjo", var(--font-system);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -176,9 +177,10 @@
   --shadow-soft: var(--elevation-soft);
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
-  --font-sans: var(--font-system);
+  --font-sans: var(--font-app);
   /* 제목 · 서비스 이름 · 인용의 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
-  --font-rounded: var(--font-gowun-dodum), var(--font-system);
+  /* 옛 「둥근 서체」 자리(`font-rounded`)도 앱 글씨 하나다 — 2026-10-28 부터 서체를 가르지 않는다 */
+  --font-rounded: var(--font-app);
 
   /*
     **글자 크기의 단** — 화면은 `text-small` 처럼 부르고 `text-[13px]` 로 다시 적지 않는다(잠금 `app/ui/scale.test.ts`).
@@ -246,7 +248,7 @@ body {
   */
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-system);
+  font-family: var(--font-app);
   letter-spacing: -0.012em;
   line-height: 1.65;
   /* 한국어는 낱말 가운데서 안 끊는다 — 1차 스크린샷에서 「서로/를」 「있습니/다」로 끊겼다 */

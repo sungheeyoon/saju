@@ -42,3 +42,50 @@ describe('풀이 원문을 덩이로 나눈다', () => {
     ]);
   });
 });
+
+/**
+ * **글의 모양**(ADR 0208) — 절 요약 줄 · 번호 카드 · 라벨 행. 모양을 어긴 글은 지금처럼 문단 · 목록으로 선다.
+ */
+describe('글의 모양을 알아본다', () => {
+  it('소제목 아래 `>` 한 줄은 절 요약이다', () => {
+    expect(markdownBlocks('## 일과 돈\n> 책임이 분명한 자리에서 오래 가요.\n\n본문이에요.').slice(0, 2)).toEqual([
+      { kind: 'heading', depth: 2, text: '일과 돈' },
+      { kind: 'summary', text: '책임이 분명한 자리에서 오래 가요.' },
+    ]);
+  });
+
+  it('`1. **제목** — 설명` 은 번호 카드다', () => {
+    expect(markdownBlocks('1. **혼자 판단할 때 또렷해요** — 자기 방식으로 밀 때 가장 잘해요.')).toEqual([
+      { kind: 'point', number: '1', title: '혼자 판단할 때 또렷해요', text: '자기 방식으로 밀 때 가장 잘해요.' },
+    ]);
+  });
+
+  it('제목 없는 번호 항목은 지금처럼 번호 문단이다', () => {
+    expect(markdownBlocks('1. 하나예요.')).toEqual([{ kind: 'paragraph', text: '1. 하나예요.', lead: false }]);
+  });
+
+  it('항목이 모두 `라벨: 내용` 이면 라벨 행이다', () => {
+    expect(markdownBlocks('- 신호: 일정이 밀려요.\n- 이렇게: 범위를 다시 정하세요.')).toEqual([
+      {
+        kind: 'labels',
+        rows: [
+          { label: '신호', text: '일정이 밀려요.' },
+          { label: '이렇게', text: '범위를 다시 정하세요.' },
+        ],
+      },
+    ]);
+  });
+
+  it('하나라도 라벨이 아니거나 라벨이 길면 보통 목록이다', () => {
+    expect(markdownBlocks('- 신호: 일정이 밀려요.\n- 그냥 문장이에요.')[0].kind).toBe('bullets');
+    expect(markdownBlocks('- 아주 긴 라벨이라서요: 문장')[0].kind).toBe('bullets');
+  });
+});
+
+describe('이어쓰기의 1번', () => {
+  it('제목 없는 1번 뒤에 번호 카드가 오면 1번도 제목 없는 카드다', () => {
+    const blocks = markdownBlocks('1. 답이에요.\n\n2. **둘** — 둘이에요.\n\n3. **셋** — 셋이에요.');
+    expect(blocks[0]).toEqual({ kind: 'point', number: '1', title: '', text: '답이에요.' });
+    expect(blocks.map((block) => block.kind)).toEqual(['point', 'point', 'point']);
+  });
+});

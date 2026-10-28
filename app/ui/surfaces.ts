@@ -95,18 +95,18 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
   따로 붙이지 않고 이 상수를 부른다. 크기는 토스 TDS(Typography 2 · 4 · 5 · 6 · 7)와 당근 SEED(screenTitle 26/35)의 단을 따랐다.
 
   | 스타일 | 상수 | 크기/줄 높이 | 서체 · 굵기 |
-  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30/40 | 고운돋움 400 |
-  | 구역 제목 | `TYPE_SECTION` | 20/29 | 고운돋움 400 |
-  | 카드 제목 | `TYPE_NAME` | 17/24 | 고운돋움 400 |
-  | 본문 | `TYPE_BODY` | 15/24 | 시스템 400 |
-  | 보조 | `TYPE_META` | 13/20 | 시스템 500 |
-  | 캡션 | `TYPE_CAPTION` | 12/16 | 시스템 400 |
-  | 딱지 | `BADGE` · `STALE_CHIP` | 11 | 시스템 700 · 600 |
+  | 화면 제목 | `TYPE_TITLE` | 26/35, 넓은 화면(lg) 30/40 | 부산단디명조 B |
+  | 구역 제목 | `TYPE_SECTION` | 20/29 | 부산단디명조 B |
+  | 카드 제목 | `TYPE_NAME` | 17/24 | 부산단디명조 B |
+  | 본문 | `TYPE_BODY` | 15/24 | 부산단디명조 M |
+  | 보조 | `TYPE_META` | 13/20 | 부산단디명조 M |
+  | 캡션 | `TYPE_CAPTION` | 12/16 | 부산단디명조 M |
+  | 딱지 | `BADGE` · `STALE_CHIP` | 11 | 부산단디명조 B |
 
-  **제목 셋은 둥근 서체(`font-rounded`, 고운돋움)다** — 굵기가 400 하나뿐이라 굵기를 주지 않는다(주면 브라우저가 획을 덧칠한
-  가짜 굵기가 선다). 제목을 시스템 서체 굵게로 바꾸는 일은 운영자가 「아직 미적용」으로 보류했다(2026-10-24). 본문 · 단추 · 보조는
-  기기의 시스템 서체다. 12px 아래는 딱지(11px)뿐이다. 글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 —
-  iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
+  **앱 전체 글씨는 부산단디명조 하나다**(운영자 결정 2026-10-28, ADR 0109 추기) — 보통(M) · 굵게(B) 두 굵기. 옛 「둥근 서체」
+  클래스(`font-rounded`)도 같은 글씨를 가리킨다. 기기 서체는 한자 그림(`.glyph`) · 운영 화면의 번호(`font-mono`)만 남는다.
+  12px 아래는 딱지(11px)뿐이다.
+  글을 받는 입력 칸(input · textarea · select)은 16px 아래로 두지 않는다 — iOS Safari 가 초점에 화면을 확대한다(`app/ui/fields.test.ts`).
 */
 
 /**
@@ -114,13 +114,13 @@ export const EMPTY_SLOT = `${EMPTY_SLOT_FACE} p-6`;
  * 배수(1.35 × 30 = 40.5)는 아래 것들을 반 픽셀 자리로 민다. 결과 바로가기가 반 픽셀 자리(x.5)에 서면 누르는 자리를 반 픽셀씩 재는
  * e2e(`e2e/target.ts`)가 44px 칸을 43.5 로 잰다(#836 CI, 내 사주 카드 머리의 줄 상자와 함께 — `app/me/home/self-card.tsx`)
  */
-export const TYPE_TITLE = 'font-rounded text-title leading-[2.1875rem] tracking-[-0.02em] text-foreground lg:text-display lg:leading-10';
+export const TYPE_TITLE = 'font-bold text-title leading-[2.1875rem] tracking-[-0.02em] text-foreground lg:text-display lg:leading-10';
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
-export const TYPE_SECTION = 'font-rounded text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
+export const TYPE_SECTION = 'font-bold text-heading leading-[1.45] tracking-[-0.01em] text-foreground';
 
 /** 카드 제목 — 사람 이름 · 카드 머리 · 창 제목 */
-export const TYPE_NAME = 'font-rounded text-lead leading-6 text-foreground';
+export const TYPE_NAME = 'font-semibold text-lead leading-6 text-foreground';
 
 /** 본문 — 설명 문단 · 카드 안의 글 */
 export const TYPE_BODY = 'text-body leading-6 text-foreground';

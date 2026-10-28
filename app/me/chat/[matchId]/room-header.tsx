@@ -59,7 +59,7 @@ export function RoomHeader({
         </span>
         <div className="min-w-0 flex-1">
           {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
-          <h1 className="truncate font-rounded text-lead leading-6 text-foreground">
+          <h1 className="truncate text-lead font-semibold leading-6 text-foreground">
             {partnerOpens ? (
               <button
                 type="button"
