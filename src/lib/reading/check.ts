@@ -125,7 +125,20 @@ export type ReadingCheckCode =
   /** 한 줄 비유가 비었거나 본보기를 그대로 옮겼거나(둘 다 비유 없이 저장한다) 결과 카드 세 줄에 안 드는 길이다 */
   | 'metaphor-out-of-contract'
   /** 이어쓰기 답이 계약(ADR 0143 의 2)을 어겼다 — 회수(`app/me/reading/collect.ts`)가 잰다 */
-  | 'continuation-out-of-contract';
+  | 'continuation-out-of-contract'
+  /** 본문이 옛 프롬프트 본보기 문장을 그대로 옮겼다 — 여러 사람에게 같은 문장이 선다(ADR 0208 추기 「v25」) */
+  | 'example-copied';
+
+/**
+ * **옛 본보기 문장** — v24 프롬프트가 「이렇게 써라」로 보였던 문장들. 모델이 정답으로 옮겨 서로 다른 두 사람의 핵심 세 가지
+ * 1번 제목이 같았다(2026-10-28 운영). v25 에서 걷었지만, 같은 문장이 또 나오면 적는다 — 띄어쓰기 · 문장 부호를 걷고 견준다.
+ * 글은 내보낸다(품질 코드).
+ */
+export const FORMER_EXAMPLE_LINES: readonly string[] = [
+  '혼자 판단할 때 실력이 또렷해져요',
+  '정리해서 굴러가게 만드는 힘',
+  '복잡한 일을 정리해 실제 결과로 만드는 사람이에요',
+];
 
 /**
  * **막는 코드** — 이 밖의 코드는 걸려도 글을 내보낸다(ADR 0163 의 갈래 표). 한 곳에만 둔다 — 회수가 이것으로 저장과 실패를 가른다.
@@ -627,6 +640,13 @@ export function checkReading({
    * **본문** — 사용자에게 보일 몫(`readingBody`)이 비었거나 저장 문이 못 받는 길이면 내보낼 것이 없다(막음). 계약한 길이 밖은
    * 품질이다 — 짧거나 긴 글도 화면은 그린다.
    */
+  /** 옛 본보기 문장을 옮겼는가 — 적기만 한다 */
+  const bareBody = bareOf(markdown);
+  const copied = FORMER_EXAMPLE_LINES.filter((line) => bareBody.includes(bareOf(line)));
+  if (copied.length > 0) {
+    failures.push({ code: 'example-copied', detail: `옛 프롬프트 본보기 문장을 옮겼다 — ${copied.map((line) => `「${line}」`).join(' · ')}` });
+  }
+
   const { min, max } = READING_POLICY.markdownLength;
   if (readingBody(markdown) === '') {
     failures.push({ code: 'body-unstorable', detail: '본문이 비었습니다' });

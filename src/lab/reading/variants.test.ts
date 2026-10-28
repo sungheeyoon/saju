@@ -791,7 +791,7 @@ describe('고객이 읽는 글의 계약', () => {
   it('기준판은 새 뼈대이고, 용신 계열을 읽고, 이름을 안 부른다', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
-    expect(READING_POLICY.version).toBe('reading-prompt-v24');
+    expect(READING_POLICY.version).toBe('reading-prompt-v25');
     expect(READING_POLICY.pairVersion).toBe('reading-prompt-v23');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
