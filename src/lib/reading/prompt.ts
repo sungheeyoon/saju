@@ -1586,9 +1586,8 @@ const METAPHOR_WORDS = {
  *
  * 처음 올릴 때 이 지시문에 길이가 한 줄도 없었는데 검사는 60자를 막고 있었다. 모델이
  * 63자를 쓰자 다 만든 글이 버려졌다 — **지킬 방법이 없는 계약**이었다. 숫자를 손으로 적지 않고
- * `READING_POLICY.metaphorLength` 를 꽂는다. 이제 막는 값(18)도 말한다 — 폰 화면의 가장 좁은 칸에서
- * 잰 경계라(#842 · ADR 0207 추기) 시키는 값만 말하면 「안팎」이 그 경계를 넘는다. 「더 짧아도 된다」를 붙인다 — 짧은 비유를
- * 16자에 맞추려 말을 덧붙이지 않게.
+ * `READING_POLICY.metaphorLength` 를 꽂는다. 상한(30)만 말한다 — 결과 카드 세 줄에서 잰 경계다(ADR 0207 추기 「v23」).
+ * 시키는 값은 걷었다 — 「16자 안팎」을 시키면 짧은 비유에 말을 덧붙여 맞췄다. 「얼마든 짧아도 된다」를 붙인다.
  *
  * ## 세대(`PromptVoice`) 하나에서 짓는다
  *
@@ -1599,7 +1598,7 @@ const METAPHOR_WORDS = {
  * 그래서 개인 풀이의 첫 절은 비유를 풀지 않는다 — 본문이 지어질 때 비유는 아직 없다.
  */
 function metaphorSection(voice: PromptVoice): string {
-  const { target, max } = READING_POLICY.metaphorLength;
+  const { max } = READING_POLICY.metaphorLength;
   const subject = voice === 'self' ? 'solo' : 'pair';
   const words = METAPHOR_WORDS[subject];
   const after = summaryLastFor(voice);
@@ -1613,7 +1612,7 @@ ${after ? '**본문을 다 쓴 뒤에** 쓴다. ' : ''}구조화 출력의 \`met
 - 본문이 다룬 장점에서 고른다. 본문에 없는 이야기를 새로 만들지 않고, 약점이나 조심할 점은 빗대지 않는다.
 - 소재는 자유다. 오행을 그대로 그림으로 옮기지 않는다(불이 약하다 → 작은 등불) — 그런 그림은 누구에게나 붙는다. 본문이 그린 이 ${words.noun}의 장면에서 고른다.${words.extra}
 - 해요체로 닫지 않아도 된다 — 명사로 끝내도 되고 「~ 같은 ${words.noun}」처럼 끝내도 된다.
-- **띄어쓰기를 넣어 ${target}자 안팎, 많아도 ${max}자. 더 짧아도 된다.** 폰 화면 한 줄에 다 들어가야 한다.
+- **띄어쓰기를 넣어 많아도 ${max}자. 얼마든 짧아도 된다.**
 
 본보기 — **그대로 쓰지 않는다.** 비유도, 옆에 붙인 설명의 말도 이 줄이나 본문에 옮기지 않는다. 비유와 그 뜻이 어떻게 짝을 이루는지만 본다:
 ${READING_POLICY.metaphorExamples[subject].map(({ line, strength }) => `- 「${line}」(${line.length}자) — ${strength}`).join('\n')}
