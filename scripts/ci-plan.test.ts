@@ -763,9 +763,11 @@ describe('CI 계획 — 닿는 시험이 0 인 입구는 정말 없을 때만 co
   });
 
   it('시험 없는 입구를 다른 page 가 다시 내보내면 그 page 의 시험이 그것을 그린다 — 놓쳤을 수 있어 전부 (두 번째 검토)', () => {
-    const lonely = 'app/me/credits/page.tsx';
+    // 어느 시험도 닿지 않는 새 page — 저장소의 입구를 빌리면 그 입구에 시험이 붙는 날 이 시험이 뜻을 잃는다(G-116)
+    const lonely = 'app/me/nowhere-yet/page.tsx';
     const page = 'app/me/people/page.tsx';
-    const sourceOf = (one: string) => (one === page ? `export { default } from '../credits/page';\n` : diskOf(one));
+    const sourceOf = (one: string) =>
+      one === page ? `export { default } from '../nowhere-yet/page';\n` : one === lonely ? 'export default function P() { return null; }\n' : diskOf(one);
     const plan = planFor({ files: [lonely], stage: '운영 베타', sourceOf });
     expect(plan.lanes).toEqual(FULL);
     expect(plan.cause).toBe('닿는 시험 모름');
@@ -877,25 +879,25 @@ describe('CI 계획 — 다른 화면이 가리키는 입구는 정말 없음이
     expect(looseAddressesOf('const pair = [a, b].join(\'/\');')).toEqual([]);
   });
 
-  it('실측 — 시험 공백이던 입구 아홉은 공용 바닥글 · 회원 머리 · 운영 머리가 가리켜 모두 전부다', () => {
-    const nine = [
-      'app/help/page.tsx',
-      'app/me/credits/done/page.tsx',
-      'app/me/credits/history/page.tsx',
-      'app/me/credits/page.tsx',
-      'app/ops/members/page.tsx',
-      'app/ops/orders/page.tsx',
-      'app/ops/today/page.tsx',
-      'app/refund/page.tsx',
-      'app/terms/page.tsx',
-    ];
-    for (const entry of nine) {
+  it('실측 — 시험 공백이던 입구 아홉 가운데 운영 화면 셋은 운영 머리가 가리켜 전부다, 나머지 여섯은 주소를 여는 e2e 가 섰다', () => {
+    const ops = ['app/ops/members/page.tsx', 'app/ops/orders/page.tsx', 'app/ops/today/page.tsx'];
+    for (const entry of ops) {
       expect(testsOfEntry(entry).tests, entry).toEqual([]);
       const plan = beta([entry]);
       expect(plan.lanes, entry).toEqual(FULL);
       expect(plan.cause, entry).toBe('닿는 시험 모름');
     }
-    expect(linkedOnlyEntries()).toEqual(nine);
+    expect(linkedOnlyEntries()).toEqual(ops);
+    // 2026-10-28 에 시험이 붙은 여섯 — 익명은 `info-pages.spec.ts`, 로그인 뒤는 `signed-in.spec.ts` 「풀이권 화면」
+    const opened = {
+      'app/help/page.tsx': 'e2e/info-pages.spec.ts',
+      'app/refund/page.tsx': 'e2e/info-pages.spec.ts',
+      'app/terms/page.tsx': 'e2e/info-pages.spec.ts',
+      'app/me/credits/page.tsx': 'e2e/signed-in.spec.ts',
+      'app/me/credits/history/page.tsx': 'e2e/signed-in.spec.ts',
+      'app/me/credits/done/page.tsx': 'e2e/signed-in.spec.ts',
+    };
+    for (const [entry, spec] of Object.entries(opened)) expect(testsOfEntry(entry).tests, entry).toContain(spec);
     // 운영 화면은 운영 머리(`app/ops/layout.tsx` 아래)만 가리킨다 — 모든 화면이 아니다
     expect(linkReach('app/ops/today/page.tsx').routes.map((one) => one.route.source)).toContain(routeOf('app/ops/loading.tsx')!.source);
   });
