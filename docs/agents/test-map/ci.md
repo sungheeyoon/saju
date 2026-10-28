@@ -51,7 +51,8 @@ page 의 주소로 `match` · `chat` · `anon` · `flow` 만, `room-compat.ts` �
 머지 전에 돈다. 같은 날 닿는 시험이 정말 없다던 입구 아홉(`/help` · `/terms` · `/refund` · `/me/credits` 셋 · `/ops` 셋)은 링크를 눌러 닿는
 시험을 놓친 것이라(외부 리뷰) 다시 전부다 — 공용 바닥글(`app/site-links.ts`) · 회원 머리의 풀이권 메뉴(`CREDITS_PATH`) · 운영 머리
 (`app/ops/ops-header.tsx`) · 결제 화면이 가리킨다(ADR 0195 덧). 그 아홉과 그것만 쓰는 서버 파일 여섯 · 화면 컴포넌트 열셋, 모두 스물여덟이
-`core` · 좁힌 차선 → 전부이고 좁아진 파일은 없다. 계획의 `untestedEntries()` 는 비고 아홉은 `linkedOnlyEntries()` 로 간다(G-116).
+`core` · 좁힌 차선 → 전부이고 좁아진 파일은 없다. 계획의 `untestedEntries()` 는 비고 아홉은 `linkedOnlyEntries()` 로 갔다(G-116). 2026-10-28 에
+여섯(`/help` · `/terms` · `/refund` · `/me/credits` 셋)은 주소를 여는 e2e 가 서 그 차선을 켜고, `linkedOnlyEntries()` 에는 `/ops` 셋만 남았다.
 
 **문구 변경의 머지와 배포**(운영자 2026-10-09, ADR 0159) — 사용자가 확인한 문구 변경은 필요한 PR 검사가 통과하면 재승인 없이
 squash-merge 하고 배포한다. 동작 변경이 없다고 판별된 경우 main 전체 CI 완료는 배포의 대기 조건으로 두지 않는다. 문서만 변경한
