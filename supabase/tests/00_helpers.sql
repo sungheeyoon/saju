@@ -200,13 +200,25 @@ $$;
  *
  *   set local role authenticated;
  *   select set_config('request.jwt.claims', tests.claims(actor), true);
+ *
+ * **세션은 2단계 인증을 마친 것(`aal2`)이다.** 운영자 판정(`is_operator()`)이 JWT 의 `aal` 을 묻는다(ADR 0209) — 운영 화면의
+ * 운영자는 늘 2단계를 지나고 오므로 시험의 운영자도 그렇다. 회원 문은 `aal` 을 안 묻는다. 2단계 전의 세션은 `tests.claims_aal1`.
  */
 create or replace function tests.claims(actor uuid)
 returns text
 language sql
 immutable
 as $$
-  select json_build_object('sub', actor::text, 'role', 'authenticated')::text;
+  select json_build_object('sub', actor::text, 'role', 'authenticated', 'aal', 'aal2')::text;
+$$;
+
+/** 구글 로그인만 마친 세션(`aal1`) — 운영자여도 운영자 문이 닫히는 것을 잴 때(ADR 0209) */
+create or replace function tests.claims_aal1(actor uuid)
+returns text
+language sql
+immutable
+as $$
+  select json_build_object('sub', actor::text, 'role', 'authenticated', 'aal', 'aal1')::text;
 $$;
 
 /**
