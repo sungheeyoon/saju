@@ -4192,3 +4192,39 @@ test.describe('누름 하나는 요청 하나다', () => {
     expect(sent).toEqual(['action']);
   });
 });
+
+/**
+ * **풀이권 화면 셋을 주소로 연다**(G-116) — 상품 · 결제 내역 · 결제 뒤. 전에는 회원 머리의 풀이권 메뉴 링크로만 닿아 그 주소를 직접
+ * 여는 시험이 없었다. 판매는 닫혀 있고(심사 계정만 — `reading_sale_reviewer`) 시험 계정은 산 적이 없으므로, 여기서 서는 것은
+ * 닫힌 판매 · 빈 내역 · 주문 없는 결과의 자리다.
+ */
+test.describe('풀이권 화면', () => {
+  test('상품 화면은 묶음을 세우고 판매가 닫혔으면 결제 단추 대신 준비 중이라 말한다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me/credits');
+    await expect(page.getByRole('heading', { level: 1, name: '풀이권 구매' })).toBeVisible();
+    await expect(page.getByRole('group', { name: '풀이권 고르기' }).getByRole('radio')).not.toHaveCount(0);
+    await expect(page.getByText('풀이권 판매 준비 중이에요.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /결제하기$/ })).toHaveCount(0);
+  });
+
+  test('결제 내역은 산 것이 없으면 비었다고 말하고 환불 신청 길을 보인다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me/credits/history');
+    await expect(page.getByRole('heading', { level: 1, name: '결제 내역' })).toBeVisible();
+    await expect(page.getByText('결제 내역이 없어요.')).toBeVisible();
+    const refund = page.getByRole('region', { name: '환불 신청' });
+    await expect(refund.getByRole('link', { name: '환불정책 보기' })).toHaveAttribute('href', '/refund');
+  });
+
+  test('결제 뒤 화면은 주문이 없으면 찾지 못했다 하고, 결제창이 실패를 말하면 다시 고르게 한다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me/credits/done');
+    await expect(page.getByRole('heading', { level: 1, name: '주문을 찾지 못했어요' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '풀이권 다시 고르기' })).toHaveAttribute('href', '/me/credits');
+
+    await page.goto('/me/credits/done?code=FAILURE_TYPE_PG');
+    await expect(page.getByRole('heading', { level: 1, name: '결제를 마치지 못했어요' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '풀이권 다시 고르기' })).toHaveAttribute('href', '/me/credits');
+  });
+});
