@@ -67,9 +67,10 @@ import { SAJU_TERMS } from './vocabulary';
  * 한동안 이 값이 60, 그다음 120 이었다. 앞의 것은 프롬프트가 길이를 한 번도 말하지 않아 63자에 글이 버려졌고, 뒤의 것은
  * 재보지도 않은 수였다 — 홈 카드가 한 줄 고정이 되자 120 안의 글이 거의 늘 잘렸다. 이제 이 값은 **잰 경계**다: 처음에는 360px
  * 홈 카드 한 줄 22자를 보고 20 이었다가(#842), 실제 화면의 칸에 넣어 다시 재니 가장 좁은 홈 「저장한 사람」 부제(360px ·
- * 점수 있음 · 166px)에서 20자가 잘려 18 이다(ADR 0207 추기, 2026-10-27). 프롬프트도 이 수를 말한다.
+ * 점수 있음 · 166px)에서 20자가 잘려 18 이었다(ADR 0207 추기, 2026-10-27). 2026-10-28 에 기준을 결과 카드 세 줄로 옮겨
+ * 30 이다(ADR 0207 추기 「v23」). 프롬프트도 이 수를 말한다.
  *
- * 걸려도 저장한다 — 화면은 한 줄에서 「…」로 자른다. 문장 부호로 세지 않는 까닭은 그대로다 — 「돌고래가 물 만난 격」처럼
+ * 걸려도 저장한다 — 결과 카드는 줄을 늘려 다 보이고, 한 줄 · 두 줄 칸은 「…」로 자른다. 문장 부호로 세지 않는 까닭은 그대로다 — 「돌고래가 물 만난 격」처럼
  * 마침표 없이 끝나는 말도 한 줄이다.
  */
 const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
@@ -121,7 +122,7 @@ export type ReadingCheckCode =
   | 'evidence-path-leaked'
   /** 본문에 샌 경로를 내보내기 전에 걷었다(`withoutLeakedPaths`) */
   | 'evidence-path-stripped'
-  /** 한 줄 비유가 비었거나 본보기를 그대로 옮겼거나(둘 다 비유 없이 저장한다) 폰 한 줄에 안 드는 길이다 */
+  /** 한 줄 비유가 비었거나 본보기를 그대로 옮겼거나(둘 다 비유 없이 저장한다) 결과 카드 세 줄에 안 드는 길이다 */
   | 'metaphor-out-of-contract'
   /** 이어쓰기 답이 계약(ADR 0143 의 2)을 어겼다 — 회수(`app/me/reading/collect.ts`)가 잰다 */
   | 'continuation-out-of-contract';
@@ -608,7 +609,7 @@ export function checkReading({
    * 2. **본보기를 옮겼는가.** 프롬프트가 보여 준 본보기(`READING_POLICY.metaphorExamples`)를 그대로 쓰면 여러 사람에게 같은
    *    비유가 서고 「왜 이 비유지?」의 답이 본문에 없다. 비유 없이 저장한다. 띄어쓰기 · 문장 부호를 걷고 본보기가 통째로
    *    들어 있는지만 본다 — 조사 하나 바꾼 것은 못 잡는다(그것까지 막으려면 비슷함을 재야 하는데 그 문턱은 잰 적이 없다).
-   * 3. **폰 한 줄에 드는가.** 띄어쓰기 포함으로 센다(`METAPHOR_MAX`). 넘어도 그대로 저장한다 — 화면이 「…」로 자른다.
+   * 3. **결과 카드 세 줄에 드는가.** 띄어쓰기 포함으로 센다(`METAPHOR_MAX`). 넘어도 그대로 저장한다 — 한 줄 · 두 줄 칸은 「…」로 자른다.
    *
    * 그림이 장점을 그리는지 · 본문에 기대는지는 검사하지 않는다 — 기계가 짚을 수 없고, 운영자가 실호출로 읽는다.
    */
@@ -619,7 +620,7 @@ export function checkReading({
       detail: said === '' ? '비었습니다' : '프롬프트 본보기를 그대로 옮겼다 — 비유 없이 저장',
     });
   } else if (said.length > METAPHOR_MAX) {
-    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 폰 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
+    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 결과 카드 세 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
   }
 
   /**

@@ -121,11 +121,11 @@ export function SelfCard({
         </div>
         {reading?.metaphor != null && (
           /*
-            줄인 판은 폰에서 **한 줄**이고 넘치면 그 줄 끝에서 말줄임이다(운영자 결정 2026-10-26 — 출생 정보 줄 · 오행 알약이 들어오며
-            두 줄을 한 줄로 줄였다). 넓은 화면은 어절로 끊어(`break-keep`) 다 선다
+            줄인 판은 폰에서 **두 줄**까지이고 넘치면 둘째 줄 끝에서 말줄임이다(운영자 결정 2026-10-28 — 비유의 상한이 결과 카드
+            세 줄이 되며 한 줄에서 두 줄로 늘렸다, ADR 0207 추기 「v23」). 넓은 화면은 어절로 끊어(`break-keep`) 다 선다
           */
           <p
-            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}
+            className={`break-keep font-rounded text-lead leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:line-clamp-2' : ''}`}
           >
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>

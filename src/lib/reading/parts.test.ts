@@ -169,25 +169,24 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
  * 곧 실패가 되고, 그것이 방금 겪은 그 일이다.
  */
 describe('시키는 값과 막는 값', () => {
-  it('비유 길이를 네 kind 모두에게 말한다 — 시키는 값과 막는 값을 함께', () => {
-    const { target, max } = READING_POLICY.metaphorLength;
+  it('비유 길이를 네 kind 모두에게 말한다 — 상한만, 짧은 쪽은 열어 둔다', () => {
+    const { max } = READING_POLICY.metaphorLength;
 
     for (const kind of READING_KINDS) {
-      expect(READING_PROMPTS[kind], kind).toContain(`${target}자 안팎, 많아도 ${max}자`);
+      expect(READING_PROMPTS[kind], kind).toContain(`많아도 ${max}자. 얼마든 짧아도 된다.`);
+      expect(READING_PROMPTS[kind], kind).not.toContain('자 안팎');
     }
   });
 
   /**
-   * **막는 값은 잰 경계 안이다**(#842, ADR 0207 추기). 가장 좁은 칸(홈 「저장한 사람」 부제 · 360px · 점수 있음 · 166px)에
-   * 18자 본보기는 들고 20자는 잘렸다 — 막는 값이 그 위로 오르면 「…」로 잘리는 글을 검사가 지나 보낸다. 시키는 값은 막는
-   * 값보다 낮아야 「안팎」이 경계를 넘지 않는다.
+   * **막는 값은 잰 경계 안이다**(ADR 0207 추기 「v23」). 360px 결과 카드 세 줄에 늘 드는 가장 긴 글이 31자, 홈 메인 카드
+   * 두 줄이 37자였다 — 막는 값이 그 위로 오르면 결과 카드가 네 줄이 되는 글을 검사가 지나 보낸다.
    */
-  it('막는 값은 가장 좁은 칸에서 잰 18자 안이고, 시키는 값은 그보다 낮다', () => {
-    const { target, max } = READING_POLICY.metaphorLength;
-    const NARROWEST_SLOT_360 = 18;
+  it('막는 값은 결과 카드 세 줄에서 잰 31자 안이다', () => {
+    const { max } = READING_POLICY.metaphorLength;
+    const RESULT_CARD_THREE_LINES_360 = 31;
 
-    expect(max).toBeLessThanOrEqual(NARROWEST_SLOT_360);
-    expect(target).toBeLessThan(max);
+    expect(max).toBeLessThanOrEqual(RESULT_CARD_THREE_LINES_360);
   });
 
   it('본보기는 막는 값 안이고, 그 kind 의 지시문에 장점과 함께 선다', () => {
@@ -223,7 +222,7 @@ describe('시키는 값과 막는 값', () => {
           ? '**이 사람을 찰떡같이 들어맞는 그림 하나에 빗대면 무엇인가**'
           : '**이 사이를 찰떡같이 들어맞는 그림 하나에 빗대면 무엇인가**',
       );
-      expect(section, kind).toContain('더 짧아도 된다');
+      expect(section, kind).toContain('얼마든 짧아도 된다');
       /* 개인 · 궁합 같은 꼬리 — 비유는 본문 뒤에 지어지므로 본문이 비유를 알 수 없다 */
       expect(section, kind).toContain('본문에는 이 줄을 다시 적지 않는다 — 화면이 따로 세운다.');
       /* 「형상」·「형세」는 지시문에 안 쓴다(ADR 0056 의 실패 원인) — 「쓰지 마라」 본보기 한 줄만 그 실패를 보인다 */
@@ -463,10 +462,10 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
   });
 
   it('개인 풀이와 궁합이 같은 판본 이름으로 오른다 — 한 줄 비유(ADR 0207)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v22');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v22');
+    expect(READING_POLICY.version).toBe('reading-prompt-v23');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v23');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v22');
+      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v23');
     }
   });
 
