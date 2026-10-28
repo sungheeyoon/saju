@@ -461,11 +461,25 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이와 궁합이 같은 판본 이름으로 오른다 — 한 줄 비유(ADR 0207)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v23');
+  it('개인 풀이는 글의 모양으로 v24, 궁합은 v23 이다(ADR 0208)', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v24');
     expect(READING_POLICY.pairVersion).toBe('reading-prompt-v23');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v23');
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v24' : 'reading-prompt-v23');
+    }
+  });
+
+  it('개인 풀이에만 글의 모양이 선다 — 요약 줄 · 번호 제목 · 라벨 세 줄(ADR 0208)', () => {
+    for (const kind of READING_KINDS) {
+      const prompt = READING_PROMPTS[kind];
+      if (isSolo(kind)) {
+        expect(prompt, kind).toContain('## 글의 모양');
+        expect(prompt, kind).toContain('`- 상황: 초기에 알아챌 모습`');
+        expect(prompt, kind).toContain('`- 잘 맞는 일: 가, 나, 다`');
+        expect(prompt, kind).toContain('`1. **제목** — 설명`');
+      } else {
+        expect(prompt, kind).not.toContain('## 글의 모양');
+      }
     }
   });
 

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 결과 원문을 그대로 세운다 — **화면은 글의 절 구조를 알지 않는다.**
@@ -66,7 +65,22 @@ export type MarkdownBlock =
   | { readonly kind: 'heading'; readonly depth: number; readonly text: string }
   | { readonly kind: 'paragraph'; readonly text: string; readonly lead: boolean }
   | { readonly kind: 'bullets'; readonly items: readonly string[] }
-  | { readonly kind: 'rule' };
+  | { readonly kind: 'rule' }
+  /** 절 요약 — 소제목 바로 아래의 `> 한 줄`(글의 모양, ADR 0208) */
+  | { readonly kind: 'summary'; readonly text: string }
+  /** 번호 카드 — `1. **제목** — 설명` */
+  | { readonly kind: 'point'; readonly number: string; readonly title: string; readonly text: string }
+  /** 라벨 행 — 모든 항목이 `라벨: 내용`(라벨 6자 이하)인 목록 */
+  | { readonly kind: 'labels'; readonly rows: readonly { readonly label: string; readonly text: string }[] };
+
+/** 번호 카드의 꼴 — `1. **제목** — 설명`(줄표 앞뒤 띄어쓰기는 느슨하게) */
+const POINT = /^(\d+)\.\s+\*\*([^*]+)\*\*\s*[—–-]\s*(.+)$/;
+
+/** 라벨 행의 꼴 — 짧은 라벨과 쌍점. 라벨이 길면 그냥 문장이다 */
+const LABELED = /^([^:：*]{1,6})[:：]\s+(.+)$/;
+
+/** 이 라벨의 행은 낱말 칩으로 선다 — 「일과 돈」의 첫 줄 */
+export const CHIP_LABELS: readonly string[] = ['잘 맞는 일'];
 
 /** 번호 붙인 항목의 머리 — `1. ` */
 const NUMBERED = /^\d+\.\s/;
@@ -88,7 +102,15 @@ export function markdownBlocks(source: string): MarkdownBlock[] {
 
   const flushBullets = () => {
     if (bullets.length === 0) return;
-    blocks.push({ kind: 'bullets', items: bullets });
+    const rows = bullets.flatMap((item) => {
+      const found = LABELED.exec(item);
+      return found ? [{ label: found[1].trim(), text: found[2] }] : [];
+    });
+    if (rows.length === bullets.length) {
+      blocks.push({ kind: 'labels', rows });
+    } else {
+      blocks.push({ kind: 'bullets', items: bullets });
+    }
     bullets = [];
   };
 
@@ -98,6 +120,11 @@ export function markdownBlocks(source: string): MarkdownBlock[] {
     paragraph = [];
     const lead = !ledOff && !NUMBERED.test(text);
     ledOff = true;
+    const point = POINT.exec(text);
+    if (point) {
+      blocks.push({ kind: 'point', number: point[1], title: point[2].trim(), text: point[3].trim() });
+      return;
+    }
     blocks.push({ kind: 'paragraph', text, lead });
   };
 
@@ -127,6 +154,13 @@ export function markdownBlocks(source: string): MarkdownBlock[] {
       continue;
     }
 
+    const quote = /^>\s?(.*)$/.exec(trimmed);
+    if (quote) {
+      flush();
+      if (quote[1].trim() !== '') blocks.push({ kind: 'summary', text: quote[1].trim() });
+      continue;
+    }
+
     const bullet = /^[-*]\s+(.*)$/.exec(trimmed);
     if (bullet) {
       flushParagraph();
@@ -140,56 +174,160 @@ export function markdownBlocks(source: string): MarkdownBlock[] {
   }
 
   flush();
-  return blocks;
+  /*
+    이어쓰기(ADR 0143)는 첫 절 1번에 제목 없는 답을 끼운다(`continuedMarkdownOf`) — 바로 뒤가 번호 카드면 그 1번도 제목 없는
+    카드로 세워 셋이 한 묶음으로 선다
+  */
+  return blocks.map((block, at) => {
+    const next = blocks[at + 1];
+    const numbered = block.kind === 'paragraph' ? /^(\d+)\.\s+(.+)$/.exec(block.text) : null;
+    return numbered && next?.kind === 'point' ? { kind: 'point', number: numbered[1], title: '', text: numbered[2] } : block;
+  });
 }
 
+/** 「라벨: 내용」을 낱말로 — 칩 줄은 쉼표로 가른다(「금융·보험」처럼 가운뎃점은 한 낱말 안이다) */
+const chipsOf = (text: string): string[] =>
+  text
+    .split(/[,，]\s*/)
+    .map((one) => one.trim())
+    .filter((one) => one !== '');
+
 export function Markdown({ source }: { source: string }) {
-  const blocks = markdownBlocks(source).map((block, at): ReactNode => {
+  const parsed = markdownBlocks(source);
+  const nodes: ReactNode[] = [];
+  let points: (MarkdownBlock & { kind: 'point' })[] = [];
+
+  const flushPoints = () => {
+    if (points.length === 0) return;
+    const at = nodes.length;
+    nodes.push(
+      <ol key={`points-${at}`} className="flex flex-col gap-2.5">
+        {points.map((point) => (
+          <li key={point.number} className="grid grid-cols-[1.5rem_1fr] gap-2.5 rounded-cell bg-surface px-3.5 py-3">
+            <span aria-hidden="true" className="font-semibold leading-7 tabular-nums text-[var(--ink,var(--foreground))]">
+              {point.number}
+            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="sr-only">{point.number}. </span>
+              {/* 풀이 글은 프리텐다드다 — 고운돋움은 맨 위 비유 카드에만(운영자 2026-10-28) */}
+              {point.title !== '' && (
+                <span className="font-semibold leading-7 text-foreground">{inline(point.title, `p-${point.number}-t`)}</span>
+              )}
+              <span className={point.title !== '' ? 'text-body leading-7 text-secondary' : 'leading-7 text-foreground'}>
+                {inline(point.text, `p-${point.number}`)}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ol>,
+    );
+    points = [];
+  };
+
+  parsed.forEach((block, at) => {
     const key = `${block.kind}-${at}`;
+    if (block.kind === 'point') {
+      points.push(block);
+      return;
+    }
+    flushPoints();
+
     switch (block.kind) {
       case 'rule':
-        return <hr key={key} className="my-4 border-border" />;
+        nodes.push(<hr key={key} className="my-4 border-border" />);
+        return;
+
+      case 'summary':
+        /* 소제목 바로 아래 — 보통 굵기 회색 한 줄. 소제목 · 굵은 구절과 강조가 세 겹이 되지 않게 굵게 두지 않는다 */
+        nodes.push(
+          <p key={key} className="-mt-5 text-body leading-7 text-secondary">
+            {inline(block.text, key)}
+          </p>,
+        );
+        return;
+
+      case 'labels': {
+        const chips = block.rows.length === 1 && CHIP_LABELS.includes(block.rows[0].label);
+        nodes.push(
+          chips ? (
+            <div key={key} className="flex flex-col gap-2">
+              <span className="text-small text-secondary">{block.rows[0].label}</span>
+              <ul className="flex flex-wrap gap-1.5">
+                {chipsOf(block.rows[0].text).map((chip) => (
+                  <li key={chip} className="rounded-cell border border-border px-2.5 py-0.5 text-note leading-6 text-foreground">
+                    {chip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <dl key={key} className="-mt-2 grid grid-cols-[4rem_1fr] gap-x-2 gap-y-1.5 rounded-cell border border-border p-3.5 text-body leading-7">
+              {block.rows.map((row, index) => (
+                <div key={index} className="contents">
+                  <dt className="pt-0.5 text-fine text-secondary">{row.label}</dt>
+                  <dd>{inline(row.text, `${key}-${index}`)}</dd>
+                </div>
+              ))}
+            </dl>
+          ),
+        );
+        return;
+      }
 
       case 'bullets':
-        return (
+        nodes.push(
           <ul key={key} className="flex list-disc flex-col gap-2.5 pl-5 marker:text-[var(--ink,var(--text-muted))]">
             {block.items.map((item, index) => (
               <li key={index}>{inline(item, `${key}-${index}`)}</li>
             ))}
-          </ul>
+          </ul>,
         );
+        return;
 
       case 'paragraph':
         /* 글의 첫 문단이 리드다 — 이 글이 무엇을 말하려는지를 한 단 크게 먼저 건넨다 */
-        return (
+        nodes.push(
           <p
             key={key}
             className={block.lead ? 'text-heading font-medium leading-[1.75] tracking-[-0.01em] text-foreground' : undefined}
           >
             {inline(block.text, key)}
-          </p>
+          </p>,
         );
+        return;
 
       case 'heading':
-        return block.depth <= 2 ? (
-          <h3
-            key={key}
-            className={`flex items-center gap-2.5 ${TYPE_SECTION} ${at === 0 ? '' : 'mt-8'}`}
-          >
-            <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
-            <span>{inline(block.text, key)}</span>
-          </h3>
-        ) : (
-          <h4 key={key} className={`text-lead font-bold text-foreground ${at === 0 ? '' : 'mt-3'}`}>
-            {inline(block.text, key)}
-          </h4>
+        nodes.push(
+          block.depth <= 2 ? (
+            <h3
+              key={key}
+              className={`flex items-center gap-2.5 text-heading font-bold leading-[1.45] tracking-[-0.01em] text-foreground ${at === 0 ? '' : 'mt-6'}`}
+            >
+              <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
+              <span>{inline(block.text, key)}</span>
+            </h3>
+          ) : (
+            /* 작은 머리 — 강점 · 조심할 점의 갈래. 바로 아래 글과 붙어 한 덩이로 읽히게 그 아래 간격을 줄인다(감싼 열의 `h4+*`) */
+            <h4 key={key} className={`flex items-center gap-2 text-lead font-semibold text-foreground ${at === 0 ? '' : 'mt-2'}`}>
+              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
+              {inline(block.text, key)}
+            </h4>
+          ),
         );
+        return;
     }
   });
+  flushPoints();
 
+  /*
+    **문단 사이 32px** — 줄 사이(17px × 1.85 ≈ 31px)보다 좁으면 문단이 갈려 보이지 않아 글자 벽이 된다(2026-10-28 조사,
+    `docs/notes/2026-10-28-research-reading-readability.md`). 전에는 20px 였다
+  */
   return (
-    <div className={`${READING_COLUMN} flex flex-col gap-5 text-lead leading-[1.85] text-foreground/90 [&_strong]:text-foreground`}>
-      {blocks}
+    <div
+      className={`${READING_COLUMN} flex flex-col gap-8 text-lead leading-[1.85] text-foreground/90 [&_strong]:text-foreground [&>h4+*]:-mt-6`}
+    >
+      {nodes}
     </div>
   );
 }

@@ -503,7 +503,7 @@ function Seat({
           className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'}`}
           style={{ boxShadow: ORBIT_RING.tag }}
         >
-          <span className="font-rounded text-body">{person.label}</span>
+          <span className="text-body font-semibold">{person.label}</span>
           {score !== null && <span className="ml-1.5 text-small font-bold tabular-nums text-[var(--ink)]">{score}</span>}
         </span>
       ) : (

@@ -152,10 +152,10 @@ describe('텍스트 스타일 일곱 벌(ADR 0109 추기 2026-10-24)', () => {
     expect([sizeOf(TYPE_TITLE), sizeOf(TYPE_TITLE, 'lg')]).toEqual([26, 30]);
   });
 
-  it('제목 셋은 고운돋움이고 굵기를 주지 않는다 — 서체 교체는 운영자가 「아직 미적용」으로 보류했다', () => {
+  it('제목 셋은 프리텐다드 굵게다 — 고운돋움은 카드 · 포인트에만(운영자 결정 2026-10-28, ADR 0109 추기)', () => {
     for (const style of Object.values(TITLES)) {
-      expect(style).toMatch(/(?:^|\s)font-rounded(?:\s|$)/);
-      expect(style).not.toMatch(/(?:^|\s)font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)(?:\s|$)/);
+      expect(style).not.toMatch(/(?:^|\s)font-rounded(?:\s|$)/);
+      expect(style).toMatch(/(?:^|\s)font-(?:semibold|bold)(?:\s|$)/);
     }
   });
 

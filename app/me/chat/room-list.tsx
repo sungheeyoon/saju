@@ -113,7 +113,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={`truncate font-rounded text-lead leading-6 ${closed ? 'text-secondary' : 'text-foreground'}`}>
+          <span className={`truncate text-lead font-semibold leading-6 ${closed ? 'text-secondary' : 'text-foreground'}`}>
             {name}
           </span>
           <span

@@ -38,7 +38,7 @@ import { SelfProfile } from './self-profile';
  * 디자인 체계의 둥근 제목들과 안 맞아 운영자가 되돌렸다 — 크기만 줄인다. 줄 높이는 정수 px 다 — 머리 높이가 소수면 아래 결과 바로가기가 반 픽셀 자리에 선다(`TYPE_TITLE` 의 주석, #836)
  */
 const NAME_FACE =
-  'font-rounded text-heading leading-7 tracking-[-0.01em] text-foreground sm:text-title sm:leading-[2.1875rem] sm:tracking-[-0.02em]';
+  'font-bold text-heading leading-7 tracking-[-0.01em] text-foreground sm:text-title sm:leading-[2.1875rem] sm:tracking-[-0.02em]';
 
 export function SelfCard({
   personId,
