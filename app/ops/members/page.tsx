@@ -34,6 +34,7 @@ import type { SkippableRead } from '../../db-error';
 import { CARD } from '../../ui/surfaces';
 import { CopyValue } from '../copy-value';
 import { FailureLine } from '../../ui/failure-line';
+import { backTo, secondFactorGate } from '../second-factor';
 
 export const metadata = {
   title: '회원',
@@ -62,6 +63,7 @@ export default async function OperatorMembersPage({
   if (!user) return redirectToSignIn();
 
   const params = await searchParams;
+  await secondFactorGate(supabase, 'members.find', backTo('/ops/members', params));
   const query = queryOf(params.q);
   const found = await operatorMember(query);
   if (found === DENIED) notFound();

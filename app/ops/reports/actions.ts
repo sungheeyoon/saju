@@ -7,6 +7,7 @@ import { userFacingDbMessage } from '../../db-error';
 import { refresh } from '../../refresh';
 import { UUID } from '../../uuid';
 import { noteWriteRefusal } from '../denial';
+import { writeWithoutSecondFactor } from '../second-factor';
 import { NOTE_MAX, WARNING_CATEGORIES, isOutcome, sanctions, type ReviewRequest } from './review';
 
 /**
@@ -41,6 +42,8 @@ const shapeProblem = (input: ReviewRequest): string | null => {
 export async function writeReview(input: ReviewRequest): Promise<Answer> {
   const problem = shapeProblem(input);
   const supabase = await supabaseOnServer();
+  const unpassed = await writeWithoutSecondFactor(supabase, 'reports.review', { reportId: input.reportId });
+  if (unpassed !== null) return unpassed;
   if (problem !== null) {
     await noteWriteRefusal(supabase, 'reports.review', '22023', { reportId: input.reportId });
     return { ok: false, message: problem };

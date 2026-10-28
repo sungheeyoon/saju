@@ -303,7 +303,7 @@ auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
-# 운영과 같게 켠다. 운영자 화면은 aal2 를 묻지 않는다 — 구글 간편로그인만(ADR 0182). TOTP 는 무료 플랜에도 있다.
+# 운영과 같게 켠다 — 운영자 화면(`/ops/**`)과 `is_operator()` 는 aal2 세션만 연다(ADR 0209). TOTP 는 무료 플랜에도 있다.
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true

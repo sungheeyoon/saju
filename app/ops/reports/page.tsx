@@ -23,6 +23,7 @@ import { openByReported } from './same-account';
 import { DENIED, operatorReports, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
 import { FailureLine } from '../../ui/failure-line';
+import { backTo, secondFactorGate } from '../second-factor';
 
 export const metadata = {
   title: '신고',
@@ -54,7 +55,9 @@ export default async function OperatorReportsPage({
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const filters = filtersOf(await searchParams);
+  const params = await searchParams;
+  await secondFactorGate(supabase, 'reports.list', backTo('/ops/reports', params));
+  const filters = filtersOf(params);
   const listed = await operatorReports(filters);
   if (listed === DENIED) notFound();
   const openOnPage = listed.ok ? openByReported(listed.value.rows) : new Map<string, number>();

@@ -26,6 +26,7 @@ import {
 } from './read';
 import { CARD } from '../../ui/surfaces';
 import { FailureLine } from '../../ui/failure-line';
+import { secondFactorGate } from '../second-factor';
 
 export const metadata = {
   title: '설문 요약',
@@ -60,6 +61,7 @@ export default async function OperatorSurveyPage() {
 
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
+  await secondFactorGate(supabase, 'survey.overview', '/ops/survey');
 
   const answered = await operatorSurvey();
   if (answered === DENIED) notFound();

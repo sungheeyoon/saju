@@ -34,6 +34,7 @@ import { HELD_SUSPENSION, SIDE_NAME, sanctionLabel, type ReviewLogLine } from '.
 import { ReviewPanel } from './review-panel';
 import { CARD } from '../../../ui/surfaces';
 import { FailureLine } from '../../../ui/failure-line';
+import { secondFactorGate } from '../../second-factor';
 
 export const metadata = {
   title: '신고 내용',
@@ -64,6 +65,7 @@ export default async function OperatorReportPage({
   if (!user) return redirectToSignIn();
 
   const { reportId } = await params;
+  await secondFactorGate(supabase, 'reports.detail', `/ops/reports/${reportId}`, { reportId });
   const found = await operatorReport(reportId);
   if (found === DENIED) notFound();
   if (found.ok && found.value === null) notFound();
