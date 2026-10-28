@@ -214,14 +214,14 @@ describe('시키는 값과 막는 값', () => {
     return prompt.slice(from, to === -1 ? undefined : to);
   };
 
-  it('한 줄 요약은 방금 쓴 본문으로 이 사람(이 사이)을 한눈에 알아보게 하는 것 하나에 빗댄 한 줄 비유다', () => {
+  it('한 줄 요약은 방금 쓴 본문으로 이 사람(이 사이)을 찰떡같이 들어맞는 그림 하나에 빗댄 한 줄 비유다', () => {
     for (const kind of READING_KINDS) {
       const section = metaphorSectionOf(READING_PROMPTS[kind]);
       expect(section, kind).toContain('**본문을 다 쓴 뒤에** 쓴다');
       expect(section, kind).toContain(
         isSolo(kind)
-          ? '**이 사람을 한눈에 알아보게 하는 것 하나에 빗대면 무엇인가**'
-          : '**이 사이를 한눈에 알아보게 하는 것 하나에 빗대면 무엇인가**',
+          ? '**이 사람을 찰떡같이 들어맞는 그림 하나에 빗대면 무엇인가**'
+          : '**이 사이를 찰떡같이 들어맞는 그림 하나에 빗대면 무엇인가**',
       );
       expect(section, kind).toContain('더 짧아도 된다');
       /* 개인 · 궁합 같은 꼬리 — 비유는 본문 뒤에 지어지므로 본문이 비유를 알 수 없다 */
@@ -463,10 +463,10 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
   });
 
   it('개인 풀이와 궁합이 같은 판본 이름으로 오른다 — 한 줄 비유(ADR 0207)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v21');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v21');
+    expect(READING_POLICY.version).toBe('reading-prompt-v22');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v22');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v21');
+      expect(promptVersionOf(kind), kind).toBe('reading-prompt-v22');
     }
   });
 

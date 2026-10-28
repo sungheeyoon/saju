@@ -5,7 +5,7 @@
 > **코드와 어긋나면 코드가 맞다.** 날짜가 붙은 문단은 그날의 사정이고 커밋 해시는 그날의 자리다.
 > 여기 적힌 경로가 실재하는지는 시험이 재지 않는다.
 >
-> **지금은:** 실제로 나가는 것은 `CONTROL` 하나이고 세대는 `planOf` 가 한 번 고른다(ADR 0075). 개인 풀이 · 두 궁합 모두 `reading-prompt-v21`(2026-10-27 — 개인 풀이도 본문 → 한 줄 비유 차례 · 비유 지시 다시 씀, ADR 0207 추기 「v21」. v20 은 18자 · v19 는 #842 의 20자) — 이름은 `promptVersionOf`. 조립은 `src/lib/reading/prompt.ts` · `parts.ts` · `vocabulary.ts`. 프롬프트 본문을 고치면 실호출 한 번(`docs/agents/test-map.md`).
+> **지금은:** 실제로 나가는 것은 `CONTROL` 하나이고 세대는 `planOf` 가 한 번 고른다(ADR 0075). 개인 풀이 · 두 궁합 모두 `reading-prompt-v22`(2026-10-28 — 비유 지시를 「찰떡같이 들어맞는 그림 하나」로, ADR 0207 추기 「v22」. v21 은 개인 풀이도 본문 → 한 줄 비유 차례 · 비유 지시 다시 씀. v20 은 18자 · v19 는 #842 의 20자) — 이름은 `promptVersionOf`. 조립은 `src/lib/reading/prompt.ts` · `parts.ts` · `vocabulary.ts`. 프롬프트 본문을 고치면 실호출 한 번(`docs/agents/test-map.md`).
 >
 > **낡은 화면:** 아래 `/me/reading/inspect` 는 Vercel 배포(Production · Preview)에서 없는 주소다 — 로컬에서만 연다(`app/me/reading/inspect/open.ts`, ADR 0122). 그 화면의 「실험용 변형」 목록도 걷혔고 나가는 판 하나만 짓는다(G-32, #176).
 >
