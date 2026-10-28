@@ -386,6 +386,12 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   /**
    * **막는 값은 폰 한 줄의 잰 경계다**(#842, ADR 0207 추기) — 띄어쓰기를 넣어 센다. 18자는 지나고 19자는 걸린다.
    */
+  it('옛 본보기 문장을 옮기면 적고 글은 내보낸다(ADR 0208 추기 「v25」)', () => {
+    const copied = ok('self');
+    copied.output.markdown = `${copied.output.markdown}\n\n1. **혼자 판단할 때, 실력이 또렷해져요** — 설명이에요.`;
+    expect(codesOf(checkReading(copied))).toEqual(['example-copied']);
+  });
+
   it('한 줄 비유는 띄어쓰기 포함 30자까지 지나고 31자에서 걸린다', () => {
     const fits = ok('self');
     fits.output.metaphor = '가나다 라마바 사아자 차카타 파하가 나다라 마바사 아자';

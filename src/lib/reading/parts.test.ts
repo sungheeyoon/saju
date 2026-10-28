@@ -15,6 +15,7 @@ import {
   readingEvidenceOf,
   readingPromptOf,
 } from '.';
+import { FORMER_EXAMPLE_LINES } from './check';
 import { measureMarkdown, outputDeviations, pairOutputDeviations } from '@/src/lab/reading/measure';
 import { MATCH_INPUT_VARIANTS } from '@/src/lab/reading/variants';
 
@@ -461,11 +462,17 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이는 글의 모양으로 v24, 궁합은 v23 이다(ADR 0208)', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v24');
+  it('개인 풀이는 v25, 궁합은 v23 이다(ADR 0208 추기 「v25」)', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v25');
     expect(READING_POLICY.pairVersion).toBe('reading-prompt-v23');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v24' : 'reading-prompt-v23');
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v25' : 'reading-prompt-v23');
+    }
+  });
+
+  it('프롬프트에 옛 본보기 문장이 없다 — 모델이 정답으로 옮겼다(v24 운영, ADR 0208 추기 「v25」)', () => {
+    for (const kind of READING_KINDS) {
+      for (const line of FORMER_EXAMPLE_LINES) expect(READING_PROMPTS[kind], kind).not.toContain(line);
     }
   });
 
@@ -477,6 +484,7 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
         expect(prompt, kind).toContain('`- 상황: 초기에 알아챌 모습`');
         expect(prompt, kind).toContain('`- 잘 맞는 일: 가, 나, 다`');
         expect(prompt, kind).toContain('`1. **제목** — 설명`');
+        expect(prompt, kind).toContain('올해 · 이번 달의 흐름은 셋에 넣지 않는다');
       } else {
         expect(prompt, kind).not.toContain('## 글의 모양');
       }
