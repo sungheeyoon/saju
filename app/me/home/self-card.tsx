@@ -34,12 +34,11 @@ import { SelfProfile } from './self-profile';
 */
 
 /**
- * 카드 머리의 이름 — 폰 20/28 · 넓은 화면 26/35, **시스템 서체 600**(운영자 결정 2026-10-28 「T1」). 둥근 서체는 굵기가 400 하나라 굵게
- * 주면 가짜 굵기가 선다(`app/ui/scale.test.ts`) — 운영자가 이 이름 하나만 시스템 서체 굵게로 골랐다. 다른 제목은 둥근 서체 그대로다.
- * 줄 높이는 정수 px 다 — 머리 높이가 소수면 아래 결과 바로가기가 반 픽셀 자리에 선다(`TYPE_TITLE` 의 주석, #836)
+ * 카드 머리의 이름 — 폰 20/28 · 넓은 화면 26/35, 둥근 서체 400(운영자 결정 2026-10-28 「T1」). 시스템 서체 굵게도 찍어 봤으나
+ * 디자인 체계의 둥근 제목들과 안 맞아 운영자가 되돌렸다 — 크기만 줄인다. 줄 높이는 정수 px 다 — 머리 높이가 소수면 아래 결과 바로가기가 반 픽셀 자리에 선다(`TYPE_TITLE` 의 주석, #836)
  */
 const NAME_FACE =
-  'text-heading font-semibold leading-7 tracking-[-0.01em] text-foreground sm:text-title sm:leading-[2.1875rem] sm:tracking-[-0.02em]';
+  'font-rounded text-heading leading-7 tracking-[-0.01em] text-foreground sm:text-title sm:leading-[2.1875rem] sm:tracking-[-0.02em]';
 
 export function SelfCard({
   personId,
@@ -114,7 +113,7 @@ export function SelfCard({
           */}
           <div className="flex min-w-0 flex-col">
             {/*
-              **이름은 구역 제목 단(20px) 굵게, 넓은 화면은 26px**(운영자 결정 2026-10-28 「T1」) — 화면 제목 단(26 · 30)은 카드 안 한 사람의
+              **이름은 구역 제목 단(20px), 넓은 화면은 26px**(운영자 결정 2026-10-28 「T1」) — 화면 제목 단(26 · 30)은 카드 안 한 사람의
               이름에 너무 커서 아래 출생 정보 줄과 균형이 맞지 않았다
             */}
             <h2 className={`min-w-0 break-keep pr-20 [overflow-wrap:anywhere] ${NAME_FACE}`}>{label}</h2>
