@@ -10,13 +10,14 @@ import { CREDITS_PATH } from './buy-path';
  * **← 는 이 표 밖으로 못 간다.** 같은 사이트의 경로이고 아래 넷 중 하나로 시작해야 한다 — 아니면 `null` 이고 화면은 지금대로
  * 「홈으로」다. 머리글 · 주소로 상품 화면을 연 사람도 그렇다.
  */
-export type ReturnTo = { readonly href: string; readonly label: string };
+/** `label` 은 결제 뒤 단추의 글자, `name` 은 상품 화면 ← 가 보조기기에 읽히는 그 화면의 이름(`TopBar`) */
+export type ReturnTo = { readonly href: string; readonly label: string; readonly name: string };
 
 const PLACES = [
-  { path: '/me/readings', label: '사주풀이로 돌아가기' },
-  { path: '/me/compat', label: '궁합풀이로 돌아가기' },
-  { path: '/me/match', label: '인연 궁합으로 돌아가기' },
-  { path: '/me/matching', label: '인연으로 돌아가기' },
+  { path: '/me/readings', label: '사주풀이로 돌아가기', name: '사주풀이' },
+  { path: '/me/compat', label: '궁합풀이로 돌아가기', name: '궁합풀이' },
+  { path: '/me/match', label: '인연 궁합으로 돌아가기', name: '인연 궁합' },
+  { path: '/me/matching', label: '인연으로 돌아가기', name: '인연' },
 ] as const;
 
 /** 주소의 `back` 한 값 — 배열은 첫 값, 표 밖이면 `null` */
@@ -33,7 +34,7 @@ export function returnToOf(value: string | readonly string[] | null | undefined)
   if (parsed.origin !== 'https://local.invalid') return null;
 
   const place = PLACES.find(({ path }) => parsed.pathname === path || parsed.pathname.startsWith(`${path}/`));
-  return place ? { href: `${parsed.pathname}${parsed.search}`, label: place.label } : null;
+  return place ? { href: `${parsed.pathname}${parsed.search}`, label: place.label, name: place.name } : null;
 }
 
 /** 돌아갈 곳을 실은 주소 — 표 밖이면 싣지 않는다 */

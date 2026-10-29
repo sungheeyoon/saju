@@ -7,6 +7,7 @@ import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { currentBusinessInfo } from '../../business-info';
 import { FailureLine } from '../../ui/failure-line';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { TopBar } from '../../ui/top-bar';
 import { Checkout } from './checkout';
 import { portoneCheckoutOf } from './payment';
 import { readReadingCredits } from './remaining';
@@ -28,6 +29,9 @@ export const metadata = {
  *
  * 제목 아래에 보유 수를 세운다 — 머리글 메뉴와 같은 이름이다(운영자 결정 2026-10-29). 못 읽으면 그 줄만 생략한다. 풀이권 창이
  * 실어 온 돌아갈 곳(`?back=`)은 결제창 · 환불정책 링크로 넘긴다(`return-to.ts`).
+ *
+ * 제목 위 ← 는 그 돌아갈 곳이고, 실어 온 곳이 없으면(머리글 · 주소로 연 사람) 「나」(`/me`)다(운영자 2026-10-29 「뒤로가기가 없는 게
+ * 아쉽네」). 결제 뒤 「홈으로」가 `/me` 인 것과 같다.
  */
 export default async function CreditsPage({
   searchParams,
@@ -51,10 +55,12 @@ export default async function CreditsPage({
 
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
-      <header className="flex flex-col gap-1">
-        <h1 className={TYPE_TITLE}>풀이권 구매</h1>
-        <p className={TYPE_META}>{CREDITS_USAGE_NOTE}</p>
-      </header>
+      <TopBar back={back ? { href: back.href, label: back.name } : { href: '/me', label: '나' }}>
+        <header className="flex flex-col gap-1">
+          <h1 className={TYPE_TITLE}>풀이권 구매</h1>
+          <p className={TYPE_META}>{CREDITS_USAGE_NOTE}</p>
+        </header>
+      </TopBar>
 
       {available !== null && (
         <p className="flex items-baseline justify-between gap-4 rounded-card bg-cream px-5 py-4 text-body text-cream-ink">

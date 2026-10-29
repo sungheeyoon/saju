@@ -4,10 +4,10 @@ import { creditsPathFrom, returnToOf, withReturnTo } from './return-to';
 
 describe('returnToOf', () => {
   it('풀이권을 쓰는 화면 넷이면 그 화면과 이름이다', () => {
-    expect(returnToOf('/me/readings/self')).toEqual({ href: '/me/readings/self', label: '사주풀이로 돌아가기' });
-    expect(returnToOf('/me/compat?a=1&b=2')).toEqual({ href: '/me/compat?a=1&b=2', label: '궁합풀이로 돌아가기' });
-    expect(returnToOf('/me/match/abc')).toEqual({ href: '/me/match/abc', label: '인연 궁합으로 돌아가기' });
-    expect(returnToOf('/me/matching')).toEqual({ href: '/me/matching', label: '인연으로 돌아가기' });
+    expect(returnToOf('/me/readings/self')).toEqual({ href: '/me/readings/self', label: '사주풀이로 돌아가기', name: '사주풀이' });
+    expect(returnToOf('/me/compat?a=1&b=2')).toEqual({ href: '/me/compat?a=1&b=2', label: '궁합풀이로 돌아가기', name: '궁합풀이' });
+    expect(returnToOf('/me/match/abc')).toEqual({ href: '/me/match/abc', label: '인연 궁합으로 돌아가기', name: '인연 궁합' });
+    expect(returnToOf('/me/matching')).toEqual({ href: '/me/matching', label: '인연으로 돌아가기', name: '인연' });
   });
 
   it('머리글 · 주소로 연 상품 화면은 돌아갈 곳이 없다 — 지금대로 「홈으로」', () => {
