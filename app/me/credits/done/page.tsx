@@ -6,6 +6,7 @@ import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../../ui/buttons';
 import { CARD, COLUMN, TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
 import { paymentOutcomeOf, paymentReturnOf, type PaymentOutcome } from '../payment';
+import { returnToOf, withReturnTo } from '../return-to';
 import { myOrder } from '../sale';
 import { WaitForApproval } from './wait';
 
@@ -35,6 +36,9 @@ const OUTCOMES: Record<PaymentOutcome, Outcome> = {
  *
  * 결제가 됐는지는 결제창의 답이 아니라 **주문의 상태**가 말한다. 웹훅이 PortOne 에서 결제를 다시 받아 승인해야 묶음이 서므로,
  * 결제창이 먼저 돌아오면 주문은 아직 대기다 — 그동안은 화면이 스스로 다시 묻는다(`WaitForApproval`).
+ *
+ * 풀이권 창에서 왔으면(`?back=`) 「홈으로」 대신 그 화면으로 돌아간다 — 「사주풀이로 돌아가기」 꼴(운영자 결정 2026-10-29,
+ * `return-to.ts`). 다시 고르는 길도 돌아갈 곳을 들고 간다.
  */
 export default async function CreditsDonePage({
   searchParams,
@@ -45,7 +49,9 @@ export default async function CreditsDonePage({
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const returned = paymentReturnOf(await searchParams);
+  const params = await searchParams;
+  const returned = paymentReturnOf(params);
+  const back = returnToOf(params.back);
   const order = returned.kind === 'order' ? await myOrder(supabase, returned.orderId) : null;
   const outcome = OUTCOMES[paymentOutcomeOf(returned, order)];
 
@@ -56,12 +62,12 @@ export default async function CreditsDonePage({
         <p className={TYPE_META}>{outcome.line(order?.credits ?? 0)}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
           {outcome.again ? (
-            <Link href="/me/credits" className={BUTTON_PRIMARY}>
+            <Link href={withReturnTo('/me/credits', back)} className={BUTTON_PRIMARY}>
               풀이권 다시 고르기
             </Link>
           ) : (
-            <Link href="/me" className={outcome.wait ? BUTTON_SECONDARY : BUTTON_PRIMARY}>
-              홈으로
+            <Link href={back?.href ?? '/me'} className={outcome.wait ? BUTTON_SECONDARY : BUTTON_PRIMARY}>
+              {back?.label ?? '홈으로'}
             </Link>
           )}
           {outcome.history && (

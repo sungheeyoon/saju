@@ -20,6 +20,7 @@ import { TYPE_META, TYPE_NAME } from '../../ui/surfaces';
 import { openReadingOrder } from './actions';
 import type { PortoneCheckout } from './payment';
 import { loadPortOne } from './portone-sdk';
+import { withReturnTo, type ReturnTo } from './return-to';
 
 /**
  * **풀이권 고르기 · 동의 체크 · 「결제하기」 · 유의사항** (G-21, ADR 0171 · 0175).
@@ -31,7 +32,15 @@ import { loadPortOne } from './portone-sdk';
  * 결제 단추는 서버가 결제창 값(`checkout`)을 넘긴 사람 — 판매가 열린 사람(지금은 카드사 심사 계정)이고 상점 번호 · 채널 키가 있는 배포 — 에게만 선다. 누르면 주문을 먼저 열고(금액은 DB 의 가격표), 그 주문 번호로 결제창을
  * 띄운다. 결제가 됐는지는 이 화면이 정하지 않는다 — 웹훅이 PortOne 에서 다시 받아 승인한 주문을 결제 뒤 화면이 읽는다.
  */
-export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout | null; refundLine: string }) {
+export function Checkout({
+  checkout,
+  refundLine,
+  back,
+}: {
+  checkout: PortoneCheckout | null;
+  refundLine: string;
+  back: ReturnTo | null;
+}) {
   const router = useRouter();
   const [credits, setCredits] = useState<number>(READING_BUNDLES[0].credits);
   const [agreed, setAgreed] = useState(false);
@@ -66,7 +75,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
           totalAmount: opened.amount,
           currency: 'CURRENCY_KRW',
           payMethod: 'CARD',
-          redirectUrl: `${window.location.origin}/me/credits/done`,
+          redirectUrl: `${window.location.origin}${withReturnTo('/me/credits/done', back)}`,
         });
       } catch {
         setFailure('결제창을 열지 못했어요. 잠시 뒤 다시 시도해 주세요.');
@@ -78,7 +87,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
         setFailure('결제를 마치지 못했어요.');
         return;
       }
-      router.push(`/me/credits/done?paymentId=${encodeURIComponent(opened.paymentId)}`);
+      router.push(withReturnTo(`/me/credits/done?paymentId=${encodeURIComponent(opened.paymentId)}`, back));
     });
   };
 
@@ -161,7 +170,7 @@ export function Checkout({ checkout, refundLine }: { checkout: PortoneCheckout |
             시행일)로부터 1년이 지나면 소멸됩니다.
           </li>
         </ul>
-        <Link href="/refund" className={`${BUTTON_TERTIARY_FACE} self-start text-fine font-medium text-secondary`}>
+        <Link href={withReturnTo('/refund?from=credits', back)} className={`${BUTTON_TERTIARY_FACE} self-start text-fine font-medium text-secondary`}>
           자세히 알아보기
         </Link>
       </div>

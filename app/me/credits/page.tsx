@@ -1,5 +1,5 @@
 import { checkoutRefundLine } from '@/src/lib/brand/refund';
-import { CREDITS_USAGE_NOTE } from '@/src/lib/reading/notes';
+import { CREDITS_AVAILABLE_LABEL, CREDITS_USAGE_NOTE } from '@/src/lib/reading/notes';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
@@ -9,6 +9,8 @@ import { FailureLine } from '../../ui/failure-line';
 import { COLUMN, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { Checkout } from './checkout';
 import { portoneCheckoutOf } from './payment';
+import { readReadingCredits } from './remaining';
+import { returnToOf } from './return-to';
 import { mySaleIsOpen } from './sale';
 
 export const metadata = {
@@ -23,13 +25,22 @@ export const metadata = {
  * 결제창 값(`PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY`)이 있는 배포에서만 선다. 둘 중 하나라도 아니면 결제창 값을 화면에
  * 넘기지 않는다. 풀이권 창(`useBuyCredits`)은 판매가 열린 계정에게만 이리 오는 단추를 세운다 — 주소로 연 사람은 누구나
  * 이 화면을 보고, 판매가 닫혔으면 「풀이권 판매 준비 중이에요.」가 선다.
+ *
+ * 제목 아래에 보유 수를 세운다 — 머리글 메뉴와 같은 이름이다(운영자 결정 2026-10-29). 못 읽으면 그 줄만 생략한다. 풀이권 창이
+ * 실어 온 돌아갈 곳(`?back=`)은 결제창 · 환불정책 링크로 넘긴다(`return-to.ts`).
  */
-export default async function CreditsPage() {
+export default async function CreditsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const supabase = await supabaseOnServer();
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const sale = await mySaleIsOpen(supabase);
+  const back = returnToOf((await searchParams).back);
+  const [sale, credits] = await Promise.all([mySaleIsOpen(supabase), readReadingCredits(supabase)]);
+  const available = credits.ok && credits.value ? credits.value.available : null;
   const checkout =
     sale.ok && sale.value
       ? portoneCheckoutOf({
@@ -45,9 +56,16 @@ export default async function CreditsPage() {
         <p className={TYPE_META}>{CREDITS_USAGE_NOTE}</p>
       </header>
 
+      {available !== null && (
+        <p className="flex items-baseline justify-between gap-4 rounded-card bg-cream px-5 py-4 text-body text-cream-ink">
+          <span>{CREDITS_AVAILABLE_LABEL}</span>
+          <span className="font-semibold tabular-nums">{available}장</span>
+        </p>
+      )}
+
       {!sale.ok && <FailureLine retry>결제할 수 있는지 확인하지 못했어요. {sale.reason}</FailureLine>}
 
-      <Checkout checkout={checkout} refundLine={checkoutRefundLine(currentBusinessInfo())} />
+      <Checkout checkout={checkout} refundLine={checkoutRefundLine(currentBusinessInfo())} back={back} />
     </main>
   );
 }

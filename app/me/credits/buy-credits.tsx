@@ -16,7 +16,8 @@ import {
 import { ConfirmDialog } from '../../ui/confirm-dialog';
 import { Icon } from '../../ui/icons';
 import { saleIsOpenNow } from './asked-on-press';
-import { CREDITS_PATH, saleShapeOf } from './buy-path';
+import { saleShapeOf } from './buy-path';
+import { creditsPathFrom } from './return-to';
 
 /**
  * 풀이 · 궁합풀이 · 인연 요청에 풀이권이 부족하면 보유 수와 필요 수를 함께 보여준다(B안, 운영자 2026-10-12). 머리글은 이 창을 열지 않는다 —
@@ -66,7 +67,8 @@ export function useBuyCredits(): {
       confirmLabel={open ? BUY_CREDITS_LABEL : SALE_CLOSED_OK}
       onConfirm={() => {
         close();
-        if (open) router.push(CREDITS_PATH);
+        /* 결제 뒤 이 화면으로 돌아오게 지금 주소를 싣는다(`return-to.ts`) */
+        if (open) router.push(creditsPathFrom(`${window.location.pathname}${window.location.search}`));
       }}
       firstFocus="confirm"
       cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
