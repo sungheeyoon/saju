@@ -38,7 +38,7 @@ export default function MatchScreen() {
     void load();
   }, [load]);
 
-  const fallback = from === 'history' ? '/me/matching/history' : '/me/matching';
+  const fallback = from === 'history' ? '/me/matching/history' : from === 'shelf' ? '/me/readings' : '/me/matching';
   const back = () => goBack(fallback);
 
   if (outcome === null) {
