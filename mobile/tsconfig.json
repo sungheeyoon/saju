@@ -38,6 +38,24 @@
       ],
       "@db-error": [
         "../app/db-error.ts"
+      ],
+      "@people": [
+        "../src/lib/people/index.ts"
+      ],
+      "@people/pick": [
+        "../src/lib/people/pick.ts"
+      ],
+      "@matching": [
+        "../src/lib/matching/index.ts"
+      ],
+      "@reading-display": [
+        "../src/lib/reading/display.ts"
+      ],
+      "@reading-notes": [
+        "../src/lib/reading/notes.ts"
+      ],
+      "@saju-text/*": [
+        "../src/lib/saju/text/*"
       ]
     }
   },
