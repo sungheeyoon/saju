@@ -3,7 +3,7 @@ import { AESEncryptionKey, AESSealedData, aesDecryptAsync, aesEncryptAsync } fro
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-import { bytesToText, sealedStorage, textToBytes, type SessionStore } from './sealed-storage';
+import { bytesToText, sealedStorage, textToBytes, type SessionStore } from '@account/sealed-session';
 
 /* 이 기기에서만 연다 — 백업을 다른 기기에 풀면 키가 안 따라가 다시 로그인한다 */
 const VAULT_OPTIONS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };

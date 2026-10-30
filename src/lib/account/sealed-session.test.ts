@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { bytesToText, sealedStorage, textToBytes, type SessionStore } from '../mobile/src/auth/sealed-storage';
+import { bytesToText, sealedStorage, textToBytes, type SessionStore } from './sealed-session';
 
 const KEY = 'sb-ref-auth-token';
 
