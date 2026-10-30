@@ -25,6 +25,7 @@ export function SharedReadingScreen({ token, expect }: { token: string; expect: 
     void readShared(token, expect).then(setRead);
   }, [token, expect]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 주소가 바뀌면 옛 공유본을 먼저 걷고 빈 화면에서 새로 읽는다. 다시 시도 단추도 같은 걸음이다
   useEffect(load, [load]);
 
   if (read === null) return <SafeAreaView style={styles.screen} />;
