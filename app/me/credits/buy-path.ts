@@ -14,10 +14,5 @@ export function saleShapeOf(sale: SkippableRead<boolean>): 'closed' | 'open' {
   return sale.ok && !sale.value ? 'closed' : 'open';
 }
 
-/**
- * **풀이권이 0개인가** — 남은 것도 만드는 중인 것도 없다. 만드는 중이면(`reserved > 0`) 끝나기를 기다리는 자리라 풀이권 창이 아니다.
- * 보낸 요청이 잡은 몫(`requested`)은 `available` 에서 이미 빠져 있다. 못 물었으면(`null`) 0개라고 하지 않는다 — DB 가 판정한다.
- */
-export function outOfCredits(credits: { available: number; reserved: number } | null): boolean {
-  return credits !== null && credits.available === 0 && credits.reserved === 0;
-}
+/* 만드는 버튼의 판단이라 그 자리(`src/lib/reading/panel-chrome.ts`)에 산다 — 앱과 함께 쓴다(ADR 0211) */
+export { outOfCredits } from '@/src/lib/reading/panel-chrome';

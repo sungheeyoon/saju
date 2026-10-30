@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@brand/guide';
+import { SIGNED_OUT_EXIT } from '@brand/guide';
 import { withReturnPath } from '@consent/return-path';
 
 import { goHome } from '@/info/go-home';
-import { NoticeLine, NoticeNote, NoticeScreen } from '@/ui/notice-screen';
+import { NoticeLine, NoticeScreen } from '@/ui/notice-screen';
 import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 
 /** 로그인이 끝나지 못한 자리 — 웹의 `/auth/denied`. 왜인지 모른다고 말하는 것이 정직한 말의 전부다. 「다시 로그인」은 가려던 곳을 그대로 들고 간다 */
@@ -20,7 +20,6 @@ export default function DeniedScreen() {
           <SecondaryButton label={SIGNED_OUT_EXIT} onPress={() => void goHome()} />
         </>
       }
-      note={<NoticeNote>{SIGNED_OUT_REACH}</NoticeNote>}
     />
   );
 }

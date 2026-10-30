@@ -12,6 +12,9 @@ import { Logo } from '@/ui/logo';
 import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
+/** 앱은 로그인 뒤에야 결과를 보여 준다 — 로그인 없이 된다는 조건 줄은 앱에서 사실이 아니라 세우지 않는다 */
+const SIGNED_OUT_ONLY = '로그인 없이';
+
 /** 서비스 소개 — 웹의 `/about`. 로그인 없이 열리고 세션도 DB 도 안 읽는다 */
 export default function AboutScreen() {
   return (
@@ -32,7 +35,7 @@ export default function AboutScreen() {
             </View>
             <Text style={styles.name}>{feature.title}</Text>
             <Text style={styles.body}>{feature.body}</Text>
-            <Text style={styles.meta}>{feature.note}</Text>
+            {!feature.note.includes(SIGNED_OUT_ONLY) && <Text style={styles.meta}>{feature.note}</Text>}
           </Panel>
         ))}
       </View>

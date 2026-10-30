@@ -15,7 +15,7 @@ vi.mock('../summary', () => ({
 }));
 /** 참여를 여는 문은 열쇠 모듈이 부른다(G-64, ADR 0136) — 그 답만 바꿔 끼운다 */
 const joinedNow = vi.hoisted(() => ({ answer: { data: null as unknown, error: null as unknown } }));
-vi.mock('../keyed-chart-writes', () => ({ openParticipation: async () => joinedNow.answer }));
+vi.mock('../chart-writes', () => ({ openParticipation: async () => joinedNow.answer }));
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));
 vi.mock('../payload', () => ({ payloadForViewer: async () => null }));
 vi.mock('../requests/inbox', () => ({

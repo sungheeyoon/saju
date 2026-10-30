@@ -51,6 +51,9 @@
       "@db-error": [
         "../app/db-error.ts"
       ],
+      "@reading/*": [
+        "../src/lib/reading/*"
+      ],
       "@people": [
         "../src/lib/people/index.ts"
       ],

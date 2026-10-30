@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 import {
   READING_KINDS,
   RUN_STATUSES,
@@ -18,7 +20,7 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readingTargetArgs, type ReadingTarget } from './target';
-import { rpcArgs } from '@/src/lib/db';
+import { rpcArgs, type Database } from '@/src/lib/db';
 import { dbFailure, read, recordDbFailure, unread, type SkippableRead } from '../../db-error';
 import { readAccount } from '../account';
 
@@ -32,9 +34,12 @@ import { readAccount } from '../account';
  * 근거와 프롬프트는 여기서 안 나간다. 그 둘은 내부 테스트 화면의 것이고 문이 따로다.
  */
 
+/** 앱의 문(`app/api/mobile`)은 쿠키가 없어 제 클라이언트를 넘긴다 — 안 넘기면 쿠키의 사람이다(ADR 0211) */
+type ReadsAs = SupabaseClient<Database>;
+
 /** @returns 아직 만들지 않았거나 못 보는 대상이면 `null` — 둘을 가르지 않는다 */
-export async function currentReading(target: ReadingTarget): Promise<CurrentReading | null> {
-  const supabase = await supabaseOnServer();
+export async function currentReading(target: ReadingTarget, client?: ReadsAs): Promise<CurrentReading | null> {
+  const supabase = client ?? (await supabaseOnServer());
 
   const { data, error } = await supabase.rpc('my_reading', rpcArgs<'my_reading'>(readingTargetArgs(target)));
   if (error) throw dbFailure(error, 'my_reading');
@@ -99,8 +104,8 @@ export async function improvementConsented(): Promise<SkippableRead<boolean>> {
  * 그 대상의 화면으로 다시 들어온 사람에게도 — 다른 기기에서 열었거나 새로고침한 뒤에도 —
  * 「지난번에 실패했다」를 말할 수 있어야 해서, 그 근거를 이 값이 든다(US 56).
  */
-export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | null> {
-  const supabase = await supabaseOnServer();
+export async function lastReadingRun(target: ReadingTarget, client?: ReadsAs): Promise<LastRun | null> {
+  const supabase = client ?? (await supabaseOnServer());
 
   const { data, error } = await supabase.rpc('my_last_reading_run', rpcArgs<'my_last_reading_run'>(readingTargetArgs(target)));
   if (error) throw dbFailure(error, 'my_last_reading_run');
@@ -145,8 +150,8 @@ const stemOf = (value: string | null | undefined): Stem | null => STEMS.find((st
  * 자리가 둘이 되고, 둘이 갈리는 날 화면이 DB 보다 넓거나 좁아진다.
 
  */
-export async function myReadings(): Promise<readonly ReadingEntry[]> {
-  const supabase = await supabaseOnServer();
+export async function myReadings(client?: ReadsAs): Promise<readonly ReadingEntry[]> {
+  const supabase = client ?? (await supabaseOnServer());
 
   const { data, error } = await supabase.rpc('my_readings');
   if (error) throw dbFailure(error, 'my_readings');
@@ -213,7 +218,7 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
  * 그대로 서고, 호칭이 남은 요약만 안 선다(부속 정보, ADR 0078).
  */
 async function matchViewerOf(
-  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  supabase: ReadsAs,
 ): Promise<{ userId: string; nickname: string; partners: ReadonlyMap<string, string> } | null> {
   const [account, matches] = await Promise.all([
     readAccount(supabase, ['status', 'id', 'nickname']),

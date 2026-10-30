@@ -2,7 +2,8 @@
 
 import { FEEDBACK_UNEXPECTED_NOTE, type LastRun } from '@/src/lib/reading';
 
-import { beginReading, type ReadingStart } from './pipeline';
+import type { ReadingStart } from './pipeline';
+import { beginReading } from './press';
 import { readingPathsOf, type ReadingTarget } from './target';
 import { lastReadingRun } from './current';
 import { refreshPaths } from '../../refresh';
@@ -47,7 +48,7 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
 
   /*
     **이어 쓴 풀이가 섰으면 귀속 표를 걷는다**(ADR 0143) — 그 세션은 다 쓰였다. 남겨 두면 다음 「다시 받기」가 그 풀이를
-    여는 것으로 끝난다(`pipeline.ts` 의 `pressCarry`). 기다리던 시도는 그 표가 이은 시도다 — 이 화면의 누름이 열었다.
+    여는 것으로 끝난다(`press.ts` 의 `pressCarry`). 기다리던 시도는 그 표가 이은 시도다 — 이 화면의 누름이 열었다.
   */
   if (target.kind === 'self' && run?.status === 'succeeded') await forgetTasteClaim();
 
@@ -59,7 +60,7 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
  * 되게 한다. 두 자리가 부른다: 「이어오지 못했어요.」의 탈출구(`app/save-for-reading.tsx`)와, 잇기가 막혀(`taste-link-failed`)
  * 실패한 내 사주풀이 화면의 탈출구(`panel.tsx`).
  *
- * **DB 의 귀속된 세션은 건드리지 않는다.** 누름이 세션을 찾는 길은 이 표 하나다(`pipeline.ts` 의 `pressCarry` 는 표가 없으면
+ * **DB 의 귀속된 세션은 건드리지 않는다.** 누름이 세션을 찾는 길은 이 표 하나다(`press.ts` 의 `pressCarry` 는 표가 없으면
  * 보통 풀이로 간다). 화면의 「아까 보던 내용」도 표가 없으면 그 글을 만든 시도에 이어진 것만 보고(`app/taste/taste-carry.ts`), 탭의 id 는
  * 붙은 뒤에 지워졌다 — 표를 걷으면 그 세션으로 돌아오는 길이 없다. 남은 세션은 붙이고 누르지 않은 세션과 같은 모양이라(회원과
  * 함께 지워진다, `claimed_by` 의 cascade) 버리는 문을 새로 열지 않는다(마이그레이션 없음).

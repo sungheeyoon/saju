@@ -3,20 +3,20 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SERVICE_NAME } from '@brand';
-import { SIGN_IN_UNLOCKS, SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@brand/guide';
+import { SIGN_IN_UNLOCKS, SIGNED_OUT_EXIT } from '@brand/guide';
 import { safeReturnPath, withReturnPath } from '@consent/return-path';
 
 import { signInWithGoogle } from '@/auth/sign-in';
 import { readGate } from '@/home/gate';
 import { goHome } from '@/info/go-home';
 import { Icon } from '@/ui/icons';
-import { NoticeLine, NoticeNote, NoticeScreen } from '@/ui/notice-screen';
+import { NoticeLine, NoticeScreen } from '@/ui/notice-screen';
 import { PrimaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /**
  * 로그인 — 웹의 `/auth` 와 같은 글자이고 로그인은 네이티브 구글이다. 돌아갈 곳은 앱에 있는 `/me` 아래뿐이다 —
- * 웹의 두 갈래 제목(`/compat` · `/saju` 이어 보기)은 앱에 없는 주소에서 오는 말이라 세우지 않는다. 실패와 취소는 로그인 실패 화면으로 간다.
+ * 웹의 두 갈래 제목(`/compat` · `/saju` 이어 보기)은 앱에 없는 주소에서 오는 말이라 세우지 않는다. 「로그인 없이도…」 줄도 앱에서는 사실이 아니라 뺀다. 실패와 취소는 로그인 실패 화면으로 간다.
  */
 export default function SignInScreen() {
   const { next } = useLocalSearchParams<{ next?: string }>();
@@ -56,12 +56,9 @@ export default function SignInScreen() {
       }
       actions={<PrimaryButton label={going ? '구글로 이동하는 중…' : '구글로 로그인'} onPress={signIn} disabled={going} />}
       note={
-        <>
-          <NoticeNote>{SIGNED_OUT_REACH}</NoticeNote>
-          <View style={styles.exit}>
-            <TextButton label={SIGNED_OUT_EXIT} onPress={() => void goHome()} />
-          </View>
-        </>
+        <View style={styles.exit}>
+          <TextButton label={SIGNED_OUT_EXIT} onPress={() => void goHome()} />
+        </View>
       }
     >
       <View style={styles.unlocks}>

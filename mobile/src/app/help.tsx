@@ -9,6 +9,9 @@ import { Icon } from '@/ui/icons';
 import { Panel, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
+/** 앱은 로그인 뒤에야 결과를 보여 준다 — 「로그인하지 않고 무엇을 볼 수 있나요?」는 앱에서 사실이 아니라 물음째 뺀다 */
+const SIGNED_OUT_QUESTION = 'without-sign-in';
+
 /**
  * 자주 묻는 질문 — 웹의 `/help`. `/help#credits` 처럼 물음 하나를 가리켜 오면 펴서 연다(웹의 `open-hashed.tsx`).
  * 묶음 단추도 웹처럼 그 묶음의 첫 물음을 펴고 간다. 물음의 자리는 묶음 · 판 · 줄의 세 층을 더해 안다.
@@ -74,7 +77,7 @@ export default function HelpScreen() {
           <Text style={styles.groupTitle}>{group.title}</Text>
           <View onLayout={(event) => place(`panel:${group.title}`, event.nativeEvent.layout.y)}>
             <Panel style={styles.panel}>
-              {group.items.map((item, index) => {
+              {group.items.filter((item) => item.id !== SIGNED_OUT_QUESTION).map((item, index) => {
                 const isOpen = opened.has(item.id);
                 return (
                   <View
