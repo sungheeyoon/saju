@@ -12,13 +12,7 @@ export const REQUEST_UNSURE = '요청이 갔는지 확인하지 못했어요. �
 export const receivedOf = (requests: readonly InboxRequest[]) =>
   requests.filter((request) => request.direction === 'received' && request.status === 'pending');
 
-/**
- * 요청 · 소식 · 풀이의 시각 — **한국 시간으로.** 서버(UTC)가 먼저 그리는 칸이라 시간대를 안 적으면 아홉 시간 이르게 서고,
- * 브라우저가 이어받는 칸(풀이 판)은 한국의 브라우저가 다른 글자를 그려 하이드레이션이 어긋났다.
- */
-export function when(iso: string): string {
-  return new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' });
-}
+export { when } from '../reading/when';
 
 /**
  * **보낸 요청을 거둔 뒤 바닥(스낵바)에 서는 한 줄** — 서버가 답한 끝 그대로다.
