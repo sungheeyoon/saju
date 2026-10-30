@@ -150,9 +150,11 @@ export default function BirthScreen() {
               </Panel>
             )}
 
-            {failure !== null && <Text style={styles.failure}>{failure}</Text>}
-
-            <PrimaryButton label="사주 보기" onPress={submit} />
+            {/* 폼이 짧은 화면에서도 단추는 엄지가 닿는 맨 아래에 선다 */}
+            <View style={styles.action}>
+              {failure !== null && <Text style={styles.failure}>{failure}</Text>}
+              <PrimaryButton label="사주 보기" onPress={submit} />
+            </View>
           </Panel>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -162,10 +164,10 @@ export default function BirthScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
-  content: { padding: 16 },
-  paper: { padding: 14, gap: 12 },
+  content: { flexGrow: 1, padding: 16 },
+  paper: { flexGrow: 1, padding: 14, gap: 12 },
   title: { fontSize: TYPE.title, fontWeight: '700', color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
-  form: { padding: 16, gap: 14 },
+  form: { padding: 16, gap: 18 },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   group: { gap: 6 },
@@ -188,5 +190,6 @@ const styles = StyleSheet.create({
   },
   disclosureLabel: { fontSize: TYPE.body, fontWeight: '600', color: COLOR.foreground },
   disclosureSummary: { fontSize: TYPE.small, color: COLOR.secondary },
+  action: { marginTop: 'auto', paddingTop: 12, gap: 10 },
   failure: { fontSize: TYPE.small, fontWeight: '500', color: COLOR.danger, marginHorizontal: 6 },
 });
