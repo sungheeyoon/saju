@@ -1,5 +1,3 @@
-import type { Element } from '@/src/lib/saju';
-
 /*
   **궤도 지도 둘의 같은 문법** — 매칭 「내 궤도로 다가오는 인연」(`app/me/matching/orbit-map.tsx`)과 홈의 관계 지도
   (`app/me/home/map/`)는 한 그림의 형제다. 오행의 방향 · 글자 받침 · 그림자 · 가운데 빛 · 얼굴 테 · 범례의 선 그림을 두 파일이
@@ -9,14 +7,7 @@ import type { Element } from '@/src/lib/saju';
   오행 · 한 궤도다. 그래서 계산은 각자 두고, 같은 것만 여기 모은다.
 */
 
-/** 오행 다섯의 방향(도) — 정수리의 木 부터 시계 방향으로 72° 씩, 상생 차례(木 → 火 → 土 → 金 → 水) */
-export const ELEMENT_ANGLE: Record<Element, number> = { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 };
-
-/** 오행을 모르는 사람이 설 오행 사이의 빈 방향 — 앞에서부터 쓴다 */
-export const SPARE_ANGLES: readonly number[] = [-54, 162, 90, 18];
-
-/** 좌표는 소수 둘째 자리로 자른다 — 서버와 브라우저가 같은 글자를 써야 하이드레이션이 안 어긋난다 */
-export const round2 = (value: number) => Math.round(value * 100) / 100;
+export { ELEMENT_ANGLE, SPARE_ANGLES, round2 } from '@/src/lib/saju/view/orbit';
 
 /**
  * 글자 받침 — 지도의 글자(오행 자리 · 사람 이름) 밑에 지도 바탕색(`--cream`)을 한 겹 깐다. 선이 글자를 지나가도 받침 뒤로

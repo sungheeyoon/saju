@@ -26,10 +26,10 @@ import { CLAIM_STRENGTH_LEGEND } from '@saju-view/notes';
 import { Fold, Rich, Ruled, ScrollHint, T } from '@/chart/parts';
 import { UtteranceList } from '@/chart/relations';
 import { DayMasterChip, PillarStrip, styles as shared } from '@/people/parts';
-import { StemSymbol } from '@/people/stem-symbol';
 import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
 import { Panel } from '@/ui/parts';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import type { PairOutcome } from './data';

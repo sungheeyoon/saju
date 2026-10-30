@@ -2,15 +2,22 @@
   관계 지도의 자리 계산. 나 둘레의 오행 알 궤도는 없다(`relation-map.tsx` 머리말).
 
   매칭의 「내 궤도로 다가오는 인연」(`app/me/matching/orbit-map.tsx`)과 같은 문법을 홈으로 옮긴다 — 두 지도가 함께 쓰는
-  방향 · 받침 · 테는 `app/ui/orbit.tsx` 에 있다.
+  방향 · 받침 · 테는 `app/ui/orbit.tsx` 에 있고, 방향과 자리 계산은 앱과 함께 쓰려고 여기 있다.
   - **각도는 그 사람의 일간 오행이다.** 오행 다섯의 방향은 매칭과 같은 각도(`ELEMENT_ANGLE`)에 서고, 저장한 사람은 바깥 궤도에서 **제 일간 오행의 방향**에 앉는다. 이웃이 너무 가까우면 서로 밀어 벌린다.
   - **거리는 판정하지 않는다.** 모두 같은 궤도다. 누른 사람도 자리를 떠나지 않고 제자리에서
     커진다.
   좌표는 정사각 상자의 백분율이고 소수 둘째 자리로 자른다(서버와 브라우저가 같은 글자를 쓰게).
 */
-import type { Element } from '@/src/lib/saju';
+import type { Element } from '../index';
 
-import { ELEMENT_ANGLE, SPARE_ANGLES, round2 } from '../../../ui/orbit';
+/** 오행 다섯의 방향(도) — 정수리의 木 부터 시계 방향으로 72° 씩, 상생 차례(木 → 火 → 土 → 金 → 水) */
+export const ELEMENT_ANGLE: Record<Element, number> = { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 };
+
+/** 오행을 모르는 사람이 설 오행 사이의 빈 방향 — 앞에서부터 쓴다 */
+export const SPARE_ANGLES: readonly number[] = [-54, 162, 90, 18];
+
+/** 좌표는 소수 둘째 자리로 자른다 — 서버와 브라우저가 같은 글자를 써야 하이드레이션이 안 어긋난다 */
+export const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export type Point = { x: number; y: number };
 
