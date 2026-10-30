@@ -1,3 +1,5 @@
+import type { ShareKind } from './shared';
+
 /**
  * 공유본이 사는 주소 — **갈래마다 하나씩, 그리고 한 자리에서만 짓는다.**
  *
@@ -18,9 +20,9 @@ export const SHARE_ROOTS = {
   person: '/share/people',
   /** 내가 고른 두 사람의 궁합 */
   private: '/share/compat',
-} as const;
+} as const satisfies Record<ShareKind, string>;
 
-export type ShareKind = keyof typeof SHARE_ROOTS;
+export type { ShareKind };
 
 export function sharePath(kind: ShareKind, token: string): string {
   return `${SHARE_ROOTS[kind]}/${token}`;

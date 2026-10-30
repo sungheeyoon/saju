@@ -29,7 +29,8 @@ export async function signInWithGoogle(): Promise<SignInAnswer> {
     }
 
     try {
-      google.GoogleSignin.configure({ webClientId });
+      /* iOS 는 이 값이 없으면 부를 때 던진다(`GoogleService-Info.plist` 를 안 쓴다). 안드로이드는 안 읽는다 */
+      google.GoogleSignin.configure({ webClientId, iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID });
       await google.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const response = await google.GoogleSignin.signIn();
       if (!google.isSuccessResponse(response)) return { kind: 'cancelled' };
