@@ -1,7 +1,11 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 
+import { ErrorScreen } from '@/ui/error-screen';
 import { COLOR, FONT } from '@/ui/tokens';
+
+/* 화면이 그리다 던지면 — 스택은 그대로 두고 그 화면 자리에 선다. 아래 레이아웃들이 이어받는다 */
+export const unstable_settings = { screenErrorBoundary: ErrorScreen };
 
 export default function RootLayout() {
   const [loaded, failed] = useFonts({
