@@ -1,14 +1,15 @@
 {
   "expo": {
     "name": "만날지도",
-    "slug": "mobile",
+    "slug": "mannalmap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "mannalmap",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.mannalmap.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mannalmap.app"
     },
     "web": {
       "output": "server",
@@ -41,11 +43,23 @@
             "./assets/fonts/BusanDandiMyeongjoB.otf"
           ]
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "10e8c94b-e613-4cd3-a0b5-bf62253456d9"
+      }
+    },
+    "owner": "sungheeyoon"
   }
 }

@@ -178,12 +178,14 @@ export function Select<T extends string>({
   );
 }
 
-export function PrimaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function PrimaryButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.primary, pressed && styles.pressed, disabled && styles.off]}
     >
       <Text style={styles.primaryText}>{label}</Text>
     </Pressable>

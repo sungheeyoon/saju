@@ -23,6 +23,12 @@
       ],
       "@saju-view/notes": [
         "../src/lib/saju/view/notes.ts"
+      ],
+      "@consent/*": [
+        "../src/lib/consent/*"
+      ],
+      "@db": [
+        "../src/lib/db/index.ts"
       ]
     }
   },
