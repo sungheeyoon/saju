@@ -104,11 +104,3 @@ export async function improvementConsented(): Promise<boolean> {
   }
   return data?.improvement_consent === true;
 }
-
-/** 판매가 이 계정에게 열렸나 — 못 물었으면 열린 꼴이다(`app/me/credits/buy-path.ts` 의 `saleShapeOf`) */
-export async function saleIsOpen(): Promise<boolean> {
-  if (supabase === null) return true;
-  const { data, error } = await supabase.rpc('my_reading_sale_is_open');
-  if (error !== null) console.error('my_reading_sale_is_open', error.code);
-  return data !== false;
-}

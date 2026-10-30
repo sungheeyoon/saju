@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -16,11 +15,10 @@ import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { ConsentControls } from './consent-controls';
 import { ParticipationRow, PreferenceRow } from './discovery-rows';
 import { RequestDeletion } from './leaving';
-import { AccountNotice, BackButton, FailureLine, LinkRow, PlainRow, SettingsGroup, TextRow, settingsText } from './parts';
+import { AccountNotice, BackButton, FailureLine, LinkRow, SettingsGroup, TextRow, settingsText } from './parts';
 import { myPhotos, photoSource } from './photos';
 import { readSettings, type SettingsData } from './settings';
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
 
 /**
@@ -113,13 +111,12 @@ export function SettingsScreen() {
   );
 }
 
-/** 처리 안내 — 전문은 웹에 로그인 없이 열린다. 주소가 없는 빌드에는 열 곳이 없어 글 줄로 선다 */
+/** 처리 안내 — 전문은 앱의 `/privacy` 다 */
 function PrivacyRow({ ackAt, version }: { ackAt: string | null; version: string | null }) {
   const label = '개인정보 처리 안내';
   const help = ackAt === null ? '아직 확인하지 않았어요.' : `${asKoreanDay(ackAt.slice(0, 10))}에 확인했어요.`;
   const note = !noticeAckHolds(version) ? '안내가 바뀌어 다시 보여 드려요.' : undefined;
-  if (!SITE_URL) return <PlainRow label={label} help={note === undefined ? help : `${help} ${note}`} />;
-  return <LinkRow label={label} help={help} note={note} onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)} />;
+  return <LinkRow label={label} help={help} note={note} onPress={() => router.push('/privacy' as never)} />;
 }
 
 function SignOutRow() {

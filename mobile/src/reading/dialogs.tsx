@@ -1,7 +1,5 @@
 import {
-  BUY_CREDITS_LABEL,
   CREDITS_AVAILABLE_LABEL,
-  CREDITS_DIALOG_CLOSE,
   CREDITS_REQUIRED_LABEL,
   CREDITS_SHORTAGE_TITLE,
   READING_REPLACES_NOTE,
@@ -9,7 +7,6 @@ import {
   SALE_CLOSED_NOTE,
   SALE_CLOSED_OK,
 } from '@reading/notes';
-import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -74,21 +71,11 @@ export function ConfirmMake({
 }
 
 /**
- * 풀이권이 모자란 때 — 웹의 `useBuyCredits` 와 같은 두 꼴이다. 판매가 닫혔으면 한 줄과 「확인」, 열렸으면 「풀이권 구매」가 상품 화면으로 보낸다.
- * 구매 흐름은 여기 없다.
+ * 풀이권이 모자란 때 — 앱은 풀이권을 팔지 않으므로 웹의 판매가 닫힌 꼴 하나다: 한 줄과 「확인」(`useBuyCredits` 의 닫힌 꼴).
  */
-export function CreditsShortage({ available, open, onClose }: { available: number; open: boolean; onClose: () => void }) {
+export function CreditsShortage({ available, onClose }: { available: number; onClose: () => void }) {
   return (
-    <Dialog
-      title={CREDITS_SHORTAGE_TITLE}
-      confirmLabel={open ? BUY_CREDITS_LABEL : SALE_CLOSED_OK}
-      onConfirm={() => {
-        onClose();
-        if (open) router.push('/me/credits' as never);
-      }}
-      cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
-      onClose={onClose}
-    >
+    <Dialog title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} onConfirm={onClose} cancelLabel={null} onClose={onClose}>
       <View style={styles.row}>
         <Text style={styles.line}>{CREDITS_AVAILABLE_LABEL}</Text>
         <Text style={styles.count}>{available}장</Text>
@@ -97,7 +84,7 @@ export function CreditsShortage({ available, open, onClose }: { available: numbe
         <Text style={styles.line}>{CREDITS_REQUIRED_LABEL}</Text>
         <Text style={styles.count}>1장</Text>
       </View>
-      {!open && <Text style={styles.line}>{SALE_CLOSED_NOTE}</Text>}
+      <Text style={styles.line}>{SALE_CLOSED_NOTE}</Text>
     </Dialog>
   );
 }
