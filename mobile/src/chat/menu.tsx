@@ -1,6 +1,7 @@
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, StyleSheet, Text } from 'react-native';
 
+import { MenuPanel } from '@/ui/surfaces';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { ChatIcon, type ChatIconName } from './icons';
@@ -28,7 +29,7 @@ export function AnchoredMenu({ label, items, above = false, children }: { label:
       <Modal transparent visible={place !== null} animationType="none" onRequestClose={() => setPlace(null)}>
         <Pressable accessibilityLabel="닫기" style={styles.outside} onPress={() => setPlace(null)} />
         {place !== null && (
-          <View style={[styles.panel, place]}>
+          <MenuPanel style={[styles.panel, place]}>
             {items.map((item) => (
               <Pressable
                 key={item.label}
@@ -43,7 +44,7 @@ export function AnchoredMenu({ label, items, above = false, children }: { label:
                 <Text style={[styles.itemText, item.danger === true && styles.danger]}>{item.label}</Text>
               </Pressable>
             ))}
-          </View>
+          </MenuPanel>
         )}
       </Modal>
     </>
@@ -53,20 +54,7 @@ export function AnchoredMenu({ label, items, above = false, children }: { label:
 const styles = StyleSheet.create({
   anchor: { minHeight: CONTROL, minWidth: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },
   outside: { ...StyleSheet.absoluteFill },
-  panel: {
-    position: 'absolute',
-    width: 192,
-    padding: 6,
-    borderRadius: RADIUS.control,
-    backgroundColor: COLOR.surfaceRaised,
-    borderWidth: 1,
-    borderColor: COLOR.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
+  panel: { position: 'absolute', width: 192, padding: 6 },
   item: { minHeight: CONTROL, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12 },
   itemText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   danger: { color: COLOR.danger },

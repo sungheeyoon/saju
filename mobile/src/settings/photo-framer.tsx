@@ -5,7 +5,7 @@ import { PanResponder, StyleSheet, View, type LayoutChangeEvent, type StyleProp,
 import { draggedFocus, type PhotoFocus } from '@profile';
 
 import { ConfirmDialog } from '@/ui/confirm-dialog';
-import { COLOR } from '@/ui/tokens';
+import { COLOR, RADIUS } from '@/ui/tokens';
 
 export const PHOTO_FRAME_TITLE = '위치 조정';
 
@@ -91,6 +91,6 @@ function FocusFrame({ source, focus, onFocus, style }: { source: string; focus: 
 const styles = StyleSheet.create({
   frames: { alignItems: 'center', gap: 12, marginTop: 8 },
   frame: { overflow: 'hidden', backgroundColor: COLOR.surfaceSunken, borderWidth: 1, borderColor: COLOR.border },
-  big: { width: '100%', maxWidth: 272, aspectRatio: 4 / 5, borderRadius: 16 },
-  round: { width: 64, height: 64, borderRadius: 32 },
+  big: { width: '100%', maxWidth: 272, aspectRatio: 4 / 5, borderRadius: RADIUS.cell },
+  round: { width: 64, height: 64, borderRadius: RADIUS.pill },
 });
