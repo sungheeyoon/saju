@@ -1,5 +1,5 @@
 /**
- * 풀이 원문을 **덩이로 읽는 규칙** — 웹(`app/me/reading/markdown.tsx`)과 앱(`mobile/src/reading/markdown.tsx`)이 함께 쓴다.
+ * 풀이 원문을 **덩이로 읽는 규칙** — 웹(`app/me/reading/markdown.tsx`)과 앱(`mobile/src/reading/markdown.tsx`)이 함께 쓴다(ADR 0211).
  * 그리는 일은 각자 한다. 두 벌이면 같은 글의 절이 두 기기에서 다르게 갈린다.
  */
 

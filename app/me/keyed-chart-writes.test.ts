@@ -13,7 +13,7 @@ vi.mock('../keyed-client', () => ({ keyedClient: () => ({ rpc: keyedRpc }) }));
 
 import { supabaseOnServer } from '../auth/server-client';
 import { signedInUser } from '../auth/signed-in';
-import { createSelfPerson, editPersonInput, openParticipation, setParticipation } from './keyed-chart-writes';
+import { createSelfPerson, editPersonInput, openParticipation, setParticipation } from './chart-writes';
 import { selfSummaryOf } from './summary';
 
 /**
@@ -51,17 +51,21 @@ const STORED: StoredInput & { id: string; input_version: number; chart_engine_ve
   time_basis: 'localMean',
 } as StoredInput & { id: string; input_version: number; chart_engine_version: string };
 
-const storing = (stored = STORED) =>
+/* 같은 클라이언트가 지금 저장된 값을 읽는다 — 쓰는 사이 입력이 바뀌는 시험이 그 값만 갈아 끼운다 */
+let storedNow = STORED;
+const storing = (stored = STORED) => {
+  storedNow = stored;
   vi.mocked(supabaseOnServer).mockResolvedValue({
     from: (table: string) =>
       chain(
         {
-          app_user: OK({ self_person_id: stored.id }),
-          person: OK(stored),
-          user_person_access: OK([{ person_id: stored.id, local_label: '나', note: null, listed: false }]),
+          app_user: OK({ self_person_id: storedNow.id }),
+          person: OK(storedNow),
+          user_person_access: OK([{ person_id: storedNow.id, local_label: '나', note: null, listed: false }]),
         }[table] ?? OK(null),
       ),
   } as never);
+};
 
 const VERSIONS = { inputVersion: 3, chartEngineVersion: 'engine-test' };
 
