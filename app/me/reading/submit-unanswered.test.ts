@@ -346,11 +346,11 @@ describe('떠나보냈는데 답을 못 받은 제출', () => {
 
     expect(sent).toBe(1);
     expect(created).toEqual([]);
-    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 0 });
+    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 0, resent: 0 });
     expect(db.run.status).toBe('running');
 
     db.overdue = true;
-    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 1 });
+    expect(await (await recoveryTick()).json()).toEqual({ open: 1, collected: 0, closed: 1, resent: 0 });
     expect(db.run).toMatchObject({ status: 'failed', failureCode: 'model-timeout' });
   });
 

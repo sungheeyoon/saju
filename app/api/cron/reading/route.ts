@@ -4,13 +4,14 @@ import { recordDbFailure } from '@/app/db-error';
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';
+import { resendStalledRun } from '../../../me/reading/submit';
 import { cronAuthorized } from '../authorized';
 
 /**
  * **webhook 이 흘린 것을 줍는다** (ADR 0020).
  *
- * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 두 가지를
- * 한다 — 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
+ * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 세 가지를
+ * 한다 — 제출 전에 멈춘 것을 다시 보내고(ADR 0210), 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
  *
  *   Supabase 복구 1분  <  우리 deadline 8분  <  DB 실행 만료 10분
  *   화면 폴링 3초 = 표시용
@@ -45,7 +46,15 @@ type OpenJob = {
   response_id: string | null;
   overdue: boolean;
   failure_code: string;
+  /** 제출 전에 멈춰 다시 보내도 되는가 — 판정은 DB 하나다(`reading_job_resendable`, ADR 0210) */
+  resendable: boolean;
 };
+
+/**
+ * 한 바퀴에 다시 보내는 수 — 제출 하나가 머리를 30초까지 기다리므로(`SUBMIT_REQUEST`) 다섯이면 150초다. `maxDuration` 300초에서
+ * 회수할 자리를 남긴다. 남은 것은 다음 바퀴가 집고, 2분 기한을 넘기면 닫힌다.
+ */
+export const RESENDS_PER_ROUND = 5;
 
 export async function GET(request: Request): Promise<Response> {
   /**
@@ -79,8 +88,21 @@ export async function GET(request: Request): Promise<Response> {
   const jobs = (data ?? []) as OpenJob[];
   let collected = 0;
   let closed = 0;
+  let resent = 0;
+
+  /* 기한이 짧은 쪽을 먼저 — 회수가 오래 걸려도 제출 전 일감이 2분 기한을 안 넘긴다 */
+  for (const job of jobs.filter((one) => one.resendable).slice(0, RESENDS_PER_ROUND)) {
+    try {
+      if (await resendStalledRun(keyed, job.run_id)) resent += 1;
+    } catch (thrown) {
+      // 다음 바퀴가 다시 집거나 기한이 닫는다 — 뒤의 일감을 막지 않는다
+      console.error('cron reading: resendStalledRun', thrown);
+    }
+  }
 
   for (const job of jobs) {
+    if (job.resendable) continue;
+
     /**
      * **deadline 을 넘겼으면 닫는다.** 8분 뒤의 회수 가능성에 기대지 않기로 했으므로
      * 여기서 더 기다리지 않는다 — 기다리면 DB 만료가 먼저 와서 이유 없는 실패가 된다.
@@ -110,5 +132,5 @@ export async function GET(request: Request): Promise<Response> {
     if (outcome.done === 'saved' || outcome.done === 'failed') collected += 1;
   }
 
-  return Response.json({ open: jobs.length, collected, closed });
+  return Response.json({ open: jobs.length, collected, closed, resent });
 }

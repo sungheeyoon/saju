@@ -13,7 +13,12 @@ vi.mock('../../../me/reading/collect', () => ({
   collectReadingResult: (...args: unknown[]) => collect(...args),
 }));
 
-const { GET } = await import('./route');
+const resend = vi.fn();
+vi.mock('../../../me/reading/submit', () => ({
+  resendStalledRun: (...args: unknown[]) => resend(...args),
+}));
+
+const { GET, RESENDS_PER_ROUND } = await import('./route');
 
 /**
  * **복구기는 올바른 `CRON_SECRET` 을 든 스케줄러에게만 열린다.**
@@ -32,6 +37,7 @@ beforeEach(() => {
   keyedClient.mockReset().mockReturnValue({ rpc });
   rpc.mockReset();
   collect.mockReset();
+  resend.mockReset();
   vi.stubEnv('CRON_SECRET', SECRET);
 });
 
@@ -82,7 +88,7 @@ describe('복구기의 자격', () => {
     expect(keyedClient).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith('open_reading_jobs');
     expect(collect).toHaveBeenCalledWith('resp-1');
-    expect(await response.json()).toEqual({ open: 1, collected: 1, closed: 0 });
+    expect(await response.json()).toEqual({ open: 1, collected: 1, closed: 0, resent: 0 });
   });
 });
 
@@ -97,7 +103,7 @@ describe('기한이 지난 일감을 닫는다', () => {
     const response = await GET(request(`Bearer ${SECRET}`));
 
     expect(rpc).toHaveBeenCalledWith('fail_reading_job', expect.objectContaining({ p_run_id: 'run-1', p_failure_code: 'model-timeout' }));
-    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 1 });
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 1, resent: 0 });
   });
 
   /** supabase 는 거절을 던지지 않는다 — 결과를 버리던 동안 못 닫은 것도 닫은 것으로 셌다 */
@@ -109,8 +115,72 @@ describe('기한이 지난 일감을 닫는다', () => {
 
     const response = await GET(request(`Bearer ${SECRET}`));
 
-    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 0 });
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 0, resent: 0 });
     expect(logged).toHaveBeenCalledWith('cron reading: fail_reading_job', '57014');
     logged.mockRestore();
+  });
+});
+
+describe('제출 전에 멈춘 일감을 다시 보낸다 (ADR 0210)', () => {
+  const stalled = (n: number) => ({
+    run_id: `run-${n}`,
+    response_id: null,
+    overdue: false,
+    failure_code: 'prepare-timeout',
+    resendable: true,
+  });
+  const opens = (jobs: unknown[]) =>
+    rpc.mockImplementation(async (name: string) =>
+      name === 'open_reading_jobs' ? { data: jobs, error: null } : { data: null, error: null },
+    );
+
+  it('다시 보내고 세고, 닫지도 회수하지도 않는다', async () => {
+    opens([stalled(1)]);
+    resend.mockResolvedValue(true);
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(resend).toHaveBeenCalledWith(expect.anything(), 'run-1');
+    expect(collect).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith('fail_reading_job', expect.anything());
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 0, resent: 1 });
+  });
+
+  it('먼저 집혔으면 세지 않는다', async () => {
+    opens([stalled(1)]);
+    resend.mockResolvedValue(false);
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 0, resent: 0 });
+  });
+
+  it('한 바퀴에 다섯까지만 보낸다 — 뒤는 다음 바퀴다', async () => {
+    opens(Array.from({ length: RESENDS_PER_ROUND + 2 }, (_, n) => stalled(n)));
+    resend.mockResolvedValue(true);
+
+    await GET(request(`Bearer ${SECRET}`));
+
+    expect(resend).toHaveBeenCalledTimes(RESENDS_PER_ROUND);
+  });
+
+  it('하나가 던져도 뒤의 일감은 돈다', async () => {
+    opens([stalled(1), stalled(2)]);
+    resend.mockRejectedValueOnce(new Error('터졌다')).mockResolvedValueOnce(true);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(await response.json()).toEqual({ open: 2, collected: 0, closed: 0, resent: 1 });
+    logged.mockRestore();
+  });
+
+  it('이름표가 없고 다시 보낼 수 없는 일감은 건드리지 않는다 — 제출 여부를 모른다', async () => {
+    opens([{ ...stalled(1), resendable: false, failure_code: 'model-timeout' }]);
+
+    await GET(request(`Bearer ${SECRET}`));
+
+    expect(resend).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
   });
 });
