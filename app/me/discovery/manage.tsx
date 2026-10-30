@@ -8,11 +8,10 @@ import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { SettingsSwitchRow } from '../settings/card';
 import { savePreferGender, setDiscoveryParticipation } from './actions';
 import { saveLatest } from './save-latest';
-import type { PreferGender } from '@/src/lib/discovery';
+import { PREFER_GENDER_ORDER, type PreferGender } from '@/src/lib/discovery';
 import { PREFER_GENDER_KO } from '@/src/lib/discovery/copy';
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 
-import { PREFER_GENDER_ORDER } from './profile';
 import { FailureLine } from '../../ui/failure-line';
 
 /**

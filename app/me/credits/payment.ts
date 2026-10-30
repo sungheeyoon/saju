@@ -1,5 +1,5 @@
 import { orderIdOf } from '../../api/portone/webhook/settle';
-import { orderIsPaid, type OrderStatus } from './order-status';
+import { orderIsPaid, type OrderStatus } from '@/src/lib/reading/order-status';
 
 /**
  * **결제창을 여는 값과 결제창에서 돌아온 값의 판단** (G-21, ADR 0171).

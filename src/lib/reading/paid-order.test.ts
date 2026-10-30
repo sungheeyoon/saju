@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { paidOrderOf } from './orders';
+import { paidOrderOf } from './paid-order';
 
 const ROW = {
   provider_order_id: 'rdo_0f1e2d3c4b5a49688776655443322110',

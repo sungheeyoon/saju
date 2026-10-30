@@ -1,6 +1,6 @@
 'use server';
 
-import type { SurveyAnswers } from '@/src/lib/survey';
+import { surveyRequest, type SurveyAnswers } from '@/src/lib/survey';
 
 import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
@@ -24,19 +24,7 @@ export async function saveServiceSurvey(
 ): Promise<{ ok: true; submittedAt: string | null } | { ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('save_service_survey', rpcArgs<'save_service_survey'>({
-    p_liked: [...answers.liked],
-    p_unknown: [...answers.unknown],
-    p_improve: [...answers.improve],
-    p_improve_text: answers.improveText.trim() === '' ? null : answers.improveText,
-    p_wants: [...answers.wants],
-    p_wants_new: [...answers.wantsNew],
-    p_price_solo: answers.priceSolo,
-    p_price_pair: answers.pricePair,
-    p_price_factors: [...answers.priceFactors],
-    p_free_text: answers.freeText.trim() === '' ? null : answers.freeText,
-    p_submit: submit,
-  }));
+  const { data, error } = await supabase.rpc('save_service_survey', rpcArgs<'save_service_survey'>(surveyRequest(answers, submit)));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'save_service_survey') };
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
+import { OPTIONAL_CONSENTS } from './index';
 
-import { IMPROVEMENT_OFF_CONFIRM, IMPROVEMENT_OFF_TITLE, asksBeforeTurningOff } from './consent-off';
+import { IMPROVEMENT_OFF_CONFIRM, IMPROVEMENT_OFF_TITLE, asksBeforeTurningOff } from './off';
 
 /**
  * **끄면 지워지는 동의만 묻는다**(ADR 0022 「2026-10-25 덧」).

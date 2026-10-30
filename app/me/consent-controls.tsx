@@ -11,7 +11,7 @@ import {
   IMPROVEMENT_OFF_PENDING,
   IMPROVEMENT_OFF_TITLE,
   asksBeforeTurningOff,
-} from './consent-off';
+} from '@/src/lib/consent/off';
 import { SettingsSwitchRow } from './settings/card';
 import { actionAnswer } from '../ui/action-answer';
 import { ConfirmDialog } from '../ui/confirm-dialog';
@@ -24,7 +24,7 @@ type ConsentKey = 'improvement' | 'contact';
  *
  * 「끄면 앞으로 안 받는다」로만 읽히면 사용자는 이미 남긴 답이 남아 있다는 것을 모른다. 그래서 지움 문장은 스위치 바로 아래
  * 제 줄(`note`)에 선다(ADR 0022). 그래도 스위치는 누르면 곧 적용되는 손잡이라, 개선 활용을 끄는 누름만은 확인 창을 한 번 거친다 —
- * 판정은 `consent-off.ts`(ADR 0022 「2026-10-25 덧」). 창의 첫 초점은 「취소」, 보내는 동안은 닫히지 않고, 거절되면 창이 열린 채
+ * 판정은 `src/lib/consent/off.ts`(ADR 0022 「2026-10-25 덧」). 창의 첫 초점은 「취소」, 보내는 동안은 닫히지 않고, 거절되면 창이 열린 채
  * 그 줄이 선다(`ConfirmDialog`, ADR 0166).
  *
  * ## 낱말은 「켜고 끄기」다
