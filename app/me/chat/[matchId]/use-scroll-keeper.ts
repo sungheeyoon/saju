@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
-import type { ShownMessage } from './bubbles';
+import type { ShownMessage } from '@/src/lib/chat/room/bubbles';
 import type { MergeKind } from './use-thread';
 
 /** 맨 아래에서 이만큼 안이면 「맨 아래에 있다」 — 새 메시지가 오면 그대로 따라 내려간다 */

@@ -64,6 +64,7 @@ export {
   DEFAULT_LATE_NIGHT_RULE,
   UNKNOWN_PILLAR_MARK,
   chartSnapshotOf,
+  storedChartSnapshot,
   formatPillars,
   type ChartPillar,
   type ChartSnapshot,

@@ -6,8 +6,8 @@ import { supabaseInBrowser } from '../../../auth/browser-client';
 import { CHAT_MOVED, chatMovedOf } from '../chat-signal';
 import { announceChatUnreadMoved } from '../unread-signal';
 import { markChatReadUpTo } from './mark-read';
-import { startReadRetry, type ReadRetry } from './read-retry';
-import { readUpTo } from './thread';
+import { startReadRetry, type ReadRetry } from '@/src/lib/chat/room/read-retry';
+import { readUpTo } from '@/src/lib/chat/room/thread';
 
 /** 말풍선이 이만큼 화면에 들어와야 「본 것」이다 — 화면보다 긴 말풍선은 이만큼의 높이가 들어오면 본 것이다 */
 const SEEN_RATIO = 0.6;

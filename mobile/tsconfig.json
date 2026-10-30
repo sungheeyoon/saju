@@ -36,6 +36,18 @@
       "@account/*": [
         "../src/lib/account/*"
       ],
+      "@chat": [
+        "../src/lib/chat/index.ts"
+      ],
+      "@chat/*": [
+        "../src/lib/chat/*"
+      ],
+      "@live/*": [
+        "../src/lib/live/*"
+      ],
+      "@presence": [
+        "../src/lib/presence/index.ts"
+      ],
       "@db-error": [
         "../app/db-error.ts"
       ]
