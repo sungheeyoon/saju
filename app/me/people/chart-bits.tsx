@@ -2,7 +2,7 @@ import { STEM_INFO, BRANCH_INFO, type Branch, type Stem } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 
 import { ELEMENT_TONE, elementScope } from '../../ui/element-tone';
-import { PILLAR_COLUMNS } from '../../saju/shared';
+import { PILLAR_COLUMNS } from '@/src/lib/saju/view';
 import { STEM_PICTURE, StemSymbol } from '../../ui/stem-symbol';
 
 /*

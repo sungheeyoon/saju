@@ -10,7 +10,8 @@ import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { FAILURE_TEXT } from './ui/failure-line';
-import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
+import { SajuView } from './saju/view';
+import { sajuViewModelOf, type SajuViewModel } from '@/src/lib/saju/view';
 import { Taste } from './taste/taste';
 import {
   DEFAULT_QUERY,

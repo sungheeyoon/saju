@@ -1,11 +1,19 @@
 import {
   CLAIM_STRENGTH_KO,
-  FRAGMENT_TOPICS,
   type ClaimStrength,
   type CompatWarning,
   type CompatWarningKind,
   type Utterance,
 } from '@/src/lib/saju';
+import {
+  NOTHING_TO_SAY,
+  isRowUtterance,
+  silentNoteOf,
+  spokenOf,
+} from '@/src/lib/saju/view';
+import { CLAIM_STRENGTH_LEGEND } from '@/src/lib/saju/view/notes';
+
+import { Rich } from './saju/rich';
 
 /**
  * L3 발화를 화면에 놓는다 — **강도가 옆 칸으로 선다.**
@@ -37,15 +45,6 @@ export const TOPICS_THE_TABLE_HOLDS: readonly string[] = [
 ];
 
 /**
- * 그중 표의 **각주 자리**에 놓는 것.
- *
- * 목록에서 빼는 것과 아예 버리는 것은 다르다. 이 한 줄을 목록에도 두면 같은 문장이
- * 화면에 두 번 찍히는데, 테스트는 그것을 못 본다 — 조립기는 발화를 한 번만 내고
- * 두 번 놓는 것은 화면의 일이라서다. 브라우저로 눌러 보고 잡았다.
- */
-export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
-
-/**
  * 발화가 **이미, 그리고 더 낫게** 말하는 궁합 경고.
  *
  * 엔진 경고는 사람을 이름으로 못 부른다 — 이름이 계산에 안 들어가기로 했으므로
@@ -69,12 +68,6 @@ const WARNINGS_SAID_BY_UTTERANCES: readonly CompatWarningKind[] = [
 export const warningsToShow = (warnings: readonly CompatWarning[]): CompatWarning[] =>
   warnings.filter((warning) => !WARNINGS_SAID_BY_UTTERANCES.includes(warning.kind));
 
-/** 어느 주제의 발화인가 — 표가 든 것은 빼고 목록에 넘긴다 */
-export const said = (
-  utterances: readonly Utterance[],
-  pick: (topic: string) => boolean,
-): Utterance[] => utterances.filter((utterance) => pick(utterance.request.topic));
-
 /** 강도 칸의 모양 — 사다리가 위에서 아래로 옅어진다 */
 const STRENGTH_TONE: Record<Exclude<ClaimStrength, 'silent'>, string> = {
   fact: 'border-border text-secondary',
@@ -83,32 +76,6 @@ const STRENGTH_TONE: Record<Exclude<ClaimStrength, 'silent'>, string> = {
   reference: 'border-dashed border-border text-muted',
 };
 
-/**
- * 침묵은 **세어서 한 줄로** 알린다.
- *
- * 골든은 침묵을 `×` 한 줄씩 찍는다 — 그래야 "사실이 없다"와 "말하지 않기로 했다"가
- * 따로 보인다. 화면은 그 구분을 읽는 사람에게 물을 일이 아니라서 항목으로 세우지
- * 않지만, **조용히 사라지게 두지도 않는다.** 시각을 아는 사람은 다섯 줄을 보고
- * 모르는 사람은 세 줄을 보는데 왜 둘인지 아무 데도 안 적히면, 그것이야말로 모르는
- * 것을 모른다고 말하지 않는 것이다.
- */
-const silentNoteOf = (utterances: readonly Utterance[]): string | null => {
-  const silent = utterances.filter((utterance) => utterance.strength === 'silent');
-  if (silent.length === 0) return null;
-
-  return `출생 시각을 몰라 말하지 않은 것이 ${silent.length}가지 있어요.`;
-};
-
-/**
- * 조각이 아직 없어 비어 있는 자리는 **화면에 내지 않는다.**
- *
- * 침묵과 다르다. 침묵은 우리가 말하지 않기로 한 것이라 읽는 사람에게 알릴 값이
- * 있지만, 조각 없음은 우리 작업 목록이다(`missingFragmentsOf`). 그것을 사용자에게
- * 보이면 "여기 뭔가 있는데 안 보여준다"로 읽힌다.
- */
-const spokenOf = (utterances: readonly Utterance[]) =>
-  utterances.filter((utterance) => utterance.text !== null);
-
 export function UtteranceList({ utterances }: { utterances: readonly Utterance[] }) {
   const spoken = spokenOf(utterances);
   const silentNote = silentNoteOf(utterances);
@@ -116,7 +83,7 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
   if (spoken.length === 0) {
     return (
       <p className="text-sm text-muted">
-        {silentNote ?? '이 자리에서 말할 수 있는 것이 없어요.'}
+        {silentNote ?? NOTHING_TO_SAY}
       </p>
     );
   }
@@ -125,7 +92,7 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
     <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2.5">
         {spoken.map((utterance, index) => {
-          const isRow = FRAGMENT_TOPICS[utterance.request.topic].form === 'row';
+          const isRow = isRowUtterance(utterance);
           const strength = utterance.strength as Exclude<ClaimStrength, 'silent'>;
 
           return (
@@ -155,46 +122,11 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
   );
 }
 
-/**
- * 딱지가 무슨 뜻인가 — **한 벌만 있다.**
- *
- * 원국 화면과 궁합 화면이 이 문단을 각자 손으로 들고 있었고, 그래서 이미 갈려 있었다:
- * 궁합 쪽에는 **「참고」가 빠져** 있었다. 같은 딱지 체계를 화면마다 다르게 설명하면
- * 사용자는 자기가 본 딱지가 무엇인지 화면에 따라 다르게 배운다.
- *
- * **낱말은 엔진에서 온다**(`CLAIM_STRENGTH_KO`). 여기서 '사실'·'유도'를 손으로 적으면
- * 딱지에 찍히는 글자와 그 뜻을 적은 글자가 갈릴 수 있고, 그건 눈에 안 띈다.
- *
- * `silent` 는 뜻을 적지 않는다 — 말하지 않기로 한 것은 딱지로 서지 않으므로,
- * 여기 적으면 본 적 없는 딱지를 설명하는 줄이 된다.
- */
-const CLAIM_STRENGTH_MEANING: Record<Exclude<ClaimStrength, 'silent'>, string> = {
-  // 조사를 문장에 붙여 둔다 — '표' 뒤에는 「은」이 아니라 「는」이 붙어서,
-  // 밖에서 한 글자를 이어 붙이면 넷 중 하나가 틀린 말이 된다.
-  fact: '여덟 글자에서 곧장 세어진 것은',
-  derived: '우리가 고른 문턱을 거친 것은',
-  candidate: '아직 시험 중인 규칙은',
-  reference: '조건을 자동 판정하지 않고 옮겨 적은 표는',
-};
-
-const MEANING_ORDER: readonly Exclude<ClaimStrength, 'silent'>[] = [
-  'fact',
-  'derived',
-  'candidate',
-  'reference',
-];
-
+/** 딱지가 무슨 뜻인가 — 글자는 `CLAIM_STRENGTH_LEGEND` 한 벌이다 */
 export function ClaimStrengthLegend() {
   return (
     <p>
-      왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.{' '}
-      {MEANING_ORDER.map((strength, index) => (
-        <span key={strength}>
-          {CLAIM_STRENGTH_MEANING[strength]} {CLAIM_STRENGTH_KO[strength]}
-          {index < MEANING_ORDER.length - 1 ? ', ' : '입니다. '}
-        </span>
-      ))}
-      근거보다 세게 말하지 않는지는 계약이 검사합니다.
+      <Rich parts={CLAIM_STRENGTH_LEGEND} />
     </p>
   );
 }

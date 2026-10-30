@@ -1,3 +1,5 @@
+import { fortuneTabsNote } from '@/src/lib/saju/view/notes';
+
 import { CardTabs } from './card-tabs';
 
 /**
@@ -34,7 +36,7 @@ export function FortuneTabs({
     <CardTabs
       id="fortune"
       title="운 흐름"
-      note={`다른 시점을 골라 한 표씩 집중해서 봅니다. ${asOf} 기준으로 짚었고, 다시 제출하기 전까지는 이 기준 시각이 바뀌지 않습니다.`}
+      note={fortuneTabsNote(asOf)}
       tablistLabel="운 종류"
       initial="saeun"
       tabs={[

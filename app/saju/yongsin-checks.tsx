@@ -8,7 +8,15 @@ import {
   PRECEDENCE_REASON_KO,
   type Saju,
 } from '@/src/lib/saju';
+import { percent1, percentOfRatio } from '@/src/lib/saju/view';
+import {
+  PRECEDENCE_NOTE,
+  followingNote,
+  tonggwanBridgeNote,
+  tonggwanNote,
+} from '@/src/lib/saju/view/notes';
 import { FACT_TAG } from './fact-tag';
+import { Rich } from './rich';
 
 /*
   용신 후보 카드(`yongsin-card.tsx`)의 판 가운데 **억부를 뒤집는가를 재는 셋** — 서열 · 통관 · 종격.
@@ -72,9 +80,7 @@ export function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['
       </ul>
 
       <p className="mt-2 text-xs text-muted">
-        억부가 기준인 것은 <strong className="font-medium">용신을 잡는 네 길 중 유일하게
-        외부 명조와 대조된 판정</strong>이기 때문입니다 — 그것도 시험값입니다. 이 서열은
-        AI 풀이 자료에도 같이 실립니다.
+        <Rich parts={PRECEDENCE_NOTE} />
       </p>
     </div>
   );
@@ -95,7 +101,7 @@ export function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['
  */
 export function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] }) {
   const { tightest } = tonggwan;
-  const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+  const percent = percent1;
 
   return (
     <div>
@@ -122,23 +128,11 @@ export function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggw
       </div>
 
       <p className="mt-1.5 text-xs text-secondary">
-        사이를 잇는 것은 <span className="glyph">{tightest.bridge}</span>{' '}
-        {ELEMENT_KO[tightest.bridge]}입니다({percent(tightest.shares.bridge)}) —{' '}
-        {tightest.controller}는 {tightest.bridge}를 낳고 {tightest.bridge}는{' '}
-        {tightest.controlled}를 낳습니다.{' '}
-        {tightest.bridgePresence === 'revealed'
-          ? '이 오행은 여덟 글자에 드러나 있습니다.'
-          : tightest.bridgePresence === 'hidden'
-            ? '다만 여덟 글자에는 드러나지 않고 지장간에만 있습니다 — 위 몫은 그 지장간까지 편 점수입니다.'
-            : '그런데 이 오행이 지장간까지 봐도 한 톨 없습니다 — 이을 손이 없다는 뜻입니다.'}
+        <Rich parts={tonggwanBridgeNote(tightest)} />
       </p>
 
       <p className="mt-2 text-xs text-muted">
-        <strong className="font-medium">맞선 것인지는 판정하지 않습니다.</strong> 얼마나
-        맞서야 대치(相戰)인지, 대치면 억부를 제치는지가 계통마다 갈리기 때문입니다 — 종격이
-        먼저 지나온 자리와 같습니다. 가벼운 쪽이{' '}
-        <span className="tabular-nums">{percent(tightest.facing)}</span> 인데, 무작위 3000건에서
-        이 값이 30% 를 넘는 명식은 10.2% 입니다. 나머지 네 쌍도 자료에는 그대로 실립니다.
+        <Rich parts={tonggwanNote(tightest)} />
       </p>
     </div>
   );
@@ -153,11 +147,11 @@ export function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggw
  */
 export function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   const { followingCandidacy: candidacy, following } = saju.analysis;
-  const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+  const percent = percent1;
   /** 문턱과 대조 성적은 **재는 자리가 들고 있는 값**을 그대로 읽는다 — 아래 주석 참조 */
   const { dominance } = FOLLOWING_PATTERN_POLICY;
   const { externalCheck } = dominance;
-  const share = (ratio: number) => `${Math.round(ratio * 100)}%`;
+  const share = percentOfRatio;
 
   return (
     <div>
@@ -208,21 +202,7 @@ export function FollowingCandidacyNote({ saju }: { saju: Saju }) {
       </div>
 
       <p className="mt-2 text-xs text-muted">
-        <strong className="font-medium">문턱은 고전이 정한 숫자가 아닙니다.</strong> 무작위
-        3000건의 세력 분포를 재고 정한 이 엔진의 실험값입니다. 종에는 방향이 둘이라
-        축 하나의 양끝으로 잽니다 — 일간을 도울 것이 없으면 <strong className="font-medium">밖으로</strong>
-        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다.{' '}
-        {/*
-          **수치를 손으로 적지 않는다.** 여기 「14건 중 4건」이 적혀 있었다 — 규칙이 v2 로
-          가고 대조 자료가 늘어나는 동안 화면만 v1 의 숫자에 남아 있었다. 재는 자리가
-          값으로 들고 있는 것을(`externalCheck`) 화면이 다시 적으면, 엔진이 나아질 때마다
-          화면은 조용히 틀린 말을 하게 된다.
-        */}
-        외부 자료에서 종격이라고 밝힌 명조 {externalCheck.claimedFollowing}건과 대조해{' '}
-        <strong className="font-medium">{externalCheck.caught}건을 잡았습니다</strong> — 여전히
-        덜 잡는 쪽으로 틀리고, 아니라고 적힌 쪽에서도 {externalCheck.falsePositives}건을
-        종격으로 봅니다. 그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느
-        쪽으로도 밀기 어려운 명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
+        <Rich parts={followingNote(externalCheck)} />
       </p>
     </div>
   );
