@@ -73,6 +73,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
 
   /* 사용자 화면이 아닌 자리 */
   'app/me/reading/pipeline.ts': '화면이 아니라 DB 에 적는다(`p_failure_detail`)',
+  'app/me/reading/press.ts': '맛보기를 잇다가 던진 까닭 — 답에 안 싣고 기록에만 남긴다(`pipeline.ts` 에서 뗀 자리, ADR 0211)',
   'app/me/reading/submit.ts': '화면이 아니라 DB 에 적는다(`p_failure_detail`)',
   'app/me/reading/generator.ts': '`detail` 은 화면이 아니라 DB 에 적힌다(`pipeline.ts`)',
   'app/me/reading/model.ts': 'provider 의 문장 — `detail` 로 DB 에만 간다',

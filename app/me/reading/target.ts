@@ -1,4 +1,7 @@
-import type { ReadingKind } from '@/src/lib/reading';
+/* 낱말이 무엇을 가리키는가의 타입은 앱도 들어 `src/lib/reading/target.ts` 에 산다(ADR 0211) */
+import type { ReadingTarget } from '@/src/lib/reading/target';
+
+export type { ReadingTarget };
 
 /**
  * **kind 가 무엇을 뜻하는지 푸는 자리 — 하나다.**
@@ -29,23 +32,6 @@ import type { ReadingKind } from '@/src/lib/reading';
  * 쓰는 모듈(`pipeline.ts`)에서 꺼내 오는 것이 요점이다 — 읽기·화면 여덟이 그리로
  * import 하고 있었고, 그러면 화면 하나가 만드는 쪽 모듈에 매인다.
  */
-
-export type ReadingTarget =
-  | { kind: 'self' }
-  /** 내가 관리하는 저장된 사람 하나 — `self` 와 같은 자료를 쓰되 접근 판정이 다르다 */
-  | { kind: 'person'; personId: string }
-  | { kind: 'private'; personA: string; personB: string }
-  | { kind: 'match'; matchId: string };
-
-/**
- * **낱말이 갈리면 여기서 컴파일이 깨진다.**
- *
- * `ReadingKind` 는 계약이 드는 네 낱말이고(`policy.ts`), 이 타입은 그 낱말이 무엇을
- * 가리키는지를 든다. 둘이 갈리면 한쪽만 늘어난 채로 배포된다 — 그때 안 늘어난 쪽은
- * 언제나 조용하다.
- */
-const _kindsAgree: ReadingKind = null as unknown as ReadingTarget['kind'];
-void _kindsAgree;
 
 /**
  * 공유할 수 있는 갈래 — **`match` 가 아예 없다.**

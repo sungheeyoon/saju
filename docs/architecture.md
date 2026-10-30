@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | **엔진** | `src/lib/saju/` | 자기 자신뿐 | 다른 lib · app · React/Next · supabase · 실행 환경(`node:*`) |
 | **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,live,presence,push,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
-| **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 넷 | — |
+| **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 다섯 | — |
 | **화면** | `app/**/*.tsx` | 문과 액션, 도메인 lib 의 타입·순수 함수 | **DB 호출**(`.rpc()`·`.from()`) |
 
 방향은 아래로만 흐른다. 엔진 ← 도메인 lib ← 문·액션 ← 화면. 거꾸로 부르는 자리는 린트와
@@ -50,7 +50,7 @@
 | 읽는 문 | 화면 폴더의 `.ts` | `app/me/person-input.ts` · `app/me/reading/current.ts` · `app/me/requests/inbox.ts` |
 | 서버 액션 | `actions.ts`(`'use server'`) | `app/me/actions.ts` · `app/me/requests/actions.ts` |
 | 라우트 | `route.ts` | `app/api/cron/reading/route.ts` · `app/me/photo/[userId]/route.ts` |
-| 클라이언트 넷 | 이름으로 갈린다 | `app/auth/server-client.ts`(쿠키) · `app/auth/browser-client.ts` · `app/keyed-client.ts`(열쇠, ADR 0010) · `app/share/public-client.ts`(로그인 없음) |
+| 클라이언트 다섯 | 이름으로 갈린다 | `app/auth/bearer-client.ts`(앱의 토큰, ADR 0211) · `app/auth/server-client.ts`(쿠키) · `app/auth/browser-client.ts` · `app/keyed-client.ts`(열쇠, ADR 0010) · `app/share/public-client.ts`(로그인 없음) |
 | 로그인 확인 | `signedInUser` 하나 | `app/auth/signed-in.ts` — 쿠키의 서명을 확인하고 활동을 적는다. Auth 서버에는 `proxy.ts` 가 묻는다(ADR 0117 · 0118) — 그래서 이 함수에 닿는 주소는 관문의 matcher 안이다(`app/auth/signed-in.boundary.test.ts`, 첫 화면 `/` 와 회원의 계산 `/saju` 는 액션만 ADR 0137 · 0144) |
 
 문 파일에 **접미사 규약은 없다.** 있으면 좋지만 서른 파일을 한 번에 옮기는 일이라 미뤘다.
@@ -75,6 +75,7 @@
 | 자리 | 무엇 | 아는 것 |
 | --- | --- | --- |
 | `mobile/` | Expo 앱. 웹 검사 · 배포 밖에서 제 설정으로 돈다 | `src/lib/` 의 순수 로직과 DB 거절을 옮기는 `app/db-error.ts` 만 경로로 부른다(`mobile/tsconfig.json` · `mobile/metro.config.js`). 명식 결과의 판단 · 문단은 웹과 함께 `src/lib/saju/view` 를, 가입의 판정 · 글자는 `src/lib/consent/signup.ts` 를, 채팅의 합치기 · 보내기 줄 · 묶음은 `src/lib/chat/room` 을, 채널의 재접속 규칙은 `src/lib/live` 를 쓰고, 칸 이름 같은 짧은 말은 `scripts/mobile-chart-copy.test.ts` 가 웹 글자와 견준다 |
+| `app/api/mobile/` | **앱의 문**(ADR 0211) — 관문 밖이라 함수마다 `mobileSession` 이 토큰 · `gateFor` 를 먼저 본다(사진 문만 토큰의 클라이언트로 `photo_at` 이 판정한다). 웹의 읽는 문 · 몸통(`pipeline.ts` · `person-writes.ts` · `keyed-chart-writes.ts`)을 그대로 부르고 답의 모양은 `src/lib/reading/door.ts` 가 든다. 앱은 `mobile/src/reading/api.ts` · `chart-writes.ts` 로 부른다 | 문 · 세션(토큰). 열쇠를 직접 안 든다 |
 | `proxy.ts` | 관문 — 레이아웃에 못 사는 판단(ADR 0041) | `src/lib/consent` · `app/auth/config` · `app/beta-schedule`(일정을 읽는 문) |
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |

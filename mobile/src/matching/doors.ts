@@ -9,21 +9,22 @@ import { publicCardFromRow } from '@matching/cards';
 import type { DeckCard } from '@matching/deck-card';
 import { withFrom } from '@matching/history';
 import { matchOf, notificationOf, requestOf, type Inbox, type InboxMatch, type Requests } from '@matching/inbox';
-import { outOfCredits, refusedForCredits } from '@matching/requests';
+import { refusedForCredits } from '@matching/requests';
 import { activityBandOf } from '@presence';
 import { ELEMENTS, storedChartSnapshot, type ChartSnapshot } from '@saju';
 import type { PhotoFocus } from '@profile';
 import { readingBody, seatNicknamesOf, withNicknames } from '@reading/display';
+import { outOfCredits } from '@reading/panel-chrome';
 
 import { supabase } from '@/auth/client';
+import { respondToMatchRequest } from '@/reading/api';
 
 /**
  * **앱의 인연 문** — 웹의 `app/me/candidates.ts` · `requests/inbox.ts` · `requests/actions.ts` · `discovery/actions.ts` 가 부르는 같은 문을
  * 앱 세션으로 부른다. 자를 것 · 판정은 여기 없다 — 공개 범위는 그 문의 반환형이 곧 답이다. 거절 문구는 `userFacingDbMessage` 다.
  *
- * **여기 없는 일 셋**(서버에서만 된다 — `docs/product/gaps.md` G-123):
- * 참여를 여는 문(`ensure_discovery_participation`, 열쇠 전용 · ADR 0136), 수락 뒤 궁합풀이 제출(`sendAcceptedMatchReading`, 모델 호출),
- * 저장소에 사는 사진의 바이트(`/me/photo` 는 쿠키 세션 · 저장소 열쇠).
+ * **여기 없는 일 하나**(서버에서만 된다 — `docs/product/gaps.md` G-123): 참여를 여는 문(`ensure_discovery_participation`, 열쇠 전용 · ADR 0136).
+ * 수락과 사진은 앱용 문(ADR 0211)이 든다 — `respondToRequest` · `@/ui/photo`.
  */
 
 const NOT_READY = '이 빌드에서는 로그인할 수 없어요.';
@@ -265,29 +266,20 @@ const statusOf = (value: unknown): RequestStatus | null => REQUEST_STATUSES.find
 export type Answered = { ok: true; status: RequestStatus; matchId?: string } | { ok: false; message: string };
 
 /**
- * 받은 요청에 답한다 — 판정은 전부 `respond_to_match_request` 안에 있다.
- *
- * **수락 뒤 궁합풀이 제출은 여기 없다.** 웹은 서버 액션의 `after` 가 `sendAcceptedMatchReading` 을 부른다 — 모델 호출이라 앱이 못 부른다.
- * 앱용 문이 서기 전에 앱에서 수락하면 시도가 열린 채 남아 복구기가 닫을 때까지 글이 안 선다(G-123).
+ * 받은 요청에 답한다 — **앱용 문으로 간다**(ADR 0211). 판정은 `respond_to_match_request` 안에 있고, 수락이면 서버가 응답 뒤에 궁합풀이를 떠나보낸다.
+ * RPC 를 앱에서 바로 부르면 방만 열리고 글이 안 선다. 그 Match 를 못 찾았으면 `matchId` 없이 답한다 — 카드만 내려가고 인연 탭에 남는다(웹과 같다).
  */
 export async function respondToRequest(requestId: string, accept: boolean): Promise<Answered> {
-  if (supabase === null) return { ok: false, message: NOT_READY };
-  try {
-    const { data, error } = await supabase.rpc('respond_to_match_request', { p_request_id: requestId, p_accept: accept });
-    if (error !== null) return { ok: false, message: userFacingDbMessage(error, 'respond_to_match_request') };
-    const status = statusOf(data);
-    if (status === null) return { ok: false, message: '답을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
-    if (status !== 'accepted') return { ok: true, status };
-
-    /* 수락은 이미 끝났다 — 그 Match 를 못 찾아도 실패로 답하지 않는다. 카드만 내려가고 인연 탭에 남는다(웹과 같다) */
-    const [requests, matches] = await Promise.all([supabase.rpc('my_match_requests'), supabase.rpc('my_matches')]);
-    const counterpart = (requests.data ?? []).find((row) => row.request_id === requestId)?.counterpart_user_id;
-    const matchId = (matches.data ?? []).find((row) => row.partner_user_id === counterpart)?.match_id;
-    return matchId === undefined ? { ok: true, status } : { ok: true, status, matchId };
-  } catch (thrown) {
-    console.error('matching', thrown);
-    return { ok: false, message: UNEXPECTED };
+  const answer = await respondToMatchRequest(requestId, accept);
+  if (!answer.ok) {
+    if (answer.refused.refused === 'unavailable') return { ok: false, message: answer.refused.message };
+    if (answer.refused.refused === 'sign-in') return { ok: false, message: '로그인이 풀렸어요. 다시 로그인해 주세요.' };
+    return { ok: false, message: '답을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
   }
+  if (!answer.value.ok) return { ok: false, message: answer.value.message };
+  const status = statusOf(answer.value.status);
+  if (status === null) return { ok: false, message: '답을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
+  return answer.value.matchId === undefined ? { ok: true, status } : { ok: true, status, matchId: answer.value.matchId };
 }
 
 export async function cancelRequest(requestId: string): Promise<Answered> {
@@ -320,19 +312,6 @@ export const reportUser = (userId: string, reason: string, detail: string): Prom
     );
     return error === null ? { ok: true } : { ok: false, message: userFacingDbMessage(error, 'report_user') };
   });
-
-/** 사진 한 장의 바이트 — 웹의 `/me/photo` 가 부르는 같은 문(`photo_at`)이 볼 수 있는지 판정한다. 저장소에 사는 장은 앱이 못 받는다(`null`) */
-export async function photoAt(userId: string, position: number): Promise<string | null> {
-  if (supabase === null) return null;
-  try {
-    const { data, error } = await supabase.rpc('photo_at', { p_user_id: userId, p_position: position });
-    if (error !== null) return null;
-    const row = (data ?? [])[0];
-    return row?.base64 ? `data:${row.content_type};base64,${row.base64}` : null;
-  } catch {
-    return null;
-  }
-}
 
 export type MatchResult = {
   matchId: string;

@@ -1,33 +1,22 @@
-import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { REPORT_DETAIL_MAX, REPORT_DONE, REPORT_NOTE, REPORT_REASONS, type ReportReason } from '@account/index';
 import { BLOCK_FINAL_NOTE, BLOCK_KEEPS_NOTE, BLOCK_NOTE } from '@consent/index';
-import { FOCUS_CENTER, initialOf, type PhotoFocus } from '@profile';
+import { initialOf, type PhotoFocus } from '@profile';
 import type { Element } from '@saju';
 
 import { Field, Select } from '@/ui/parts';
 import { LineIcon } from '@/ui/line-icons';
+import { Photo } from '@/ui/photo';
 import { ConfirmModal, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { blockUser, photoAt, reportUser } from './doors';
-
-/** 받아 둔 사진 — 한 사람의 같은 장을 화면마다 다시 묻지 않는다. 앱을 끄면 사라진다 */
-const held = new Map<string, Promise<string | null>>();
-const photoOf = (userId: string, position: number) => {
-  const key = `${userId}/${position}`;
-  const known = held.get(key);
-  if (known !== undefined) return known;
-  const asked = photoAt(userId, position);
-  held.set(key, asked);
-  return asked;
-};
+import { blockUser, reportUser } from './doors';
 
 /**
  * 사진 한 장 — 있으면 사진, 없거나 앱이 못 받는 장이면 **그 사람 색 판에 첫 글자**다(웹의 `CandidatePhoto` 와 같은 자리).
- * 저장소에 사는 장은 앱용 문이 서기 전까지 첫 글자로 선다.
+ * 볼 수 있는가는 사진 문의 `photo_at` 이 답한다(`@/ui/photo`).
  */
 export function PersonPhoto({
   userId,
@@ -38,6 +27,7 @@ export function PersonPhoto({
   tone,
   initialSize = 48,
   initialAbove = false,
+  variant = 'large',
 }: {
   userId: string;
   nickname: string;
@@ -48,32 +38,26 @@ export function PersonPhoto({
   initialSize?: number;
   /** 첫 글자를 글 판 위쪽에 세운다 — 카드는 아래 끝을 이름 · 점수가 덮는다 */
   initialAbove?: boolean;
+  /** 작은 자리(얼굴)는 `card` */
+  variant?: 'card' | 'large';
 }) {
-  const [uri, setUri] = useState<string | null>(null);
-  useEffect(() => {
-    if (!hasPhoto) {
-      setUri(null);
-      return;
-    }
-    let live = true;
-    photoOf(userId, position).then((next) => {
-      if (live) setUri(next);
-    });
-    return () => {
-      live = false;
-    };
-  }, [userId, position, hasPhoto]);
-
-  if (uri !== null) {
-    const { x, y } = focus ?? FOCUS_CENTER;
-    return <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ left: `${x}%`, top: `${y}%` }} />;
-  }
   return (
-    <View aria-hidden style={[StyleSheet.absoluteFill, styles.initialBox, initialAbove && styles.initialAbove, { backgroundColor: tone === null ? COLOR.noneSoft : ELEMENT_TONE[tone].soft }]}>
-      <Text style={[styles.initial, { fontSize: initialSize, lineHeight: initialSize * 1.3, color: tone === null ? COLOR.none : ELEMENT_TONE[tone].ink }]}>
-        {initialOf(nickname)}
-      </Text>
-    </View>
+    <Photo
+      fill
+      size={0}
+      userId={userId}
+      position={position}
+      hasPhoto={hasPhoto}
+      focus={focus}
+      variant={variant}
+      fallback={
+        <View aria-hidden style={[StyleSheet.absoluteFill, styles.initialBox, initialAbove && styles.initialAbove, { backgroundColor: tone === null ? COLOR.noneSoft : ELEMENT_TONE[tone].soft }]}>
+          <Text style={[styles.initial, { fontSize: initialSize, lineHeight: initialSize * 1.3, color: tone === null ? COLOR.none : ELEMENT_TONE[tone].ink }]}>
+            {initialOf(nickname)}
+          </Text>
+        </View>
+      }
+    />
   );
 }
 
@@ -81,7 +65,7 @@ export function PersonPhoto({
 export function Face({ userId, nickname, hasPhoto, focus, size, tone = null }: { userId: string; nickname: string; hasPhoto: boolean; focus?: PhotoFocus; size: number; tone?: Element | null }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
-      <PersonPhoto userId={userId} nickname={nickname} hasPhoto={hasPhoto} focus={focus} tone={tone} initialSize={size * 0.45} />
+      <PersonPhoto userId={userId} nickname={nickname} hasPhoto={hasPhoto} focus={focus} tone={tone} initialSize={size * 0.45} variant="card" />
     </View>
   );
 }

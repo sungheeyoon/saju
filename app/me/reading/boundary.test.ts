@@ -209,8 +209,32 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     expect(routes.length, 'api 라우트를 못 찾았다').toBeGreaterThan(0);
 
     for (const { path, text } of routes) {
-      const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook/.test(text);
+      const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook|mobileSession\(|photoClientOf\(/.test(text);
       expect(asks, `${path} 이 자격을 묻지 않는다`).toBe(true);
+    }
+  });
+
+  /**
+   * **앱의 문은 함수마다 맨 먼저 자격을 묻는다**(ADR 0211) — 파일에 이름만 있으면 위 시험은 지나간다. 한 함수가 빠지면 그 함수만 열린
+   * 문이다. 누름이 있는 문은 웹 화면처럼 모델 상한만큼 산다 — 아니면 `after` 가 잘려 시도가 열린 채 남는다.
+   */
+  it('앱의 문은 함수마다 자격을 먼저 묻고, 누름의 문은 모델 상한만큼 살고, 열쇠를 들지 않는다', () => {
+    const routes = files.filter(({ path }) => path.startsWith('app/api/mobile/') && path.endsWith('route.ts'));
+    expect(routes.length, '앱의 문을 못 찾았다').toBeGreaterThan(0);
+
+    for (const { path, text } of routes) {
+      const handlers = [...text.matchAll(/export async function (GET|POST|PUT|PATCH|DELETE)\([^)]*\)[^{]*\{\n\s*(.*)/g)];
+      expect(handlers.length, `${path} 의 함수를 못 찾았다`).toBeGreaterThan(0);
+      /* 다른 꼴로 낸 함수(`export const POST = …` · `export { x as POST }`)는 아래가 못 잰다 — 같은 수인지 먼저 본다 */
+      const exportedMethods = [...text.matchAll(/export\s+(?:(?:async\s+)?function\s*\*?\s*|(?:const|let|var)\s+)(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b|\bas\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)];
+      expect(exportedMethods.length, `${path} 이 재지 못하는 꼴로 함수를 낸다`).toBe(handlers.length);
+      for (const [, method, firstLine] of handlers) {
+        /* 사진 문 하나만 토큰의 클라이언트로 묻는다 — 판정은 `photo_at` 이고 쓰기가 없다(ADR 0200 · 0211) */
+        const asks = path === 'app/api/mobile/photo/[userId]/route.ts' ? 'photoClientOf(' : 'mobileSession(';
+        expect(firstLine, `${path} 의 ${method} 이 자격을 먼저 묻지 않는다`).toContain(asks);
+      }
+      if (/beginReadingAs\(|respondAndSend\(/.test(text)) expect(text, `${path} 에 maxDuration 이 없다`).toMatch(/export const maxDuration = \d+/);
+      expect(text, `${path} 이 열쇠를 든다`).not.toMatch(/keyedClient/);
     }
   });
 

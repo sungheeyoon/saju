@@ -14,4 +14,5 @@ export function saleShapeOf(sale: SkippableRead<boolean>): 'closed' | 'open' {
   return sale.ok && !sale.value ? 'closed' : 'open';
 }
 
-export { outOfCredits } from '@/src/lib/matching/requests';
+/* 만드는 버튼의 판단이라 그 자리(`src/lib/reading/panel-chrome.ts`)에 산다 — 앱과 함께 쓴다(ADR 0211) */
+export { outOfCredits } from '@/src/lib/reading/panel-chrome';
