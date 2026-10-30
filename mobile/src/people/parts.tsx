@@ -12,7 +12,7 @@ import { PILLAR_COLUMNS, STEM_PICTURE } from '@saju-view';
 import { KeyboardDoneBar, Panel, TextButton } from '@/ui/parts';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { StemSymbol } from './stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 
 /** 아직 없는 경로도 그대로 잇는다 — 나란히 짓는 화면이 그 자리에 선다 */
 export const go = (path: string) => router.push(path as Href);

@@ -3,7 +3,10 @@ import { SUPPORT_EMAIL } from '@brand';
 import { userFacingDbMessage } from '@db-error';
 import type { Query } from '@input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf, type StoredInput } from '@input/stored';
+import { runningStageOf } from '@reading/running-stage';
+import { READING_KINDS, type ReadingKind } from '@reading/policy';
 import type { Saju, Stem } from '@saju';
+import { withFromMe } from '@web-home/from-me';
 import { isFirstVisit } from '@web-home/first-visit';
 
 import { supabase } from '@/auth/client';
@@ -36,7 +39,12 @@ export type HomePerson = {
 export type SelfCardData =
   | { kind: 'failed'; message: string }
   | { kind: 'unreadable'; message: string; note: string }
-  | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean };
+  | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean; face: SelfFace | null };
+
+/** 「내 프로필」 — 못 읽으면 `null` 이고 카드의 원은 일간 그림만 선다(꾸밈이다) */
+export type SelfFace = { userId: string; nickname: string; intro: string | null; hasPhoto: boolean };
+
+export type RunningLine = { key: string; name: string; stage: string; href: string | null };
 
 export type Home =
   | { kind: 'failed'; message: string }
@@ -48,7 +56,7 @@ export type Home =
       kind: 'home';
       self: SelfCardData;
       firstVisit: boolean;
-      running: readonly { key: string; name: string }[];
+      running: readonly RunningLine[];
       received: readonly ReadingRow[];
       people: readonly HomePerson[];
       slots: { limit: number; used: number; remaining: number } | null;
@@ -72,6 +80,56 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
   }
 }
 
+type RunningRow = {
+  kind: string;
+  label_a?: string | null;
+  label_b?: string | null;
+  person_a?: string | null;
+  person_b?: string | null;
+  match_id?: string | null;
+  created_at: string;
+  job_status?: string | null;
+  sections_begun?: number | null;
+  body_written?: boolean | null;
+};
+
+/** 웹의 `readingHrefOf` 와 같은 갈래다 — 가는 길이 없는 줄은 눌리지 않는다 */
+function runningHref(kind: ReadingKind, row: RunningRow): string | null {
+  switch (kind) {
+    case 'self':
+      return '/me/readings/self';
+    case 'person':
+      return row.person_a ? `/me/readings/${row.person_a}` : null;
+    case 'private':
+      return row.person_a && row.person_b ? `/me/compat?a=${row.person_a}&b=${row.person_b}` : null;
+    case 'match':
+      return row.match_id ? `/me/match/${row.match_id}` : null;
+  }
+}
+
+const runningLinesOf = (rows: readonly RunningRow[]): RunningLine[] =>
+  rows.flatMap((row) => {
+    const kind = READING_KINDS.find((known) => known === row.kind);
+    const name = runningName({ kind: row.kind, label_a: row.label_a ?? null, label_b: row.label_b ?? null });
+    if (kind === undefined || name === null) return [];
+    const href = runningHref(kind, row);
+    return [
+      {
+        key: `${row.kind}:${row.created_at}`,
+        name,
+        stage: runningStageOf(kind, { jobStatus: row.job_status ?? null, sectionsBegun: row.sections_begun ?? 0, bodyWritten: row.body_written ?? false }),
+        href: href === null ? null : withFromMe(href),
+      },
+    ];
+  });
+
+/** 만드는 중인 줄만 다시 묻는다 — 홈에 머무는 동안. 못 읽으면 `null` 이고 지금 줄을 그대로 둔다 */
+export async function readRunning(): Promise<readonly RunningLine[] | null> {
+  if (supabase === null) return null;
+  const { data, error } = await supabase.rpc('my_running_readings');
+  return error === null ? runningLinesOf(data ?? []) : null;
+}
+
 /**
  * 홈 — 웹의 `app/me/(home)/page.tsx` 와 같은 문을 같은 차례로 읽는다. 정책이 내 것만 내주므로 `user_id` 를 안 적는다.
  * 엣지 · 입력 · 목록은 본체라 못 읽으면 실패이고, 자리 수와 만드는 중인 풀이는 부속이라 빠진 채 선다.
@@ -81,7 +139,7 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
 export async function readHome(): Promise<Home> {
   if (supabase === null) return { kind: 'failed', message: NOT_READY };
 
-  const account = await supabase.from('app_user').select('status, self_person_id').maybeSingle();
+  const account = await supabase.from('app_user').select('status, self_person_id, nickname, intro').maybeSingle();
   if (account.error !== null) console.error('app_user', account.error.code);
   const suspension = account.data?.status === 'suspended' ? await supabase.rpc('my_suspension') : null;
   const found = suspension?.data?.[0];
@@ -107,11 +165,13 @@ export async function readHome(): Promise<Home> {
   if (state.kind !== 'active' || state.selfPersonId === null) return { kind: 'no-self' };
   const selfPersonId = state.selfPersonId;
 
-  const [edges, readings, running, slots] = await Promise.all([
+  const [edges, readings, running, slots, photos, session] = await Promise.all([
     supabase.from('user_person_access').select('person_id, local_label, note, listed').order('created_at', { ascending: true }),
     supabase.rpc('my_readings'),
     supabase.rpc('my_running_readings'),
     supabase.rpc('my_person_slots'),
+    supabase.rpc('my_photos'),
+    supabase.auth.getSession(),
   ]);
   if (edges.error !== null) return { kind: 'failed', message: userFacingDbMessage(edges.error, 'user_person_access.select') };
   if (readings.error !== null) return { kind: 'failed', message: userFacingDbMessage(readings.error, 'my_readings') };
@@ -145,6 +205,13 @@ export async function readHome(): Promise<Home> {
   const runningRows = running.error === null ? (running.data ?? []) : [];
   const selfReading = rows.find((row) => row.kind === 'self') ?? null;
 
+  const userId = session.data.session?.user.id;
+  const nickname = account.data?.nickname ?? null;
+  const face: SelfFace | null =
+    userId === undefined || nickname === null
+      ? null
+      : { userId, nickname, intro: account.data?.intro ?? null, hasPhoto: photos.error === null && (photos.data ?? []).length > 0 };
+
   const selfInput = inputs.get(selfPersonId);
   const stood = selfInput !== undefined && selfEdge !== null ? storedChartOf(selfInput, selfEdge.local_label) : null;
   const self: SelfCardData =
@@ -161,6 +228,7 @@ export async function readHome(): Promise<Home> {
             metaphor: selfReading?.metaphor ?? null,
             hasReading: selfReading !== null,
             making: runningRows.some((row) => row.kind === 'self'),
+            face,
           };
 
   const people: HomePerson[] = listed.map((edge) => {
@@ -188,10 +256,7 @@ export async function readHome(): Promise<Home> {
     kind: 'home',
     self,
     firstVisit: isFirstVisit({ readings: rows, running: runningRows, people: listed.length }),
-    running: runningRows.flatMap((row) => {
-      const name = runningName({ kind: row.kind, label_a: row.label_a ?? null, label_b: row.label_b ?? null });
-      return name === null ? [] : [{ key: `${row.kind}:${row.created_at}`, name }];
-    }),
+    running: runningLinesOf(runningRows),
     received: rows.filter((row) => row.kind === 'person'),
     people,
     slots: one === undefined ? null : { limit: one.person_limit, used: one.used, remaining: one.remaining },

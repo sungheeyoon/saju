@@ -20,6 +20,7 @@ export function ProfileSheet({
   nickname,
   intro,
   tone,
+  photo,
   toMatch,
   menu,
   footer,
@@ -28,6 +29,8 @@ export function ProfileSheet({
   nickname: string;
   intro: string | null;
   tone: Element | null;
+  /** 사진 칸 위에 얹는 것 — 사진이나 「사진 추가」. 없으면 색과 첫 글자만 선다 */
+  photo?: ReactNode;
   toMatch?: ReactNode;
   menu?: ReactNode;
   footer?: ReactNode;
@@ -52,6 +55,7 @@ export function ProfileSheet({
           <ScrollView contentContainerStyle={styles.body}>
             <View style={[styles.photo, { backgroundColor: scale.soft }]}>
               <Text style={[styles.initial, { color: scale.ink }]}>{initialOf(nickname)}</Text>
+              {photo}
             </View>
             {toMatch}
             {shown !== null && (

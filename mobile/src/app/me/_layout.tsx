@@ -6,9 +6,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SERVICE_NAME } from '@brand';
 import { gateFor } from '@consent/gate';
 
+import { LiveChannel } from '@/chat/live';
 import { useCounts } from '@/home/counts';
 import { useGate } from '@/home/gate';
 import { SettingsMenu } from '@/home/settings-menu';
+import { WarningNotice } from '@/home/warning-notice';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
 import { SecondaryButton } from '@/ui/parts';
@@ -73,6 +75,7 @@ export default function MeLayout() {
 
   return (
     <View style={styles.screen}>
+      <LiveChannel />
       {dockStands(pathname) && (
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable accessibilityRole="link" accessibilityLabel={`${SERVICE_NAME} 홈`} onPress={() => router.navigate('/me' as never)} style={styles.logo}>
@@ -98,6 +101,8 @@ export default function MeLayout() {
         </View>
       </View>
       )}
+
+      {dockStands(pathname) && <WarningNotice />}
 
       <View style={styles.body}>
         <Stack

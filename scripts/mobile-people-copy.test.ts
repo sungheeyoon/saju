@@ -29,6 +29,7 @@ const WEB = flat(
     'app/compat-picker.tsx',
     'app/compat-view.tsx',
     'app/compat/page.tsx',
+    'app/me/home/map/relation-map.tsx',
     'app/compat/archive.tsx',
     'app/between-view.tsx',
     'app/match-index.tsx',

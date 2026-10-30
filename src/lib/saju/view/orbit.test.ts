@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ELEMENT_ANGLE } from '../../../ui/orbit';
-import { curve, curveAway, phaseOf, pointAt, RADIUS, seatAngles, stepsAlong } from './orbit';
+import { curve, curveAway, ELEMENT_ANGLE, phaseOf, pointAt, RADIUS, seatAngles, stepsAlong } from './orbit';
 
 const twoPlaces = (value: number) => Number(value.toFixed(2)) === value;
 /** 원 위의 두 각 사이 — 짧은 쪽 */

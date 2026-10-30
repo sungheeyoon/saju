@@ -22,6 +22,7 @@ const WEB = [
   'app/me/home/received-readings.tsx',
   'app/me/home/more-list.tsx',
   'app/me/home/self-card.tsx',
+  'app/me/home/self-profile.tsx',
   'app/me/home/running-line.ts',
   'app/me/home/circle.ts',
   'app/ui/failure-line.tsx',

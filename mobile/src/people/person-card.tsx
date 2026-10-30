@@ -13,7 +13,7 @@ import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import type { MyReading, PersonRow } from './data';
 import { NameEditor, NoteEditor, RemoveConfirm } from './manage';
 import { DayMasterChip, PillarStrip, Sheet, SheetItem, go, styles as shared } from './parts';
-import { StemSymbol } from './stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 
 type Panel = 'menu' | 'name' | 'note' | 'remove';
 

@@ -24,7 +24,7 @@ import { CLAIM_STRENGTH_LEGEND } from '@saju-view/notes';
 import { Fold, Rich, Ruled, ScrollHint, T } from '@/chart/parts';
 import { UtteranceList } from '@/chart/relations';
 import { DayMasterChip, PillarStrip, go, styles as shared } from '@/people/parts';
-import { StemSymbol } from '@/people/stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 

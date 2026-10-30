@@ -7,10 +7,13 @@ import { storedChartOf } from '@input/stored';
 import { relationOf, type Relation } from '@people';
 import { listedPairSummary, pairSeatsOf } from '@reading-display';
 import { STEM_INFO, type Element, type Saju, type Stem } from '@saju';
+import { mapModelOf, type HomePerson, type MapModel } from '@reading/relation-map';
+
+import type { ReadingEntry } from '@reading/entry';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
-import { findSameChart, readAccount, readEdges, readInputs, readReadings, signedIn, type MyReading, type Read, type SameChart } from '@/people/data';
+import { findSameChart, readAccount, readEdges, readInputs, readReadings, readSlots, signedIn, type MyReading, type Read, type SameChart } from '@/people/data';
 
 /** 고를 수 있는 사람 — 그 사람의 얼굴에 쓸 일간까지만 */
 export type Choosable = {
@@ -25,18 +28,26 @@ export type PickerData = {
   readonly state: AccountState;
   readonly people: readonly Choosable[];
   readonly compats: readonly MyReading[];
+  /** 관계 지도 — 내 명식을 못 세우면 `null` 이고 지도는 안 선다(`app/compat/relation-map-section.tsx`) */
+  readonly map: { readonly model: MapModel; readonly canAdd: boolean } | null;
 };
+
+/** 앱의 궁합 글 줄을 지도가 먹는 모양으로 — 지도는 `private` 줄만 본다 */
+const mapEntries = (readings: readonly MyReading[]): ReadingEntry[] =>
+  readings.map((one) => ({ ...one, matchId: null, dayMasterA: null, dayMasterB: null }));
 
 /** 궁합의 첫 걸음이 읽는 것 — 목록에 선 사람만 고르고 맨 위는 「나」다(`app/compat/page.tsx`) */
 export async function readPicker(): Promise<Read<PickerData>> {
   const session = await signedIn();
   if (session.kind !== 'ok') return session;
 
-  const [account, edges, readings] = await Promise.all([readAccount(), readEdges(), readReadings()]);
+  const [account, edges, readings, slots] = await Promise.all([readAccount(), readEdges(), readReadings(), readSlots()]);
   if (!edges.ok) return { kind: 'failed', message: edges.message };
 
   const listed = edges.edges.filter((edge) => edge.listed);
-  const inputs = await readInputs(listed.map((edge) => edge.personId));
+  const listedIds = listed.map((edge) => edge.personId);
+  const selfId = account.selfPersonId;
+  const inputs = await readInputs(selfId === null || listedIds.includes(selfId) ? listedIds : [...listedIds, selfId]);
   if (!inputs.ok) return { kind: 'failed', message: inputs.message };
 
   const people = listed
@@ -54,7 +65,31 @@ export async function readPicker(): Promise<Read<PickerData>> {
     })
     .toSorted((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
 
-  return { kind: 'ok', value: { state: account.state, people, compats: readings.filter((one) => one.kind === 'private') } };
+  /* 가운데는 나다 — 내 명식을 못 세우면 지도를 안 그린다. 저장한 사람에서 나는 빠진다 */
+  const selfEdge = edges.edges.find((edge) => edge.personId === selfId);
+  const selfInput = selfId === null ? undefined : inputs.inputs.get(selfId);
+  const stood = selfInput === undefined || selfEdge === undefined ? null : storedChartOf(selfInput, selfEdge.label);
+  const mapPeople = listed.filter((edge) => edge.personId !== selfId).map((edge): HomePerson => {
+    const stored = inputs.inputs.get(edge.personId);
+    const chart = stored === undefined ? ({ ok: false, message: '출생 정보를 불러오지 못했어요.' } as const) : storedChartOf(stored, edge.label);
+    return { personId: edge.personId, label: edge.label, note: edge.note, chart: chart.ok ? { ok: true, saju: chart.saju } : { ok: false, message: chart.message } };
+  });
+  const map =
+    stood === null || !stood.ok || selfId === null
+      ? null
+      : {
+          model: mapModelOf(
+            { self: { personId: selfId, label: stood.query.name, saju: stood.saju }, people: mapPeople, readings: mapEntries(readings) },
+            {
+              reading: (entry) => `/me/compat?a=${entry.personA}&b=${entry.personB}&from=compat`,
+              fill: (a, b) => `/me/compat?pickA=${a}&pickB=${b}`,
+              tile: (personId) => `/me/people/${personId}`,
+            },
+          ),
+          canAdd: slots === null || slots.remaining > 0,
+        };
+
+  return { kind: 'ok', value: { state: account.state, people, compats: readings.filter((one) => one.kind === 'private'), map } };
 }
 
 /** 못 읽은 것과 「모른다」를 한 값으로 내지 않는다 — 합치면 다음 누름이 멀쩡한 값을 지운다(`pairRelationFor`) */
