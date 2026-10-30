@@ -27,14 +27,8 @@ export const NICKNAME_TAKEN_NOTE = '이미 사용 중인 닉네임입니다.';
 /** 소개 길이 상한 — DB 검사식과 같은 수 */
 export const INTRO_MAX = 500;
 
-/** 사진 상한 — `profile_photo.bytes` 의 검사식과 같은 수 */
-export const PHOTO_MAX_BYTES = 512 * 1024;
-
 /** 받아 주는 형식 — DB 검사식과 같은 목록 */
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-
-/** 올린 사진을 이 변으로 줄여서 보낸다 — 카드와 프로필에 서는 크기 */
-export const PHOTO_MAX_EDGE = 512;
 
 /** 한 사람의 사진 장 수 — `profile_photo.position` 의 검사식(1..6)과 같은 수(G-60). 편집 칸도 여섯이다 */
 export const PHOTO_MAX_COUNT = 6;
@@ -110,3 +104,5 @@ export function initialOf(nickname: string): string {
 export * from './focus';
 export * from './photo-variants';
 export * from './photo-upload-mode';
+export * from './photo-removal';
+export * from './photo-size';
