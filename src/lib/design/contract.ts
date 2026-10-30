@@ -3,7 +3,7 @@
  * 웹은 상수 · 함수의 이름으로, 앱은 부품 이름과 변형 낱말로 든다. `scripts/design-contract.test.ts` 가 두 쪽 파일을 글자로 읽어 잰다.
  * 이름이 다르면 앱을 웹에 맞춘다 — 웹 쪽 글자 · 동작은 이 표 때문에 바꾸지 않는다.
  *
- * `pending` 은 앱에 아직 그 이름으로 서지 않은 부품이고, 값은 그 까닭이다. 서고 나면 시험이 붉어져 그 줄을 지운다.
+ * `pending` 은 앱에 아직 그 이름으로 서지 않은 부품이고, 값은 그 까닭이다. 이 줄은 앱 쪽 이름을 재지 않는다 — 나란히 도는 PR 이 그 부품을 세워도 main 이 붉어지지 않게 한다(#912 · #913). 서고 나면 그 줄을 지운다.
  */
 export type PartContract = {
   name: string;
@@ -69,7 +69,6 @@ export const PARTS: readonly PartContract[] = [
     name: 'TopBar',
     web: { file: 'app/ui/top-bar.tsx', symbols: ['TopBar'] },
     app: { file: 'mobile/src/ui/top-bar.tsx', symbol: 'TopBar' },
-    pending: '뒤로가기 일이 앱의 `ui/top-bar.tsx` 를 세운다',
   },
   { name: 'NoticeScreen', web: { file: 'app/ui/notice-screen.tsx', symbols: ['NoticeScreen'] }, app: { file: 'mobile/src/ui/notice-screen.tsx', symbol: 'NoticeScreen' } },
   { name: 'Icon', web: { file: 'app/ui/icons.tsx', symbols: ['Icon'] }, app: { file: 'mobile/src/ui/icons.tsx', symbol: 'Icon' } },
