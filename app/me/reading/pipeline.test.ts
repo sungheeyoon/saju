@@ -69,7 +69,8 @@ vi.mock('./model', async () => ({
 }));
 
 const { GENERATION } = await import('./generation');
-const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
+const { sendAcceptedMatchReading, beginReadingAs } = await import('./pipeline');
+const { beginReading } = await import('./press');
 const { resendStalledRun } = await import('./submit');
 const { TASTE_LINK_FAILED, TASTE_WRONG_RUN_ALERT, TASTE_WRONG_RUN_DETAIL } = await import('@/src/lib/reading/taste-visit');
 const { baselineIn } = await import('@/src/lib/reading');
@@ -178,6 +179,20 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  /** 앱의 문(ADR 0211) — 같은 몸통을 그 사람의 토큰 클라이언트로 탄다. 귀속 표(쿠키)는 안 본다 */
+  it('앱의 누름은 넘긴 클라이언트로 시도를 열고 쿠키의 표를 안 보고 같은 길로 보낸다', async () => {
+    const rpc = vi.fn(async () => ({ data: [{ run_id: 'run-app' }], error: null }));
+    const key = '11111111-1111-4111-8111-111111111111';
+
+    expect(await beginReadingAs({ rpc } as never, { kind: 'self' }, key)).toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(rpc).toHaveBeenCalledWith('start_reading_run', expect.objectContaining({ p_kind: 'self', p_idempotency_key: key }));
+    expect(claimed).not.toHaveBeenCalled();
+    expect(link).not.toHaveBeenCalled();
+    expect(submit).toHaveBeenCalledOnce();
   });
 
   it('적은 뒤에 보낸다 — 순서가 뒤집히면 재료 없는 순간이 생긴다', async () => {

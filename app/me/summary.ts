@@ -1,3 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+import type { Database } from '@/src/lib/db';
 import { elementSummaryOf, type ElementSummary } from '@/src/lib/discovery/element-axes';
 import { needSummaryOf, type NeedSummary } from '@/src/lib/discovery/need-summary';
 import { chartSnapshotOf, type Stem } from '@/src/lib/saju';
@@ -47,8 +50,12 @@ export type SelfSummary = {
  * 「selfPerson 이 없다」와 같은 `null` 이 되어, 매칭 화면이 사주가 있는 사람에게 채우러 가는
  * 길을 세웠다. 입력을 읽는 `storedInputOf` 와 같은 길이다.
  */
-export async function selfElementSummary(knownSelfPersonId?: string): Promise<SelfSummary | null> {
-  const supabase = await supabaseOnServer();
+export async function selfElementSummary(
+  knownSelfPersonId?: string,
+  /** 앱의 문은 쿠키가 없어 제 클라이언트를 넘긴다(ADR 0211) */
+  client?: SupabaseClient<Database>,
+): Promise<SelfSummary | null> {
+  const supabase = client ?? (await supabaseOnServer());
 
   /*
     **계정을 이미 읽은 화면은 내 사람 id 를 넘긴다**(2026-09-30) — 같은 요청에서 `app_user` 를 한 번 더 읽는 물결 하나가 준다.

@@ -7,7 +7,7 @@ vi.mock('next/cache', () => ({
   refresh: () => cacheCalls.push('refresh'),
 }));
 vi.mock('./current', () => ({ lastReadingRun: vi.fn() }));
-vi.mock('./pipeline', () => ({ beginReading: vi.fn() }));
+vi.mock('./press', () => ({ beginReading: vi.fn() }));
 vi.mock('../../taste/taste-visitor', () => ({ forgetTasteClaim: vi.fn(async () => {}) }));
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 
