@@ -3,12 +3,19 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { rpcArgs } from '@db';
 import { userFacingDbMessage } from '@db-error';
-import { FOCUS_CENTER, focusOf, oversizeMessage, photoUploadModeOf, photoUploadsOnScreen, sameFocus, shrunkSize, type PhotoFocus, type PhotoUploadMode } from '@profile';
+import { FOCUS_CENTER, PHOTO_VARIANTS, VARIANTS_REFUSED, focusOf, oversizeMessage, sameFocus, shrunkSize, variantSize, type PhotoFocus, type PhotoUploadMode, type PhotoVariant } from '@profile';
+import type { DoorSave } from '@reading/door';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
+import type { DoorAnswer } from '@/reading/api';
+import { saveFailureOf } from '@/reading/chart-writes';
+import { followRefusal } from '@/reading/panel';
+import { addStoredPhoto, readPhotoUploadMode, replaceStoredPhoto, type BakedVariants } from '@/reading/photo-writes';
 
 import type { Answer } from './settings';
+
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
 /** 내 사진 한 장 — 자리와 판본(웹 `app/me/profile/photos.ts`) */
 export type MyPhoto = { readonly position: number; readonly version: number; readonly focus: PhotoFocus };
@@ -28,35 +35,52 @@ export async function myPhotos(): Promise<MyPhoto[]> {
 }
 
 /**
- * 올리기의 길 — **앱은 저장소 길을 못 간다.** `s3` 올리기는 서버가 저장소 열쇠로 바이트를 쓰는 서버 액션이라(`addStoredPhoto`) 앱에 문이
- * 없다. 그래서 웹이 「저장소가 꺼진 배포」에 쓰는 함수에 `false` 를 넘겨 멈춘 것으로 보인다 — 올리는 자리가 안 서고 첫 줄이 까닭을 말한다.
+ * 올리기의 길 — 이 배포의 저장소가 켜졌는지는 서버만 알아 앱의 문이 답한다(ADR 0211 추기). 웹의 `photoUploadMode` 와 같은 값이다.
+ * 못 물었으면 멈춘 것으로 보인다 — 어느 길로 보낼지 모르면 보내지 않는다. 거절 자체는 DB 가 한다.
  */
 export async function photoUploadMode(): Promise<PhotoUploadMode> {
-  if (supabase === null) throw new Error(NOT_READY);
-  const { data, error } = await supabase.rpc('photo_upload_mode');
-  if (error !== null) throw error;
-  return photoUploadsOnScreen(photoUploadModeOf(data), false);
+  const answer = await readPhotoUploadMode();
+  return answer.ok ? answer.value.mode : 'paused';
 }
 
 /** 받아 둔 그림 — 판본은 장마다 하나라 같은 판본은 같은 바이트다 */
 const seen = new Map<number, string>();
 
 /**
- * 그림을 화면에 세울 주소. 웹의 주소(`/me/photo/…`)는 쿠키로 사람을 알아 앱이 못 쓴다 — 같은 판정의 문(`photo_at`)을 바로 부른다.
- * 저장소에 사는 장(`base64` 가 비었다)은 서버만 읽어 `null` 이다.
+ * 그림을 화면에 세울 주소 — 같은 판정의 문(`photo_at`)을 바로 부른다. 저장소에 사는 장은 `base64` 가 비어 앱의 사진 문으로 받는다(`photoResponse`).
+ * 못 받으면 `null` 이다.
  */
 export async function photoSource(photo: MyPhoto, userId?: string): Promise<string | null> {
   const known = seen.get(photo.version);
   if (known !== undefined) return known;
   if (supabase === null) return null;
-  const owner = userId ?? (await supabase.auth.getSession()).data.session?.user.id;
+  const { data: auth } = await supabase.auth.getSession();
+  const owner = userId ?? auth.session?.user.id;
   if (owner === undefined) return null;
   const { data, error } = await supabase.rpc('photo_at', { p_user_id: owner, p_position: photo.position });
   const row = error === null ? data?.[0] : undefined;
-  if (row === undefined || !row.base64) return null;
-  const source = `data:${row.content_type};base64,${row.base64}`;
-  seen.set(row.version, source);
+  if (row === undefined) return null;
+  const source = row.base64 ? `data:${row.content_type};base64,${row.base64}` : await storedSource(owner, photo.position, auth.session?.access_token);
+  if (source !== null) seen.set(row.version, source);
   return source;
+}
+
+/** 저장소에 사는 장의 작은 벌을 그 사람의 토큰으로 받아 화면이 쓸 주소로 */
+async function storedSource(owner: string, position: number, token: string | undefined): Promise<string | null> {
+  if (!SITE_URL || token === undefined) return null;
+  try {
+    const response = await fetch(`${SITE_URL}/api/mobile/photo/${owner}?n=${position}&s=card`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string | null>((done) => {
+      const reader = new FileReader();
+      reader.onload = () => done(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => done(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 /** 기기의 사진 창 — 아무 권한도 안 묻는다. 취소면 빈 목록이다 */
@@ -94,8 +118,41 @@ async function savedFocus(position: number, version: number | null, focus: Photo
   return error !== null ? { ok: false, message: userFacingDbMessage(error, 'set_my_photo_focus') } : { ok: true };
 }
 
-/** 맨 뒤에 더한다 — 상한 · 형식 · 여섯 장 · 하루 한도는 DB 가 다시 본다 */
-export async function addPhoto(asset: { uri: string; width: number; height: number }, focus: PhotoFocus): Promise<Answer> {
+type Asset = { uri: string; width: number; height: number };
+
+/** 큰 벌이 상한을 넘을 때 한 번 더 굽는 품질 — 웹 `bakeVariants` 와 같다 */
+const SECOND_QUALITY = 0.72;
+
+/** 저장소로 보낼 두 벌 — 웹 `bakeVariants` 와 같은 크기 · 상한이다. 받은 서버가 `checkVariants` 로 다시 잰다 */
+async function bakedVariants(asset: Asset): Promise<{ ok: true; variants: BakedVariants } | { ok: false; message: string }> {
+  const save = async (variant: PhotoVariant, quality: number) => {
+    const context = ImageManipulator.ImageManipulator.manipulate(asset.uri);
+    context.resize(variantSize(variant, asset.width, asset.height));
+    const rendered = await context.renderAsync();
+    return rendered.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, compress: quality, base64: true });
+  };
+  const bytes = (base64: string | undefined) => Math.floor(((base64?.length ?? 0) * 3) / 4);
+  const card = await save('card', 0.85);
+  let large = await save('large', 0.85);
+  if (bytes(large.base64) > PHOTO_VARIANTS.large.maxBytes) large = await save('large', SECOND_QUALITY);
+  /* 넘으면 안 보낸다 — 서버도 같은 상한으로 거절하니 왕복과 하루 한도의 자리만 든다(웹 `bakeVariants`) */
+  if (bytes(large.base64) > PHOTO_VARIANTS.large.maxBytes || bytes(card.base64) > PHOTO_VARIANTS.card.maxBytes) return { ok: false, message: VARIANTS_REFUSED };
+  return { ok: true, variants: { card: card.uri, large: large.uri, contentType: 'image/jpeg' } };
+}
+
+/** 문의 답을 화면의 값으로 — 자격 거절은 그 길로 옮겨 가고 까닭 줄은 비지 않게 둔다 */
+function fromDoor(answer: DoorAnswer<DoorSave>): Answer {
+  if (answer.ok) return answer.value;
+  followRefusal(answer.refused);
+  return { ok: false, message: saveFailureOf(answer) ?? NOT_READY };
+}
+
+/** 맨 뒤에 더한다 — 상한 · 형식 · 여섯 장 · 하루 한도는 DB 가 다시 본다. 저장소 길이면 앱의 문을 지난다(ADR 0211 추기) */
+export async function addPhoto(asset: Asset, focus: PhotoFocus, uploads: PhotoUploadMode): Promise<Answer> {
+  if (uploads === 's3') {
+    const baked = await bakedVariants(asset);
+    return baked.ok ? fromDoor(await addStoredPhoto(baked.variants, focus)) : baked;
+  }
   if (supabase === null) return { ok: false, message: NOT_READY };
   const photo = await baked(asset);
   if (!photo.ok) return photo;
@@ -105,7 +162,13 @@ export async function addPhoto(asset: { uri: string; width: number; height: numb
 }
 
 /** 그 자리에서 바꾼다 — 판본은 화면이 본 그 장이다. 그 사이 목록이 바뀌었으면 DB 가 거절한다 */
-export async function replacePhoto(target: MyPhoto, asset: { uri: string; width: number; height: number }, focus: PhotoFocus): Promise<Answer> {
+export async function replacePhoto(target: MyPhoto, asset: Asset, focus: PhotoFocus, uploads: PhotoUploadMode): Promise<Answer> {
+  if (uploads === 's3') {
+    const baked = await bakedVariants(asset);
+    if (!baked.ok) return baked;
+    const answer = await replaceStoredPhoto(target, baked.variants, focus);
+    return fromDoor(answer.ok ? { ok: true, value: answer.value.ok ? { ok: true } : answer.value } : answer);
+  }
   if (supabase === null) return { ok: false, message: NOT_READY };
   const photo = await baked(asset);
   if (!photo.ok) return photo;

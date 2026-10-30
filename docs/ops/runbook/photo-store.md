@@ -110,6 +110,7 @@ select (select count(*) from public.profile_photo) as photo_rows,
 
 - 프로필 사진을 한 장 올린다 → 칸에 선다 → 3 의 집계에서 `key_rows` 1 · `byte_rows` 0 → S3 콘솔의 `photos/<계정 id>/` 아래 `card` ·
   `large` 가 있다 → 다른 계정의 덱 · 대화방에서 그 사진이 열린다(안 A — 앱이 저장소에서 읽는다)
+- 모바일 앱(개발 빌드)에서도 한 장 올린다 → 칸에 선다 → 같은 자리에 `card` · `large` 가 있다. 앱은 `POST /api/mobile/me/photo` 를 지난다. 411 로 거절되면 기기가 `Content-Length` 를 안 싣는 것이다(ADR 0211 추기)
 - 그 장을 지운다 → 다음 청소 뒤 두 객체가 없다(크론 응답의 `deleted` 2 — 6 전이면 예비인 Vercel 의 하루 한 번, 매일 19:47 UTC ±59분)
 - 월 점검(아래 「열쇠 줄 재기」)이 어긋남 0
 
