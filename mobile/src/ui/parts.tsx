@@ -11,9 +11,9 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { digitOutOfRange } from '@input/entry';
-
 
 import { COLOR, FONT, CONTROL, RADIUS, TYPE } from './tokens';
 
@@ -27,8 +27,86 @@ export function FieldLabel({ children }: { children: ReactNode }) {
 }
 
 /** 글을 적는 칸 */
-export function Field({ value, onChange, maxLength }: { value: string; onChange: (next: string) => void; maxLength?: number }) {
-  return <TextInput style={styles.control} value={value} onChangeText={onChange} maxLength={maxLength} autoComplete="off" />;
+export function Field({
+  value,
+  onChange,
+  maxLength,
+  placeholder,
+  label,
+  autoCapitalize,
+  refused = false,
+  inputRef,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  maxLength?: number;
+  placeholder?: string;
+  label?: string;
+  autoCapitalize?: 'none' | 'characters';
+  refused?: boolean;
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
+}) {
+  return (
+    <TextInput
+      ref={inputRef}
+      style={[styles.control, refused && styles.wrong]}
+      value={value}
+      onChangeText={onChange}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      placeholderTextColor={COLOR.muted}
+      accessibilityLabel={label}
+      autoCapitalize={autoCapitalize}
+      autoCorrect={false}
+      spellCheck={false}
+      autoComplete="off"
+    />
+  );
+}
+
+/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다. 기본값은 꺼짐이다(`app/signup/form.tsx`) */
+export function CheckRow({ checked, onToggle, refused = false, children }: { checked: boolean; onToggle: (next: boolean) => void; refused?: boolean; children: ReactNode }) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={() => onToggle(!checked)}
+      style={[styles.check, checked && styles.checkOn, refused && styles.wrong]}
+    >
+      <View style={[styles.checkBox, checked && styles.checkBoxOn]}>
+        {checked && (
+          <Svg width={14} height={14} viewBox="0 0 14 14">
+            <Path d="M2.5 7.5 L5.5 10.5 L11.5 3.5" fill="none" stroke={COLOR.onAccent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        )}
+      </View>
+      <View style={styles.checkBody}>{children}</View>
+    </Pressable>
+  );
+}
+
+/** 작은 보조 단추 — 칸 곁의 「중복 확인」 */
+export function SecondaryButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.secondary, pressed && styles.pressed, disabled && styles.off]}
+    >
+      <Text style={styles.secondaryText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** 글자만 있는 단추 — 처리방침 · 나가는 길 */
+export function TextButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={styles.textButton}>
+      <Text style={styles.textButtonLabel}>{label}</Text>
+    </Pressable>
+  );
 }
 
 /** 숫자 칸 — 숫자만 받고, 범위 밖이면 붉어지고, 다 적으면 다음 칸으로 간다. 판정은 웹과 같은 `digitOutOfRange` 다 */
@@ -242,4 +320,13 @@ const styles = StyleSheet.create({
   primary: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   pressed: { transform: [{ scale: 0.97 }] },
   primaryText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.onAccent },
+  check: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  checkOn: { borderColor: COLOR.foreground, backgroundColor: COLOR.cream },
+  checkBox: { width: 20, height: 20, marginTop: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
+  checkBoxOn: { borderColor: COLOR.accent, backgroundColor: COLOR.accent },
+  checkBody: { flex: 1, gap: 4 },
+  secondary: { minHeight: CONTROL, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
+  secondaryText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
+  textButton: { minHeight: CONTROL, justifyContent: 'center' },
+  textButtonLabel: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
 });

@@ -5,13 +5,8 @@ import { redirect } from 'next/navigation';
 import { refresh } from '../refresh';
 import { supabaseOnServer } from '../auth/server-client';
 import { userFacingDbMessage } from '../db-error';
-import { safeReturnPath } from '@/src/lib/consent';
+import { WRONG_CODE_NOTE, refusedField, safeReturnPath, signupRequest, type SignupField } from '@/src/lib/consent';
 import { rpcArgs } from '@/src/lib/db';
-
-import { refusedField, type SignupField } from './refusal';
-
-/** 틀린 코드의 문장 — 없는 코드 · 지난 코드 · 가입이 멈춘 때가 같은 말이다(DB 의 거절과 같은 글자) */
-const WRONG_CODE_NOTE = '사용할 수 없는 코드예요. 코드를 다시 확인해 주세요.';
 
 /**
  * 가입을 끝낸다 — **성공하면 안 돌아온다.**
@@ -41,22 +36,11 @@ export async function completeSignup(answer: {
 }): Promise<{ ok: false; message: string; field: SignupField | null }> {
   const supabase = await supabaseOnServer();
 
-  const { data: signedUp, error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>({
-    /*
-      **빈 칸은 `null` 로 보낸다.** 이미 이름이나 코드를 가진 사람은 그 칸을 안 보므로
-      빈 문자열이 온다 — DB 가 그것을 「짓겠다」로 읽으면 2자 미만이라고 거절한다.
-    */
-    p_code: answer.code.trim() || null,
-    p_nickname: answer.nickname.trim() || null,
-    p_version: answer.version,
-    p_schedule_id: answer.scheduleId,
-    p_improvement: answer.improvement,
-    p_contact: answer.contact,
-  }));
+  const { data: signedUp, error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>(signupRequest(answer)));
 
   if (error) {
     const message = userFacingDbMessage(error, 'complete_signup');
-    /* 어느 칸의 거절인지 함께 낸다 — 화면이 그 칸 곁에 세운다(`refusal.ts`) */
+    /* 어느 칸의 거절인지 함께 낸다 — 화면이 그 칸 곁에 세운다(`refusedField`) */
     return { ok: false, message, field: refusedField(error.code, message) };
   }
   /*

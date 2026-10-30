@@ -32,6 +32,8 @@ yarn-error.*
 
 # local env files
 .env*.local
+# 뿌리의 `.env*` 가 이 틀까지 막는다
+!.env.example
 
 # typescript
 *.tsbuildinfo

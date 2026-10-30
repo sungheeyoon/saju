@@ -14,9 +14,6 @@ import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, Primary
 import { Logo } from '@/ui/logo';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
-/** 앱의 가입 화면이 서기 전까지의 말 — 다음 PR 에서 걷는다 */
-const SIGNUP_NOT_READY = '가입은 아직 웹에서 해 주세요.';
-
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 const HOUR_CHOICES = [
   { value: 'known', label: '직접 입력' },
@@ -91,8 +88,9 @@ export default function BirthScreen() {
     const signIn = await signInWithGoogle();
     setGoing(false);
     if (signIn.kind === 'failed') setFailure(signIn.message);
-    if (signIn.kind === 'needs-signup') setFailure(SIGNUP_NOT_READY);
-    if (signIn.kind === 'signed-in') router.push({ pathname: '/chart', params: { query: JSON.stringify(query) } });
+    const params = { query: JSON.stringify(query) };
+    if (signIn.kind === 'needs-signup') router.push({ pathname: '/signup', params });
+    if (signIn.kind === 'signed-in') router.push({ pathname: '/chart', params });
   };
 
   return (
