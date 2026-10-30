@@ -1,5 +1,6 @@
-import { useState, type ComponentRef, type ReactNode, type Ref } from 'react';
+import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import {
+  BackHandler,
   InputAccessoryView,
   Keyboard,
   Platform,
@@ -211,6 +212,15 @@ export function Select<T extends string>({
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((option) => option.value === value);
+  /* 안드로이드 뒤로 가기는 펼친 목록을 먼저 접는다 — 안 받으면 화면을 떠나고 첫 화면이면 앱을 나간다 */
+  useEffect(() => {
+    if (!open) return;
+    const listening = BackHandler.addEventListener('hardwareBackPress', () => {
+      setOpen(false);
+      return true;
+    });
+    return () => listening.remove();
+  }, [open]);
   return (
     <View style={styles.selectBox}>
       <Pressable
