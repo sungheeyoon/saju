@@ -1,119 +1,227 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { calculateChart } from '@input/chart';
-import { DEFAULT_QUERY } from '@input/query';
-import type { Gender, Saju } from '@saju';
+import { SERVICE_NAME } from '@brand';
+import { calculateChart, dateRefusal } from '@input/chart';
+import { convertedLine, dateOfParts, limitsOf, timeOfParts } from '@input/entry';
+import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, type Query } from '@input/query';
+import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_YEAR_RANGE, type CityName, type LateNightRule } from '@saju';
 
-const GENDER_CHOICES: readonly { value: Gender; label: string }[] = [
-  { value: 'male', label: '남자' },
-  { value: 'female', label: '여자' },
+import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, PrimaryButton, Select } from '@/ui/parts';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
+
+const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
+const HOUR_CHOICES = [
+  { value: 'known', label: '직접 입력' },
+  { value: 'unknown', label: HOUR_UNKNOWN_CHOICE },
+] as const;
+const RULES: readonly { value: LateNightRule; label: string; hint: string }[] = [
+  { value: 'jo', label: '조자시', hint: '경계 23:00' },
+  { value: 'ya', label: '야자시', hint: '경계 자정' },
 ];
 
-const PILLAR_ROWS = [
-  ['시', 'hour'],
-  ['일', 'day'],
-  ['월', 'month'],
-  ['년', 'year'],
-] as const;
-
-export default function HomeScreen() {
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [gender, setGender] = useState<Gender>('female');
-  const [saju, setSaju] = useState<Saju | null>(null);
+/** 출생 정보 — 칸의 차례와 말은 웹의 `app/birth-form.tsx` 와 같다. 계산은 웹과 같은 `calculateChart` 다 */
+export default function BirthScreen() {
+  const [name, setName] = useState('');
+  const [gender, setGender] = useState<Query['gender']>(DEFAULT_QUERY.gender);
+  const [year, setYear] = useState('');
+  const [month, setMonth] = useState('');
+  const [day, setDay] = useState('');
+  const [calendar, setCalendar] = useState<Query['calendar']>(DEFAULT_QUERY.calendar);
+  const [hourChoice, setHourChoice] = useState<'known' | 'unknown'>('known');
+  const [hour, setHour] = useState('');
+  const [minute, setMinute] = useState('');
+  const [city, setCity] = useState<CityName>(DEFAULT_QUERY.city);
+  const [advanced, setAdvanced] = useState(false);
+  const [rule, setRule] = useState<LateNightRule>(DEFAULT_QUERY.rule);
+  const [basis, setBasis] = useState<Query['basis']>(DEFAULT_QUERY.basis);
+  const [saeunFrom, setSaeunFrom] = useState(String(DEFAULT_QUERY.saeunFrom));
   const [failure, setFailure] = useState<string | null>(null);
 
-  const calculate = () => {
-    /* 웹과 같은 기본값 · 같은 함수다 — 여기서 따로 세면 웹과 다른 사주가 나온다 */
-    const result = calculateChart({ ...DEFAULT_QUERY, date, time, gender, hourKnown: time !== '' });
-    setSaju(result.ok ? result.saju : null);
-    setFailure(result.ok ? null : result.message);
+  const monthRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const dayRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const hourRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const minuteRef = useRef<ComponentRef<typeof TextInput>>(null);
+
+  const hourKnown = hourChoice === 'known';
+  const query: Query = {
+    ...DEFAULT_QUERY,
+    name,
+    gender,
+    calendar,
+    date: dateOfParts({ year, month, day }),
+    hourKnown,
+    /* 범위 밖의 시각은 값이 안 된다 — 「33시」는 계산에 안 간다 */
+    time: hourKnown ? timeOfParts({ hour, minute }) : '',
+    city,
+    rule,
+    basis,
+    saeunFrom: Number(saeunFrom),
+  };
+  const { years, maxDay } = limitsOf(calendar, year, month);
+  const refused = dateRefusal(query)?.part ?? null;
+  const converted = convertedLine(query);
+
+  const chooseHour = (next: 'known' | 'unknown') => {
+    /* 「모름」이면 적어 둔 시각도 지운다 — 다시 「직접 입력」을 골랐을 때 지운 줄 안 값으로 계산되지 않게 */
+    if (next === 'unknown') {
+      setHour('');
+      setMinute('');
+    }
+    setHourChoice(next);
+  };
+
+  const submit = () => {
+    const result = calculateChart(query);
+    if (!result.ok) {
+      setFailure(result.message);
+      return;
+    }
+    setFailure(null);
+    router.push({ pathname: '/chart', params: { query: JSON.stringify(query) } });
   };
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>나는 어떤 사람일까?</Text>
-
-        <Text style={styles.label}>생년월일</Text>
-        <TextInput
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          placeholder="1990-05-15"
-          placeholderTextColor={MUTED}
-          keyboardType="numbers-and-punctuation"
-        />
-
-        <Text style={styles.label}>태어난 시각</Text>
-        <TextInput
-          style={styles.input}
-          value={time}
-          onChangeText={setTime}
-          placeholder="14:30 (모르면 비워 두세요)"
-          placeholderTextColor={MUTED}
-          keyboardType="numbers-and-punctuation"
-        />
-
-        <View style={styles.choices}>
-          {GENDER_CHOICES.map(({ value, label }) => (
-            <Pressable
-              key={value}
-              onPress={() => setGender(value)}
-              style={[styles.choice, gender === value && styles.chosen]}
-            >
-              <Text style={gender === value ? styles.chosenText : styles.choiceText}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable onPress={calculate} style={styles.button}>
-          <Text style={styles.buttonText}>사주 보기</Text>
-        </Pressable>
-
-        {failure !== null && <Text style={styles.failure}>{failure}</Text>}
-
-        {saju !== null && (
-          <View style={styles.pillars}>
-            {PILLAR_ROWS.map(([label, key]) => {
-              const pillar = saju.pillars[key];
-              return (
-                <View key={key} style={styles.pillar}>
-                  <Text style={styles.pillarLabel}>{label}</Text>
-                  <Text style={styles.glyph}>{pillar?.stem ?? '-'}</Text>
-                  <Text style={styles.glyph}>{pillar?.branch ?? '-'}</Text>
-                </View>
-              );
-            })}
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <View style={styles.brandRow}>
+            {/* 로고는 웹의 그 파일이다 — 앱에 사본을 두지 않는다 */}
+            <Image source={require('../../../app/apple-icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+            <Text style={styles.brand}>{SERVICE_NAME}</Text>
           </View>
-        )}
-      </ScrollView>
+          <Panel tone="cream" style={styles.paper}>
+            <Text style={styles.title}>출생 정보를 입력해 주세요</Text>
+
+            <Panel style={styles.form}>
+              <View style={styles.pair}>
+                <View style={styles.half}>
+                  <FieldLabel>이름</FieldLabel>
+                  <Field value={name} onChange={setName} maxLength={NAME_MAX} />
+                </View>
+                <View style={styles.half}>
+                  <FieldLabel>성별</FieldLabel>
+                  <Choices value={gender} onPick={setGender} options={GENDERS.map((one) => ({ value: one, label: GENDER_KO[one] }))} />
+                </View>
+              </View>
+
+              <View style={styles.group}>
+                <FieldLabel>생년월일</FieldLabel>
+                <View style={styles.row}>
+                  <DigitField value={year} onChange={setYear} unit="년" placeholder={String(years.max - 30)} digits={4} min={years.min} max={years.max} refused={refused === 'year'} onFull={() => monthRef.current?.focus()} />
+                  <DigitField inputRef={monthRef} value={month} onChange={setMonth} unit="월" placeholder="1~12" digits={2} min={1} max={12} advanceEarly refused={refused === 'month'} onFull={() => dayRef.current?.focus()} />
+                  <DigitField inputRef={dayRef} value={day} onChange={setDay} unit="일" placeholder={`1~${maxDay}`} digits={2} min={1} max={maxDay} advanceEarly refused={refused === 'day'} onFull={() => (hourKnown ? hourRef.current?.focus() : Keyboard.dismiss())} />
+                </View>
+                {converted !== null && (
+                  <Text style={[styles.converted, !converted.ok && styles.failure]}>{converted.text}</Text>
+                )}
+                <View style={styles.row}>
+                  <Choices value={calendar} onPick={setCalendar} options={CALENDARS.map((one) => ({ value: one, label: CALENDAR_KO[one] }))} />
+                </View>
+              </View>
+
+              <View style={styles.rail}>
+                <Text style={styles.railLabel}>출생 시각</Text>
+                <Choices value={hourChoice} onPick={chooseHour} options={HOUR_CHOICES} />
+              </View>
+
+              {hourChoice === 'known' && (
+                <View style={styles.rail}>
+                  <View style={styles.railHead}>
+                    <Text style={styles.railLabel}>시각</Text>
+                    <Text style={styles.railNote}>24시간</Text>
+                  </View>
+                  <View style={styles.railBody}>
+                    <DigitField inputRef={hourRef} value={hour} onChange={setHour} unit="시" placeholder="0~23" digits={2} min={0} max={23} onFull={() => minuteRef.current?.focus()} />
+                    <DigitField inputRef={minuteRef} value={minute} onChange={setMinute} unit="분" placeholder="0~59" digits={2} min={0} max={59} onFull={Keyboard.dismiss} />
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.rail}>
+                <Text style={styles.railLabel}>출생지</Text>
+                <Select value={city} onPick={setCity} options={CITIES.map((one) => ({ value: one, label: one }))} />
+              </View>
+            </Panel>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: advanced }}
+              onPress={() => setAdvanced(!advanced)}
+              style={styles.disclosure}
+            >
+              <Text style={styles.disclosureLabel}>고급 설정</Text>
+              <Text style={styles.disclosureSummary}>자시 · 시간 기준 · 세운 {advanced ? '⌃' : '⌄'}</Text>
+            </Pressable>
+
+            {advanced && (
+              <Panel style={styles.form}>
+                <View style={styles.rail}>
+                  <Text style={styles.railLabel}>자시</Text>
+                  <Select value={rule} onPick={setRule} options={RULES} disabled={hourChoice === 'unknown'} />
+                </View>
+                <View style={styles.rail}>
+                  <Text style={styles.railLabel}>시간 기준</Text>
+                  <Select
+                    value={basis}
+                    onPick={setBasis}
+                    options={TIME_BASES.map((one) => ({ value: one, label: TIME_BASIS[one].label, hint: TIME_BASIS[one].hint }))}
+                  />
+                </View>
+                <View style={styles.rail}>
+                  <Text style={styles.railLabel}>세운 연도</Text>
+                  <DigitField value={saeunFrom} onChange={setSaeunFrom} unit="년" placeholder="2026" digits={4} min={SUPPORTED_YEAR_RANGE.min} max={SUPPORTED_YEAR_RANGE.max} />
+                </View>
+              </Panel>
+            )}
+
+            {/* 폼이 짧은 화면에서도 단추는 엄지가 닿는 맨 아래에 선다 */}
+            <View style={styles.action}>
+              {failure !== null && <Text style={styles.failure}>{failure}</Text>}
+              <PrimaryButton label="사주 보기" onPress={submit} />
+            </View>
+          </Panel>
+        </ScrollView>
+        <KeyboardDoneBar />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const PAPER = '#faf6ef';
-const INK = '#1f1a14';
-const MUTED = '#8a8175';
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: PAPER },
-  content: { padding: 24, gap: 10 },
-  title: { fontSize: 26, fontWeight: '700', color: INK, marginBottom: 14 },
-  label: { fontSize: 14, color: INK, marginTop: 6 },
-  input: { borderWidth: 1, borderColor: '#d9d0c2', borderRadius: 10, padding: 14, fontSize: 16, color: INK },
-  choices: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  choice: { flex: 1, alignItems: 'center', padding: 13, borderRadius: 10, borderWidth: 1, borderColor: '#d9d0c2' },
-  chosen: { backgroundColor: INK, borderColor: INK },
-  choiceText: { color: INK, fontSize: 15 },
-  chosenText: { color: PAPER, fontSize: 15, fontWeight: '600' },
-  button: { alignItems: 'center', padding: 15, borderRadius: 10, backgroundColor: INK, marginTop: 12 },
-  buttonText: { color: PAPER, fontSize: 16, fontWeight: '700' },
-  failure: { color: '#b3261e', fontSize: 14, marginTop: 8 },
-  pillars: { flexDirection: 'row', gap: 8, marginTop: 20 },
-  pillar: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 10, backgroundColor: '#f1eadd' },
-  pillarLabel: { fontSize: 13, color: MUTED, marginBottom: 8 },
-  glyph: { fontSize: 30, fontWeight: '700', color: INK },
+  screen: { flex: 1, backgroundColor: COLOR.background },
+  content: { flexGrow: 1, padding: 16 },
+  paper: { flexGrow: 1, padding: 14, gap: 12 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4, marginBottom: 12 },
+  logo: { width: 32, height: 32, borderRadius: 8 },
+  brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
+  title: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
+  form: { padding: 16, gap: 18 },
+  pair: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
+  group: { gap: 6 },
+  row: { flexDirection: 'row', gap: 6 },
+  rail: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  railHead: { width: 64, minHeight: 44, justifyContent: 'center' },
+  railLabel: { width: 64, minHeight: 44, lineHeight: 44, fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
+  railNote: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: -14 },
+  railBody: { flex: 1, flexDirection: 'row', gap: 6 },
+  disclosure: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.borderStrong,
+    backgroundColor: COLOR.surface,
+  },
+  disclosureLabel: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
+  disclosureSummary: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
+  action: { marginTop: 'auto', paddingTop: 12, gap: 10 },
+  converted: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary, marginVertical: 2 },
+  failure: { fontSize: TYPE.small, fontFamily: FONT.medium, color: COLOR.danger, marginHorizontal: 6 },
 });

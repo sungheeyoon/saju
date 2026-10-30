@@ -9,7 +9,7 @@ import {
   splitDate,
   splitTime,
   timeOfParts,
-} from './birth-entry';
+} from './entry';
 
 /** 출생 정보 폼의 숫자 칸이 값이 되는 규칙 — 칸 조각과 `Query` 사이 */
 

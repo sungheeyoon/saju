@@ -6,7 +6,7 @@ import { HOUR_UNKNOWN_CHOICE, type DatePart, type Query } from '@/src/lib/input/
 
 import styles from './birth-form.module.css';
 import { ChoiceField, DigitsField } from './birth-choices';
-import { dateOfParts, digitOutOfRange, limitsOf, splitDate, splitTime, timeOfParts } from './birth-entry';
+import { dateOfParts, digitOutOfRange, limitsOf, splitDate, splitTime, timeOfParts } from '@/src/lib/input/entry';
 
 /*
  * 출생 정보 폼(`birth-form.tsx`)의 **숫자 칸** — 생년월일 세 칸과 시각 두 칸. 왜 날짜 · 시각을 기기의 컨트롤이 아니라 숫자로 적게

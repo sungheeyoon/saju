@@ -14,6 +14,9 @@
       ],
       "@saju": [
         "../src/lib/saju/index.ts"
+      ],
+      "@brand": [
+        "../src/lib/brand/index.ts"
       ]
     }
   },
