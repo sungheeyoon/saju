@@ -9,3 +9,6 @@
 /test-results
 /.reading-live
 /.ab-overlaps
+
+# Expo 앱 — 웹 배포에 안 든다
+mobile/
