@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { supabase } from '@/auth/client';
 
@@ -22,6 +22,8 @@ export function Photo({
   hasPhoto = true,
   position = 1,
   variant = 'card',
+  fill = false,
+  focus,
 }: {
   userId: string;
   size: number;
@@ -30,6 +32,10 @@ export function Photo({
   position?: number;
   /** 작은 자리(아바타)는 `card`, 크게 보는 자리는 `large` */
   variant?: 'card' | 'large';
+  /** 부모 칸을 그대로 덮는다(카드 · 4:5 칸) — 둥글게 자르지 않고 `size` 를 안 쓴다 */
+  fill?: boolean;
+  /** 보일 자리(%) — 웹의 `object-position` 과 같은 두 수 */
+  focus?: { readonly x: number; readonly y: number };
 }) {
   const [token, setToken] = useState<string | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
@@ -68,6 +74,20 @@ export function Photo({
   };
 
   if (!hasPhoto || !SITE_URL || token === null || failedFor === uri) return <>{fallback}</>;
+
+  const shown = focus === undefined ? undefined : { left: `${focus.x}%` as const, top: `${focus.y}%` as const };
+  if (fill) {
+    return (
+      <Image
+        source={{ uri, headers: { Authorization: `Bearer ${token}` } }}
+        cachePolicy="none"
+        contentFit="cover"
+        contentPosition={shown}
+        style={StyleSheet.absoluteFill}
+        onError={() => void failed()}
+      />
+    );
+  }
 
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>

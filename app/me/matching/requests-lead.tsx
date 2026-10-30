@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { receivedOf } from '@/src/lib/matching/requests';
 import { CONSENT_FLOW_CAVEAT, CONSENT_FLOW_STEPS, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 
 import type { SkippableRead } from '../../db-error';
@@ -122,8 +123,7 @@ export function PastRequestList({ past, guide }: { past: PastRequests; guide: bo
   );
 }
 
-export const receivedOf = (requests: readonly InboxRequest[]) =>
-  requests.filter((request) => request.direction === 'received' && request.status === 'pending');
+export { receivedOf };
 
 /** 접이칸 한 줄 — 제목 줄이 44px 을 넘고 끝의 셰브론이 펴지면 아래를 본다 */
 const FOLD = `${ROW_CARD_FACE} group px-4`;
