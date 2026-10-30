@@ -33,7 +33,7 @@ function isActive(pathname: string, href: string): boolean {
   return within(pathname, href);
 }
 
-/** 대화방 하나에서는 독이 안 선다 — 웹의 `dockStandsOn` */
+/** 대화방 하나에서는 독도 머리도 안 선다 — 폰의 방은 화면 전체다(웹의 `dockStandsOn`, PRD 「앱 내 채팅」) */
 const dockStands = (pathname: string) => !/^\/me\/chat\/[^/]+\/?$/.test(pathname);
 
 /**
@@ -63,6 +63,7 @@ export default function MeLayout() {
 
   return (
     <View style={styles.screen}>
+      {dockStands(pathname) && (
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable accessibilityRole="link" accessibilityLabel={`${SERVICE_NAME} 홈`} onPress={() => router.navigate('/me' as never)} style={styles.logo}>
           <Logo size={32} />
@@ -86,6 +87,7 @@ export default function MeLayout() {
           </Pressable>
         </View>
       </View>
+      )}
 
       <View style={styles.body}>
         <Stack

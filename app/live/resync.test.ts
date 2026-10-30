@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ALL_SIGNALS } from './changes';
-import { opened, step } from './connection';
+import { opened, step } from '@/src/lib/live/connection';
 import { resyncScreen } from './resync';
 
 const hands = () => ({ announce: vi.fn(), chatMoved: vi.fn(), redraw: vi.fn() });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { read, type SkippableRead } from '../../../db-error';
-import { compatRowParts, roomCompatOf, type RoomCompat } from './room-compat';
+import { compatRowParts, roomCompatOf, type RoomCompat } from '@/src/lib/chat/room/compat';
 
 const missed: SkippableRead<never> = { ok: false, reason: '못 읽었어요' };
 

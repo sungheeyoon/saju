@@ -2,7 +2,7 @@ import type { PhotoFocus } from '@/src/lib/profile';
 import type { ActivityBand } from '@/src/lib/presence';
 
 import type { RoomTones } from '../tones';
-import type { ShownMessage } from './bubbles';
+import type { ShownMessage } from '@/src/lib/chat/room/bubbles';
 import type { RoomCompat } from './room-compat';
 
 /**

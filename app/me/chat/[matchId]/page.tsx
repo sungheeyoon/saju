@@ -12,7 +12,7 @@ import { readAccount } from '../../account';
 import { ChatFrame, RoomList } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
 import { roomScopesForViewer } from '../tones';
-import { labelled } from './bubbles';
+import { labelled } from '@/src/lib/chat/room/bubbles';
 import { myRoomFace } from './me';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
