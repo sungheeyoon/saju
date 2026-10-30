@@ -38,7 +38,6 @@ const WEB = flat(
     'app/me/actions.ts',
     'app/me/edit-input.tsx',
     'app/me/reading-tabs.tsx',
-    'app/me/home/making.ts',
     'app/me/compat/actions.ts',
     'app/me/compat/screen.tsx',
     'app/me/compat/relation-note.tsx',

@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { UNREADABLE_INPUT_NOTE } from '@input/stored';
 import { HOUR_UNKNOWN_LABEL } from '@input/query';
-import { READING_STALE_LABEL } from '@reading-notes';
+import { READING_STALE_LABEL } from '@reading/notes';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from '@web-home/making';
 import { CALENDAR_KO, GENDER_KO, STEM_INFO } from '@saju';
 
 import { ElementSymbol } from '@/ui/element-symbol';
@@ -13,10 +14,6 @@ import type { MyReading, PersonRow } from './data';
 import { NameEditor, NoteEditor, RemoveConfirm } from './manage';
 import { DayMasterChip, PillarStrip, Sheet, SheetItem, go, styles as shared } from './parts';
 import { StemSymbol } from './stem-symbol';
-
-/** 이어 읽기 · 만드는 중 — 웹의 `app/me/home/making.ts` 와 같은 글자다(`scripts/mobile-people-copy.test.ts` 가 견준다) */
-const READING_CONTINUE_NOTE = '만들어 둔 풀이를 이어서 읽어보세요';
-const SELF_READING_MAKING = '풀이 만드는 중…';
 
 type Panel = 'menu' | 'name' | 'note' | 'remove';
 

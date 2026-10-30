@@ -51,11 +51,17 @@
       "@reading-display": [
         "../src/lib/reading/display.ts"
       ],
-      "@reading-notes": [
-        "../src/lib/reading/notes.ts"
-      ],
       "@saju-text/*": [
         "../src/lib/saju/text/*"
+      ],
+      "@web-home/*": [
+        "../src/lib/home/*"
+      ],
+      "@brand/links": [
+        "../src/lib/brand/links.ts"
+      ],
+      "@reading/notes": [
+        "../src/lib/reading/notes.ts"
       ]
     }
   },

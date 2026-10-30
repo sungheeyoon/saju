@@ -1,0 +1,88 @@
+import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { SIGN_OUT_PENDING } from '@account/copy';
+import { GUIDE_LINKS } from '@brand/links';
+
+import { signOut } from '@/auth/sign-in';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
+
+const LINKS = [
+  { href: '/me/profile', label: '프로필' },
+  { href: '/me/settings', label: '설정' },
+  { href: '/me/survey', label: '서비스 설문' },
+] as const;
+
+/**
+ * 톱니 안 — 프로필 · 설정 · 서비스 설문 · 로그아웃은 웹의 머리글과 같다. 안내 화면은 옮기지 않고 웹을 연다(전문의 원본이 하나로 남는다).
+ * 값이 없는 빌드에는 그 줄이 안 선다.
+ */
+export function SettingsMenu({ email, open, onClose }: { email: string | null; open: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [leaving, setLeaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const leave = async () => {
+    setFailure(null);
+    setLeaving(true);
+    const left = await signOut();
+    setLeaving(false);
+    if (left) onClose();
+    else setFailure('로그아웃하지 못했어요. 다시 시도해 주세요.');
+  };
+
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable accessibilityRole="button" accessibilityLabel="닫기" style={styles.backdrop} onPress={onClose} />
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
+        <ScrollView>
+          {email !== null && <Text style={styles.email}>{email}</Text>}
+          {LINKS.map((link) => (
+            <Pressable
+              key={link.href}
+              accessibilityRole="link"
+              onPress={() => {
+                onClose();
+                router.push(link.href as never);
+              }}
+              style={styles.row}
+            >
+              <Text style={styles.label}>{link.label}</Text>
+            </Pressable>
+          ))}
+          {SITE_URL ? (
+            <View style={styles.group}>
+              {GUIDE_LINKS.map((link) => (
+                <Pressable key={link.href} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}${link.href}`)} style={styles.row}>
+                  <Text style={styles.guide}>{link.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          <View style={styles.group}>
+            <Pressable accessibilityRole="button" accessibilityState={{ disabled: leaving }} disabled={leaving} onPress={leave} style={styles.row}>
+              <Text style={styles.guide}>{leaving ? SIGN_OUT_PENDING : '로그아웃'}</Text>
+            </Pressable>
+          </View>
+          {failure !== null && <Text style={styles.failure}>{failure}</Text>}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(38, 36, 31, 0.35)' },
+  sheet: { maxHeight: '80%', paddingHorizontal: 16, paddingTop: 16, borderTopLeftRadius: RADIUS.panel, borderTopRightRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  email: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted, paddingHorizontal: 4, paddingBottom: 8 },
+  group: { marginTop: 4, borderTopWidth: 1, borderTopColor: COLOR.border },
+  row: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  label: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
+  guide: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.secondary },
+  failure: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.danger, padding: 4 },
+});
