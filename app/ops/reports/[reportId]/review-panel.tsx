@@ -18,9 +18,9 @@ import { DoneNote, useDoneNote } from '../../../ui/done-note';
 import { FailureLine } from '../../../ui/failure-line';
 import { FIELD } from '../../../ui/fields';
 import { useOneAtATime } from '../../../ui/one-at-a-time';
-import { accountLabel } from '../../account-label';
+import { accountLabel } from '@/src/lib/ops/account-label';
 import { writeReview } from '../actions';
-import { reviewOutcomeLabel } from '../labels';
+import { reviewOutcomeLabel } from '@/src/lib/ops/report-labels';
 import {
   NOTE_MAX,
   OUTCOMES,
@@ -37,7 +37,7 @@ import {
   type Party,
   type ReportNow,
   type ReviewPlan,
-} from '../review';
+} from '@/src/lib/ops/report-review';
 
 const ROW = 'flex flex-col gap-2';
 const LABEL = 'text-xs font-semibold text-muted';

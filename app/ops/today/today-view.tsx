@@ -1,6 +1,6 @@
 import { won } from '@/src/lib/reading/bundle';
 import { CARD } from '../../ui/surfaces';
-import { sinceDay } from './labels';
+import { sinceDay } from '@/src/lib/ops/today-labels';
 import type { Figures, TodayFigures } from './read';
 
 /** 오늘 · 이번 주의 숫자를 그리기만 한다 — 읽기와 거절은 `page.tsx` 와 문(`read.ts`)의 일이다 */

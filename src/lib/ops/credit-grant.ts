@@ -1,5 +1,5 @@
-import { firstLine } from '../first-line';
-import { refundReasonLabel } from '../orders/labels';
+import { firstLine } from './first-line';
+import { refundReasonLabel } from './order-labels';
 
 /**
  * **무상 풀이권 지급 · 회수의 「실행 전 확인」과 이력의 말** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { NO_NICKNAME, WARNING_LABEL, accountStatusLabel, evidenceTime } from '../reports/labels';
+import { NO_NICKNAME, WARNING_LABEL, accountStatusLabel, evidenceTime } from '@/src/lib/ops/report-labels';
 import { DENIED, QUERY_MAX, operatorMember, queryOf, type CreditSource, type Member } from './read';
 import { memberSanctions, type MemberSanctions } from './sanctions';
 import {
@@ -14,7 +14,7 @@ import {
   sanctionReasonLabel,
   statusAction,
   type SanctionEntry,
-} from './suspension';
+} from '@/src/lib/ops/suspension';
 import { StatusPanel } from './status-panel';
 import { memberCreditHistory, memberGrantLedger, type MemberGrantLedger, type MemberHistory } from './credits';
 import {
@@ -28,7 +28,7 @@ import {
   type HistoryCursor,
   type HistoryFilter,
   type HistoryLine,
-} from './credit-grant';
+} from '@/src/lib/ops/credit-grant';
 import { GrantPanel } from './grant-panel';
 import type { SkippableRead } from '../../db-error';
 import { CARD } from '../../ui/surfaces';

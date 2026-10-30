@@ -38,6 +38,10 @@ const ALLOWED_LIB_EDGES = new Set([
   'reading → discovery',
   'reading → people',
   'reading → saju',
+  'ops → account',
+  'ops → db',
+  'ops → reading',
+  'ops → uuid',
 ]);
 
 /**

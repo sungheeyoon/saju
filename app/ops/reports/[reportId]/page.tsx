@@ -17,7 +17,7 @@ import {
   reviewOutcomeLabel,
   reviewStateLabel,
   type Side,
-} from '../labels';
+} from '@/src/lib/ops/report-labels';
 import {
   DENIED,
   operatorReport,
@@ -29,8 +29,8 @@ import {
   type Snapshot,
   type WarningRecord,
 } from '../read';
-import { NO_FILTERS } from '../filters';
-import { HELD_SUSPENSION, SIDE_NAME, sanctionLabel, type ReviewLogLine } from '../review';
+import { NO_FILTERS } from '@/src/lib/ops/report-filters';
+import { HELD_SUSPENSION, SIDE_NAME, sanctionLabel, type ReviewLogLine } from '@/src/lib/ops/report-review';
 import { ReviewPanel } from './review-panel';
 import { CARD } from '../../../ui/surfaces';
 import { FailureLine } from '../../../ui/failure-line';

@@ -1,6 +1,6 @@
-import { REPORT_REASONS, warningRefOf, type ReportReason } from '@/src/lib/account';
-import { UUID } from '../../uuid';
-import { EVIDENCE_LABEL, REVIEW_LABEL, WARNING_LABEL, reasonLabel } from './labels';
+import { REPORT_REASONS, warningRefOf, type ReportReason } from '../account';
+import { UUID } from '../uuid';
+import { EVIDENCE_LABEL, REVIEW_LABEL, WARNING_LABEL, reasonLabel } from './report-labels';
 
 /**
  * 신고 목록의 **거르는 칸 셋과 쪽** — 주소가 곧 상태다.

@@ -1,9 +1,9 @@
-import { REPORT_REASONS } from '@/src/lib/account';
+import { REPORT_REASONS } from '../account';
 
-import { accountLabel } from '../account-label';
-import { firstLine } from '../first-line';
-import { statusReasonLabel, UNRECORDED } from '../members/suspension';
-import { reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './labels';
+import { accountLabel } from './account-label';
+import { firstLine } from './first-line';
+import { statusReasonLabel, UNRECORDED } from './suspension';
+import { reasonLabel, reviewOutcomeLabel, REVIEW_LABEL, sideOf, type Side } from './report-labels';
 
 /**
  * **신고 처분의 「실행 전 확인」** — 처분 폼이 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다(G-111 ②, ADR 0188).

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { RpcRow } from '@/src/lib/db';
 
-import { sinceDay } from './labels';
+import { sinceDay } from '@/src/lib/ops/today-labels';
 import { figuresOf, todayFiguresOf } from './read';
 
 /** 문의 한 줄 — `bigint` 칸(매출 · 돌려준 금액)은 PostgREST 설정에 따라 글자로 올 수 있다 */

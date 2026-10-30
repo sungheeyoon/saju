@@ -7,7 +7,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { CARD } from '../../ui/surfaces';
 import { CopyText } from '../../me/reading/copy-text';
 import { confirmTotpCode, startTotpEnrollment } from './actions';
-import { SECOND_FACTOR_COPY as COPY } from './copy';
+import { SECOND_FACTOR_COPY as COPY } from '@/src/lib/ops/second-factor-copy';
 import { actionAnswer } from '../../ui/action-answer';
 import { FailureLine } from '../../ui/failure-line';
 

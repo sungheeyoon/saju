@@ -6,7 +6,7 @@ import { REPORT_REASONS } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { filterSummary, filtersOf, hrefOf, isFiltered, isUrgentList, type ReportFilters } from './filters';
+import { filterSummary, filtersOf, hrefOf, isFiltered, isUrgentList, type ReportFilters } from '@/src/lib/ops/report-filters';
 import {
   CHOSEN_MESSAGE_LABEL,
   EVIDENCE_LABEL,
@@ -17,9 +17,9 @@ import {
   reasonLabel,
   reviewOutcomeLabel,
   reviewStateLabel,
-} from './labels';
+} from '@/src/lib/ops/report-labels';
 import { FilterPanel } from './filter-panel';
-import { openByReported } from './same-account';
+import { openByReported } from '@/src/lib/ops/report-same-account';
 import { DENIED, operatorReports, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
 import { FailureLine } from '../../ui/failure-line';

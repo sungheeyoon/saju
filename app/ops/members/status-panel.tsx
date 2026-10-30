@@ -10,7 +10,7 @@ import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
 import { useOneAtATime } from '../../ui/one-at-a-time';
-import { accountLabel } from '../account-label';
+import { accountLabel } from '@/src/lib/ops/account-label';
 import { changeMemberStatus } from './actions';
 import {
   NOTE_MAX,
@@ -21,7 +21,7 @@ import {
   statusPlan,
   type StatusKind,
   type StatusPlan,
-} from './suspension';
+} from '@/src/lib/ops/suspension';
 
 const ROW = 'flex flex-col gap-2';
 const LABEL = 'text-xs font-semibold text-muted';

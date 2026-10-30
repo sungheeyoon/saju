@@ -14,7 +14,7 @@ import {
   type Party,
   type ReportNow,
   type ReviewInput,
-} from './review';
+} from './report-review';
 
 const reported: Party = {
   side: 'reported',

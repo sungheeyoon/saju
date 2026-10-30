@@ -8,8 +8,8 @@ import { refresh } from '../../refresh';
 import { deniedAmong, noteWriteRefusal, type RefusedTarget, type WriteAction } from '../denial';
 import { writeWithoutSecondFactor } from '../second-factor';
 import { bookRefusalTarget } from './book-refusal';
-import { isRefundReason } from './labels';
-import type { PrepareRequest } from './refund-confirm';
+import { isRefundReason } from '@/src/lib/ops/order-labels';
+import type { PrepareRequest } from '@/src/lib/ops/refund-confirm';
 import { cancellationCheck } from './portone-cancellations';
 import { RELEASE_CANCELLED_NOTE, RELEASE_UNKNOWN_NOTE } from './release-check';
 

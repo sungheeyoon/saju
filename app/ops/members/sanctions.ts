@@ -1,9 +1,11 @@
-import { rpcArgs, type RpcRow } from '@/src/lib/db';
+import { rpcArgs } from '@/src/lib/db';
+import { sanctionsOf, type MemberSanctions } from '@/src/lib/ops/members';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
 import { deniedAmong, type Denied } from '../denial';
-import { sanctionEntriesOf, type SanctionEntry, type Standing } from './suspension';
+
+export { sanctionsOf, type MemberSanctions } from '@/src/lib/ops/members';
 
 /**
  * 회원 한 명의 **처분 이력과 지금 상태**가 브라우저로 내려오는 문 (G-111 ③, ADR 0189).
@@ -13,16 +15,6 @@ import { sanctionEntriesOf, type SanctionEntry, type Standing } from './suspensi
  *
  * 부속 정보다 — 못 읽어도 회원 화면은 서고 그 칸만 실패 줄이 선다. 그때는 정지 · 해제 단추도 서지 않는다(읽은 버전이 없다).
  */
-
-export type MemberSanctions = Standing & { readonly entries: readonly SanctionEntry[] };
-
-export const sanctionsOf = (row: RpcRow<'operator_member_sanctions'>): MemberSanctions => ({
-  status: row.status,
-  isOperator: row.is_operator === true,
-  version: row.version,
-  warnings12m: row.warnings_12m,
-  entries: sanctionEntriesOf(row.lines ?? null),
-});
 
 export async function memberSanctions(
   userId: string,

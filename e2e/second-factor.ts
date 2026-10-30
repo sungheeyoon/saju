@@ -10,7 +10,7 @@ import { expect, type Page } from '@playwright/test';
  * 할 계산(RFC 6238, 30초 · 6자리 · SHA-1)을 여기서 해 코드를 넣는다. 그래서 이 한 걸음이 등록 · 확인 · aal2 로 오른
  * 쿠키가 운영 화면을 여는 것까지 함께 잰다.
  *
- * 앱의 문구 상수(`app/ops/mfa/copy.ts`)는 e2e 가 못 부른다(층 규칙) — 글자를 여기 적는다.
+ * 앱의 문구 상수(`src/lib/ops/second-factor-copy.ts`)는 e2e 가 못 부른다(층 규칙) — 글자를 여기 적는다.
  */
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

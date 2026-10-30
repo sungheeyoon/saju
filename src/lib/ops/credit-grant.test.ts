@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { afterFailure } from '../../ui/action-answer';
 
 import {
   grantPlan,
@@ -69,9 +68,7 @@ describe('확인창은 연 순간의 값을 고정해 그대로 낸다', () => {
 describe('실패 뒤의 고정본', () => {
   it('버린 뒤 같은 입력으로 다시 열면 새 읽은 버전이 든 새 고정본이다', () => {
     const input = { kind: 'revoke' as const, userId: member, credits: 1, reason: 'other', note: '메모', reportId: null };
-    const stale = grantPlan(ledger, input, 'req-old');
-    const kept = afterFailure({ ok: false, message: '충돌' }) === 'keep' ? stale : null;
-    const next = samePlan(kept, input) ? kept : grantPlan({ ...ledger, version: 5 }, input, 'req-new');
+    const next = samePlan(null, input) ? null : grantPlan({ ...ledger, version: 5 }, input, 'req-new');
     expect(next?.request.seenVersion).toBe(5);
     expect(next?.request.requestId).toBe('req-new');
   });

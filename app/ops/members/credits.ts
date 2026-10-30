@@ -1,4 +1,5 @@
-import { rpcArgs, type RpcRow } from '@/src/lib/db';
+import { rpcArgs } from '@/src/lib/db';
+import { historyLineOf, ledgerOf, type MemberGrantLedger } from '@/src/lib/ops/members';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
@@ -6,11 +7,12 @@ import { deniedAmong, type Denied } from '../denial';
 import {
   HISTORY_PAGE,
   nextCursor,
-  type GrantLedger,
   type HistoryCursor,
   type HistoryFilter,
   type HistoryLine,
-} from './credit-grant';
+} from '@/src/lib/ops/credit-grant';
+
+export { historyLineOf, ledgerOf, type MemberGrantLedger } from '@/src/lib/ops/members';
 
 /**
  * 회원 한 명의 **무상 지급 장부와 풀이권 이력**이 브라우저로 내려오는 문 (G-111 ①, ADR 0187).
@@ -20,35 +22,6 @@ import {
  *
  * 둘 다 부속 정보다 — 못 읽어도 회원 화면은 서고 그 칸만 실패 줄이 선다.
  */
-
-export type MemberGrantLedger = GrantLedger & {
-  readonly used: number;
-  readonly reserved: number;
-};
-
-export const ledgerOf = (row: RpcRow<'operator_member_grant_ledger'>): MemberGrantLedger => ({
-  granted: row.granted,
-  used: row.used,
-  reserved: row.reserved,
-  revocable: row.revocable,
-  version: row.version,
-});
-
-export const historyLineOf = (row: RpcRow<'operator_member_credit_history'>): HistoryLine => ({
-  key: row.line_key,
-  at: row.at,
-  kind: row.kind,
-  source: row.source,
-  delta: row.delta ?? null,
-  state: row.state ?? null,
-  cause: row.cause ?? null,
-  reason: row.reason ?? null,
-  note: row.note ?? null,
-  orderNumber: row.order_number ?? null,
-  actorNickname: row.actor_nickname ?? null,
-  reportId: row.report_id ?? null,
-  carriedOver: row.carried_over === true,
-});
 
 /** 운영 지급분의 지금 — 받은 수 · 사용 · 예약 중 · 회수할 수 있는 수 · 읽은 버전 */
 export async function memberGrantLedger(
