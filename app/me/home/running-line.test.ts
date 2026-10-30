@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { selfSectionTitlesOf } from '@/src/lib/reading';
 
-import { SELF_READING_MAKING } from './making';
+import { SELF_READING_MAKING } from '@/src/lib/home/making';
 import {
   READING_PREPARING,
   makingPeopleOf,

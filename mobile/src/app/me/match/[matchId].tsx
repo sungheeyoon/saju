@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CHAT_TAB_LABEL } from '@chat/index';
 import { MATCH_RESULT_CLOSED_NOTE } from '@consent/index';
@@ -40,11 +39,11 @@ export default function MatchScreen() {
     else router.replace(from === 'history' ? '/me/matching/history' : '/me/matching');
   };
 
-  if (outcome === null) return <SafeAreaView style={styles.screen} />;
+  if (outcome === null) return <View style={styles.screen} />;
 
   if (!outcome.ok) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <View style={styles.screen}>
         <View style={styles.content}>
           <Back onPress={back} />
           <Text style={styles.failure} accessibilityRole="alert">
@@ -54,13 +53,13 @@ export default function MatchScreen() {
             <Text style={styles.retryText}>다시 시도하기</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (outcome.value.kind === 'none') {
     return (
-      <SafeAreaView style={styles.screen}>
+      <View style={styles.screen}>
         <View style={styles.notFound}>
           <Text style={styles.title} accessibilityRole="header">
             찾을 수 없어요
@@ -71,13 +70,13 @@ export default function MatchScreen() {
           </View>
           <PrimaryButton label="인연 탭으로" onPress={() => router.replace('/me/matching')} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (outcome.value.kind === 'closed') {
     return (
-      <SafeAreaView style={styles.screen}>
+      <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.head}>
             <Back onPress={back} />
@@ -87,7 +86,7 @@ export default function MatchScreen() {
             <Text style={styles.line}>{MATCH_RESULT_CLOSED_NOTE}</Text>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -96,7 +95,7 @@ export default function MatchScreen() {
   const written = reading !== null && reading.ok ? reading.value : null;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.head}>
           <Back onPress={back} />
@@ -154,7 +153,7 @@ export default function MatchScreen() {
 
         {written !== null && <Text style={styles.body}>{written.body}</Text>}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

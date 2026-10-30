@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { pastRequests } from '@matching/history';
 import type { InboxMatch, Requests } from '@matching/inbox';
@@ -37,7 +36,7 @@ export default function MatchHistoryScreen() {
     return () => clearTimeout(clear);
   }, [note]);
 
-  if (loaded === null) return <SafeAreaView style={styles.screen} />;
+  if (loaded === null) return <View style={styles.screen} />;
 
   const { books, matches, requests } = loaded;
   const shelf = books.ok ? books.value : [];
@@ -52,7 +51,7 @@ export default function MatchHistoryScreen() {
   const nameOf = (book: MatchBook) => (matches.ok ? matches.value.find((match) => match.matchId === book.matchId)?.nickname : undefined) ?? book.label;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Pressable accessibilityRole="button" accessibilityLabel="인연" onPress={() => router.navigate('/me/matching')} style={styles.back}>
@@ -123,7 +122,7 @@ export default function MatchHistoryScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { SERVICE_NAME, SERVICE_TAGLINE } from '@/src/lib/brand';
 import { BUSINESS_DISCLOSURE_LINK, type BusinessInfo, businessInfoLines } from '@/src/lib/brand/business';
 
-import { GUIDE_LINKS, POLICY_LINKS } from './site-links';
+import { GUIDE_LINKS, POLICY_LINKS } from '@/src/lib/brand/links';
 
 /**
  * 바닥글 — **운영 화면(`/ops/**`) 밖의 모든 화면에 선다.**

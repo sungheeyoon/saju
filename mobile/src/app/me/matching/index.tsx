@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { accountFailureOf, accountNoticeOf, isBlocked, selfPersonIdOf, type AccountState } from '@account/index';
 import { SUPPORT_EMAIL } from '@brand';
@@ -45,7 +44,7 @@ export default function MatchingScreen() {
     void load();
   };
 
-  if (loaded === null) return <SafeAreaView style={styles.screen} />;
+  if (loaded === null) return <View style={styles.screen} />;
 
   const { account } = loaded;
   if (isBlocked(account)) return <Blocked state={account} onRetry={again} />;
@@ -197,9 +196,9 @@ function Deck({ place, lead, tail }: { place: Extract<DeckPlace, { kind: 'deck' 
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
