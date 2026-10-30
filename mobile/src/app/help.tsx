@@ -32,6 +32,7 @@ export default function HelpScreen() {
   useEffect(() => {
     if (!hash) return;
     pending.current = hash;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 주소의 항목을 펼치는 일은 그 주소가 바뀔 때마다 한 번이고, 값은 사용자가 접을 수 있어 렌더에서 끌어낼 수 없다
     open(hash);
   }, [hash]);
 

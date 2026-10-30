@@ -32,6 +32,7 @@ export default function PrivacyScreen() {
   const titles = [...sections.map((section) => section.title), PRIVACY_OPTIONAL_TITLE, PRIVACY_RIGHTS_TITLE];
   const anchor = (index: number) => ({
     onLayout: (event: { nativeEvent: { layout: { y: number } } }) => {
+      // eslint-disable-next-line react-hooks/refs -- 렌더 때 만들어 넘길 뿐 배치 사건에서만 돈다. 규칙은 이 함수가 렌더 안에서 불린다고 본다
       tops.current[index] = event.nativeEvent.layout.y;
     },
   });

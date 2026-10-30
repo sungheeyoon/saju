@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 
 import { draggedFocus, type PhotoFocus } from '@profile';
@@ -47,10 +47,13 @@ function FocusFrame({ source, focus, onFocus, style }: { source: string; focus: 
   const natural = useRef({ width: 0, height: 0 });
   const box = useRef({ width: 0, height: 0 });
   const latest = useRef({ focus, onFocus });
-  latest.current = { focus, onFocus };
+  useLayoutEffect(() => {
+    latest.current = { focus, onFocus };
+  });
   const start = useRef(focus);
 
-  const responder = useRef(
+  // eslint-disable-next-line react-hooks/refs -- 넘기는 손길 함수는 렌더 뒤 손가락이 닿을 때만 돌아 ref 를 읽는다. 규칙은 함수를 받는 쪽이 언제 부르는지 모른다
+  const [responder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
@@ -62,7 +65,7 @@ function FocusFrame({ source, focus, onFocus, style }: { source: string; focus: 
         latest.current.onFocus(draggedFocus(start.current, gesture.dx, gesture.dy, box.current, natural.current));
       },
     }),
-  ).current;
+  );
 
   return (
     <View

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { isBlocked, type AccountState } from '@account/index';
 import { rpcArgs } from '@db';
@@ -92,7 +92,7 @@ export function SurveyScreen() {
   return (
     <View style={styles.screen}>
       <TopBar title={SURVEY_COPY.title} fallback="/me/settings" />
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           {data.kind === 'blocked' ? (
             <AccountNotice state={data.state} onRetry={() => void reload()} />

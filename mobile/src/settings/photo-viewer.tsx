@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Modal, PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -41,6 +41,7 @@ export function PhotoViewer({
 
   useEffect(() => {
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 사진이 바뀌면 앞 사진을 먼저 걷는다. 새 주소가 올 때까지 앞 사진을 새 번호로 보이지 않는다
     setSource(null);
     if (photo !== undefined) {
       void photoSource(photo, userId ?? undefined).then((next) => {
@@ -53,8 +54,11 @@ export function PhotoViewer({
   }, [photo, userId]);
 
   const latest = useRef({ position, total, onAt });
-  latest.current = { position, total, onAt };
-  const swipe = useRef(
+  useLayoutEffect(() => {
+    latest.current = { position, total, onAt };
+  });
+  // eslint-disable-next-line react-hooks/refs -- 넘기는 손길 함수는 렌더 뒤 손가락이 닿을 때만 돌아 ref 를 읽는다. 규칙은 함수를 받는 쪽이 언제 부르는지 모른다
+  const [swipe] = useState(() =>
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
       onPanResponderRelease: (_, gesture) => {
@@ -64,7 +68,7 @@ export function PhotoViewer({
         if (next >= 1 && next <= now.total) now.onAt(next);
       },
     }),
-  ).current;
+  );
 
   const dismissed = () => {
     const run = after.current;

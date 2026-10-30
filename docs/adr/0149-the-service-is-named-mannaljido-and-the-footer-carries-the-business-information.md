@@ -73,3 +73,8 @@ Safari 는 SVG 파비콘을 안 읽고 `/favicon.ico` 는 404 였다. ICO · PNG
 안드로이드 알림의 단색 배지 `public/badge.png`(96, 투명 바탕에 흰 실루엣)를 `scripts/brand-icons.mjs` 가 함께 굽고 `public/sw.js` 가
 `badge` 로 싣는다(ADR 0156). 16 판처럼 점선 궤도를 빼고 나 · 선 · 점 셋을 테두리까지 합친 흰 모양이다. **좌표는 그 도구 안에 손으로
 옮겨 적었다** — 로고를 바꾸면 `app/icon.svg` 와 함께 그 좌표도 고치고 도구를 다시 돈다. `app/sw.test.ts` 가 96 · 투명 바탕 · 흰 모양만 본다.
+
+## 추기 — 앱의 아이콘도 같은 원본에서 굽는다 (2026-10-30, G-123)
+
+앱 아이콘 · 안드로이드 적응형 셋 · 스플래시 · 파비콘은 `mobile/scripts/brand-icons.mjs` 가 `app/icon.svg` 의 밝은 짝에서 굽는다. 좌표를 옮겨 적지 않으므로 로고를
+바꾸면 그 도구를 다시 돌리면 된다. 바탕은 토큰(아이콘 `cream` · 스플래시 `background`)이고 `app.json` 의 글자는 `scripts/mobile-brand.test.ts` 가 견준다.

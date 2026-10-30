@@ -299,3 +299,11 @@ ADR 0094 · 0098) 한 줄, 되돌릴 수 없다는 것은 제 줄. 핵심 낱말
 | 자리 | 이전 | 확정 |
 | --- | --- | --- |
 | 탈퇴 확인 창의 실행 단추 `app/me/leaving.tsx` | 탈퇴 신청하기 (좁은 화면에서 「취소」 위에 쌓임) | 탈퇴 (「취소」 오른쪽에 나란히) |
+
+## settings-13 확인 전 — 앱의 사진 권한 안내(iOS) (2026-10-30, G-123)
+
+iOS 가 사진 권한을 물을 때 띄우는 설명이다(`NSPhotoLibraryUsageDescription`). 앱은 시스템 사진 창만 쓰고 그 사진은 프로필 칸(`mobile/src/settings/photo-grid.tsx`)에만 든다. 카메라 · 마이크 권한은 없다.
+
+| 자리 | 이전 | 넣은 글자 | 출처 |
+| --- | --- | --- | --- |
+| `mobile/app.json` `expo-image-picker` 의 `photosPermission` | Allow $(PRODUCT_NAME) to access your photos(Expo 기본) | 프로필 사진을 등록할 때 이용해요. | 미리 소개팅 App Store 접근 권한 안내 「채팅 및 개인 프로필 사진 등록을 할 때 이용합니다.」(<https://apps.apple.com/app/id1483004283>, 확인 2026-10-30) — 쓰임을 앱에 맞추고 해요체로(ADR 0135). 시스템 권한 창 자체의 실물은 못 봤다 |

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { isBlocked, type AccountState } from '@account/index';
 import { rpcArgs } from '@db';
@@ -73,7 +73,7 @@ export function ProfileScreen() {
   return (
     <View style={styles.screen}>
       <TopBar title="프로필" fallback="/me/settings" />
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" scrollEnabled={!lifting}>
           <Text style={settingsText.meta}>앱에서 쓸 닉네임과 프로필을 정해요.</Text>
 

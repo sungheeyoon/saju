@@ -34,6 +34,7 @@ export default function ChatRoomScreen() {
   useEffect(() => {
     live.current = true;
     noteActivity();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load 는 읽기를 기다린 뒤에만 상태를 고친다. 규칙이 await 를 넘어 보지 못한다
     void load();
     return () => {
       live.current = false;
