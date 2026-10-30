@@ -9,22 +9,12 @@
 import { Fragment, type ReactElement } from 'react';
 
 import { STEM_INFO, type Element, type Stem } from '@/src/lib/saju';
+import { STEM_PICTURE } from '@/src/lib/saju/view';
 
 import { ElementSymbol } from './element-symbol';
 import { elementScope } from './element-tone';
 
-export const STEM_PICTURE: Record<Stem, string> = {
-  甲: '나무',
-  乙: '덩굴',
-  丙: '햇빛',
-  丁: '등불',
-  戊: '산',
-  己: '밭',
-  庚: '강철',
-  辛: '보석',
-  壬: '바다',
-  癸: '빗물',
-};
+export { STEM_PICTURE };
 
 /** 화면이 받은 글자가 천간인가 — 옛 자료 · 모르는 값이면 그림을 세우지 않는다 */
 export const isStem = (value: string): value is Stem => Object.hasOwn(STEM_INFO, value);

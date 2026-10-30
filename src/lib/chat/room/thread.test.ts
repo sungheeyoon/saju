@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 import { mergeMessages, needsNewer, newestSeq, oldestSeq, readAlready, readNewer, readsNow, readUpTo, type ReadPage } from './thread';
 
 const message = (seq: number, mine = false): ChatMessage => ({

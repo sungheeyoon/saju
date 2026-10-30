@@ -1,12 +1,12 @@
 import Link from 'next/link';
 
+import { compatChipName, compatRowParts, type RoomCompat } from '@/src/lib/chat/room/compat';
 import type { Element } from '@/src/lib/saju';
 
 import { BUTTON_SECONDARY_SMALL_FACE } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { Icon } from '../../../ui/icons';
 import { LINK_PENDING_SPINNER } from '../../../ui/link-pending';
-import { compatRowParts, type RoomCompat } from './room-compat';
 
 /**
  * 상대의 파스텔을 입은 알약 — 원본 시안의 궁합 알약이다. 보조 단추와 같은 44px · 같은 글자 크기이고, 면과 글자가
@@ -15,23 +15,6 @@ import { compatRowParts, type RoomCompat } from './room-compat';
  */
 const TONED_PILL =
   'inline-flex items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
-
-/**
- * 단추를 읽는 이름 — 보이는 글자를 품는다(폰에서 글자가 빠져도 이름은 같다). 글자는 운영자 시안(2026-10-11 저녁)이다 — 이 단추에는
- * 「인연」을 쓰지 않는다(ADR 0155 「2026-10-11 저녁 덧」).
- */
-function compatChipName(compat: RoomCompat): string {
-  switch (compat.kind) {
-    case 'ready':
-      return `궁합 ${compat.score}점`;
-    case 'making':
-      return '궁합 만드는 중';
-    case 'failed':
-      return '궁합 다시 받기';
-    case 'quiet':
-      return '궁합';
-  }
-}
 
 /**
  * **궁합 단추 — 그 인연 궁합이 지금 어디까지 왔나를 든다**(ADR 0155 「2026-10-11 저녁 덧」). 누르면 언제나 인연 궁합 화면이다 —

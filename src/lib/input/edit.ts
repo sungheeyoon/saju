@@ -149,6 +149,34 @@ export const BLANK_PERSON_ARGS: BlankPersonArgs = {
   p_chart_engine_version: null,
 };
 
+/**
+ * 인자 한 벌에 누구 것인지를 붙인다 — **이름을 손으로 다시 적지 않는다.**
+ *
+ * `p_local_label` 을 `p_a_local_label` 로 스무 번 옮겨 적으면, 등록이 받는 칸이 하나
+ * 늘어나는 날 이 자리만 안 고쳐진다. 붙이는 규칙 하나만 적는다.
+ */
+type Prefixed<T, S extends 'a' | 'b'> = {
+  [K in keyof T & string as K extends `p_${infer Rest}` ? `p_${S}_${Rest}` : K]: T[K];
+};
+
+const prefixed = <T extends Record<string, unknown>, S extends 'a' | 'b'>(
+  args: T,
+  side: S,
+): Prefixed<T, S> =>
+  Object.fromEntries(
+    Object.entries(args).map(([key, value]) => [key.replace(/^p_/, `p_${side}_`), value]),
+  ) as Prefixed<T, S>;
+
+/**
+ * `create_pair_for_reading` 의 한 칸 — 적어 넣은 입력이면 그 한 벌, 고른 사람이면(`null`) **입력 자리는 비운다.** 문이 그 자리를 안 본다.
+ *
+ * **빈 한 벌을 여기서 적지 않는다**(`BLANK_PERSON_ARGS`). 두 가지가 서로 다른 키 집합을
+ * 내면 PostgREST 가 이름으로 서명을 고르는 자리에서 **어느 문에도 안 맞는 호출**이 된다 —
+ * 실제로 그렇게 깨진 적이 있고, 그래서 빈 한 벌은 빌더 옆에서 타입이 지킨다.
+ */
+export const pairSeatArgs = <S extends 'a' | 'b'>(typed: Query | null, side: S) =>
+  prefixed<ManagedPersonArgs | BlankPersonArgs, S>(typed === null ? BLANK_PERSON_ARGS : managedPersonArgs(typed, ''), side);
+
 /** `edit_person_input` 이 받는 인자 한 벌 */
 type PersonInputArgs = ChartFields & ChartArgs & { p_person_id: string };
 

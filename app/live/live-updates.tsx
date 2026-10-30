@@ -4,14 +4,16 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useTransition } from 'react';
 
+import type { LiveChange } from '@/src/lib/live/changes';
+
 import { supabaseInBrowser } from '../auth/browser-client';
 import { useBrowserSession } from '../auth/browser-session';
 import { announceChatMoved } from '../me/chat/chat-signal';
-import { redrawsOn, signalsOf, type LiveChange } from './changes';
+import { redrawsOn, signalsOf } from './changes';
 import { closeUserChannel, openUserChannel } from './channel';
 import { clearLiveRedraw, markLiveRedraw } from './redraw-mark';
 import { resyncScreen } from './resync';
-import { startRunner } from './runner';
+import { startRunner } from '@/src/lib/live/runner';
 
 /** 한 물결의 변경을 묶어 다시 그리는 간격 — 메시지 몇 개가 이어 와도 화면은 한 번 다시 그린다 */
 const REDRAW_AFTER_MS = 400;

@@ -11,7 +11,7 @@
 
 | 탈출구 | 잰 값 | 대신 |
 | --- | --- | --- |
-| `x as unknown as T` (`as never as` · `as any as` 도 같은 예산) | 7 | 생성 타입 `Database` 와 `rpcArgs`. `jsonb` 를 내주는 문만 어댑터 안에서 한 번 |
+| `x as unknown as T` (`as never as` · `as any as` 도 같은 예산) | 6 | 생성 타입 `Database` 와 `rpcArgs`. `jsonb` 를 내주는 문만 어댑터 안에서 한 번 |
 | `x!` | 12 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
 | `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `if (error !== null)` · `{ return false; }` · `{ ok: false }` 처럼 값이 글자뿐인 객체도 같다) | 1 | `docs/agents/code-rules/failures.md` 「실패를 말하는 법」. 문장을 안 싣는 자리는 `recordDbFailure` 로 원문을 기록에 보낸다 |
 | `const { data } = await ….from(…)` — `error` 를 꺼내지도 않는다(`Promise.all` 의 한 칸 포함) | 0 | `{ data, error }` 로 꺼내고 `docs/agents/code-rules/failures.md` 「실패를 말하는 법」 |
