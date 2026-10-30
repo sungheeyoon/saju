@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } 
 import {
   FlatList,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -175,7 +174,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <View style={styles.header}>
           <Pressable
             accessibilityRole="link"
