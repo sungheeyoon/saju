@@ -17,6 +17,12 @@
       ],
       "@brand": [
         "../src/lib/brand/index.ts"
+      ],
+      "@consent/*": [
+        "../src/lib/consent/*"
+      ],
+      "@db": [
+        "../src/lib/db/index.ts"
       ]
     }
   },

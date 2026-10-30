@@ -9,8 +9,12 @@ import { convertedLine, dateOfParts, limitsOf, timeOfParts } from '@input/entry'
 import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, type Query } from '@input/query';
 import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_YEAR_RANGE, type CityName, type LateNightRule } from '@saju';
 
+import { signInWithGoogle } from '@/auth/sign-in';
 import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, PrimaryButton, Select } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+
+/** 앱의 가입 화면이 서기 전까지의 말 — 다음 PR 에서 걷는다 */
+const SIGNUP_NOT_READY = '가입은 아직 웹에서 해 주세요.';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 const HOUR_CHOICES = [
@@ -39,6 +43,7 @@ export default function BirthScreen() {
   const [basis, setBasis] = useState<Query['basis']>(DEFAULT_QUERY.basis);
   const [saeunFrom, setSaeunFrom] = useState(String(DEFAULT_QUERY.saeunFrom));
   const [failure, setFailure] = useState<string | null>(null);
+  const [going, setGoing] = useState(false);
 
   const monthRef = useRef<ComponentRef<typeof TextInput>>(null);
   const dayRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -73,14 +78,20 @@ export default function BirthScreen() {
     setHourChoice(next);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const result = calculateChart(query);
     if (!result.ok) {
       setFailure(result.message);
       return;
     }
     setFailure(null);
-    router.push({ pathname: '/chart', params: { query: JSON.stringify(query) } });
+    setGoing(true);
+    /* 적은 값은 이 화면이 들고 있다 — 로그인을 다녀와도 그대로다 */
+    const signIn = await signInWithGoogle();
+    setGoing(false);
+    if (signIn.kind === 'failed') setFailure(signIn.message);
+    if (signIn.kind === 'needs-signup') setFailure(SIGNUP_NOT_READY);
+    if (signIn.kind === 'signed-in') router.push({ pathname: '/chart', params: { query: JSON.stringify(query) } });
   };
 
   return (
@@ -180,7 +191,7 @@ export default function BirthScreen() {
             {/* 폼이 짧은 화면에서도 단추는 엄지가 닿는 맨 아래에 선다 */}
             <View style={styles.action}>
               {failure !== null && <Text style={styles.failure}>{failure}</Text>}
-              <PrimaryButton label="사주 보기" onPress={submit} />
+              <PrimaryButton label="사주 보기" onPress={submit} disabled={going} />
             </View>
           </Panel>
         </ScrollView>
