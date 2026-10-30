@@ -1,6 +1,7 @@
 export * from './gate';
 export * from './return-path';
 export * from './notice';
+export * from './privacy-page';
 export * from './schedule';
 export * from './signup';
 export * from './disclosure';
