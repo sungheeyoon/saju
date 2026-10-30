@@ -1,14 +1,4 @@
-import {
-  EMPTY_ANSWERS,
-  type ImproveOption,
-  type LikedOption,
-  type PriceFactor,
-  type PriceOption,
-  type SurveyAnswers,
-  type UnknownOption,
-  type WantNewOption,
-  type WantOption,
-} from '@/src/lib/survey';
+import { mySurveyOf, surveyContextOf, type MySurvey, type SurveyContext } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
@@ -21,21 +11,7 @@ import { dbFailure } from '../../db-error';
  * 그리는 자리가 다른 조건을 쓰게 되고, 그때 「안 물어본 문항의 답」이 저장된다.
  */
 
-export type SurveyContext = {
-  /** 사주풀이를 읽어 봤나 — 값 문항이 이 값으로 선다 */
-  readonly readSolo: boolean;
-  /** 궁합을 읽어 봤나. **공유 궁합도 읽은 것이다** */
-  readonly readPair: boolean;
-  readonly consented: boolean;
-};
-
-export type MySurvey = {
-  readonly answers: SurveyAnswers;
-  readonly savedAt: string;
-  /** `null` 이면 아직 초안이다 */
-  readonly submittedAt: string | null;
-  readonly updatedAt: string | null;
-};
+export type { MySurvey, SurveyContext };
 
 type Row = Record<string, unknown>;
 
@@ -46,13 +22,7 @@ export async function surveyContext(): Promise<SurveyContext | null> {
   if (error) throw dbFailure(error, 'service_survey_context');
 
   const row = ((data ?? []) as Row[])[0];
-  if (row === undefined) return null;
-
-  return {
-    readSolo: row.read_solo === true,
-    readPair: row.read_pair === true,
-    consented: row.consented === true,
-  };
+  return row === undefined ? null : surveyContextOf(row);
 }
 
 /**
@@ -72,24 +42,5 @@ export async function mySurvey(): Promise<MySurvey | null> {
   if (error) throw dbFailure(error, 'my_service_survey');
 
   const row = ((data ?? []) as Row[])[0];
-  if (row === undefined) return null;
-
-  return {
-    answers: {
-      ...EMPTY_ANSWERS,
-      liked: (row.liked as LikedOption[] | null) ?? [],
-      unknown: (row.unknown_features as UnknownOption[] | null) ?? [],
-      improve: (row.improve as ImproveOption[] | null) ?? [],
-      improveText: (row.improve_text as string | null) ?? '',
-      wants: (row.wants as WantOption[] | null) ?? [],
-      wantsNew: (row.wants_new as WantNewOption[] | null) ?? [],
-      priceSolo: (row.price_solo as PriceOption | null) ?? null,
-      pricePair: (row.price_pair as PriceOption | null) ?? null,
-      priceFactors: (row.price_factors as PriceFactor[] | null) ?? [],
-      freeText: (row.free_text as string | null) ?? '',
-    },
-    savedAt: row.saved_at as string,
-    submittedAt: (row.submitted_at as string | null) ?? null,
-    updatedAt: (row.updated_at as string | null) ?? null,
-  };
+  return row === undefined ? null : mySurveyOf(row);
 }

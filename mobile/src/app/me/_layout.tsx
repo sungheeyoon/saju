@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SERVICE_NAME } from '@brand';
+import { gateFor } from '@consent/gate';
 
 import { useCounts } from '@/home/counts';
 import { useGate } from '@/home/gate';
@@ -50,6 +51,15 @@ export default function MeLayout() {
   if (gate.kind === 'checking') return <View style={styles.screen} />;
   if (gate.kind === 'out') return <Redirect href="/" />;
   if (gate.kind === 'signup') return <Redirect href="/signup" />;
+  if (gate.kind === 'closed') {
+    /* 끝난 뒤 지나가는 곳은 설정뿐이라 탭도 머리도 안 선다 — 눌러 봐야 안내로 되돌아온다 */
+    if (gateFor(pathname, gate.account, gate.notice, new Date()) !== null) return <Redirect href={'/closed' as never} />;
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLOR.background } }} />
+      </View>
+    );
+  }
   if (gate.kind === 'failed') {
     return (
       <SafeAreaView style={[styles.screen, styles.failed]}>

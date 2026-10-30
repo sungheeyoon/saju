@@ -14,7 +14,7 @@ import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
 import { ReadNotificationsOnVisit } from './manage';
-import { when } from './when';
+import { when } from '@/src/lib/reading/when';
 import { FailureLine } from '../../ui/failure-line';
 
 export const metadata = {
