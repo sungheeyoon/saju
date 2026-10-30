@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mannalmap.app"
+      "package": "com.mannalmap.app",
+      "allowBackup": false
     },
     "web": {
       "output": "server",
@@ -50,6 +51,12 @@
         {
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
         }
       ]
     ],
