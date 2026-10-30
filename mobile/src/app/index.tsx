@@ -4,6 +4,7 @@ import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SERVICE_NAME } from '@brand';
+import { GUIDE_LINKS } from '@brand/links';
 import { calculateChart, dateRefusal } from '@input/chart';
 import { convertedLine, dateOfParts, limitsOf, timeOfParts } from '@input/entry';
 import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, type Query } from '@input/query';
@@ -46,11 +47,14 @@ export default function EntryScreen() {
 
   if (entry === 'checking') return <View style={styles.screen} />;
   if (entry === 'home') return <Redirect href={'/me' as never} />;
-  return <BirthScreen />;
+  return <BirthScreen signedOut={another === undefined} />;
 }
 
+/** 바닥글의 안내 링크(`app/site-footer.tsx`) — 앱의 소개는 입구 앞에 선 `/landing` 이라 첫 줄만 그리로 간다 */
+const ENTRY_LINKS = GUIDE_LINKS.map((link) => (link.href === '/about' ? { ...link, href: '/landing' } : link));
+
 /** 출생 정보 — 칸의 차례와 말은 웹의 `app/birth-form.tsx` 와 같다. 계산은 웹과 같은 `calculateChart` 다 */
-function BirthScreen() {
+function BirthScreen({ signedOut }: { signedOut: boolean }) {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Query['gender']>(DEFAULT_QUERY.gender);
   const [year, setYear] = useState('');
@@ -126,6 +130,12 @@ function BirthScreen() {
             {/* 로고는 웹의 그 파일이다 — 앱에 사본을 두지 않는다 */}
             <Logo size={32} />
             <Text style={styles.brand}>{SERVICE_NAME}</Text>
+            {/* 이미 계정이 있는 사람의 길 — 웹 머리글의 그 자리다. 생년월일을 안 적어도 들어간다. 홈에서 「다른 사람 사주 보기」로 온 사람에게는 안 선다 */}
+            {signedOut && (
+              <Pressable accessibilityRole="link" onPress={() => router.push('/auth' as never)} style={styles.signIn}>
+                <Text style={styles.signInText}>로그인</Text>
+              </Pressable>
+            )}
           </View>
           <Panel tone="cream" style={styles.paper}>
             <Text style={styles.title}>출생 정보를 입력해 주세요</Text>
@@ -218,6 +228,14 @@ function BirthScreen() {
               <PrimaryButton label="사주 보기" onPress={submit} disabled={going} />
             </View>
           </Panel>
+
+          <View accessibilityLabel="안내" style={styles.links}>
+            {ENTRY_LINKS.map((link) => (
+              <Pressable key={link.href} accessibilityRole="link" onPress={() => router.push(link.href as never)} style={styles.link}>
+                <Text style={styles.linkText}>{link.label}</Text>
+              </Pressable>
+            ))}
+          </View>
         </ScrollView>
         <KeyboardDoneBar />
       </KeyboardAvoidingView>
@@ -231,6 +249,11 @@ const styles = StyleSheet.create({
   paper: { flexGrow: 1, padding: 14, gap: 12 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4, marginBottom: 12 },
   brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
+  signIn: { minHeight: 44, justifyContent: 'center', marginLeft: 'auto', paddingLeft: 12 },
+  signInText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.secondary },
+  links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 12, marginHorizontal: 4 },
+  link: { minHeight: 44, justifyContent: 'center' },
+  linkText: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
   title: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
   form: { padding: 16, gap: 18 },
   pair: { flexDirection: 'row', gap: 12 },

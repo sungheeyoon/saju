@@ -81,6 +81,11 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
   }
 }
 
+/** 읽기가 답 없이 던진 때 — 계정을 못 물은 때와 같은 글자로 다시 시도를 세운다 */
+export function homeUnreachable(): Home {
+  return { kind: 'failed', message: accountFailureOf({ kind: 'unreachable' })?.line ?? NOT_READY };
+}
+
 /**
  * 홈 — 웹의 `app/me/(home)/page.tsx` 와 같은 문을 같은 차례로 읽는다. 정책이 내 것만 내주므로 `user_id` 를 안 적는다.
  * 엣지 · 입력 · 목록은 본체라 못 읽으면 실패이고, 자리 수와 만드는 중인 풀이는 부속이라 빠진 채 선다.

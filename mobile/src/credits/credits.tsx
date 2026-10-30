@@ -1,5 +1,4 @@
 import { router, useFocusEffect } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -18,7 +17,6 @@ import { Panel, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
 type Read<T> = { ok: true; value: T } | { ok: false; message: string };
 
@@ -105,7 +103,7 @@ export function CreditsHistoryScreen() {
           {/* 사업자 정보 가운데 이메일만 공개 상수다 — 이 줄이 쓰는 값은 그것뿐이다 */}
           <Text style={settingsText.body}>{refundRequestLine(businessInfoFrom({ email: SUPPORT_EMAIL }))}</Text>
           <Text style={settingsText.body}>주문 번호를 함께 알려 주세요.</Text>
-          {SITE_URL ? <TextButton label="환불정책 보기" onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/refund`)} /> : null}
+          <TextButton label="환불정책 보기" onPress={() => router.push('/refund?from=credits' as never)} />
         </Panel>
       </ScrollView>
     </View>

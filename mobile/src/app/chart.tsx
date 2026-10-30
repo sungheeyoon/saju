@@ -16,7 +16,7 @@ import { RelationTable } from '@/chart/relations';
 import { StarTable } from '@/chart/stars';
 import { StrengthMeter } from '@/chart/strength';
 import { YongsinCard } from '@/chart/yongsin';
-import { SaveSelfCard } from '@/reading/save-self';
+import { SavePersonForReading } from '@/reading/save-self';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Panel } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
@@ -60,7 +60,7 @@ export default function ChartScreen() {
               </View>
             </Panel>
 
-            <SaveSelfCard query={query} />
+            <SavePersonForReading query={query} />
 
             <PillarChart saju={model.saju} />
             <StarTable saju={model.saju} />
