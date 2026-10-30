@@ -577,7 +577,8 @@ describe('CI 계획 — 입구가 아닌 서버 파일은 import 를 거꾸로 �
     // 사진 저장소의 켜는 값 · S3 손(`app/me/photo/store-env.ts` · `s3-store.ts`)을 청소 크론(`app/api/cron/photo-sweep`)이 부른다(G-120).
     // 2026-10-24 에 둘 — 바닥 스낵바 한 자리(`app/ui/snackbar.tsx` · `snackbar-store.ts`)를 뿌리 레이아웃이 부른다(어느 화면이든 띄운다, ADR 0109 추기)
     // 2026-10-28 에 하나 — 운영 액션의 2단계 인증 문턱(`app/ops/second-factor.ts`)을 운영 액션(서버 액션)이 부른다(ADR 0209)
-    expect(noAddress.length).toBeLessThanOrEqual(73);
+    // 2026-10-30 에 하나 — 얼린 일감을 떠나보내는 자리(`app/me/reading/submit.ts`)를 누름과 복구기(`app/api/cron/reading`)가 함께 부른다(ADR 0210)
+    expect(noAddress.length).toBeLessThanOrEqual(74);
   });
 });
 

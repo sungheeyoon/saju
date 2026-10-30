@@ -7,7 +7,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { readAccount } from '../account';
 import { storedChartOf } from '@/src/lib/input/stored';
 import { storedInputOf } from '../person-input';
-import { READING_CHART_NAMES } from './pipeline';
+import { READING_CHART_NAMES } from './submit';
 
 /**
  * **지금 보내면 갈 프롬프트** — 모델을 부르지 않고, 시도도 열지 않고.

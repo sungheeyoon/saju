@@ -4,13 +4,14 @@ import { recordDbFailure } from '@/app/db-error';
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';
+import { resendStalledRun } from '../../../me/reading/submit';
 import { cronAuthorized } from '../authorized';
 
 /**
  * **webhook 이 흘린 것을 줍는다** (ADR 0020).
  *
- * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 두 가지를
- * 한다 — 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
+ * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 세 가지를
+ * 한다 — 제출 전에 멈춘 것을 다시 보내고(ADR 0210), 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
  *
  *   Supabase 복구 1분  <  우리 deadline 8분  <  DB 실행 만료 10분
  *   화면 폴링 3초 = 표시용
@@ -45,7 +46,15 @@ type OpenJob = {
   response_id: string | null;
   overdue: boolean;
   failure_code: string;
+  /** 제출 전에 멈춰 다시 보내도 되는가 — 판정은 DB 하나다(`reading_job_resendable`, ADR 0210) */
+  resendable: boolean;
 };
+
+/**
+ * 한 바퀴에 다시 보내는 수 — 제출 하나가 머리를 30초까지 기다리므로(`SUBMIT_REQUEST`) 다섯이면 150초다. `maxDuration` 300초에서
+ * 회수할 자리를 남긴다. 남은 것은 다음 바퀴가 집고, 2분 기한을 넘기면 닫힌다.
+ */
+export const RESENDS_PER_ROUND = 5;
 
 export async function GET(request: Request): Promise<Response> {
   /**
@@ -79,6 +88,7 @@ export async function GET(request: Request): Promise<Response> {
   const jobs = (data ?? []) as OpenJob[];
   let collected = 0;
   let closed = 0;
+  let resent = 0;
 
   for (const job of jobs) {
     /**
@@ -97,8 +107,21 @@ export async function GET(request: Request): Promise<Response> {
       // 못 닫았으면 센 수에 넣지 않고 기록에 남긴다 — 다음 바퀴가 같은 일감을 다시 집는다
       if (notClosed) console.error('cron reading: fail_reading_job', notClosed.code);
       else closed += 1;
-      continue;
     }
+  }
+
+  /* 닫기 다음, 회수 앞 — 재제출이 도는 사이 목록이 낡으니 닫기가 먼저고, 회수가 오래 걸려도 제출 전 일감이 2분 기한을 안 넘긴다 */
+  for (const job of jobs.filter((one) => one.resendable).slice(0, RESENDS_PER_ROUND)) {
+    try {
+      if (await resendStalledRun(keyed, job.run_id)) resent += 1;
+    } catch (thrown) {
+      // 다음 바퀴가 다시 집거나 기한이 닫는다 — 뒤의 일감을 막지 않는다
+      console.error('cron reading: resendStalledRun', thrown);
+    }
+  }
+
+  for (const job of jobs) {
+    if (job.overdue || job.resendable) continue;
 
     /**
      * 이름표가 없으면 가져올 길이 없다. 제출과 기록 사이에서 끊긴 것이고, deadline 이
@@ -110,5 +133,5 @@ export async function GET(request: Request): Promise<Response> {
     if (outcome.done === 'saved' || outcome.done === 'failed') collected += 1;
   }
 
-  return Response.json({ open: jobs.length, collected, closed });
+  return Response.json({ open: jobs.length, collected, closed, resent });
 }

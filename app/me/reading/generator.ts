@@ -66,6 +66,8 @@ export type ModelSubmission =
        * 검사 전의 글이라 어디에도 적지 않는다. 끝까지 안 읽어도 만들던 것은 안 멈춘다.
        */
       written: AsyncIterable<string>;
+      /** 따라 읽지 않을 때 연결을 닫는다 — 안 읽은 `written` 은 혼자 안 닫힌다. 만들던 것은 안 멈춘다 */
+      release: () => void;
     }
   | { ok: false; code: string; detail: string };
 

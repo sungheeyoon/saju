@@ -350,7 +350,12 @@ export async function submitBackgroundReading(
         return { ok: false, code: 'model-submit-failed', detail: event.message };
       }
       if ('response' in event && typeof event.response?.id === 'string') {
-        return { ok: true, responseId: event.response.id, written: textOf(events, stream.controller) };
+        return {
+          ok: true,
+          responseId: event.response.id,
+          written: textOf(events, stream.controller),
+          release: () => stream.controller.abort(),
+        };
       }
     }
   } catch (failure) {
