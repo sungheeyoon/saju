@@ -43,4 +43,13 @@ describe('앱 명식 화면의 글자', () => {
       expect(strays).toEqual([]);
     });
   }
+
+  /* 가입 화면의 글자는 `src/lib/consent` 의 상수이고, 앱에만 있는 까닭 줄 말고는 새로 짓지 않는다 */
+  it('mobile/src/app/signup.tsx 의 글자는 웹 코드에 그대로 있다', () => {
+    const webSignup = flat(
+      ['app/closed/page.tsx', 'app/auth/sign-out.ts'].map((file) => readFileSync(join(ROOT, file), 'utf8')).join('\n'),
+    );
+    const screen = readFileSync(join(ROOT, 'mobile/src/app/signup.tsx'), 'utf8');
+    expect(koreanChunks(screen).filter((chunk) => !webSignup.includes(flat(chunk)))).toEqual([]);
+  });
 });

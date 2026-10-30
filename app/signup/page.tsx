@@ -10,9 +10,9 @@ import { CARD, COLUMN, PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
 import { SERVICE_NAME_OBJECT } from '@/src/lib/brand';
 import {
-  NOTICE_AGAIN_NOTE,
   NOTICE_NOT_READY,
   NOTICE_VERSION,
+  SIGNUP_HEAD,
   betaIsOver,
   safeReturnPath,
   signupDone,
@@ -119,6 +119,7 @@ export default async function SignupPage({ searchParams }: {
   if (done) redirect(returnTo);
 
   const again = account.signed_up_at !== null;
+  const head = again ? SIGNUP_HEAD.again : SIGNUP_HEAD.first;
 
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-6 py-8 sm:py-12`}>
@@ -128,17 +129,9 @@ export default async function SignupPage({ searchParams }: {
       */}
       <header className={`flex flex-col gap-3 ${PAPER}`}>
         <Logo className="size-11" />
-        <p className="text-small font-semibold text-cream-ink">
-          {again ? '한 번 더 확인해 주세요' : '가입하기'}
-        </p>
-        <h1 className={TYPE_TITLE}>
-          {again ? '개인정보 처리방침이 바뀌었습니다' : '테스트 코드와 닉네임을 입력해 주세요'}
-        </h1>
-        <p className="text-body leading-7 text-cream-ink">
-          {again
-            ? NOTICE_AGAIN_NOTE
-            : '초대받은 분만 이용할 수 있는 비공개 베타예요. 가입에 필요한 정보만 간단히 확인해 주세요.'}
-        </p>
+        <p className="text-small font-semibold text-cream-ink">{head.eyebrow}</p>
+        <h1 className={TYPE_TITLE}>{head.title}</h1>
+        <p className="text-body leading-7 text-cream-ink">{head.note}</p>
       </header>
 
       {!schedule.ok ? (

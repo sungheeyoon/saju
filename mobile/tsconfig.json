@@ -29,6 +29,15 @@
       ],
       "@db": [
         "../src/lib/db/index.ts"
+      ],
+      "@profile": [
+        "../src/lib/profile/index.ts"
+      ],
+      "@account/*": [
+        "../src/lib/account/*"
+      ],
+      "@db-error": [
+        "../app/db-error.ts"
       ]
     }
   },

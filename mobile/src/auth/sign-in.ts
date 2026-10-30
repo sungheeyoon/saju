@@ -1,7 +1,5 @@
-import { signupDone } from '@consent/gate';
-import { scheduleOf } from '@consent/schedule';
-
 import { supabase } from './client';
+import { FAILED, NOT_READY, readSignup } from './signup';
 
 export type SignInAnswer =
   | { kind: 'signed-in' }
@@ -9,10 +7,8 @@ export type SignInAnswer =
   | { kind: 'cancelled' }
   | { kind: 'failed'; message: string };
 
-const NOT_READY = '이 빌드에서는 로그인할 수 없어요.';
 /** 네이티브 모듈 · 설정이 없는 개발 환경(Expo Go)에서는 로그인을 건너뛴다 — 출시 빌드에는 `__DEV__` 가 없다 */
 const notReady = (): SignInAnswer => (__DEV__ ? { kind: 'signed-in' } : { kind: 'failed', message: NOT_READY });
-const FAILED = '로그인을 끝내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
 /**
  * 구글로 로그인하고 가입을 마쳤는지 본다. 세션이 이미 있으면 구글을 다시 안 부른다.
@@ -54,39 +50,27 @@ export async function signInWithGoogle(): Promise<SignInAnswer> {
   return accountAnswer();
 }
 
-/** 웹의 관문과 같은 판정이다(`signupDone`) — 못 읽으면 가입한 것으로 치지 않는다 */
+/** 가입 화면이 끝난 사람만 지나간다 — 일정이 없거나 테스트가 끝났을 때의 말도 가입 화면이 한다 */
 async function accountAnswer(): Promise<SignInAnswer> {
-  if (supabase === null) return { kind: 'failed', message: NOT_READY };
+  const signup = await readSignup();
+  if (signup.kind === 'failed') return { kind: 'failed', message: signup.message };
+  return signup.kind === 'done' ? { kind: 'signed-in' } : { kind: 'needs-signup' };
+}
 
-  const [account, schedule] = await Promise.all([
-    supabase.from('app_user').select('signed_up_at, notice_version, notice_schedule_id').maybeSingle(),
-    supabase.rpc('current_beta_schedule'),
-  ]);
-  if (account.error !== null || schedule.error !== null) {
-    console.error('account', account.error?.code, schedule.error?.code);
-    return { kind: 'failed', message: FAILED };
+/** 다른 구글 계정으로 들어오는 길 — 구글 쪽도 끊어야 다음 로그인에서 계정을 고른다 */
+export async function signOut(): Promise<boolean> {
+  if (supabase === null) return true;
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error !== null) {
+    console.error('signOut', error.code, error.message);
+    return false;
   }
-
-  const row = (schedule.data ?? [])[0];
-  const done =
-    account.data !== null &&
-    signupDone(
-      {
-        signedUp: account.data.signed_up_at !== null,
-        noticeVersion: account.data.notice_version,
-        noticeScheduleId: account.data.notice_schedule_id,
-      },
-      row === undefined
-        ? null
-        : scheduleOf({
-            scheduleId: row.schedule_id,
-            endsOn: row.ends_on,
-            purgeBy: row.purge_by,
-            purgeWithinDays: row.purge_within_days,
-            operatorName: row.operator_name,
-            operatorOfficer: row.operator_officer,
-            operatorContact: row.operator_contact,
-          }),
-    );
-  return done ? { kind: 'signed-in' } : { kind: 'needs-signup' };
+  try {
+    const google: typeof import('@react-native-google-signin/google-signin') = require('@react-native-google-signin/google-signin');
+    await google.GoogleSignin.signOut();
+  } catch (thrown) {
+    /* 네이티브 모듈이 없는 Expo Go · 구글 쪽 실패 — 우리 세션은 이미 끊겼다 */
+    console.error('google sign-out', thrown);
+  }
+  return true;
 }
