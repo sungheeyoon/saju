@@ -77,7 +77,6 @@ export const PARTS: readonly PartContract[] = [
     name: 'StemSymbol',
     web: { file: 'app/ui/stem-symbol.tsx', symbols: ['StemSymbol'] },
     app: { file: 'mobile/src/ui/stem-symbol.tsx', symbol: 'StemSymbol' },
-    pending: '#901 이 `people/stem-symbol` 을 `ui/` 로 옮긴다',
   },
   { name: 'Logo', web: { file: 'app/ui/logo.tsx', symbols: ['Logo'] }, app: { file: 'mobile/src/ui/logo.tsx', symbol: 'Logo' } },
 ];
