@@ -20,7 +20,7 @@
 `src/lib`·`scripts`·`e2e`·`app/**/*.ts` 에서 금지다. 읽는 확장자는 `.ts .mts .cts .tsx .js .mjs .cjs`
 로, 린트와 시험이 같은 목록을 든다.
 
-**도메인 lib 끼리 지금 열려 있는 방향은 열셋이다.** `scripts/layers.test.ts` 의 허용 목록과
+**도메인 lib 끼리 지금 열려 있는 방향은 열여덟이다.** `scripts/layers.test.ts` 의 허용 목록과
 같은 표이고, 새 방향을 열면 둘을 함께 고친다. 순환은 없다 — `discovery ↔ matching` 이 서로를
 부르던 것을 2026-09-22 에 축 파일(`element-axes`)을 `discovery` 로 옮겨 끊었다.
 
@@ -30,7 +30,7 @@
 | `consent` | `discovery` · `presence` · `reading` · `saju` |
 | `discovery` | `saju` |
 | `input` | `saju` · `local-env` |
-| `matching` | `discovery` · `saju` |
+| `matching` | `consent` · `db` · `discovery` · `presence` · `profile` · `reading` · `saju`(인연 탭의 행 옮김과 덱을 웹 · 앱이 함께 쓴다, G-123) |
 | `reading` | `discovery` · `people` · `saju` |
 
 **`src/lib/db` 는 타입만 낸다.** 생성된 `Database` 와 `rpcArgs` 다(ADR 0078). 호출은 없다.
@@ -75,7 +75,7 @@
 | 자리 | 무엇 | 아는 것 |
 | --- | --- | --- |
 | `mobile/` | Expo 앱. 웹 검사 · 배포 밖에서 제 설정으로 돈다 | `src/lib/` 의 순수 로직과 DB 거절을 옮기는 `app/db-error.ts` 만 경로로 부른다(`mobile/tsconfig.json` · `mobile/metro.config.js`). 명식 결과의 판단 · 문단은 웹과 함께 `src/lib/saju/view` 를, 가입의 판정 · 글자는 `src/lib/consent/signup.ts` 를, 채팅의 합치기 · 보내기 줄 · 묶음은 `src/lib/chat/room` 을, 채널의 재접속 규칙은 `src/lib/live` 를 쓰고, 칸 이름 같은 짧은 말은 `scripts/mobile-chart-copy.test.ts` 가 웹 글자와 견준다 |
-| `app/api/mobile/` | **앱의 문**(ADR 0211) — 관문 밖이라 함수마다 `mobileSession` 이 토큰 · `gateFor` 를 먼저 본다(사진 문만 토큰의 클라이언트로 `photo_at` 이 판정한다). 웹의 읽는 문 · 몸통(`pipeline.ts` · `person-writes.ts` · `keyed-chart-writes.ts`)을 그대로 부르고 답의 모양은 `src/lib/reading/door.ts` 가 든다. 앱은 `mobile/src/reading/api.ts` · `chart-writes.ts` 로 부른다 | 문 · 세션(토큰). 열쇠를 직접 안 든다 |
+| `app/api/mobile/` | **앱의 문**(ADR 0211) — 관문 밖이라 함수마다 `mobileSession` 이 토큰 · `gateFor` 를 먼저 본다(사진 문만 토큰의 클라이언트로 `photo_at` 이 판정한다). 웹의 읽는 문 · 몸통(`pipeline.ts` · `person-writes.ts` · `keyed-chart-writes.ts`)을 그대로 부르고 답의 모양은 `src/lib/reading/door.ts` 가 든다. 앱은 `mobile/src/reading/api.ts` · `chart-writes.ts` 로 부른다 | 문 · 세션(토큰). 열쇠를 직접 안 든다 안내 화면의 글은 `src/lib/brand`(`guide` · `terms` · `refund`)와 `src/lib/consent`(`noticeFor` · `privacy-page`)를 함께 쓰고 `scripts/mobile-info-copy.test.ts` 가 짧은 말을 견준다. 사업자 값은 빌드의 `EXPO_PUBLIC_BUSINESS_*` 다 |
 | `proxy.ts` | 관문 — 레이아웃에 못 사는 판단(ADR 0041) | `src/lib/consent` · `app/auth/config` · `app/beta-schedule`(일정을 읽는 문) |
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |

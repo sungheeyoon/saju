@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
+import { SIGN_IN_UNLOCKS } from '@/src/lib/brand/guide';
 
 import { BUTTON_TERTIARY } from '../ui/buttons';
-import { Icon, type IconName } from '../ui/icons';
+import { Icon } from '../ui/icons';
 import { NoticeScreen } from '../ui/notice-screen';
 import { SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '../service-features';
 import { SignInButton } from './sign-in-button';
@@ -57,7 +58,7 @@ export default async function SignInPage({
         하지?」의 답이 화면에 없다. 적는 것은 로그인 뒤 실제로 있는 화면뿐이다(사주풀이 · 저장한 사람 · 궁합풀이 · 인연).
       */}
       <ul className="flex flex-col gap-2.5" aria-label="로그인하면">
-        {UNLOCKS.map(({ icon, text }) => (
+        {SIGN_IN_UNLOCKS.map(({ icon, text }) => (
           <li key={text} className="flex items-center gap-3 text-body leading-6 text-foreground">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-cream-ink shadow-card">
               <Icon name={icon} className="size-[18px]" />
@@ -69,11 +70,3 @@ export default async function SignInPage({
     </NoticeScreen>
   );
 }
-
-/** 로그인 뒤에 실제로 있는 것 — 수 · 가격은 안 적는다(바뀔 수 있다) */
-const UNLOCKS: readonly { icon: IconName; text: string }[] = [
-  { icon: 'reading', text: '내 사주를 읽고 쓴 사주풀이' },
-  { icon: 'people', text: '가족 · 친구를 저장하고 그 사람의 풀이도' },
-  { icon: 'taiji', text: '두 사람의 궁합풀이와 점수' },
-  { icon: 'people', text: '사주로 어울리는 인연 만나기' },
-];

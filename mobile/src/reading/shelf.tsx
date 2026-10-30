@@ -22,8 +22,11 @@ export const SHELF_CHIPS: readonly { readonly chip: ShelfChip; readonly label: s
 export const SHELF_TITLE = '풀이 보관함';
 
 /** 그 풀이로 간다 — 온 곳을 들고 간다. 궁합 · 인연 화면의 주소는 웹 그대로이고 없는 경로여도 그대로 둔다 */
-export const openBook = (href: string) =>
-  router.push(`${href}${href.includes('?') ? '&' : '?'}from=shelf` as never);
+export const openBook = (href: string) => {
+  /* 보관함에서 여는 궁합은 보관함 틀 안의 주소로 간다 — ← 가 보관함이다(`withCameFrom`) */
+  const target = href.startsWith('/me/compat?') ? `/me/readings/compat${href.slice('/me/compat'.length)}` : href;
+  router.push(`${target}${target.includes('?') ? '&' : '?'}from=shelf` as never);
+};
 
 const elementOf = (subject: DoorDayMaster | null | undefined) => (subject?.element ?? null) as Element | null;
 

@@ -37,6 +37,7 @@
 
 손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
 
+- `mobile/` 을 고치면 → [Expo 앱 인계 노트](../notes/2026-10-30-expo-app-round.md) · [`mobile/AGENTS.md`](../../mobile/AGENTS.md) — 지금 있는 것 · 시험하는 법 · Expo 는 판본의 문서를 본다
 - 맡은 일이 `G-nn` 을 들면 → [간극 대장](../product/gaps.md)의 그 줄만(`grep -n 'G-nn'`) — 「끝났다고 말할 조건」이 곧 이 일의 끝이다
 - 새 식별자 · 표 · 문구의 이름을 짓거나 낯선 도메인 낱말을 만나면 → [용어집 색인](../../GLOSSARY.md)이 가리키는 [그 영역 파일](../context/)
 - 이슈 문장 · 문서가 코드와 어긋나면 → [조율자 세션](../agents/delegation/coordinator.md) — 버그 · 문서 노후 · 결정 미반영 가르기

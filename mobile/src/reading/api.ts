@@ -93,3 +93,14 @@ export async function markReadingRead(readingId: string): Promise<void> {
   const { error } = await supabase.rpc('mark_reading_ready_read', { p_reading_id: readingId });
   if (error !== null) console.error('mark_reading_ready_read', error.code);
 }
+
+/** 개선 활용에 동의했나 — 글 끝 설문이 서는 조건이다(`improvementConsented`). 못 읽은 것은 거절이 아니지만 동의도 아니다 */
+export async function improvementConsented(): Promise<boolean> {
+  if (supabase === null) return false;
+  const { data, error } = await supabase.from('app_user').select('improvement_consent').maybeSingle();
+  if (error !== null) {
+    console.error('app_user.improvement_consent', error.code);
+    return false;
+  }
+  return data?.improvement_consent === true;
+}

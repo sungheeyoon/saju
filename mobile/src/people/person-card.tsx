@@ -11,15 +11,16 @@ import { ElementSymbol } from '@/ui/element-symbol';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import type { MyReading, PersonRow } from './data';
-import { NameEditor, NoteEditor, RemoveConfirm } from './manage';
+import { EditInputForm } from './edit-input';
+import { NoteEditor, RemoveConfirm } from './manage';
 import { DayMasterChip, PillarStrip, Sheet, SheetItem, go, styles as shared } from './parts';
 import { StemSymbol } from './stem-symbol';
 
-type Panel = 'menu' | 'name' | 'note' | 'remove';
+type Panel = 'menu' | 'edit-input' | 'note' | 'remove';
 
 /**
  * 한 사람 = 그 사람의 일간 오행 색을 입은 한 장의 타일. **타일이 곧 상세로 가는 길이다**(`app/me/people/page.tsx`).
- * 손대는 것(이름 · 메모 · 삭제)은 구석의 관리 단추 하나로 물러난다.
+ * 손대는 것(출생 정보 · 메모 · 삭제)은 구석의 관리 단추 하나로 물러난다.
  */
 export function PersonCard({
   person,
@@ -133,13 +134,13 @@ export function PersonCard({
         </Pressable>
       </Pressable>
 
-      {panel === 'name' && <NameEditor personId={person.personId} name={person.label} onDone={done} onCancel={() => setPanel(null)} />}
+      {panel === 'edit-input' && person.chart.ok && <EditInputForm personId={person.personId} current={person.chart.query} onDone={done} onCancel={() => setPanel(null)} />}
       {panel === 'note' && <NoteEditor personId={person.personId} note={person.note ?? ''} onDone={done} onCancel={() => setPanel(null)} />}
       {panel === 'remove' && <RemoveConfirm personId={person.personId} label={person.label} onDone={done} onCancel={() => setPanel(null)} />}
       {panel === 'menu' && (
         <Sheet label="닫기" onClose={() => setPanel(null)}>
           <Text style={shared.section}>{person.label}</Text>
-          <SheetItem label="이름 변경" onPress={() => setPanel('name')} />
+          {person.chart.ok && <SheetItem label="출생 정보 수정" onPress={() => setPanel('edit-input')} />}
           <SheetItem label={note === '' ? '메모 넣기' : '메모 고치기'} onPress={() => setPanel('note')} />
           <SheetItem label="삭제" danger onPress={() => setPanel('remove')} />
         </Sheet>

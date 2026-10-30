@@ -61,5 +61,20 @@ describe('앱은 풀이권을 팔지 않는다', () => {
     expect(dialogs).toContain('SALE_CLOSED_NOTE');
     expect(dialogs).toContain('SALE_CLOSED_OK');
     expect(read('mobile/src/reading/api.ts')).not.toContain('my_reading_sale_is_open');
+
+    const today = read('mobile/src/matching/today.tsx');
+    expect(today).not.toContain('BUY_CREDITS_LABEL');
+    expect(today).toContain('SALE_CLOSED_NOTE');
+    expect(read('mobile/src/matching/doors.ts')).not.toContain('my_reading_sale_is_open');
+  });
+});
+
+describe('인연 탭', () => {
+  it('덱을 읽기 전에 참여를 열고 못 열면 까닭을 낸다', () => {
+    const doors = read('mobile/src/matching/doors.ts');
+    const deck = doors.slice(doors.indexOf('export function readDeck'));
+    expect(deck.indexOf('openParticipation()')).toBeGreaterThan(-1);
+    expect(deck.indexOf('openParticipation()')).toBeLessThan(deck.indexOf("rpc('my_discovery_board')"));
+    expect(deck).toContain('saveFailureOf(opened)');
   });
 });

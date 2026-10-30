@@ -3,7 +3,7 @@ import { readingNoneNote } from '@reading/notes';
 import { readingOutline } from '@reading/outline';
 import type { Element } from '@saju';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
@@ -11,7 +11,9 @@ import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { readReadingView, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
 import { ConfirmMake, CreditsShortage } from './dialogs';
+import { ReadingFeedback } from './feedback';
 import { Result } from './result';
+import { ShareReadingButton } from './share-button';
 import { useReadingPanel, type ShownView } from './use-reading-panel';
 import { LoadingState } from './waiting';
 
@@ -77,6 +79,7 @@ export function ReadingPanel({
   automatic = false,
   ask,
   betweenSummaryAndBody,
+  onReadingChanged,
 }: {
   target: ReadingTarget;
   view: ShownView;
@@ -88,9 +91,19 @@ export function ReadingPanel({
   /** 다음 풀이를 위해 먼저 정할 것 — 궁합의 「무슨 사이인가」 */
   ask?: ReactNode;
   betweenSummaryAndBody?: ReactNode;
+  /** 새 글이 섰다 — 글이 정하는 값(궁합 지표의 눈금)을 위쪽이 다시 읽는다. 웹은 응답이 화면을 무른다 */
+  onReadingChanged?: () => void;
 }) {
   const panel = useReadingPanel({ target, initial: view, automatic, onRefused: followRefusal });
   const { phase, failure, reading, chrome, noun, creditsNote, progress } = panel;
+
+  const shownId = useRef(reading?.id ?? null);
+  useEffect(() => {
+    const id = reading?.id ?? null;
+    if (id === shownId.current) return;
+    shownId.current = id;
+    onReadingChanged?.();
+  }, [reading?.id, onReadingChanged]);
 
   const stale = reading !== null && target.kind !== 'match' && !reading.fromCurrentChart;
   const makeAtTop = chrome.makeInHeader && stale;
@@ -150,14 +163,28 @@ export function ReadingPanel({
           tones={tones}
           nicknames={nicknames}
           betweenSummaryAndBody={betweenSummaryAndBody}
+          coverAction={chrome.canShare ? <ShareReadingButton target={target} look="icon" /> : undefined}
         />
       )}
 
-      {reading !== null && phase !== 'loading' && makeAtEnd && (
+      {/* 다 읽은 뒤에 하는 일은 글 끝에 선다 — 보내기와 다시 받기가 반반, 그 아래 접힌 의견(`app/me/reading/panel.tsx`) */}
+      {reading !== null && phase !== 'loading' && (chrome.canShare || makeAtEnd || chrome.asksFeedback) && (
         <View style={styles.group}>
-          {makeButton('primary')}
-          {ask}
-          {note}
+          {(chrome.canShare || makeAtEnd) && (
+            <View style={styles.group}>
+              <View style={styles.halves}>
+                {chrome.canShare && (
+                  <View style={styles.half}>
+                    <ShareReadingButton target={target} />
+                  </View>
+                )}
+                {makeAtEnd && <View style={styles.half}>{makeButton(chrome.canShare ? 'secondary' : 'primary')}</View>}
+              </View>
+              {makeAtEnd && ask}
+              {makeAtEnd && note}
+            </View>
+          )}
+          {chrome.asksFeedback && reading.sourceRunId !== null && <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />}
         </View>
       )}
 
@@ -174,6 +201,8 @@ export function ReadingPanel({
 const styles = StyleSheet.create({
   panel: { gap: 24 },
   group: { gap: 12 },
+  halves: { flexDirection: 'row', gap: 8 },
+  half: { flex: 1, minWidth: 0 },
   lead: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   small: { marginTop: 2, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },

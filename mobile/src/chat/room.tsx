@@ -191,7 +191,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
             onPress={openPartner ?? undefined}
             style={styles.who}
           >
-            <Avatar nickname={room.name} size={44} tone={theirTone} dim={closed} />
+            <Avatar nickname={room.name} size={44} tone={theirTone} dim={closed} userId={room.partnerUserId} hasPhoto={room.partnerHasPhoto} focus={room.partnerPhotoFocus} />
             <View style={styles.whoWords}>
               <View style={styles.nameLine}>
                 <Text accessibilityRole="header" numberOfLines={1} style={styles.heading}>
@@ -299,6 +299,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
           nickname={room.name}
           intro={room.partnerIntro}
           tone={theirTone}
+          photos={room.partnerUserId === null ? null : { userId: room.partnerUserId, focuses: room.partnerPhotoFocuses }}
           onClose={() => setSheet(null)}
           toMatch={<CompatRow compat={room.compat ?? { kind: 'quiet' }} matchId={room.matchId} />}
           menu={
@@ -313,6 +314,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
           nickname={room.me.nickname}
           intro={room.me.intro}
           tone={myTone}
+          photos={{ userId: room.me.userId, focuses: room.me.photoFocuses }}
           onClose={() => setSheet(null)}
           footer={
             <Pressable
@@ -366,7 +368,7 @@ function RoomStart({ room, quiet, onMe, onPartner }: { room: RoomView; quiet: bo
   if (room.tones === null) {
     return (
       <View style={styles.startPlain}>
-        <Avatar nickname={room.name} size={72} tone={null} />
+        <Avatar nickname={room.name} size={72} tone={null} userId={room.partnerUserId} hasPhoto={room.partnerHasPhoto} focus={room.partnerPhotoFocus} />
         <Text style={styles.startName}>{room.heading}</Text>
         {hello}
       </View>
@@ -471,7 +473,7 @@ function BubbleRow({
             onPress={onFace ?? undefined}
             style={styles.face}
           >
-            <Avatar nickname={room.name} size={36} tone={tones?.theirs.element ?? null} />
+            <Avatar nickname={room.name} size={36} tone={tones?.theirs.element ?? null} userId={room.partnerUserId} hasPhoto={room.partnerHasPhoto} focus={room.partnerPhotoFocus} />
           </Pressable>
         ) : (
           <View style={styles.faceGap} />
