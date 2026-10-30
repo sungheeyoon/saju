@@ -94,6 +94,17 @@ export async function markReadingRead(readingId: string): Promise<void> {
   if (error !== null) console.error('mark_reading_ready_read', error.code);
 }
 
+/** 개선 활용에 동의했나 — 글 끝 설문이 서는 조건이다(`improvementConsented`). 못 읽은 것은 거절이 아니지만 동의도 아니다 */
+export async function improvementConsented(): Promise<boolean> {
+  if (supabase === null) return false;
+  const { data, error } = await supabase.from('app_user').select('improvement_consent').maybeSingle();
+  if (error !== null) {
+    console.error('app_user.improvement_consent', error.code);
+    return false;
+  }
+  return data?.improvement_consent === true;
+}
+
 /** 판매가 이 계정에게 열렸나 — 못 물었으면 열린 꼴이다(`app/me/credits/buy-path.ts` 의 `saleShapeOf`) */
 export async function saleIsOpen(): Promise<boolean> {
   if (supabase === null) return true;

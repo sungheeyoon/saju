@@ -103,7 +103,7 @@ function RoomRow({ room, tone }: { room: ChatRoom; tone: Element | null }) {
       onPress={() => router.push(`/me/chat/${room.matchId}` as never)}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Avatar nickname={name} size={56} tone={tone} dim={closed} />
+      <Avatar nickname={name} size={56} tone={tone} dim={closed} userId={room.partnerUserId} hasPhoto={room.partnerHasPhoto} focus={room.partnerPhotoFocus} />
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text numberOfLines={1} style={[styles.name, closed && styles.quiet]}>

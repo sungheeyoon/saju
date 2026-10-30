@@ -7,13 +7,14 @@ import { withFromMe } from '@web-home/from-me';
 import { SELF_READING_MAKING } from '@web-home/making';
 
 import { ElementSymbol } from '@/ui/element-symbol';
+import { Photo } from '@/ui/photo';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import type { SelfCardData } from './read';
 
 type Ok = Extract<SelfCardData, { kind: 'ok' }>;
 
-/** 내 사주 카드(줄인 판) — 홈에서 오행 면을 입는 것은 이 판 하나다. 사진 · 「내 프로필」 시트는 프로필 화면과 함께 온다 */
+/** 내 사주 카드(줄인 판) — 홈에서 오행 면을 입는 것은 이 판 하나다. 「내 프로필」 시트는 프로필 화면과 함께 온다 */
 export function SelfCard({ card }: { card: Ok }) {
   const { saju, query } = card;
   const dayElement = STEM_INFO[saju.pillars.dayMaster].element;
@@ -24,7 +25,11 @@ export function SelfCard({ card }: { card: Ok }) {
     <View accessibilityLabel="내 사주" style={[styles.card, { backgroundColor: tone.soft }]}>
       <View style={styles.head}>
         <View style={styles.face}>
-          <ElementSymbol element={dayElement} size={32} />
+          {card.face === null ? (
+            <ElementSymbol element={dayElement} size={32} />
+          ) : (
+            <Photo userId={card.face.userId} size={56} hasPhoto={card.face.hasPhoto} focus={card.face.focus} fallback={<ElementSymbol element={dayElement} size={32} />} />
+          )}
         </View>
         <View style={styles.who}>
           <Text style={styles.name}>{card.label}</Text>

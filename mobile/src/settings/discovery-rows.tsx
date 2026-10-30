@@ -4,21 +4,45 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PREFER_GENDER_ORDER, type PreferGender } from '@discovery';
 import { PREFER_GENDER_KO } from '@discovery/copy';
 
+import { saveFailureOf, setParticipation } from '@/reading/chart-writes';
+import { followRefusal } from '@/reading/panel';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { FailureLine, PlainRow, useDoneNote } from './parts';
+import { FailureLine, SwitchRow, useDoneNote } from './parts';
 import { savePreferGender } from './settings';
 
 /**
- * 「인연 찾기」 — **상태만 말한다. 스위치가 없다.** 웹의 스위치가 부르는 문(`set_discovery_participation`)은 오행 요약을 서버가 지어야
- * 해서 열쇠로만 열린다(G-64 · ADR 0136) — 앱이 못 부른다. 눌러도 안 되는 스위치를 세우지 않는다.
+ * 「인연 찾기」 스위치 — 가입 고지가 「설정에서 언제든 끌 수 있습니다」라고 약속한 자리다. 누르면 곧 바뀌고 앱의 문을 지난다 — 요약은 서버가 짓는다(ADR 0211).
+ * 실패하면 서버가 든 마지막 값으로 돌아오고 까닭이 선다(웹 `ParticipationToggle`).
  */
 export function ParticipationRow({ resting }: { resting: boolean }) {
+  const [on, setOn] = useState(!resting);
+  const [working, setWorking] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const toggle = async (next: boolean) => {
+    setFailure(null);
+    setOn(next);
+    setWorking(true);
+    const answer = await setParticipation(next);
+    setWorking(false);
+    if (answer.ok && answer.value.ok) return;
+    setOn(!next);
+    setFailure(saveFailureOf(answer));
+    if (!answer.ok) followRefusal(answer.refused);
+  };
+
   return (
-    <PlainRow
-      label="인연 찾기"
-      help={resting ? '켜면 내 프로필과 오행 요약이 다른 사람에게 소개돼요.' : '내 프로필과 오행 요약이 다른 사람에게 소개되고 있어요.'}
-    />
+    <>
+      <SwitchRow
+        label="인연 찾기"
+        help={on ? '내 프로필과 오행 요약이 다른 사람에게 소개되고 있어요.' : '켜면 내 프로필과 오행 요약이 다른 사람에게 소개돼요.'}
+        checked={on}
+        onChange={(next) => void toggle(next)}
+        busy={working}
+      />
+      {failure !== null && <FailureLine inset>{failure}</FailureLine>}
+    </>
   );
 }
 

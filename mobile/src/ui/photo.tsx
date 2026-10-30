@@ -95,6 +95,7 @@ export function Photo({
         source={{ uri, headers: { Authorization: `Bearer ${token}` } }}
         cachePolicy="none"
         contentFit="cover"
+        contentPosition={shown}
         style={{ width: size, height: size }}
         onError={() => void failed()}
       />

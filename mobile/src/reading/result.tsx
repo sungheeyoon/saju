@@ -36,6 +36,7 @@ export function Result({
   tones,
   nicknames,
   betweenSummaryAndBody,
+  coverAction,
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
@@ -46,6 +47,8 @@ export function Result({
   nicknames?: PairNicknames;
   /** 점수 · 한 문장 결론 다음, 본문 전에 세울 내용 — 궁합 화면이 넘긴다 */
   betweenSummaryAndBody?: ReactNode;
+  /** 표지 첫 줄 끝의 아이콘 — 공유. 세울지는 `panelChrome().canShare` 한 벌이 정한다 */
+  coverAction?: ReactNode;
 }) {
   const seats = nicknames === undefined ? null : seatNicknamesOf(nicknames, reading.viewerIsFirst);
   const named = (text: string) => (seats === null ? text : withNicknames(text, seats));
@@ -64,6 +67,7 @@ export function Result({
           <CoverFace tones={tones} />
           {metaphor !== null ? (
             <>
+              {coverAction !== undefined && <View style={styles.coverAction}>{coverAction}</View>}
               <Text aria-hidden style={styles.quote}>
                 “
               </Text>
@@ -121,6 +125,7 @@ const styles = StyleSheet.create({
   result: { gap: 24 },
   grow: { flex: 1, minWidth: 0 },
   cover: { overflow: 'hidden', paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, borderRadius: RADIUS.panel },
+  coverAction: { position: 'absolute', top: 12, right: 12, zIndex: 1 },
   quote: { height: 40, fontFamily: FONT.bold, fontSize: 64, lineHeight: 72, color: COLOR.foreground, opacity: 0.7 },
   metaphor: { marginTop: 8, fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 36, color: COLOR.foreground },
   coverTitle: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.secondary },

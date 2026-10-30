@@ -3,6 +3,9 @@ import type { ReadingTarget } from '@/src/lib/reading/target';
 
 export type { ReadingTarget };
 
+/* 공유의 갈래는 앱도 들어 같은 파일에 산다 */
+export { isShareable, shareTargetArgs } from '@/src/lib/reading/target';
+
 /**
  * **kind 가 무엇을 뜻하는지 푸는 자리 — 하나다.**
  *
@@ -33,21 +36,6 @@ export type { ReadingTarget };
  * import 하고 있었고, 그러면 화면 하나가 만드는 쪽 모듈에 매인다.
  */
 
-/**
- * 공유할 수 있는 갈래 — **`match` 가 아예 없다.**
- *
- * 인연 궁합은 링크로 못 내보낸다(ADR 0063). 거기 있는 상대는 실재하는 계정이고, 그
- * 사람이 동의한 것은 「이 사람에게 내 여덟 글자를 연다」이지 「누구에게든 연다」가
- * 아니다(ADR 0012).
- *
- * **규칙이지 누락이 아니므로 타입이 그것을 말한다.** 런타임 검사 하나로 두면 그 검사를
- * 잊은 호출부가 컴파일된다.
- */
-type ShareableTarget = Exclude<ReadingTarget, { kind: 'match' }>;
-
-export const isShareable = (target: ReadingTarget): target is ShareableTarget =>
-  target.kind !== 'match';
-
 /** 네 kind 가 대상을 대는 한 벌 — `my_reading` 계열이 그대로 받는다 */
 type ReadingTargetArgs = {
   readonly p_kind: ReadingTarget['kind'];
@@ -73,32 +61,6 @@ export function readingTargetArgs(target: ReadingTarget): ReadingTargetArgs {
           : null,
     p_person_b: target.kind === 'private' ? target.personB : null,
     p_match_id: target.kind === 'match' ? target.matchId : null,
-  };
-}
-
-/** 공유하는 문이 받는 한 벌 — **`p_match_id` 자리가 아예 없다** */
-type ShareTargetArgs = {
-  readonly p_kind: ShareableTarget['kind'];
-  readonly p_person_a: string | null;
-  readonly p_person_b: string | null;
-};
-
-/**
- * 공유할 대상을 RPC 인자로.
- *
- * 받는 타입이 `ShareableTarget` 이므로 `match` 는 **여기 올 수 없다.** 그래서 이 함수는
- * 「인연 궁합이면 어쩌지」를 안 묻는다 — 그 물음은 문 앞(`isShareable`)에서 한 번 끝난다.
- */
-export function shareTargetArgs(target: ShareableTarget): ShareTargetArgs {
-  return {
-    p_kind: target.kind,
-    p_person_a:
-      target.kind === 'private'
-        ? target.personA
-        : target.kind === 'person'
-          ? target.personId
-          : null,
-    p_person_b: target.kind === 'private' ? target.personB : null,
   };
 }
 

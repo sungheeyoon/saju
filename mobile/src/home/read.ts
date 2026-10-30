@@ -3,6 +3,7 @@ import { SUPPORT_EMAIL } from '@brand';
 import { userFacingDbMessage } from '@db-error';
 import type { Query } from '@input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf, type StoredInput } from '@input/stored';
+import { focusOf, type PhotoFocus } from '@profile';
 import type { Saju, Stem } from '@saju';
 import { isFirstVisit } from '@web-home/first-visit';
 
@@ -33,17 +34,20 @@ export type HomePerson = {
   score: number | null;
 };
 
+/** 내 사진 — 꾸밈이라 못 읽으면 사진 없는 나로 선다(ADR 0078). 대표 한 장의 보일 자리까지 */
+export type SelfFace = { userId: string; hasPhoto: boolean; focus: PhotoFocus | undefined };
+
 export type SelfCardData =
   | { kind: 'failed'; message: string }
   | { kind: 'unreadable'; message: string; note: string }
-  | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean };
+  | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean; face: SelfFace | null };
 
 export type Home =
   | { kind: 'failed'; message: string }
   | { kind: 'sign-in'; message: string }
   | { kind: 'notice'; title: string; detail: string }
   /** 내 사주가 아직 없다 */
-  | { kind: 'no-self' }
+  | { kind: 'no-self'; nickname: string }
   | {
       kind: 'home';
       self: SelfCardData;
@@ -53,6 +57,11 @@ export type Home =
       people: readonly HomePerson[];
       slots: { limit: number; used: number; remaining: number } | null;
     };
+
+const faceOf = (userId: string | undefined, photos: readonly { focus_x: number; focus_y: number }[]): SelfFace | null =>
+  userId === undefined
+    ? null
+    : { userId, hasPhoto: photos.length > 0, focus: photos.length > 0 ? focusOf(photos[0].focus_x, photos[0].focus_y) : undefined };
 
 const called = (label: string | null) => label ?? '이름 없음';
 
@@ -76,12 +85,12 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
  * 홈 — 웹의 `app/me/(home)/page.tsx` 와 같은 문을 같은 차례로 읽는다. 정책이 내 것만 내주므로 `user_id` 를 안 적는다.
  * 엣지 · 입력 · 목록은 본체라 못 읽으면 실패이고, 자리 수와 만드는 중인 풀이는 부속이라 빠진 채 선다.
  *
- * 웹이 홈을 열 때 함께 부르는 참여 열기(`openDiscoveryParticipation`)는 부르지 않는다 — 서비스 키 문이라 앱이 못 부른다.
+ * 웹이 홈을 열 때 함께 부르는 참여 열기는 화면이 앱의 문으로 따로 부른다(`openParticipation`, ADR 0211).
  */
 export async function readHome(): Promise<Home> {
   if (supabase === null) return { kind: 'failed', message: NOT_READY };
 
-  const account = await supabase.from('app_user').select('status, self_person_id').maybeSingle();
+  const account = await supabase.from('app_user').select('status, self_person_id, nickname').maybeSingle();
   if (account.error !== null) console.error('app_user', account.error.code);
   const suspension = account.data?.status === 'suspended' ? await supabase.rpc('my_suspension') : null;
   const found = suspension?.data?.[0];
@@ -104,14 +113,16 @@ export async function readHome(): Promise<Home> {
   if (failure !== null) return failure.next === 'signIn' ? { kind: 'sign-in', message: failure.line } : { kind: 'failed', message: failure.line };
   const notice = accountNoticeOf(state, SUPPORT_EMAIL);
   if (notice !== null) return { kind: 'notice', ...notice };
-  if (state.kind !== 'active' || state.selfPersonId === null) return { kind: 'no-self' };
+  if (state.kind !== 'active' || state.selfPersonId === null) return { kind: 'no-self', nickname: account.data?.nickname ?? '' };
   const selfPersonId = state.selfPersonId;
 
-  const [edges, readings, running, slots] = await Promise.all([
+  const [edges, readings, running, slots, photos, session] = await Promise.all([
     supabase.from('user_person_access').select('person_id, local_label, note, listed').order('created_at', { ascending: true }),
     supabase.rpc('my_readings'),
     supabase.rpc('my_running_readings'),
     supabase.rpc('my_person_slots'),
+    supabase.rpc('my_photos'),
+    supabase.auth.getSession(),
   ]);
   if (edges.error !== null) return { kind: 'failed', message: userFacingDbMessage(edges.error, 'user_person_access.select') };
   if (readings.error !== null) return { kind: 'failed', message: userFacingDbMessage(readings.error, 'my_readings') };
@@ -161,6 +172,7 @@ export async function readHome(): Promise<Home> {
             metaphor: selfReading?.metaphor ?? null,
             hasReading: selfReading !== null,
             making: runningRows.some((row) => row.kind === 'self'),
+            face: faceOf(session.data.session?.user.id, photos.error === null ? (photos.data ?? []) : []),
           };
 
   const people: HomePerson[] = listed.map((edge) => {

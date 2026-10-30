@@ -13,6 +13,7 @@ import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { AccountNotice, BackButton, FailureLine, settingsText, useDoneNote } from './parts';
 import { PhotoGrid } from './photo-grid';
+import { BirthSection } from './birth-section';
 import { myPhotos, photoUploadMode, type MyPhoto } from './photos';
 import { readAccount, type Answer } from './settings';
 
@@ -41,9 +42,7 @@ async function load(): Promise<Loaded> {
 }
 
 /**
- * 프로필 — 웹 `app/me/profile/page.tsx`. 사진은 고르는 순간 저장되고, 닉네임 · 소개는 단추로 저장한다. 사진이 맨 위다.
- *
- * 웹의 출생 정보 판은 없다 — 고치는 문(`edit_person_input`)이 서버 열쇠로만 열린다(G-64 · ADR 0136).
+ * 프로필 — 웹 `app/me/profile/page.tsx`. 사진은 고르는 순간 저장되고, 닉네임 · 소개는 단추로 저장한다. 사진이 맨 위이고 출생 정보가 맨 아래다.
  */
 export function ProfileScreen() {
   const [data, setData] = useState<Loaded | null>(null);
@@ -84,6 +83,7 @@ export function ProfileScreen() {
             <>
               <PhotoGrid userId={data.userId} photos={data.photos} uploads={data.uploads} reload={reloadPhotos} onLifting={setLifting} />
               <ProfileForm current={data.current} onSaved={(saved) => setData((was) => (was !== null && !('failed' in was) ? { ...was, current: saved } : was))} />
+              <BirthSection />
             </>
           )}
         </ScrollView>

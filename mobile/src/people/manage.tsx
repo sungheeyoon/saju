@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { NOTE_MAX } from '@input/edit';
-import { NAME_MAX, missingAnswer } from '@input/query';
+import { missingAnswer } from '@input/query';
 import type { PersonSlots } from '@people';
 import { endsWithBatchim } from '@saju-text/batchim';
 
-import { Field, FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
+import { FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { BirthFields, useBirthForm } from './birth-fields';
-import { addPerson, removeFromList, renamePerson, updateNote } from './data';
+import { addPerson, removeFromList, updateNote } from './data';
 import { ConfirmDialog, FailureLine, go, styles as shared } from './parts';
 import { SameChartAsk, type SameChartQuestion } from './same-chart-ask';
 
@@ -167,39 +167,6 @@ export function NoteEditor({ personId, note, onDone, onCancel }: { personId: str
       <PrimaryButton label={saving ? '저장하는 중…' : '메모 저장'} onPress={save} disabled={!changed || saving} />
       <TextButton label="작성 그만두기" onPress={onCancel} disabled={saving} />
       {failure !== null && <FailureLine>{failure}</FailureLine>}
-    </Panel>
-  );
-}
-
-/**
- * 부를 이름만 고친다 — 이름은 엣지가 들어 앱에서 바로 고칠 수 있다.
- *
- * **생년월일시는 여기서 못 고친다.** `edit_person_input` 은 서버 열쇠에만 열려 있고(ADR 0136) 앱이 부를 문이 아직 없다.
- */
-export function NameEditor({ personId, name, onDone, onCancel }: { personId: string; name: string; onDone: () => void; onCancel: () => void }) {
-  const [value, setValue] = useState(name);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const changed = value.trim() !== name.trim();
-
-  const save = async () => {
-    setFailure(null);
-    setSaving(true);
-    const result = await renamePerson(personId, value);
-    setSaving(false);
-    if (result.ok) onDone();
-    else setFailure(result.message);
-  };
-
-  return (
-    <Panel style={styles.form}>
-      <View>
-        <FieldLabel>이름</FieldLabel>
-        <Field value={value} onChange={setValue} maxLength={NAME_MAX} label="이름" />
-      </View>
-      <PrimaryButton label={saving ? '저장하는 중…' : '이름 저장'} onPress={save} disabled={!changed || saving} />
-      <TextButton label="작성 그만두기" onPress={onCancel} disabled={saving} />
-      {failure !== null && <FailureLine>저장하지 못했어요. {failure}</FailureLine>}
     </Panel>
   );
 }

@@ -2,7 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { dateRefusal } from '@input/chart';
-import { convertedLine, dateOfParts, limitsOf, timeOfParts } from '@input/entry';
+import { convertedLine, dateOfParts, limitsOf, splitDate, splitTime, timeOfParts } from '@input/entry';
 import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, type Query } from '@input/query';
 import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_YEAR_RANGE, type CityName, type LateNightRule } from '@saju';
 
@@ -23,21 +23,23 @@ const RULES: readonly { value: LateNightRule; label: string; hint: string }[] = 
  * 출생 정보 칸의 값 — 입력 화면(`mobile/src/app/index.tsx`)과 같은 차례 · 같은 함수다. 저장하는 화면이라고 다른 폼을 두면 한쪽만
  * 고쳐져 같은 값에서 다른 사주가 난다(`app/me/people/manage.tsx`).
  */
-export function useBirthForm() {
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState<Query['gender']>(DEFAULT_QUERY.gender);
-  const [year, setYear] = useState('');
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  const [calendar, setCalendar] = useState<Query['calendar']>(DEFAULT_QUERY.calendar);
-  const [hourChoice, setHourChoice] = useState<'known' | 'unknown'>('known');
-  const [hour, setHour] = useState('');
-  const [minute, setMinute] = useState('');
-  const [city, setCity] = useState<CityName>(DEFAULT_QUERY.city);
+export function useBirthForm(initial: Query = DEFAULT_QUERY) {
+  const date = splitDate(initial.date);
+  const clock = splitTime(initial.time);
+  const [name, setName] = useState(initial.name);
+  const [gender, setGender] = useState<Query['gender']>(initial.gender);
+  const [year, setYear] = useState(date.year);
+  const [month, setMonth] = useState(date.month);
+  const [day, setDay] = useState(date.day);
+  const [calendar, setCalendar] = useState<Query['calendar']>(initial.calendar);
+  const [hourChoice, setHourChoice] = useState<'known' | 'unknown'>(initial.hourKnown === false ? 'unknown' : 'known');
+  const [hour, setHour] = useState(clock.hour);
+  const [minute, setMinute] = useState(clock.minute);
+  const [city, setCity] = useState<CityName>(initial.city);
   const [advanced, setAdvanced] = useState(false);
-  const [rule, setRule] = useState<LateNightRule>(DEFAULT_QUERY.rule);
-  const [basis, setBasis] = useState<Query['basis']>(DEFAULT_QUERY.basis);
-  const [saeunFrom, setSaeunFrom] = useState(String(DEFAULT_QUERY.saeunFrom));
+  const [rule, setRule] = useState<LateNightRule>(initial.rule);
+  const [basis, setBasis] = useState<Query['basis']>(initial.basis);
+  const [saeunFrom, setSaeunFrom] = useState(String(initial.saeunFrom));
 
   const hourKnown = hourChoice === 'known';
   const query: Query = {
@@ -70,7 +72,7 @@ export function useBirthForm() {
   };
 }
 
-export function BirthFields({ form, namePlaceholder }: { form: ReturnType<typeof useBirthForm>; namePlaceholder?: string }) {
+export function BirthFields({ form, namePlaceholder, showName = true }: { form: ReturnType<typeof useBirthForm>; namePlaceholder?: string; showName?: boolean }) {
   const { query, values, set, chooseHour } = form;
   const monthRef = useRef<ComponentRef<typeof TextInput>>(null);
   const dayRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -84,10 +86,12 @@ export function BirthFields({ form, namePlaceholder }: { form: ReturnType<typeof
   return (
     <View style={styles.fields}>
       <View style={styles.pair}>
-        <View style={styles.half}>
-          <FieldLabel>이름</FieldLabel>
-          <Field value={values.name} onChange={set.setName} maxLength={NAME_MAX} placeholder={namePlaceholder} label="이름" />
-        </View>
+        {showName && (
+          <View style={styles.half}>
+            <FieldLabel>이름</FieldLabel>
+            <Field value={values.name} onChange={set.setName} maxLength={NAME_MAX} placeholder={namePlaceholder} label="이름" />
+          </View>
+        )}
         <View style={styles.half}>
           <FieldLabel>성별</FieldLabel>
           <Choices value={values.gender} onPick={set.setGender} options={GENDERS.map((one) => ({ value: one, label: GENDER_KO[one] }))} />
