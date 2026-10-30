@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type ChatIconName = 'back' | 'chevron' | 'close' | 'arrow' | 'send' | 'alert' | 'lock' | 'more' | 'flag' | 'block' | 'people';
+export type ChatIconName = 'chevron' | 'close' | 'arrow' | 'send' | 'alert' | 'lock' | 'more' | 'flag' | 'block' | 'people';
 
 /** 웹의 `app/ui/icons.tsx` 와 같은 경로 값이다 */
 const shapes = (color: string): Record<ChatIconName, ReactNode> => {
   const line = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' } as const;
   return {
-    back: <Path d="M19 12H6m5-5.5L5.5 12l5.5 5.5" {...line} />,
     chevron: <Path d="m9 5.5 6.5 6.5L9 18.5" {...line} />,
     close: <Path d="M6 6l12 12M18 6 6 18" {...line} />,
     arrow: <Path d="M5 12h13m-5-5.5L18.5 12 13 17.5" {...line} />,

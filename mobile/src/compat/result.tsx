@@ -59,7 +59,6 @@ export function CompatResult({ outcome, onReadingChanged }: { outcome: Ok; onRea
           ))}
         </View>
         <View style={styles.titleText}>
-          <Text style={shared.meta}>궁합</Text>
           <Text style={shared.title}>
             {names.a} <Text style={{ color: COLOR.secondary }}>×</Text> {names.b}
           </Text>

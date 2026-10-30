@@ -12,6 +12,7 @@ import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
 import { LineIcon } from '@/ui/line-icons';
 import { Panel, PrimaryButton } from '@/ui/parts';
+import { TopBar, goBack } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 const POSITIONS = ['hour', 'day', 'month', 'year'] as const;
@@ -37,18 +38,22 @@ export default function MatchScreen() {
     void load();
   }, [load]);
 
-  const back = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace(from === 'history' ? '/me/matching/history' : '/me/matching');
-  };
+  const fallback = from === 'history' ? '/me/matching/history' : from === 'shelf' ? '/me/readings' : '/me/matching';
+  const back = () => goBack(fallback);
 
-  if (outcome === null) return <View style={styles.screen} />;
+  if (outcome === null) {
+    return (
+      <View style={styles.screen}>
+        <TopBar fallback={fallback} />
+      </View>
+    );
+  }
 
   if (!outcome.ok) {
     return (
       <View style={styles.screen}>
+        <TopBar title="궁합 결과" fallback={fallback} />
         <View style={styles.content}>
-          <Back onPress={back} />
           <Text style={styles.failure} accessibilityRole="alert">
             {outcome.reason}
           </Text>
@@ -63,6 +68,7 @@ export default function MatchScreen() {
   if (outcome.value.kind === 'none') {
     return (
       <View style={styles.screen}>
+        <TopBar fallback={fallback} />
         <View style={styles.notFound}>
           <Text style={styles.title} accessibilityRole="header">
             찾을 수 없어요
@@ -80,11 +86,8 @@ export default function MatchScreen() {
   if (outcome.value.kind === 'closed') {
     return (
       <View style={styles.screen}>
+        <TopBar title="궁합 결과" fallback={fallback} />
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.head}>
-            <Back onPress={back} />
-            <Text style={[styles.name, styles.flex]}>궁합 결과</Text>
-          </View>
           <View style={styles.closed}>
             <Text style={styles.line}>{MATCH_RESULT_CLOSED_NOTE}</Text>
           </View>
@@ -98,27 +101,31 @@ export default function MatchScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.head}>
-          <Back onPress={back} />
-          <Pressable accessibilityRole="button" accessibilityLabel={`${result.partnerNickname} 님 자세히`} onPress={() => setSheet(true)}>
-            <Face userId={result.partnerUserId} nickname={result.partnerNickname} hasPhoto={result.partnerPhotoCount > 0} focus={result.partnerPhotoFocus[0]} size={40} tone={tone} />
-          </Pressable>
-          <View style={styles.flex}>
-            <Text style={styles.name} numberOfLines={1} accessibilityRole="header">
-              {result.partnerNickname} 님
-            </Text>
-            <Text style={styles.meta}>궁합 결과</Text>
-          </View>
-          {from !== 'chat' && (
-            <Pressable accessibilityRole="link" onPress={() => router.push(`/me/chat/${result.matchId}` as never)} style={styles.chat}>
-              <LineIcon name="chat" size={18} />
-              <Text style={styles.chatText}>{CHAT_TAB_LABEL}</Text>
-            </Pressable>
-          )}
-          <ReportBlock userId={result.partnerUserId} nickname={result.partnerNickname} onBlocked={back} />
+      <TopBar
+        fallback={fallback}
+        right={
+          <>
+            {from !== 'chat' && (
+              <Pressable accessibilityRole="link" onPress={() => router.push(`/me/chat/${result.matchId}` as never)} style={styles.chat}>
+                <LineIcon name="chat" size={18} />
+                <Text style={styles.chatText}>{CHAT_TAB_LABEL}</Text>
+              </Pressable>
+            )}
+            <ReportBlock userId={result.partnerUserId} nickname={result.partnerNickname} onBlocked={back} />
+          </>
+        }
+      >
+        <Pressable accessibilityRole="button" accessibilityLabel={`${result.partnerNickname} 님 자세히`} onPress={() => setSheet(true)}>
+          <Face userId={result.partnerUserId} nickname={result.partnerNickname} hasPhoto={result.partnerPhotoCount > 0} focus={result.partnerPhotoFocus[0]} size={40} tone={tone} />
+        </Pressable>
+        <View style={styles.flex}>
+          <Text style={styles.name} numberOfLines={1} accessibilityRole="header">
+            {result.partnerNickname} 님
+          </Text>
+          <Text style={styles.meta}>궁합 결과</Text>
         </View>
-
+      </TopBar>
+      <ScrollView contentContainerStyle={styles.content}>
         <PartnerSheet
           open={sheet}
           onClose={() => setSheet(false)}
@@ -180,14 +187,6 @@ function MatchReadingPanel({
   return <ReadingPanel target={target} view={answer.view} automatic nicknames={nicknames} tones={tones} betweenSummaryAndBody={pair} />;
 }
 
-function Back({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={onPress} style={styles.back}>
-      <LineIcon name="back" />
-    </Pressable>
-  );
-}
-
 /** 한 사람의 면 — 동의로 열린 여덟 글자만. 입력 · 출생지 · 원국 판정은 이 값에 없다(ADR 0012) */
 function Side({ name, chart, who }: { name: string; chart: ChartSnapshot; who: string }) {
   const dayMaster = STEM_INFO[chart.dayMaster];
@@ -221,8 +220,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 24, padding: 16 },
   flex: { flex: 1, minWidth: 0 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   meta: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
   chat: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 12, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },

@@ -17,7 +17,7 @@ import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
  */
 export default function CompatScreen() {
   const params = useLocalSearchParams<{ a?: string; b?: string; pickA?: string; pickB?: string }>();
-  if (params.a !== undefined && params.b !== undefined) return <CompatResultStep a={params.a} b={params.b} back={{ label: '궁합', href: '/me/compat' }} />;
+  if (params.a !== undefined && params.b !== undefined) return <CompatResultStep a={params.a} b={params.b} back="/me/compat" />;
   return <PickStep pickA={params.pickA} pickB={params.pickB} />;
 }
 

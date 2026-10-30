@@ -10,8 +10,9 @@ import { supabase } from '@/auth/client';
 import { NOT_READY, checkNickname } from '@/auth/signup';
 import { Field, Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
-import { AccountNotice, BackButton, FailureLine, settingsText, useDoneNote } from './parts';
+import { AccountNotice, FailureLine, settingsText, useDoneNote } from './parts';
 import { PhotoGrid } from './photo-grid';
 import { BirthSection } from './birth-section';
 import { myPhotos, photoUploadMode, type MyPhoto } from './photos';
@@ -61,19 +62,20 @@ export function ProfileScreen() {
     }
   }, []);
 
-  if (data === null) return <View style={styles.screen} />;
+  if (data === null) {
+    return (
+      <View style={styles.screen}>
+        <TopBar title="프로필" fallback="/me/settings" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
+      <TopBar title="프로필" fallback="/me/settings" />
       <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" scrollEnabled={!lifting}>
-          <View style={styles.head}>
-            <BackButton label="설정" to="/me/settings" />
-            <Text style={settingsText.title} accessibilityRole="header">
-              프로필
-            </Text>
-            <Text style={settingsText.meta}>앱에서 쓸 닉네임과 프로필을 정해요.</Text>
-          </View>
+          <Text style={settingsText.meta}>앱에서 쓸 닉네임과 프로필을 정해요.</Text>
 
           {'failed' in data ? (
             <FailureLine onRetry={() => void reloadAll()}>{READ_FAILED}</FailureLine>
@@ -215,7 +217,6 @@ function ProfileForm({ current, onSaved }: { current: ProfileInput; onSaved: (sa
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 20, padding: 16, paddingBottom: 40 },
-  head: { alignItems: 'flex-start', gap: 4 },
   form: { gap: 20 },
   group: { gap: 6 },
   note: { minHeight: 20, fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },

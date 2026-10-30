@@ -28,23 +28,6 @@ export function useDoneNote() {
   return { note: said?.text ?? '', say, clear };
 }
 
-/** 뒤로 — 스택에 앞 화면이 없으면(주소로 바로 열렸다) 홈으로 간다. 이름은 보조기기가 읽는 그 화면의 이름이다 */
-export function BackButton({ label, to = '/me' }: { label: string; to?: string }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={10}
-      style={styles.back}
-      onPress={() => (router.canGoBack() ? router.back() : router.replace(to as never))}
-    >
-      <Svg width={24} height={24} viewBox="0 0 24 24">
-        <Path d="M15 5 L8 12 L15 19" fill="none" stroke={COLOR.foreground} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      </Svg>
-    </Pressable>
-  );
-}
-
 /** 화면 안 실패 줄 — 웹 `app/ui/failure-line.tsx`. 다시 로그인이 답인 문장이면 다시 읽기 대신 로그인으로 가는 글자를 단다 */
 export function FailureLine({ children, onRetry, signIn = false, inset = false }: { children: string; onRetry?: () => void; signIn?: boolean; inset?: boolean }) {
   const signedOut = signIn || children.includes(SIGN_IN_AGAIN_NOTE);
@@ -175,7 +158,6 @@ export const settingsText = StyleSheet.create({
 
 const styles = StyleSheet.create({
   fill: { flex: 1, minWidth: 0, gap: 2 },
-  back: { width: CONTROL, height: CONTROL, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   inset: { paddingHorizontal: PAD, paddingBottom: 12 },
   failureRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12 },
   failure: { flexShrink: 1, fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },

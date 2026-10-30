@@ -11,6 +11,7 @@ import { PastRequestList } from '@/matching/requests';
 import { LineIcon } from '@/ui/line-icons';
 import { PrimaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 type Loaded = { books: Read<readonly MatchBook[]>; matches: Read<readonly InboxMatch[]>; requests: Read<Requests> };
 
@@ -36,7 +37,8 @@ export default function MatchHistoryScreen() {
     return () => clearTimeout(clear);
   }, [note]);
 
-  if (loaded === null) return <View style={styles.screen} />;
+  const bar = <TopBar title="인연 기록" fallback="/me/matching" />;
+  if (loaded === null) return <View style={styles.screen}>{bar}</View>;
 
   const { books, matches, requests } = loaded;
   const shelf = books.ok ? books.value : [];
@@ -52,16 +54,8 @@ export default function MatchHistoryScreen() {
 
   return (
     <View style={styles.screen}>
+      {bar}
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.top}>
-          <Pressable accessibilityRole="button" accessibilityLabel="인연" onPress={() => router.navigate('/me/matching')} style={styles.back}>
-            <LineIcon name="back" />
-          </Pressable>
-          <Text style={styles.title} accessibilityRole="header">
-            인연 기록
-          </Text>
-        </View>
-
         {note !== '' && (
           <View style={styles.snack} accessibilityLiveRegion="polite">
             <Text style={styles.snackText}>{note}</Text>
@@ -143,9 +137,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 28, padding: 16 },
   flex: { flex: 1, minWidth: 0 },
-  top: { gap: 4 },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -10 },
-  title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   snack: { alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   snackText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.onAccent },
   empty: { gap: 12, padding: 24, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
