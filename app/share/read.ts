@@ -1,8 +1,7 @@
-import { withNicknames } from '@/src/lib/reading/display';
+import { sharedReadingOfRow, type ShareKind, type SharedReading } from '@/src/lib/reading/shared';
 
 import { dbFailure } from '../db-error';
 
-import type { ShareKind } from './path';
 import { supabaseForShared } from './public-client';
 
 /**
@@ -26,15 +25,9 @@ import { supabaseForShared } from './public-client';
  *
  * 노출은 안 넓어진다 — 던지는 말은 한 문을 지나 우리 문장으로만 나가고(`dbFailure`),
  * 토큰이 실재하는지는 여전히 아무 답도 안 한다.
+ *
+ * 행을 읽는 판정은 앱과 함께 쓴다(`src/lib/reading/shared.ts`).
  */
-type SharedReading = {
-  readonly metaphor: string | null;
-  readonly score: number | null;
-  readonly body: string;
-  readonly nameA: string | null;
-  readonly nameB: string | null;
-};
-
 export async function sharedReadingOf(
   token: string,
   expect: ShareKind,
@@ -44,28 +37,5 @@ export async function sharedReadingOf(
   const { data, error } = await supabase.rpc('shared_reading', { p_token: token });
   if (error) throw dbFailure(error, 'shared_reading');
 
-  const row = (data ?? [])[0];
-  if (row === undefined || row.kind !== expect) return null;
-
-  /* 생성 타입은 **반환의 `null` 허용을 안 적는다** — 한 사람 글에는 `name_b` 가 없다 */
-  const nameA = row.name_a ?? null;
-  const nameB = row.name_b ?? null;
-
-  /*
-    **궁합 글은 자리 호칭으로 온다**(운영자 2026-10-15) — 공유본에 얼린 두 이름표로 바꿔 세운다. 두 칸은 `charts.a` ·
-    `charts.b` 차례로 얼었다(`share_my_reading` 이 `reading_scope` 의 차례를 따른다). 하나라도 없으면 호칭 그대로 둔다 —
-    제목(`titleOf`)도 그때 이름 없이 선다. 저장된 공유본은 원문 그대로라 이름표를 나중에 고쳐도 받은 링크는 그대로다.
-  */
-  const named = (text: string): string =>
-    row.kind === 'private' && nameA !== null && nameB !== null
-      ? withNicknames(text, { first: nameA, second: nameB })
-      : text;
-
-  return {
-    metaphor: row.metaphor === null || row.metaphor === undefined ? null : named(row.metaphor),
-    score: row.score ?? null,
-    body: named(row.body),
-    nameA,
-    nameB,
-  };
+  return sharedReadingOfRow((data ?? [])[0], expect);
 }

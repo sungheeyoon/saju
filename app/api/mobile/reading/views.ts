@@ -21,7 +21,7 @@ import { readingMinutes } from '../../../me/reading/essay';
 import { GENERATION } from '../../../me/reading/generation';
 import { readingHrefOf } from '../../../me/reading/target';
 import { matchesForViewer } from '../../../me/requests/inbox';
-import { when } from '../../../me/requests/when';
+import { when } from '@/src/lib/reading/when';
 
 type Client = SupabaseClient<Database>;
 
