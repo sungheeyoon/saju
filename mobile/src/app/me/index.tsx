@@ -1,13 +1,13 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { DEFAULT_QUERY, missingAnswer } from '@input/query';
 import { ELEMENTS } from '@saju';
 
 import { signOut } from '@/auth/sign-in';
 import { OtherSaju, ReceivedReadings, RunningReadings, SavedPeople } from '@/home/lists';
-import { readHome, type Home } from '@/home/read';
+import { homeUnreachable, readHome, type Home } from '@/home/read';
 import { SelfCard } from '@/home/self-card';
 import { BirthFields, useBirthForm } from '@/people/birth-fields';
 import { openParticipation, saveFailureOf, saveSelfPerson } from '@/reading/chart-writes';
@@ -21,15 +21,26 @@ export default function HomeScreen() {
   const [home, setHome] = useState<Home | null>(null);
 
   const load = useCallback(() => {
-    void readHome().then((next) => {
-      setHome(next);
-      /* 참여를 여는 문은 아무것도 안 그린다 — 끈 사람은 안 열리고, 못 열어도 홈은 선다(웹의 `openDiscoveryParticipation`) */
-      if (next.kind === 'home') void openParticipation();
-    });
+    void readHome()
+      /* 던지면 빈 화면에 멈추지 않는다 — 못 읽은 때의 줄과 다시 시도가 선다 */
+      .catch((thrown: unknown): Home => {
+        console.error('readHome', thrown);
+        return homeUnreachable();
+      })
+      .then((next) => {
+        setHome(next);
+        /* 참여를 여는 문은 아무것도 안 그린다 — 끈 사람은 안 열리고, 못 열어도 홈은 선다(웹의 `openDiscoveryParticipation`) */
+        if (next.kind === 'home') void openParticipation();
+      });
   }, []);
   useFocusEffect(load);
 
-  return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>{home === null ? null : <Body home={home} retry={load} />}</ScrollView>;
+  if (home === null) return <ActivityIndicator color={COLOR.secondary} style={styles.loading} />;
+  return (
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <Body home={home} retry={load} />
+    </ScrollView>
+  );
 }
 
 function Body({ home, retry }: { home: Home; retry: () => void }) {
@@ -140,6 +151,7 @@ function NoSelf({ nickname, onSaved }: { nickname: string; onSaved: () => void }
 }
 
 const styles = StyleSheet.create({
+  loading: { marginTop: 48 },
   content: { padding: 16, gap: 24 },
   stack: { gap: 12 },
   failure: { gap: 8, alignItems: 'flex-start' },
