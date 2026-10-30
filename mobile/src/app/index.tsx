@@ -111,8 +111,8 @@ export default function BirthScreen() {
                 <FieldLabel>생년월일</FieldLabel>
                 <View style={styles.row}>
                   <DigitField value={year} onChange={setYear} unit="년" placeholder={String(years.max - 30)} digits={4} min={years.min} max={years.max} refused={refused === 'year'} onFull={() => monthRef.current?.focus()} />
-                  <DigitField inputRef={monthRef} value={month} onChange={setMonth} unit="월" placeholder="1~12" digits={2} min={1} max={12} refused={refused === 'month'} onFull={() => dayRef.current?.focus()} />
-                  <DigitField inputRef={dayRef} value={day} onChange={setDay} unit="일" placeholder={`1~${maxDay}`} digits={2} min={1} max={maxDay} refused={refused === 'day'} onFull={() => (hourKnown ? hourRef.current?.focus() : Keyboard.dismiss())} />
+                  <DigitField inputRef={monthRef} value={month} onChange={setMonth} unit="월" placeholder="1~12" digits={2} min={1} max={12} advanceEarly refused={refused === 'month'} onFull={() => dayRef.current?.focus()} />
+                  <DigitField inputRef={dayRef} value={day} onChange={setDay} unit="일" placeholder={`1~${maxDay}`} digits={2} min={1} max={maxDay} advanceEarly refused={refused === 'day'} onFull={() => (hourKnown ? hourRef.current?.focus() : Keyboard.dismiss())} />
                 </View>
                 {converted !== null && (
                   <Text style={[styles.converted, !converted.ok && styles.failure]}>{converted.text}</Text>

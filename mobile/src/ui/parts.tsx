@@ -43,6 +43,7 @@ export function DigitField({
   refused = false,
   inputRef,
   onFull,
+  advanceEarly = false,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -54,6 +55,8 @@ export function DigitField({
   refused?: boolean;
   inputRef?: Ref<ComponentRef<typeof TextInput>>;
   onFull?: () => void;
+  /** 뒤에 숫자가 더 올 수 없으면 한 자리로도 넘어간다(「5」월). 시각은 끈다 — 「33」이 3시 3분으로 조용히 갈라지면 시주가 틀린다 */
+  advanceEarly?: boolean;
 }) {
   const wrong = refused || digitOutOfRange(value, digits, min, max);
   return (
@@ -65,8 +68,7 @@ export function DigitField({
         onChangeText={(typed) => {
           const next = typed.replace(/\D/g, '').slice(0, digits);
           onChange(next);
-          /* 뒤에 숫자가 더 올 수 없으면 다 적은 것이다 — 「5」월 · 「3」시 */
-          const done = next.length === digits || (next !== '' && Number(next) * 10 > max);
+          const done = next.length === digits || (advanceEarly && next !== '' && Number(next) * 10 > max);
           if (done && !digitOutOfRange(next, digits, min, max)) onFull?.();
         }}
         placeholder={placeholder}
