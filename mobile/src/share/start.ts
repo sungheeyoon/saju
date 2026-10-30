@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signInWithGoogle } from '@/auth/sign-in';
 
 /**
- * 로그인을 지나 앱 안으로 — 첫 화면의 입구 · 공유본의 초대가 쓴다. 앱에는 로그인 화면이 따로 없고 구글 창이 그 자리다.
+ * 로그인을 지나 앱 안으로 — 첫 화면의 입구 · 공유본의 초대가 쓴다. 로그인 화면(`/auth`)을 지나지 않고 구글 창을 바로 연다.
  * 가입이 안 끝났으면 가입 화면으로 가고, 끝나면 입구(`/`)가 홈으로 보낸다.
  */
 export function useStart(destination: string) {
