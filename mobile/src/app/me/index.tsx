@@ -42,7 +42,7 @@ export default function HomeScreen() {
     if (!watching) return;
     const timer = setInterval(() => {
       if (AppState.currentState !== 'active') return;
-      void readRunning().then((lines) => {
+      void settled(readRunning(), 'readRunning', () => null).then((lines) => {
         if (lines === null) return;
         if (lines.length === 0) load();
         else setHome((now) => (now?.kind === 'home' ? { ...now, running: lines } : now));
