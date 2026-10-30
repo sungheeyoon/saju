@@ -1,5 +1,4 @@
-import { isStoredChart } from '@/src/lib/matching/cards';
-import { chartSnapshotOf, type ChartSnapshot, type Gender, type Pillars } from '@/src/lib/saju';
+import { chartSnapshotOf, storedChartSnapshot, type ChartSnapshot, type Gender, type Pillars } from '@/src/lib/saju';
 
 /**
  * 공유 궁합 화면이 브라우저에 내보내는 명식 모양.
@@ -36,4 +35,6 @@ export function sharedPillarChartOf(pillars: Pillars): SharedPillarChart {
  * @returns 모양이 아니면 `null`. **기본값으로 메우지 않는다** — 없는 여덟 글자를 지어
  *   세우면 두 사람이 동의한 적 없는 명식이 보드에 선다.
  */
-export const storedPillarChart = (value: unknown): SharedPillarChart | null => (isStoredChart(value) ? value : null);
+export function storedPillarChart(value: unknown): SharedPillarChart | null {
+  return storedChartSnapshot(value);
+}

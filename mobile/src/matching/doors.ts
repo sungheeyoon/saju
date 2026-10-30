@@ -5,13 +5,13 @@ import { userFacingDbMessage } from '@db-error';
 import { boardNotes } from '@discovery';
 import { elementSummaryOf, type ElementSummary } from '@discovery/element-axes';
 import { storedChartOf } from '@input/stored';
-import { isStoredChart, publicCardFromRow } from '@matching/cards';
+import { publicCardFromRow } from '@matching/cards';
 import type { DeckCard } from '@matching/deck-card';
 import { withFrom } from '@matching/history';
 import { matchOf, notificationOf, requestOf, type Inbox, type InboxMatch, type Requests } from '@matching/inbox';
 import { outOfCredits, refusedForCredits } from '@matching/requests';
 import { activityBandOf } from '@presence';
-import { ELEMENTS, type ChartSnapshot } from '@saju';
+import { ELEMENTS, storedChartSnapshot, type ChartSnapshot } from '@saju';
 import type { PhotoFocus } from '@profile';
 import { readingBody, seatNicknamesOf, withNicknames } from '@reading/display';
 
@@ -355,7 +355,9 @@ export function readMatchResult(matchId: string): Promise<Read<MatchOutcome>> {
     if (scope.error !== null) return { ok: false, reason: userFacingDbMessage(scope.error, 'my_match_scope') };
     const row = (scope.data ?? [])[0];
     if (row === undefined) return { ok: true, value: { kind: 'none' } };
-    if (!isStoredChart(row.my_chart) || !isStoredChart(row.partner_chart)) return { ok: true, value: { kind: 'closed' } };
+    const mine = storedChartSnapshot(row.my_chart);
+    const theirs = storedChartSnapshot(row.partner_chart);
+    if (mine === null || theirs === null) return { ok: true, value: { kind: 'closed' } };
     const inbox = (matches.data ?? []).find((one) => one.match_id === matchId);
     const match = inbox === undefined ? null : matchOf(inbox);
     const flat = inbox?.partner_photo_focus ?? null;
@@ -371,8 +373,8 @@ export function readMatchResult(matchId: string): Promise<Read<MatchOutcome>> {
           partnerIntro: row.partner_intro,
           partnerPhotoCount: count,
           partnerPhotoFocus: match === null ? [] : [match.photoFocus],
-          mine: row.my_chart,
-          theirs: row.partner_chart,
+          mine,
+          theirs,
         },
       },
     };

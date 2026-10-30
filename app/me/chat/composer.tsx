@@ -6,7 +6,7 @@ import { CHAT_POLICY, TOO_LONG_TEXT, checkBody } from '@/src/lib/chat';
 import { CHAT_INPUT_PLACEHOLDER, CHAT_SEND_LABEL } from '@/src/lib/chat/copy';
 
 import { Icon } from '../../ui/icons';
-import { readDraft, writeDraft } from './draft';
+import { readDraft, writeDraft } from '@/src/lib/chat/room/draft';
 
 /** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);

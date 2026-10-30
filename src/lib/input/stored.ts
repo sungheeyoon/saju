@@ -43,6 +43,25 @@ export type StoredInput = {
 };
 
 /**
+ * 입력 한 벌을 읽을 때 고르는 열 — 웹의 서버와 앱이 같은 열을 읽는다.
+ *
+ * 앞서는 여섯 화면이 이 여덟 이름을 손으로 들고 각자 `select` 했다. 여덟 벌로 적혀
+ * 있으면 한 벌이 언젠가 한 칸을 빠뜨리고, 빠뜨린 칸은 `undefined` 로 조용히 흘러
+ * 들어간다 — 타입이 `string` 이라 아무도 안 막는다.
+ */
+export const PERSON_INPUT_COLUMNS =
+  'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';
+
+/**
+ * 여덟 칸이 **함께 차거나 함께 빈다** — 한 칸이 그 답을 든다.
+ *
+ * DB 검사식이 그렇게 걸려 있다(`num_nonnulls(...) in (0, 7)`). 그래서 한 칸만 보면
+ * 되고, 여덟을 다 보면 그 검사식과 같은 말을 두 곳에서 하게 된다.
+ */
+export const storedInputFilled = (row: Record<string, unknown> | null): boolean =>
+  row !== null && row.calendar !== null && row.calendar !== undefined;
+
+/**
  * 못 읽었을 때 **덧붙이는 한 줄** — 세 화면이 같은 것을 말한다.
  *
  * 결과의 `message` 는 **무엇을 못 읽었는지**를 말하고(모르는 출생지, 생년월일 형식이

@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { actionAnswer } from '../../../ui/action-answer';
 import { sendChatMessage } from '../actions';
 import type { ChatMessage } from './messages';
-import { UNREACHED, droppable, newClientId, settlePending, withState, type Pending } from './pending';
-import { heard, sendLine, type LineReport, type SendLine } from './send-line';
+import { UNREACHED, droppable, newClientId, settlePending, withState, type Pending } from '@/src/lib/chat/room/pending';
+import { heard, sendLine, type LineReport, type SendLine } from '@/src/lib/chat/room/send-line';
 
 export type Outbox = {
   /** 아직 읽혀 오지 않은 내 말 — 읽혀 온 것은 뺐다 */

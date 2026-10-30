@@ -1,10 +1,10 @@
 import { candidateCardText } from '../discovery';
 import type { ElementSummary } from '../discovery/element-axes';
 import { focusesOf } from '../profile';
-import { ELEMENTS, type ChartSnapshot, type Element } from '../saju';
+import { ELEMENTS, type Element } from '../saju';
 
 /**
- * **문이 내준 행을 카드 · 사진 칸 · 여덟 글자로 옮기는 말** — 웹(`app/me/candidates.ts` · `app/shared-pillar.ts`)과 앱이 함께 쓴다.
+ * **문이 내준 행을 카드 · 사진 칸으로 옮기는 말** — 웹(`app/me/candidates.ts`)과 앱이 함께 쓴다.
  * 자를 것을 고르는 판단은 여기도 없다 — 자르는 일은 DB 의 읽는 문이 이미 했다.
  */
 
@@ -80,24 +80,4 @@ export function publicCardFromRow(row: PublicCardRow, mySummary: Pick<ElementSum
       viewerCounts: mySummary.counts,
     }),
   };
-}
-
-/**
- * **저장돼 있던 여덟 글자의 모양인가**(ADR 0071). DB 가 모양을 이미 봤어도 화면으로 나가는 경계라 한 번 더 본다.
- *
- * 아니면 기본값으로 메우지 않는다 — 없는 여덟 글자를 지어 세우면 두 사람이 동의한 적 없는 명식이 보드에 선다.
- */
-export function isStoredChart(value: unknown): value is ChartSnapshot {
-  if (typeof value !== 'object' || value === null) return false;
-
-  const chart = value as Record<string, unknown>;
-  const pillar = (at: unknown): boolean =>
-    typeof at === 'object' &&
-    at !== null &&
-    typeof (at as Record<string, unknown>).stem === 'string' &&
-    typeof (at as Record<string, unknown>).branch === 'string';
-
-  if (!pillar(chart.year) || !pillar(chart.month) || !pillar(chart.day)) return false;
-  if (chart.hour !== null && !pillar(chart.hour)) return false;
-  return typeof chart.dayMaster === 'string';
 }
