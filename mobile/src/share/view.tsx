@@ -11,6 +11,7 @@ import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
 import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 import { Mark } from './marks';
 import { readShared, type ShareRead } from './read';
@@ -28,7 +29,13 @@ export function SharedReadingScreen({ token, expect }: { token: string; expect: 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- 주소가 바뀌면 옛 공유본을 먼저 걷고 빈 화면에서 새로 읽는다. 다시 시도 단추도 같은 걸음이다
   useEffect(load, [load]);
 
-  if (read === null) return <SafeAreaView style={styles.screen} />;
+  if (read === null) {
+    return (
+      <View style={styles.screen}>
+        <TopBar fallback="/" />
+      </View>
+    );
+  }
   if (read.kind === 'gone') return <GoneScreen />;
   if (read.kind === 'failed') return <FailedScreen onRetry={load} />;
   return <OpenScreen shared={read.shared} expect={expect} />;
@@ -40,7 +47,8 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
   const { start, going, failure } = useStart('/me');
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <TopBar title={sharedTitle(expect, shared.nameA, shared.nameB)} fallback="/" />
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable accessibilityRole="link" accessibilityLabel={SERVICE_NAME} onPress={() => router.replace('/')} style={styles.brandRow}>
           <Logo size={32} />
@@ -49,9 +57,6 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
 
         <View style={styles.head}>
           <Text style={styles.eyebrow}>{eyebrow}</Text>
-          <Text accessibilityRole="header" style={styles.title}>
-            {sharedTitle(expect, shared.nameA, shared.nameB)}
-          </Text>
         </View>
 
         {(metaphor !== null || score !== null) && (
@@ -126,7 +131,8 @@ function FailedScreen({ onRetry }: { onRetry: () => void }) {
 /** 막힌 화면의 틀 — 웹의 `NoticeScreen`: 가운데 크림 판, 왼쪽 글 */
 function Notice({ title, lines, children }: { title: string; lines: readonly string[]; children: ReactNode }) {
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <TopBar fallback="/" />
       <View style={styles.noticeRoom}>
         <Panel tone="cream" style={styles.notice}>
           <BrandCircle size={64} mark={40} />

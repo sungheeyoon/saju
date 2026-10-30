@@ -19,7 +19,7 @@ const SIGNED_OUT_ONLY = '로그인 없이';
 /** 서비스 소개 — 웹의 `/about`. 로그인 없이 열리고 세션도 DB 도 안 읽는다 */
 export default function AboutScreen() {
   return (
-    <InfoScreen gap={40}>
+    <InfoScreen gap={40} title="서비스 소개" fallback="/">
       <Panel tone="cream" style={styles.head}>
         <Logo size={44} />
         <Text style={styles.meta}>{SERVICE_TAGLINE}</Text>

@@ -3,12 +3,14 @@ import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Panel } from '@/ui/parts';
+import { TopBar } from '@/ui/top-bar';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
 /** 안내 화면의 판 — 내려 읽는 한 장 */
-export const InfoScreen = forwardRef<ComponentRef<typeof ScrollView>, { children: ReactNode; gap?: number }>(function InfoScreen({ children, gap = 16 }, ref) {
+export const InfoScreen = forwardRef<ComponentRef<typeof ScrollView>, { children: ReactNode; gap?: number; title: string; fallback: string }>(function InfoScreen({ children, gap = 16, title, fallback }, ref) {
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <TopBar title={title} fallback={fallback} />
       <ScrollView ref={ref} contentContainerStyle={[styles.content, { gap }]}>
         {children}
       </ScrollView>
@@ -16,11 +18,10 @@ export const InfoScreen = forwardRef<ComponentRef<typeof ScrollView>, { children
   );
 });
 
-/** 전문의 머리 — 크림 판에 작은 글 · 제목 · 한 줄 */
-export function LegalHead({ eyebrow, title, note }: { eyebrow: string; title: string; note?: string | null }) {
+/** 전문의 머리 — 크림 판에 제목 · 한 줄. 작은 글은 맨 위 줄의 이름이 맡는다 */
+export function LegalHead({ title, note }: { title: string; note?: string | null }) {
   return (
     <Panel tone="cream" style={styles.head}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
       <Text style={styles.title}>{title}</Text>
       {note ? <Text style={styles.line}>{note}</Text> : null}
     </Panel>
@@ -61,7 +62,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, padding: 16, paddingBottom: 32 },
   head: { gap: 4 },
-  eyebrow: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.creamInk },
   title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   name: { fontFamily: FONT.bold, fontSize: TYPE.lead, lineHeight: 24, color: COLOR.foreground },
   clause: { gap: 12 },

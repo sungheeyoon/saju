@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { calculateChart } from '@input/chart';
@@ -19,6 +19,7 @@ import { YongsinCard } from '@/chart/yongsin';
 import { SavePersonForReading } from '@/reading/save-self';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Panel } from '@/ui/parts';
+import { TopBar } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
 
 /** 사주 결과 — 절의 차례는 웹의 `app/saju/view.tsx` 와 같다. 값은 웹과 같은 `sajuViewModelOf` 다 */
@@ -31,12 +32,9 @@ export default function ChartScreen() {
   const model = useMemo(() => (result.ok ? sajuViewModelOf(result.saju, viewedAt) : null), [result, viewedAt]);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <TopBar title="만세력 결과" fallback="/" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-          <Text style={styles.backText}>‹ 뒤로</Text>
-        </Pressable>
-
         {!result.ok || model === null ? (
           <Text style={styles.failure}>{result.ok ? '' : result.message}</Text>
         ) : (
@@ -84,8 +82,6 @@ export default function ChartScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { padding: 16, gap: 12 },
-  back: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 16 },
-  backText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.foreground },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.danger },
   name: { fontSize: TYPE.title, fontFamily: FONT.bold, color: COLOR.foreground },
   summary: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary, marginTop: 6 },

@@ -12,9 +12,10 @@ import { paidOrderOf, type PaidOrder } from '@reading/paid-order';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
-import { BackButton, FailureLine, LinkRow, SettingsGroup, settingsText } from '@/settings/parts';
+import { FailureLine, LinkRow, SettingsGroup, settingsText } from '@/settings/parts';
 import { Panel, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 
 type Read<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -45,16 +46,11 @@ export function CreditsScreen() {
 
   return (
     <View style={styles.screen}>
+      <TopBar title={CREDITS_AVAILABLE_LABEL} fallback="/me" />
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton label="나" />
         {read !== null && (
           <>
-            <View style={styles.head}>
-              <Text style={settingsText.title} accessibilityRole="header">
-                {CREDITS_AVAILABLE_LABEL}
-              </Text>
-              <Text style={settingsText.meta}>{CREDITS_USAGE_NOTE}</Text>
-            </View>
+            <Text style={settingsText.meta}>{CREDITS_USAGE_NOTE}</Text>
             {read.ok ? (
               read.value !== null && (
                 <Panel tone="cream" style={styles.count}>
@@ -90,11 +86,8 @@ export function CreditsHistoryScreen() {
 
   return (
     <View style={styles.screen}>
+      <TopBar title="결제 내역" fallback="/me/credits" />
       <ScrollView contentContainerStyle={styles.content}>
-        <BackButton label={CREDITS_AVAILABLE_LABEL} to="/me/credits" />
-        <Text style={settingsText.title} accessibilityRole="header">
-          결제 내역
-        </Text>
         {read !== null &&
           (!read.ok ? (
             <FailureLine onRetry={load}>{read.message}</FailureLine>
@@ -147,7 +140,6 @@ function OrderCard({ order }: { order: PaidOrder }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 16, padding: 16, paddingBottom: 40 },
-  head: { gap: 4 },
   count: { gap: 8 },
   number: { fontSize: TYPE.figure, lineHeight: 48, fontFamily: FONT.bold, color: COLOR.foreground },
   unit: { fontSize: TYPE.lead, fontFamily: FONT.bold },

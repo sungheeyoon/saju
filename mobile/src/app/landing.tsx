@@ -11,6 +11,7 @@ import { useStart } from '@/share/start';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
 import { Panel } from '@/ui/parts';
+import { TopBar } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /**
@@ -32,17 +33,22 @@ export default function LandingScreen() {
     };
   }, []);
 
-  if (gate === 'checking') return <SafeAreaView style={styles.screen} />;
+  if (gate === 'checking') {
+    return (
+      <View style={styles.screen}>
+        <TopBar fallback="/" />
+      </View>
+    );
+  }
   if (gate === 'in') return <Redirect href={'/me' as never} />;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <TopBar fallback="/">
+        <Logo size={32} />
+        <Text style={styles.brand}>{SERVICE_NAME}</Text>
+      </TopBar>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.brandRow}>
-          <Logo size={32} />
-          <Text style={styles.brand}>{SERVICE_NAME}</Text>
-        </View>
-
         <Panel tone="cream" style={styles.paper}>
           <Text accessibilityRole="header" style={styles.title}>
             나는 어떤 사람일까?

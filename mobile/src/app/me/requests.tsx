@@ -9,6 +9,7 @@ import { when } from '@matching/requests';
 import { markNotificationsRead, readInbox, type Read } from '@/matching/doors';
 import { Icon, type IconName } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 /** 사건마다 줄 머리의 그림 — 색이 아니라 모양이 갈래를 말한다. 웹의 표와 같고, 웹의 태극(`taiji`)은 앱에서 사람 둘이다 */
 const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
@@ -56,10 +57,8 @@ export default function RequestsScreen() {
 
   return (
     <View style={styles.screen}>
+      <TopBar title="소식" fallback="/me" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title} accessibilityRole="header">
-          소식
-        </Text>
         {inbox === null ? null : !inbox.ok ? (
           <View>
             <Text style={styles.failure} accessibilityRole="alert">
@@ -125,7 +124,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 24, padding: 16 },
   flex: { flex: 1, minWidth: 0, gap: 2 },
-  title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },

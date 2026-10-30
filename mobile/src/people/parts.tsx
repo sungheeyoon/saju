@@ -10,22 +10,23 @@ import { BRANCH_INFO, STEM_INFO, type Branch, type Stem } from '@saju';
 import { PILLAR_COLUMNS, STEM_PICTURE } from '@saju-view';
 
 import { KeyboardDoneBar, Panel, TextButton } from '@/ui/parts';
-import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { StemSymbol } from '@/ui/stem-symbol';
 
 /** 아직 없는 경로도 그대로 잇는다 — 나란히 짓는 화면이 그 자리에 선다 */
 export const go = (path: string) => router.push(path as Href);
 
-/** 한 화면의 틀 */
-export function ScreenFrame({ children, keyboard = false }: { children: ReactNode; keyboard?: boolean }) {
+/** 한 화면의 틀 — `bar` 는 스크롤 밖 맨 위 줄이다. `/me` 아래 틀이라 위는 머리나 맨 위 줄이, 아래는 탭이 안전 영역을 낸다 */
+export function ScreenFrame({ children, keyboard = false, bar }: { children: ReactNode; keyboard?: boolean; bar?: ReactNode }) {
   const body = (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       {children}
     </ScrollView>
   );
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
+      {bar}
       {keyboard ? (
         <KeyboardAvoidingView style={styles.screen} behavior="padding">
           {body}
@@ -35,19 +36,6 @@ export function ScreenFrame({ children, keyboard = false }: { children: ReactNod
         body
       )}
     </SafeAreaView>
-  );
-}
-
-/** 뒤로 가기 — 글자는 돌아갈 화면의 이름이다. 그 화면에서 오지 않았으면 그 화면을 연다 */
-export function BackLink({ label, href }: { label: string; href: string }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => (router.canGoBack() ? router.back() : router.replace(href as Href))}
-      style={styles.back}
-    >
-      <Text style={styles.backText}>‹ {label}</Text>
-    </Pressable>
   );
 }
 
@@ -199,8 +187,6 @@ const GLYPH_FONT = Platform.select({ ios: 'System', android: 'sans-serif', defau
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
-  back: { minHeight: CONTROL, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 16 },
-  backText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.secondary },
   title: { fontSize: TYPE.title, lineHeight: 34, fontFamily: FONT.bold, color: COLOR.foreground },
   section: { fontSize: TYPE.heading, lineHeight: 28, fontFamily: FONT.bold, color: COLOR.foreground },
   name: { fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },

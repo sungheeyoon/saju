@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { COLOR } from './tokens';
 
-export type IconName = 'home' | 'people' | 'chat' | 'bell' | 'gear' | 'chevron' | 'plus' | 'taiji' | 'search' | 'ticket' | 'undo' | 'close' | 'back' | 'arrow' | 'flag' | 'exchange' | 'spark' | 'reading' | 'alert' | 'more' | 'block';
+export type IconName = 'home' | 'people' | 'chat' | 'bell' | 'gear' | 'chevron' | 'plus' | 'taiji' | 'search' | 'ticket' | 'undo' | 'close' | 'arrow' | 'flag' | 'exchange' | 'spark' | 'reading' | 'alert' | 'more' | 'block';
 
 /** 웹의 `app/ui/icons.tsx` 와 같은 24 격자 · 같은 경로 값이다. 이름은 곁의 글자나 단추의 이름이 든다 */
 const shapes = (color: string): Record<IconName, ReactNode> => ({
@@ -57,7 +57,6 @@ const shapes = (color: string): Record<IconName, ReactNode> => ({
     </>
   ),
   close: <Path d="M6 6l12 12M18 6 6 18" />,
-  back: <Path d="M19 12H6m5-5.5L5.5 12l5.5 5.5" />,
   arrow: <Path d="M5 12h13m-5-5.5L18.5 12 13 17.5" />,
   flag: <Path d="M5.5 21V4.5m0 0c4-2 7 2 13 0v9c-6 2-9-2-13 0" />,
   exchange: <Path d="M5 8.5h13.5M15 5l3.5 3.5L15 12M19 15.5H5.5M9 12l-3.5 3.5L9 19" />,

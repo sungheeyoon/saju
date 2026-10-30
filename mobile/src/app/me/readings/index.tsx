@@ -9,6 +9,7 @@ import { followRefusal, ReadFailure } from '@/reading/panel';
 import { BlankBook, BookRow, MakingRow, SHELF_CHIPS, SHELF_TITLE, type ShelfChip } from '@/reading/shelf';
 import { Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 type Shelf = Extract<ShelfView, { view: 'shelf' }>;
 
@@ -36,11 +37,9 @@ export default function ReadingsScreen() {
   useFocusEffect(load);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
+      <TopBar title={SHELF_TITLE} fallback="/me" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text accessibilityRole="header" style={styles.title}>
-          {SHELF_TITLE}
-        </Text>
         {answer !== null && 'refused' in answer && <ReadFailure refused={answer.refused} onRetry={load} />}
         {answer !== null && 'view' in answer && answer.view.view === 'blocked' && (
           <Panel>
@@ -220,7 +219,6 @@ function Group({ title, note, children }: { title: string; note: string; childre
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { gap: 16, padding: 16, paddingBottom: 48 },
-  title: { fontFamily: FONT.bold, fontSize: TYPE.title, color: COLOR.foreground },
   body: { gap: 24 },
   nothing: { gap: 12 },
   noticeTitle: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },

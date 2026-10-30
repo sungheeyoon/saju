@@ -51,9 +51,8 @@ export default function HelpScreen() {
   };
 
   return (
-    <InfoScreen ref={scroller} gap={32}>
+    <InfoScreen ref={scroller} gap={32} title="자주 묻는 질문" fallback="/">
       <View style={styles.head}>
-        <Text style={styles.title}>자주 묻는 질문</Text>
         <Text style={styles.answer}>궁금한 물음을 누르면 답이 펼쳐져요.</Text>
       </View>
 
@@ -133,7 +132,6 @@ export default function HelpScreen() {
 
 const styles = StyleSheet.create({
   head: { gap: 8 },
-  title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   chipText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },

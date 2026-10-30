@@ -8,11 +8,12 @@ import { STEM_INFO } from '@saju';
 
 import { Tabs } from '@/chart/parts';
 import { readPersonDetail, type MyReading, type PersonDetail, type Read } from '@/people/data';
-import { AccountNotice, BackLink, DayMasterChip, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
+import { AccountNotice, DayMasterChip, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { SajuSections } from '@/people/saju-sections';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 const NO_READING_YET = '아직 받은 사주풀이가 없어요.';
 const NO_COMPAT_YET = '아직 본 궁합이 없어요.';
@@ -30,17 +31,18 @@ export default function PersonScreen() {
   }, [params.personId]);
   useFocusEffect(load);
 
+  const before = <TopBar fallback={params.from === 'me' ? '/me' : '/me/people'} />;
+
   if (read === null || read.kind === 'signed-out') {
     return (
-      <ScreenFrame>
+      <ScreenFrame bar={before}>
         <ActivityIndicator color={COLOR.secondary} style={styles.loading} />
       </ScreenFrame>
     );
   }
   if (read.kind === 'failed') {
     return (
-      <ScreenFrame>
-        <BackLink label="저장한 사람" href="/me/people" />
+      <ScreenFrame bar={before}>
         <FailureLine onRetry={load}>{read.message}</FailureLine>
       </ScreenFrame>
     );
@@ -49,14 +51,14 @@ export default function PersonScreen() {
   const { state, person, selfPersonId, nickname, readings } = read.value;
   if (isBlocked(state)) {
     return (
-      <ScreenFrame>
+      <ScreenFrame bar={before}>
         <AccountNotice state={state} onRetry={load} />
       </ScreenFrame>
     );
   }
   if (person === null) {
     return (
-      <ScreenFrame>
+      <ScreenFrame bar={before}>
         <NotFound>
           <PrimaryButton label="사람 목록으로" onPress={() => router.replace('/me/people')} />
         </NotFound>
@@ -67,12 +69,11 @@ export default function PersonScreen() {
   /* 내 명식이면 풀이 칸은 내 것이다 — 견주는 값은 주소의 글자가 아니라 DB 가 낸 id 다 */
   const mine = selfPersonId === person.personId;
   const fromHome = mine || params.from === 'me';
-  const back = <BackLink label={fromHome ? '홈' : '저장한 사람'} href={fromHome ? '/me' : '/me/people'} />;
+  const bar = <TopBar title={person.label} fallback={fromHome ? '/me' : '/me/people'} />;
 
   if (!person.chart.ok) {
     return (
-      <ScreenFrame>
-        {back}
+      <ScreenFrame bar={bar}>
         <Panel style={styles.unreadable}>
           <Text style={shared.noticeBody}>{person.chart.message}</Text>
           <Text style={shared.meta}>{UNREADABLE_INPUT_NOTE}</Text>
@@ -99,9 +100,7 @@ export default function PersonScreen() {
     ].join(' · ');
 
   return (
-    <ScreenFrame>
-      {back}
-
+    <ScreenFrame bar={bar}>
       <View style={[styles.header, { backgroundColor: ELEMENT_TONE[STEM_INFO[stem].element].soft }]}>
         <View style={styles.watermark}>
           <StemSymbol stem={stem} size={160} opacity={0.15} />
@@ -109,7 +108,6 @@ export default function PersonScreen() {
         <View style={styles.chip}>
           <DayMasterChip stem={stem} />
         </View>
-        <Text style={[shared.title, styles.name]}>{person.label}</Text>
         <View style={styles.headButtons}>
           <Pressable accessibilityRole="link" onPress={() => go(readingHref)} style={[styles.headButton, own === null ? styles.primary : styles.plain]}>
             <Text style={[styles.headButtonText, own === null && styles.primaryText]} numberOfLines={1}>{own === null ? '사주풀이 받기' : '사주풀이 보기'}</Text>
@@ -185,8 +183,7 @@ const styles = StyleSheet.create({
   header: { padding: 20, borderRadius: RADIUS.panel, overflow: 'hidden' },
   watermark: { position: 'absolute', right: -32, bottom: -40 },
   chip: { position: 'absolute', top: 16, right: 16 },
-  name: { paddingRight: 80 },
-  headButtons: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  headButtons: { flexDirection: 'row', gap: 8, marginTop: 32 },
   headButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, borderRadius: RADIUS.pill },
   plain: { backgroundColor: COLOR.surface },
   primary: { backgroundColor: COLOR.accent },

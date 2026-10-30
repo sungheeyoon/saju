@@ -1,4 +1,4 @@
-import { Redirect, Stack, router, usePathname } from 'expo-router';
+import { Redirect, Stack, router, useGlobalSearchParams, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { gateFor } from '@consent/gate';
 import { LiveChannel } from '@/chat/live';
 import { useCounts } from '@/home/counts';
 import { useGate } from '@/home/gate';
+import { appHeadStands, dockStands } from '@app-shell';
 import { SettingsMenu } from '@/home/settings-menu';
 import { WarningNotice } from '@/home/warning-notice';
 import { Icon } from '@/ui/icons';
@@ -36,9 +37,6 @@ function isActive(pathname: string, href: string): boolean {
   return within(pathname, href);
 }
 
-/** 대화방 하나에서는 독도 머리도 안 선다 — 폰의 방은 화면 전체다(웹의 `dockStandsOn`, PRD 「앱 내 채팅」) */
-const dockStands = (pathname: string) => !/^\/me\/chat\/[^/]+\/?$/.test(pathname);
-
 /**
  * 앱 안의 껍데기 — 머리 · 네 탭 · 관문. **탭 아래는 스택 하나다** — 다른 화면이 여기 이름을 올리지 않아도 뒤로 가기가 돌고,
  * 탭 막대는 웹의 하단 독처럼 주소를 보고 불을 켠다.
@@ -46,6 +44,7 @@ const dockStands = (pathname: string) => !/^\/me\/chat\/[^/]+\/?$/.test(pathname
 export default function MeLayout() {
   const { gate, retry } = useGate();
   const pathname = usePathname();
+  const search = useGlobalSearchParams<{ a?: string; b?: string }>();
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const counts = useCounts(pathname, gate.kind === 'in');
@@ -57,7 +56,7 @@ export default function MeLayout() {
     /* 끝난 뒤 지나가는 곳은 설정뿐이라 탭도 머리도 안 선다 — 눌러 봐야 안내로 되돌아온다 */
     if (gateFor(pathname, gate.account, gate.notice, new Date()) !== null) return <Redirect href={'/closed' as never} />;
     return (
-      <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={styles.screen}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLOR.background } }} />
       </View>
     );
@@ -76,7 +75,7 @@ export default function MeLayout() {
   return (
     <View style={styles.screen}>
       <LiveChannel />
-      {dockStands(pathname) && (
+      {appHeadStands(pathname, search) && (
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable accessibilityRole="link" accessibilityLabel={`${SERVICE_NAME} 홈`} onPress={() => router.navigate('/me' as never)} style={styles.logo}>
           <Logo size={32} />
@@ -102,7 +101,8 @@ export default function MeLayout() {
       </View>
       )}
 
-      {dockStands(pathname) && <WarningNotice />}
+      {/* 머리가 선 탭 첫 화면 아래에만 선다 — 하위 화면은 맨 위 줄(`ui/top-bar.tsx`)이 안전 영역을 내서, 그 위에 얹으면 상태 표시줄 밑으로 들어간다 */}
+      {appHeadStands(pathname, search) && <WarningNotice />}
 
       <View style={styles.body}>
         <Stack

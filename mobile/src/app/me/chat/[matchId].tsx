@@ -1,3 +1,4 @@
+import { CHAT_TAB_LABEL } from '@chat/index';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -7,6 +8,7 @@ import { listenLive } from '@/chat/live';
 import { AccountNotice, FailureLine, NoRoom } from '@/chat/notices';
 import { noteActivity, readRoomScreen, type RoomScreen } from '@/chat/reads';
 import { ChatRoomView } from '@/chat/room';
+import { TopBar } from '@/ui/top-bar';
 import { COLOR } from '@/ui/tokens';
 
 /** 한 물결의 변경을 묶어 다시 읽는 간격 — 웹의 `REDRAW_AFTER_MS` 와 같다 */
@@ -57,10 +59,12 @@ export default function ChatRoomScreen() {
   }, [load, matchId]);
 
   /* 첫 읽기 동안은 판만 — 방이 선 뒤 다시 읽다 실패하면 가진 방을 그대로 둔다(쓰던 글과 스크롤이 그대로다) */
-  if (screen === null) return <SafeAreaView style={styles.screen} />;
+  const bar = <TopBar title={CHAT_TAB_LABEL} fallback="/me/chat" />;
+  if (screen === null) return <View style={styles.screen}>{bar}</View>;
   if (screen.kind === 'ready') return <ChatRoomView key={matchId} room={screen.view} onChanged={load} />;
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      {bar}
       <View style={styles.pad}>
         {screen.kind === 'failed' && <FailureLine onRetry={load}>{screen.message}</FailureLine>}
         {screen.kind === 'blocked' && <AccountNotice state={screen.state} onRetry={load} />}
