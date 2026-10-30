@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { COLOR } from './tokens';
 
-type IconName = 'home' | 'people' | 'chat' | 'bell' | 'gear' | 'chevron' | 'plus' | 'taiji' | 'search' | 'ticket';
+export type IconName = 'home' | 'people' | 'chat' | 'bell' | 'gear' | 'chevron' | 'plus' | 'taiji' | 'search' | 'ticket' | 'undo' | 'close' | 'back' | 'arrow' | 'flag' | 'exchange' | 'spark' | 'reading' | 'alert' | 'more' | 'block';
 
 /** 웹의 `app/ui/icons.tsx` 와 같은 24 격자 · 같은 경로 값이다. 이름은 곁의 글자나 단추의 이름이 든다 */
 const shapes = (color: string): Record<IconName, ReactNode> => ({
@@ -46,6 +46,38 @@ const shapes = (color: string): Record<IconName, ReactNode> => ({
     <>
       <Path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4Z" />
       <Path d="M14.5 6.5v11" strokeDasharray="1.6 2" />
+    </>
+  ),
+  undo: (
+    <>
+      <Path d="M9 14 4.5 9.5 9 5" />
+      <Path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3" />
+    </>
+  ),
+  close: <Path d="M6 6l12 12M18 6 6 18" />,
+  back: <Path d="M19 12H6m5-5.5L5.5 12l5.5 5.5" />,
+  arrow: <Path d="M5 12h13m-5-5.5L18.5 12 13 17.5" />,
+  flag: <Path d="M5.5 21V4.5m0 0c4-2 7 2 13 0v9c-6 2-9-2-13 0" />,
+  exchange: <Path d="M5 8.5h13.5M15 5l3.5 3.5L15 12M19 15.5H5.5M9 12l-3.5 3.5L9 19" />,
+  spark: <Path d="M12 3.5 13.9 10l6.6 2-6.6 2L12 20.5 10.1 14l-6.6-2 6.6-2Z" />,
+  reading: <Path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13.4c3.6-.3 6.2.2 8 1.8 1.8-1.6 4.4-2.1 8-1.8V4.8c-3.6-.3-6.2.2-8 1.7Zm0 0V20" />,
+  alert: (
+    <>
+      <Path d="M12 3.8 21 19.5H3Z" />
+      <Path d="M12 10v4.2M12 17v.1" />
+    </>
+  ),
+  more: (
+    <>
+      <Circle cx={6} cy={12} r={1.2} fill={color} stroke="none" />
+      <Circle cx={12} cy={12} r={1.2} fill={color} stroke="none" />
+      <Circle cx={18} cy={12} r={1.2} fill={color} stroke="none" />
+    </>
+  ),
+  block: (
+    <>
+      <Circle cx={12} cy={12} r={8.5} />
+      <Path d="m6 6 12 12" />
     </>
   ),
 });

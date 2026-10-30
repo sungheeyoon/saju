@@ -8,7 +8,7 @@ import { receivedOf } from '@matching/requests';
 
 import { readMatchBooks, readMatches, readRequests, type MatchBook, type Read } from '@/matching/doors';
 import { PastRequestList } from '@/matching/requests';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -55,7 +55,7 @@ export default function MatchHistoryScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Pressable accessibilityRole="button" accessibilityLabel="인연" onPress={() => router.navigate('/me/matching')} style={styles.back}>
-            <LineIcon name="back" />
+            <Icon size={20} name="back" />
           </Pressable>
           <Text style={styles.title} accessibilityRole="header">
             인연 기록
@@ -89,7 +89,7 @@ export default function MatchHistoryScreen() {
                     <Text style={[styles.bookName, styles.flex]} numberOfLines={1}>
                       {match.nickname}
                     </Text>
-                    <LineIcon name="chevron" size={16} color={COLOR.muted} />
+                    <Icon name="chevron" size={16} color={COLOR.muted} />
                   </Pressable>
                 ))}
                 {shelf.map((book) => (
@@ -97,7 +97,7 @@ export default function MatchHistoryScreen() {
                     <Text style={[styles.bookName, styles.flex]} numberOfLines={1}>
                       {nameOf(book)}
                     </Text>
-                    <LineIcon name="chevron" size={16} color={COLOR.muted} />
+                    <Icon name="chevron" size={16} color={COLOR.muted} />
                   </Pressable>
                 ))}
                 {!matches.ok && <Failure onRetry={load}>만드는 중인 인연 궁합을 불러오지 못했어요.</Failure>}

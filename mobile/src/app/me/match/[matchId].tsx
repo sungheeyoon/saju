@@ -8,7 +8,7 @@ import { ELEMENT_KO, PILLAR_POSITION_KO, STEM_INFO, type ChartSnapshot } from '@
 
 import { readMatchReading, readMatchResult, type MatchOutcome, type MatchReading, type Read } from '@/matching/doors';
 import { Face, PartnerSheet, ReportBlock } from '@/matching/people';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -110,7 +110,7 @@ export default function MatchScreen() {
           </View>
           {from !== 'chat' && (
             <Pressable accessibilityRole="link" onPress={() => router.push(`/me/chat/${result.matchId}` as never)} style={styles.chat}>
-              <LineIcon name="chat" size={18} />
+              <Icon name="chat" size={18} />
               <Text style={styles.chatText}>{CHAT_TAB_LABEL}</Text>
             </Pressable>
           )}
@@ -160,7 +160,7 @@ export default function MatchScreen() {
 function Back({ onPress }: { onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={onPress} style={styles.back}>
-      <LineIcon name="back" />
+      <Icon size={20} name="back" />
     </Pressable>
   );
 }

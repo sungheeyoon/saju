@@ -21,7 +21,7 @@ import { cancelledNote, when } from '@matching/requests';
 import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 
 import { ElementSymbol } from '@/ui/element-symbol';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -74,7 +74,7 @@ export function ElementExchange({ request }: { request: InboxRequest }) {
                 <Text style={styles.cellWayText} numberOfLines={1}>
                   {cell.from}
                 </Text>
-                <LineIcon name="arrow" size={12} color={COLOR.secondary} />
+                <Icon name="arrow" size={12} color={COLOR.secondary} />
                 <Text style={styles.cellWayText} numberOfLines={1}>
                   {cell.to}
                 </Text>
@@ -91,7 +91,7 @@ export function ElementExchange({ request }: { request: InboxRequest }) {
             </View>
           ))}
           <View style={styles.swap}>
-            <LineIcon name="exchange" size={16} color={COLOR.secondary} />
+            <Icon name="exchange" size={16} color={COLOR.secondary} />
           </View>
         </View>
       )}
@@ -115,7 +115,7 @@ function RequestHead({ request, large = false }: { request: InboxRequest; large?
             <Text style={large ? styles.nameLarge : styles.name} numberOfLines={1}>
               {request.nickname}
             </Text>
-            <LineIcon name="chevron" size={16} color={COLOR.secondary} />
+            <Icon name="chevron" size={16} color={COLOR.secondary} />
           </View>
           <Text style={styles.meta}>{when(request.createdAt)}</Text>
         </View>
@@ -274,7 +274,7 @@ export function ConsentGuide() {
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={styles.foldHead}>
         <Text style={styles.foldTitle}>궁합 요청은 어떻게 진행되나요?</Text>
         <View style={open && styles.turned}>
-          <LineIcon name="chevron" size={16} color={COLOR.muted} />
+          <Icon name="chevron" size={16} color={COLOR.muted} />
         </View>
       </Pressable>
       {open && (
@@ -310,7 +310,7 @@ export function RequestsBand({ received, onChanged }: { received: readonly Inbox
             {received.map((request) => request.nickname).join(' · ')} — 수락하면 채팅방이 열려요
           </Text>
         </View>
-        <LineIcon name="chevron" size={16} color={COLOR.onAccent} />
+        <Icon name="chevron" size={16} color={COLOR.onAccent} />
       </Pressable>
       <SheetModal open={open} title="받은 요청" onClose={() => setOpen(false)}>
         {received.map((request) => (
@@ -382,7 +382,7 @@ export function PastRequestList({ past, guide, onChanged, onNote }: { past: Past
             ) : (
               <Pressable key={request.requestId} accessibilityRole="link" onPress={() => router.push(request.matchHref as never)} style={styles.decided}>
                 <DecidedLine request={request} />
-                <LineIcon name="chevron" size={16} color={COLOR.muted} />
+                <Icon name="chevron" size={16} color={COLOR.muted} />
               </Pressable>
             ),
           )}
