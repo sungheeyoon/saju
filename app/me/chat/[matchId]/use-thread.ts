@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { supabaseInBrowser } from '../../../auth/browser-client';
 import { CHAT_MOVED, chatMovedOf } from '../chat-signal';
-import { labelled, type ShownMessage } from './bubbles';
+import { labelled, type ShownMessage } from '@/src/lib/chat/room/bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
-import { mergeMessages, needsNewer, newestSeq, oldestSeq, readNewer } from './thread';
+import { mergeMessages, needsNewer, newestSeq, oldestSeq, readNewer } from '@/src/lib/chat/room/thread';
 
 /** 새 메시지를 읽을 때 한 쪽의 크기 — 대개 한두 건이다. 가득 차면 `readNewer` 가 앞을 더 읽는다 */
 const NEWER_PAGE = 50;

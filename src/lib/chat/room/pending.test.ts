@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { RATE_LIMITED_TEXT } from '@/src/lib/chat';
+import { RATE_LIMITED_TEXT } from '../index';
 
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 import {
   UNREACHED,
   droppable,

@@ -1,4 +1,4 @@
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 
 /**
  * 방 안의 말풍선이 서는 모양 — **시각 글자는 메시지마다 한 번 짓는다**(`labelled`).

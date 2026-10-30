@@ -1,8 +1,6 @@
 import {
   CLAIM_STRENGTH_KO,
   type ClaimStrength,
-  type CompatWarning,
-  type CompatWarningKind,
   type Utterance,
 } from '@/src/lib/saju';
 import {
@@ -26,47 +24,6 @@ import { Rich } from './saju/rich';
  * 문자열과 사람이 읽는 문자열이 갈라지고, 그 순간 검사기는 아무것도 지키지 않는
  * 것이 된다. 이 파일이 아는 것은 **어디에 놓을지**뿐이다.
  */
-
-/**
- * L3 발화 중 **표가 이미 든 것.**
- *
- * 조립기는 고르지 않는다(`ASSEMBLE_POLICY.selection: 'all-facts-speak'`). 줄이는
- * 것은 화면의 몫인데, 계약이 "줄인다면 그것도 정책 값으로 적는다"고 못박아 두었다.
- * 여기가 그 값이다 — 관계는 종류·글자·자리를 열로 가르는 표가 원국·궁합 양쪽에 이미
- * 있고, 같은 값을 문장 목록에 한 번 더 내면 읽는 사람은 다른 값인 줄 알고 두 번 읽는다.
- *
- * `relation.coverage` 는 버리지 않는다. 두 표의 각주가 각각 손으로 "시주를 몰라
- * 시주가 걸린 관계는 빠져 있습니다"라고 적고 있었는데, 궁합 쪽은 **누구인지를 못
- * 적었다.** 그 자리에 발화를 그대로 놓는다.
- */
-export const TOPICS_THE_TABLE_HOLDS: readonly string[] = [
-  'relation.present',
-  'relation.coverage',
-];
-
-/**
- * 발화가 **이미, 그리고 더 낫게** 말하는 궁합 경고.
- *
- * 엔진 경고는 사람을 이름으로 못 부른다 — 이름이 계산에 안 들어가기로 했으므로
- * '두 번째 사람의' 까지다. L3 는 `CompatPerson.label` 을 받아 '지영의' 라고 부르고,
- * 관계 표 각주와 문장 옆이라는 **제자리**에서 말한다.
- *
- * - `hour-unknown-relations` → `relation.coverage` 가 표 각주에서 이름을 부른다.
- * - `hour-unknown-elements` → 없는 오행을 **아예 말하지 않는다**(`absence` 가 잠근다).
- *   경고의 전제("없는 오행이 부풀어 보인다")가 성립하려면 화면이 그것을 보여 주고
- *   있어야 하는데, 이제 보여 주지 않는다.
- *
- * **지우지 않고 걸러 낸다.** 카드째 걷어내면 나중에 생길 다른 경고까지 조용히
- * 사라진다 — 아는 종류만 빼고 모르는 것은 그대로 선다.
- */
-const WARNINGS_SAID_BY_UTTERANCES: readonly CompatWarningKind[] = [
-  'hour-unknown-relations',
-  'hour-unknown-elements',
-];
-
-/** 발화가 대신 말하지 않는 경고만 — 화면이 그대로 든다 */
-export const warningsToShow = (warnings: readonly CompatWarning[]): CompatWarning[] =>
-  warnings.filter((warning) => !WARNINGS_SAID_BY_UTTERANCES.includes(warning.kind));
 
 /** 강도 칸의 모양 — 사다리가 위에서 아래로 옅어진다 */
 const STRENGTH_TONE: Record<Exclude<ClaimStrength, 'silent'>, string> = {

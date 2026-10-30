@@ -126,6 +126,31 @@ export function chartSnapshotOf(pillars: Pillars): ChartSnapshot {
 }
 
 /**
+ * **저장돼 있던 여덟 글자를 받는다** (ADR 0071). DB 가 모양을 이미 봤지만 이 값은 화면으로 나가는 경계를 지난다 — 백필이 아직 안 닿은
+ * 옛 Match 는 칸이 비어 있다.
+ *
+ * @returns 모양이 아니면 `null`. **기본값으로 메우지 않는다** — 없는 여덟 글자를 지어 세우면 두 사람이 동의한 적 없는 명식이 선다.
+ */
+export function storedChartSnapshot(value: unknown): ChartSnapshot | null {
+  return isStoredChart(value) ? value : null;
+}
+
+function isStoredChart(value: unknown): value is ChartSnapshot {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const chart = value as Record<string, unknown>;
+  const pillar = (at: unknown): boolean =>
+    typeof at === 'object' &&
+    at !== null &&
+    typeof (at as Record<string, unknown>).stem === 'string' &&
+    typeof (at as Record<string, unknown>).branch === 'string';
+
+  if (!pillar(chart.year) || !pillar(chart.month) || !pillar(chart.day)) return false;
+  if (chart.hour !== null && !pillar(chart.hour)) return false;
+  return typeof chart.dayMaster === 'string';
+}
+
+/**
  * 시주까지 확정된 4주 — `getFourPillars` 가 내는 결과.
  *
  * 타입이 곧 약속이다. 이 값을 받은 쪽은 `hour` 의 널 검사를 하지 않아도 된다.

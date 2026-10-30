@@ -1,4 +1,4 @@
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 
 /**
  * 방이 든 메시지를 **합치고 세우는** 규칙 — 채널이 「새 메시지」를 알리면 방은 읽는 문을 다시 불러 여기서 합친다

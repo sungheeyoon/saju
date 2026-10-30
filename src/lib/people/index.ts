@@ -132,6 +132,21 @@ export type PersonSlots = {
 };
 
 /**
+ * `my_person_slots` 가 내주는 한 줄을 화면이 쓰는 값으로 — 모양을 옮기는 일은 여기 한 자리라, 필드 이름이 바뀌는 날 한쪽만 고쳐지지 않는다.
+ *
+ * @returns 못 읽었으면 `null` — **0 으로 눕히지 않는다.** 0 은 「다 찼다」이고, 그렇게
+ *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「자리를 다 채웠다」고 거짓을 말한다.
+ */
+export function personSlotsFrom(
+  data: readonly { person_limit: number; used: number; remaining: number }[] | null,
+): PersonSlots | null {
+  /* 칸 이름은 부르는 쪽의 생성 타입과 견준다 — `person_limit` 이 바뀌면 컴파일러가 그 호출을 가리킨다 */
+  const one = data?.[0];
+
+  return one === undefined ? null : { limit: one.person_limit, used: one.used, remaining: one.remaining };
+}
+
+/**
  * 자리가 모자라서 못 저장할 때 하는 말 — **모자라지 않으면 `null`.**
  *
  * 저장하는 입구가 셋이다(저장한 사람 화면 · 사주 결과 아래 · 궁합 결과 아래). 말을 각자 지으면
