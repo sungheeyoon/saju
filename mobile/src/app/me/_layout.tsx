@@ -6,10 +6,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SERVICE_NAME } from '@brand';
 import { gateFor } from '@consent/gate';
 
+import { LiveChannel } from '@/chat/live';
 import { useCounts } from '@/home/counts';
 import { useGate } from '@/home/gate';
 import { appHeadStands, dockStands } from '@app-shell';
 import { SettingsMenu } from '@/home/settings-menu';
+import { WarningNotice } from '@/home/warning-notice';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
 import { SecondaryButton } from '@/ui/parts';
@@ -72,6 +74,7 @@ export default function MeLayout() {
 
   return (
     <View style={styles.screen}>
+      <LiveChannel />
       {appHeadStands(pathname, search) && (
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable accessibilityRole="link" accessibilityLabel={`${SERVICE_NAME} 홈`} onPress={() => router.navigate('/me' as never)} style={styles.logo}>
@@ -97,6 +100,9 @@ export default function MeLayout() {
         </View>
       </View>
       )}
+
+      {/* 머리가 선 탭 첫 화면 아래에만 선다 — 하위 화면은 맨 위 줄(`ui/top-bar.tsx`)이 안전 영역을 내서, 그 위에 얹으면 상태 표시줄 밑으로 들어간다 */}
+      {appHeadStands(pathname, search) && <WarningNotice />}
 
       <View style={styles.body}>
         <Stack

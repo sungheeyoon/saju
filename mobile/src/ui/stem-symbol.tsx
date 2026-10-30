@@ -4,7 +4,7 @@ import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import { STEM_INFO, type Stem } from '@saju';
 
-import { ELEMENT_TONE } from '@/ui/tokens';
+import { ELEMENT_TONE } from './tokens';
 
 type Paint = { fill: string; stroke: string; strokeWidth: number };
 

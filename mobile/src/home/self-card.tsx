@@ -7,15 +7,17 @@ import { ELEMENT_PICTURE_KO, ELEMENTS, STEM_INFO } from '@saju';
 import { withFromMe } from '@web-home/from-me';
 import { SELF_READING_MAKING } from '@web-home/making';
 
+import { DayMasterChip } from '@/people/parts';
 import { ElementSymbol } from '@/ui/element-symbol';
-import { Photo } from '@/ui/photo';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import type { SelfCardData } from './read';
+import { SelfProfile } from './self-profile';
 
 type Ok = Extract<SelfCardData, { kind: 'ok' }>;
 
-/** 내 사주 카드(줄인 판) — 홈에서 오행 면을 입는 것은 이 판 하나다. 「내 프로필」 시트는 프로필 화면과 함께 온다 */
+/** 내 사주 카드(줄인 판) — 홈에서 오행 면을 입는 것은 이 판 하나다. 일간은 원 · 딱지 · 뒤의 그림이 든다 */
 export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바꿔 세운다 — 아직 저장 안 된 사주에 「이 사주가 내 사주 맞나요?」를 물을 때 */ actions?: ReactNode }) {
   const { saju, query } = card;
   const dayElement = STEM_INFO[saju.pillars.dayMaster].element;
@@ -24,16 +26,22 @@ export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바
 
   return (
     <View accessibilityLabel="내 사주" style={[styles.card, { backgroundColor: tone.soft }]}>
+      <View pointerEvents="none" style={styles.watermark}>
+        <StemSymbol stem={saju.pillars.dayMaster} size={160} opacity={0.15} />
+      </View>
+      <View style={styles.chip}>
+        <DayMasterChip stem={saju.pillars.dayMaster} />
+      </View>
       <View style={styles.head}>
-        <View style={styles.face}>
-          {card.face === null ? (
-            <ElementSymbol element={dayElement} size={32} />
-          ) : (
-            <Photo userId={card.face.userId} size={56} hasPhoto={card.face.hasPhoto} focus={card.face.focus} fallback={<ElementSymbol element={dayElement} size={32} />} />
-          )}
-        </View>
+        {card.face !== null ? (
+          <SelfProfile face={card.face} stem={saju.pillars.dayMaster} />
+        ) : (
+          <View style={styles.face}>
+            <StemSymbol stem={saju.pillars.dayMaster} size={32} />
+          </View>
+        )}
         <View style={styles.who}>
-          <Text style={styles.name}>{card.label}</Text>
+          <Text style={[styles.name, styles.nameRoom]}>{card.label}</Text>
           <Text style={styles.birth}>
             {query.date}
             {query.hourKnown === false ? '' : ` ${query.time}`} · {query.city}
@@ -81,7 +89,10 @@ export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 12, padding: 16, borderRadius: RADIUS.panel },
+  card: { gap: 12, padding: 16, borderRadius: RADIUS.panel, overflow: 'hidden' },
+  watermark: { position: 'absolute', right: -32, bottom: -40 },
+  chip: { position: 'absolute', top: 16, right: 16, zIndex: 1 },
+  nameRoom: { paddingRight: 80 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   face: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.surface },
   who: { flex: 1, minWidth: 0 },

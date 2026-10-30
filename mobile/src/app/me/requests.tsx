@@ -7,12 +7,12 @@ import type { Inbox } from '@matching/inbox';
 import { when } from '@matching/requests';
 
 import { markNotificationsRead, readInbox, type Read } from '@/matching/doors';
-import { LineIcon, type LineIconName } from '@/ui/line-icons';
+import { Icon, type IconName } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
 
 /** 사건마다 줄 머리의 그림 — 색이 아니라 모양이 갈래를 말한다. 웹의 표와 같고, 웹의 태극(`taiji`)은 앱에서 사람 둘이다 */
-const NOTIFICATION_ICON: Record<NotificationKind, LineIconName> = {
+const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
   request_received: 'people',
   request_accepted: 'people',
   request_rejected: 'close',
@@ -78,7 +78,7 @@ export default function RequestsScreen() {
             {inbox.value.notifications.length === 0 ? (
               <View style={styles.empty}>
                 <View style={styles.emptyIcon}>
-                  <LineIcon name="bell" color={COLOR.creamInk} />
+                  <Icon size={20} name="bell" color={COLOR.creamInk} />
                 </View>
                 <Text style={styles.emptyTitle}>새로운 소식이 없어요</Text>
                 <Text style={styles.emptyLine}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</Text>
@@ -90,14 +90,14 @@ export default function RequestsScreen() {
                   const body = (
                     <>
                       <View style={[styles.icon, warns ? styles.iconWarn : item.unread ? styles.iconNew : styles.iconOld]}>
-                        <LineIcon name={NOTIFICATION_ICON[item.kind]} size={18} color={warns ? COLOR.danger : item.unread ? COLOR.creamInk : COLOR.secondary} />
+                        <Icon name={NOTIFICATION_ICON[item.kind]} size={18} color={warns ? COLOR.danger : item.unread ? COLOR.creamInk : COLOR.secondary} />
                       </View>
                       <View style={styles.flex}>
                         <Text style={[styles.text, item.unread && styles.textNew]}>{item.text}</Text>
                         <Text style={styles.meta}>{when(item.createdAt)}</Text>
                       </View>
                       {item.unread && <View style={styles.dot} accessibilityLabel="읽지 않음" accessible />}
-                      {item.href !== null && <LineIcon name="chevron" size={16} color={COLOR.muted} />}
+                      {item.href !== null && <Icon name="chevron" size={16} color={COLOR.muted} />}
                     </>
                   );
                   const rowStyle = [styles.row, index > 0 && styles.rowLine, item.unread && styles.rowNew];

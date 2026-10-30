@@ -12,7 +12,7 @@ import { readAccountState, readDeck, readMatches, readRequests, type DeckPlace, 
 import { RequestsBand } from '@/matching/requests';
 import { DeckButtons, DetailSheet, EmptyDeck, Feedback, PassedConnections, QuietPlace, RequestConfirm, TodayCard, useCreditsNotice } from '@/matching/today';
 import { useDeck } from '@/matching/use-deck';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 type Loaded = { account: AccountState; deck: Read<DeckPlace>; requests: Read<Requests>; matches: Read<readonly InboxMatch[]> };
@@ -126,7 +126,7 @@ function Deck({ place, lead, tail }: { place: Extract<DeckPlace, { kind: 'deck' 
           </Text>
         </View>
         <Pressable accessibilityRole="button" onPress={() => setView(view === 'today' ? 'passed' : 'today')} style={styles.pill}>
-          <LineIcon name={view === 'today' ? 'undo' : 'people'} size={16} />
+          <Icon name={view === 'today' ? 'undo' : 'people'} size={16} />
           <Text style={styles.pillText}>{view === 'today' ? '지나친 인연' : '오늘의 인연'}</Text>
           <Text style={styles.pillCount}>{view === 'today' ? deck.passed.length : deck.remaining.length}</Text>
         </Pressable>
@@ -254,7 +254,7 @@ function HistoryRow({ summary }: { summary: HistorySummary | null }) {
           {summary.hint}
         </Text>
       </View>
-      <LineIcon name="chevron" size={16} color={COLOR.muted} />
+      <Icon name="chevron" size={16} color={COLOR.muted} />
     </Pressable>
   );
 }
