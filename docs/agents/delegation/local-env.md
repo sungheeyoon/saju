@@ -57,7 +57,8 @@
 1. `mobile/app.json` 의 `web.output` 을 잠시 `single` 로 둔다 — `server` 는 AsyncStorage 가 서버 렌더에서 죽는다. **커밋하지 않는다.**
 2. `mobile/` 에서 `npx expo start --web` 을 띄우고 390px 폭으로 연다.
 3. Supabase 응답은 Playwright 의 가로채기로 가짜를 끼운다 — 운영 DB 를 밟지 않는다(개발 빌드도 운영 Supabase 를 본다). 로그인은 `__DEV__` 가 건너뛴다.
-4. **이것은 네이티브가 아니다** — 구글 로그인 창 · 사진 고르기와 굽기 · 딥 링크 · 키보드는 안 돈다. PR 의 「안 돌린 것」에 적는다.
+4. 부품을 웹과 나란히 보려면 띄운 채 `APP_URL=http://localhost:<포트> node scripts/design-compare.mjs <폴더>` — 웹 상수와 앱의 `/dev-parts` 를 같은 차례로 찍어 `compare.png` 한 장을 낸다.
+5. **이것은 네이티브가 아니다** — 구글 로그인 창 · 사진 고르기와 굽기 · 딥 링크 · 키보드는 안 돈다. PR 의 「안 돌린 것」에 적는다.
 
 ## 워크트리에서 전후 그림 찍기
 
