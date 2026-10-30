@@ -58,8 +58,8 @@ const rawIn = (text: string) => RAW.test(text) || readsCaughtMessage(text);
  * 대개 「한 문을 지나면 된다」는 답이 나온다.
  */
 const ALLOWED: Readonly<Record<string, string>> = {
+  'src/lib/matching/requests.ts': '문장을 세우지 않는다 — 풀이권이 없어 막힌 거절인지 앞머리로 가르기만 하고, 세우는 문장은 `userFacingDbMessage` 가 짓는다(ADR 0171 「덧」)',
   'app/db-error.ts': '한 문 그 자체 — 여기서 가른다',
-  'app/me/credits/refusal.ts': '문장을 세우지 않는다 — 풀이권이 없어 막힌 거절인지 앞머리로 가르기만 하고, 세우는 문장은 `userFacingDbMessage` 가 짓는다(ADR 0171 「덧」)',
   'app/db-error.test.ts': '그 문을 재는 시험',
   'app/db-error.boundary.test.ts': '이 시험이 찾는 낱말을 스스로 들고 있다',
 

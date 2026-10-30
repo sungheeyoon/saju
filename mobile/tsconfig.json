@@ -38,6 +38,24 @@
       ],
       "@db-error": [
         "../app/db-error.ts"
+      ],
+      "@matching/*": [
+        "../src/lib/matching/*"
+      ],
+      "@discovery": [
+        "../src/lib/discovery/index.ts"
+      ],
+      "@discovery/*": [
+        "../src/lib/discovery/*"
+      ],
+      "@presence": [
+        "../src/lib/presence/index.ts"
+      ],
+      "@reading/*": [
+        "../src/lib/reading/*"
+      ],
+      "@chat/*": [
+        "../src/lib/chat/*"
       ]
     }
   },
