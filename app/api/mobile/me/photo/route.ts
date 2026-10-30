@@ -1,6 +1,9 @@
 import { answerOfThrown } from '@/app/db-error';
+import { photoPositionOf } from '@/app/me/photo/photo-response';
 import { photoUploadMode } from '@/app/me/profile/photo-upload-mode';
+import { STORE_FAILED } from '@/app/me/profile/stored-photo';
 import { addStoredPhotoAs, replaceStoredPhotoAs } from '@/app/me/profile/stored-photo-writes';
+import { PHOTO_BODY_MAX_BYTES, VARIANTS_REFUSED } from '@/src/lib/profile';
 
 import { mobileSession, refusal } from '../../session';
 
@@ -14,8 +17,19 @@ import { mobileSession, refusal } from '../../session';
  */
 const GATED_AS = '/me/profile';
 
-/** 본문을 폼으로 — 폼이 아니면 `null` 이다. 칸의 모양은 `checkVariants` 와 DB 가 본다 */
-const formOf = (request: Request): Promise<FormData | null> => request.formData().catch(() => null);
+/** 판본의 모양 — 마이크로초 정수(`profile_photo_version`) */
+const VERSION = /^\d{1,16}$/;
+
+/**
+ * 본문을 읽기 전에 길이를 본다 — 웹의 서버 액션과 같은 상한이다. **길이를 안 밝힌 본문은 받지 않는다**: 읽어 봐야 크기를 아는 본문을 메모리에 올리지 않는다.
+ * 읽기 전에 답하므로 거절이면 `Response`, 받았으면 폼이다. 폼이 아니어도 거절이다. 칸의 모양은 `checkVariants` 와 DB 가 본다.
+ */
+async function formOf(request: Request): Promise<FormData | Response> {
+  const length = request.headers.get('content-length');
+  if (length === null || !/^\d+$/.test(length)) return refusal(411, { refused: 'unavailable', message: STORE_FAILED });
+  if (Number(length) > PHOTO_BODY_MAX_BYTES) return refusal(413, { refused: 'unavailable', message: VARIANTS_REFUSED });
+  return (await request.formData().catch(() => null)) ?? refusal(400, { refused: 'not-found' });
+}
 
 export async function GET(request: Request): Promise<Response> {
   const session = await mobileSession(request, { touches: true, gatedAs: GATED_AS });
@@ -33,7 +47,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!session.ok) return session.response;
 
   const form = await formOf(request);
-  if (form === null) return refusal(400, { refused: 'not-found' });
+  if (form instanceof Response) return form;
 
   return Response.json(await addStoredPhotoAs(session.client, form));
 }
@@ -43,7 +57,14 @@ export async function PUT(request: Request): Promise<Response> {
   if (!session.ok) return session.response;
 
   const form = await formOf(request);
-  if (form === null) return refusal(400, { refused: 'not-found' });
+  if (form instanceof Response) return form;
+
+  /* 숫자가 아니면 저장소에 쓰기 전에 돌려보낸다 — 표와 하루 한도를 안 쓴다 */
+  const position = form.get('position');
+  const version = form.get('version');
+  if (typeof position !== 'string' || photoPositionOf(position) === null || typeof version !== 'string' || !VERSION.test(version)) {
+    return refusal(400, { refused: 'not-found' });
+  }
 
   return Response.json(await replaceStoredPhotoAs(session.client, form));
 }

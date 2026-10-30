@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { rpcArgs } from '@db';
 import { userFacingDbMessage } from '@db-error';
-import { FOCUS_CENTER, PHOTO_VARIANTS, focusOf, oversizeMessage, sameFocus, shrunkSize, variantSize, type PhotoFocus, type PhotoUploadMode, type PhotoVariant } from '@profile';
+import { FOCUS_CENTER, PHOTO_VARIANTS, VARIANTS_REFUSED, focusOf, oversizeMessage, sameFocus, shrunkSize, variantSize, type PhotoFocus, type PhotoUploadMode, type PhotoVariant } from '@profile';
 import type { DoorSave } from '@reading/door';
 
 import { supabase } from '@/auth/client';
@@ -124,7 +124,7 @@ type Asset = { uri: string; width: number; height: number };
 const SECOND_QUALITY = 0.72;
 
 /** 저장소로 보낼 두 벌 — 웹 `bakeVariants` 와 같은 크기 · 상한이다. 받은 서버가 `checkVariants` 로 다시 잰다 */
-async function bakedVariants(asset: Asset): Promise<BakedVariants> {
+async function bakedVariants(asset: Asset): Promise<{ ok: true; variants: BakedVariants } | { ok: false; message: string }> {
   const save = async (variant: PhotoVariant, quality: number) => {
     const context = ImageManipulator.ImageManipulator.manipulate(asset.uri);
     context.resize(variantSize(variant, asset.width, asset.height));
@@ -135,7 +135,9 @@ async function bakedVariants(asset: Asset): Promise<BakedVariants> {
   const card = await save('card', 0.85);
   let large = await save('large', 0.85);
   if (bytes(large.base64) > PHOTO_VARIANTS.large.maxBytes) large = await save('large', SECOND_QUALITY);
-  return { card: card.uri, large: large.uri, contentType: 'image/jpeg' };
+  /* 넘으면 안 보낸다 — 서버도 같은 상한으로 거절하니 왕복과 하루 한도의 자리만 든다(웹 `bakeVariants`) */
+  if (bytes(large.base64) > PHOTO_VARIANTS.large.maxBytes || bytes(card.base64) > PHOTO_VARIANTS.card.maxBytes) return { ok: false, message: VARIANTS_REFUSED };
+  return { ok: true, variants: { card: card.uri, large: large.uri, contentType: 'image/jpeg' } };
 }
 
 /** 문의 답을 화면의 값으로 — 자격 거절은 그 길로 옮겨 가고 까닭 줄은 비지 않게 둔다 */
@@ -147,7 +149,10 @@ function fromDoor(answer: DoorAnswer<DoorSave>): Answer {
 
 /** 맨 뒤에 더한다 — 상한 · 형식 · 여섯 장 · 하루 한도는 DB 가 다시 본다. 저장소 길이면 앱의 문을 지난다(ADR 0211 추기) */
 export async function addPhoto(asset: Asset, focus: PhotoFocus, uploads: PhotoUploadMode): Promise<Answer> {
-  if (uploads === 's3') return fromDoor(await addStoredPhoto(await bakedVariants(asset), focus));
+  if (uploads === 's3') {
+    const baked = await bakedVariants(asset);
+    return baked.ok ? fromDoor(await addStoredPhoto(baked.variants, focus)) : baked;
+  }
   if (supabase === null) return { ok: false, message: NOT_READY };
   const photo = await baked(asset);
   if (!photo.ok) return photo;
@@ -159,7 +164,9 @@ export async function addPhoto(asset: Asset, focus: PhotoFocus, uploads: PhotoUp
 /** 그 자리에서 바꾼다 — 판본은 화면이 본 그 장이다. 그 사이 목록이 바뀌었으면 DB 가 거절한다 */
 export async function replacePhoto(target: MyPhoto, asset: Asset, focus: PhotoFocus, uploads: PhotoUploadMode): Promise<Answer> {
   if (uploads === 's3') {
-    const answer = await replaceStoredPhoto(target, await bakedVariants(asset), focus);
+    const baked = await bakedVariants(asset);
+    if (!baked.ok) return baked;
+    const answer = await replaceStoredPhoto(target, baked.variants, focus);
     return fromDoor(answer.ok ? { ok: true, value: answer.value.ok ? { ok: true } : answer.value } : answer);
   }
   if (supabase === null) return { ok: false, message: NOT_READY };

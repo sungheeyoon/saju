@@ -47,10 +47,13 @@ const photoForm = (extra: Record<string, string> = {}) => {
   return form;
 };
 
-const at = (method: string, form?: FormData, token: string | null = 'token-1') =>
+const at = (method: string, form?: FormData, token: string | null = 'token-1', length: string | null = '1000') =>
   new Request('http://localhost/api/mobile/me/photo', {
     method,
-    headers: token === null ? {} : { authorization: `Bearer ${token}` },
+    headers: {
+      ...(token === null ? {} : { authorization: `Bearer ${token}` }),
+      ...(form === undefined || length === null ? {} : { 'content-length': length }),
+    },
     ...(form === undefined ? {} : { body: form }),
   });
 
@@ -120,9 +123,41 @@ describe('앱이 저장소에 사진을 올리는 문 (ADR 0211 추기)', () => 
     expect(await (await GET(at('GET'))).json()).toEqual({ mode: 'paused' });
   });
 
+  it.each([
+    ['1MB 를 넘으면', String(1024 * 1024 + 1), 413],
+    ['길이를 안 밝히면', null, 411],
+    ['길이가 숫자가 아니면', '12x', 411],
+  ])('%s 본문을 안 읽고 거절한다', async (_name, length, status) => {
+    const { rpc } = signedIn();
+    const request = at('POST', photoForm(), 'token-1', length);
+    const reading = vi.spyOn(request, 'formData');
+    expect((await POST(request)).status).toBe(status);
+    expect(reading).not.toHaveBeenCalled();
+    expect(store.put).not.toHaveBeenCalled();
+    expect(namesCalled(rpc)).not.toContain('begin_my_photo_upload');
+  });
+
+  it('딱 1MB 는 받는다', async () => {
+    signedIn({ begin_my_photo_upload: { data: KEY, error: null }, add_my_photo_object: { data: 2, error: null } });
+    expect((await POST(at('POST', photoForm(), 'token-1', String(1024 * 1024)))).status).toBe(200);
+  });
+
+  it.each([
+    [{ position: 'x', version: '9' }],
+    [{ position: '3', version: 'NaN' }],
+    [{ position: '7', version: '9' }],
+    [{ position: '3' }],
+    [{ version: '9' }],
+  ])('바꾸기의 자리 · 판본이 숫자가 아니면 표를 안 쓰고 400 이다 — %j', async (extra) => {
+    const { rpc } = signedIn();
+    expect((await PUT(at('PUT', photoForm(extra as Record<string, string>)))).status).toBe(400);
+    expect(store.put).not.toHaveBeenCalled();
+    expect(namesCalled(rpc)).not.toContain('begin_my_photo_upload');
+  });
+
   it('폼이 아니면 400 이다', async () => {
     signedIn();
-    const response = await POST(new Request('http://localhost/api/mobile/me/photo', { method: 'POST', headers: { authorization: 'Bearer token-1', 'content-type': 'application/json' }, body: '{}' }));
+    const response = await POST(new Request('http://localhost/api/mobile/me/photo', { method: 'POST', headers: { authorization: 'Bearer token-1', 'content-type': 'application/json', 'content-length': '2' }, body: '{}' }));
     expect(response.status).toBe(400);
   });
 });

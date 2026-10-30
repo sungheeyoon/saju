@@ -38,7 +38,7 @@ export async function savedFocus(
   return { ok: true };
 }
 
-/** 두 벌과 보일 자리 — 화면이 `FormData` 로 보낸다(base64 가 아니라 바이트 그대로 — 본문 한도 1MB 에 두 벌이 든다) */
+/** 두 벌과 보일 자리 — 화면이 `FormData` 로 보낸다(base64 가 아니라 바이트 그대로 — 본문 한도 1MB 에 두 벌이 든다. 웹은 서버 액션의 한도, 앱은 문의 `PHOTO_BODY_MAX_BYTES` 다) */
 async function storedForm(form: FormData) {
   const bytesOf = async (name: string) => {
     const part = form.get(name);

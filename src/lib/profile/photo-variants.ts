@@ -3,7 +3,7 @@
  * `large`(G-120). 저장소를 켰을 때만 쓴다 — 꺼져 있으면 사진은 지금처럼 긴 변 512px 한 벌이 DB 에 산다(`PHOTO_MAX_EDGE`).
  *
  * 변의 길이는 우리 화면이 실제로 그리는 크기에서 왔다 — 셈과 출처는 `docs/product/gaps/records/g-120.md`. **바이트 상한은 잠정이다**
- * — 잰 사진 크기가 아니라, 두 벌의 합이 서버 액션의 본문 한도(1MB)에서 여분 64KB 를 남기게 나눈 셈이다(시험이 잰다). 켜고 나서
+ * — 잰 사진 크기가 아니라, 두 벌의 합이 본문 한도(1MB — 웹의 서버 액션 기본값이고 앱의 문 `app/api/mobile/me/photo` 도 같은 수로 막는다)에서 여분 64KB 를 남기게 나눈 셈이다(시험이 잰다). 켜고 나서
  * 거절 수를 보고 고친다. **이 수는 브라우저와 서버가 함께 본다** — 브라우저가 굽고, 서버가
  * 머리를 읽어 다시 잰다. 서버는 브라우저를 믿지 않는다(액션은 주소만 알면 부를 수 있다).
  */
@@ -16,6 +16,9 @@ export type VariantSpec = {
   /** 한 벌의 바이트 상한 */
   readonly maxBytes: number;
 };
+
+/** 올리는 본문 한 번의 상한 — 서버 액션의 기본 본문 한도와 같은 수다. 앱의 문은 이 수로 본문을 읽기 전에 막는다 */
+export const PHOTO_BODY_MAX_BYTES = 1024 * 1024;
 
 export const PHOTO_VARIANTS: Readonly<Record<PhotoVariant, VariantSpec>> = {
   card: { edge: 480, maxBytes: 160 * 1024 },
