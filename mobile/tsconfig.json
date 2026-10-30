@@ -8,6 +8,12 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@input/*": [
+        "../src/lib/input/*"
+      ],
+      "@saju": [
+        "../src/lib/saju/index.ts"
       ]
     }
   },
