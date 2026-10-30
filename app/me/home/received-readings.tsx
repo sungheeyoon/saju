@@ -9,8 +9,8 @@ import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { HOME_HEAD, HOME_HEAD_COUNT, HOME_HEAD_LINK, HOME_ROW, HOME_ROW_LINK, HomeMark } from './home-list';
 import { MoreList } from './more-list';
-import { withFromMe } from './from-me';
-import { READING_CONTINUE_NOTE } from './making';
+import { withFromMe } from '@/src/lib/home/from-me';
+import { READING_CONTINUE_NOTE } from '@/src/lib/home/making';
 
 /**
  * 구역 제목 — 「받은 사주풀이」(2026-10-26 2차, 전에는 「내가 받은 사주풀이」). 내 홈이라 「내가」는 군말이다 — 카카오톡 선물하기의

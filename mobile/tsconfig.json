@@ -38,6 +38,15 @@
       ],
       "@db-error": [
         "../app/db-error.ts"
+      ],
+      "@web-home/*": [
+        "../src/lib/home/*"
+      ],
+      "@brand/links": [
+        "../src/lib/brand/links.ts"
+      ],
+      "@reading/notes": [
+        "../src/lib/reading/notes.ts"
       ]
     }
   },

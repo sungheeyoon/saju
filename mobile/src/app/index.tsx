@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, t
 import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_YEAR_RANGE, type CityName, type LateNightRule } from '@saju';
 
 import { signInWithGoogle } from '@/auth/sign-in';
+import { readGate } from '@/home/gate';
 import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, PrimaryButton, Select } from '@/ui/parts';
 import { Logo } from '@/ui/logo';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
@@ -24,8 +25,32 @@ const RULES: readonly { value: LateNightRule; label: string; hint: string }[] = 
   { value: 'ya', label: '야자시', hint: '경계 자정' },
 ];
 
+/**
+ * 입구 — 로그인과 가입을 끝낸 사람은 앱을 열면 홈이다. 아니면(모르면) 입력 화면이다.
+ * 홈의 「다른 사람 사주 보기」는 `another` 를 들고 와 입력 화면을 그대로 연다.
+ */
+export default function EntryScreen() {
+  const { another } = useLocalSearchParams<{ another?: string }>();
+  const [entry, setEntry] = useState<'checking' | 'home' | 'birth'>(another === undefined ? 'checking' : 'birth');
+
+  useEffect(() => {
+    if (another !== undefined) return;
+    let watching = true;
+    void readGate().then((gate) => {
+      if (watching) setEntry(gate.kind === 'in' ? 'home' : 'birth');
+    });
+    return () => {
+      watching = false;
+    };
+  }, [another]);
+
+  if (entry === 'checking') return <View style={styles.screen} />;
+  if (entry === 'home') return <Redirect href={'/me' as never} />;
+  return <BirthScreen />;
+}
+
 /** 출생 정보 — 칸의 차례와 말은 웹의 `app/birth-form.tsx` 와 같다. 계산은 웹과 같은 `calculateChart` 다 */
-export default function BirthScreen() {
+function BirthScreen() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Query['gender']>(DEFAULT_QUERY.gender);
   const [year, setYear] = useState('');

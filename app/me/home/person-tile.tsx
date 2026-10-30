@@ -7,7 +7,7 @@ import { Icon } from '../../ui/icons';
 import { STALE_CHIP } from '../../ui/surfaces';
 import type { ReadingEntry } from '@/src/lib/reading';
 import { HOME_ROW, HOME_ROW_INNER, HOME_ROW_VALUE, HomeMark } from './home-list';
-import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from './making';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from '@/src/lib/home/making';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
