@@ -1,6 +1,8 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 import { balanceLabelOf, balanceShortOf, knownElementsOf } from '@/src/lib/discovery';
 import type { Element } from '@/src/lib/saju';
-import type { RpcRow } from '@/src/lib/db';
+import type { Database, RpcRow } from '@/src/lib/db';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
@@ -132,8 +134,8 @@ const matchOf = (row: MatchRow): InboxMatch => ({
 });
 
 /** 책장(`/me/readings`)에 세울, 서로 동의해 성립한 궁합. */
-export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
-  const supabase = await supabaseOnServer();
+export async function matchesForViewer(client?: SupabaseClient<Database>): Promise<readonly InboxMatch[]> {
+  const supabase = client ?? (await supabaseOnServer());
   const { data, error } = await supabase.rpc('my_matches');
   /* 책장의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
   if (error) throw dbFailure(error, 'my_matches');

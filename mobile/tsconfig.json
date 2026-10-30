@@ -38,6 +38,12 @@
       ],
       "@db-error": [
         "../app/db-error.ts"
+      ],
+      "@reading/*": [
+        "../src/lib/reading/*"
+      ],
+      "@people/pick": [
+        "../src/lib/people/pick.ts"
       ]
     }
   },

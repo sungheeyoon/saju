@@ -14,7 +14,7 @@ import { AccountNotice } from '../account-notice';
 import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { matchesForViewer, requestsForViewer, type InboxMatch } from '../requests/inbox';
-import { openParticipation } from '../keyed-chart-writes';
+import { openParticipation } from '../chart-writes';
 import { selfElementSummary } from '../summary';
 import type { DeckCard } from './deck-card';
 import { historySummary } from './history';
