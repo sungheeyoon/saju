@@ -4,6 +4,7 @@ import type { Saju } from '@saju';
 import { HIT_POSITION_KO, PILLAR_COLUMNS, missingSpiritNotes, starNamesByNature, starsAt } from '@saju-view';
 import { STAR_BASIS_NOTE, STAR_NATURE_NOTE } from '@saju-view/notes';
 
+import { Cell } from '@/ui/surfaces';
 import { COLOR, RADIUS } from '@/ui/tokens';
 
 import { Disclosure, Fold, Rich, T } from './parts';
@@ -16,15 +17,15 @@ export function StarTable({ saju }: { saju: Saju }) {
   return (
     <Fold title="신살" meta={stars.length > 0 ? `${stars.length}개` : undefined} note="어떤 신살이 어느 자리에 걸렸는지 모아봅니다">
       {stars.length === 0 ? (
-        <View style={styles.empty}>
+        <Cell>
           <T tone="secondary" style={styles.center}>걸린 신살이 없습니다</T>
-        </View>
+        </Cell>
       ) : (
         <View style={styles.columns}>
           {PILLAR_COLUMNS.map(({ key, label }) => {
             const found = starsAt(saju, key);
             return (
-              <View key={key} accessibilityLabel={`${label}에 걸린 신살`} style={[styles.column, key === 'day' && styles.columnDay]}>
+              <Cell key={key} accessibilityLabel={`${label}에 걸린 신살`} style={[styles.column, key === 'day' && styles.columnDay]}>
                 <View style={styles.columnHead}>
                   <T bold>{label}</T>
                   <T size="xs" tone="secondary">{found.length}개</T>
@@ -48,7 +49,7 @@ export function StarTable({ saju }: { saju: Saju }) {
                     ))}
                   </View>
                 )}
-              </View>
+              </Cell>
             );
           })}
         </View>
@@ -84,18 +85,17 @@ export function StarTable({ saju }: { saju: Saju }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { textAlign: 'center' },
-  empty: { borderRadius: RADIUS.panel, backgroundColor: COLOR.surfaceSoft, paddingHorizontal: 16, paddingVertical: 20 },
   columns: { gap: 8 },
-  column: { borderRadius: RADIUS.panel, borderWidth: 1, borderColor: 'transparent', backgroundColor: COLOR.surfaceSoft, padding: 12 },
+  column: { borderColor: 'transparent' },
   columnDay: { borderColor: COLOR.borderStrong, backgroundColor: COLOR.cream },
   columnHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 },
   none: { paddingVertical: 12, textAlign: 'center' },
   hits: { gap: 6 },
-  hit: { borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceRaised, paddingHorizontal: 12, paddingVertical: 8 },
+  hit: { borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceRaised, paddingHorizontal: 12, paddingVertical: 8 },
   hourNote: { marginTop: 12 },
   disclosure: { marginTop: 16 },
-  natures: { gap: 4, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSoft, padding: 12, marginBottom: 12 },
+  natures: { gap: 4, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSoft, padding: 12, marginBottom: 12 },
   nature: { flexDirection: 'row', gap: 8 },
   para: { marginBottom: 12 },
-  missing: { gap: 2, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSoft, padding: 12, marginBottom: 12 },
+  missing: { gap: 2, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSoft, padding: 12, marginBottom: 12 },
 });

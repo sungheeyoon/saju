@@ -10,8 +10,9 @@ import { supabase } from '@/auth/client';
 import { SelfCard } from '@/home/self-card';
 import { addPerson, readSlots } from '@/people/data';
 import { SameChartAsk, type SameChartQuestion } from '@/people/same-chart-ask';
-import { Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
-import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
+import { PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { saveSelfPerson } from './chart-writes';
 
@@ -97,7 +98,7 @@ function SaveCard({ query, slots }: { query: Query; slots: PersonSlots | null })
   };
 
   return (
-    <Panel style={styles.card}>
+    <Card style={styles.card}>
       <View style={styles.head}>
         <Text accessibilityRole="header" style={styles.title}>
           {reading}로 이어 보기
@@ -126,7 +127,7 @@ function SaveCard({ query, slots }: { query: Query; slots: PersonSlots | null })
       )}
 
       {failure !== null && <Text accessibilityRole="alert" style={styles.failure}>저장하지 못했어요. {failure}</Text>}
-    </Panel>
+    </Card>
   );
 }
 
@@ -184,9 +185,9 @@ const styles = StyleSheet.create({
   confirm: { gap: 12 },
   head: { gap: 4 },
   answers: { gap: 8 },
-  noRoom: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: COLOR.background },
+  noRoom: { gap: 4, padding: 12, borderRadius: RADIUS.cell, backgroundColor: COLOR.background },
   title: { fontFamily: FONT.bold, fontSize: TYPE.field, color: COLOR.foreground },
-  line: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 22, color: COLOR.secondary },
+  line: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 22, color: COLOR.secondary },
   fine: { fontFamily: FONT.medium, fontSize: TYPE.fine, lineHeight: 18, color: COLOR.muted },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.danger },
 });

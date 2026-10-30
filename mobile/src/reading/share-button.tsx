@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { MenuPanel } from '@/ui/surfaces';
 import { SecondaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -81,7 +82,7 @@ export function ShareReadingButton({ target, look = 'label' }: { target: Reading
           <LinkMark copied={phase === 'copied'} />
         </Pressable>
         {phase === 'copied' && <Text style={styles.bubble}>{COPIED}</Text>}
-        {trouble !== null && <View style={styles.floating}>{trouble}</View>}
+        {trouble !== null && <MenuPanel style={styles.floating}>{trouble}</MenuPanel>}
       </View>
     );
   }
@@ -99,8 +100,8 @@ const styles = StyleSheet.create({
   iconWrap: { alignItems: 'flex-end' },
   icon: { width: CONTROL, height: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.surface },
   bubble: { position: 'absolute', top: CONTROL + 6, right: 0, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.accent, fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.onAccent },
-  floating: { position: 'absolute', top: CONTROL + 6, right: 0, width: 260, padding: 12, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  floating: { position: 'absolute', top: CONTROL + 6, right: 0, width: 260 },
   trouble: { gap: 8 },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.danger },
-  address: { minHeight: CONTROL, paddingHorizontal: 12, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSunken, fontFamily: FONT.medium, fontSize: TYPE.field, color: COLOR.secondary },
+  address: { minHeight: CONTROL, paddingHorizontal: 12, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSunken, fontFamily: FONT.medium, fontSize: TYPE.field, color: COLOR.secondary },
 });

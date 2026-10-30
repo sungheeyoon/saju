@@ -3,7 +3,7 @@ import type { OutlineRow } from '@reading/outline';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
-import { Panel } from '@/ui/parts';
+import { Paper } from '@/ui/surfaces';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /**
@@ -11,7 +11,7 @@ import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
  */
 export function LoadingState({ rows, waitNote }: { rows: readonly OutlineRow[]; waitNote: string }) {
   return (
-    <Panel tone="cream" style={styles.panel}>
+    <Paper style={styles.panel}>
       <View accessibilityRole="progressbar" accessibilityLiveRegion="polite">
         <Text style={styles.title}>사주의 흐름을 이어 읽고 있어요</Text>
         <Text style={styles.note}>근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</Text>
@@ -28,7 +28,7 @@ export function LoadingState({ rows, waitNote }: { rows: readonly OutlineRow[]; 
           </View>
         ))}
       </View>
-    </Panel>
+    </Paper>
   );
 }
 
@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
   band: { height: 8, borderRadius: RADIUS.pill, backgroundColor: COLOR.track, overflow: 'hidden' },
   bandFlow: { position: 'absolute', top: 0, bottom: 0, width: '40%', borderRadius: RADIUS.pill, backgroundColor: COLOR.creamInk },
   rows: { gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
-  rowLabel: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.sm, color: COLOR.foreground },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.cell, backgroundColor: COLOR.surface },
+  rowLabel: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.note, color: COLOR.foreground },
   rowWaiting: { color: COLOR.secondary },
   done: { paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden', borderRadius: RADIUS.pill, backgroundColor: ELEMENT_TONE.木.soft, fontFamily: FONT.bold, fontSize: TYPE.fine, color: ELEMENT_TONE.木.ink },
   writing: { fontFamily: FONT.bold, fontSize: TYPE.fine, color: ELEMENT_TONE.火.ink },

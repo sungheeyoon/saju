@@ -23,6 +23,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
+import { CardFrame, Cell, Paper } from '@/ui/surfaces';
 import { PrimaryButton, TextButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -66,10 +67,10 @@ export function ReadingFeedback({ target, runId, given }: { target: ReadingTarge
 
   if (answer !== null && !open) {
     return (
-      <View style={styles.thanks}>
+      <Paper style={styles.thanks}>
         <Text style={styles.thanksText}>{FEEDBACK_THANKS}</Text>
         <TextButton label="답 고치기" onPress={() => setOpen(true)} />
-      </View>
+      </Paper>
     );
   }
 
@@ -109,7 +110,7 @@ export function ReadingFeedback({ target, runId, given }: { target: ReadingTarge
   );
 
   return (
-    <View style={styles.card}>
+    <CardFrame>
       {foldable ? (
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: shown }} onPress={() => setUnfolded(!shown)} style={styles.head}>
           {head}
@@ -177,14 +178,14 @@ export function ReadingFeedback({ target, runId, given }: { target: ReadingTarge
           <PrimaryButton label={saving ? '보내는 중…' : '의견 보내기'} onPress={() => void send()} disabled={saving} />
         </View>
       )}
-    </View>
+    </CardFrame>
   );
 }
 
 /** 1~5 눈금 — 양 끝의 말이 함께 선다. 숫자만 읽어 주면 무엇을 매기는지 안 들려 양 끝은 이름으로 읽힌다 */
 function Scale({ question, value, onChange }: { question: FeedbackQuestion; value: FeedbackScore | null; onChange: (next: FeedbackScore) => void }) {
   return (
-    <View style={styles.scale}>
+    <Cell style={styles.scale}>
       <Text style={styles.legend}>{question.label}</Text>
       <View accessibilityRole="radiogroup" style={styles.chips}>
         {FEEDBACK_SCALE.map((score) => (
@@ -204,7 +205,7 @@ function Scale({ question, value, onChange }: { question: FeedbackQuestion; valu
         <Text style={styles.end}>{question.low}</Text>
         <Text style={styles.end}>{question.high}</Text>
       </View>
-    </View>
+    </Cell>
   );
 }
 
@@ -237,16 +238,15 @@ function Chip({
 }
 
 const styles = StyleSheet.create({
-  thanks: { gap: 4, paddingHorizontal: 20, paddingVertical: 12, borderRadius: RADIUS.panel, backgroundColor: COLOR.cream },
+  thanks: { gap: 4 },
   thanksText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.creamInk },
-  card: { overflow: 'hidden', borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16 },
   headWords: { flex: 1, minWidth: 0, gap: 4 },
   headTitle: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   chevron: { fontSize: TYPE.lead, color: COLOR.secondary },
   body: { gap: 20, paddingHorizontal: 20, paddingBottom: 20 },
   part: { gap: 10, paddingTop: 20, borderTopWidth: 1, borderTopColor: COLOR.border },
-  scale: { gap: 10, padding: 16, borderRadius: RADIUS.panel, backgroundColor: COLOR.surfaceSoft },
+  scale: { gap: 10 },
   legend: { fontFamily: FONT.bold, fontSize: TYPE.body, lineHeight: 22, color: COLOR.foreground },
   small: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   chips: { flexDirection: 'row', gap: 8 },
@@ -254,11 +254,11 @@ const styles = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
   chip: { minHeight: CONTROL, minWidth: CONTROL, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   chipOn: { borderColor: COLOR.accent, backgroundColor: COLOR.accent },
-  chipText: { fontFamily: FONT.medium, fontSize: TYPE.sm, color: COLOR.foreground },
+  chipText: { fontFamily: FONT.medium, fontSize: TYPE.note, color: COLOR.foreground },
   chipTextOn: { fontFamily: FONT.bold, color: COLOR.onAccent },
   ends: { flexDirection: 'row', justifyContent: 'space-between' },
   end: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
-  comment: { minHeight: 88, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface, fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 24, color: COLOR.foreground, textAlignVertical: 'top' },
+  comment: { minHeight: 88, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface, fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 24, color: COLOR.foreground, textAlignVertical: 'top' },
   count: { textAlign: 'right', fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
   warn: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.danger },
 });

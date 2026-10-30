@@ -6,8 +6,9 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, Cell } from '@/ui/surfaces';
+import { PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
 import { readReadingView, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
 import { ConfirmMake, CreditsShortage } from './dialogs';
@@ -27,17 +28,17 @@ export function followRefusal(refused: DoorRefusal): void {
 export function ReadFailure({ refused, onRetry }: { refused: DoorRefusal; onRetry: () => void }) {
   if (refused.refused === 'not-found') {
     return (
-      <Panel>
+      <Card>
         <Text style={styles.line}>페이지를 찾을 수 없어요</Text>
-      </Panel>
+      </Card>
     );
   }
   if (refused.refused !== 'unavailable') return null;
   return (
-    <View accessibilityRole="alert" style={styles.alert}>
+    <Cell accessibilityRole="alert" style={styles.alert}>
       <Text style={styles.alertText}>{refused.message}</Text>
       <TextButton label="다시 시도하기" onPress={onRetry} />
-    </View>
+    </Cell>
   );
 }
 
@@ -127,7 +128,7 @@ export function ReadingPanel({
       )}
 
       {!chrome.hideMake && !chrome.makeInHeader && (
-        <Panel style={styles.group}>
+        <Card style={styles.group}>
           {ask}
           {reading === null && (
             <View>
@@ -137,14 +138,14 @@ export function ReadingPanel({
           )}
           {makeButton('primary')}
           {note}
-        </Panel>
+        </Card>
       )}
 
       {failure !== null && (
-        <View accessibilityRole={phase === 'error' ? 'alert' : undefined} style={phase === 'error' ? styles.alert : styles.notice}>
+        <Cell accessibilityRole={phase === 'error' ? 'alert' : undefined} style={phase === 'error' ? styles.alert : styles.notice}>
           <Text style={phase === 'error' ? styles.alertText : styles.noticeText}>{failure}</Text>
           {phase === 'error' && <TextButton label="다시 시도하기" onPress={panel.generate} />}
-        </View>
+        </Cell>
       )}
 
       {phase === 'loading' ? (
@@ -206,8 +207,8 @@ const styles = StyleSheet.create({
   lead: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   small: { marginTop: 2, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
-  alert: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: RADIUS.panel, backgroundColor: '#fbe9e6' },
+  alert: {},
   alertText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.danger },
-  notice: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: RADIUS.panel, backgroundColor: COLOR.warningWash },
+  notice: { backgroundColor: COLOR.warningWash },
   noticeText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
 });
