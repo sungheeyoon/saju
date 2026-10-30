@@ -19,8 +19,9 @@ import { bodyOf, chartWriterOf } from '../writes';
  * - `POST { on }` — 켜고 끈다(웹의 `setDiscoveryParticipation`)
  * - `PUT` — 홈이 열릴 때 참여를 연다(웹의 `openDiscoveryParticipation`). 끈 사람은 안 열고, 못 세웠어도 실패가 아니다
  */
+/* 고지가 「설정에서 언제든 끌 수 있습니다」라고 약속한 문이다 — 웹의 설정과 같은 주소로 관문을 지난다. 그 뒤 판정은 DB 의 것이다 */
 export async function POST(request: Request): Promise<Response> {
-  const session = await mobileSession(request, { touches: true });
+  const session = await mobileSession(request, { touches: true, gatedAs: '/me/settings' });
   if (!session.ok) return session.response;
 
   const { on } = await bodyOf(request);

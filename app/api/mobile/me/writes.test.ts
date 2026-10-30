@@ -116,6 +116,19 @@ describe('입력 고치기 · 참여', () => {
     expect(keyedRpc.mock.calls[0][1].p_user_id).toBe('from-auth');
   });
 
+  it('베타가 끝나도 끄는 문은 관문에서 안 막는다 — 웹의 설정과 같다. 풀이 쪽 문은 막는다', async () => {
+    const client = signedIn();
+    client.rpc.mockImplementation(async (name: string) =>
+      name === 'current_beta_schedule'
+        ? { data: [{ schedule_id: 7, ends_on: '2020-01-01', purge_by: '2099-12-31', purge_within_days: 30, operator_name: 'a', operator_officer: 'b', operator_contact: 'c' }], error: null }
+        : { data: null, error: null },
+    );
+    keyedRpc.mockResolvedValue({ data: 'off', error: null });
+
+    expect((await setOn(at('participation', body({ on: false })))).status).toBe(200);
+    expect((await saveSelf(at('self-person', body({ query: toSearchParams(QUERY).toString() })))).status).toBe(403);
+  });
+
   it('켜고 끄는 값이 아니면 400 이고, 내 사주가 없는 사람의 열기는 아무것도 안 부른다', async () => {
     signedIn();
     expect((await setOn(at('participation', body({ on: 'yes' })))).status).toBe(400);

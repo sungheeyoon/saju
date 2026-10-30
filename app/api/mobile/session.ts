@@ -13,7 +13,7 @@ const ACCOUNT_UNREAD_NOTE = '계정을 확인하지 못했어요.';
 /** 까닭을 답으로 — 상태 코드는 앱이 다시 로그인할지 · 다시 시도할지를 가르는 데만 쓴다 */
 export const refusal = (status: number, body: DoorRefusal) => Response.json(body, { status });
 
-/** 관문이 보는 주소 — 앱의 풀이 문은 웹의 `/me/readings` 와 같은 자리에 선다. 계정 관리(`/me/settings`)의 예외는 여기 없다 */
+/** 관문이 보는 주소 — 앱의 문은 대개 웹의 `/me/readings` 와 같은 자리에 선다 */
 const GATED_AS = '/me/readings';
 
 /** 토큰을 머리에서 — `Bearer` 한 개만 받는다 */
@@ -42,10 +42,11 @@ export function photoClientOf(request: Request): SupabaseClient<Database> | null
  * 없고 바로 비용이 나가는 길이 있어 503 으로 답한다. 일정만 못 읽은 것은 웹과 같다 — 가입을 마친 사람은 지나가고 종료는 DB 가 다시 막는다.
  *
  * @param touches 사람이 낸 요청인가 — 화면을 열었거나 눌렀다(ADR 0118). 기다리며 3초마다 묻는 것은 활동이 아니다.
+ * @param gatedAs 웹의 어느 주소와 같은 문인가 — 참여 끄기는 `/me/settings` 다. 끝난 뒤에도 철회는 열려 있다는 `gateFor` 의 예외를 그대로 탄다.
  */
 export async function mobileSession(
   request: Request,
-  { touches }: { touches: boolean },
+  { touches, gatedAs = GATED_AS }: { touches: boolean; gatedAs?: string },
 ): Promise<{ ok: true; client: SupabaseClient<Database>; userId: string } | { ok: false; response: Response }> {
   const refuse = (status: number, body: DoorRefusal) => ({ ok: false as const, response: refusal(status, body) });
 
@@ -73,7 +74,7 @@ export async function mobileSession(
   }
 
   const where = gateFor(
-    GATED_AS,
+    gatedAs,
     {
       signedUp: account.signed_up_at !== null,
       noticeVersion: account.notice_version,
