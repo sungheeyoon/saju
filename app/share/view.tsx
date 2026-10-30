@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/account/copy';
-import { calledName } from '@/src/lib/reading/display';
+import { SHARE_COPY, sharedTitle } from '@/src/lib/reading/shared';
 
 import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY } from '../ui/buttons';
@@ -26,8 +26,6 @@ import { sharedReadingOf } from './read';
 export async function SharedReadingView({
   token,
   expect,
-  eyebrow,
-  invitation,
 }: {
   token: string;
   /**
@@ -38,8 +36,6 @@ export async function SharedReadingView({
    * 자리라 화면이 아니라 여기서 막는다.
    */
   expect: ShareKind;
-  eyebrow: string;
-  invitation: { heading: string; note: string };
 }) {
   /*
     **없는 링크와 못 여는 링크를 안 가른다** — 그 판단은 읽는 문이 든다(`read.ts`).
@@ -49,7 +45,8 @@ export async function SharedReadingView({
   if (shared === null) notFound();
 
   const { metaphor, score, body } = shared;
-  const whose = titleOf(expect, shared.nameA, shared.nameB);
+  const whose = sharedTitle(expect, shared.nameA, shared.nameB);
+  const { eyebrow, invitation } = SHARE_COPY[expect];
 
   return (
     /*
@@ -137,29 +134,6 @@ export async function SharedReadingView({
       </section>
     </main>
   );
-}
-
-/**
- * 이 화면의 제목 — **누구의 무엇인가.**
- *
- * 부르는 말은 `calledName` 이 정한다. 본문이 쓰는 규칙과 같은 것을 써야 머리와
- * 본문이 같은 사람을 같은 이름으로 부른다.
- *
- * 두 사람은 `×` 로 잇는다. 목록이 이미 그렇게 적고 있고(`line.ts`), 조사를 안 쓰므로
- * 이름 끝의 받침에 따라 「과」와 「와」가 갈리는 자리를 아예 안 만든다.
- *
- * **이름을 못 구했으면 갈래 이름만 세운다.** 「님의 사주풀이」처럼 앞이 빈 제목을
- * 세우느니, 누구 것인지 모른다는 사실이 그대로 보이는 편이 낫다.
- */
-function titleOf(kind: ShareKind, nameA: string | null, nameB: string | null): string {
-  const a = nameA === null ? '' : calledName(nameA);
-  const b = nameB === null ? '' : calledName(nameB);
-
-  if (kind === 'private') {
-    return a !== '' && b !== '' ? `${a} × ${b} 궁합풀이` : '두 사람의 궁합풀이';
-  }
-
-  return a !== '' ? `${a}의 사주풀이` : '사주풀이';
 }
 
 /**

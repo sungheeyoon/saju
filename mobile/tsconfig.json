@@ -36,6 +36,12 @@
       "@account/*": [
         "../src/lib/account/*"
       ],
+      "@reading/*": [
+        "../src/lib/reading/*"
+      ],
+      "@brand/features": [
+        "../src/lib/brand/features.ts"
+      ],
       "@db-error": [
         "../app/db-error.ts"
       ],
