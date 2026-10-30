@@ -10,7 +10,7 @@ import { DoneNote, useDoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
 import { useOneAtATime } from '../../ui/one-at-a-time';
-import { accountLabel } from '../account-label';
+import { accountLabel } from '@/src/lib/ops/account-label';
 import { bookCreditGrant } from './actions';
 import {
   GRANT_MAX,
@@ -25,7 +25,7 @@ import {
   type GrantKind,
   type GrantLedger,
   type GrantPlan,
-} from './credit-grant';
+} from '@/src/lib/ops/credit-grant';
 
 const ROW = 'flex flex-col gap-2';
 const LABEL = 'text-xs font-semibold text-muted';

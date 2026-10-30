@@ -1,7 +1,19 @@
 import { rpcArgs } from '@/src/lib/db';
 
 import type { supabaseOnServer } from '../auth/server-client';
-import { UUID } from '../uuid';
+
+import {
+  DENIED,
+  idOf,
+  isDenialCode,
+  refusalCode,
+  type Denied,
+  type DeniedAction,
+  type RefusedTarget,
+  type WriteAction,
+} from '@/src/lib/ops/denial';
+
+export { DENIED, isDenialCode, refusalCode, type Denied, type DeniedAction, type RefusedTarget, type WriteAction };
 
 /**
  * 운영자 화면의 문이 받은 거절을 접속기록에 적는다 (G-23 ⑩ · ADR 0105).
@@ -13,34 +25,6 @@ import { UUID } from '../uuid';
  * 동작 이름은 화면의 머리 문이다 — 한 화면이 문 여럿을 불러도 거절은 한 줄이다(신고 상세는 `reports.detail`, 설문은
  * `survey.overview`, 오늘의 숫자는 `today.figures`). DB 가 받는 이름은 `note_operator_denial` 의 목록 하나가 든다.
  */
-export type DeniedAction =
-  | 'reports.list'
-  | 'reports.detail'
-  | 'reports.review'
-  | 'survey.overview'
-  | 'today.figures'
-  | 'credits.refund_basis'
-  | 'credits.refund_status'
-  | 'credits.refund_hold'
-  | 'credits.refund_book'
-  | 'credits.refund_release'
-  | 'credits.grant'
-  | 'credits.revoke'
-  | 'members.find'
-  | 'members.warnings'
-  | 'members.credits'
-  | 'members.credit_history'
-  | 'members.sanctions'
-  | 'members.suspend'
-  | 'members.unsuspend';
-
-/** 운영자가 아니라고 DB 가 답했다(`42501`) — 운영자 문이 화면에 내는 거절. 화면은 404 를 세운다 */
-export const DENIED = 'denied';
-export type Denied = typeof DENIED;
-
-/** 문이 운영자가 아닌 사람을 거절한 코드인가 — 이 코드를 가르는 자리는 이 파일뿐이다(`denial.boundary.test.ts`) */
-export const isDenialCode = (code: string | undefined): boolean => code === '42501';
-
 type Answer = { readonly error: { readonly code?: string } | null };
 
 /**
@@ -84,31 +68,6 @@ async function noteDenial(
   );
   if (error) console.error('note_operator_denial', error);
 }
-
-/** 운영자의 쓰기 동작 — 거절되면 `noteWriteRefusal` 이 적는다. DB 의 `note_operator_refusal` 이 받는 목록과 같다 */
-export type WriteAction = Extract<
-  DeniedAction,
-  | 'reports.review'
-  | 'members.suspend'
-  | 'members.unsuspend'
-  | 'credits.grant'
-  | 'credits.revoke'
-  | 'credits.refund_hold'
-  | 'credits.refund_book'
-  | 'credits.refund_release'
->;
-
-/** 거절 줄의 대상 — id 만. 메모 · 판단 근거는 싣지 않는다(ADR 0105) */
-export type RefusedTarget = { readonly reportId?: string; readonly userId?: string; readonly orderId?: string };
-
-const SQLSTATE = /^[0-9A-Z]{5}$/;
-
-/** 모양이 틀린 id 는 싣지 않는다 — 거절을 적는 부름이 다시 모양으로 거절되지 않게 */
-const idOf = (value: string | undefined): string | undefined => (value !== undefined && UUID.test(value) ? value : undefined);
-
-/** 접속기록에 적을 거절 코드 — SQLSTATE 면 그대로, 아니면(전송 오류 · PostgREST 의 코드) `other` */
-export const refusalCode = (code: string | undefined): string =>
-  code !== undefined && SQLSTATE.test(code) ? code : 'other';
 
 /**
  * 운영자의 쓰기가 거절됐다고 접속기록에 적는다 (G-111 R-4 · ADR 0191).

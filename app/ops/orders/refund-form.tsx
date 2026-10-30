@@ -12,9 +12,9 @@ import { DoneNote } from '../../ui/done-note';
 import { FailureLine } from '../../ui/failure-line';
 import { FIELD } from '../../ui/fields';
 import { useOneAtATime } from '../../ui/one-at-a-time';
-import { accountLabel } from '../account-label';
+import { accountLabel } from '@/src/lib/ops/account-label';
 import { bookRefund, holdRefund, releaseRefund } from './actions';
-import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime } from './labels';
+import { orderStatusLabel, REFUND_REASONS, refundReasonLabel, seoulTime } from '@/src/lib/ops/order-labels';
 import type { RefundHold } from './read';
 import {
   BOOK_LABEL,
@@ -23,7 +23,7 @@ import {
   samePlan,
   type Owner,
   type PreparePlan,
-} from './refund-confirm';
+} from '@/src/lib/ops/refund-confirm';
 
 const ROW = 'flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3';
 const LABEL = 'shrink-0 text-xs font-semibold text-muted sm:w-24';

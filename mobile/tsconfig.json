@@ -36,6 +36,18 @@
       "@account/*": [
         "../src/lib/account/*"
       ],
+      "@uuid": [
+        "../src/lib/uuid.ts"
+      ],
+      "@ops/*": [
+        "../src/lib/ops/*"
+      ],
+      "@survey": [
+        "../src/lib/survey/index.ts"
+      ],
+      "@sign-in-again": [
+        "../app/ui/sign-in-again.ts"
+      ],
       "@chat": [
         "../src/lib/chat/index.ts"
       ],

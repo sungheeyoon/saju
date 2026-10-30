@@ -1,4 +1,4 @@
-import type { Side } from './labels';
+import type { Side } from './report-labels';
 
 /** 스냅샷의 한 줄 — 신고 당시 베낀 본문 그대로다(ADR 0091) */
 export type SnapshotMessage = {

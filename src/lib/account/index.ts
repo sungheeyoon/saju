@@ -25,7 +25,7 @@ const isActiveAccount = (status: string): boolean => status === 'active';
 /**
  * 정지의 갈래 다섯 — 이름은 DB 의 갈래와 같다(`account_status_change.reason` 의 정지 몫, ADR 0188 · 0189).
  *
- * 이용자에게 보이는 낱말은 운영자가 2026-10-17 에 확정했다(G-111-8, ADR 0190). 운영 화면의 갈래 이름(`app/ops/members/suspension.ts`)과는
+ * 이용자에게 보이는 낱말은 운영자가 2026-10-17 에 확정했다(G-111-8, ADR 0190). 운영 화면의 갈래 이름(`src/lib/ops/suspension.ts`)과는
  * 다른 자리다 — 그쪽은 운영자가 읽는 이름이다.
  */
 type SuspensionReason = 'report' | 'policy' | 'payment' | 'eligibility' | 'other';

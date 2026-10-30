@@ -5,7 +5,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { CARD } from '../../ui/surfaces';
 import { opsReturnPath, secondFactorOf } from '../second-factor';
-import { SECOND_FACTOR_COPY as COPY } from './copy';
+import { SECOND_FACTOR_COPY as COPY } from '@/src/lib/ops/second-factor-copy';
 import { SecondFactorForm } from './form';
 import { FailureLine } from '../../ui/failure-line';
 

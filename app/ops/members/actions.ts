@@ -8,8 +8,8 @@ import { refresh } from '../../refresh';
 import { UUID } from '../../uuid';
 import { noteWriteRefusal } from '../denial';
 import { writeWithoutSecondFactor } from '../second-factor';
-import { GRANT_MAX, NOTE_MAX, isGrantReason, type GrantRequest } from './credit-grant';
-import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from './suspension';
+import { GRANT_MAX, NOTE_MAX, isGrantReason, type GrantRequest } from '@/src/lib/ops/credit-grant';
+import { NOTE_MAX as STATUS_NOTE_MAX, isStatusReason, type StatusRequest } from '@/src/lib/ops/suspension';
 
 /**
  * 무상 풀이권 지급 · 회수의 누름 (G-111 ①, ADR 0187).

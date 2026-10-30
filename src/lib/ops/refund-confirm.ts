@@ -1,4 +1,4 @@
-import { isPenalizedRefund, refundOwed, won } from '@/src/lib/reading/bundle';
+import { isPenalizedRefund, refundOwed, won } from '../reading/bundle';
 
 /**
  * **환불 세 동작의 「실행 전 확인」** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다(G-110 ②, ADR 0184).

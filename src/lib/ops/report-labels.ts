@@ -1,4 +1,4 @@
-import { REPORT_REASONS } from '@/src/lib/account';
+import { REPORT_REASONS } from '../account';
 
 /**
  * 운영자 신고 화면이 **값을 부르는 말** — 목록과 상세가 같은 사실을 같은 글자로 적게 한 자리에 둔다.

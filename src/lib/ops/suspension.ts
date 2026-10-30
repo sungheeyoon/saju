@@ -1,5 +1,5 @@
-import { firstLine } from '../first-line';
-import { accountStatusLabel, reasonLabel, reviewOutcomeLabel } from '../reports/labels';
+import { firstLine } from './first-line';
+import { accountStatusLabel, reasonLabel, reviewOutcomeLabel } from './report-labels';
 
 /**
  * **회원 화면의 이용 정지 · 해제의 「실행 전 확인」과 처분 이력의 말** — 확인창에 보이는 값과 서버에 내는 값을 한 자리에서 짓는다

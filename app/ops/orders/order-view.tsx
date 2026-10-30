@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { won } from '@/src/lib/reading/bundle';
 
 import { CARD } from '../../ui/surfaces';
-import { accountLabel } from '../account-label';
-import { orderStatusLabel, seoulTime } from './labels';
+import { accountLabel } from '@/src/lib/ops/account-label';
+import { orderStatusLabel, seoulTime } from '@/src/lib/ops/order-labels';
 import { refundForAllUnused, type OrderLine, type RefundHold } from './read';
 import { HoldPanel, PrepareForm } from './refund-form';
 

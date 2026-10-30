@@ -4,7 +4,11 @@ import { notFound, redirect } from 'next/navigation';
 import type { Database } from '@/src/lib/db';
 
 import { SIGN_IN_AGAIN_NOTE } from '../ui/sign-in-again';
+import { backTo, opsReturnPath, secondFactorHref } from '@/src/lib/ops/return-path';
+
 import { refuseBeforeTheDoor, type DeniedAction, type RefusedTarget, type WriteAction } from './denial';
+
+export { backTo, opsReturnPath, secondFactorHref };
 
 /**
  * **운영 화면은 2단계 인증(aal2)을 마친 세션에서만 운영자 문을 부른다** (ADR 0209, ADR 0123 을 되살림).
@@ -18,9 +22,6 @@ import { refuseBeforeTheDoor, type DeniedAction, type RefusedTarget, type WriteA
  * 세션 토큰으로 PostgREST 를 직접 두드리는 길은 DB 의 막음(`is_operator()` 가 JWT 의 `aal` 도 묻는 마이그레이션 `20270102090000`)이
  * 닫는다. 그 마이그레이션은 운영자가 운영에서 등록을 마친 뒤 오른다(ADR 0209 「차례」).
  */
-
-/** 두 번째 요소를 확인하는 화면 */
-const SECOND_FACTOR_PATH = '/ops/mfa';
 
 /**
  * 이 세션의 두 번째 요소 — 넷 중 하나다.
@@ -79,40 +80,4 @@ export async function writeWithoutSecondFactor(
   if (data?.claims.aal === 'aal2') return null;
   await refuseBeforeTheDoor(supabase, action, target);
   return { ok: false, message: SIGN_IN_AGAIN_NOTE };
-}
-
-/**
- * 확인을 마치고 돌아갈 자리 — **`/ops/` 아래만** 받는다.
- *
- * 주소창에서 온 값이라 그대로 보내면 열린 리다이렉트다(`src/lib/consent/return-path.ts` 와 같은 까닭). 확인 화면
- * 자신이나 모르는 값이면 오늘의 숫자로 간다.
- */
-export function opsReturnPath(value: string | string[] | null | undefined): string {
-  const fallback = '/ops/today';
-  const candidate = Array.isArray(value) ? value[0] : value;
-  if (candidate === undefined || candidate === null || !candidate.startsWith('/ops/')) return fallback;
-
-  try {
-    const parsed = new URL(candidate, 'https://local.invalid');
-    if (parsed.origin !== 'https://local.invalid' || !parsed.pathname.startsWith('/ops/')) return fallback;
-    if (parsed.pathname === SECOND_FACTOR_PATH) return fallback;
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    return fallback;
-  }
-}
-
-/** 확인 화면으로 가는 주소 — 돌아올 자리를 싣는다 */
-export const secondFactorHref = (back: string): string =>
-  `${SECOND_FACTOR_PATH}?next=${encodeURIComponent(opsReturnPath(back))}`;
-
-/** 화면이 받은 주소 값(`searchParams`)을 돌아올 자리로 다시 잇는다 — 글자 값만, 첫 값만 */
-export function backTo(pathname: string, params: Record<string, string | string[] | undefined> = {}): string {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    const one = Array.isArray(value) ? value[0] : value;
-    if (one !== undefined) query.set(key, one);
-  }
-  const search = query.toString();
-  return search === '' ? pathname : `${pathname}?${search}`;
 }

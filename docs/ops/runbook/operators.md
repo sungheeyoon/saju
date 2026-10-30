@@ -42,6 +42,8 @@ delete from public.operator where user_id =
 
 ### 운영자 로그인 — 구글 로그인 뒤 2단계 인증 (ADR 0209)
 
+앱에서는 주소로만 간다 — `mannalmap://ops/mfa` · `mannalmap://ops/today`. 메뉴에 길이 없다. 앱에서 코드를 확인하면 웹의 운영 세션이 끊긴다. 준비 취소는 웹에서 한다(ADR 0212).
+
 운영 화면(`/ops/today` · `/ops/reports` · `/ops/survey` · `/ops/orders` · `/ops/members`)과 그 누름은 **세션이 2단계 인증(aal2)을 마쳐야**
 운영자 문을 부른다. 인증 앱(Google Authenticator · 1Password 등 TOTP)을 쓴다. 운영자인지는 여전히 위 `public.operator` 줄 하나로 DB
 (`is_operator()`)가 답하고, 그 판정도 aal2 를 묻게 된다(마이그레이션 `20270102090000` — 운영자가 등록을 마친 뒤 오른다, 아래 「차례」). 열람 · 거절은 접속기록에 남는다(ADR 0105).

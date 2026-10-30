@@ -7,7 +7,7 @@ import { SERVICE_NAME } from '@/src/lib/brand';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { opsReturnPath } from '../second-factor';
-import { SECOND_FACTOR_COPY } from './copy';
+import { SECOND_FACTOR_COPY } from '@/src/lib/ops/second-factor-copy';
 
 /**
  * **운영자가 제 계정에 TOTP 를 등록하고, 그 코드로 세션을 aal2 로 올린다** (ADR 0209 · 0123).

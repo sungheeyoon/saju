@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NO_FILTERS, argsOf, filterSummary, filtersOf, hrefOf, isFiltered, isReportId } from './filters';
+import { NO_FILTERS, argsOf, filterSummary, filtersOf, hrefOf, isFiltered, isReportId } from './report-filters';
 import {
   accountStatusLabel,
   evidenceTime,
@@ -8,9 +8,9 @@ import {
   reviewOutcomeLabel,
   reviewStateLabel,
   sideOf,
-} from './labels';
-import { openByReported } from './same-account';
-import { chosenOnce } from './snapshot';
+} from './report-labels';
+import { openByReported } from './report-same-account';
+import { chosenOnce } from './report-snapshot';
 
 describe('신고 목록의 주소', () => {
   it('빈 주소는 처리 필요의 첫 쪽이다 (G-111-6)', () => {

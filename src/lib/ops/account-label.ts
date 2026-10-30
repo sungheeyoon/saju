@@ -1,4 +1,4 @@
-import { NO_NICKNAME } from './reports/labels';
+import { NO_NICKNAME } from './report-labels';
 
 /**
  * 운영자 화면이 가리키는 계정 — 「닉네임 · 계정 id 앞 8자」. 앞 8자가 닉네임이 같거나 비슷한 다른 사람과 가른다
