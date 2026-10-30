@@ -1,6 +1,8 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 import { balanceLabelOf, balanceShortOf, knownElementsOf } from '@/src/lib/discovery';
 import type { Element } from '@/src/lib/saju';
-import type { RpcRow } from '@/src/lib/db';
+import type { Database, RpcRow } from '@/src/lib/db';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
@@ -132,8 +134,8 @@ const matchOf = (row: MatchRow): InboxMatch => ({
 });
 
 /** 책장(`/me/readings`)에 세울, 서로 동의해 성립한 궁합. */
-export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
-  const supabase = await supabaseOnServer();
+export async function matchesForViewer(client?: SupabaseClient<Database>): Promise<readonly InboxMatch[]> {
+  const supabase = client ?? (await supabaseOnServer());
   const { data, error } = await supabase.rpc('my_matches');
   /* 책장의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
   if (error) throw dbFailure(error, 'my_matches');
@@ -145,8 +147,8 @@ export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
  *
  * 수락 RPC 는 상태만 답한다. 요청과 Match 를 같은 사람 눈으로 다시 읽어 잇는다(`acceptedMatchOf`). 못 찾으면 `null`.
  */
-export async function matchOfAcceptedRequest(requestId: string): Promise<string | null> {
-  const supabase = await supabaseOnServer();
+export async function matchOfAcceptedRequest(requestId: string, client?: SupabaseClient<Database>): Promise<string | null> {
+  const supabase = client ?? (await supabaseOnServer());
   const [requests, matches] = await Promise.all([supabase.rpc('my_match_requests'), supabase.rpc('my_matches')]);
   for (const [{ error }, where] of [[requests, 'my_match_requests'], [matches, 'my_matches']] as const) {
     if (error) throw dbFailure(error, where);

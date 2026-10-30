@@ -1,3 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+import type { Database } from '@/src/lib/db';
 import { preferGenderOf, type DiscoveryProfile } from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -11,8 +14,8 @@ import { read, unread, type SkippableRead } from '../../db-error';
  * 사람을 미리 거르는 데만 쓰고(못 읽으면 안 거른 채 RPC 가 다시 묻는다), 설정은 그 칸 대신
  * 실패 줄을 세운다 — 기본값으로 메우면 끈 사람에게 「켜져 있다」고 말하게 된다.
  */
-export async function myDiscoveryProfile(): Promise<SkippableRead<DiscoveryProfile | null>> {
-  const supabase = await supabaseOnServer();
+export async function myDiscoveryProfile(client?: SupabaseClient<Database>): Promise<SkippableRead<DiscoveryProfile | null>> {
+  const supabase = client ?? (await supabaseOnServer());
   const { data, error } = await supabase
     .from('discovery_profile')
     .select('prefer_gender, opted_out_at')

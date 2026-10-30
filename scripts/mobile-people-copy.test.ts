@@ -51,6 +51,7 @@ const WEB = flat(
     'app/me/people/[personId]/not-found.tsx',
     'app/me/reading/reading-result.tsx',
     'app/me/chat/[matchId]/room-compat.ts',
+    'src/lib/chat/room/compat.ts',
     'app/me/match/screen.tsx',
     'src/lib/input/query.ts',
     'mobile/src/app/index.tsx',

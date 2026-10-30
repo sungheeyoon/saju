@@ -1,4 +1,3 @@
-import type { CurrentReading } from '@/src/lib/reading';
 import type { ReadingNewsRead } from './actions';
 import type { PageVisibility } from './watch-run';
 
@@ -12,13 +11,8 @@ import type { PageVisibility } from './watch-run';
  * DOM 을 모른다 — 보이는가는 `visibility` 가, 부르는 것은 `mark` 가 든다. 그래서 손으로 든 값으로 그대로 잰다(`news-read.test.ts`).
  */
 
-/**
- * 이 글을 한 번만 처리하는 열쇠 — **글의 id 와 만든 시각.** 풀이 행은 대상마다 하나이고 다시 받으면 같은 행이 덮인다(id 가
- * 그대로다). id 만 들면 이 화면에서 다시 받은 새 글의 완성 소식을 놓친다. 글이 없으면 `null` 이다.
- */
-export function newsKeyOf(reading: Pick<CurrentReading, 'id' | 'createdAt'> | null): string | null {
-  return reading === null ? null : `${reading.id}@${reading.createdAt}`;
-}
+/* 글의 열쇠는 기다림의 판단과 함께 쓴다(ADR 0211) */
+export { newsKeyOf } from '@/src/lib/reading/reading-flow';
 
 /**
  * 탭이 보이면 `send` 를 **한 번** 부른다 — 지금 보이면 곧바로, 숨어 있으면 처음 보일 때. 돌려준 함수가 기다리기를 걷는다.
