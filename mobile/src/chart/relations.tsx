@@ -18,7 +18,7 @@ import { COLOR, RADIUS } from '@/ui/tokens';
 import { Fold, Ruled, ScrollHint, T, shared } from './parts';
 
 /** L3 발화를 놓는다 — 문구를 여기서 쓰지 않고, 강도가 옆 칸으로 선다(웹 `app/utterances.tsx`) */
-function UtteranceList({ utterances }: { utterances: readonly Utterance[] }) {
+export function UtteranceList({ utterances }: { utterances: readonly Utterance[] }) {
   const spoken = spokenOf(utterances);
   const silentNote = silentNoteOf(utterances);
 

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { Database, RpcRow } from '@/src/lib/db';
-import type { PersonSlots } from '@/src/lib/people';
+import type { Database } from '@/src/lib/db';
+import { personSlotsFrom, type PersonSlots } from '@/src/lib/people';
 
 /**
  * **한도가 세는 것은 「내가 관리하는 사람」이지 내 계정에 묶인 Person 수가 아니다.**
@@ -23,23 +23,6 @@ export const managedEdges = <T extends { personId: string }>(
  */
 export async function readPersonSlots(supabase: SupabaseClient<Database>): Promise<PersonSlots | null> {
   const { data, error } = await supabase.rpc('my_person_slots');
-  return personSlotsFrom(data, error);
-}
-
-/**
- * `my_person_slots` 가 내주는 한 줄을 화면이 쓰는 값으로 — 모양을 옮기는 일은 여기 한 자리라, 필드 이름이 바뀌는 날 한쪽만 고쳐지지 않는다.
- *
- * @returns 못 읽었으면 `null` — **0 으로 눕히지 않는다.** 0 은 「다 찼다」이고, 그렇게
- *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「자리를 다 채웠다」고 거짓을 말한다.
- */
-function personSlotsFrom(
-  data: readonly RpcRow<'my_person_slots'>[] | null,
-  error: unknown | null,
-): PersonSlots | null {
   if (error) return null;
-
-  /* 칸 이름은 생성 타입이 든다 — `person_limit` 이 바뀌면 컴파일러가 여기를 가리킨다 */
-  const one = data?.[0];
-
-  return one === undefined ? null : { limit: one.person_limit, used: one.used, remaining: one.remaining };
+  return personSlotsFrom(data);
 }

@@ -1,4 +1,4 @@
-import type { StoredInput } from '@/src/lib/input/stored';
+import { PERSON_INPUT_COLUMNS, storedInputFilled, type StoredInput } from '@/src/lib/input/stored';
 
 import type { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
@@ -28,16 +28,6 @@ type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
  */
 
 /**
- * 입력 한 벌을 읽을 때 고르는 열 — **밖으로 안 나간다.**
- *
- * 앞서는 여섯 화면이 이 여덟 이름을 손으로 들고 각자 `select` 했다. 여덟 벌로 적혀
- * 있으면 한 벌이 언젠가 한 칸을 빠뜨리고, 빠뜨린 칸은 `undefined` 로 조용히 흘러
- * 들어간다 — 타입이 `string` 이라 아무도 안 막는다.
- */
-const PERSON_INPUT_COLUMNS =
-  'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';
-
-/**
  * 한 사람의 저장된 입력.
  *
  * `id` 를 함께 낸다 — **되돌려줄 값은 주소에 적힌 글자가 아니다.** Postgres 의 `uuid`
@@ -55,20 +45,11 @@ type StoredPerson = { readonly id: string; readonly input: StoredInput; readonly
  */
 export type InputVersions = { readonly inputVersion: number; readonly chartEngineVersion: string };
 
-/**
- * 여덟 칸이 **함께 차거나 함께 빈다** — 한 칸이 그 답을 든다.
- *
- * DB 검사식이 그렇게 걸려 있다(`num_nonnulls(...) in (0, 7)`). 그래서 한 칸만 보면
- * 되고, 여덟을 다 보면 그 검사식과 같은 말을 두 곳에서 하게 된다.
- */
 /** 입력과 같은 행에서 읽은 판 둘 — 칸 이름을 한 번만 옮긴다 */
 const versionsOf = (row: { input_version: number; chart_engine_version: string }): InputVersions => ({
   inputVersion: row.input_version,
   chartEngineVersion: row.chart_engine_version,
 });
-
-const filled = (row: Record<string, unknown> | null): boolean =>
-  row !== null && row.calendar !== null && row.calendar !== undefined;
 
 /**
  * 한 사람 — **없거나 입력이 비었으면 `null`.**
@@ -93,7 +74,7 @@ export async function storedInputOf(
     .maybeSingle();
 
   if (error) throw dbFailure(error, 'person.select');
-  if (!filled(data)) return null;
+  if (!storedInputFilled(data)) return null;
 
   return {
     id: data!.id as string,
@@ -123,7 +104,7 @@ export async function storedInputsOf(
 
   return new Map(
     (data ?? [])
-      .filter((row) => filled(row))
+      .filter((row) => storedInputFilled(row))
       .map((row) => [row.id as string, row as unknown as StoredInput]),
   );
 }

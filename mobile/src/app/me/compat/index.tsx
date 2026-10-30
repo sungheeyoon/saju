@@ -1,0 +1,166 @@
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { isBlocked } from '@account/index';
+import { UNREADABLE_INPUT_NOTE } from '@input/stored';
+
+import { readPair, readPicker, type PairOutcome, type PickerData } from '@/compat/data';
+import { CompatPicker } from '@/compat/picker';
+import { CompatResult } from '@/compat/result';
+import type { Read } from '@/people/data';
+import { AccountNotice, BackLink, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
+import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+
+/**
+ * 궁합 — 앱에는 `/compat` 이 없어(입구 결정) 이 주소가 두 걸음을 다 든다. `a` · `b` 가 있으면 두 명식을 보고, 없으면 두 사람을 정한다.
+ * `pickA` · `pickB` 는 고르는 칸을 채워 연다 — 주소에는 person id 만 실린다.
+ */
+export default function CompatScreen() {
+  const params = useLocalSearchParams<{ a?: string; b?: string; pickA?: string; pickB?: string }>();
+  if (params.a !== undefined && params.b !== undefined) return <ResultStep a={params.a} b={params.b} />;
+  return <PickStep pickA={params.pickA} pickB={params.pickB} />;
+}
+
+function Loading() {
+  return (
+    <ScreenFrame>
+      <ActivityIndicator color={COLOR.secondary} style={styles.loading} />
+    </ScreenFrame>
+  );
+}
+
+function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
+  const [read, setRead] = useState<Read<PickerData> | null>(null);
+
+  const load = useCallback(() => {
+    void readPicker().then((next) => {
+      if (next.kind === 'signed-out') router.replace('/');
+      else setRead(next);
+    });
+  }, []);
+  /* 고르는 칸의 값이 날아가지 않게 처음 한 번만 — 저장한 사람이 늘어도 칸을 다시 세우지 않는다 */
+  useFocusEffect(useCallback(() => {
+    if (read === null) load();
+  }, [load, read]));
+
+  if (read === null || read.kind === 'signed-out') return <Loading />;
+  if (read.kind === 'failed') {
+    return (
+      <ScreenFrame>
+        <Text style={shared.section}>궁합 새로 보기</Text>
+        <FailureLine onRetry={load}>{read.message}</FailureLine>
+      </ScreenFrame>
+    );
+  }
+
+  const { state, people, compats } = read.value;
+  const latest = compats[0];
+
+  return (
+    <ScreenFrame keyboard>
+      <Text style={shared.section}>궁합 새로 보기</Text>
+      {isBlocked(state) ? (
+        <AccountNotice state={state} onRetry={load} />
+      ) : (
+        <>
+          <CompatPicker people={people} pickA={pickA} pickB={pickB} />
+          <Text style={shared.meta}>
+            직접 입력한 사람은 <Text style={shared.bodyStrong}>저장한 사람에 추가되지 않아요.</Text>
+          </Text>
+          {latest !== undefined && (
+            <Pressable accessibilityRole="link" onPress={() => go('/me/readings?kind=compat&from=compat')} style={styles.summary}>
+              <View style={styles.summaryBody}>
+                <Text style={styles.summaryTitle}>
+                  궁합풀이 <Text style={shared.meta}>{compats.length}</Text>
+                </Text>
+                <Text style={shared.meta} numberOfLines={1}>최근 {`${latest.labelA ?? ''} × ${latest.labelB ?? ''}`}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          )}
+        </>
+      )}
+    </ScreenFrame>
+  );
+}
+
+function ResultStep({ a, b }: { a: string; b: string }) {
+  const [read, setRead] = useState<Read<PairOutcome> | null>(null);
+
+  const load = useCallback(() => {
+    void readPair(a, b).then((next) => {
+      if (next.kind === 'signed-out') router.replace('/');
+      else setRead(next);
+    });
+  }, [a, b]);
+  useFocusEffect(load);
+
+  if (read === null || read.kind === 'signed-out') return <Loading />;
+
+  const back = <BackLink label="궁합" href="/me/compat" />;
+  if (read.kind === 'failed') {
+    return (
+      <ScreenFrame>
+        {back}
+        <FailureLine onRetry={load}>{read.message}</FailureLine>
+      </ScreenFrame>
+    );
+  }
+
+  const outcome = read.value;
+  if (outcome.kind === 'ok') {
+    return (
+      <ScreenFrame>
+        {back}
+        <CompatResult outcome={outcome} />
+      </ScreenFrame>
+    );
+  }
+  if (outcome.kind === 'blocked') {
+    return (
+      <ScreenFrame>
+        <AccountNotice state={outcome.state} onRetry={load} />
+      </ScreenFrame>
+    );
+  }
+  if (outcome.kind === 'not-found') {
+    return (
+      <ScreenFrame>
+        <NotFound>
+          <PrimaryButton label="궁합 보러 가기" onPress={() => router.replace('/me/compat')} />
+          <SecondaryButton label="저장한 사람" onPress={() => router.replace('/me/people')} />
+        </NotFound>
+      </ScreenFrame>
+    );
+  }
+
+  /* 거절은 그 자리에서 말한다 — 고르는 자리로 되돌려 보내면 왜 되돌아왔는지 모른다 */
+  return (
+    <ScreenFrame>
+      <BackLink label="궁합 보러 가기" href="/me/compat" />
+      <Text style={shared.meta}>궁합</Text>
+      <Text style={shared.title}>궁합을 볼 수 없습니다</Text>
+      <Panel style={styles.refusal}>
+        {outcome.kind === 'same' ? (
+          <Text style={shared.body}>같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.</Text>
+        ) : (
+          <>
+            <Text style={shared.body}>{outcome.message}</Text>
+            <Text style={shared.meta}>{UNREADABLE_INPUT_NOTE}</Text>
+          </>
+        )}
+      </Panel>
+    </ScreenFrame>
+  );
+}
+
+const styles = StyleSheet.create({
+  loading: { marginTop: 48 },
+  refusal: { gap: 8 },
+  summary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
+  summaryBody: { flex: 1, minWidth: 0 },
+  summaryTitle: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
+  chevron: { fontSize: TYPE.lead, color: COLOR.muted },
+});
