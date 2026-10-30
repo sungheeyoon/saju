@@ -9,6 +9,9 @@
       "@/assets/*": [
         "./assets/*"
       ],
+      "@design": [
+        "../src/lib/design/index.ts"
+      ],
       "@input/*": [
         "../src/lib/input/*"
       ],

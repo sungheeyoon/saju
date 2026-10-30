@@ -12,6 +12,7 @@
 - 앱이 쿠키 · 서버 액션을 못 쓰는 자리는 토큰을 묻는 `app/api/mobile/` 문을 지난다(ADR 0211). 나머지는 그 사람의 JWT 로 DB 함수를 바로 부른다.
 - 사진 올리기는 스위치가 `db` 인 동안만 앱에서 된다. `s3` 면 올리는 자리가 안 선다(`mobile/src/settings/photos.ts`).
 - 가입 — 웹과 같은 한 폼이고 판정 · 글자는 `src/lib/consent/signup.ts` 를 함께 쓴다. 처리방침은 `EXPO_PUBLIC_SITE_URL` 로 웹을 열고, 값이 없는 빌드에는 그 링크가 안 선다.
+- 디자인 토큰은 `src/lib/design/tokens.json` 한 원본에서 웹 CSS 칸과 앱 값으로 난다(`scripts/design-tokens.mjs`, ADR 0109 추기 2026-10-31).
 - 글꼴은 웹의 woff2 조각을 네이티브가 못 읽고 합쳐지지도 않아(CID CFF) 배포 압축의 M · B OTF 를 `mobile/assets/fonts/` 에 넣었다.
   판정은 운영자 몫이다(`docs/legal/font-grounds.md`).
 

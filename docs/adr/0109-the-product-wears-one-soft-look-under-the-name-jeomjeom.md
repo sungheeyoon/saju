@@ -333,3 +333,11 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
   대가를 받을 수 없다. 항목별로 웹서버 탑재 · 앱 GUI · BI/CI 가 허용으로 정리돼 있다. 보도자료의 공공누리 제4유형은 보도자료 글의
   조건으로 보인다. 원문 · 출처 · 확인 날짜는 `docs/legal/font-grounds.md`(2026-10-28 — 부산시 페이지는 이 환경에서 접속이 막혀 옮긴
   안내로 확인).
+
+## 추기 — 앱과 웹의 값 · 부품은 한 원본에서 (2026-10-31, 운영자 지적)
+
+운영자가 앱의 카드 모양이 화면마다 다르다고 짚었고, 「웹의 모바일 화면과 앱이 똑같은 UI」를 요구했다. 재어 보니 앱 토큰(`mobile/src/ui/tokens.ts`)이 `globals.css` 를 손으로 베낀 것이었다.
+
+- **토큰의 원본은 `src/lib/design/tokens.json` 하나다** — `scripts/design-tokens.mjs` 가 웹 `app/globals.css` 의 표시된 칸(`design-tokens:*`)과 앱이 `@design` 으로 부르는 `src/lib/design/tokens.generated.ts` 를 짓는다. 두 벌을 시험으로 맞추지 않고 한 원본에서 낸다 — 토스 TDS 의 색 체계 개편이 쓴 꼴이다(「하나의 소스를 바라보게」 · 토큰에서 플랫폼별 코드를 자동으로 짓는다, <https://toss.tech/article/tds-color-system-update>, 확인 2026-10-31). 토스는 Style Dictionary 를 쓰지만 여기는 값이 적어 작은 스크립트로 충분해 의존성을 안 늘렸다. 어두운 화면 값도 원본에 있다(앱은 아직 안 쓴다).
+- **값을 고치는 차례** — `tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다. 어긋나면 `--check` 와 `scripts/design-tokens.test.ts` 가 붉다. 옮기기 전 값은 `scripts/fixtures/design-tokens-before.json` 으로 잰다 — 값을 일부러 바꾸는 PR 은 그 파일도 고친다.
+- **그림자** — 앱은 React Native 의 `boxShadow` 에 웹과 같은 글자를 준다(New Architecture, iOS · Android 9+, <https://reactnative.dev/docs/view-style-props>, 확인 2026-10-31).
