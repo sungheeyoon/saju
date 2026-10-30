@@ -12,7 +12,7 @@ export function goBack(fallback: string) {
   else router.replace(fallback as Href);
 }
 
-/** `<` 아이콘만 — 24px, 누르는 자리 44px, 아이콘 왼쪽이 본문 여백 16px 이다(운영자 2026-10-31) */
+/** `<` 아이콘만 — 24px, 누르는 자리 44px, **보이는 왼쪽 끝**이 본문 여백 16px 이다(운영자 2026-10-31). 경로의 끝이 상자 안 7px(꼭짓점 8 − 선 굵기 절반)이라 상자는 9px 에서 시작한다 */
 export function BackButton({ fallback }: { fallback: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={() => goBack(fallback)} style={styles.back}>
@@ -48,7 +48,7 @@ export function TopBar({ title, fallback, right, children }: { title?: string; f
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', paddingRight: 16, backgroundColor: COLOR.background },
-  back: { width: 44, height: 44, paddingLeft: 16, justifyContent: 'center' },
+  back: { width: 44, height: 44, paddingLeft: 9, justifyContent: 'center' },
   middle: { flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 4 },
   title: { flex: 1, fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   right: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 },

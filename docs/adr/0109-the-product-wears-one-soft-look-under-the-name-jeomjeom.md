@@ -336,4 +336,4 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
 
 ## 추기 — 앱의 뒤로가기는 부품 하나다 (2026-10-31, 운영자 결정)
 
-앱(`mobile/`)의 하위 화면은 앱 머리 대신 `mobile/src/ui/top-bar.tsx` 의 맨 위 줄을 세운다 — 왼쪽 위 고정 `<` 아이콘(24px, 누르는 자리 44px, 왼쪽 16px)과 화면 이름이고, 「뒤로」나 이전 화면 이름 글자는 없다. 탭 첫 화면 넷은 앱 머리 그대로이고 탭 막대도 그대로다. 채팅방은 자체 머리에 같은 `<` 를 쓴다. 머리를 어느 주소에 세우나는 `src/lib/app-shell.ts` 한 자리이고, `router.back` 이 부품 밖에 다시 생기면 `scripts/mobile-back.test.ts` 가 붉다.
+앱(`mobile/`)의 하위 화면은 앱 머리 대신 `mobile/src/ui/top-bar.tsx` 의 맨 위 줄을 세운다 — 왼쪽 위 고정 `<` 아이콘(24px, 누르는 자리 44px, 보이는 왼쪽 끝 16px)과 화면 이름이고, 「뒤로」나 이전 화면 이름 글자는 없다. 탭 첫 화면 넷은 앱 머리 그대로이고 탭 막대도 그대로다. 채팅방은 자체 머리에 같은 `<` 를 쓴다. 머리를 어느 주소에 세우나는 `src/lib/app-shell.ts` 한 자리이고, `router.back` 이 부품 밖에 다시 생기면 `scripts/mobile-back.test.ts` 가 붉다.
