@@ -20,7 +20,7 @@
 | 새 워크트리에서 vitest 가 `server-only` 를 못 찾거나 dev 서버가 `node_modules` 를 거절한다 | 워크트리에는 `node_modules` 가 없다. 심볼릭 링크는 Turbopack 이 거절한다(2026-09-28) | 단위 · 타입 · 린트만이면 `ln -s <메인>/node_modules .`. dev 서버 · 흐름 · e2e 면 복사한다 — macOS `cp -Rc`(APFS 복제), Linux `cp -a --reflink=auto`(ext4 는 통째 — 759MB · 4초) |
 | 워크트리에 `node_modules` 가 **있는데도** vitest 가 `server-only` 를 못 찾는다 | 그 폴더가 캐시만 든 껍데기다(`.vite` 하나뿐, 2026-10-10) — 이름이 있어 위 줄을 안 밟고, vitest 는 위 폴더로 올라가 찾다 선다 | `ls node_modules` 로 패키지가 있는지 보고, 껍데기면 지우고 위 줄대로 링크하거나 복사한다 |
 | 워크트리에서 `npm run db:remote` · `supabase migration list` · `db push` 가 `LegacyProjectNotLinkedError` 로 선다 | 원격 프로젝트 연결(project-ref)은 `supabase/` 아래 `.temp` 폴더에 있고 gitignore 라 git 이 안 든다 — 새 워크트리에는 없다(2026-10-10 · 2026-10-14) | 메인 체크아웃의 그 `.temp` 를 열어 `project-ref` 가 운영 프로젝트인지 본 뒤 워크트리의 `supabase/` 아래로 복사한다(`cp -a` 로 폴더째) |
-| 에이전트 워크트리에서 `cannot be shown …` 으로 거절된다 — 변수 · 명령 치환(`$()`) · heredoc(특히 `git` 글자가 든 것) · `for` 루프 · `xargs` · `git` 출력을 받는 파이프 · `&&` 로 이은 `git` · `gh` 명령 · `vercel inspect <url> \| grep alias` 처럼 운영 CLI 출력을 받는 파이프 · `gh … -q '<jq 식>'` · `git` 글자가 든 스크립트를 heredoc 으로 넘긴 `python3` · `node` | Claude Code 의 워크트리 격리가 실행 때 정해지는 명령을 막는다 — 2026-10-14 라운드의 에이전트 다섯이 다 겪었다. `vercel` 파이프는 2026-10-18 배포 에이전트들, `gh -q` 는 2026-10-23 라운드의 에이전트 넷 다(같은 날 다른 세션에서는 통과했다 — 늘 막히는 것은 아니다) | `git` · `gh` 명령은 하나씩 따로 부르고 값은 글자로 옮긴다. `vercel inspect <url>` 은 파이프 없이 불러 출력의 Aliases 를 눈으로 읽는다(`docs/ops/runbook/deploy.md` 「배포」 3 단계). 커밋 · PR 본문처럼 긴 글은 파일로 써서 `-F` · `--body-file` 로 준다. 여러 파일이나 이어진 걸음은 스크립트 파일(`node` · `sh`)에 절대 경로를 주고 그 파일을 돌린다. 그 파일을 두는 자리는 `docs/agents/delegation/done.md` 「끝났다는 것」의 「임시 파일」 줄 — 제 워크트리 안이다 |
+| 에이전트 워크트리에서 `cannot be shown …` 으로 거절된다 — 변수 · 명령 치환(`$()`) · heredoc(특히 `git` 글자가 든 것) · `for` 루프 · `xargs` · `git` 출력을 받는 파이프 · `&&` 로 이은 `git` · `gh` 명령 · `vercel inspect <url> \| grep alias` 처럼 운영 CLI 출력을 받는 파이프 · `gh … -q '<jq 식>'` · `git` 글자가 든 스크립트를 heredoc 으로 넘긴 `python3` · `node` | Claude Code 의 워크트리 격리가 실행 때 정해지는 명령을 막는다 — 2026-10-14 라운드의 에이전트 다섯이 다 겪었다. `vercel` 파이프는 2026-10-18 배포 에이전트들, `gh -q` 는 2026-10-23 라운드의 에이전트 넷 다(같은 날 다른 세션에서는 통과했다 — 늘 막히는 것은 아니다). 2026-10-30 Expo 라운드에서도 되풀이됐다 — `cd <경로>; git merge …` 처럼 앞에 `cd` 를 붙인 `git` 도 걸린다 | `git` · `gh` 명령은 하나씩 따로 부르고 값은 글자로 옮긴다. `vercel inspect <url>` 은 파이프 없이 불러 출력의 Aliases 를 눈으로 읽는다(`docs/ops/runbook/deploy.md` 「배포」 3 단계). 커밋 · PR 본문처럼 긴 글은 파일로 써서 `-F` · `--body-file` 로 준다. 여러 파일이나 이어진 걸음은 스크립트 파일(`node` · `sh`)에 절대 경로를 주고 그 파일을 돌린다. 그 파일을 두는 자리는 `docs/agents/delegation/done.md` 「끝났다는 것」의 「임시 파일」 줄 — 제 워크트리 안이다 |
 | `npm run build` 가 `FileSystemPath("").join("../../../node_modules/tailwindcss/index.css") leaves the filesystem root` 로 선다 | `.claude/worktrees/` 아래 워크트리 · 복사한 `node_modules` 에서 났다(2026-10-07). 2026-10-10 #604 에서는 `.claude/worktrees/` 아래에 `cp -a --reflink=auto` 로 복사한 `node_modules` 로 빌드가 됐다 — 원인은 확인 전 | CI `core` 차선의 빌드를 보거나, 저장소 밖 홈 디스크의 워크트리(`git worktree add --detach ~/saju-wt/<이름>`)에서 빌드하고 끝나면 걷는다 — `/tmp` 는 아래 줄 |
 | 에이전트 워크트리에서 `git worktree add`(예: `docs/ops/runbook/deploy.md` 「묶음 배포」 1 단계의 임시 폴더)가 거절된다 | 워크트리 격리가 제 워크트리를 겨누지 않는 `git` 명령을 막는다(2026-10-18 배포) | `git -C <제 워크트리> worktree add --detach ~/saju-wt/<이름> <SHA>` 로 제 워크트리를 겨눠 부른다. 끝나면 같은 꼴의 `worktree remove` 로 걷는다 |
 | 열린 PR 의 가지를 main 위로 `git rebase` 한 뒤 `git push --force`(`--force-with-lease` 도)가 거절된다 | 워크트리 격리가 원격 가지를 다시 쓰는 push 를 막는다 — 보통의 push 거절로 읽혀 헤맸다(2026-10-18 #761) | main 이 꼭 필요할 때만(`DIRTY` · 새 main 의 코드가 드는 때 — `BEHIND` 만이면 할 것이 없다, 아래 줄) rebase 하지 않고 `git fetch origin main` 뒤 `git merge origin/main` 으로 올려 보통 push 한다(`docs/agents/delegation/parallel.md` 「나란히 맡길 때」의 충돌 푸는 법과 같다). squash 본문에 merge 커밋 메시지가 섞이니 머지할 때 본문을 다듬는다(`docs/agents/delegation/done.md` 「끝났다는 것」의 squash 본문) |
@@ -38,6 +38,8 @@
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
 | 기계가 바쁠 때(빌드 · 다른 워크트리의 시험과 겹칠 때) `npm test` 의 엔진 시험이 `Test timed out in 5000ms` 로 붉다 | 로컬 `testTimeout` 은 5초다(`vitest.config.mts`, CI 는 30초) — 코드가 아니라 일꾼 수가 부하를 키운다(2026-10-22) | `npx vitest run --maxWorkers=4` 로 다시. 그래도 붉으면 그때 코드를 본다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
+| `pkill -f <글자>` 를 부르자 명령이 결과 없이 죽는다 | 그 글자가 제 셸의 명령줄에도 들어 있어 셸이 저를 죽인다(2026-10-30 Expo 라운드) | 띄울 때 받은 PID 로 끈다. 글자로 찾아야 하면 첫 글자를 묶는다 — `pkill -f '[e]xpo start'`. 남이 띄운 프로세스는 끄지 않는다 |
+| 가지들을 임시로 합쳐 본 뒤, 진짜 머지의 충돌이 묻지 않고 풀린다(`Resolved '…' using previous resolution`) | 이 저장소는 `rerere.enabled=true` 이고 `rr-cache` 는 워크트리끼리 함께 쓴다 — 임시 합침에서 고른 해결을 다른 가지 · 다른 워크트리의 머지가 되풀이한다(2026-10-30 Expo 라운드) | 임시 합침은 시험하는 데만 쓰고 그 가지를 PR 에 올리지 않는다. 머지에서 그 문장이 보이면 그 파일을 읽어 보고, 틀렸으면 `git rerere forget <파일>` 뒤 `git checkout -m <파일>` 로 충돌을 되살려 다시 푼다 |
 | 맥에서만 `scripts/aws-wizard.test.ts` 가 붉다 · 마법사가 「bash 4.4 이상」이라며 멈춘다 | macOS 의 `/bin/bash` 는 3.2 다 — 마법사는 `inherit_errexit` · 연관 배열을 쓴다. 시험은 PATH 의 bash 를 쓴다(CI 는 ubuntu 라 초록, 2026-10-24) | `brew install bash` — `/opt/homebrew/bin` 이 PATH 에서 `/bin` 앞이면 된다 |
 | `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096) |
 | 워크트리에서 운영에 닿는 CLI 를 처음 부를 때 macOS 가 키체인의 `Supabase CLI` 를 쓰려 한다고 묻는다 | 임시 서명(`adhoc`) 바이너리라 키체인이 **경로**로 허락을 기억한다 — 워크트리마다 새 경로다(2026-09-24) | 사람이 경로가 이 저장소의 `.claude/worktrees/…/supabase` 인지 보고 「항상 허용」. 거부하면 그 세션의 원격 걸음이 실패한다 |
@@ -47,6 +49,15 @@
 | `.env.development.local` 의 값이 `"[SENSITIVE]"` 다 | Vercel 이 Secret 은 안 내려 준다. 그대로 두면 「있는」 값으로 세어져 401 로 떨어진다 | 주석 처리해 두면 오류가 이름을 대 준다. 실호출은 `OPENAI_API_KEY` 한 줄을 손으로 붙인다 |
 | 실호출 첫 콜이 `Incorrect API key` | `.env.development.local` 값이 `"…"` 로 감싸여 있다 | `loadLocalEnv` 가 벗긴다 — 새 읽는 자리를 만들면 같은 것을 한다 |
 | Production 배포가 전부 `Error` 인데 typecheck · lint · 단위 · e2e 는 초록이다 | `next build` 만 잡는 것이 있다 — 예: `app/**/icon.tsx` 는 메타데이터 라우트라 기본 내보내기가 없으면 「Export default doesn't exist」로 선다(2026-09-24). 파일 이름 `icon` · `apple-icon` · `opengraph-image` · `sitemap` · `robots` · `manifest` 는 `app/` 아래 어디서나 특별하다 | 로컬에서는 최소 셋(단위 · 타입 · 린트, `docs/agents/test-map/what-to-run.md`)만 돈다 — 빌드는 CI `core` 차선이 돈다. 이 특별한 이름의 파일을 더하거나 고쳤으면 그 PR 의 CI 빌드가 초록인지 본다. 공용 아이콘은 `app/ui/icons.tsx` 다. 배포 상태는 `vercel ls --prod` |
+
+## 앱을 웹 번들로 재기
+
+`mobile/` 화면을 기기 없이 재는 차례다(2026-10-30 Expo 라운드). 앱 시험의 나머지는 인계 노트 `docs/notes/2026-10-30-expo-app-round.md` 「시험하는 법」이 든다.
+
+1. `mobile/app.json` 의 `web.output` 을 잠시 `single` 로 둔다 — `server` 는 AsyncStorage 가 서버 렌더에서 죽는다. **커밋하지 않는다.**
+2. `mobile/` 에서 `npx expo start --web` 을 띄우고 390px 폭으로 연다.
+3. Supabase 응답은 Playwright 의 가로채기로 가짜를 끼운다 — 운영 DB 를 밟지 않는다(개발 빌드도 운영 Supabase 를 본다). 로그인은 `__DEV__` 가 건너뛴다.
+4. **이것은 네이티브가 아니다** — 구글 로그인 창 · 사진 고르기와 굽기 · 딥 링크 · 키보드는 안 돈다. PR 의 「안 돌린 것」에 적는다.
 
 ## 워크트리에서 전후 그림 찍기
 
