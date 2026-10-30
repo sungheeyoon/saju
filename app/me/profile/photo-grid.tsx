@@ -8,6 +8,11 @@ import {
   PHOTO_NOTE,
   PHOTO_TYPES,
   FOCUS_CENTER,
+  PHOTO_REMOVE_CONFIRM,
+  PHOTO_REMOVE_NOTE,
+  PHOTO_REMOVE_TITLE,
+  PHOTO_REMOVED,
+  answerRemoval,
   focusPosition,
   movedPhotos,
   type PhotoUploadMode,
@@ -24,7 +29,6 @@ import type { ActionChoice } from '../../ui/action-sheet';
 import { PhotoMenu } from './photo-menu';
 import { PhotoViewer } from './photo-viewer';
 import { positionOf } from './photo-positions';
-import { answerRemoval, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_NOTE, PHOTO_REMOVE_TITLE, PHOTO_REMOVED } from './photo-removal';
 import type { MyPhoto } from './photos';
 import { usePhotoDrag } from './use-photo-drag';
 import { usePhotoRemoval } from './use-photo-removal';
