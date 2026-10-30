@@ -13,7 +13,6 @@ import { refusedForCredits } from '@matching/requests';
 import { activityBandOf } from '@presence';
 import { ELEMENTS, storedChartSnapshot, type ChartSnapshot } from '@saju';
 import type { PhotoFocus } from '@profile';
-import { readingBody, seatNicknamesOf, withNicknames } from '@reading/display';
 import { outOfCredits } from '@reading/panel-chrome';
 
 import { supabase } from '@/auth/client';
@@ -360,33 +359,9 @@ export function readMatchResult(matchId: string): Promise<Read<MatchOutcome>> {
   });
 }
 
-/** 글의 표지(`##` · `**`)를 뗀다 — 앱에는 아직 글 그리는 부품이 없다(웹의 `app/me/reading/markdown.tsx`). 글자는 그대로다 */
-const plainBody = (markdown: string): string => markdown.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '');
-
-export type MatchReading = { score: number | null; metaphor: string | null; body: string };
-
-/**
- * 만들어 둔 궁합풀이를 읽는다 — 읽기만 한다. 만드는 일은 앱용 문 뒤라 여기 없다. 호칭은 웹과 같은 함수로 지금 닉네임으로 바꾼다.
- * 아직 없으면 `null`.
- */
-export function readMatchReading(matchId: string, partnerNickname: string): Promise<Read<MatchReading | null>> {
-  return guarded(async () => {
-    if (supabase === null) return { ok: false, reason: NOT_READY };
-    const [reading, account] = await Promise.all([
-      supabase.rpc('my_reading', rpcArgs<'my_reading'>({ p_kind: 'match', p_person_a: null, p_person_b: null, p_match_id: matchId })),
-      supabase.from('app_user').select('nickname').maybeSingle(),
-    ]);
-    if (reading.error !== null) return { ok: false, reason: userFacingDbMessage(reading.error, 'my_reading') };
-    const row = (reading.data ?? [])[0];
-    if (row === undefined) return { ok: true, value: null };
-    const seats = seatNicknamesOf({ viewer: account.data?.nickname ?? '', partner: partnerNickname }, row.viewer_is_first);
-    return {
-      ok: true,
-      value: {
-        score: row.score ?? null,
-        metaphor: row.metaphor === null || row.metaphor === undefined ? null : withNicknames(row.metaphor, seats),
-        body: plainBody(withNicknames(readingBody(row.output), seats)),
-      },
-    };
-  });
+/** 내 닉네임 — 글의 자리 호칭을 바꿔 넣을 값이다. 못 읽으면 빈 값이고 글은 그대로 선다 */
+export async function readMyNickname(): Promise<string> {
+  if (supabase === null) return '';
+  const { data, error } = await supabase.from('app_user').select('nickname').maybeSingle();
+  return error !== null ? '' : (data?.nickname ?? '');
 }
