@@ -1,7 +1,21 @@
-import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useState, type ComponentRef, type ReactNode, type Ref } from 'react';
+import {
+  InputAccessoryView,
+  Keyboard,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
-import { COLOR, CONTROL, RADIUS, TYPE } from './tokens';
+import { digitOutOfRange } from '@input/entry';
+
+
+import { COLOR, FONT, CONTROL, RADIUS, TYPE } from './tokens';
 
 /** 흰 판 · 크림 판 — 웹의 `CARD` · `PAPER_FACE` */
 export function Panel({ tone = 'surface', style, children }: { tone?: 'surface' | 'cream'; style?: StyleProp<ViewStyle>; children: ReactNode }) {
@@ -17,33 +31,70 @@ export function Field({ value, onChange, maxLength }: { value: string; onChange:
   return <TextInput style={styles.control} value={value} onChangeText={onChange} maxLength={maxLength} autoComplete="off" />;
 }
 
-/** 숫자 칸 — 단위는 칸 안 오른쪽이고, 숫자만 받는다 */
+/** 숫자 칸 — 숫자만 받고, 범위 밖이면 붉어지고, 다 적으면 다음 칸으로 간다. 판정은 웹과 같은 `digitOutOfRange` 다 */
 export function DigitField({
   value,
   onChange,
   unit,
   placeholder,
   digits,
+  min,
+  max,
+  refused = false,
+  inputRef,
+  onFull,
 }: {
   value: string;
   onChange: (next: string) => void;
   unit: string;
   placeholder: string;
   digits: number;
+  min: number;
+  max: number;
+  refused?: boolean;
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
+  onFull?: () => void;
 }) {
+  const wrong = refused || digitOutOfRange(value, digits, min, max);
   return (
     <View style={styles.digit}>
       <TextInput
-        style={[styles.control, styles.digitInput]}
+        ref={inputRef}
+        style={[styles.control, styles.digitInput, wrong && styles.wrong]}
         value={value}
-        onChangeText={(next) => onChange(next.replace(/\D/g, '').slice(0, digits))}
+        onChangeText={(typed) => {
+          const next = typed.replace(/\D/g, '').slice(0, digits);
+          onChange(next);
+          /* 뒤에 숫자가 더 올 수 없으면 다 적은 것이다 — 「5」월 · 「3」시 */
+          const done = next.length === digits || (next !== '' && Number(next) * 10 > max);
+          if (done && !digitOutOfRange(next, digits, min, max)) onFull?.();
+        }}
         placeholder={placeholder}
         placeholderTextColor={COLOR.muted}
         keyboardType="number-pad"
+        returnKeyType={onFull === undefined ? 'done' : 'next'}
+        onSubmitEditing={onFull}
+        inputAccessoryViewID={Platform.OS === 'ios' ? KEYBOARD_DONE : undefined}
         accessibilityLabel={unit}
       />
       <Text style={styles.unit}>{unit}</Text>
     </View>
+  );
+}
+
+const KEYBOARD_DONE = 'keyboard-done';
+
+/** iOS 숫자 키패드에는 완료 키가 없다 — 키보드 위에 「완료」를 세운다. 화면에 한 번 둔다 */
+export function KeyboardDoneBar() {
+  if (Platform.OS !== 'ios') return null;
+  return (
+    <InputAccessoryView nativeID={KEYBOARD_DONE}>
+      <View style={styles.doneBar}>
+        <Pressable accessibilityRole="button" onPress={Keyboard.dismiss} style={styles.doneButton}>
+          <Text style={styles.doneText}>완료</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
   );
 }
 
@@ -141,7 +192,7 @@ export function PrimaryButton({ label, onPress }: { label: string; onPress: () =
 const styles = StyleSheet.create({
   panel: { padding: 20, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
   cream: { backgroundColor: COLOR.cream },
-  label: { fontSize: TYPE.small, fontWeight: '600', color: COLOR.secondary, marginBottom: 2 },
+  label: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary, marginBottom: 2 },
   control: {
     minHeight: CONTROL,
     paddingHorizontal: 14,
@@ -149,12 +200,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLOR.borderStrong,
     backgroundColor: COLOR.surface,
+    fontFamily: FONT.medium,
     fontSize: TYPE.field,
     color: COLOR.foreground,
   },
+  wrong: { borderColor: COLOR.danger, borderWidth: 2 },
+  doneBar: { alignItems: 'flex-end', backgroundColor: COLOR.surfaceSunken, borderTopWidth: 1, borderTopColor: COLOR.border },
+  doneButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+  doneText: { fontFamily: FONT.bold, fontSize: TYPE.field, color: COLOR.foreground },
   digit: { flex: 1, justifyContent: 'center' },
   digitInput: { paddingLeft: 12, paddingRight: 34 },
-  unit: { position: 'absolute', right: 14, fontSize: TYPE.body, color: COLOR.secondary },
+  unit: { position: 'absolute', right: 14, fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.secondary },
   row: { flexDirection: 'row', gap: 6, flex: 1 },
   option: {
     flex: 1,
@@ -168,19 +224,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   optionChosen: { backgroundColor: COLOR.accentWash, borderColor: COLOR.creamInk },
-  optionText: { fontSize: TYPE.body, color: COLOR.secondary },
-  optionTextChosen: { color: COLOR.creamInk, fontWeight: '600' },
+  optionText: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.secondary },
+  optionTextChosen: { color: COLOR.creamInk, fontFamily: FONT.bold },
   selectBox: { flex: 1 },
   selectHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   selectOpen: { borderColor: COLOR.creamInk },
   off: { opacity: 0.55 },
-  selectText: { fontSize: TYPE.body, color: COLOR.foreground },
-  chevron: { fontSize: TYPE.body, color: COLOR.secondary },
+  selectText: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.foreground },
+  chevron: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.secondary },
   menu: { marginTop: 6, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.borderStrong, overflow: 'hidden', backgroundColor: COLOR.surface },
   menuItem: { minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8 },
   menuChosen: { backgroundColor: COLOR.accentWash },
-  hint: { fontSize: TYPE.fine, color: COLOR.muted, marginTop: 2 },
+  hint: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: 2 },
   primary: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   pressed: { transform: [{ scale: 0.97 }] },
-  primaryText: { fontSize: TYPE.field, fontWeight: '700', color: COLOR.onAccent },
+  primaryText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.onAccent },
 });

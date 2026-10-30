@@ -2,7 +2,7 @@ import type { Element } from '@saju';
 
 /**
  * 디자인 토큰 — 값은 웹의 `app/globals.css` 밝은 화면과 같다. 어두운 화면은 아직 없다(`app.json` 의 `userInterfaceStyle`).
- * 글씨는 기기 서체다 — 부산단디명조 원본(TTF)이 들어오면 여기서 바꾼다.
+ * 글씨는 부산단디명조 하나다(M · B). 한자는 그 글꼴에 없어 웹의 `.glyph` 처럼 기기 서체로 둔다.
  */
 export const COLOR = {
   background: '#faf6ef',
@@ -30,6 +30,8 @@ export const ELEMENT_TONE: Record<Element, { ink: string; soft: string }> = {
   金: { ink: '#444d59', soft: '#e9ecf1' },
   水: { ink: '#2a5575', soft: '#dfecf7' },
 };
+
+export const FONT = { medium: 'BusanDandiMyeongjoM', bold: 'BusanDandiMyeongjoB' } as const;
 
 export const TYPE = { fine: 12, small: 13, body: 15, field: 16, lead: 17, heading: 20, title: 26, figure: 40 } as const;
 

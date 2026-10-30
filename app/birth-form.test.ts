@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dateOfParts } from './birth-entry';
+import { dateOfParts } from '@/src/lib/input/entry';
 import { dateRefusal } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 

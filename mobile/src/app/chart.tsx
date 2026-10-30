@@ -7,7 +7,7 @@ import { HOUR_UNKNOWN_LABEL, type Query } from '@input/query';
 import { BRANCH_INFO, ELEMENT_KO, ELEMENT_PICTURE_KO, ELEMENTS, STEM_INFO, TEN_GOD_KO, type Element, type TenGod } from '@saju';
 
 import { Panel } from '@/ui/parts';
-import { COLOR, ELEMENT_TONE, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, ELEMENT_TONE, RADIUS, TYPE } from '@/ui/tokens';
 
 /** 전통 표기 순서 — 시주가 왼쪽, 년주가 오른쪽이다. 시기는 웹의 `PALACE` 와 같다 */
 const COLUMNS = [
@@ -126,28 +126,28 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { padding: 16, gap: 12 },
   back: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 16 },
-  backText: { fontSize: TYPE.field, fontWeight: '600', color: COLOR.foreground },
-  failure: { fontSize: TYPE.small, color: COLOR.danger },
-  name: { fontSize: TYPE.title, fontWeight: '700', color: COLOR.foreground },
-  summary: { fontSize: TYPE.small, color: COLOR.secondary, marginTop: 6 },
-  subhead: { fontSize: TYPE.small, fontWeight: '600', color: COLOR.secondary, marginTop: 20 },
+  backText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.foreground },
+  failure: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.danger },
+  name: { fontSize: TYPE.title, fontFamily: FONT.bold, color: COLOR.foreground },
+  summary: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary, marginTop: 6 },
+  subhead: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary, marginTop: 20 },
   elements: { flexDirection: 'row', marginTop: 12 },
   element: { flex: 1, alignItems: 'center', gap: 4 },
-  elementName: { fontSize: TYPE.small },
-  elementCount: { fontSize: 24, fontWeight: '700' },
+  elementName: { fontFamily: FONT.medium, fontSize: TYPE.small },
+  elementCount: { fontSize: 24, fontFamily: FONT.bold },
   card: { borderWidth: 1, borderColor: COLOR.border },
-  section: { fontSize: TYPE.heading, fontWeight: '700', color: COLOR.foreground },
+  section: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   table: { flexDirection: 'row', gap: 6, marginTop: 16 },
   column: { flex: 1, alignItems: 'stretch' },
-  period: { textAlign: 'center', fontSize: TYPE.fine, color: COLOR.secondary },
-  columnLabel: { textAlign: 'center', fontSize: 14, fontWeight: '700', color: COLOR.secondary, marginTop: 2, marginBottom: 8 },
+  period: { textAlign: 'center', fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
+  columnLabel: { textAlign: 'center', fontSize: 14, fontFamily: FONT.bold, color: COLOR.secondary, marginTop: 2, marginBottom: 8 },
   columnLabelDay: { color: COLOR.foreground },
   stack: { gap: 6, padding: 3, borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },
   stackDay: { borderColor: COLOR.foreground, backgroundColor: 'rgba(38, 36, 31, 0.06)' },
   glyphBox: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 12, paddingHorizontal: 2 },
   glyphUnknown: { borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(95, 100, 93, 0.3)' },
-  me: { fontSize: TYPE.fine, fontWeight: '600', lineHeight: 20, color: COLOR.background, backgroundColor: COLOR.foreground, borderRadius: RADIUS.pill, paddingHorizontal: 8, overflow: 'hidden' },
-  tenGod: { fontSize: TYPE.fine, fontWeight: '600', lineHeight: 20, minHeight: 20 },
+  me: { fontSize: TYPE.fine, fontFamily: FONT.bold, lineHeight: 20, color: COLOR.background, backgroundColor: COLOR.foreground, borderRadius: RADIUS.pill, paddingHorizontal: 8, overflow: 'hidden' },
+  tenGod: { fontSize: TYPE.fine, fontFamily: FONT.bold, lineHeight: 20, minHeight: 20 },
   glyph: { fontSize: TYPE.figure, fontWeight: '700', lineHeight: 46 },
-  caption: { fontSize: TYPE.fine, fontWeight: '600', textAlign: 'center' },
+  caption: { fontSize: TYPE.fine, fontFamily: FONT.bold, textAlign: 'center' },
 });

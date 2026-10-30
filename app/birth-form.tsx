@@ -21,7 +21,7 @@ import { Icon } from './ui/icons';
 import styles from './birth-form.module.css';
 import { ChoiceField, SelectField, cx } from './birth-choices';
 import { DateFields, TimeFields } from './birth-digits';
-import { convertedLine } from './birth-entry';
+import { convertedLine } from '@/src/lib/input/entry';
 
 /**
  * 생년월일시 입력 한 벌.
@@ -49,7 +49,7 @@ import { convertedLine } from './birth-entry';
 /**
  * 폼은 **칸 모양 한 벌**이고 이 폼을 쓰는 화면이 전부 같은 칸이다(ADR 0132 덧). 치수는 `birth-form.module.css` 머리에
  * 한 벌로 적혀 있다. 칸 모양 셋은 `birth-choices.tsx`, 생년월일 · 시각의 숫자 칸은 `birth-digits.tsx`, 숫자가 날짜 · 시각이 되는
- * 규칙은 `birth-entry.ts` 에 산다.
+ * 규칙은 `src/lib/input/entry.ts` 에 산다.
  *
  * - **고르는 칸**(성별 · 달력 · 출생 시각)은 선택지가 펼침 없이 다 보인다 — 처음 오는 사람이 눌러 펼쳐 봐야 무엇을 고르는지
  *   아는 것보다 낫다(`ChoiceField`).

@@ -1,7 +1,7 @@
-import type { Calendar } from '@/src/lib/saju';
+import type { Calendar } from '../saju';
 
-import { dateRefusal, solarDateOf } from '@/src/lib/input/chart';
-import { birthYearRangeOf, dateEntryRefusal, type Query } from '@/src/lib/input/query';
+import { dateRefusal, solarDateOf } from './chart';
+import { birthYearRangeOf, dateEntryRefusal, type Query } from './query';
 
 /**
  * 출생 정보 폼(`birth-form.tsx`)의 숫자 칸이 값이 되는 규칙 — React 를 모르는 순수 함수다.
