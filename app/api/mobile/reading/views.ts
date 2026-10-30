@@ -6,6 +6,7 @@ import type { Database } from '@/src/lib/db';
 import { isSolo, selfSectionTitlesOf } from '@/src/lib/reading';
 import type { ReadingView, ShelfBook, ShelfMaking, ShelfView } from '@/src/lib/reading/door';
 import { readingWaitNote } from '@/src/lib/reading/notes';
+import { when } from '@/src/lib/reading/when';
 import type { ReadingTarget } from '@/src/lib/reading/target';
 import { STEM_INFO } from '@/src/lib/saju';
 
@@ -21,7 +22,6 @@ import { readingMinutes } from '../../../me/reading/essay';
 import { GENERATION } from '../../../me/reading/generation';
 import { readingHrefOf } from '../../../me/reading/target';
 import { matchesForViewer } from '../../../me/requests/inbox';
-import { when } from '../../../me/requests/when';
 
 type Client = SupabaseClient<Database>;
 
