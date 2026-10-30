@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mannalmap.app"
+      "package": "com.mannalmap.app",
+      "allowBackup": false
     },
     "web": {
       "output": "server",
@@ -41,6 +42,12 @@
           "photosPermission": "프로필 사진을 등록할 때 이용해요.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
         }
       ]
     ],
