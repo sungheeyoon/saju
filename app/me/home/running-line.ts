@@ -3,7 +3,7 @@ import { READING_OUTLINE_STATE, READING_REVIEW_LABEL } from '@/src/lib/reading/n
 
 import { readingOutline } from '../reading/outline';
 import { readingHrefOf, type ReadingTarget } from '../reading/target';
-import { withFromMe } from './from-me';
+import { withFromMe } from '@/src/lib/home/from-me';
 import type { RunningReading } from './running';
 
 /**

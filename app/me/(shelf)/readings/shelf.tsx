@@ -13,7 +13,7 @@ import { Icon } from '../../../ui/icons';
 import { EmptyState } from '../../../ui/empty-state';
 import { EMPTY_SLOT_FACE, STALE_CHIP, TYPE_SECTION } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
-import { READING_CONTINUE_NOTE, READING_MAKING } from '../../home/making';
+import { READING_CONTINUE_NOTE, READING_MAKING } from '@/src/lib/home/making';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
