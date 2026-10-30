@@ -1,8 +1,8 @@
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { MenuPanel } from '@/ui/surfaces';
-import { COLOR, CONTROL, FONT, TYPE } from '@/ui/tokens';
+import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { ChatIcon, type ChatIconName } from './icons';
 
