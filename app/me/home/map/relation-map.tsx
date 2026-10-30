@@ -36,7 +36,7 @@ import { StemSymbol } from '../../../ui/stem-symbol';
 import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import { LivingStem } from './living-stem';
 import { linksOf, type MapModel, type MapPerson } from './model';
-import { RADIUS, SIZE, curve, curveAway, phaseOf, pointAt, seatAngles, stepsAlong, type Point } from './orbit';
+import { RADIUS, SIZE, curve, curveAway, phaseOf, pointAt, seatAngles, stepsAlong, type Point } from '@/src/lib/saju/view/orbit';
 import styles from './relation-map.module.css';
 
 const MOVE = 'transition-[left,top,opacity] duration-[520ms] ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none';

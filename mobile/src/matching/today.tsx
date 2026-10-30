@@ -12,7 +12,7 @@ import { REQUEST_RESERVES_NOTE, CREDITS_AVAILABLE_LABEL, CREDITS_REQUIRED_LABEL,
 import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 
 import { ElementSymbol } from '@/ui/element-symbol';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -48,7 +48,7 @@ export function TodayCard({ card, onInfo, onBlocked }: { card: DeckCard; onInfo:
 
       {card.exploration && (
         <View style={[styles.exploration, { top }]}>
-          <LineIcon name="spark" size={16} />
+          <Icon name="spark" size={16} />
           <Text style={styles.explorationText}>색다른 인연</Text>
         </View>
       )}
@@ -140,7 +140,7 @@ export function DeckButtons({ canUndo, busy, onUndo, onPass, onRequest }: { canU
         onPress={onUndo}
         style={[styles.undo, !canUndo && styles.off]}
       >
-        <LineIcon name="undo" color={canUndo ? COLOR.foreground : COLOR.muted} />
+        <Icon size={20} name="undo" color={canUndo ? COLOR.foreground : COLOR.muted} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -149,7 +149,7 @@ export function DeckButtons({ canUndo, busy, onUndo, onPass, onRequest }: { canU
         onPress={onPass}
         style={[styles.pass, busy && styles.off]}
       >
-        <LineIcon name="close" />
+        <Icon size={20} name="close" />
         <Text style={styles.passText}>다음 인연</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="궁합 요청" disabled={busy} onPress={onRequest} style={[styles.request, busy && styles.off]}>
@@ -319,7 +319,7 @@ export function EmptyDeck() {
       {links.map((link) => (
         <Pressable key={link.href} accessibilityRole="link" onPress={() => router.push(link.href as never)} style={styles.quietLink}>
           <Text style={[styles.quietLinkText, styles.flex]}>{link.label}</Text>
-          <LineIcon name="arrow" size={16} color={COLOR.secondary} />
+          <Icon name="arrow" size={16} color={COLOR.secondary} />
         </Pressable>
       ))}
     </View>
@@ -373,7 +373,7 @@ export function PassedConnections({
       {cards.length === 0 ? (
         <View style={styles.passedEmpty}>
           <View style={styles.passedEmptyIcon}>
-            <LineIcon name="undo" color={COLOR.creamInk} />
+            <Icon size={20} name="undo" color={COLOR.creamInk} />
           </View>
           <View style={styles.flex}>
             <Text style={styles.name}>지나친 인연이 여기에 모여요</Text>
