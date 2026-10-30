@@ -1,4 +1,4 @@
-export { SERVICE_FEATURES, SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@/src/lib/brand/guide';
+export { SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@/src/lib/brand/guide';
 
 /**
  * 궁합으로 들어가는 단추 · 표지의 이름 — PRD §3.2 「다른 기능으로 진입」. 사람 목록 · 사람 상세 · 관계 지도의 사람 카드 ·

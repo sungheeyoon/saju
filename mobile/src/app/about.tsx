@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BETA_SIGNUP_CODE_NOTE } from '@account/copy';
 import { SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@brand';
-import { ABOUT_LEAD, ABOUT_STEPS, SERVICE_FEATURES } from '@brand/guide';
+import { SERVICE_FEATURES } from '@brand/features';
+import { ABOUT_LEAD, ABOUT_STEPS } from '@brand/guide';
 
 import { InfoScreen } from '@/info/frame';
 import { goHome } from '@/info/go-home';
