@@ -3,11 +3,10 @@
 import { refresh } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
-import { FOCUS_CENTER, PHOTO_TYPES, focusOf, missingInProfile, sameFocus, type PhotoFocus, type ProfileInput } from '@/src/lib/profile';
-import { answerOfThrown, userFacingDbMessage } from '../../db-error';
+import { PHOTO_TYPES, missingInProfile, type PhotoFocus, type ProfileInput } from '@/src/lib/profile';
+import { userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
-import { photoStoreIfReady } from '../photo/s3-store';
-import { STORE_FAILED, storePhoto, type Answer, type StoredPhotoDoors } from './stored-photo';
+import { addStoredPhotoAs, replaceStoredPhotoAs, savedFocus, type PhotoReplaced } from './stored-photo-writes';
 
 /**
  * 프로필을 저장한다 — **RPC 를 지난다.**
@@ -73,24 +72,6 @@ export async function addPhoto(photo: {
   return framed;
 }
 
-/** 고른 자리를 적는다 — 가운데면 부르지 않는다(올린 · 바꾼 장은 이미 가운데다) */
-async function savedFocus(
-  supabase: Supabase,
-  position: number,
-  version: number | null,
-  focus: PhotoFocus | undefined,
-): Promise<SaveResult> {
-  if (focus === undefined || sameFocus(focus, FOCUS_CENTER)) return { ok: true };
-  const { error } = await supabase.rpc('set_my_photo_focus', rpcArgs<'set_my_photo_focus'>({
-    p_position: position,
-    p_x: focus.x,
-    p_y: focus.y,
-    ...(version === null ? {} : { p_version: version }),
-  }));
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo_focus') };
-  return { ok: true };
-}
-
 /**
  * 한 장의 **보일 자리**만 바꾼다(「위치 조정」, G-98) — 바이트 · 판본 · 하루 한도는 그대로다(`20261203090000`).
  *
@@ -109,9 +90,6 @@ export async function setPhotoFocus(photo: { position: number; version: number; 
   refresh('account-changed');
   return { ok: true };
 }
-
-/** 바꾼 장의 새 판본 — 화면이 서버 목록이 오기 전에 그 칸의 미리보기를 새 장에 잇는다 */
-export type PhotoReplaced = { ok: true; version: number } | { ok: false; message: string };
 
 /**
  * 한 장을 **그 자리에서** 바꾼다 — 자리 · 다른 장은 그대로, 판본만 바뀐다(`20261202090000`).
@@ -184,104 +162,19 @@ export async function movePhoto(from: number, to: number, version: number): Prom
   return { ok: true };
 }
 
-type Supabase = Awaited<ReturnType<typeof supabaseOnServer>>;
-
-/** 두 벌과 보일 자리 — 화면이 `FormData` 로 보낸다(base64 가 아니라 바이트 그대로 — 본문 한도 1MB 에 두 벌이 든다) */
-async function storedForm(form: FormData) {
-  const bytesOf = async (name: string) => {
-    const part = form.get(name);
-    return part instanceof Blob ? new Uint8Array(await part.arrayBuffer()) : new Uint8Array();
-  };
-  const x = Number(form.get('focusX'));
-  const y = Number(form.get('focusY'));
-  return {
-    card: await bytesOf('card'),
-    large: await bytesOf('large'),
-    focus: form.has('focusX') ? focusOf(x, y) : undefined,
-  };
-}
-
-/** 표 받기 · 버리기는 더하기와 바꾸기가 같다 — 적는 문만 다르다 */
-function storedDoors<T>(supabase: Supabase, save: StoredPhotoDoors<T>['save']): StoredPhotoDoors<T> {
-  return {
-    begin: async (): Promise<Answer<string>> => {
-      const { data, error } = await supabase.rpc('begin_my_photo_upload');
-      return error ? { ok: false, message: userFacingDbMessage(error, 'begin_my_photo_upload') } : { ok: true, value: data };
-    },
-    save,
-    drop: async (objectKey) => {
-      const { error } = await supabase.rpc('drop_my_photo_upload', rpcArgs<'drop_my_photo_upload'>({ p_object_key: objectKey }));
-      if (error) throw Object.assign(new Error('drop_my_photo_upload'), { code: error.code });
-    },
-  };
-}
-
 /**
- * 저장소에 사진 한 장을 **맨 뒤에** 더한다 — 저장소가 켜진 배포에서만 화면이 부른다(G-120). 꺼졌으면 거절한다 — 화면이 켜졌던
- * 때 그려졌고 그 사이 꺼진 것이다. 차례는 `storePhoto`.
+ * 저장소에 사진 한 장을 **맨 뒤에** 더한다 — 저장소가 켜진 배포에서만 화면이 부른다(G-120). 몸통은 앱의 문과 함께 쓴다(`stored-photo-writes.ts`).
+ * 사진이 놓였으면 자리만 못 적었어도 목록이 바뀌었으니 무른다.
  */
 export async function addStoredPhoto(form: FormData): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-  let sent: Awaited<ReturnType<typeof storedForm>>;
-  let placed: Answer<number>;
-  try {
-    const store = photoStoreIfReady();
-    if (store === null) return { ok: false, message: STORE_FAILED };
-    sent = await storedForm(form);
-    placed = await storePhoto(
-      store,
-      storedDoors(supabase, async (objectKey, contentType) => {
-        const { data, error } = await supabase.rpc('add_my_photo_object', rpcArgs<'add_my_photo_object'>({
-          p_object_key: objectKey,
-          p_content_type: contentType,
-        }));
-        return error ? { ok: false, message: userFacingDbMessage(error, 'add_my_photo_object') } : { ok: true, value: data };
-      }),
-      sent,
-    );
-  } catch (thrown) {
-    return { ok: false, message: answerOfThrown(thrown, 'addStoredPhoto', STORE_FAILED) };
-  }
-  if (!placed.ok) return placed;
-
-  const framed = await savedFocus(supabase, placed.value, null, sent.focus);
-  refresh('account-changed');
-  return framed;
+  const { placed, ...answer } = await addStoredPhotoAs(await supabaseOnServer(), form);
+  if (placed) refresh('account-changed');
+  return answer;
 }
 
-/**
- * 저장소의 새 장으로 한 장을 **그 자리에서** 바꾼다 — `replacePhoto` 와 같은 뜻(판본만 바뀐다). `position` · `version` 은 그
- * 자리에 있다고 화면이 본 장이다. 옛 장의 객체는 DB 의 지울 줄로 간다.
- */
+/** 저장소의 새 장으로 한 장을 **그 자리에서** 바꾼다 — `replacePhoto` 와 같은 뜻(판본만 바뀐다) */
 export async function replaceStoredPhoto(form: FormData): Promise<PhotoReplaced> {
-  const position = Number(form.get('position'));
-  const version = Number(form.get('version'));
-  const supabase = await supabaseOnServer();
-  let sent: Awaited<ReturnType<typeof storedForm>>;
-  let replaced: Answer<number>;
-  try {
-    const store = photoStoreIfReady();
-    if (store === null) return { ok: false, message: STORE_FAILED };
-    sent = await storedForm(form);
-    replaced = await storePhoto(
-      store,
-      storedDoors(supabase, async (objectKey, contentType) => {
-        const { data, error } = await supabase.rpc('replace_my_photo_object', rpcArgs<'replace_my_photo_object'>({
-          p_position: position,
-          p_version: version,
-          p_object_key: objectKey,
-          p_content_type: contentType,
-        }));
-        return error ? { ok: false, message: userFacingDbMessage(error, 'replace_my_photo_object') } : { ok: true, value: data };
-      }),
-      sent,
-    );
-  } catch (thrown) {
-    return { ok: false, message: answerOfThrown(thrown, 'replaceStoredPhoto', STORE_FAILED) };
-  }
-  if (!replaced.ok) return replaced;
-
-  const framed = await savedFocus(supabase, position, replaced.value, sent.focus);
-  refresh('account-changed');
-  return framed.ok ? { ok: true, version: replaced.value } : framed;
+  const { placed, ...answer } = await replaceStoredPhotoAs(await supabaseOnServer(), form);
+  if (placed) refresh('account-changed');
+  return answer;
 }

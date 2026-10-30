@@ -64,7 +64,7 @@ export function PhotoGrid({
   /** 끄는 동안 바깥 스크롤을 멈춘다 */
   onLifting: (lifting: boolean) => void;
 }) {
-  const paused = uploads !== 'db';
+  const paused = uploads === 'paused';
   const [order, setOrder] = useState(photos);
   useEffect(() => setOrder(photos), [photos]);
   const total = order.length;
@@ -132,7 +132,7 @@ export function PhotoGrid({
     for (const { key, asset, focus } of batch) {
       let message: string | null = null;
       try {
-        const result = await addPhoto(asset, focus);
+        const result = await addPhoto(asset, focus, uploads);
         if (!result.ok) message = result.message;
       } catch {
         message = UNREADABLE_PHOTO;
@@ -167,7 +167,7 @@ export function PhotoGrid({
     setSending(true);
     let message: string | null = null;
     try {
-      const result = await replacePhoto(photo, asset, focus);
+      const result = await replacePhoto(photo, asset, focus, uploads);
       if (!result.ok) message = result.message;
     } catch {
       message = UNREADABLE_PHOTO;
