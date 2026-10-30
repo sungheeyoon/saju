@@ -315,10 +315,12 @@ const styles = StyleSheet.create({
   glyphBox: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: RADIUS.cell, paddingHorizontal: 2, paddingVertical: 10 },
   glyphUnknown: { borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(95, 100, 93, 0.3)' },
   me: { minHeight: 20, justifyContent: 'center', borderRadius: RADIUS.pill, paddingHorizontal: 8, backgroundColor: COLOR.foreground },
-  tenGod: { minHeight: 20, lineHeight: 20, textAlign: 'center' },
+  /* 칸 폭이 소수라 안드로이드가 글자 폭을 화소에 맞춰 내리면 마지막 글자가 다음 줄로 밀려 잘린다(월지 「정관」→「정」). 글자에 꼭 맞는 폭을 안 주면 안 밀린다 */
+  tenGod: { alignSelf: 'stretch', minHeight: 20, lineHeight: 20, textAlign: 'center' },
   glyph: { fontSize: TYPE.figure, lineHeight: 46 },
   captionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  caption: { lineHeight: 16, textAlign: 'center' },
+  /* 같은 까닭 — 「사·화」보다 조금 넓게 잡는다 */
+  caption: { minWidth: TYPE.fine * 2.75, lineHeight: 16, textAlign: 'center' },
   seat: { borderRadius: RADIUS.pill, paddingHorizontal: 5, backgroundColor: COLOR.surface },
   notice: { marginTop: 16, gap: 6, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.warningBorder, backgroundColor: COLOR.warningWash, paddingHorizontal: 16, paddingVertical: 12 },
   details: { marginTop: 20, borderTopWidth: 1, borderTopColor: COLOR.border, paddingTop: 20 },
