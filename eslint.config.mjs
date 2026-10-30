@@ -168,6 +168,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Expo 앱 — 제 설정으로 돈다(`mobile/`)
+    "mobile/**",
   ]),
   {
     /**
