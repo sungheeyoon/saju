@@ -1009,6 +1009,8 @@ select is(
      */
     'report_request_error',
     'reserve_taste',
+    /** 제출 전에 멈춘 일감을 복구기가 다시 집는 문(ADR 0210) */
+    'retake_stalled_reading_job',
     /*
       **한 벌로 돌아왔다.** 비유를 받는 인자가 늘 때도, 판본 인자 둘이 빠질 때도 잠시
       두 벌이 서 있었다 — 넓히고(expand) 배포가 자리 잡은 뒤 좁힌다(contract).
@@ -1032,7 +1034,7 @@ select is(
     'taste_continuation_of_run',
     'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 마흔여덟 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 마흔아홉 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

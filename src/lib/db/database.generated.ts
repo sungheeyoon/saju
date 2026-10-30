@@ -3339,7 +3339,7 @@ export type Database = {
       }
       match_request_ttl: { Args: never; Returns: string }
       match_run_awaiting_send: {
-        Args: { p_request_id: string }
+        Args: { p_lease_id?: string; p_request_id: string }
         Returns: {
           about: Json
           birth_a: Json
@@ -3731,6 +3731,7 @@ export type Database = {
         Returns: {
           failure_code: string
           overdue: boolean
+          resendable: boolean
           response_id: string
           run_id: string
         }[]
@@ -4221,6 +4222,7 @@ export type Database = {
         Args: {
           p_evidence: string
           p_generation: Json
+          p_lease_id?: string
           p_prompt: string
           p_prompt_version: string
           p_requested_model: string
@@ -4311,6 +4313,14 @@ export type Database = {
       reading_job_deadline: { Args: never; Returns: string }
       reading_job_lease: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
+      reading_job_resendable: {
+        Args: {
+          p_job: Database["public"]["Tables"]["reading_job"]["Row"]
+          p_run: Database["public"]["Tables"]["reading_run"]["Row"]
+        }
+        Returns: boolean
+      }
+      reading_job_send_patience: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
       reading_sale_is_open: { Args: never; Returns: boolean }
@@ -4461,6 +4471,20 @@ export type Database = {
       restore_passed_connection: {
         Args: { p_candidate_user_id: string }
         Returns: Json
+      }
+      retake_stalled_reading_job: {
+        Args: { p_lease_id: string; p_run_id: string }
+        Returns: {
+          about: Json
+          answer_direction: string
+          birth_a: Json
+          birth_b: Json
+          continuation_question: string
+          kind: string
+          preview_markdown: string
+          run_id: string
+          supporting_claims: string[]
+        }[]
       }
       review_report: {
         Args: {
@@ -4674,7 +4698,7 @@ export type Database = {
         Returns: undefined
       }
       take_reading_job: {
-        Args: { p_run_id: string }
+        Args: { p_lease_id?: string; p_run_id: string }
         Returns: {
           about: Json
           birth_a: Json

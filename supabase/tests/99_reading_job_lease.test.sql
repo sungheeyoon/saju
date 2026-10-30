@@ -204,7 +204,7 @@ update public.reading_job set created_at = created_at - public.reading_job_deadl
 where run_id = (select run_id from lee_run);
 
 select is(
-  pg_temp.listed((select run_id from lee_run)) - 'run_id' - 'response_id',
+  pg_temp.listed((select run_id from lee_run)) - 'run_id' - 'response_id' - 'resendable',
   '{"overdue": true, "failure_code": "model-timeout"}'::jsonb,
   '임대가 살아 있어도 8분 기한이 지나면 복구기가 낸다 — 닫는 코드는 그대로 model-timeout');
 select ok(
