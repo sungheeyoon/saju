@@ -7,7 +7,7 @@ import type { ModelUsage } from './generator';
 
 /**
  * 일감을 실패로 닫는 값 — 쓴 토큰(`usage`)은 떠나보낸 뒤의 실패에만 있고, 모르면 `null` 이다(ADR 0039). 회수가 쥔 일감을 닫으면
- * 그 임대 식별자(`leaseId`)를 함께 준다 — 그러면 지금 쥔 작업자일 때만 닫힌다(ADR 0201). 기한 · 제출 전 실패는 안 준다.
+ * 그 임대 식별자(`leaseId`)를 함께 준다 — 그러면 지금 쥔 작업자일 때만 닫힌다(ADR 0201). 기한 · 제출 뒤 실패는 안 준다.
  */
 export type JobFailure = { runId: string; code: string; detail: string; usage: ModelUsage | null; leaseId?: string };
 

@@ -101,7 +101,7 @@ export async function submitFrozen(
    * 얼린 입력을 세운다 — **`person` 행이 아니라 값이다**(ADR 0071).
    *
    * 못 읽는 입력은 시도를 닫고, 그 밖의 계산 오류는 그대로 던진다. 던진 것은 바깥의
-   * `catch` 가 `unexpected` 로 닫으므로 시도가 열린 채 남지 않는다.
+   * `catch` 가 기록만 남기고, 시도는 복구기나 기한이 처리한다.
    */
   const stood = {
     a: storedChartOf(job.birth_a, READING_CHART_NAMES[0]),

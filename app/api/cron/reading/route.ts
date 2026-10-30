@@ -90,19 +90,7 @@ export async function GET(request: Request): Promise<Response> {
   let closed = 0;
   let resent = 0;
 
-  /* 기한이 짧은 쪽을 먼저 — 회수가 오래 걸려도 제출 전 일감이 2분 기한을 안 넘긴다 */
-  for (const job of jobs.filter((one) => one.resendable).slice(0, RESENDS_PER_ROUND)) {
-    try {
-      if (await resendStalledRun(keyed, job.run_id)) resent += 1;
-    } catch (thrown) {
-      // 다음 바퀴가 다시 집거나 기한이 닫는다 — 뒤의 일감을 막지 않는다
-      console.error('cron reading: resendStalledRun', thrown);
-    }
-  }
-
   for (const job of jobs) {
-    if (job.resendable) continue;
-
     /**
      * **deadline 을 넘겼으면 닫는다.** 8분 뒤의 회수 가능성에 기대지 않기로 했으므로
      * 여기서 더 기다리지 않는다 — 기다리면 DB 만료가 먼저 와서 이유 없는 실패가 된다.
@@ -119,8 +107,21 @@ export async function GET(request: Request): Promise<Response> {
       // 못 닫았으면 센 수에 넣지 않고 기록에 남긴다 — 다음 바퀴가 같은 일감을 다시 집는다
       if (notClosed) console.error('cron reading: fail_reading_job', notClosed.code);
       else closed += 1;
-      continue;
     }
+  }
+
+  /* 닫기 다음, 회수 앞 — 재제출이 도는 사이 목록이 낡으니 닫기가 먼저고, 회수가 오래 걸려도 제출 전 일감이 2분 기한을 안 넘긴다 */
+  for (const job of jobs.filter((one) => one.resendable).slice(0, RESENDS_PER_ROUND)) {
+    try {
+      if (await resendStalledRun(keyed, job.run_id)) resent += 1;
+    } catch (thrown) {
+      // 다음 바퀴가 다시 집거나 기한이 닫는다 — 뒤의 일감을 막지 않는다
+      console.error('cron reading: resendStalledRun', thrown);
+    }
+  }
+
+  for (const job of jobs) {
+    if (job.overdue || job.resendable) continue;
 
     /**
      * 이름표가 없으면 가져올 길이 없다. 제출과 기록 사이에서 끊긴 것이고, deadline 이

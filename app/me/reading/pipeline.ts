@@ -132,7 +132,8 @@ async function sendRun(runId: string, continuation: TasteRunCarry | null = null)
   const leaseId = randomUUID();
   const { data, error } = await keyed.rpc('take_reading_job', { p_run_id: runId, p_lease_id: leaseId });
   if (error) {
-    await failReadingJob(keyed, 'send', { runId, code: 'unexpected', detail: error.message, usage: null });
+    /* 닫지 않는다 — 답이 늦는 사이 복구기가 제출했을 수 있다. 복구기나 기한이 처리한다(ADR 0210) */
+    recordDbFailure(error, 'send: take_reading_job');
     return;
   }
 
@@ -248,7 +249,15 @@ async function closeUnsent(runId: string, code: string, detail: string): Promise
     console.error('close: 열쇠 없음', failure instanceof NoKeyError ? failure.message : failure);
     return;
   }
-  await failReadingJob(keyed, 'close', { runId, code, detail, usage: null });
+  /* 먼저 쥔다 — 늦게 돌았으면 복구기가 이미 쥐었거나 제출했다. 못 쥐면 남의 것이라 안 닫는다(ADR 0210) */
+  const leaseId = randomUUID();
+  const { data, error } = await keyed.rpc('take_reading_job', { p_run_id: runId, p_lease_id: leaseId });
+  if (error) {
+    recordDbFailure(error, 'close: take_reading_job');
+    return;
+  }
+  if ((data ?? []).length === 0) return;
+  await failReadingJob(keyed, 'close', { runId, code, detail, usage: null, leaseId });
 }
 
 /** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */
@@ -318,8 +327,7 @@ export async function beginReading(
   after(async () => {
     /**
      * **여기서 던지면 아무도 못 듣는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 그래도
-     * `sendRun` 이 시도를 닫아 두므로 화면은 다음 물음에서 실패를 본다 — 열린 채
-     * 남는 것만은 막아야 그 대상이 10분간 잠기지 않는다.
+     * 시도가 열린 채 남으면 복구기가 다시 보내거나 기한에 닫으므로 화면은 다음 물음에서 결과나 실패를 본다.
      */
     try {
       await sendRun(runId, continuation);

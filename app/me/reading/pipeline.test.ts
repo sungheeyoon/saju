@@ -691,8 +691,12 @@ describe('귀속한 맛보기를 잇는다', () => {
 
     expect(submit).not.toHaveBeenCalled();
     expect(prepared()).toBeUndefined();
-    expect(keyedCall('take_reading_job')).toBeUndefined();
-    expect(closed()?.[1]).toMatchObject({ p_run_id: started.run_id, p_failure_code: 'taste-carry-unread' });
+    /** 닫기 전에 쥔다 — 늦게 돌았으면 복구기의 제출을 닫게 된다(ADR 0210) */
+    expect(closed()?.[1]).toMatchObject({
+      p_run_id: started.run_id,
+      p_failure_code: 'taste-carry-unread',
+      p_lease_id: keyedCall('take_reading_job')?.[1].p_lease_id,
+    });
   });
 
   /**
@@ -802,6 +806,7 @@ describe('귀속한 맛보기를 잇는다', () => {
  */
 describe('복구기의 재제출', () => {
   const releaseStream = vi.fn();
+  let readOn = false;
   const retaken = (over: Record<string, unknown> = {}) => ({
     ...frozen(),
     preview_markdown: null,
@@ -821,12 +826,13 @@ describe('복구기의 재제출', () => {
 
   beforeEach(() => {
     releaseStream.mockReset();
+    readOn = false;
     keyedClient.mockReset().mockReturnValue({ rpc: keyedRpc });
     submit.mockReset().mockResolvedValue({
       ok: true,
       responseId: 'resp-1',
       written: (async function* () {
-        throw new Error('복구기가 진행을 따라 읽었다');
+        readOn = true;
       })(),
       release: releaseStream,
     });
@@ -841,7 +847,7 @@ describe('복구기의 재제출', () => {
     expect(submit).toHaveBeenCalledTimes(1);
     expect(adopted()?.[1]).toEqual({ p_run_id: 'run-1', p_response_id: 'resp-1' });
     expect(releaseStream).toHaveBeenCalledTimes(1);
-    expect(keyedCall('note_reading_progress')).toBeUndefined();
+    expect(readOn, '복구기가 진행을 따라 읽었다').toBe(false);
   });
 
   it('못 집었으면 모델을 안 부른다', async () => {
@@ -939,5 +945,43 @@ describe('첫 작업자도 임대를 든다 (ADR 0210)', () => {
     const lease = keyedCall('take_reading_job')?.[1].p_lease_id;
     expect(lease).toEqual(expect.any(String));
     expect(prepared()?.[1].p_lease_id).toBe(lease);
+  });
+
+  it('수락이 연 시도도 집을 때 지은 식별자로 문을 지난다', async () => {
+    submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: (async function* () {})(), release: vi.fn() });
+
+    await sendAcceptedMatchReading('request-1');
+
+    const lease = keyedCall('match_run_awaiting_send')?.[1].p_lease_id;
+    expect(lease).toEqual(expect.any(String));
+    expect(prepared()?.[1].p_lease_id).toBe(lease);
+  });
+
+  it('집는 문이 실패하면 닫지 않는다 — 답이 늦는 사이 복구기가 제출했을 수 있다', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    keyedRpc.mockImplementation(async (name: string) =>
+      name === 'take_reading_job' ? { data: null, error: { code: '57014', message: '시간 초과' } } : { data: null, error: null },
+    );
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(closed()).toBeUndefined();
+    logged.mockRestore();
+  });
+
+  it('보내지 않기로 한 시도를 복구기가 이미 쥐었으면 닫지 않는다', async () => {
+    claimed.mockResolvedValue({ claim: 'unreachable', sessionId: 'session-1' });
+    keyedRpc.mockImplementation(async (name: string) =>
+      name === 'take_reading_job' ? { data: [], error: null } : { data: null, error: null },
+    );
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(keyedCall('take_reading_job')).toBeDefined();
+    expect(closed()).toBeUndefined();
+    claimed.mockReset();
   });
 });
