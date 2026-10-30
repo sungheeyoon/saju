@@ -15,23 +15,18 @@ import { followRefusal } from '@/reading/panel';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 
 /** 홈 — 차례는 웹의 `app/me/(home)/page.tsx` 와 같다. 다른 화면에서 돌아올 때마다 다시 읽는다 */
 export default function HomeScreen() {
   const [home, setHome] = useState<Home | null>(null);
 
   const load = useCallback(() => {
-    void readHome()
-      /* 던지면 빈 화면에 멈추지 않는다 — 못 읽은 때의 줄과 다시 시도가 선다 */
-      .catch((thrown: unknown): Home => {
-        console.error('readHome', thrown);
-        return homeUnreachable();
-      })
-      .then((next) => {
-        setHome(next);
-        /* 참여를 여는 문은 아무것도 안 그린다 — 끈 사람은 안 열리고, 못 열어도 홈은 선다(웹의 `openDiscoveryParticipation`) */
-        if (next.kind === 'home') void openParticipation();
-      });
+    void settled(readHome(), 'readHome', homeUnreachable).then((next) => {
+      setHome(next);
+      /* 참여를 여는 문은 아무것도 안 그린다 — 끈 사람은 안 열리고, 못 열어도 홈은 선다(웹의 `openDiscoveryParticipation`) */
+      if (next.kind === 'home') void openParticipation();
+    });
   }, []);
   useFocusEffect(load);
 

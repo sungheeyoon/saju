@@ -11,6 +11,8 @@ import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@
 import { PersonCard } from '@/people/person-card';
 import { Field, Panel, SecondaryButton } from '@/ui/parts';
 import { COLOR } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 import { TopBar } from '@/ui/top-bar';
 
 /** 저장한 사람 — 가족 · 친구를 관리하는 자리. 나는 여기 없다(`app/me/people/page.tsx`) */
@@ -20,7 +22,7 @@ export default function PeopleScreen() {
   const [typed, setTyped] = useState('');
 
   const load = useCallback(() => {
-    void readPeopleList().then((next) => {
+    void settled(readPeopleList(), 'readPeopleList', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (next.kind === 'signed-out') router.replace('/');
       else setRead(next);
     });

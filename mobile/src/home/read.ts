@@ -8,7 +8,7 @@ import type { Saju, Stem } from '@saju';
 import { isFirstVisit } from '@web-home/first-visit';
 
 import { supabase } from '@/auth/client';
-import { NOT_READY } from '@/auth/signup';
+import { NOT_READY, UNREACHABLE } from '@/auth/signup';
 
 const PERSON_INPUT_COLUMNS = 'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';
 
@@ -81,9 +81,9 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
   }
 }
 
-/** 읽기가 답 없이 던진 때 — 계정을 못 물은 때와 같은 글자로 다시 시도를 세운다 */
+/** 읽기가 답 없이 던진 때 */
 export function homeUnreachable(): Home {
-  return { kind: 'failed', message: accountFailureOf({ kind: 'unreachable' })?.line ?? NOT_READY };
+  return { kind: 'failed', message: UNREACHABLE };
 }
 
 /**

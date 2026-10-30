@@ -10,6 +10,8 @@ import { CompatResultStep } from '@/compat/result-step';
 import type { Read } from '@/people/data';
 import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 
 /**
  * 궁합 — 앱에는 `/compat` 이 없어(입구 결정) 이 주소가 두 걸음을 다 든다. `a` · `b` 가 있으면 두 명식을 보고, 없으면 두 사람을 정한다.
@@ -33,7 +35,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
   const [read, setRead] = useState<Read<PickerData> | null>(null);
 
   const load = useCallback(() => {
-    void readPicker().then((next) => {
+    void settled(readPicker(), 'readPicker', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (next.kind === 'signed-out') router.replace('/');
       else setRead(next);
     });
