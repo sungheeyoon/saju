@@ -12,11 +12,12 @@ import { initialOf } from '@profile';
 
 import { signOut } from '@/auth/sign-in';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 import { ConsentControls } from './consent-controls';
 import { ParticipationRow, PreferenceRow } from './discovery-rows';
 import { RequestDeletion } from './leaving';
-import { AccountNotice, BackButton, FailureLine, LinkRow, PlainRow, SettingsGroup, TextRow, settingsText } from './parts';
+import { AccountNotice, FailureLine, LinkRow, PlainRow, SettingsGroup, TextRow } from './parts';
 import { myPhotos, photoSource } from './photos';
 import { readSettings, type SettingsData } from './settings';
 
@@ -41,21 +42,21 @@ export function SettingsScreen() {
   }, []);
   useFocusEffect(load);
 
-  if (data === null) return <View style={styles.screen} />;
+  if (data === null) {
+    return (
+      <View style={styles.screen}>
+        <TopBar title="설정" fallback="/me" />
+      </View>
+    );
+  }
 
   const { state, account, discovery, email } = data;
   const active = state.kind === 'active';
 
   return (
     <View style={styles.screen}>
+      <TopBar title="설정" fallback="/me" />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.head}>
-          <BackButton label="홈" />
-          <Text style={settingsText.title} accessibilityRole="header">
-            설정
-          </Text>
-        </View>
-
         {isBlocked(state) && (
           <View style={styles.notice}>
             <AccountNotice state={state} onRetry={load} />
@@ -144,7 +145,6 @@ function SignOutRow() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.surfaceSunken },
   content: { gap: 16, paddingTop: 12, paddingBottom: 40 },
-  head: { paddingHorizontal: 24, alignItems: 'flex-start', gap: 4 },
   notice: { paddingHorizontal: 16 },
   face: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.cream },
   initial: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.creamInk },

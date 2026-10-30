@@ -11,6 +11,7 @@ import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@
 import { PersonCard } from '@/people/person-card';
 import { Field, Panel, SecondaryButton } from '@/ui/parts';
 import { COLOR } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
 /** 저장한 사람 — 가족 · 친구를 관리하는 자리. 나는 여기 없다(`app/me/people/page.tsx`) */
 export default function PeopleScreen() {
@@ -29,15 +30,14 @@ export default function PeopleScreen() {
 
   if (read === null || read.kind === 'signed-out') {
     return (
-      <ScreenFrame>
+      <ScreenFrame bar={<TopBar title="저장한 사람" fallback="/me" />}>
         <ActivityIndicator color={COLOR.secondary} style={styles.loading} />
       </ScreenFrame>
     );
   }
   if (read.kind === 'failed') {
     return (
-      <ScreenFrame>
-        <Text style={shared.title}>저장한 사람</Text>
+      <ScreenFrame bar={<TopBar title="저장한 사람" fallback="/me" />}>
         <FailureLine onRetry={load}>{read.message}</FailureLine>
       </ScreenFrame>
     );
@@ -59,11 +59,7 @@ export default function PeopleScreen() {
   const status = findStatus(wanted, shown.length);
 
   return (
-    <ScreenFrame keyboard>
-      <View style={styles.head}>
-        <Text style={shared.title}>저장한 사람</Text>
-        <SecondaryButton label="궁합 보러 가기" onPress={() => go('/me/compat')} />
-      </View>
+    <ScreenFrame keyboard bar={<TopBar title="저장한 사람" fallback="/me" right={<SecondaryButton label="궁합 보러 가기" onPress={() => go('/me/compat')} />} />}>
       <Text style={shared.body}>
         가족이나 친구의 출생 정보를 저장하고 관리하세요.
         {slots !== null && <Text style={shared.bodyStrong}>{`  ${slots.used}/${slots.limit}명`}</Text>}
@@ -108,7 +104,6 @@ export default function PeopleScreen() {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   empty: { gap: 4, padding: 20, alignItems: 'center' },
   find: { gap: 6 },
 });

@@ -13,8 +13,8 @@ const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 export default function TermsScreen() {
   const terms = SITE_URL ? termsFor(appBusinessInfo(), new URL(SITE_URL).origin) : null;
   return (
-    <InfoScreen>
-      <LegalHead eyebrow="이용약관" title={`${SERVICE_NAME} 이용약관`} note={terms?.effectiveDate ? '시행일 ' + terms.effectiveDate : null} />
+    <InfoScreen title="이용약관" fallback="/">
+      <LegalHead title={`${SERVICE_NAME} 이용약관`} note={terms?.effectiveDate ? '시행일 ' + terms.effectiveDate : null} />
       {terms === null ? (
         <Panel>
           <InfoLine>화면을 불러오지 못했어요</InfoLine>

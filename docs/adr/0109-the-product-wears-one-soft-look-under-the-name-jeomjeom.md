@@ -333,3 +333,7 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
   대가를 받을 수 없다. 항목별로 웹서버 탑재 · 앱 GUI · BI/CI 가 허용으로 정리돼 있다. 보도자료의 공공누리 제4유형은 보도자료 글의
   조건으로 보인다. 원문 · 출처 · 확인 날짜는 `docs/legal/font-grounds.md`(2026-10-28 — 부산시 페이지는 이 환경에서 접속이 막혀 옮긴
   안내로 확인).
+
+## 추기 — 앱의 뒤로가기는 부품 하나다 (2026-10-31, 운영자 결정)
+
+앱(`mobile/`)의 하위 화면은 앱 머리 대신 `mobile/src/ui/top-bar.tsx` 의 맨 위 줄을 세운다 — 왼쪽 위 고정 `<` 아이콘(24px, 누르는 자리 44px, 왼쪽 16px)과 화면 이름이고, 「뒤로」나 이전 화면 이름 글자는 없다. 탭 첫 화면 넷은 앱 머리 그대로이고 탭 막대도 그대로다. 채팅방은 자체 머리에 같은 `<` 를 쓴다. 머리를 어느 주소에 세우나는 `mobile/src/home/shell-routes.ts` 한 자리이고, `router.back` 이 부품 밖에 다시 생기면 `scripts/mobile-back.test.ts` 가 붉다.

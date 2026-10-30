@@ -42,6 +42,8 @@ import { ElementSymbol } from '@/ui/element-symbol';
 import { Avatar } from './avatar';
 import { CompatChip, CompatRow } from './compat';
 import { BlockDialog, ReportDialog } from './dialogs';
+import { BackButton } from '@/ui/top-bar';
+
 import { ChatIcon } from './icons';
 import { AnchoredMenu, type MenuItem } from './menu';
 import { partnerSheetName, ProfileSheet } from './profile-sheet';
@@ -176,14 +178,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <View style={styles.header}>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel="대화방 목록"
-            style={styles.iconButton}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/me/chat' as never))}
-          >
-            <ChatIcon name="back" color={COLOR.foreground} />
-          </Pressable>
+          <BackButton fallback="/me/chat" />
           <Pressable
             accessibilityRole={partnerOpens ? 'button' : undefined}
             accessibilityLabel={partnerOpens ? partnerSheetName(room.name) : undefined}
@@ -568,7 +563,7 @@ function Composer({ matchId, onSend, said }: { matchId: string; onSend: (body: s
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.surface },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLOR.border },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLOR.border },
   iconButton: { minHeight: CONTROL, minWidth: CONTROL, alignItems: 'center', justifyContent: 'center' },
   who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   whoWords: { flex: 1, minWidth: 0 },

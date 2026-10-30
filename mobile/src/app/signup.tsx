@@ -23,6 +23,7 @@ import { checkNickname, completeSignup, readSignup, type SignupState } from '@/a
 import { Logo } from '@/ui/logo';
 import { CheckRow, Field, FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { goBack } from '@/ui/top-bar';
 
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
 
@@ -270,8 +271,7 @@ function LeaveLink() {
       setFailed(true);
       return;
     }
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
+    goBack('/');
   };
   return (
     <View style={styles.leave}>

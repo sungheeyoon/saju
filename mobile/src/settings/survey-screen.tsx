@@ -45,8 +45,9 @@ import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
 import { CheckRow, Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { TopBar } from '@/ui/top-bar';
 
-import { AccountNotice, BackButton, FailureLine, settingsText } from './parts';
+import { AccountNotice, FailureLine, settingsText } from './parts';
 import { readAccount, setOptionalConsent } from './settings';
 
 type Row = Record<string, unknown>;
@@ -80,21 +81,24 @@ export function SurveyScreen() {
     void reload();
   }, [reload]);
 
-  if (data === null) return <View style={styles.screen} />;
+  if (data === null) {
+    return (
+      <View style={styles.screen}>
+        <TopBar title={SURVEY_COPY.title} fallback="/me/settings" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
+      <TopBar title={SURVEY_COPY.title} fallback="/me/settings" />
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-          <BackButton label="설정" to="/me/settings" />
           {data.kind === 'blocked' ? (
             <AccountNotice state={data.state} onRetry={() => void reload()} />
           ) : (
             <>
               <Panel tone="cream" style={styles.header}>
-                <Text style={settingsText.title} accessibilityRole="header">
-                  {SURVEY_COPY.title}
-                </Text>
                 <Text style={styles.intro}>{SURVEY_COPY.intro}</Text>
                 <Text style={styles.editable}>{SURVEY_COPY.editable}</Text>
               </Panel>

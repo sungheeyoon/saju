@@ -37,8 +37,8 @@ export default function PrivacyScreen() {
   });
 
   return (
-    <InfoScreen ref={scroller}>
-      <LegalHead eyebrow="처리방침" title="개인정보 처리방침" note={PRIVACY_INTRO} />
+    <InfoScreen ref={scroller} title="처리방침" fallback="/">
+      <LegalHead title="개인정보 처리방침" note={PRIVACY_INTRO} />
 
       {schedule === null ? null : !schedule.ok ? (
         <Panel>
