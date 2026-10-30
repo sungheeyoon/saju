@@ -10,6 +10,13 @@
         "buildType": "apk"
       },
       "environment": "development"
+    },
+    "production": {
+      "autoIncrement": true,
+      "environment": "production"
     }
+  },
+  "submit": {
+    "production": {}
   }
 }
