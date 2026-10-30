@@ -2,7 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '@/src/lib/db';
 
-import { LIVE_EVENT, liveChangeOf, type LiveChange } from './changes';
+import { LIVE_EVENT, liveChangeOf, userTopic, type ChannelStatus, type LiveChange } from '@/src/lib/live/changes';
 
 /**
  * 계정의 비공개 채널 하나를 연다 — 주제 `user:<uid>`, 사건 `changed`(ADR 0155).
@@ -13,11 +13,6 @@ import { LIVE_EVENT, liveChangeOf, type LiveChange } from './changes';
  * 구독 전에 `realtime.setAuth()` 를 부른다 — 비공개 채널의 권한은 구독할 때의 access token 으로 판정한다
  * (Supabase 「Realtime Authorization」). 토큰이 새로 나면 supabase-js 가 스스로 다시 건다.
  */
-export const userTopic = (userId: string): string => `user:${userId}`;
-
-/** 상태 콜백이 받는 값 — `SUBSCRIBED` 만 선 것이고 나머지는 실패다 */
-export type ChannelStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR';
-
 export async function openUserChannel(
   client: SupabaseClient<Database>,
   userId: string,

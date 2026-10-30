@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { bubbleDaysOf, flaggable, reportableOf } from './bubbles';
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 
 const message = (seq: number, createdAt: string, mine: boolean, fromLeftPartner = false): ChatMessage => ({
   messageId: `m${seq}`,

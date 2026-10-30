@@ -641,7 +641,7 @@ describe('로그인 전 사주 문단의 입구 (ADR 0143)', () => {
     /** 첫 화면 · `/saju` 의 결과 칸(`saju-calculator.tsx`) */
     'app/taste/taste': ['Taste'],
     /** 가입 왕복이 탭에 들고 가는 세션 — 사주 이어 보기 · 내 사주풀이 · 대화 초안의 저장소 꼴 */
-    'app/taste/carried-taste': ['TabStorage', 'carriesTaste', 'claimCarriedTaste', 'dropCarriedTaste', 'skipCarriedTaste', 'takeTasteArrival'],
+    'app/taste/carried-taste': ['carriesTaste', 'claimCarriedTaste', 'dropCarriedTaste', 'skipCarriedTaste', 'takeTasteArrival'],
     /** 내 사주풀이의 「아까 보던 내용」과 누름이 잇는 세션 */
     'app/taste/taste-carry': ['TasteCarryView', 'claimedTaste', 'tasteCarryOfPage'],
     /** 회수가 세는 퍼널 단계(`collect.ts`) */

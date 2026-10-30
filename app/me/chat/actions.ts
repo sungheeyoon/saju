@@ -6,7 +6,7 @@ import { rpcArgs } from '@/src/lib/db';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import type { SaveResult } from '../../save-result';
-import type { SendResult } from './[matchId]/pending';
+import type { SendResult } from '@/src/lib/chat/room/pending';
 
 /**
  * 채팅의 누름 둘 — 보내기 · 메시지를 고른 신고. 읽음은 사람이 누른 것이 아니라 브라우저가 곧장 부른다

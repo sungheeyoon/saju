@@ -36,8 +36,35 @@
       "@account/*": [
         "../src/lib/account/*"
       ],
+      "@chat": [
+        "../src/lib/chat/index.ts"
+      ],
+      "@chat/*": [
+        "../src/lib/chat/*"
+      ],
+      "@live/*": [
+        "../src/lib/live/*"
+      ],
+      "@presence": [
+        "../src/lib/presence/index.ts"
+      ],
       "@db-error": [
         "../app/db-error.ts"
+      ],
+      "@people": [
+        "../src/lib/people/index.ts"
+      ],
+      "@people/pick": [
+        "../src/lib/people/pick.ts"
+      ],
+      "@matching": [
+        "../src/lib/matching/index.ts"
+      ],
+      "@reading-display": [
+        "../src/lib/reading/display.ts"
+      ],
+      "@saju-text/*": [
+        "../src/lib/saju/text/*"
       ],
       "@web-home/*": [
         "../src/lib/home/*"

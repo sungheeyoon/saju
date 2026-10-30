@@ -10,7 +10,7 @@
 | 층 | 자리 | 아는 것 | 모르는 것 |
 | --- | --- | --- | --- |
 | **엔진** | `src/lib/saju/` | 자기 자신뿐 | 다른 lib · app · React/Next · supabase · 실행 환경(`node:*`) |
-| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence,push,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
+| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,live,presence,push,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
 | **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 넷 | — |
 | **화면** | `app/**/*.tsx` | 문과 액션, 도메인 lib 의 타입·순수 함수 | **DB 호출**(`.rpc()`·`.from()`) |
 
@@ -74,7 +74,7 @@
 
 | 자리 | 무엇 | 아는 것 |
 | --- | --- | --- |
-| `mobile/` | Expo 앱. 웹 검사 · 배포 밖에서 제 설정으로 돈다 | `src/lib/` 의 순수 로직과 DB 거절을 옮기는 `app/db-error.ts` 만 경로로 부른다(`mobile/tsconfig.json` · `mobile/metro.config.js`). 명식 결과의 판단 · 문단은 웹과 함께 `src/lib/saju/view` 를, 가입의 판정 · 글자는 `src/lib/consent/signup.ts` 를 쓰고, 칸 이름 같은 짧은 말은 `scripts/mobile-chart-copy.test.ts` 가 웹 글자와 견준다. 안내 화면의 글은 `src/lib/brand`(`guide` · `terms` · `refund`)와 `src/lib/consent`(`noticeFor` · `privacy-page`)를 함께 쓰고 `scripts/mobile-info-copy.test.ts` 가 짧은 말을 견준다. 사업자 값은 빌드의 `EXPO_PUBLIC_BUSINESS_*` 다 |
+| `mobile/` | Expo 앱. 웹 검사 · 배포 밖에서 제 설정으로 돈다 | `src/lib/` 의 순수 로직과 DB 거절을 옮기는 `app/db-error.ts` 만 경로로 부른다(`mobile/tsconfig.json` · `mobile/metro.config.js`). 명식 결과의 판단 · 문단은 웹과 함께 `src/lib/saju/view` 를, 가입의 판정 · 글자는 `src/lib/consent/signup.ts` 를, 채팅의 합치기 · 보내기 줄 · 묶음은 `src/lib/chat/room` 을, 채널의 재접속 규칙은 `src/lib/live` 를 쓰고, 칸 이름 같은 짧은 말은 `scripts/mobile-chart-copy.test.ts` 가 웹 글자와 견준다 안내 화면의 글은 `src/lib/brand`(`guide` · `terms` · `refund`)와 `src/lib/consent`(`noticeFor` · `privacy-page`)를 함께 쓰고 `scripts/mobile-info-copy.test.ts` 가 짧은 말을 견준다. 사업자 값은 빌드의 `EXPO_PUBLIC_BUSINESS_*` 다 |
 | `proxy.ts` | 관문 — 레이아웃에 못 사는 판단(ADR 0041) | `src/lib/consent` · `app/auth/config` · `app/beta-schedule`(일정을 읽는 문) |
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |

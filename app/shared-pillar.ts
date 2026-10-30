@@ -1,4 +1,4 @@
-import { chartSnapshotOf, type ChartSnapshot, type Gender, type Pillars } from '@/src/lib/saju';
+import { chartSnapshotOf, storedChartSnapshot, type ChartSnapshot, type Gender, type Pillars } from '@/src/lib/saju';
 
 /**
  * 공유 궁합 화면이 브라우저에 내보내는 명식 모양.
@@ -36,18 +36,5 @@ export function sharedPillarChartOf(pillars: Pillars): SharedPillarChart {
  *   세우면 두 사람이 동의한 적 없는 명식이 보드에 선다.
  */
 export function storedPillarChart(value: unknown): SharedPillarChart | null {
-  if (typeof value !== 'object' || value === null) return null;
-
-  const chart = value as Record<string, unknown>;
-  const pillar = (at: unknown): boolean =>
-    typeof at === 'object' &&
-    at !== null &&
-    typeof (at as Record<string, unknown>).stem === 'string' &&
-    typeof (at as Record<string, unknown>).branch === 'string';
-
-  if (!pillar(chart.year) || !pillar(chart.month) || !pillar(chart.day)) return null;
-  if (chart.hour !== null && !pillar(chart.hour)) return null;
-  if (typeof chart.dayMaster !== 'string') return null;
-
-  return chart as unknown as SharedPillarChart;
+  return storedChartSnapshot(value);
 }
