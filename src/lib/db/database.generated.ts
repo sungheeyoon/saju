@@ -4313,6 +4313,13 @@ export type Database = {
       reading_job_deadline: { Args: never; Returns: string }
       reading_job_lease: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
+      reading_job_resendable: {
+        Args: {
+          p_job: Database["public"]["Tables"]["reading_job"]["Row"]
+          p_run: Database["public"]["Tables"]["reading_run"]["Row"]
+        }
+        Returns: boolean
+      }
       reading_job_send_patience: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
       reading_run_timeout: { Args: never; Returns: string }
