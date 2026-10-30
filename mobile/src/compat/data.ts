@@ -52,7 +52,7 @@ export async function readPicker(): Promise<Read<PickerData>> {
         element: stem === null ? null : STEM_INFO[stem].element,
       };
     })
-    .toSorted((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
+    .sort((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
 
   return { kind: 'ok', value: { state: account.state, people, compats: readings.filter((one) => one.kind === 'private') } };
 }
