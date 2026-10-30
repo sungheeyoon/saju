@@ -16,6 +16,19 @@ export const refusal = (status: number, body: DoorRefusal) => Response.json(body
 /** 관문이 보는 주소 — 앱의 풀이 문은 웹의 `/me/readings` 와 같은 자리에 선다. 계정 관리(`/me/settings`)의 예외는 여기 없다 */
 const GATED_AS = '/me/readings';
 
+/** 토큰을 머리에서 — `Bearer` 한 개만 받는다 */
+const tokenOf = (request: Request): string | undefined =>
+  /^Bearer (\S+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
+
+/**
+ * **사진 문의 자격** — 토큰의 클라이언트뿐이다. 토큰을 믿는 것이 아니라 PostgREST 가 서명을 보고 `photo_at` 이 그 사람으로 판정한다.
+ * 웹의 사진 주소가 관문을 안 지나는 것과 같은 까닭이다(ADR 0200): 장마다 Auth · 계정 · 일정을 묻지 않는다.
+ */
+export function photoClientOf(request: Request): SupabaseClient<Database> | null {
+  const token = tokenOf(request);
+  return token === undefined ? null : supabaseAsBearer(token);
+}
+
 /**
  * **앱 문의 자격 — `Authorization: Bearer <Supabase access token>`**(ADR 0211).
  *
@@ -36,7 +49,7 @@ export async function mobileSession(
 ): Promise<{ ok: true; client: SupabaseClient<Database>; userId: string } | { ok: false; response: Response }> {
   const refuse = (status: number, body: DoorRefusal) => ({ ok: false as const, response: refusal(status, body) });
 
-  const token = /^Bearer (\S+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
+  const token = tokenOf(request);
   if (token === undefined) return refuse(401, { refused: 'sign-in' });
 
   const client = supabaseAsBearer(token);

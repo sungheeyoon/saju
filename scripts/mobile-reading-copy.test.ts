@@ -39,6 +39,7 @@ describe('앱 풀이 화면의 글자', () => {
       'app/ui/failure-line.tsx',
       'app/me/home/making.ts',
       'app/ui/confirm-dialog.tsx',
+      'app/save-for-reading.tsx',
       'src/lib/account/index.ts',
     ]
       .map(read)

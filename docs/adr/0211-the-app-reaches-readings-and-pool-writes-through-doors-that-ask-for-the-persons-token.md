@@ -20,6 +20,7 @@
 | `GET /api/mobile/reading` · `/reading/run` · `/readings` | 풀이 칸 · 기다림 · 보관함을 읽는다. 모델을 안 부른다 | 화면의 읽기 · `readingRunState` |
 | `POST /api/mobile/me/self-person` · `/me/person-input` | 내 사주 저장 · 입력 수정 | `saveSelfPerson` · `editPersonInput` |
 | `POST` · `PUT /api/mobile/me/participation` | 참여 켜고 끄기 · 참여 열기 | `setDiscoveryParticipation` · `openDiscoveryParticipation` |
+| `GET /api/mobile/photo/{id}?n=&s=` | 사진 한 장을 읽는다. 올리기는 없다 | `/me/photo/{id}` · `/me/photo/{id}/{n}` |
 
 대상은 `ReadingTarget` 네 갈래 그대로라 궁합 · 인연 궁합도 같은 문을 쓴다.
 
@@ -29,6 +30,8 @@
 - 가입 · 안내 재확인 · 종료는 웹이 지나는 **`gateFor`** 에 같은 값을 넣는다.
 - 정지 · 풀이권 · 중복 누름 · 대상 잠금은 새로 안 쓴다 — 그 사람의 JWT 로 `start_reading_run` 이 묻는다. 누름 열쇠는 앱이 누를 때 짓고, 없으면 400 이다.
 - 풀 쓰기의 사람 id 는 **Auth 의 답**이고 본문에서 안 받는다. 여덟 글자 · 요약은 서버가 짓는다. 열쇠를 부르는 파일은 늘지 않았다(`KEY_HOLDERS` 그대로).
+
+**사진 문만 가볍다.** 웹의 사진 주소처럼(ADR 0200) 장마다 Auth · 계정 · 일정을 묻지 않고, 토큰의 클라이언트로 같은 `photoResponse` 를 부른다. 상대 사진을 볼 자격 · 정지 · 종료는 `photo_at`(`may_see_photo`)이 그 사람으로 판정한다. 토큰이 없거나 거절되면 없는 사람과 같은 404 다.
 
 ### 실패하면 닫는다 — 웹과 다른 자리 하나
 

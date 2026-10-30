@@ -209,7 +209,7 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     expect(routes.length, 'api 라우트를 못 찾았다').toBeGreaterThan(0);
 
     for (const { path, text } of routes) {
-      const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook|mobileSession\(/.test(text);
+      const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook|mobileSession\(|photoClientOf\(/.test(text);
       expect(asks, `${path} 이 자격을 묻지 않는다`).toBe(true);
     }
   });
@@ -226,7 +226,9 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
       const handlers = [...text.matchAll(/export async function (GET|POST|PUT|PATCH|DELETE)\([^)]*\)[^{]*\{\n\s*(.*)/g)];
       expect(handlers.length, `${path} 의 함수를 못 찾았다`).toBeGreaterThan(0);
       for (const [, method, firstLine] of handlers) {
-        expect(firstLine, `${path} 의 ${method} 이 자격을 먼저 묻지 않는다`).toContain('mobileSession(');
+        /* 사진 문 하나만 토큰의 클라이언트로 묻는다 — 판정은 `photo_at` 이고 쓰기가 없다(ADR 0200 · 0211) */
+        const asks = path === 'app/api/mobile/photo/[userId]/route.ts' ? 'photoClientOf(' : 'mobileSession(';
+        expect(firstLine, `${path} 의 ${method} 이 자격을 먼저 묻지 않는다`).toContain(asks);
       }
       if (text.includes('beginReadingAs(')) expect(text, `${path} 에 maxDuration 이 없다`).toMatch(/export const maxDuration = \d+/);
       expect(text, `${path} 이 열쇠를 든다`).not.toMatch(/keyedClient/);

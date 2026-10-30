@@ -1,4 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+
+import type { Database } from '@/src/lib/db';
 
 import { isPhotoObjectKey, variantKey, type PhotoVariant } from '@/src/lib/profile';
 
@@ -41,9 +44,11 @@ export async function photoResponse(
   userId: string,
   position: number,
   variant: PhotoVariant = 'large',
+  /** 사람을 알아보는 자리 — 앱의 문은 토큰의 클라이언트를 넘긴다(ADR 0211). 안 넘기면 쿠키의 사람이다. 판정은 어느 쪽이든 `photo_at` 이다 */
+  client?: SupabaseClient<Database>,
 ): Promise<NextResponse> {
   const held = heldVersionOf(request.headers.get('if-none-match'));
-  const supabase = await supabaseOnServer();
+  const supabase = client ?? (await supabaseOnServer());
   const { data, error } = await supabase.rpc('photo_at', {
     p_user_id: userId,
     p_position: position,
