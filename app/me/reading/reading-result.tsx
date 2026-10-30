@@ -14,7 +14,7 @@ import { coverFace, readingMinutes } from './essay';
 import { Markdown, READING_COLUMN } from './markdown';
 import { ShareReadingButton } from './share-button';
 import type { ReadingTarget } from './target';
-import { when } from '../requests/when';
+import { when } from '@/src/lib/reading/when';
 
 /** 다 된 글 — 표지(비유 · 점수) · 수정 전 경고 · 본문 */
 export function Result({

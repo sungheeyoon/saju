@@ -36,6 +36,24 @@
       "@account/*": [
         "../src/lib/account/*"
       ],
+      "@survey": [
+        "../src/lib/survey/index.ts"
+      ],
+      "@discovery": [
+        "../src/lib/discovery/index.ts"
+      ],
+      "@discovery/copy": [
+        "../src/lib/discovery/copy.ts"
+      ],
+      "@reading/*": [
+        "../src/lib/reading/*"
+      ],
+      "@brand/*": [
+        "../src/lib/brand/*"
+      ],
+      "@sign-in-again": [
+        "../app/ui/sign-in-again.ts"
+      ],
       "@chat": [
         "../src/lib/chat/index.ts"
       ],

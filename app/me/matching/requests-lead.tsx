@@ -15,7 +15,7 @@ import {
   ReportButton,
   RespondButtons,
 } from '../requests/manage';
-import { when } from '../requests/when';
+import { when } from '@/src/lib/reading/when';
 import type { DecidedRequest, PastRequests } from './history';
 import { ElementExchange } from './element-exchange';
 import { RequestFace } from './request-face';
