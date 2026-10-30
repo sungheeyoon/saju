@@ -1,12 +1,4 @@
-/**
- * **로그인 없이 되는 것** — 한 사실 한 표기(2026-10-09 화면 점검 A6). 첫 화면은 로그인 없이 한 사람의 사주와 두 사람의
- * 궁합 첫 신호(엔진 계산의 한 줄 · 가린 점수)를 연다. 궁합풀이 · 사주풀이 · 저장 · 인연은 로그인한 뒤다.
- *
- * 로그인 화면(`auth/page.tsx`)과 로그인 실패(`auth/denied/page.tsx`)가 출구 단추(`SIGNED_OUT_EXIT`) 위에 이 한 줄을 함께
- * 쓴다 — 전에는 한쪽이 「궁합 첫 신호는 지금」, 다른 쪽이 「궁합은 로그인한 뒤」라고 적어 같은 사실을 반대로 말했다.
- * 위 넷의 궁합 `note` 와 자주 묻는 질문(`help/page.tsx`)도 같은 갈래(첫 신호 = 로그인 없이, 궁합풀이 = 로그인 + 풀이권)다.
- */
-export const SIGNED_OUT_REACH = '로그인 없이도 내 사주와 궁합 첫 신호는 볼 수 있어요.';
+export { SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@/src/lib/brand/guide';
 
 /**
  * 궁합으로 들어가는 단추 · 표지의 이름 — PRD §3.2 「다른 기능으로 진입」. 사람 목록 · 사람 상세 · 관계 지도의 사람 카드 ·
@@ -14,6 +6,3 @@ export const SIGNED_OUT_REACH = '로그인 없이도 내 사주와 궁합 첫 �
  * 속성 · 표로 넘기므로 문구 상수 파일(`src/lib/<영역>/copy.ts`, ADR 0159)이 아니라 여기 산다
  */
 export const COMPAT_ENTRY_LABEL = '궁합 보러 가기';
-
-/** 로그인하지 않고 첫 화면으로 가는 출구의 이름 — 로그인 화면 · 로그인 실패가 같이 쓴다(`e2e/auth.spec.ts` 가 잰다) */
-export const SIGNED_OUT_EXIT = '사주로 돌아가기';

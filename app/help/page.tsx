@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { SUPPORT_EMAIL } from '@/src/lib/brand';
+import { HELP_GROUPS } from '@/src/lib/brand/guide';
 
 import { BUTTON_SECONDARY } from '../ui/buttons';
 import { Icon } from '../ui/icons';
@@ -26,104 +26,6 @@ export const metadata = {
  * 그대로 옮긴다. 수(풀이권 · 저장 자리)는 바뀌므로 적지 않고 그 수가 서는 자리를 가리킨다.
  * 각 물음은 `id` 를 들어 다른 화면이 바로 가리킬 수 있다(`/help#credits` 처럼).
  */
-const GROUPS: readonly {
-  title: string;
-  items: readonly { id: string; q: string; a: readonly string[]; link?: { href: string; label: string } }[];
-}[] = [
-  {
-    title: '시작하기',
-    items: [
-      {
-        id: 'signup-code',
-        q: '테스트 코드는 어디서 받나요?',
-        a: [
-          '지금은 비공개 베타라 운영자가 테스터에게 직접 알려 드려요.',
-          '구글로 로그인한 뒤 가입 화면에서 코드와 닉네임을 넣으면 가입이 끝나요.',
-        ],
-      },
-      {
-        id: 'without-sign-in',
-        q: '로그인하지 않고 무엇을 볼 수 있나요?',
-        a: [
-          '첫 화면에서 한 사람의 사주(여덟 글자와 오행)와 두 사람의 궁합 첫 신호를 볼 수 있어요.',
-          '사주풀이 · 궁합풀이 · 저장 · 인연은 로그인한 뒤에 이용할 수 있어요.',
-        ],
-        link: { href: '/about', label: '서비스 소개' },
-      },
-    ],
-  },
-  {
-    title: '풀이권',
-    items: [
-      {
-        id: 'credits',
-        q: '풀이권은 무엇인가요?',
-        a: [
-          '사주풀이나 궁합풀이를 새로 받을 때 1장씩 써요. 누르기 전에 확인 창이 먼저 열려요.',
-          '이미 받은 풀이를 다시 여는 것은 풀이권을 쓰지 않아요. 만드는 도중에 실패해도 쓰지 않은 것으로 남아요.',
-          '남은 수는 화면 위의 풀이권 칸(표 그림)에서 볼 수 있어요.',
-        ],
-      },
-      {
-        id: 'credits-match',
-        q: '인연 궁합에도 풀이권이 드나요?',
-        a: [
-          '궁합을 요청할 때 풀이권 1장이 예약돼요. 상대가 동의하면 그것으로 인연 궁합이 만들어지고, 거절하거나 답이 없으면 돌아와요.',
-          '요청을 받은 쪽은 풀이권을 쓰지 않아요.',
-        ],
-      },
-    ],
-  },
-  {
-    title: '궁합',
-    items: [
-      {
-        id: 'compat-without-saving',
-        q: '궁합을 보려면 꼭 사람을 저장해야 하나요?',
-        a: [
-          '아니요. 궁합 화면에서 「직접 입력」을 고르면 저장하지 않고 볼 수 있어요.',
-          '직접 입력한 사람은 저장한 사람에 추가되지 않아요.',
-        ],
-      },
-    ],
-  },
-  {
-    title: '공유와 인연',
-    items: [
-      {
-        id: 'share',
-        q: '사주풀이를 다른 사람에게 보낼 수 있나요?',
-        a: [
-          '다 만들어진 풀이의 「공유 링크 복사」를 누르면 로그인 없이 열리는 주소가 복사돼요.',
-          '링크를 아는 사람은 누구나 이 풀이를 볼 수 있어요. 인연 궁합은 보낼 수 없어요.',
-        ],
-      },
-      {
-        id: 'matching-off',
-        q: '인연 찾기에서 내 프로필을 숨기려면요?',
-        a: ['설정의 「인연 찾기」에서 쉴 수 있어요. 쉬는 동안에는 다른 사람에게 소개되지 않아요.'],
-        link: { href: '/me/settings', label: '설정' },
-      },
-    ],
-  },
-  {
-    title: '계정',
-    items: [
-      {
-        id: 'leave',
-        q: '탈퇴는 어떻게 하나요?',
-        a: ['설정 맨 아래 「탈퇴하기」를 누르면 신청하기 전에 자세한 내용을 먼저 보여 드려요.'],
-        link: { href: '/me/settings', label: '설정' },
-      },
-      {
-        id: 'contact',
-        q: '더 묻고 싶은 것이 있어요.',
-        a: [`궁금한 점은 ${SUPPORT_EMAIL}으로 보내 주세요.`],
-      },
-    ],
-  },
-];
-
 export default function HelpPage() {
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-8 py-8 sm:py-12`}>
@@ -136,7 +38,7 @@ export default function HelpPage() {
       {/* 묶음으로 바로 가는 줄 — 긴 목록에서 「풀이권」만 찾는 사람이 끝까지 내리지 않게 */}
       <nav aria-label="묶음">
         <ul className="flex flex-wrap gap-2">
-          {GROUPS.map((group) => (
+          {HELP_GROUPS.map((group) => (
             <li key={group.title}>
               <a
                 href={`#${group.items[0].id}`}
@@ -149,7 +51,7 @@ export default function HelpPage() {
         </ul>
       </nav>
 
-      {GROUPS.map((group) => (
+      {HELP_GROUPS.map((group) => (
         <section key={group.title} className="flex flex-col gap-3">
           <h2 className={TYPE_SECTION}>{group.title}</h2>
           <ul className={`flex flex-col divide-y divide-border !py-1 ${CARD}`}>
