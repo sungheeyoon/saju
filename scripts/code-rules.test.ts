@@ -373,7 +373,6 @@ const DOUBLE_CASTS_STILL_THERE = [
   'app/me/person-input.ts :: row as unknown as StoredInput',
   'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
   'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
-  "app/me/reading/target.ts :: null as unknown as ReadingTarget['kind']",
 ];
 
 /** `x!` — 「있다」를 타입 대신 사람이 주장하는 것 */

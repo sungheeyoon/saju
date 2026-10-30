@@ -46,7 +46,7 @@ vi.mock('../../taste/taste-visitor', () => ({ forgetTasteClaim: async () => unde
 vi.mock('../../taste/keyed-taste', () => ({ countTasteStep: async () => undefined }));
 vi.mock('../../request-error', () => ({ reportRequestError: async () => undefined }));
 
-const { beginReading } = await import('./pipeline');
+const { beginReading } = await import('./press');
 const { collectReadingResult } = await import('./collect');
 const { GET: recover } = await import('../../api/cron/reading/route');
 

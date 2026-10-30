@@ -6,9 +6,10 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { publicCardFromRow } from '../candidates';
 import { selfElementSummary } from '../summary';
-import { setParticipation } from '../keyed-chart-writes';
+import { setParticipation } from '../chart-writes';
 import { PREFER_GENDERS, type PreferGender } from '@/src/lib/discovery';
 import { userFacingDbMessage } from '../../db-error';
+import { PARTICIPATION_NO_SELF_NOTE } from '../person-writes';
 import { refusedForCredits, type OutOfCreditsRefusal } from '../credits/refusal';
 
 /**
@@ -59,10 +60,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   const written = await setParticipation(on);
 
   if ('noSelf' in written) {
-    return {
-      ok: false,
-      message: '내 사주를 불러오지 못했어요. 홈 탭에 내 사주 카드가 보이는지 확인하고 다시 시도해 주세요.',
-    };
+    return { ok: false, message: PARTICIPATION_NO_SELF_NOTE };
   }
   if (written.error) return { ok: false, message: userFacingDbMessage(written.error, 'set_discovery_participation') };
 

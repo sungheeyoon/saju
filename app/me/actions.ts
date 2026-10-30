@@ -5,7 +5,8 @@ import type { SaveResult } from '../save-result';
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import { sameChartInMyList, type SameChart } from './same-chart';
-import { createSelfPerson, editPersonInput as editPersonInputWithKey } from './keyed-chart-writes';
+import { chartWriterOfCookies } from './chart-writes';
+import { editPersonInputAs, saveSelfPersonAs } from './person-writes';
 import {
   managedPersonArgs,
   noteOrNull,
@@ -40,32 +41,9 @@ type PersonSaved =
  * 그마저도 DB 가 한 번 더 본다.
  */
 export async function saveSelfPerson(query: Query): Promise<SaveResult> {
-  const missing = missingAnswer(query);
-  if (missing !== null) return { ok: false, message: missing };
-
-  const unsupported = unsupportedForSaving(query);
-  if (unsupported !== null) return { ok: false, message: unsupported };
-
-  /* 여덟 글자는 열쇠 모듈이 이 입력에서 세고, 사람은 세션에서 얻는다(G-64, ADR 0136) */
-  const { error } = await createSelfPerson(query);
-
-  if (error) {
-    /**
-     * 「이미 등록했다」는 실패가 아니라 상태다.
-     *
-     * 두 번 눌렸거나 뒤로 갔다 다시 왔을 때 나온다. RPC 가 조용히 덮어쓰지 않고
-     * 거절하도록 만들어 뒀으므로(첫 번째가 어디로 갔는지 모르게 되니까), 화면은
-     * 그냥 새로 그려서 저장된 것을 보여주면 된다.
-     */
-    if (error.code === '23505') {
-      refresh('self-person-saved');
-      return { ok: true };
-    }
-    return { ok: false, message: userFacingDbMessage(error, 'create_self_person') };
-  }
-
-  refresh('self-person-saved');
-  return { ok: true };
+  const saved = await saveSelfPersonAs(await chartWriterOfCookies(), query);
+  if (saved.ok) refresh('self-person-saved');
+  return saved;
 }
 
 /**
@@ -195,34 +173,9 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
  * 바뀌었을 수 있기 때문이다 — 판정은 값을 들고 있는 쪽이 한다.
  */
 export async function editPersonInput(personId: string, query: Query): Promise<SaveResult> {
-  const missing = missingAnswer(query);
-  if (missing !== null) return { ok: false, message: missing };
-
-  const unsupported = unsupportedForSaving(query);
-  if (unsupported !== null) return { ok: false, message: unsupported };
-
-  const supabase = await supabaseOnServer();
-
-  // 정책이 자기 행만 열어 주므로 `user_id` 를 적지 않는다.
-  const { error: labelError } = await supabase
-    .from('user_person_access')
-    .update({ local_label: query.name.trim() })
-    .eq('person_id', personId);
-  if (labelError) return { ok: false, message: userFacingDbMessage(labelError, 'user_person_access.label') };
-
-  /**
-   * 입력을 덮어쓰고, 내 사람이면 **매칭 풀에 내놓은 오행 요약도 따라간다** — 둘 다 열쇠 모듈이 한다(G-64, ADR 0136).
-   *
-   * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 따라가게 하는 것은 그 탈락이 **조용하기** 때문이다 — 사용자는
-   * 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다. 「내 사주인가」는 앱이 안 묻는다 — `ensure_discovery_participation`
-   * 이 `uuid` 로 견준다(문자열 비교는 대소문자를 가려, 대문자 id 에서 요약 갱신이 조용히 빠졌었다).
-   * 참여가 기본으로 켜진 뒤로 그 호출은 참여를 열기도 한다. 끈 사람은 그대로 쉰다(`opted_out_at`).
-   */
-  const { error } = await editPersonInputWithKey(personId, query);
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'edit_person_input') };
-
-  refresh('person-input-edited');
-  return { ok: true };
+  const edited = await editPersonInputAs(await chartWriterOfCookies(), personId, query);
+  if (edited.ok) refresh('person-input-edited');
+  return edited;
 }
 
 /**
