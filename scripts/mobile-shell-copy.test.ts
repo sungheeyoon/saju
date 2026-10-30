@@ -24,6 +24,7 @@ const WEB = [
   'app/me/home/self-card.tsx',
   'app/me/home/running-line.ts',
   'app/me/home/circle.ts',
+  'app/me/onboarding.tsx',
   'app/ui/failure-line.tsx',
   'app/auth/sign-out.ts',
   'src/lib/chat/index.ts',

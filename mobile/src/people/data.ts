@@ -269,14 +269,6 @@ export async function updateNote(personId: string, note: string): Promise<Saved>
   return error !== null ? { ok: false, message: userFacingDbMessage(error, 'user_person_access.update') } : { ok: true };
 }
 
-/** 부를 이름만 고친다 — 이름은 엣지가 들고 여덟 글자를 바꾸지 않는다 */
-export async function renamePerson(personId: string, name: string): Promise<Saved> {
-  if (name.trim() === '') return { ok: false, message: '이름을 입력해 주세요.' };
-  if (supabase === null) return { ok: false, message: NOT_READY };
-  const { error } = await supabase.from('user_person_access').update({ local_label: name.trim() }).eq('person_id', personId);
-  return error !== null ? { ok: false, message: userFacingDbMessage(error, 'user_person_access.label') } : { ok: true };
-}
-
 /** 목록에서 뺀다 — 지우는 것은 엣지이지 Person 이 아니다. 나는 정책이 안 뺀다 */
 export async function removeFromList(personId: string): Promise<Saved> {
   if (supabase === null) return { ok: false, message: NOT_READY };
