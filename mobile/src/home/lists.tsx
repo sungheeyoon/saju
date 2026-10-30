@@ -5,22 +5,23 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { READING_STALE_LABEL } from '@reading/notes';
 import { STEM_INFO, type Stem } from '@saju';
 import { withFromMe } from '@web-home/from-me';
-import { READING_CONTINUE_NOTE, READING_MAKING, SELF_READING_MAKING } from '@web-home/making';
+import { READING_CONTINUE_NOTE, SELF_READING_MAKING } from '@web-home/making';
 
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Icon } from '@/ui/icons';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { readingDate, type HomePerson, type ReadingRow } from './read';
+import { readingDate, type HomePerson, type ReadingRow, type RunningLine } from './read';
 
 const go = (href: string) => router.push(href as never);
 
-/** 줄 왼쪽의 표시 — 오행 색은 여기만 입는다. 웹은 일간의 천간 그림을 쓰는데 앱에는 아직 그 그림이 없어 오행 기호로 선다 */
+/** 줄 왼쪽의 표시 — 일간의 천간 그림이고 오행 색은 여기만 입는다. 일간을 모르면 빈 오행 기호다 */
 function HomeMark({ stem = null }: { stem?: Stem | null }) {
   const tone = stem !== null ? STEM_INFO[stem].element : null;
   return (
     <View style={[styles.mark, { backgroundColor: tone === null ? COLOR.noneSoft : ELEMENT_TONE[tone].soft }]}>
-      <ElementSymbol element={tone} size={24} />
+      {stem !== null ? <StemSymbol stem={stem} size={24} /> : <ElementSymbol element={null} size={24} />}
     </View>
   );
 }
@@ -69,16 +70,16 @@ function MoreList({ shown, rows, tail }: { shown: number; rows: readonly ReactNo
   );
 }
 
-/** 만드는 중인 풀이 — 있을 때만. 웹의 「어느 절을 쓰는 중」은 프롬프트 모듈이 지어 앱에 안 와서 「만드는 중…」으로 말한다 */
-export function RunningReadings({ running }: { running: readonly { key: string; name: string }[] }) {
+/** 만드는 중인 풀이 — 있을 때만. 줄마다 무엇을 · 어디쯤 만드는지 말하고 누르면 그 풀이 화면으로 간다 */
+export function RunningReadings({ running }: { running: readonly RunningLine[] }) {
   if (running.length === 0) return null;
   return (
     <View style={styles.list}>
       {running.map((line) => (
-        <Row key={line.key}>
+        <Row key={line.key} onPress={line.href === null ? undefined : () => go(line.href as string)}>
           <View style={styles.body}>
             <Text style={styles.name} numberOfLines={1}>{line.name}</Text>
-            <Text style={styles.second}>{READING_MAKING}</Text>
+            <Text style={styles.second}>{line.stage}</Text>
           </View>
         </Row>
       ))}

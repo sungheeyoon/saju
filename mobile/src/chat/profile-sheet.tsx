@@ -22,6 +22,7 @@ export function ProfileSheet({
   intro,
   tone,
   photos = null,
+  emptyPhoto,
   toMatch,
   menu,
   footer,
@@ -32,6 +33,8 @@ export function ProfileSheet({
   tone: Element | null;
   /** 장마다의 보일 자리 — 수가 곧 장 수다. 없으면 빈 목록 또는 `null` */
   photos?: { readonly userId: string; readonly focuses: readonly PhotoFocus[] } | null;
+  /** 사진이 없을 때 빈 칸 위에 얹는 것 — 내 프로필의 「사진 추가」 */
+  emptyPhoto?: ReactNode;
   toMatch?: ReactNode;
   menu?: ReactNode;
   footer?: ReactNode;
@@ -54,7 +57,7 @@ export function ProfileSheet({
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.body}>
-            <PhotoFrame nickname={nickname} soft={scale.soft} ink={scale.ink} photos={photos} />
+            <PhotoFrame nickname={nickname} soft={scale.soft} ink={scale.ink} photos={photos} empty={emptyPhoto} />
             {toMatch}
             {shown !== null && (
               <View style={styles.intro}>
@@ -76,11 +79,13 @@ function PhotoFrame({
   soft,
   ink,
   photos,
+  empty,
 }: {
   nickname: string;
   soft: string;
   ink: string;
   photos: { readonly userId: string; readonly focuses: readonly PhotoFocus[] } | null;
+  empty?: ReactNode;
 }) {
   const [width, setWidth] = useState(0);
   const [page, setPage] = useState(0);
@@ -89,6 +94,7 @@ function PhotoFrame({
 
   return (
     <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[styles.photo, { backgroundColor: soft }]}>
+      {focuses.length === 0 && empty}
       {photos === null || focuses.length === 0 || width === 0 ? (
         face
       ) : (

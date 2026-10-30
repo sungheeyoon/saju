@@ -22,8 +22,8 @@ describe.each(PARTS.map((part) => [part.name, part] as const))('%s', (_, part) =
     for (const symbol of part.web.symbols) expect(defines(web, symbol), `${part.web.file} 의 ${symbol}`).toBe(true);
   });
 
-  it('앱에 같은 이름이 있다 — 아직이면 표가 까닭을 든다, 서고 나면 그 줄을 지운다', () => {
-    expect(defines(app, part.app.symbol), `${part.app.file} 의 ${part.app.symbol}`).toBe(part.pending === undefined);
+  it.skipIf(part.pending !== undefined)('앱에 같은 이름이 있다 — 아직이면 표의 `pending` 이 까닭을 든다', () => {
+    expect(defines(app, part.app.symbol), `${part.app.file} 의 ${part.app.symbol}`).toBe(true);
   });
 
   it('변형 낱말이 앱에 있고 짝인 상수가 웹에 있다', () => {

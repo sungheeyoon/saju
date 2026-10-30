@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { LineIcon } from './line-icons';
+import { Icon } from './icons';
 import { COLOR, FONT, RADIUS, TYPE } from './tokens';
 
 const CLOSE_LABEL = '닫기';
@@ -32,7 +32,7 @@ export function SheetModal({
             </Text>
             {menu}
             <Pressable accessibilityRole="button" accessibilityLabel={CLOSE_LABEL} onPress={onClose} style={styles.icon}>
-              <LineIcon name="close" />
+              <Icon size={20} name="close" />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
