@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SERVICE_NAME } from '@brand';
 import { calculateChart } from '@input/chart';
 import { DEFAULT_QUERY, HOUR_UNKNOWN_CHOICE, NAME_MAX, TIME_BASES, TIME_BASIS, type Query } from '@input/query';
 import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, type CityName, type LateNightRule } from '@saju';
@@ -68,8 +69,9 @@ export default function BirthScreen() {
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.brand}>{SERVICE_NAME}</Text>
           <Panel tone="cream" style={styles.paper}>
-            <Text style={styles.title}>나는 어떤 사람일까?</Text>
+            <Text style={styles.title}>출생 정보를 입력해 주세요</Text>
 
             <Panel style={styles.form}>
               <View style={styles.pair}>
@@ -166,7 +168,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, padding: 16 },
   paper: { flexGrow: 1, padding: 14, gap: 12 },
-  title: { fontSize: TYPE.title, fontWeight: '700', color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
+  brand: { fontSize: TYPE.heading, fontWeight: '600', color: COLOR.foreground, marginHorizontal: 4, marginBottom: 12 },
+  title: { fontSize: TYPE.heading, fontWeight: '700', color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
   form: { padding: 16, gap: 18 },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
