@@ -337,3 +337,11 @@ Navigation) · 토스 TDS(Toast · Result) · Material 3 Snackbar 다(확인 202
 ## 추기 — 앱의 뒤로가기는 부품 하나다 (2026-10-31, 운영자 결정)
 
 앱(`mobile/`)의 하위 화면은 앱 머리 대신 `mobile/src/ui/top-bar.tsx` 의 맨 위 줄을 세운다 — 왼쪽 위 고정 `<` 아이콘(24px, 누르는 자리 44px, 보이는 왼쪽 끝 16px)과 화면 이름이고, 「뒤로」나 이전 화면 이름 글자는 없다. 탭 첫 화면 넷은 앱 머리 그대로이고 탭 막대도 그대로다. 채팅방은 자체 머리에 같은 `<` 를 쓴다. 머리를 어느 주소에 세우나는 `src/lib/app-shell.ts` 한 자리이고, `router.back` 이 부품 밖에 다시 생기면 `scripts/mobile-back.test.ts` 가 붉다.
+
+## 추기 — 앱과 웹의 값 · 부품은 한 원본에서 (2026-10-31, 운영자 지적)
+
+운영자가 앱의 카드 모양이 화면마다 다르다고 짚었고, 「웹의 모바일 화면과 앱이 똑같은 UI」를 요구했다. 재어 보니 앱 토큰(`mobile/src/ui/tokens.ts`)이 `globals.css` 를 손으로 베낀 것이었다.
+
+- **토큰의 원본은 `src/lib/design/tokens.json` 하나다** — `scripts/design-tokens.mjs` 가 웹 `app/globals.css` 의 표시된 칸(`design-tokens:*`)과 앱이 `@design` 으로 부르는 `src/lib/design/tokens.generated.ts` 를 짓는다. 두 벌을 시험으로 맞추지 않고 한 원본에서 낸다 — 토스 TDS 의 색 체계 개편이 쓴 꼴이다(「하나의 소스를 바라보게」 · 토큰에서 플랫폼별 코드를 자동으로 짓는다, <https://toss.tech/article/tds-color-system-update>, 확인 2026-10-31). 토스는 Style Dictionary 를 쓰지만 여기는 값이 적어 작은 스크립트로 충분해 의존성을 안 늘렸다. 어두운 화면 값도 원본에 있다(앱은 아직 안 쓴다).
+- **값을 고치는 차례** — `tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다. 어긋나면 `--check` 와 `scripts/design-tokens.test.ts` 가 붉다. 옮기기 전 값은 `scripts/fixtures/design-tokens-before.json` 으로 잰다 — 값을 일부러 바꾸는 PR 은 그 파일도 고친다.
+- **그림자** — 앱은 React Native 의 `boxShadow` 에 웹과 같은 글자를 준다(New Architecture, iOS · Android 9+, <https://reactnative.dev/docs/view-style-props>, 확인 2026-10-31).

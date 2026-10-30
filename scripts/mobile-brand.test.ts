@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 /** `app.json` 은 토큰을 못 읽어 색을 글자로 든다 — 어긋나면 아이콘 판과 화면 바탕이 갈린다(`mobile/scripts/brand-icons.mjs`) */
 const ROOT = join(__dirname, '..');
 const { expo } = JSON.parse(readFileSync(join(ROOT, 'mobile/app.json'), 'utf8'));
-const tokens = readFileSync(join(ROOT, 'mobile/src/ui/tokens.ts'), 'utf8');
-const token = (name: string) => tokens.match(new RegExp(`\\b${name}: '(#[0-9a-f]{6})'`))?.[1];
+const tokens = readFileSync(join(ROOT, 'src/lib/design/tokens.json'), 'utf8');
+const token = (name: string) => tokens.match(new RegExp(`"${name}": "(#[0-9a-f]{6})"`))?.[1];
 const pluginOptions = (name: string) => expo.plugins.find((entry: unknown) => Array.isArray(entry) && entry[0] === name)[1];
 
 describe('앱의 아이콘 · 스플래시', () => {
