@@ -16,7 +16,7 @@ import { watchRun, type PageVisibility } from '@reading/watch-run';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { markReadingRead, newRequestKey, readReadingRun, readReadingView, saleIsOpen, startReading, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
+import { improvementConsented, markReadingRead, newRequestKey, readReadingRun, readReadingView, saleIsOpen, startReading, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
 
 export type ShownView = Extract<ReadingView, { view: 'reading' }>;
 
@@ -56,6 +56,18 @@ export function useReadingPanel({
   const [progress, setProgress] = useState<RunProgress | null>(initial.run?.progress ?? null);
   const [asking, setAsking] = useState(false);
   const [shortage, setShortage] = useState<{ available: number; open: boolean } | null>(null);
+
+  /* 못 읽었으면 동의를 주장하지 않는다(ADR 0078) — 설문이 안 설 뿐이다 */
+  const [consented, setConsented] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void improvementConsented().then((yes) => {
+      if (live) setConsented(yes);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const { phase, failure } = flow;
   const reading = view.reading;
@@ -164,7 +176,7 @@ export function useReadingPanel({
     isMock: false,
     credits: view.credits,
     automatic,
-    consented: false,
+    consented,
   });
 
   return {

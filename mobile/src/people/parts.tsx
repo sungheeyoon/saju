@@ -27,7 +27,7 @@ export function ScreenFrame({ children, keyboard = false }: { children: ReactNod
   return (
     <SafeAreaView style={styles.screen}>
       {keyboard ? (
-        <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.screen} behavior="padding">
           {body}
           <KeyboardDoneBar />
         </KeyboardAvoidingView>

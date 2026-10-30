@@ -5,6 +5,7 @@ import type { Query } from '@input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf, type StoredInput } from '@input/stored';
 import { runningStageOf } from '@reading/running-stage';
 import { READING_KINDS, type ReadingKind } from '@reading/policy';
+import { focusOf, type PhotoFocus } from '@profile';
 import type { Saju, Stem } from '@saju';
 import { withFromMe } from '@web-home/from-me';
 import { isFirstVisit } from '@web-home/first-visit';
@@ -36,13 +37,13 @@ export type HomePerson = {
   score: number | null;
 };
 
+/** 내 사진 — 꾸밈이라 못 읽으면 사진 없는 나로 선다(ADR 0078). 대표 한 장의 보일 자리까지 */
+export type SelfFace = { userId: string; nickname: string; intro: string | null; focuses: readonly PhotoFocus[] };
+
 export type SelfCardData =
   | { kind: 'failed'; message: string }
   | { kind: 'unreadable'; message: string; note: string }
   | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean; face: SelfFace | null };
-
-/** 「내 프로필」 — 못 읽으면 `null` 이고 카드의 원은 일간 그림만 선다(꾸밈이다) */
-export type SelfFace = { userId: string; nickname: string; intro: string | null; hasPhoto: boolean };
 
 export type RunningLine = { key: string; name: string; stage: string; href: string | null };
 
@@ -51,7 +52,7 @@ export type Home =
   | { kind: 'sign-in'; message: string }
   | { kind: 'notice'; title: string; detail: string }
   /** 내 사주가 아직 없다 */
-  | { kind: 'no-self' }
+  | { kind: 'no-self'; nickname: string }
   | {
       kind: 'home';
       self: SelfCardData;
@@ -61,6 +62,11 @@ export type Home =
       people: readonly HomePerson[];
       slots: { limit: number; used: number; remaining: number } | null;
     };
+
+const faceOf = (userId: string | undefined, nickname: string | null, intro: string | null, photos: readonly { position: number; focus_x: number; focus_y: number }[]): SelfFace | null =>
+  userId === undefined || nickname === null
+    ? null
+    : { userId, nickname, intro, focuses: [...photos].sort((x, y) => x.position - y.position).map((row) => focusOf(row.focus_x, row.focus_y)) };
 
 const called = (label: string | null) => label ?? '이름 없음';
 
@@ -134,7 +140,7 @@ export async function readRunning(): Promise<readonly RunningLine[] | null> {
  * 홈 — 웹의 `app/me/(home)/page.tsx` 와 같은 문을 같은 차례로 읽는다. 정책이 내 것만 내주므로 `user_id` 를 안 적는다.
  * 엣지 · 입력 · 목록은 본체라 못 읽으면 실패이고, 자리 수와 만드는 중인 풀이는 부속이라 빠진 채 선다.
  *
- * 웹이 홈을 열 때 함께 부르는 참여 열기(`openDiscoveryParticipation`)는 부르지 않는다 — 서비스 키 문이라 앱이 못 부른다.
+ * 웹이 홈을 열 때 함께 부르는 참여 열기는 화면이 앱의 문으로 따로 부른다(`openParticipation`, ADR 0211).
  */
 export async function readHome(): Promise<Home> {
   if (supabase === null) return { kind: 'failed', message: NOT_READY };
@@ -162,7 +168,7 @@ export async function readHome(): Promise<Home> {
   if (failure !== null) return failure.next === 'signIn' ? { kind: 'sign-in', message: failure.line } : { kind: 'failed', message: failure.line };
   const notice = accountNoticeOf(state, SUPPORT_EMAIL);
   if (notice !== null) return { kind: 'notice', ...notice };
-  if (state.kind !== 'active' || state.selfPersonId === null) return { kind: 'no-self' };
+  if (state.kind !== 'active' || state.selfPersonId === null) return { kind: 'no-self', nickname: account.data?.nickname ?? '' };
   const selfPersonId = state.selfPersonId;
 
   const [edges, readings, running, slots, photos, session] = await Promise.all([
@@ -205,13 +211,6 @@ export async function readHome(): Promise<Home> {
   const runningRows = running.error === null ? (running.data ?? []) : [];
   const selfReading = rows.find((row) => row.kind === 'self') ?? null;
 
-  const userId = session.data.session?.user.id;
-  const nickname = account.data?.nickname ?? null;
-  const face: SelfFace | null =
-    userId === undefined || nickname === null
-      ? null
-      : { userId, nickname, intro: account.data?.intro ?? null, hasPhoto: photos.error === null && (photos.data ?? []).length > 0 };
-
   const selfInput = inputs.get(selfPersonId);
   const stood = selfInput !== undefined && selfEdge !== null ? storedChartOf(selfInput, selfEdge.local_label) : null;
   const self: SelfCardData =
@@ -228,7 +227,7 @@ export async function readHome(): Promise<Home> {
             metaphor: selfReading?.metaphor ?? null,
             hasReading: selfReading !== null,
             making: runningRows.some((row) => row.kind === 'self'),
-            face,
+            face: faceOf(session.data.session?.user.id, account.data?.nickname ?? null, account.data?.intro ?? null, photos.error === null ? (photos.data ?? []) : []),
           };
 
   const people: HomePerson[] = listed.map((edge) => {

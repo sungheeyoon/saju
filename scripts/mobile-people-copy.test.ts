@@ -17,9 +17,6 @@ const withoutComments = (text: string) =>
 const flat = (text: string) => text.replace(/\s+/g, ' ');
 const koreanChunks = (text: string) => [...withoutComments(text).matchAll(/[가-힣][^'"`{}<>$\n]*/g)].map((match) => match[0].trim());
 
-/** 웹에 없어 앱이 처음 쓰는 글자 — 대장 `home-10` 의 「확인 전」이 든다. 저장한 사람의 생년월일시 수정이 앱에 없어 이름만 고친다 */
-const APP_ONLY = new Set(['이름 변경']);
-
 const WEB = flat(
   [
     'app/birth-form.tsx',
@@ -76,7 +73,7 @@ describe('앱 저장한 사람 · 궁합 화면의 글자', () => {
 
   for (const file of screens) {
     it(`${file} 의 글자는 웹 코드에 그대로 있다`, () => {
-      const strays = koreanChunks(read(file)).filter((chunk) => !APP_ONLY.has(chunk) && !WEB.includes(flat(chunk)));
+      const strays = koreanChunks(read(file)).filter((chunk) => !WEB.includes(flat(chunk)));
       expect(strays).toEqual([]);
     });
   }

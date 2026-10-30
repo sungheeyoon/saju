@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { REPORT_DETAIL_MAX, REPORT_DONE, REPORT_NOTE, REPORT_REASONS, type ReportReason } from '@account/index';
 import { BLOCK_FINAL_NOTE, BLOCK_KEEPS_NOTE, BLOCK_NOTE } from '@consent/index';
@@ -13,7 +13,7 @@ import { blockUser, reportMessage, reportUser, type SaveAnswer } from './reads';
 function Dialog({ onOutside, children }: { onOutside: (() => void) | null; children: ReactNode }) {
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onOutside ?? undefined}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.back}>
+      <KeyboardAvoidingView behavior="padding" style={styles.back}>
         <Pressable style={styles.outside} onPress={onOutside ?? undefined} />
         <View style={styles.dialog}>{children}</View>
       </KeyboardAvoidingView>

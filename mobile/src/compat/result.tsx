@@ -1,6 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, type ReactNode } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { buildMatchPreview, matchBasisOf } from '@matching';
+import { pairSeatsOf } from '@reading-display';
 import { RELATION_LABEL, relationOf, type Relation } from '@people';
 import {
   ELEMENT_KO,
@@ -23,9 +25,11 @@ import { CLAIM_STRENGTH_LEGEND } from '@saju-view/notes';
 
 import { Fold, Rich, Ruled, ScrollHint, T } from '@/chart/parts';
 import { UtteranceList } from '@/chart/relations';
-import { DayMasterChip, PillarStrip, go, styles as shared } from '@/people/parts';
+import { DayMasterChip, PillarStrip, styles as shared } from '@/people/parts';
+import type { ReadingTarget } from '@/reading/api';
+import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
+import { Panel } from '@/ui/parts';
 import { StemSymbol } from '@/ui/stem-symbol';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import type { PairOutcome } from './data';
@@ -37,8 +41,8 @@ const SIDE_PERSON: Record<CompatSide, string> = { a: '첫 번째 사람', b: '�
 /** 카드 위 딱지 — 운영자 확정 문구 #7(2026-09-25) */
 const POLICY_BADGE = { romantic: '연인·배우자 기준', general: '일반 관계 기준' } as const;
 
-/** 궁합 결과 — 두 명식 → 접은 표 → 베타 지표 → 사이 → 풀이 단추, 웹과 같은 차례다(`app/me/compat/screen.tsx`) */
-export function CompatResult({ outcome }: { outcome: Ok }) {
+/** 궁합 결과 — 두 명식 → 접은 표 → 베타 지표 → 사이 → 풀이 칸, 웹과 같은 차례다(`app/me/compat/screen.tsx`) */
+export function CompatResult({ outcome, onReadingChanged }: { outcome: Ok; onReadingChanged: () => void }) {
   const { charts, names, relation, reading, personA, personB } = outcome;
   const compat = analyzeCompatibility(charts.a, charts.b);
   /* 눈금은 풀이가 정한다 — 있으면 그 풀이를 잰 판, 없으면 지금 적어 둔 사이로 지금 잰다(ADR 0113) */
@@ -109,24 +113,53 @@ export function CompatResult({ outcome }: { outcome: Ok }) {
 
       <Text style={shared.meta}>이 점수는 명리 자료에서 자주 다루는 기준을 조합한 베타 참고값입니다. 실제 관계의 결과를 예측하거나 두 사람의 좋고 나쁨을 판정하지 않습니다.</Text>
 
-      <Panel style={styles.reading}>
-        {relation.ok && relation.relation !== null && <RelationNote readWith={readWith} next={relation.relation} />}
-        {reading === null ? (
-          /* 궁합풀이를 만드는 일은 서버의 일이다(풀권 · 모델 호출) — 앱이 부를 문이 서기 전에는 단추가 잠겨 있다 */
-          <PrimaryButton label="궁합풀이 받기" disabled onPress={() => undefined} />
-        ) : (
-          <>
-            {reading.score !== null && (
-              <Text style={shared.noticeTitle}>
-                궁합풀이 점수 {reading.score}점
-              </Text>
-            )}
-            {reading.metaphor !== null && <Text style={shared.body}>{reading.metaphor}</Text>}
-            <SecondaryButton label="궁합풀이 보기" onPress={() => go(`/me/readings/compat?a=${personA}&b=${personB}`)} />
-          </>
-        )}
-      </Panel>
+      <PairReadingPanel
+        personA={personA}
+        personB={personB}
+        names={names}
+        ask={relation.ok && relation.relation !== null ? <RelationNote readWith={readWith} next={relation.relation} /> : undefined}
+        onReadingChanged={onReadingChanged}
+      />
     </View>
+  );
+}
+
+/** 궁합풀이 칸 — 받기 · 기다림 · 보기가 네 갈래 한 벌이다(`ReadingPanel`, ADR 0211). 글은 자리 호칭으로 와서 두 사람의 지금 이름으로 바꿔 세운다 */
+function PairReadingPanel({
+  personA,
+  personB,
+  names,
+  ask,
+  onReadingChanged,
+}: {
+  personA: string;
+  personB: string;
+  names: { a: string; b: string };
+  ask: ReactNode;
+  onReadingChanged: () => void;
+}) {
+  const target = useMemo<ReadingTarget>(() => ({ kind: 'private', personA, personB }), [personA, personB]);
+  const { answer, reload } = useReadingView(target);
+
+  if (answer === null) return <ActivityIndicator color={COLOR.secondary} />;
+  if ('refused' in answer) return <ReadFailure refused={answer.refused} onRetry={reload} />;
+  if (answer.view.view === 'blocked') {
+    return (
+      <Panel style={styles.reading}>
+        <Text style={shared.noticeTitle}>{answer.view.title}</Text>
+        <Text style={shared.body}>{answer.view.detail}</Text>
+      </Panel>
+    );
+  }
+  if (answer.view.view !== 'reading') return null;
+  return (
+    <ReadingPanel
+      target={target}
+      view={answer.view}
+      nicknames={pairSeatsOf({ personId: personA, name: names.a }, { personId: personB, name: names.b })}
+      ask={ask}
+      onReadingChanged={onReadingChanged}
+    />
   );
 }
 

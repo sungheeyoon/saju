@@ -37,21 +37,18 @@ export function SelfProfile({ face, stem }: { face: SelfFace; stem: Stem }) {
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel={MY_PROFILE_LABEL} onPress={() => setOpen(true)} style={styles.circle}>
-        <Photo userId={face.userId} size={56} hasPhoto={face.hasPhoto} fallback={<StemSymbol stem={stem} size={32} />} />
+        <Photo userId={face.userId} size={56} hasPhoto={face.focuses.length > 0} focus={face.focuses[0]} fallback={<StemSymbol stem={stem} size={32} />} />
       </Pressable>
       {open && (
         <ProfileSheet
           nickname={face.nickname}
           intro={face.intro}
           tone={STEM_INFO[stem].element}
-          photo={
-            face.hasPhoto ? (
-              <Photo userId={face.userId} size={240} variant="large" fallback={null} />
-            ) : (
-              <View style={styles.addPhoto}>
-                <SecondaryButton label={PHOTO_ADD} onPress={toProfile(close)} />
-              </View>
-            )
+          photos={{ userId: face.userId, focuses: face.focuses }}
+          emptyPhoto={
+            <View style={styles.addPhoto}>
+              <SecondaryButton label={PHOTO_ADD} onPress={toProfile(close)} />
+            </View>
           }
           footer={
             <>

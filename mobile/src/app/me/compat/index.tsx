@@ -3,15 +3,13 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { isBlocked } from '@account/index';
-import { UNREADABLE_INPUT_NOTE } from '@input/stored';
 
-import { readPair, readPicker, type PairOutcome, type PickerData } from '@/compat/data';
+import { readPicker, type PickerData } from '@/compat/data';
 import { CompatPicker } from '@/compat/picker';
 import { RelationMap } from '@/compat/relation-map';
-import { CompatResult } from '@/compat/result';
+import { CompatResultStep } from '@/compat/result-step';
 import type { Read } from '@/people/data';
-import { AccountNotice, BackLink, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /**
@@ -20,7 +18,7 @@ import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
  */
 export default function CompatScreen() {
   const params = useLocalSearchParams<{ a?: string; b?: string; pickA?: string; pickB?: string }>();
-  if (params.a !== undefined && params.b !== undefined) return <ResultStep a={params.a} b={params.b} />;
+  if (params.a !== undefined && params.b !== undefined) return <CompatResultStep a={params.a} b={params.b} back={{ label: '궁합', href: '/me/compat' }} />;
   return <PickStep pickA={params.pickA} pickB={params.pickB} />;
 }
 
@@ -88,79 +86,8 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
   );
 }
 
-function ResultStep({ a, b }: { a: string; b: string }) {
-  const [read, setRead] = useState<Read<PairOutcome> | null>(null);
-
-  const load = useCallback(() => {
-    void readPair(a, b).then((next) => {
-      if (next.kind === 'signed-out') router.replace('/');
-      else setRead(next);
-    });
-  }, [a, b]);
-  useFocusEffect(load);
-
-  if (read === null || read.kind === 'signed-out') return <Loading />;
-
-  const back = <BackLink label="궁합" href="/me/compat" />;
-  if (read.kind === 'failed') {
-    return (
-      <ScreenFrame>
-        {back}
-        <FailureLine onRetry={load}>{read.message}</FailureLine>
-      </ScreenFrame>
-    );
-  }
-
-  const outcome = read.value;
-  if (outcome.kind === 'ok') {
-    return (
-      <ScreenFrame>
-        {back}
-        <CompatResult outcome={outcome} />
-      </ScreenFrame>
-    );
-  }
-  if (outcome.kind === 'blocked') {
-    return (
-      <ScreenFrame>
-        <AccountNotice state={outcome.state} onRetry={load} />
-      </ScreenFrame>
-    );
-  }
-  if (outcome.kind === 'not-found') {
-    return (
-      <ScreenFrame>
-        <NotFound>
-          <PrimaryButton label="궁합 보러 가기" onPress={() => router.replace('/me/compat')} />
-          <SecondaryButton label="저장한 사람" onPress={() => router.replace('/me/people')} />
-        </NotFound>
-      </ScreenFrame>
-    );
-  }
-
-  /* 거절은 그 자리에서 말한다 — 고르는 자리로 되돌려 보내면 왜 되돌아왔는지 모른다 */
-  return (
-    <ScreenFrame>
-      <BackLink label="궁합 보러 가기" href="/me/compat" />
-      <Text style={shared.meta}>궁합</Text>
-      <Text style={shared.title}>궁합을 볼 수 없습니다</Text>
-      <Panel style={styles.refusal}>
-        {outcome.kind === 'same' ? (
-          <Text style={shared.body}>같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.</Text>
-        ) : (
-          <>
-            <Text style={shared.body}>{outcome.message}</Text>
-            <Text style={shared.meta}>{UNREADABLE_INPUT_NOTE}</Text>
-          </>
-        )}
-      </Panel>
-    </ScreenFrame>
-  );
-}
-
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  refusal: { gap: 8 },
   summary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
   summaryBody: { flex: 1, minWidth: 0 },
   summaryTitle: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },

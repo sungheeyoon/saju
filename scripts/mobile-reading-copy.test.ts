@@ -32,6 +32,7 @@ describe('앱 풀이 화면의 글자', () => {
       ...inDir('app/me/reading', /\.tsx$/),
       ...inDir('app/me/(shelf)/readings', /\.tsx?$/),
       'app/me/(shelf)/readings/[subject]/page.tsx',
+      'app/me/reading/share.ts',
       'app/came-from.ts',
       'app/not-found.tsx',
       'app/person-combobox.tsx',

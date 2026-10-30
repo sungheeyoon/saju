@@ -6,6 +6,7 @@ import type { SendResult } from '@chat/room/pending';
 import { rpcArgs } from '@db';
 import { userFacingDbMessage } from '@db-error';
 import { activityBandOf, type ActivityBand } from '@presence';
+import { focusOf, focusesOf, leadFocusOf, type PhotoFocus } from '@profile';
 import { STEM_INFO, storedChartSnapshot, type Element, type Stem } from '@saju';
 
 import { supabase } from '@/auth/client';
@@ -14,8 +15,7 @@ import { NOT_READY } from '@/auth/signup';
 /**
  * 채팅의 읽기 · 쓰기 — 웹의 `app/me/chat/rooms.ts` · `messages.ts` · `tones.ts` · `room-compat.ts` · `actions.ts` 와 같은 문을 같은 뜻으로 부른다.
  * 누가 어느 방을 보는가는 그 문이 정한다(ADR 0091) — 여기서 다시 판정하지 않는다.
- *
- * **사진은 아직 없다.** 바이트 문(`/me/photo/...`)이 웹 쿠키로만 사람을 알아본다 — 앱은 그 사람의 색과 첫 글자로 선다.
+
  */
 
 export type ChatRoom = {
@@ -30,6 +30,11 @@ export type ChatRoom = {
   readonly lastMessageBody: string | null;
   readonly unread: number;
   readonly partnerActivity: ActivityBand | null;
+  readonly partnerHasPhoto: boolean;
+  /** 대표 사진의 보일 자리 */
+  readonly partnerPhotoFocus: PhotoFocus;
+  /** 장마다의 보일 자리 — 수가 곧 장 수다(`photosFromFocus`). 닫힌 방은 시트를 안 여니 비운다 */
+  readonly partnerPhotoFocuses: readonly PhotoFocus[];
 };
 
 export type RoomTones = {
@@ -48,6 +53,8 @@ type RoomRow = {
   last_message_body: string | null;
   unread_count: number | null;
   partner_activity: string | null;
+  partner_has_photo: boolean | null;
+  partner_photo_focus: number[] | null;
 };
 
 const roomOf = (row: RoomRow): ChatRoom | null => {
@@ -65,6 +72,10 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
     lastMessageBody: row.last_message_body,
     unread: row.unread_count ?? 0,
     partnerActivity: activityBandOf(row.partner_activity),
+    partnerHasPhoto: row.partner_has_photo === true,
+    partnerPhotoFocus: leadFocusOf(row.partner_photo_focus),
+    partnerPhotoFocuses:
+      row.partner_has_photo === true && reason === null ? focusesOf(row.partner_photo_focus, Math.max(1, Math.floor((row.partner_photo_focus?.length ?? 0) / 2))) : [],
   };
 };
 
@@ -156,13 +167,16 @@ export async function readRoomListScreen(): Promise<RoomListScreen> {
 
 const isStopped = (state: AccountState): boolean => state.kind === 'halted' || state.kind === 'missing' || state.kind === 'unreachable';
 
-export type RoomSelf = { readonly userId: string; readonly nickname: string; readonly intro: string | null };
+export type RoomSelf = { readonly userId: string; readonly nickname: string; readonly intro: string | null; readonly photoFocuses: readonly PhotoFocus[] };
 
 export type RoomView = {
   readonly matchId: string;
   readonly heading: string;
   readonly name: string;
   readonly partnerUserId: string | null;
+  readonly partnerHasPhoto: boolean;
+  readonly partnerPhotoFocus: PhotoFocus;
+  readonly partnerPhotoFocuses: readonly PhotoFocus[];
   readonly partnerIntro: string | null;
   /** 닫힌 까닭 한 줄 — 열린 방은 `null` */
   readonly notice: string | null;
@@ -210,13 +224,15 @@ export async function readRoomScreen(matchId: string): Promise<RoomScreen> {
 
   const notice = roomNoticeOf(room);
   const open = notice === null && room.partnerUserId !== null;
-  const [messages, scope, compat] = await Promise.all([
+  const [messages, scope, compat, mine] = await Promise.all([
     readMessages(matchId).then(
       (page) => ({ ok: true as const, page }),
       (failure: Error) => ({ ok: false as const, message: failure.message }),
     ),
     open ? readScope(matchId) : null,
     open ? readCompat(matchId) : null,
+    /* 내 시트의 사진 — 꾸밈이라 못 읽으면 사진 없는 나로 선다(ADR 0078) */
+    supabase === null ? null : supabase.rpc('my_photos'),
   ]);
   if (!messages.ok) return { kind: 'failed', message: messages.message };
 
@@ -227,6 +243,9 @@ export async function readRoomScreen(matchId: string): Promise<RoomScreen> {
       heading: roomHeadingOf(room),
       name: partnerNameOf(room),
       partnerUserId: room.partnerUserId,
+      partnerHasPhoto: room.partnerHasPhoto,
+      partnerPhotoFocus: room.partnerPhotoFocus,
+      partnerPhotoFocuses: room.partnerPhotoFocuses,
       partnerIntro: scope?.intro ?? null,
       notice,
       activity: room.partnerActivity,
@@ -235,7 +254,7 @@ export async function readRoomScreen(matchId: string): Promise<RoomScreen> {
       fromBeginning: messages.page.length < MESSAGE_WINDOW,
       tones: scope?.tones ?? null,
       compat,
-      me: account.nickname === null ? null : { userId, nickname: account.nickname, intro: account.intro },
+      me: account.nickname === null ? null : { userId, nickname: account.nickname, intro: account.intro, photoFocuses: (mine?.data ?? []).map((row) => focusOf(row.focus_x, row.focus_y)) },
     },
   };
 }

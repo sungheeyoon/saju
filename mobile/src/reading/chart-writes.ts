@@ -14,6 +14,15 @@ const post = (path: string, payload: object, method = 'POST'): Promise<DoorAnswe
     body: JSON.stringify(payload),
   });
 
+/**
+ * 쓰기의 거절을 화면의 한 줄로 — 자격 거절(로그인 · 가입 · 종료)은 그 길로 옮겨 가므로 `null` 이다. 대상이 틀린 답은 없는 화면과 같은 글자다.
+ */
+export function saveFailureOf(answer: DoorAnswer<DoorSave>): string | null {
+  if (answer.ok) return answer.value.ok ? null : answer.value.message;
+  if (answer.refused.refused === 'unavailable') return answer.refused.message;
+  return answer.refused.refused === 'not-found' ? '페이지를 찾을 수 없어요' : null;
+}
+
 /** 내 사주를 저장한다 — 이미 있으면 됐다고 답한다 */
 export const saveSelfPerson = (query: Query) => post('self-person', { query: toSearchParams(query).toString() });
 

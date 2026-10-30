@@ -1,7 +1,8 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { DEFAULT_QUERY, missingAnswer } from '@input/query';
 import { ELEMENTS } from '@saju';
 
 import { signOut } from '@/auth/sign-in';
@@ -9,6 +10,9 @@ import { listenLive } from '@/chat/live';
 import { OtherSaju, ReceivedReadings, RunningReadings, SavedPeople } from '@/home/lists';
 import { readHome, readRunning, type Home } from '@/home/read';
 import { SelfCard } from '@/home/self-card';
+import { BirthFields, useBirthForm } from '@/people/birth-fields';
+import { openParticipation, saveFailureOf, saveSelfPerson } from '@/reading/chart-writes';
+import { followRefusal } from '@/reading/panel';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
@@ -18,7 +22,11 @@ export default function HomeScreen() {
   const [home, setHome] = useState<Home | null>(null);
 
   const load = useCallback(() => {
-    void readHome().then(setHome);
+    void readHome().then((next) => {
+      setHome(next);
+      /* 참여를 여는 문은 아무것도 안 그린다 — 끈 사람은 안 열리고, 못 열어도 홈은 선다(웹의 `openDiscoveryParticipation`) */
+      if (next.kind === 'home') void openParticipation();
+    });
   }, []);
   useFocusEffect(load);
 
@@ -42,7 +50,7 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, [watching, load]));
 
-  return <ScrollView contentContainerStyle={styles.content}>{home === null ? null : <Body home={home} retry={load} />}</ScrollView>;
+  return <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>{home === null ? null : <Body home={home} retry={load} />}</ScrollView>;
 }
 
 function Body({ home, retry }: { home: Home; retry: () => void }) {
@@ -69,7 +77,7 @@ function Body({ home, retry }: { home: Home; retry: () => void }) {
         </Panel>
       );
     case 'no-self':
-      return <NoSelf />;
+      return <NoSelf nickname={home.nickname} onSaved={retry} />;
     case 'home':
       break;
   }
@@ -111,11 +119,26 @@ function Body({ home, retry }: { home: Home; retry: () => void }) {
   );
 }
 
-/**
- * 내 사주가 없을 때 — 웹의 등록 폼 자리다. **저장 단추를 세우지 않는다**: 등록 문(`create_self_person`)이 서비스 키에만 열려 있어
- * 앱이 못 부른다(ADR 0136). 저장 없는 계산으로만 잇는다.
- */
-function NoSelf() {
+/** 내 사주가 없을 때 — 웹의 등록 폼 그대로다(`app/me/onboarding.tsx`). 저장은 앱의 문을 지나고 여덟 글자는 서버가 센다(ADR 0211). 저장하면 홈을 다시 읽어 내 사주 카드가 선다 */
+function NoSelf({ nickname, onSaved }: { nickname: string; onSaved: () => void }) {
+  const form = useBirthForm({ ...DEFAULT_QUERY, name: nickname });
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const missing = missingAnswer(form.query);
+
+  const save = async () => {
+    setSaving(true);
+    setFailure(null);
+    const answer = await saveSelfPerson(form.query);
+    setSaving(false);
+    if (answer.ok && answer.value.ok) {
+      onSaved();
+      return;
+    }
+    setFailure(saveFailureOf(answer));
+    if (!answer.ok) followRefusal(answer.refused);
+  };
+
   return (
     <Panel tone="cream" style={styles.paper}>
       <View style={styles.symbols}>
@@ -123,8 +146,16 @@ function NoSelf() {
           <ElementSymbol key={element} element={element} size={40} />
         ))}
       </View>
-      <Text style={styles.paperTitle}>내 사주 등록</Text>
-      <PrimaryButton label="사주 보기" onPress={() => router.push('/?another=1' as never)} />
+      <View style={styles.paperHead}>
+        <Text accessibilityRole="header" style={styles.paperTitle}>내 사주 등록</Text>
+        <Text style={styles.noticeDetail}>
+          <Text style={styles.strong}>{nickname}</Text> 님의 출생 정보를 입력해 주세요.
+        </Text>
+      </View>
+      <BirthFields form={form} showName={false} />
+      <PrimaryButton label={saving ? '저장하는 중…' : '내 사주로 저장'} onPress={() => void save()} disabled={missing !== null || saving} />
+      {missing !== null && <Text style={styles.meta}>{missing}</Text>}
+      {failure !== null && <Text accessibilityRole="alert" style={styles.failureText}>저장하지 못했어요. {failure}</Text>}
     </Panel>
   );
 }
@@ -139,5 +170,7 @@ const styles = StyleSheet.create({
   meta: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: 4 },
   paper: { gap: 20 },
   symbols: { flexDirection: 'row', gap: 8 },
+  paperHead: { gap: 2 },
+  strong: { fontFamily: FONT.bold, color: COLOR.foreground },
   paperTitle: { fontFamily: FONT.bold, fontSize: TYPE.title, color: COLOR.foreground },
 });
