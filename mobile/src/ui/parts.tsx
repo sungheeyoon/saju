@@ -74,8 +74,7 @@ export function DigitField({
         placeholder={placeholder}
         placeholderTextColor={COLOR.muted}
         keyboardType="number-pad"
-        returnKeyType={onFull === undefined ? 'done' : 'next'}
-        onSubmitEditing={onFull}
+        returnKeyType="done"
         inputAccessoryViewID={Platform.OS === 'ios' ? KEYBOARD_DONE : undefined}
         accessibilityLabel={unit}
       />
