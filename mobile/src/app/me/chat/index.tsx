@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, roomNoticeOf } from '@chat';
 import { ROOM_NO_MESSAGES_YET } from '@chat/copy';
@@ -60,7 +59,7 @@ export default function ChatRoomsScreen() {
   }, [load]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
+    <View style={styles.screen}>
       <Text accessibilityRole="header" style={styles.title}>
         {CHAT_TAB_LABEL}
       </Text>
@@ -87,7 +86,7 @@ export default function ChatRoomsScreen() {
           renderItem={({ item }) => <RoomRow room={item} tone={screen.tones.get(item.matchId)?.theirs.element ?? null} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -130,7 +129,7 @@ function RoomRow({ room, tone }: { room: ChatRoom; tone: Element | null }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
-  title: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16, fontSize: TYPE.title, fontFamily: FONT.bold, color: COLOR.foreground },
+  title: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, fontSize: TYPE.title, fontFamily: FONT.bold, color: COLOR.foreground },
   pad: { paddingHorizontal: 16 },
   list: { paddingHorizontal: 8, paddingBottom: 16, gap: 2 },
   row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8, paddingVertical: 10, borderRadius: RADIUS.panel },
