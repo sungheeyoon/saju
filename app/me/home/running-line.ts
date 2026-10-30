@@ -1,7 +1,5 @@
-import { isSolo, selfSectionTitlesOf } from '@/src/lib/reading';
-import { READING_OUTLINE_STATE, READING_REVIEW_LABEL } from '@/src/lib/reading/notes';
+import { runningStageOf } from '@/src/lib/reading/running-stage';
 
-import { readingOutline } from '../reading/outline';
 import { readingHrefOf, type ReadingTarget } from '../reading/target';
 import { withFromMe } from '@/src/lib/home/from-me';
 import type { RunningReading } from './running';
@@ -13,8 +11,7 @@ import type { RunningReading } from './running';
  * 다르게 말한다. 퍼센트는 없다 — 끝을 모르는 일에 비율을 세우면 그건 꾸며 낸 진행이다.
  */
 
-/** 첫 머리가 서기 전 — 서버가 아직 아무 절도 적지 않았다. 확정(대장 15) */
-export const READING_PREPARING = '준비 중…';
+export { READING_PREPARING } from '@/src/lib/reading/running-stage';
 
 const called = (label: string | null): string => label ?? '이름 없음';
 
@@ -32,22 +29,9 @@ export function runningName(running: Pick<RunningReading, 'target' | 'labelA' | 
   }
 }
 
-/**
- * 지금 어디쯤인가 — 목차에서 움직이는 줄 하나.
- *
- * 한 사람 풀이는 프롬프트가 시킨 절 이름이, 궁합은 「n번째 이야기」가 선다(풀이 화면과 같다). 본문을 다 썼으면 마지막 검토다.
- * 아무 줄도 안 움직였으면 준비 중이다 — 시간으로 앞서 가지 않는다.
- */
-export function runningStage(running: Pick<RunningReading, 'target' | 'progress'>): string {
-  const titles = isSolo(running.target.kind) ? selfSectionTitlesOf() : null;
-  const moving = readingOutline(titles, running.progress).find(
-    (row) => row.state === 'writing' || row.state === 'reviewing',
-  );
-  if (moving === undefined) return READING_PREPARING;
-  /* 「마지막 검토 검토 중…」이 되지 않게 — 줄 이름이 이미 「검토」다 */
-  if (moving.state === 'reviewing') return `${READING_REVIEW_LABEL} 중…`;
-  return `${moving.label} ${READING_OUTLINE_STATE.writing}`;
-}
+/** 지금 어디쯤인가 — 앱과 같은 판정이다(`runningStageOf`) */
+export const runningStage = (running: Pick<RunningReading, 'target' | 'progress'>): string =>
+  runningStageOf(running.target.kind, running.progress);
 
 /** 누르면 그 풀이 화면으로 — 다 되면 결과가, 아직이면 같은 목차가 선다. 홈에서 열었으니 ← 는 홈이다 */
 export const runningHref = (target: ReadingTarget): string => withFromMe(readingHrefOf(target));

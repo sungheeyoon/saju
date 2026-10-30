@@ -14,7 +14,7 @@ import type { MyReading, PersonRow } from './data';
 import { EditInputForm } from './edit-input';
 import { NoteEditor, RemoveConfirm } from './manage';
 import { DayMasterChip, PillarStrip, Sheet, SheetItem, go, styles as shared } from './parts';
-import { StemSymbol } from './stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 
 type Panel = 'menu' | 'edit-input' | 'note' | 'remove';
 
