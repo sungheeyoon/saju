@@ -10,7 +10,7 @@
 -- 6. **다시 보낸 시도도 풀이 한 벌 · 정산 한 번** — 저장을 되풀이해도 그대로다.
 -- 7. 문은 열쇠에만 · 옛 앱(식별자 없음)은 지금처럼 지난다.
 begin;
-select plan(35);
+select plan(38);
 
 set local role authenticated;
 
@@ -20,7 +20,9 @@ select tests.signup('resend-a@example.com') as a,
        tests.signup('resend-c@example.com') as c,
        tests.signup('resend-d@example.com') as d,
        tests.signup('resend-e@example.com') as e,
-       tests.signup('resend-f@example.com') as f;
+       tests.signup('resend-f@example.com') as f,
+       tests.signup('resend-g@example.com') as g,
+       tests.signup('resend-h@example.com') as h;
 grant select on folks to authenticated, service_role;
 
 create function pg_temp.opened(who uuid, key text)
@@ -45,7 +47,9 @@ select pg_temp.opened((select a from folks), 'resend-a') as a,
        pg_temp.opened((select c from folks), 'resend-c') as c,
        pg_temp.opened((select d from folks), 'resend-d') as d,
        pg_temp.opened((select e from folks), 'resend-e') as e,
-       pg_temp.opened((select f from folks), 'resend-f') as f;
+       pg_temp.opened((select f from folks), 'resend-f') as f,
+       pg_temp.opened((select g from folks), 'resend-g') as g,
+       pg_temp.opened((select h from folks), 'resend-h') as h;
 grant select on runs to authenticated, service_role;
 
 -- ── 7. 문은 열쇠에만 ─────────────────────────────────────────
@@ -150,6 +154,13 @@ select ok(
   'A 의 늦은 실패는 B 의 시도를 안 닫는다');
 select ok(pg_temp.prepare((select b from runs), (select lease_b from leases)), 'B 는 지난다');
 
+select is(
+  (select count(*)::int from public.take_reading_job((select g from runs), (select lease_a from leases))), 1,
+  '작업자가 집는다');
+select ok(
+  public.fail_reading_job((select g from runs), 'unreadable-revision', '못 읽는다', null, (select lease_a from leases)),
+  '쥔 작업자는 제출 전 실패를 제 식별자로 닫는다 — 기한까지 안 기다린다');
+
 -- ── 4. 이어쓰기 ─────────────────────────────────────────────
 
 select pg_temp.claimed_session((select c from folks), (select c from runs), true);
@@ -167,6 +178,14 @@ select is(pg_temp.retake((select d from runs), (select lease_b from leases)), nu
 select pg_temp.claimed_session((select e from folks), (select e from runs), false);
 select pg_temp.opened_ago((select e from runs), interval '31 seconds');
 select is(pg_temp.resendable((select e from runs)), false, '이어진 세션에 스냅숏이 없으면 다시 안 보낸다');
+
+/* 앞선 시도가 실패해 세션이 그 시도를 가리킨다 — 다음 누름이 이 세션을 다시 이을 차례다 */
+select pg_temp.claimed_session((select h from folks), (select h from runs), true);
+select public.fail_reading_job((select h from runs), 'model-failed', '실패');
+select set_config('request.jwt.claims', tests.claims((select h from folks)), true);
+create temporary table h_next as select s.run_id from public.start_reading_run('self', 'resend-h-2') s;
+select pg_temp.opened_ago((select run_id from h_next), interval '31 seconds');
+select is(pg_temp.resendable((select run_id from h_next)), false, '실패한 시도에 이어진 세션이 있으면 다시 안 보낸다 — 이을 차례다');
 
 -- ── 5. 기한 ─────────────────────────────────────────────────
 
