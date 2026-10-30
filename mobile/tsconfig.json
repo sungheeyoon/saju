@@ -69,8 +69,23 @@
       "@db-error": [
         "../app/db-error.ts"
       ],
+      "@matching/*": [
+        "../src/lib/matching/*"
+      ],
+      "@discovery": [
+        "../src/lib/discovery/index.ts"
+      ],
+      "@discovery/*": [
+        "../src/lib/discovery/*"
+      ],
+      "@presence": [
+        "../src/lib/presence/index.ts"
+      ],
       "@reading/*": [
         "../src/lib/reading/*"
+      ],
+      "@chat/*": [
+        "../src/lib/chat/*"
       ],
       "@people": [
         "../src/lib/people/index.ts"
@@ -92,6 +107,21 @@
       ],
       "@brand/links": [
         "../src/lib/brand/links.ts"
+      ],
+      "@brand/guide": [
+        "../src/lib/brand/guide.ts"
+      ],
+      "@brand/terms": [
+        "../src/lib/brand/terms.ts"
+      ],
+      "@brand/refund": [
+        "../src/lib/brand/refund.ts"
+      ],
+      "@brand/business": [
+        "../src/lib/brand/business.ts"
+      ],
+      "@brand/legal-text": [
+        "../src/lib/brand/legal-text.ts"
       ],
       "@reading/notes": [
         "../src/lib/reading/notes.ts"

@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,9 +24,7 @@ import { Logo } from '@/ui/logo';
 import { CheckRow, Field, FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
-const CLOSED_TITLE = '비공개 테스트가 끝났습니다';
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
 /** 가입 — 웹의 `/signup` 과 같은 한 폼이다(ADR 0042). 마치면 들고 온 출생 정보로 만세력 결과에 간다 */
 export default function SignupScreen() {
@@ -47,11 +44,12 @@ export default function SignupScreen() {
 
   useEffect(() => {
     if (state?.kind === 'done') finish();
+    if (state?.kind === 'closed') router.replace('/closed');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 끝났다는 답에 한 번 간다
   }, [state?.kind]);
 
   /* 첫 읽기 동안은 판만 — 안 된다는 말과 폼이 번갈아 비치지 않게 */
-  if (state === null || state.kind === 'done') return <SafeAreaView style={styles.screen} />;
+  if (state === null || state.kind === 'done' || state.kind === 'closed') return <SafeAreaView style={styles.screen} />;
 
   const head = state.kind === 'form' && state.again ? SIGNUP_HEAD.again : SIGNUP_HEAD.first;
 
@@ -61,15 +59,9 @@ export default function SignupScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <Panel tone="cream" style={styles.head}>
             <Logo size={44} />
-            {state.kind === 'closed' ? (
-              <Text style={styles.title}>{CLOSED_TITLE}</Text>
-            ) : (
-              <>
-                <Text style={styles.eyebrow}>{head.eyebrow}</Text>
-                <Text style={styles.title}>{head.title}</Text>
-                <Text style={styles.headNote}>{head.note}</Text>
-              </>
-            )}
+            <Text style={styles.eyebrow}>{head.eyebrow}</Text>
+            <Text style={styles.title}>{head.title}</Text>
+            <Text style={styles.headNote}>{head.note}</Text>
           </Panel>
 
           {state.kind === 'form' ? (
@@ -209,10 +201,7 @@ function SignupForm({ form, onDone }: { form: Extract<SignupState, { kind: 'form
       <View style={styles.notice}>
         <View style={styles.noticeHead}>
           <Text style={styles.noticeTitle}>{SIGNUP_LABEL.noticeHead}</Text>
-          {/* 주소가 없는 빌드에서는 열 곳이 없다 — 전문은 웹에 로그인 없이 열린다 */}
-          {SITE_URL ? (
-            <TextButton label={SIGNUP_LABEL.privacy} onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)} />
-          ) : null}
+          <TextButton label={SIGNUP_LABEL.privacy} onPress={() => router.push('/privacy')} />
         </View>
         <NoticeLine>{SIGNUP_NOTICE_USE}</NoticeLine>
         <NoticeLine>
