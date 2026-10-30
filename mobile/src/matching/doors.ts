@@ -13,18 +13,17 @@ import { refusedForCredits } from '@matching/requests';
 import { activityBandOf } from '@presence';
 import { ELEMENTS, storedChartSnapshot, type ChartSnapshot } from '@saju';
 import type { PhotoFocus } from '@profile';
-import { readingBody, seatNicknamesOf, withNicknames } from '@reading/display';
 import { outOfCredits } from '@reading/panel-chrome';
 
 import { supabase } from '@/auth/client';
 import { respondToMatchRequest } from '@/reading/api';
+import { openParticipation, saveFailureOf } from '@/reading/chart-writes';
 
 /**
  * **앱의 인연 문** — 웹의 `app/me/candidates.ts` · `requests/inbox.ts` · `requests/actions.ts` · `discovery/actions.ts` 가 부르는 같은 문을
  * 앱 세션으로 부른다. 자를 것 · 판정은 여기 없다 — 공개 범위는 그 문의 반환형이 곧 답이다. 거절 문구는 `userFacingDbMessage` 다.
  *
- * **여기 없는 일 하나**(서버에서만 된다 — `docs/product/gaps.md` G-123): 참여를 여는 문(`ensure_discovery_participation`, 열쇠 전용 · ADR 0136).
- * 수락과 사진은 앱용 문(ADR 0211)이 든다 — `respondToRequest` · `@/ui/photo`.
+ * 참여를 여는 문 · 수락 · 사진은 열쇠 전용이라 앱용 문(ADR 0211)이 든다 — `openParticipation` · `respondToRequest` · `@/ui/photo`.
  */
 
 const NOT_READY = '이 빌드에서는 로그인할 수 없어요.';
@@ -89,8 +88,7 @@ const passedOf = (row: Parameters<typeof publicCardFromRow>[0], summary: Element
 });
 
 /**
- * 인연 탭의 덱 — 웹의 `app/me/matching/page.tsx` 와 같은 차례다. 다만 **참여를 여는 문은 못 부른다**(열쇠 전용). 한 번도 참여가 안 열린 계정은
- * `my_discovery_board` 의 거절(「매칭 참여를 먼저 켜 주세요.」)이 그대로 까닭 줄이 된다 — 지어낸 빈 덱을 세우지 않는다.
+ * 인연 탭의 덱 — 웹의 `app/me/matching/page.tsx` 와 같은 차례다. 덱을 읽기 전에 참여를 열고, 못 열면 그 까닭을 말한다 — 지어낸 빈 덱을 세우지 않는다.
  */
 export function readDeck(selfPersonId: string | null): Promise<Read<DeckPlace>> {
   return guarded<DeckPlace>(async () => {
@@ -103,6 +101,9 @@ export function readDeck(selfPersonId: string | null): Promise<Read<DeckPlace>> 
     if (profile.error === null && profile.data !== null && profile.data.opted_out_at != null) {
       return { ok: true, value: { kind: 'resting' } };
     }
+
+    const opened = await openParticipation();
+    if (!opened.ok || !opened.value.ok) return { ok: false, reason: saveFailureOf(opened) ?? UNEXPECTED };
 
     const [board, passed] = await Promise.all([supabase.rpc('my_discovery_board'), supabase.rpc('my_passed_connections')]);
     if (board.error !== null) return { ok: false, reason: userFacingDbMessage(board.error, 'my_discovery_board') };
@@ -250,17 +251,6 @@ export async function outOfCreditsNow(): Promise<boolean> {
   }
 }
 
-/** 이 계정에게 판매가 열렸나 — 못 물었으면 열린 꼴(`saleShapeOf` 와 같다). 상품 화면이 다시 묻는다 */
-export async function saleIsOpenNow(): Promise<boolean> {
-  if (supabase === null) return true;
-  try {
-    const { data, error } = await supabase.rpc('my_reading_sale_is_open');
-    return error !== null || data === true;
-  } catch {
-    return true;
-  }
-}
-
 const statusOf = (value: unknown): RequestStatus | null => REQUEST_STATUSES.find((known) => known === value) ?? null;
 
 export type Answered = { ok: true; status: RequestStatus; matchId?: string } | { ok: false; message: string };
@@ -360,33 +350,9 @@ export function readMatchResult(matchId: string): Promise<Read<MatchOutcome>> {
   });
 }
 
-/** 글의 표지(`##` · `**`)를 뗀다 — 앱에는 아직 글 그리는 부품이 없다(웹의 `app/me/reading/markdown.tsx`). 글자는 그대로다 */
-const plainBody = (markdown: string): string => markdown.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '');
-
-export type MatchReading = { score: number | null; metaphor: string | null; body: string };
-
-/**
- * 만들어 둔 궁합풀이를 읽는다 — 읽기만 한다. 만드는 일은 앱용 문 뒤라 여기 없다. 호칭은 웹과 같은 함수로 지금 닉네임으로 바꾼다.
- * 아직 없으면 `null`.
- */
-export function readMatchReading(matchId: string, partnerNickname: string): Promise<Read<MatchReading | null>> {
-  return guarded(async () => {
-    if (supabase === null) return { ok: false, reason: NOT_READY };
-    const [reading, account] = await Promise.all([
-      supabase.rpc('my_reading', rpcArgs<'my_reading'>({ p_kind: 'match', p_person_a: null, p_person_b: null, p_match_id: matchId })),
-      supabase.from('app_user').select('nickname').maybeSingle(),
-    ]);
-    if (reading.error !== null) return { ok: false, reason: userFacingDbMessage(reading.error, 'my_reading') };
-    const row = (reading.data ?? [])[0];
-    if (row === undefined) return { ok: true, value: null };
-    const seats = seatNicknamesOf({ viewer: account.data?.nickname ?? '', partner: partnerNickname }, row.viewer_is_first);
-    return {
-      ok: true,
-      value: {
-        score: row.score ?? null,
-        metaphor: row.metaphor === null || row.metaphor === undefined ? null : withNicknames(row.metaphor, seats),
-        body: plainBody(withNicknames(readingBody(row.output), seats)),
-      },
-    };
-  });
+/** 내 닉네임 — 글의 자리 호칭을 바꿔 넣을 값이다. 못 읽으면 빈 값이고 글은 그대로 선다 */
+export async function readMyNickname(): Promise<string> {
+  if (supabase === null) return '';
+  const { data, error } = await supabase.from('app_user').select('nickname').maybeSingle();
+  return error !== null ? '' : (data?.nickname ?? '');
 }

@@ -8,7 +8,7 @@ import { elementOf, supplyOf, type DeckCard } from '@matching/deck-card';
 import { PASSED_LIMIT } from '@matching/deck-state';
 import { REQUEST_UNSURE } from '@matching/requests';
 import { activityText } from '@presence';
-import { REQUEST_RESERVES_NOTE, BUY_CREDITS_LABEL, CREDITS_AVAILABLE_LABEL, CREDITS_DIALOG_CLOSE, CREDITS_REQUIRED_LABEL, CREDITS_SHORTAGE_TITLE, SALE_CLOSED_NOTE, SALE_CLOSED_OK } from '@reading/notes';
+import { REQUEST_RESERVES_NOTE, CREDITS_AVAILABLE_LABEL, CREDITS_REQUIRED_LABEL, CREDITS_SHORTAGE_TITLE, SALE_CLOSED_NOTE, SALE_CLOSED_OK } from '@reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 
 import { ElementSymbol } from '@/ui/element-symbol';
@@ -17,7 +17,6 @@ import { PrimaryButton } from '@/ui/parts';
 import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { saleIsOpenNow } from './doors';
 import { PersonPhoto, PhotoBars, ReportBlock } from './people';
 import { MatchAcceptNotice } from './requests';
 
@@ -260,26 +259,14 @@ export function RequestConfirm({ card, open, onClose, onConfirm, busy }: { card:
 }
 
 /**
- * 풀이권 창 — 0장이면 요청 확인 창 대신 선다. 판매가 이 계정에게 닫혔으면 한 줄과 「확인」이고, 열렸으면 풀이권 화면으로 간다.
- * 구매 흐름은 여기 없다(PG 미정) — 풀이권 화면의 몫이다.
+ * 풀이권 창 — 0장이면 요청 확인 창 대신 선다. 앱은 풀이권을 팔지 않으므로 웹의 판매가 닫힌 꼴 하나다: 한 줄과 「확인」(`useBuyCredits` 의 닫힌 꼴).
  */
 export function useCreditsNotice() {
-  const [shown, setShown] = useState<'closed' | 'open' | null>(null);
-  const offer = async () => setShown((await saleIsOpenNow()) ? 'open' : 'closed');
-  const close = () => setShown(null);
-  const open = shown === 'open';
+  const [shown, setShown] = useState(false);
+  const offer = () => setShown(true);
+  const close = () => setShown(false);
   const notice = (
-    <ConfirmModal
-      open={shown !== null}
-      onClose={close}
-      title={CREDITS_SHORTAGE_TITLE}
-      confirmLabel={open ? BUY_CREDITS_LABEL : SALE_CLOSED_OK}
-      cancelLabel={open ? CREDITS_DIALOG_CLOSE : null}
-      onConfirm={() => {
-        close();
-        if (open) router.push('/me/credits' as never);
-      }}
-    >
+    <ConfirmModal open={shown} onClose={close} title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} cancelLabel={null} onConfirm={close}>
       <View style={styles.creditRow}>
         <DialogText>{CREDITS_AVAILABLE_LABEL}</DialogText>
         <DialogStrong>0장</DialogStrong>
@@ -288,7 +275,7 @@ export function useCreditsNotice() {
         <DialogText>{CREDITS_REQUIRED_LABEL}</DialogText>
         <DialogStrong>1장</DialogStrong>
       </View>
-      {!open && <DialogText>{SALE_CLOSED_NOTE}</DialogText>}
+      <DialogText>{SALE_CLOSED_NOTE}</DialogText>
     </ConfirmModal>
   );
   return { offer, notice };

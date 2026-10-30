@@ -91,7 +91,7 @@ export default function PersonScreen() {
     ? []
     : readings
         .filter((one) => one.kind === 'private' && (one.personA === person.personId || one.personB === person.personId))
-        .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const namesOf = (one: MyReading) =>
     [
       person.label,

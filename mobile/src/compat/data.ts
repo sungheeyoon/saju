@@ -63,7 +63,7 @@ export async function readPicker(): Promise<Read<PickerData>> {
         element: stem === null ? null : STEM_INFO[stem].element,
       };
     })
-    .toSorted((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
+    .sort((x, y) => Number(y.isSelfPerson) - Number(x.isSelfPerson));
 
   /* 가운데는 나다 — 내 명식을 못 세우면 지도를 안 그린다. 저장한 사람에서 나는 빠진다 */
   const selfEdge = edges.edges.find((edge) => edge.personId === selfId);

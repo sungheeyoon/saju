@@ -1,6 +1,6 @@
 import { READING_LEAVE_SAFE_NOTE, READING_OUTLINE_STATE } from '@reading/notes';
 import type { OutlineRow } from '@reading/outline';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { Panel } from '@/ui/parts';
@@ -46,7 +46,7 @@ function Mark({ state }: { state: OutlineRow['state'] }) {
 
 /** 끝을 모른다는 띠 — 길이가 늘지 않고 흐르기만 한다(`app/me/reading/flow.module.css`) */
 export function FlowBand() {
-  const at = useRef(new Animated.Value(0)).current;
+  const [at] = useState(() => new Animated.Value(0));
   useEffect(() => {
     const loop = Animated.loop(Animated.timing(at, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: false }));
     loop.start();

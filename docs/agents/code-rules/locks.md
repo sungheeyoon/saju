@@ -24,6 +24,7 @@ CI 가 왜 그 차선을 돌았나는 추측하지 말고 `plan` 로그의 `reas
 | `import/no-default-export` | `src/` · `scripts/` · `e2e/` | `export default` |
 | `reportUnusedDisableDirectives` | 전부 | 안 걸리는 예외 표시 |
 | `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조가 실제 파일, 입구 문서와 운영 소스 주석(`app/**` · `src/**` · `proxy.ts`)의 백틱 속 뿌리 경로가 실제 파일(옛 자리를 말하는 역사 설명은 이름과 까닭으로 든 허용 목록, 2026-09-28), 탈출구 지문(남은 자리의 목록은 시험 안에 산다), `@ts-expect-error` 0, import 홑따옴표, `CLAUDE.md` 는 `@AGENTS.md` 와 Claude Code 호출법만(600 바이트, 2026-10-06) |
+| `scripts/mobile-closure.test.ts` | `mobile/src` 에서 import 로 닿는 파일 전부 | 앱 번들에서 안 풀리는 것 — 함께 쓰는 코드의 웹 별칭(`@/`), `next` · `server-only` · Node 내장, `mobile/package.json` 에 없는 패키지, Metro 가 안 보는 자리, Hermes 에 없는 내장(`.toSorted`). 뿌리 `scripts/` · `src/` · `app/` 이 `mobile/` 을 import 하는 것(CI 에 `mobile/node_modules` 가 없다) |
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 

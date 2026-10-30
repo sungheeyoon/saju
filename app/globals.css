@@ -13,6 +13,15 @@
     보이도록 오행 색을 안 입는다. 강조 글자(`text-accent`)도 그래서 먹색으로 선다.
   */
   color-scheme: light;
+  /*
+    오행은 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`), `--none` 은 오행을 모를 때(시주 모름 · 아직 없는 사람)다.
+    `--cream` 은 크림 종이(관계 지도 · 등록 카드처럼 한 화면의 주인공 판). `--badge` 는 안 읽은 수 딱지 — 오행의 불과 뜻이 달라 따로 둔다(어두운 화면에서 흰 글자가 안 읽혔다).
+
+    **그림자 다섯 단** — 화면은 `shadow-card` · `shadow-float` · `shadow-soft` · `shadow-lift` · `shadow-raise` 로 부른다
+    (아래 `@theme`). 갈색 그림자 `rgba(60,48,30,…)` 가 네 화면에 아홉 번 따로 적혀 어두운 화면에서도 갈색이었다(2026-09-26).
+    `soft` 는 작은 알약 · 고른 칸, `lift` 는 주 단추 · 표지 · 작은 원, `raise` 는 떠 있는 판(하단 독) · 가운데 큰 원.
+  */
+  /* design-tokens:light — 지은 칸이다. 값은 `src/lib/design/tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다 */
   --background: #faf6ef;
   --foreground: #26241f;
   --surface: #fffdf9;
@@ -34,7 +43,6 @@
   --warning-wash: #fbf0d8;
   --success: #2e5b3f;
   --track: rgba(60, 48, 30, 0.09);
-  /* 오행 — 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`) */
   --wood: #2e5b3f;
   --wood-soft: #e3f1dc;
   --wood-mid: #8cc49a;
@@ -50,28 +58,19 @@
   --water: #2a5575;
   --water-soft: #dfecf7;
   --water-mid: #86b4db;
-  /* 오행을 모를 때(시주 모름 · 아직 없는 사람) */
   --none: #5f645d;
   --none-soft: #efede6;
   --none-mid: #c9c6bc;
-  /* 크림 종이 — 관계 지도 · 등록 카드처럼 한 화면의 주인공 판 */
   --cream: #fff4e6;
   --cream-ink: #6b4a2b;
-  /* 안 읽은 수 딱지 — 오행의 불과 뜻이 달라 따로 둔다(어두운 화면에서 흰 글자가 안 읽혔다) */
   --badge: #c0442c;
   --on-badge: #ffffff;
-  /*
-    **그림자 다섯 단** — 화면은 `shadow-card` · `shadow-float` · `shadow-soft` · `shadow-lift` · `shadow-raise` 로 부른다
-    (아래 `@theme`). 갈색 그림자 `rgba(60,48,30,…)` 가 네 화면에 아홉 번 따로 적혀 어두운 화면에서도 갈색이었다(2026-09-26).
-  */
   --elevation-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
   --elevation-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
-  /* 작은 알약 · 고른 칸 */
   --elevation-soft: 0 2px 8px -4px rgba(60, 48, 30, 0.45);
-  /* 주 단추 · 표지 · 작은 원 */
   --elevation-lift: 0 8px 18px -10px rgba(60, 48, 30, 0.6);
-  /* 떠 있는 판(하단 독) · 가운데 큰 원 */
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
+  /* /design-tokens:light */
 
   /*
     **글씨는 부산단디명조 하나다**(ADR 0109 추기, 운영자 결정 2026-10-28 — 2026-09-30 의 「본문은 기기 글꼴」과 2026-10-24 의
@@ -85,6 +84,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
+    /* design-tokens:dark — 지은 칸이다. 값은 `src/lib/design/tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다 */
     --background: #161513;
     --foreground: #f2efe8;
     --surface: #1e1d1a;
@@ -133,6 +133,7 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    /* /design-tokens:dark */
   }
 }
 
@@ -189,6 +190,11 @@
     한 벌은 `app/ui/surfaces.ts` 의 `TYPE_*` 상수가 든다 — 화면은 크기 토큰보다 그 상수를 먼저 부른다.
     16px(`text-field`)은 글을 받는 칸의 바닥이고, 40px(`text-figure`)은 숫자 강조뿐이다. 줄 높이는 싣지 않는다(상수가 적는다).
   */
+  /*
+    `note` 14px 는 작은 단추 · 알약 · 고르는 칸의 글자다 — Tailwind 의 `text-sm`(14px, 단추 상수가 부른다)과 같은 값이고,
+    둘을 하나로 걷는 일은 다음 라운드다. 글 문단은 14px 를 쓰지 않고 본문(15px)을 쓴다.
+  */
+  /* design-tokens:text — 지은 칸이다. 값은 `src/lib/design/tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다 */
   --text-tag: 11px;
   --text-fine: 12px;
   --text-small: 13px;
@@ -197,22 +203,20 @@
   --text-lead: 17px;
   --text-heading: 20px;
   --text-title: 26px;
-  /* 화면 제목의 넓은 화면(lg 이상) 한 단 — 운영자 2026-10-24 */
   --text-display: 30px;
   --text-figure: 2.5rem;
-  /*
-    `note` 14px 는 작은 단추 · 알약 · 고르는 칸의 글자다 — Tailwind 의 `text-sm`(14px, 단추 상수가 부른다)과 같은 값이고,
-    둘을 하나로 걷는 일은 다음 라운드다. 글 문단은 14px 를 쓰지 않고 본문(15px)을 쓴다.
-  */
   --text-note: 14px;
+  /* /design-tokens:text */
 
   /*
     **모서리는 세 단이다**(2026-10-24, ADR 0109 추기) — 카드(`rounded-card` 20px) · 칸(`rounded-cell` 12px) · 알약(`rounded-full`).
     카드는 판 · 종이 · 타일 · 줄 카드 · 띄움 판 · 시트처럼 화면 위에 서는 면이고, 칸은 그 안의 입력 칸 · 고르는 칸 · 작은 상자 ·
     사진 · 뼈대다. 알약은 단추 · 딱지 · 둥근 그림. 옛 이름 셋(`paper` 32 · `tile` 24 · `row` 20px)은 카드로 옮기고 걷었다.
   */
+  /* design-tokens:radius — 지은 칸이다. 값은 `src/lib/design/tokens.json` 을 고치고 `node scripts/design-tokens.mjs` 를 돈다 */
   --radius-card: 20px;
   --radius-cell: 12px;
+  /* /design-tokens:radius */
 }
 
 /*
