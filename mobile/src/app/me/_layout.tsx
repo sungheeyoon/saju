@@ -8,7 +8,7 @@ import { gateFor } from '@consent/gate';
 
 import { useCounts } from '@/home/counts';
 import { useGate } from '@/home/gate';
-import { appHeadStands, dockStands } from '@/home/shell-routes';
+import { appHeadStands, dockStands } from '@app-shell';
 import { SettingsMenu } from '@/home/settings-menu';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';

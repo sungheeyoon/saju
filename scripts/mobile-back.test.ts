@@ -3,7 +3,7 @@ import { join, relative } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { appHeadStands, dockStands } from '../mobile/src/home/shell-routes';
+import { appHeadStands, dockStands } from '../src/lib/app-shell';
 
 /**
  * **앱의 뒤로가기는 부품 하나다**(운영자 2026-10-31) — `<` 아이콘만, 맨 위 왼쪽 고정. 화면마다 제 뒤로가기를 다시 지으면

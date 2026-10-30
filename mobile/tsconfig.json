@@ -12,6 +12,9 @@
       "@input/*": [
         "../src/lib/input/*"
       ],
+      "@app-shell": [
+        "../src/lib/app-shell.ts"
+      ],
       "@saju": [
         "../src/lib/saju/index.ts"
       ],
