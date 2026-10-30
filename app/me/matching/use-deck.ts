@@ -2,6 +2,8 @@
 
 import { useEffect, useReducer, useRef, useState, useTransition } from 'react';
 
+import { REQUEST_UNSURE } from '@/src/lib/matching/requests';
+
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { outOfCreditsNow } from '../credits/asked-on-press';
 import { useBuyCredits } from '../credits/buy-credits';
@@ -15,8 +17,7 @@ import type { MapStatus } from './orbit-seats';
 const CHOICE_HOLD_MS = 100;
 const CARD_EXIT_MS = 360;
 const FLASH_MS = 2000;
-/** 요청 부름이 던졌다 — 서버가 받았는지 모른다. 보낸 요청은 인연 기록에 서므로 줄이 그리로 가는 링크를 단다(G-103) */
-export const REQUEST_UNSURE = '요청이 갔는지 확인하지 못했어요. 인연 기록에서 확인해 주세요.';
+export { REQUEST_UNSURE };
 
 /**
  * **오늘의 인연 덱의 상태와 누름 전부** — 화면(`matching-experience.tsx`)은 이것이 내준 값을 그리기만 한다.
