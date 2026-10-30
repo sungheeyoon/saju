@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { gateFor, NOTICE_UNREAD, type GateAccount, type GateNotice } from '@consent/gate';
-import { scheduleOf } from '@consent/schedule';
 
 import { supabase } from '@/auth/client';
+import { readSchedule } from '@/auth/schedule';
 import { FAILED } from '@/auth/signup';
 
 export type Gate =
@@ -25,7 +25,7 @@ export async function readGate(): Promise<Exclude<Gate, { kind: 'checking' }>> {
 
   const [found, schedule] = await Promise.all([
     supabase.from('app_user').select('signed_up_at, notice_version, notice_schedule_id').maybeSingle(),
-    supabase.rpc('current_beta_schedule'),
+    readSchedule(),
   ]);
   if (found.error !== null) console.error('account', found.error.code);
   if (found.error !== null || found.data === null) return { kind: 'failed', message: FAILED };
@@ -35,21 +35,7 @@ export async function readGate(): Promise<Exclude<Gate, { kind: 'checking' }>> {
     noticeVersion: found.data.notice_version,
     noticeScheduleId: found.data.notice_schedule_id,
   };
-  const row = (schedule.data ?? [])[0];
-  const notice =
-    schedule.error !== null
-      ? NOTICE_UNREAD
-      : row === undefined
-        ? null
-        : scheduleOf({
-            scheduleId: row.schedule_id,
-            endsOn: row.ends_on,
-            purgeBy: row.purge_by,
-            purgeWithinDays: row.purge_within_days,
-            operatorName: row.operator_name,
-            operatorOfficer: row.operator_officer,
-            operatorContact: row.operator_contact,
-          });
+  const notice = schedule.ok ? schedule.value : NOTICE_UNREAD;
 
   const to = gateFor('/me', account, notice, new Date());
   if (to === null) return { kind: 'in', email: data.session.user.email ?? null };

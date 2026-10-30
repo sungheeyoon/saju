@@ -1,11 +1,11 @@
 import { betaIsOver, signupDone } from '@consent/gate';
-import { betaOverNote, NOTICE_NOT_READY, NOTICE_VERSION } from '@consent/notice';
-import { scheduleOf } from '@consent/schedule';
+import { NOTICE_NOT_READY, NOTICE_VERSION } from '@consent/notice';
 import { refusedField, signupRequest, WRONG_CODE_NOTE, type SignupField } from '@consent/signup';
 import { rpcArgs } from '@db';
 import { userFacingDbMessage } from '@db-error';
 
 import { supabase } from './client';
+import { readSchedule } from './schedule';
 
 export const NOT_READY = '이 빌드에서는 로그인할 수 없어요.';
 export const FAILED = '로그인을 끝내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
@@ -15,7 +15,8 @@ export type SignupState =
   | { kind: 'form'; needsCode: boolean; needsName: boolean; again: boolean; scheduleId: number; endsOn: string; purgeBy: string }
   /** 폼이 안 서는 까닭 — 일정이 없거나 못 읽었다(ADR 0024) */
   | { kind: 'blocked'; message: string }
-  | { kind: 'closed'; message: string }
+  /** 테스트가 끝났다 — 말은 `/closed` 가 한다 */
+  | { kind: 'closed' }
   | { kind: 'failed'; message: string };
 
 /**
@@ -28,34 +29,21 @@ export async function readSignup(): Promise<SignupState> {
   const [session, account, schedule] = await Promise.all([
     supabase.auth.getSession(),
     supabase.from('app_user').select('signed_up_at, nickname, notice_version, notice_schedule_id').maybeSingle(),
-    supabase.rpc('current_beta_schedule'),
+    readSchedule(),
   ]);
   if (account.error !== null) {
     console.error('account', account.error.code);
     return { kind: 'failed', message: FAILED };
   }
-  if (schedule.error !== null) return { kind: 'blocked', message: userFacingDbMessage(schedule.error, 'current_beta_schedule') };
-
-  const row = (schedule.data ?? [])[0];
-  const notice =
-    row === undefined
-      ? null
-      : scheduleOf({
-          scheduleId: row.schedule_id,
-          endsOn: row.ends_on,
-          purgeBy: row.purge_by,
-          purgeWithinDays: row.purge_within_days,
-          operatorName: row.operator_name,
-          operatorOfficer: row.operator_officer,
-          operatorContact: row.operator_contact,
-        });
+  if (!schedule.ok) return { kind: 'blocked', message: schedule.reason };
+  const notice = schedule.value;
 
   /* 세션 없는 Expo Go 는 계정 행이 없다 — 화면만 볼 수 있게 처음 가입하는 사람의 폼을 세운다. 출시 빌드에는 `__DEV__` 가 없다 */
   const previewing = __DEV__ && session.data.session === null;
   if (account.data === null && !previewing) return { kind: 'failed', message: FAILED };
 
   if (notice === null) return { kind: 'blocked', message: NOTICE_NOT_READY };
-  if (betaIsOver(notice.dates, new Date())) return { kind: 'closed', message: betaOverNote(notice.dates) };
+  if (betaIsOver(notice.dates, new Date())) return { kind: 'closed' };
 
   const signedUp = account.data !== null && account.data.signed_up_at !== null;
   const done =
