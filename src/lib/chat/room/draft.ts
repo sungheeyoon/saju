@@ -1,4 +1,5 @@
-import type { TabStorage } from '../../taste/carried-taste';
+/** 탭(앱은 프로세스) 수명의 저장소 — 웹은 `sessionStorage`, 앱은 메모리다 */
+export type TabStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 /**
  * **쓰던 글은 방마다 탭에 남는다** — 신고 · 차단 판이 입력 자리를 차지했다 돌아와도, 다른 방에 갔다 와도 칸에 그대로다

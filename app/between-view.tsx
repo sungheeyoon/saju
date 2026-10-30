@@ -11,13 +11,8 @@ import {
   type Utterance,
 } from '@/src/lib/saju';
 
-import {
-  TOPICS_THE_TABLE_HOLDS,
-  ClaimStrengthLegend,
-  UtteranceList,
-  warningsToShow,
-} from './utterances';
-import { TOPIC_TABLE_FOOTNOTE, said } from '@/src/lib/saju/view';
+import { ClaimStrengthLegend, UtteranceList } from './utterances';
+import { TOPICS_THE_TABLE_HOLDS, TOPIC_TABLE_FOOTNOTE, said, warningsToShow } from '@/src/lib/saju/view';
 import { CARD, TYPE_NAME } from './ui/surfaces';
 
 /**

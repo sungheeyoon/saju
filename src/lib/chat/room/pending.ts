@@ -1,6 +1,6 @@
-import { RATE_LIMITED_TEXT, type SendOutcome } from '@/src/lib/chat';
+import { RATE_LIMITED_TEXT, type SendOutcome } from '../index';
 
-import type { ChatMessage } from './messages';
+import type { ChatMessage } from './message';
 
 /**
  * **내가 보낸, 아직 읽혀 오지 않은 말** — 누르는 순간 화면에 서고, 서버가 남긴 말이 읽혀 오면 그 자리를 잇는다(ADR 0155 덧).
