@@ -3,7 +3,6 @@ import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isBlocked } from '@account/index';
 import { SIGN_OUT_PENDING } from '@account/copy';
@@ -42,13 +41,13 @@ export function SettingsScreen() {
   }, []);
   useFocusEffect(load);
 
-  if (data === null) return <SafeAreaView style={styles.screen} />;
+  if (data === null) return <View style={styles.screen} />;
 
   const { state, account, discovery, email } = data;
   const active = state.kind === 'active';
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.head}>
           <BackButton label="홈" />
@@ -110,7 +109,7 @@ export function SettingsScreen() {
 
         {active && <RequestDeletion onDone={load} />}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

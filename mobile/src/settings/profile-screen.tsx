@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isBlocked, type AccountState } from '@account/index';
 import { rpcArgs } from '@db';
@@ -63,10 +62,10 @@ export function ProfileScreen() {
     }
   }, []);
 
-  if (data === null) return <SafeAreaView style={styles.screen} />;
+  if (data === null) return <View style={styles.screen} />;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" scrollEnabled={!lifting}>
           <View style={styles.head}>
@@ -89,7 +88,7 @@ export function ProfileScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

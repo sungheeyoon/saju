@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isBlocked, type AccountState } from '@account/index';
 import { rpcArgs } from '@db';
@@ -81,10 +80,10 @@ export function SurveyScreen() {
     void reload();
   }, [reload]);
 
-  if (data === null) return <SafeAreaView style={styles.screen} />;
+  if (data === null) return <View style={styles.screen} />;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <BackButton label="설정" to="/me/settings" />
@@ -118,7 +117,7 @@ export function SurveyScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

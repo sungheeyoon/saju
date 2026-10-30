@@ -2,7 +2,6 @@ import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SUPPORT_EMAIL } from '@brand';
 import { businessInfoFrom } from '@brand/business';
@@ -47,7 +46,7 @@ export function CreditsScreen() {
   useFocusEffect(load);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton label="나" />
         {read !== null && (
@@ -79,7 +78,7 @@ export function CreditsScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -92,7 +91,7 @@ export function CreditsHistoryScreen() {
   useFocusEffect(load);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <BackButton label={CREDITS_AVAILABLE_LABEL} to="/me/credits" />
         <Text style={settingsText.title} accessibilityRole="header">
@@ -116,7 +115,7 @@ export function CreditsHistoryScreen() {
           {SITE_URL ? <TextButton label="환불정책 보기" onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/refund`)} /> : null}
         </Panel>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

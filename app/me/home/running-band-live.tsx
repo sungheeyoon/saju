@@ -9,7 +9,7 @@ import { TYPE_META } from '../../ui/surfaces';
 import { watchRun, type PageVisibility } from '../reading/watch-run';
 import { runningLinesNow } from './actions';
 import { HOME_LIST, HOME_ROW, HOME_ROW_LINK } from './home-list';
-import { READING_MAKING } from './making';
+import { READING_MAKING } from '@/src/lib/home/making';
 import type { RunningLine } from './running-line';
 import { RUNNING_ASK_EVERY_MS, afterRunningAnswer } from './running-watch';
 
