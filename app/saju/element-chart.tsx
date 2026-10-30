@@ -4,14 +4,19 @@ import {
 import {
   ELEMENTS,
   ELEMENT_KO,
-  PILLAR_POSITION_KO,
-  TRANSFORMATION_BLOCKER_KO,
-  TRANSFORMATION_VERDICT_KO,
-  type PillarPosition,
   type Saju,
-  type StemTransformation,
-  type TransformationBlocker,
 } from '@/src/lib/saju';
+import {
+  blockedLine,
+  boundSeatsLine,
+  boundStemsOf,
+  bureauMoveLine,
+  countShareLine,
+  percentOfRatio,
+  sixCombinationsOf,
+} from '@/src/lib/saju/view';
+import { SIX_COMBINATION_NOTE, WEIGHT_SHIFTS_NOTE } from '@/src/lib/saju/view/notes';
+import { Rich } from './rich';
 import {
   SectionTitle,
 } from './fold';
@@ -37,48 +42,12 @@ import { CARD } from '../ui/surfaces';
  * 사이의 비를 먼저 정하고 자료를 본다는 규율이다.
  */
 function WeightShifts({ saju }: { saju: Saju }) {
-  const { bureaus, effectiveElements } = saju.analysis;
-  const { transformations, shifts } = effectiveElements;
+  const { bureaus } = saju.analysis;
 
-  /*
-    **같은 합이 두 줄로 서지 않게 묶는다.**
-
-    한 글자를 둘이 물면 합도 둘로 세어진다(쟁합·투합). 그대로 나열하면 「정임합목 —
-    합이불화」가 두 번 서고, 그것은 문장 층에서 방금 고친 것과 **같은 고장**이다.
-    이름과 판정이 같은 것은 한 줄로 세우고 자리만 함께 든다.
-
-    **막은 것도 자리처럼 합친다.** 쟁합으로 두 줄이 된 같은 합은 막은 까닭이 서로 다를
-    수 있는데(한쪽만 떨어져 있는 경우), 한 줄로 세우면서 한쪽 것만 들면 **안 든 쪽의
-    까닭이 조용히 사라진다.**
-  */
-  const boundStems = [
-    ...transformations
-      .filter((one) => one.verdict !== 'transformed')
-      .reduce((grouped, one) => {
-        const key = `${one.ko}:${one.verdict}`;
-        const { seats = [], blockers = [] } = grouped.get(key) ?? {};
-        grouped.set(key, {
-          ko: one.ko,
-          verdict: one.verdict,
-          seats: [...new Set([...seats, ...one.participants.map((at) => at.position)])],
-          blockers: [...new Set([...blockers, ...one.blockers])],
-        });
-        return grouped;
-      }, new Map<string, {
-        ko: string;
-        verdict: StemTransformation['verdict'];
-        seats: PillarPosition[];
-        blockers: TransformationBlocker[];
-      }>())
-      .values(),
-  ];
-  const sixCombinations = saju.relations.filter(
-    (relation) => relation.kind === 'branchSixCombination',
-  );
+  const boundStems = boundStemsOf(saju);
+  const sixCombinations = sixCombinationsOf(saju);
 
   if (bureaus.length === 0 && boundStems.length === 0 && sixCombinations.length === 0) return null;
-
-  const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;
 
   return (
     /*
@@ -103,20 +72,18 @@ function WeightShifts({ saju }: { saju: Saju }) {
 
       <ul className="mt-2 flex flex-col gap-1 text-sm">
         {bureaus.map((bureau) => {
-          const moved = shifts.filter((shift) => shift.cause === bureau.ko);
+          const moved = bureauMoveLine(saju, bureau.ko);
           return (
             <li key={`${bureau.kind}-${bureau.element}`} className="flex flex-wrap items-baseline gap-x-2">
               <span className="text-accent">반영</span>
               <span className="font-medium">{bureau.ko}</span>
               <span className="text-secondary">
                 → <span className="glyph">{bureau.element}</span> {ELEMENT_KO[bureau.element]}{' '}
-                {percent(bureau.pull)} 만큼 기울임
-                {moved.length > 0 && (
+                {percentOfRatio(bureau.pull)} 만큼 기울임
+                {moved !== null && (
                   <span className="text-muted">
                     {' '}
-                    ({moved
-                      .map((shift) => `${shift.from}→${shift.to} ${shift.amount.toFixed(2)}`)
-                      .join(' · ')})
+                    {moved}
                   </span>
                 )}
               </span>
@@ -129,19 +96,8 @@ function WeightShifts({ saju }: { saju: Saju }) {
             <span className="text-muted">안 함</span>
             <span className="font-medium">{transformation.ko}</span>
             <span className="text-secondary">
-              {transformation.seats.map((seat) => PILLAR_POSITION_KO[seat].replace('주', '간')).join('·')}
-              {' '}— 천간합은 化했을 때만 옮깁니다({TRANSFORMATION_VERDICT_KO[transformation.verdict]} 자리:{' '}
-              {/*
-                **막은 까닭이 여기 서지 않으면 이 줄은 판정만 하고 끝난다.** 「합이불화」는
-                결과의 이름이지 까닭이 아니라서, 그것만 읽은 사람은 왜 이 합은 안 옮겼고
-                저 합은 옮겼는지를 여전히 역추적해야 한다 — 이 카드가 없애려던 바로 그 일이다.
-
-                `transformed` 를 걸러 낸 줄이라 `blockers` 는 반드시 하나 이상이다
-                (판정이 그 배열의 길이에서 나온다).
-              */}
-              {transformation.blockers
-                .map((blocker) => TRANSFORMATION_BLOCKER_KO[blocker])
-                .join(', ')})
+              {boundSeatsLine(transformation.seats)}
+              {' '}— {blockedLine(transformation.verdict, transformation.blockers)}
             </span>
           </li>
         ))}
@@ -153,19 +109,14 @@ function WeightShifts({ saju }: { saju: Saju }) {
               {sixCombinations.map((relation) => relation.ko).join(' · ')}
             </span>
             <span className="text-secondary">
-              육합은 두 글자가 묶이는 관계이지 세력을 만드는 국(局)이 아닙니다
+              {SIX_COMBINATION_NOTE}
             </span>
           </li>
         )}
       </ul>
 
       <p className="mt-2 text-xs text-muted">
-        무게를 기울이는 것은 <strong className="font-medium">국(삼합·방합) 하나</strong>입니다.
-        몫은 완성된 국이 절반(50%), 왕지를 낀 두 글자가 그 절반(25%), 왕지가 빠진 붙은 두
-        글자가 다시 그 절반(12.5%) — <strong className="font-medium">자료에 맞춰 고른 값이
-        아니라</strong> 등급 사이의 비(2배)를 먼저 정하고 나온 이 엔진의 실험값입니다. 월령을
-        잡았거나 화신이 투간했으면 깎지 않고, 왕지가 충을 맞으면 절반으로 깎습니다.
-        글자를 바꾸지는 않습니다 — 辰이 수국에 들어도 그 안의 土가 0 이 되지는 않습니다.
+        <Rich parts={WEIGHT_SHIFTS_NOTE} />
       </p>
     </details>
   );
@@ -234,7 +185,7 @@ export function ElementChart({ saju }: { saju: Saju }) {
                 */}
                 {counts[element]}
                 <span className="ml-1.5 text-xs text-muted">
-                  ({Math.round((counts[element] / glyphCount) * 100)}%)
+                  {countShareLine(counts[element], glyphCount)}
                 </span>
               </td>
               <td className="py-1 pl-3 text-right tabular-nums text-secondary">

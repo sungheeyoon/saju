@@ -8,115 +8,38 @@ import {
   BRANCH_INFO,
   DAEUN_DIRECTION_KO,
   STEM_INFO,
-  PILLAR_POSITIONS,
   PILLAR_POSITION_KO,
   TEN_GOD_KO,
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
-  toCivil,
-  zoneIntervalAt,
   type CurrentFortune,
-  type DaeunAbsence,
-  type DaeunSpan,
-  type PillarPosition,
-  type Relation,
   type SaeunEntry,
   type Saju,
 } from '@/src/lib/saju';
 import {
-  HorizontalScrollHint,
+  DAEUN_ABSENCE_KO,
+  ageRangeLabel,
+  crossedChartsKo,
+  daeunSpanLabel,
+  groupOverlaps,
+  koreaMonthDay,
   relationKey,
-  round1,
   subjectParticle,
-} from './shared';
+} from '@/src/lib/saju/view';
+import {
+  OVERLAPS_NOTE,
+  SAEUN_BOUNDARY_NOTE,
+  SAEUN_NOTE,
+  WOLUN_BOUNDARY_NOTE,
+  WOLUN_NOTE,
+  daeunNote,
+  daeunReasonNote,
+} from '@/src/lib/saju/view/notes';
+import { Rich } from './rich';
+import { HorizontalScrollHint } from './shared';
 import { CARD } from '../ui/surfaces';
 import { CurrentScroll } from './current-scroll';
-
-const ageRangeLabel = (from: number, to: number) =>
-  from === to ? `만 ${from}세` : `만 ${from}→${to}세`;
-
-const koreaMonthDay = (date: Date) => {
-  const local = toCivil(date, zoneIntervalAt(date).totalOffsetMinutes);
-  return `${local.month}/${local.day}`;
-};
-
-
-/**
- * 이 관계가 **어느 판과 걸렸는가** — 자기 판과 원국은 적지 않는다.
- *
- * 세운·월운 칸은 이제 원국만 놓고 보지 않는다. 세운은 자기를 감싼 대운을, 월운은
- * 그 위에 세운까지 놓고 본다. 종류(`ko`)만 찍으면 **원국과 걸린 것과 대운과 걸린
- * 것이 한 줄로 읽히고**, 그 둘은 같은 무게가 아니다 — 하나는 타고난 판과 걸린
- * 것이고 하나는 십 년만 서는 글자와 걸린 것이다.
- *
- * 원국을 안 적는 것은 그것이 바탕이기 때문이다. 관계 대부분이 원국과 걸리므로
- * 다 적으면 딱지가 배경이 되어 아무것도 가르지 못한다. 여기 딱지가 붙은 줄만
- * 원국 밖의 글자가 낀 것이다.
- */
-function crossedChartsKo(relation: Relation, selfChartId: string): string | null {
-  const names = new Set<string>();
-
-  for (const participant of relation.participants) {
-    const { chartId } = participant;
-    if (chartId === selfChartId || chartId === 'natal') continue;
-    names.add(
-      chartId.startsWith('decade:') ? '대운' : chartId.startsWith('annual:') ? '세운' : '월운',
-    );
-  }
-
-  return names.size > 0 ? [...names].join('·') : null;
-}
-
-
-/** 걸친 대운을 한 줄로 — 경계를 넘으면 둘이다 */
-function daeunSpanLabel(spans: readonly DaeunSpan[]): string | null {
-  if (spans.length === 0) return null;
-  return spans.map((span) => `${span.index}대운`).join('·');
-}
-
-
-/**
- * 걸친 대운이 없는 까닭 — **둘을 가른다.**
- *
- * 앞은 이 사람에 대한 사실이라 그대로 적고, 뒤는 우리가 뽑은 칸 수의 한계라
- * 그렇게 적는다. 하나로 묶으면 우리 표의 한계가 그 사람의 사실처럼 읽힌다.
- */
-const DAEUN_ABSENCE_KO: Record<DaeunAbsence, string> = {
-  'before-first': '대운 전',
-  'beyond-table': '표 밖',
-};
-
-/**
- * 겹침을 **운이 데려온 글자로 묶는다.**
- *
- * 운의 한 자가 원국의 어느 글자와 같으면 그 자리에 걸려 있던 관계가 **통째로** 겹친다 —
- * 대운 寅이 시지 寅과 같아서 다섯 관계가 한꺼번에 겹치는 것이 그것이다. 줄로 풀면 다섯
- * 줄이 한 사실을 다섯 번 말하고, 그러면 파묻힌 줄을 꺼내려고 만든 칸이 다시 목록이 된다.
- *
- * 엔진이 낸 값을 다시 세지 않는다 — `overlaps` 를 **모으기만** 한다.
- */
-function groupOverlaps(
-  overlaps: CurrentFortune['overlaps'],
-): Map<string, { char: string; seats: PillarPosition[]; names: string[] }> {
-  const grouped = new Map<string, { char: string; seats: PillarPosition[]; names: string[] }>();
-
-  for (const overlap of overlaps) {
-    const key = `${overlap.from.chartId}:${overlap.from.char}`;
-    const found = grouped.get(key) ?? { char: overlap.from.char, seats: [], names: [] };
-
-    grouped.set(key, {
-      char: found.char,
-      // 자리는 년→시 차례로 — 모은 순서는 관계가 세어진 순서라 사람이 읽는 차례가 아니다.
-      seats: [...new Set([...found.seats, ...overlap.natalSeats])].sort(
-        (a, b) => PILLAR_POSITIONS.indexOf(a) - PILLAR_POSITIONS.indexOf(b),
-      ),
-      names: [...new Set([...found.names, overlap.ko])],
-    });
-  }
-
-  return grouped;
-}
 
 /**
  * 지금의 운이 **원국의 같은 자리를 다시 밟는 것** — 카드 하나가 이 칸만 남았다.
@@ -166,8 +89,7 @@ export function NowOverlaps({ now }: { now: CurrentFortune }) {
         ))}
       </ul>
       <p className="mt-3 text-xs text-muted">
-        새로 센 것이 아니라 아래 표와 원국의 관계 표를 맞춰 본 것입니다 — 같은 종류가 같은
-        자리에 다시 걸린 것만 셉니다.
+        {OVERLAPS_NOTE}
       </p>
     </section>
   );
@@ -236,7 +158,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </div>
 
       <p className="mt-1.5 text-xs text-secondary">
-        해의 경계는 입춘입니다. 양력 1월에 일어난 일은 아직 전 해의 세운입니다.
+        {SAEUN_BOUNDARY_NOTE}
       </p>
 
       <CurrentScroll>
@@ -306,13 +228,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
-        12신살(년지 기준)입니다. 아래 목록은 그 해가{' '}
-        <strong className="font-medium">원국과 그 해를 감싼 대운</strong>에 대해 맺는
-        관계로, 원국 안에서만 성립하는 관계와 원국·대운 사이의 관계는 뺐습니다.
-        대운과 걸린 줄에는 <span className="text-secondary">대운</span> 딱지가 붙습니다.
-        머리의 <span className="text-secondary">N대운</span>은 그 해가 지나는
-        대운이고, 대운 경계를 넘는 해에는 둘이 적힙니다.
+        <Rich parts={SAEUN_NOTE} />
       </p>
     </section>
   );
@@ -338,8 +254,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </div>
 
       <p className="mt-1.5 text-xs text-secondary">
-        경계는 절입입니다. 달력 월이 아니라 절기가 달을 가릅니다 — 3월 초 경칩
-        전까지는 아직 인월(寅月)입니다.
+        {WOLUN_BOUNDARY_NOTE}
       </p>
 
       <CurrentScroll>
@@ -402,11 +317,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        아래 목록은 그 달이 <strong className="font-medium">원국과 세운과 대운</strong>에
-        대해 맺는 관계입니다. 그 달이 끼지 않은 관계는 빼두었습니다 — 원국 안에서
-        닫힌 것도, 원국·세운·대운끼리의 것도 여기 적을 이유가 없습니다. 원국 밖의
-        글자가 낀 줄에는 <span className="text-secondary">세운</span>·
-        <span className="text-secondary">대운</span> 딱지가 붙습니다.
+        <Rich parts={WOLUN_NOTE} />
       </p>
     </section>
   );
@@ -436,8 +347,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </div>
 
       <p className="mt-1.5 text-xs text-secondary">
-        {daeun.directionReason} {daeun.boundaryTerm.name} 절입까지{' '}
-        {round1(daeun.daysToBoundary)}일이라 3으로 나눠 {round1(daeun.startAgeExact)}년입니다.
+        {daeunReasonNote(daeun)}
       </p>
 
       <CurrentScroll>
@@ -488,12 +398,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
-        12신살(년지 기준)입니다. 아래 목록은 그 대운이 원국과 맺는 관계입니다.{' '}
-        <strong className="font-medium">세운·월운과 걸리는 것은 세운·월운 표에 있습니다</strong>{' '}
-        — 한 칸이 열 해라 함께 놓을 세운이 하나가 아니어서, 좁은 쪽이 자기를 감싼 대운을
-        듭니다. 나이는 만 나이입니다.
-        {daeun.approximate && ' 출생 시각을 몰라 정오 기준으로 계산해 대운수가 두어 달 흔들립니다.'}
+        <Rich parts={daeunNote(daeun.approximate)} />
       </p>
     </section>
   );

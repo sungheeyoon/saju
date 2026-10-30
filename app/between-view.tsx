@@ -13,12 +13,11 @@ import {
 
 import {
   TOPICS_THE_TABLE_HOLDS,
-  TOPIC_TABLE_FOOTNOTE,
   ClaimStrengthLegend,
   UtteranceList,
-  said,
   warningsToShow,
 } from './utterances';
+import { TOPIC_TABLE_FOOTNOTE, said } from '@/src/lib/saju/view';
 import { CARD, TYPE_NAME } from './ui/surfaces';
 
 /**

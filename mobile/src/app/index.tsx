@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
-import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SERVICE_NAME } from '@brand';
@@ -11,6 +11,7 @@ import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_
 
 import { signInWithGoogle } from '@/auth/sign-in';
 import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, PrimaryButton, Select } from '@/ui/parts';
+import { Logo } from '@/ui/logo';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
 /** 앱의 가입 화면이 서기 전까지의 말 — 다음 PR 에서 걷는다 */
@@ -100,7 +101,7 @@ export default function BirthScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <View style={styles.brandRow}>
             {/* 로고는 웹의 그 파일이다 — 앱에 사본을 두지 않는다 */}
-            <Image source={require('../../../app/apple-icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+            <Logo size={32} />
             <Text style={styles.brand}>{SERVICE_NAME}</Text>
           </View>
           <Panel tone="cream" style={styles.paper}>
@@ -206,7 +207,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, padding: 16 },
   paper: { flexGrow: 1, padding: 14, gap: 12 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4, marginBottom: 12 },
-  logo: { width: 32, height: 32, borderRadius: 8 },
   brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   title: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
   form: { padding: 16, gap: 18 },

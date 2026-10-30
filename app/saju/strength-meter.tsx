@@ -1,9 +1,12 @@
 import {
-  HIDDEN_STEM_ROLE_KO,
-  PILLAR_POSITION_KO,
-  type PillarPosition,
   type Saju,
 } from '@/src/lib/saju';
+import {
+  STRENGTH_THRESHOLD,
+  emergencesLine,
+  rootsLine,
+} from '@/src/lib/saju/view';
+import { ROOTING_NOTE, STRENGTH_OVERLAP_NOTE } from '@/src/lib/saju/view/notes';
 import {
   Fold,
 } from './fold';
@@ -15,7 +18,7 @@ import { FACT_TAG } from './fact-tag';
 export function StrengthMeter({ saju }: { saju: Saju }) {
   const { strength } = saju.analysis;
   const percent = strength.ratio * 100;
-  const threshold = 50;
+  const threshold = STRENGTH_THRESHOLD;
   const isStrong = strength.verdict === 'strong';
 
   return (
@@ -117,7 +120,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
         세 줄을 읽는 방법이라 그 옆에 선다.
       */}
       <p className="mt-2 text-xs text-muted">
-        세 기준은 서로 겹칩니다 — 득세 점수에 월지·일지가 이미 들어 있습니다.
+        {STRENGTH_OVERLAP_NOTE}
       </p>
 
       <RootingNote saju={saju} />
@@ -138,7 +141,6 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
  */
 function RootingNote({ saju }: { saju: Saju }) {
   const { dayMaster, emergences } = saju.analysis.rootedness;
-  const seat = (position: PillarPosition) => PILLAR_POSITION_KO[position].charAt(0);
 
   return (
     <details className="group mt-4 border-t border-border pt-1">
@@ -153,13 +155,7 @@ function RootingNote({ saju }: { saju: Saju }) {
           {dayMaster.rooted ? (
             <>
               <span className="text-sm text-secondary">
-                {dayMaster.roots
-                  .map(
-                    (root) =>
-                      `${seat(root.position)}지 ${root.branch}의 ${root.stem}` +
-                      `(${HIDDEN_STEM_ROLE_KO[root.role]} ${root.days}일)`,
-                  )
-                  .join(' · ')}
+                {rootsLine(saju)}
               </span>
               <span className="text-sm font-medium tabular-nums">합 {dayMaster.totalDays}일</span>
             </>
@@ -171,20 +167,12 @@ function RootingNote({ saju }: { saju: Saju }) {
         {emergences.length > 0 && (
           <p className="mt-1.5 text-xs text-secondary">
             투출{' '}
-            {emergences
-              .map(
-                (emergence) =>
-                  `${seat(emergence.position)}지 ${emergence.branch}의 ${emergence.stem} → ` +
-                  emergence.revealedAt.map((position) => `${seat(position)}간`).join('·'),
-              )
-              .join(' / ')}
+            {emergencesLine(saju)}
           </p>
         )}
 
         <p className="mt-2 text-xs text-muted">
-          뿌리의 강약은 매기지 않습니다. 음양이 다른 뿌리와 고지의 중기도 거르지 않고
-          그대로 셉니다. 어디까지 통근으로 볼지는 계통마다 갈리며, 합충으로 뿌리가
-          상했는지도 여기서는 판정하지 않습니다.
+          {ROOTING_NOTE}
         </p>
       </div>
     </details>

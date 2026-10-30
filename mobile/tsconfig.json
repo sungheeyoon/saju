@@ -18,6 +18,12 @@
       "@brand": [
         "../src/lib/brand/index.ts"
       ],
+      "@saju-view": [
+        "../src/lib/saju/view/index.ts"
+      ],
+      "@saju-view/notes": [
+        "../src/lib/saju/view/notes.ts"
+      ],
       "@consent/*": [
         "../src/lib/consent/*"
       ],

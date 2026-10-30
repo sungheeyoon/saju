@@ -1,6 +1,6 @@
 import type { Saju } from '@/src/lib/saju';
 
-import { sajuViewModelOf, type SajuViewModel } from './view';
+import { sajuViewModelOf, type SajuViewModel } from '@/src/lib/saju/view';
 
 /**
  * 서버 화면이 그릴 것을 짓는다 — **시계를 읽는 자리가 여기다.**

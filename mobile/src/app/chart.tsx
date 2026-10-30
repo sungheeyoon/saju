@@ -1,27 +1,33 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { calculateChart } from '@input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@input/query';
-import { BRANCH_INFO, ELEMENT_KO, ELEMENT_PICTURE_KO, ELEMENTS, STEM_INFO, TEN_GOD_KO, type Element, type TenGod } from '@saju';
+import { ELEMENT_PICTURE_KO, ELEMENTS } from '@saju';
+import { TOPIC_TABLE_FOOTNOTE, asOf, said, sajuViewModelOf } from '@saju-view';
 
+import { TimeCorrections, Warnings } from '@/chart/corrections';
+import { ElementChart } from '@/chart/elements';
+import { FortuneTabs, NowOverlaps } from '@/chart/fortune';
+import { PillarChart } from '@/chart/pillars';
+import { RelationTable } from '@/chart/relations';
+import { StarTable } from '@/chart/stars';
+import { StrengthMeter } from '@/chart/strength';
+import { YongsinCard } from '@/chart/yongsin';
+import { ElementSymbol } from '@/ui/element-symbol';
 import { Panel } from '@/ui/parts';
-import { COLOR, FONT, ELEMENT_TONE, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
 
-/** 전통 표기 순서 — 시주가 왼쪽, 년주가 오른쪽이다. 시기는 웹의 `PALACE` 와 같다 */
-const COLUMNS = [
-  { key: 'hour', label: '시주', period: '말년' },
-  { key: 'day', label: '일주', period: '중년' },
-  { key: 'month', label: '월주', period: '청년' },
-  { key: 'year', label: '년주', period: '초년' },
-] as const;
-
-/** 사주 결과 — 이름 · 오행 분포 · 여덟 글자까지. 나머지 절은 아직 없다 */
+/** 사주 결과 — 절의 차례는 웹의 `app/saju/view.tsx` 와 같다. 값은 웹과 같은 `sajuViewModelOf` 다 */
 export default function ChartScreen() {
   const params = useLocalSearchParams<{ query: string }>();
-  const query = JSON.parse(params.query) as Query;
-  const result = calculateChart(query);
+  const query = useMemo(() => JSON.parse(params.query) as Query, [params.query]);
+  /* 기준 시각은 화면을 연 때 하나다 — 표의 「현재」와 옆에 적은 시각이 갈리지 않는다 */
+  const [viewedAt] = useState(() => Date.now());
+  const result = useMemo(() => calculateChart(query), [query]);
+  const model = useMemo(() => (result.ok ? sajuViewModelOf(result.saju, viewedAt) : null), [result, viewedAt]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -30,8 +36,8 @@ export default function ChartScreen() {
           <Text style={styles.backText}>‹ 뒤로</Text>
         </Pressable>
 
-        {!result.ok ? (
-          <Text style={styles.failure}>{result.message}</Text>
+        {!result.ok || model === null ? (
+          <Text style={styles.failure}>{result.ok ? '' : result.message}</Text>
         ) : (
           <>
             <Panel tone="cream">
@@ -42,83 +48,33 @@ export default function ChartScreen() {
               <Text style={styles.subhead}>오행 분포</Text>
               <View style={styles.elements}>
                 {ELEMENTS.map((element) => {
-                  const count = result.saju.analysis.elements.counts[element];
+                  const count = model.saju.analysis.elements.counts[element];
+                  const color = count === 0 ? COLOR.muted : ELEMENT_TONE[element].ink;
                   return (
                     <View key={element} style={styles.element}>
-                      <Text style={[styles.elementName, { color: count === 0 ? COLOR.muted : ELEMENT_TONE[element].ink }]}>
-                        {ELEMENT_PICTURE_KO[element]}
-                      </Text>
-                      <Text style={[styles.elementCount, { color: count === 0 ? COLOR.muted : ELEMENT_TONE[element].ink }]}>{count}</Text>
+                      <ElementSymbol element={element} size={28} />
+                      <Text style={[styles.elementName, { color }]}>{ELEMENT_PICTURE_KO[element]}</Text>
+                      <Text style={[styles.elementCount, { color }]}>{count}</Text>
                     </View>
                   );
                 })}
               </View>
             </Panel>
 
-            <Panel style={styles.card}>
-              <Text style={styles.section}>사주팔자</Text>
-              <View style={styles.table}>
-                {COLUMNS.map(({ key, label, period }) => {
-                  const pillar = result.saju.pillars[key];
-                  const tenGods = result.saju.analysis.tenGods[key];
-                  return (
-                    <View key={key} style={styles.column}>
-                      <Text style={styles.period}>{period}</Text>
-                      <Text style={[styles.columnLabel, key === 'day' && styles.columnLabelDay]}>{label}</Text>
-                      <View style={[styles.stack, key === 'day' && styles.stackDay]}>
-                        <Glyph
-                          glyph={pillar?.stem ?? null}
-                          element={pillar ? STEM_INFO[pillar.stem].element : null}
-                          ko={pillar ? STEM_INFO[pillar.stem].ko : null}
-                          tenGod={tenGods?.stem ?? null}
-                          isMe={key === 'day'}
-                        />
-                        <Glyph
-                          glyph={pillar?.branch ?? null}
-                          element={pillar ? BRANCH_INFO[pillar.branch].element : null}
-                          ko={pillar ? BRANCH_INFO[pillar.branch].ko : null}
-                          tenGod={tenGods?.branch ?? null}
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </Panel>
+            <PillarChart saju={model.saju} />
+            <StarTable saju={model.saju} />
+            <ElementChart saju={model.saju} />
+            <StrengthMeter saju={model.saju} />
+            <YongsinCard saju={model.saju} />
+            <RelationTable saju={model.saju} coverage={said(model.utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)} />
+            <NowOverlaps now={model.now} />
+            <FortuneTabs saju={model.saju} now={model.now} asOf={asOf(model.now)} />
+            <TimeCorrections saju={model.saju} />
+            <Warnings saju={model.saju} />
           </>
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Glyph({
-  glyph,
-  element,
-  ko,
-  tenGod,
-  isMe = false,
-}: {
-  glyph: string | null;
-  element: Element | null;
-  ko: string | null;
-  tenGod: TenGod | null;
-  isMe?: boolean;
-}) {
-  const ink = element === null ? COLOR.none : ELEMENT_TONE[element].ink;
-  const soft = element === null ? COLOR.noneSoft : ELEMENT_TONE[element].soft;
-  return (
-    <View style={[styles.glyphBox, { backgroundColor: soft }, glyph === null && styles.glyphUnknown]}>
-      {isMe ? (
-        <Text style={styles.me}>나</Text>
-      ) : (
-        <Text style={[styles.tenGod, { color: ink }]}>{tenGod ? TEN_GOD_KO[tenGod] : glyph === null ? '—' : ''}</Text>
-      )}
-      <Text style={[styles.glyph, { color: ink }]}>{glyph ?? '?'}</Text>
-      <Text style={[styles.caption, { color: ink }]}>
-        {element === null || ko === null ? HOUR_UNKNOWN_LABEL : `${ko}·${ELEMENT_KO[element]}`}
-      </Text>
-    </View>
   );
 }
 
@@ -135,19 +91,4 @@ const styles = StyleSheet.create({
   element: { flex: 1, alignItems: 'center', gap: 4 },
   elementName: { fontFamily: FONT.medium, fontSize: TYPE.small },
   elementCount: { fontSize: 24, fontFamily: FONT.bold },
-  card: { borderWidth: 1, borderColor: COLOR.border },
-  section: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
-  table: { flexDirection: 'row', gap: 6, marginTop: 16 },
-  column: { flex: 1, alignItems: 'stretch' },
-  period: { textAlign: 'center', fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
-  columnLabel: { textAlign: 'center', fontSize: 14, fontFamily: FONT.bold, color: COLOR.secondary, marginTop: 2, marginBottom: 8 },
-  columnLabelDay: { color: COLOR.foreground },
-  stack: { gap: 6, padding: 3, borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },
-  stackDay: { borderColor: COLOR.foreground, backgroundColor: 'rgba(38, 36, 31, 0.06)' },
-  glyphBox: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 12, paddingHorizontal: 2 },
-  glyphUnknown: { borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(95, 100, 93, 0.3)' },
-  me: { fontSize: TYPE.fine, fontFamily: FONT.bold, lineHeight: 20, color: COLOR.background, backgroundColor: COLOR.foreground, borderRadius: RADIUS.pill, paddingHorizontal: 8, overflow: 'hidden' },
-  tenGod: { fontSize: TYPE.fine, fontFamily: FONT.bold, lineHeight: 20, minHeight: 20 },
-  glyph: { fontSize: TYPE.figure, fontWeight: '700', lineHeight: 46 },
-  caption: { fontSize: TYPE.fine, fontFamily: FONT.bold, textAlign: 'center' },
 });

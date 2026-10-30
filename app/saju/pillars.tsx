@@ -24,8 +24,9 @@ import {
   type Saju,
 } from '@/src/lib/saju';
 import {
+  PALACE,
   PILLAR_COLUMNS,
-} from './shared';
+} from '@/src/lib/saju/view';
 import {
   Icon,
 } from '../ui/icons';
@@ -69,23 +70,6 @@ import { CARD, DISCLOSURE_SUMMARY, TYPE_SECTION } from '../ui/surfaces';
  * 색이 유일한 단서가 되는 자리(범례만 있는 그림, 색으로만 갈리는 배지)에는
  * 여전히 쓰지 않는다 — 그 순간 위의 ΔE 문제가 그대로 돌아온다.
  */
-
-/**
- * 궁성(宮星) — 각 기둥이 상징하는 자리와 시기.
- *
- * 계산이 아니라 **표시 규칙**이다. 여덟 글자에서 나오는 값이 아니라 자리에
- * 붙은 관습적 의미라서, 엔진이 아니라 화면이 들고 있는다.
- *
- * 육친을 성별로 단정하지 않는다 — "월간은 부친" 같은 배정은 계통과 성별에
- * 따라 갈리므로 관계(부모·형제) 수준까지만 적는다. 연령 구간도 대략이다.
- */
-const PALACE: Record<'year' | 'month' | 'day' | 'hour', { meaning: string; period: string }> = {
-  year: { meaning: '집안·뿌리', period: '초년' },
-  month: { meaning: '부모·성장 환경', period: '청년' },
-  day: { meaning: '일지는 가까운 관계를 보는 자리', period: '중년' },
-  hour: { meaning: '자녀·삶의 결실', period: '말년' },
-};
-
 
 /**
  * 사주팔자 — 여덟 글자는 언제나 한눈에, 부가 표식은 한 종류씩 비교한다.

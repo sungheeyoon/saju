@@ -1,16 +1,12 @@
 import type { ReactNode } from 'react';
 import { sajuViewFor } from './request-view';
+import { type Saju } from '@/src/lib/saju';
 import {
   TOPIC_TABLE_FOOTNOTE,
+  asOf,
   said,
-} from '../utterances';
-import {
-  assembleText,
-  currentFortuneOf,
-  type CurrentFortune,
-  type Saju,
-  type Utterance,
-} from '@/src/lib/saju';
+  type SajuViewModel,
+} from '@/src/lib/saju/view';
 import {
   PillarChart,
 } from './pillars';
@@ -48,46 +44,6 @@ import {
 
 
 /**
- * 화면 하나가 그리는 데 필요한 것 — **한 번만 세고 나눠 쓴다.**
- *
- * 세 값 모두 명식과 기준 시각에서만 나온다. 각 칸이 제 손으로 세면 세운 표와 월운
- * 표가 각자 '지금' 을 판정하게 되고, 엔진이 "따로 세면 어긋난다"로 세운 규율이
- * 화면에서 되돌아온다.
- */
-export type SajuViewModel = {
-  readonly saju: Saju;
-  readonly utterances: Utterance[];
-  readonly now: CurrentFortune;
-};
-
-/**
- * 명식과 기준 시각에서 그릴 것을 짓는다 — **정의는 여기 하나이고 부르는 쪽이 둘이다.**
- *
- * 서버 화면은 한 번 그리고 마니 그대로 부르고, 익명 계산기는 `useMemo` 로 감싸서
- * 부른다. 계산기는 폼 상태를 들고 있어 **타이핑마다 이 트리를 다시 그리는데**, 그때
- * `assembleText` 가 매번 도는 것은 눈에 보이는 느려짐이다. 그렇다고 이 함수를 화면
- * 안에서 `useMemo` 로 부르면 그 화면이 클라이언트가 되고, 그러면 저장된 사람 화면까지
- * 통째로 브라우저로 간다.
- *
- * 두 벌로 적지 않는 것이 요점이다 — 두 벌이 되면 한쪽만 고쳐지는 날 같은 명식이 두
- * 화면에서 다르게 선다.
- */
-export function sajuViewModelOf(saju: Saju, viewedAt: number): SajuViewModel {
-  const now = currentFortuneOf(saju, new Date(viewedAt));
-
-  /*
-    **현재운 문장은 더 이상 안 짓는다.** 그것을 세우던 카드가 없어졌다 — 어느 운이
-    도는지는 표가 짚고, 겹치는 자리는 `now.overlaps` 가 그대로 든다. 문장을
-    짓던 현재운 조립기도 함께 걷었다.
-  */
-  return {
-    saju,
-    utterances: assembleText(saju),
-    now,
-  };
-}
-
-/**
  * 서버가 부르는 자리 — 저장한 사람의 상세 화면도 공개 계산기와 같은 결과 구성을 쓴다.
  * 저장된 입력을 주소로 옮기지 않고, 서버가 권한을 확인해 계산한 명식만 받는다.
  *
@@ -98,17 +54,6 @@ export function sajuViewModelOf(saju: Saju, viewedAt: number): SajuViewModel {
  */
 export async function SajuResult({ saju }: { saju: Saju }) {
   return <SajuView {...(await sajuViewFor(saju))} />;
-}
-
-/**
- * 기준 시각을 사람이 읽는 모양으로 — **한국 달력 시각이다**(`viewedOn`).
- *
- * `viewedAt` 을 그대로 찍으면 보는 사람의 시간대로 찍힌다. 절입일에는 시각이 달을
- * 가르므로, 시까지 적어야 같은 날짜에 두 답이 있는 것처럼 보이지 않는다.
- */
-function asOf(now: CurrentFortune): string {
-  const { year, month, day, hour, minute } = now.viewedOn;
-  return `${year}년 ${month}월 ${day}일 ${hour}시 ${minute}분`;
 }
 
 export function SajuView({ saju, utterances, now, afterChart }: SajuViewModel & { afterChart?: ReactNode }) {

@@ -1,12 +1,15 @@
 import {
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
-  UNRESOLVED_FACTOR_KO,
   type Saju,
 } from '@/src/lib/saju';
 import {
-  subjectParticle,
-} from './shared';
+  JOHU_NOTE,
+  agreementNote,
+  eokbuNote,
+  johuHalfNote,
+} from '@/src/lib/saju/view/notes';
+import { Rich } from './rich';
 import {
   CardTabs,
 } from './card-tabs';
@@ -101,8 +104,7 @@ function JohuNote({ johu }: { johu: Saju['analysis']['johu'] }) {
       <p className="mt-1.5 text-xs text-secondary">{johu.note}</p>
       {johu.halfStems && (
         <p className="mt-1 text-xs text-secondary">
-          이 칸은 상·하반월로 갈려서 그 절반의 후보만 위에 적었습니다. 전체 후보는{' '}
-          <span className="glyph">{johu.stems.join(' · ')}</span> 입니다.
+          <Rich parts={johuHalfNote(johu.stems)} />
         </p>
       )}
       {/*
@@ -111,8 +113,7 @@ function JohuNote({ johu }: { johu: Saju['analysis']['johu'] }) {
         바뀌는 것** 하나다 — 이것은 확정 용신이 아니다.
       */}
       <p className="mt-2 text-xs text-muted">
-        세력 조건(&lsquo;수가 왕하면 戊&rsquo;)은 판정하지 않으므로, 확정 용신이 아니라
-        후보와 조건을 함께 읽어야 합니다.
+        {JOHU_NOTE}
       </p>
     </div>
   );
@@ -153,24 +154,7 @@ function EokbuNote({
         판이 갈린 뒤로 이 줄이 더 필요해졌다. 조후는 이제 옆 탭에 있어 함께 보이지 않는다.
       */}
       <p className="mt-2 border-t border-border pt-2 text-xs text-secondary">
-        <span className="font-medium">
-          {agreement.aligned ? '조후와 같은 곳을 가리킵니다.' : '조후와 다른 곳을 가리킵니다.'}
-        </span>{' '}
-        {agreement.aligned ? (
-          <>
-            조후가 권한 글자 가운데{' '}
-            <span className="glyph">{agreement.sharedStems.join(' · ')}</span>
-            {subjectParticle(agreement.sharedStems[agreement.sharedStems.length - 1])}{' '}
-            억부와 같은 {ELEMENT_KO[agreement.eokbuElement]}입니다.
-          </>
-        ) : (
-          <>
-            조후가 권한 <span className="glyph">{agreement.johuStems.join(' · ')}</span> 중에는
-            억부가 권한 {ELEMENT_KO[agreement.eokbuElement]}
-            {subjectParticle(ELEMENT_KO[agreement.eokbuElement])} 없습니다.
-          </>
-        )}{' '}
-        <span className="text-muted">어느 쪽이 먼저인지는 「서열」 판이 답합니다.</span>
+        <Rich parts={agreementNote(agreement)} />
       </p>
 
       {/*
@@ -185,9 +169,7 @@ function EokbuNote({
         아직 안 재어졌는가.
       */}
       <p className="mt-2 text-xs text-muted">
-        <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을 잡는
-        네 길 중 하나이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
-        {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
+        <Rich parts={eokbuNote(eokbu)} />
       </p>
     </div>
   );
