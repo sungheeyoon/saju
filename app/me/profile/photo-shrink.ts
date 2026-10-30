@@ -1,12 +1,14 @@
 import {
-  PHOTO_MAX_BYTES,
-  PHOTO_MAX_EDGE,
   PHOTO_TYPES,
   PHOTO_VARIANTS,
   VARIANTS_REFUSED,
+  oversizeMessage,
+  shrunkSize,
   variantSize,
   type PhotoVariant,
 } from '@/src/lib/profile';
+
+export { oversizeMessage, shrunkSize };
 
 /** 줄인 사진 — 보낼 형식과 바이트, 아니면 사용자에게 서는 까닭 한 줄 */
 export type Shrunk = { ok: true; contentType: string; base64: string } | { ok: false; message: string };
@@ -14,23 +16,9 @@ export type Shrunk = { ok: true; contentType: string; base64: string } | { ok: f
 /** 캔버스를 못 얻었다 — 줄일 수 없는 사진 */
 export const SHRINK_FAILED = '사진을 줄이지 못했어요. 다른 사진을 골라 주세요.';
 
-/** 긴 변을 `PHOTO_MAX_EDGE` 에 맞춘 크기 — 비율을 지키고, 작은 사진은 키우지 않는다. 한 변이 0 이 되지 않게 1 이 바닥이다 */
-export function shrunkSize(width: number, height: number): { width: number; height: number } {
-  const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(width, height));
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  };
-}
-
 /** 서버가 받는 형식이면 그대로, 아니면 JPEG 로 적는다 */
 export function uploadTypeOf(type: string): string {
   return (PHOTO_TYPES as readonly string[]).includes(type) ? type : 'image/jpeg';
-}
-
-/** 상한(`PHOTO_MAX_BYTES`)을 넘으면 그 까닭 한 줄 — 넘지 않으면 `null` */
-export function oversizeMessage(size: number): string | null {
-  return size > PHOTO_MAX_BYTES ? `사진이 너무 커요. ${Math.round(PHOTO_MAX_BYTES / 1024)}KB 이하 사진을 골라 주세요.` : null;
 }
 
 /** 바이트를 base64 로 — 서버 액션은 글자로 받는다 */

@@ -459,3 +459,64 @@ const CHOICE_LABELS: Record<string, Record<string, string>> = {
 export function choiceLabel(question: string, choice: string): string {
   return CHOICE_LABELS[question]?.[choice] ?? choice;
 }
+
+/** 어느 문항이 서는가 — DB 가 답한 값(`service_survey_context`)을 읽기만 한다 */
+export type SurveyContext = {
+  /** 사주풀이를 읽어 봤나 — 값 문항이 이 값으로 선다 */
+  readonly readSolo: boolean;
+  /** 궁합을 읽어 봤나. **공유 궁합도 읽은 것이다** */
+  readonly readPair: boolean;
+  readonly consented: boolean;
+};
+
+export type MySurvey = {
+  readonly answers: SurveyAnswers;
+  readonly savedAt: string;
+  /** `null` 이면 아직 초안이다 */
+  readonly submittedAt: string | null;
+  readonly updatedAt: string | null;
+};
+
+type SurveyRow = Record<string, unknown>;
+
+/** `service_survey_context` 의 한 줄 — 웹과 앱이 같이 읽는다 */
+export const surveyContextOf = (row: SurveyRow): SurveyContext => ({
+  readSolo: row.read_solo === true,
+  readPair: row.read_pair === true,
+  consented: row.consented === true,
+});
+
+/** `my_service_survey` 의 한 줄 — 초안도 내려온다. 비어 있는 칸은 빈 답으로 읽는다 */
+export const mySurveyOf = (row: SurveyRow): MySurvey => ({
+  answers: {
+    ...EMPTY_ANSWERS,
+    liked: (row.liked as LikedOption[] | null) ?? [],
+    unknown: (row.unknown_features as UnknownOption[] | null) ?? [],
+    improve: (row.improve as ImproveOption[] | null) ?? [],
+    improveText: (row.improve_text as string | null) ?? '',
+    wants: (row.wants as WantOption[] | null) ?? [],
+    wantsNew: (row.wants_new as WantNewOption[] | null) ?? [],
+    priceSolo: (row.price_solo as PriceOption | null) ?? null,
+    pricePair: (row.price_pair as PriceOption | null) ?? null,
+    priceFactors: (row.price_factors as PriceFactor[] | null) ?? [],
+    freeText: (row.free_text as string | null) ?? '',
+  },
+  savedAt: row.saved_at as string,
+  submittedAt: (row.submitted_at as string | null) ?? null,
+  updatedAt: (row.updated_at as string | null) ?? null,
+});
+
+/** 저장 문(`save_service_survey`)에 보내는 값 — 무엇을 받고 비우는지는 DB 가 정한다. 공백뿐인 글만 `null` 로 보낸다 */
+export const surveyRequest = (answers: SurveyAnswers, submit: boolean) => ({
+  p_liked: [...answers.liked],
+  p_unknown: [...answers.unknown],
+  p_improve: [...answers.improve],
+  p_improve_text: answers.improveText.trim() === '' ? null : answers.improveText,
+  p_wants: [...answers.wants],
+  p_wants_new: [...answers.wantsNew],
+  p_price_solo: answers.priceSolo,
+  p_price_pair: answers.pricePair,
+  p_price_factors: [...answers.priceFactors],
+  p_free_text: answers.freeText.trim() === '' ? null : answers.freeText,
+  p_submit: submit,
+});
