@@ -16,7 +16,7 @@ import { watchRun, type PageVisibility } from '@reading/watch-run';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { markReadingRead, newRequestKey, readReadingRun, readReadingView, saleIsOpen, startReading, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
+import { markReadingRead, newRequestKey, readReadingRun, readReadingView, startReading, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
 
 export type ShownView = Extract<ReadingView, { view: 'reading' }>;
 
@@ -55,7 +55,7 @@ export function useReadingPanel({
   );
   const [progress, setProgress] = useState<RunProgress | null>(initial.run?.progress ?? null);
   const [asking, setAsking] = useState(false);
-  const [shortage, setShortage] = useState<{ available: number; open: boolean } | null>(null);
+  const [shortage, setShortage] = useState<{ available: number } | null>(null);
 
   const { phase, failure } = flow;
   const reading = view.reading;
@@ -124,7 +124,7 @@ export function useReadingPanel({
   }, [phase, target]);
 
   const offerCredits = (available: number) => {
-    void saleIsOpen().then((open) => setShortage({ available, open }));
+    setShortage({ available });
   };
 
   const generate = async () => {

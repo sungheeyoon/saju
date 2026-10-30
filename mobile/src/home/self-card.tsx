@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HOUR_UNKNOWN_LABEL } from '@input/query';
@@ -14,7 +15,7 @@ import type { SelfCardData } from './read';
 type Ok = Extract<SelfCardData, { kind: 'ok' }>;
 
 /** 내 사주 카드(줄인 판) — 홈에서 오행 면을 입는 것은 이 판 하나다. 사진 · 「내 프로필」 시트는 프로필 화면과 함께 온다 */
-export function SelfCard({ card }: { card: Ok }) {
+export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바꿔 세운다 — 아직 저장 안 된 사주에 「이 사주가 내 사주 맞나요?」를 물을 때 */ actions?: ReactNode }) {
   const { saju, query } = card;
   const dayElement = STEM_INFO[saju.pillars.dayMaster].element;
   const tone = ELEMENT_TONE[dayElement];
@@ -58,16 +59,18 @@ export function SelfCard({ card }: { card: Ok }) {
         })}
       </View>
 
-      <View style={styles.actions}>
-        <Pressable accessibilityRole="link" onPress={() => router.push(withFromMe('/me/readings/self') as never)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-          <Text style={styles.primaryText} numberOfLines={1}>
-            {card.hasReading ? '사주풀이 보기' : card.making ? SELF_READING_MAKING : '사주풀이 받기'}
-          </Text>
-        </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => router.push(`/me/people/${card.personId}?tab=chart` as never)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-          <Text style={styles.secondaryText} numberOfLines={1}>만세력 보기</Text>
-        </Pressable>
-      </View>
+      {actions ?? (
+        <View style={styles.actions}>
+          <Pressable accessibilityRole="link" onPress={() => router.push(withFromMe('/me/readings/self') as never)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+            <Text style={styles.primaryText} numberOfLines={1}>
+              {card.hasReading ? '사주풀이 보기' : card.making ? SELF_READING_MAKING : '사주풀이 받기'}
+            </Text>
+          </Pressable>
+          <Pressable accessibilityRole="link" onPress={() => router.push(`/me/people/${card.personId}?tab=chart` as never)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+            <Text style={styles.secondaryText} numberOfLines={1}>만세력 보기</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
