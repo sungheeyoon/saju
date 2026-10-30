@@ -51,5 +51,8 @@ export function readingTargetQuery(target: ReadingTarget): string {
     .join('&');
 }
 
+/** 문을 건넌 id 의 모양 — 요청 id 처럼 대상이 아닌 값도 같은 모양이다 */
+export const isDoorId = isId;
+
 /** 누름 하나를 가리키는 값의 모양 — 앱이 짓는다(`app/me/reading/pipeline.ts` 의 「두 번 눌러도」) */
 export const isRequestKey = isId;

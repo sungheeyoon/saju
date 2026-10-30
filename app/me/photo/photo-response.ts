@@ -65,6 +65,8 @@ export async function photoResponse(
   */
   if (error) {
     if (error.code === '42501' || error.code === '28000') return new NextResponse(null, { status: 404 });
+    /* 앱의 문은 토큰을 직접 싣는다 — PostgREST 가 그 토큰을 거절한 것도 로그인하지 않은 사람과 같은 답이다(ADR 0211). 쿠키의 길은 그대로다 */
+    if (client !== undefined && REJECTED_TOKEN.has(error.code)) return new NextResponse(null, { status: 404 });
     recordDbFailure(error, `photo_at ${position}`);
     return new NextResponse(null, { status: 500 });
   }
@@ -107,6 +109,9 @@ export async function photoResponse(
 function photoBytes(body: Uint8Array, contentType: string, cache: Record<string, string>): NextResponse {
   return new NextResponse(new Uint8Array(body), { headers: { ...cache, 'Content-Type': contentType } });
 }
+
+/** PostgREST 가 토큰을 거절하는 코드 — 해독 실패 · 익명 금지 · 클레임 거절(만료 포함) */
+const REJECTED_TOKEN = new Set(['PGRST301', 'PGRST302', 'PGRST303']);
 
 /** 주소의 `?s=card` — 작은 자리(아바타 · 편집 칸)가 작은 벌을 받는다. 그 밖은 큰 벌 */
 export const photoVariantOf = (request: Request): PhotoVariant =>

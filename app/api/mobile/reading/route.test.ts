@@ -109,6 +109,15 @@ describe('자격', () => {
     expect(pipeline.beginReadingAs).not.toHaveBeenCalled();
   });
 
+  it.each([429, 400, 500])('Auth 가 %i 로 답하면 거절이 아니라 503 이다 — 세션을 걷지 않는다', async (status) => {
+    clientAnswering({ user: null, authError: new AuthApiError('busy', status, 'over_request_rate_limit') });
+
+    const response = await press({ target: SELF, requestKey: KEY });
+
+    expect(response.status).toBe(503);
+    expect(pipeline.beginReadingAs).not.toHaveBeenCalled();
+  });
+
   it('토큰을 그 사람의 클라이언트에 싣는다', async () => {
     clientAnswering({ account: await signedUp() });
     pipeline.beginReadingAs.mockResolvedValue({ ok: true, started: true });

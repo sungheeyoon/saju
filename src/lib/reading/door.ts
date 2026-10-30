@@ -67,6 +67,11 @@ export type ReadingPress =
 /** 쓰기의 답 — 웹의 `SaveResult` 와 같은 값이다(`/api/mobile/me/*`) */
 export type DoorSave = { readonly ok: true } | { readonly ok: false; readonly message: string };
 
+/** 받은 요청에 답한 결과 — 웹의 `RespondResult` 와 같은 값이다. 수락이고 Match 를 찾았으면 `matchId` 가 실린다(`POST /api/mobile/matching/respond`) */
+export type DoorRespond =
+  | { readonly ok: true; readonly status: string; readonly matchId?: string }
+  | { readonly ok: false; readonly message: string };
+
 /** 기다리는 동안의 물음 — `GET /api/mobile/reading/run` */
 export type RunView = { readonly run: LastRun | null };
 

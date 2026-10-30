@@ -1,15 +1,12 @@
 'use server';
 
-import { after } from 'next/server';
-
-import { REQUEST_STATUSES, type RequestStatus } from '@/src/lib/consent';
+import type { RequestStatus } from '@/src/lib/consent';
 
 import { refresh } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
-import { sendAcceptedMatchReading } from '../reading/pipeline';
-import { answerOfThrown, userFacingDbMessage } from '../../db-error';
-import { matchOfAcceptedRequest } from './inbox';
+import { userFacingDbMessage } from '../../db-error';
+import { acceptedMatchIdOf, respondAndSend, statusOf } from './respond';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -23,10 +20,6 @@ type RespondResult =
   | { ok: true; status: RequestStatus; credits?: 'moved'; matchId?: string }
   | { ok: false; message: string };
 
-function statusOf(value: unknown): RequestStatus | null {
-  return REQUEST_STATUSES.find((known) => known === value) ?? null;
-}
-
 /**
  * 받은 요청에 답한다.
  *
@@ -35,52 +28,14 @@ function statusOf(value: unknown): RequestStatus | null {
  * 어긋났을 때 열려 있는 쪽은 언제나 더 바깥이다.
  */
 export async function respondToRequest(requestId: string, accept: boolean): Promise<RespondResult> {
-  const supabase = await supabaseOnServer();
-
-  const { data, error } = await supabase.rpc('respond_to_match_request', {
-    p_request_id: requestId,
-    p_accept: accept,
-  });
-
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'respond_to_match_request') };
-
-  const status = statusOf(data);
-  if (status === null) return { ok: false, message: '답을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
-
-  /**
-   * **동의하면 풀이가 저절로 만들어진다** (ADR 0038).
-   *
-   * 시도는 수락 트랜잭션 안에서 이미 열렸다 — 청한 사람 이름으로. 여기서 하는 것은
-   * 그것을 떠나보내는 일뿐이고, 그 일은 응답 뒤에 돈다: 수락을 누른 사람이 「수락했다」를
-   * 보기까지 모델 왕복을 기다릴 이유가 없다(ADR 0020 과 같은 규율).
-   *
-   * **던지지 않는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 실패하면 `submitFrozen` 이 시도를
-   * 닫고, 결과 화면에 만드는 버튼이 돌아온다.
-   */
-  if (status === 'accepted') {
-    after(async () => {
-      try {
-        await sendAcceptedMatchReading(requestId);
-      } catch (thrown) {
-        // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
-        console.error('respond: sendAcceptedMatchReading', thrown);
-      }
-    });
-  }
+  const answered = await respondAndSend(await supabaseOnServer(), requestId, accept);
+  if (!answered.ok) return answered;
 
   refresh('requests-changed');
-  if (status !== 'accepted') return { ok: true, status };
+  if (answered.status !== 'accepted') return answered;
 
-  /*
-    **수락하면 그 Match 의 채팅방으로 간다**(ADR 0130 「2026-10-11 저녁」) — 단추가 「수락하고 대화하기」다. 그 Match 를 못 찾거나 읽기가
-    실패해도 수락은 이미 끝났다 — 실패로 답하지 않고 옮길 곳 없이 답한다. 화면은 카드를 내리고 인연 탭에 남는다.
-    못 읽은 까닭은 `answerOfThrown` 이 기록에 남긴다(DB 실패면 `dbFailure` 가 이미 남겼다).
-  */
-  const matchId = await matchOfAcceptedRequest(requestId).catch((thrown: unknown) => {
-    answerOfThrown(thrown, 'matchOfAcceptedRequest');
-    return null;
-  });
-  return matchId === null ? { ok: true, status } : { ok: true, status, matchId };
+  const matchId = await acceptedMatchIdOf(requestId);
+  return matchId === null ? answered : { ...answered, matchId };
 }
 
 /**

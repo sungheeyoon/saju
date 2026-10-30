@@ -57,8 +57,8 @@ export async function mobileSession(
 
   const { data, error } = await client.auth.getUser(token);
   if (data.user === null) {
-    /* 거절과 못 닿음을 가른다 — 못 닿은 것으로 앱의 세션을 걷으면 망이 한 번 끊긴 사람이 로그아웃된다 */
-    const rejected = isAuthApiError(error) && error.status >= 400 && error.status < 500;
+    /* 거절과 못 닿음을 가른다 — 관문(`proxy.ts`)과 같이 401 · 403 만 거절이다. 429 나 망 실패로 앱의 세션을 걷으면 그 사람이 로그아웃된다 */
+    const rejected = isAuthApiError(error) && (error.status === 401 || error.status === 403);
     return rejected || error === null
       ? refuse(401, { refused: 'sign-in' })
       : refuse(503, { refused: 'unavailable', message: ACCOUNT_UNREAD_NOTE });

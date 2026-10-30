@@ -225,12 +225,15 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     for (const { path, text } of routes) {
       const handlers = [...text.matchAll(/export async function (GET|POST|PUT|PATCH|DELETE)\([^)]*\)[^{]*\{\n\s*(.*)/g)];
       expect(handlers.length, `${path} 의 함수를 못 찾았다`).toBeGreaterThan(0);
+      /* 다른 꼴로 낸 함수(`export const POST = …` · `export { x as POST }`)는 아래가 못 잰다 — 같은 수인지 먼저 본다 */
+      const exportedMethods = [...text.matchAll(/export\s+(?:(?:async\s+)?function\s*\*?\s*|(?:const|let|var)\s+)(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b|\bas\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)];
+      expect(exportedMethods.length, `${path} 이 재지 못하는 꼴로 함수를 낸다`).toBe(handlers.length);
       for (const [, method, firstLine] of handlers) {
         /* 사진 문 하나만 토큰의 클라이언트로 묻는다 — 판정은 `photo_at` 이고 쓰기가 없다(ADR 0200 · 0211) */
         const asks = path === 'app/api/mobile/photo/[userId]/route.ts' ? 'photoClientOf(' : 'mobileSession(';
         expect(firstLine, `${path} 의 ${method} 이 자격을 먼저 묻지 않는다`).toContain(asks);
       }
-      if (text.includes('beginReadingAs(')) expect(text, `${path} 에 maxDuration 이 없다`).toMatch(/export const maxDuration = \d+/);
+      if (/beginReadingAs\(|respondAndSend\(/.test(text)) expect(text, `${path} 에 maxDuration 이 없다`).toMatch(/export const maxDuration = \d+/);
       expect(text, `${path} 이 열쇠를 든다`).not.toMatch(/keyedClient/);
     }
   });

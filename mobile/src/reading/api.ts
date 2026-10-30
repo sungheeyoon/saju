@@ -1,10 +1,10 @@
-import type { DoorRefusal, ReadingPress, ReadingView, RunView, ShelfView } from '@reading/door';
+import type { DoorRefusal, DoorRespond, ReadingPress, ReadingView, RunView, ShelfView } from '@reading/door';
 import { readingTargetQuery, type ReadingTarget } from '@reading/target';
 
 import { supabase } from '@/auth/client';
 
 export type { ReadingTarget } from '@reading/target';
-export type { DoorRefusal, ReadingPress, ReadingView, RunView, ShelfView } from '@reading/door';
+export type { DoorRefusal, DoorRespond, ReadingPress, ReadingView, RunView, ShelfView } from '@reading/door';
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
@@ -14,7 +14,7 @@ const UNREACHABLE_NOTE = '계정을 확인하지 못했어요.';
 /**
  * 문의 답 — **값이거나 까닭이다.** 던지지 않는다.
  *
- * 부르는 화면은 `refused` 로 길을 고른다(`door-refusal.tsx`) — 다시 로그인 · 가입 · 다시 시도.
+ * 부르는 화면은 `refused` 로 길을 고른다(`panel.tsx` 의 `followRefusal`) — 다시 로그인 · 가입 · 다시 시도.
  */
 export type DoorAnswer<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly refused: DoorRefusal };
 
@@ -57,6 +57,18 @@ export function startReading(target: ReadingTarget, requestKey: string): Promise
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target, requestKey }),
+  });
+}
+
+/**
+ * 받은 요청에 답한다 — 수락이면 서버가 응답 뒤에 궁합풀이를 떠나보낸다. `respond_to_match_request` 를 앱에서 바로 부르면 방만 열리고 글이 안 선다.
+ * 제출만 하는 문은 없다 — 이 부름이 수락 그 자체다(ADR 0211).
+ */
+export function respondToMatchRequest(requestId: string, accept: boolean): Promise<DoorAnswer<DoorRespond>> {
+  return door('/api/mobile/matching/respond', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requestId, accept }),
   });
 }
 

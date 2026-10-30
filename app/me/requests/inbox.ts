@@ -147,8 +147,8 @@ export async function matchesForViewer(client?: SupabaseClient<Database>): Promi
  *
  * 수락 RPC 는 상태만 답한다. 요청과 Match 를 같은 사람 눈으로 다시 읽어 잇는다(`acceptedMatchOf`). 못 찾으면 `null`.
  */
-export async function matchOfAcceptedRequest(requestId: string): Promise<string | null> {
-  const supabase = await supabaseOnServer();
+export async function matchOfAcceptedRequest(requestId: string, client?: SupabaseClient<Database>): Promise<string | null> {
+  const supabase = client ?? (await supabaseOnServer());
   const [requests, matches] = await Promise.all([supabase.rpc('my_match_requests'), supabase.rpc('my_matches')]);
   for (const [{ error }, where] of [[requests, 'my_match_requests'], [matches, 'my_matches']] as const) {
     if (error) throw dbFailure(error, where);

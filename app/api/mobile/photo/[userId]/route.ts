@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { UUID } from '@/app/uuid';
 import { photoPositionOf, photoResponse, photoVariantOf } from '@/app/me/photo/photo-response';
 
 import { photoClientOf } from '../../session';
@@ -15,6 +16,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
   if (client === null) return new NextResponse(null, { status: 404 });
 
   const { userId } = await params;
+  if (!UUID.test(userId)) return new NextResponse(null, { status: 404 });
+
   const position = photoPositionOf(new URL(request.url).searchParams.get('n') ?? '1');
   if (position === null) return new NextResponse(null, { status: 404 });
 
