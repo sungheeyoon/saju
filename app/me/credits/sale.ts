@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { rpcArgs, type Database } from '@/src/lib/db';
 
 import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
-import { orderStatusOf, type OrderStatus } from './order-status';
+import { orderStatusOf, type OrderStatus } from '@/src/lib/reading/order-status';
 
 /**
  * **풀이권 상품 화면이 읽는 문 둘** (G-21, ADR 0171).
