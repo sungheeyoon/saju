@@ -10,7 +10,7 @@ import { readMatchResult, readMyNickname, type MatchOutcome, type Read } from '@
 import { Face, PartnerSheet, ReportBlock } from '@/matching/people';
 import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { Panel, PrimaryButton } from '@/ui/parts';
 import { TopBar, goBack } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -107,7 +107,7 @@ export default function MatchScreen() {
           <>
             {from !== 'chat' && (
               <Pressable accessibilityRole="link" onPress={() => router.push(`/me/chat/${result.matchId}` as never)} style={styles.chat}>
-                <LineIcon name="chat" size={18} />
+                <Icon name="chat" size={18} />
                 <Text style={styles.chatText}>{CHAT_TAB_LABEL}</Text>
               </Pressable>
             )}
