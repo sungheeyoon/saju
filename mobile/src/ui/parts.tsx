@@ -290,5 +290,5 @@ const styles = StyleSheet.create({
   checkBox: { width: 20, height: 20, marginTop: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   checkBoxOn: { borderColor: COLOR.accent, backgroundColor: COLOR.accent },
   checkBody: { flex: 1, gap: 4 },
-  textButton: { alignSelf: 'flex-start' },
+  textButton: { alignItems: 'flex-start' },
 });
