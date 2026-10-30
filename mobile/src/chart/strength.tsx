@@ -105,7 +105,7 @@ function RootingNote({ saju }: { saju: Saju }) {
 }
 
 const styles = StyleSheet.create({
-  summary: { borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSoft, padding: 16 },
+  summary: { borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSoft, padding: 16 },
   verdict: { marginTop: 4 },
   ratio: { marginTop: 16, columnGap: 4 },
   meter: { marginTop: 20 },
@@ -114,10 +114,10 @@ const styles = StyleSheet.create({
   mark: { position: 'absolute', top: -4, bottom: -4, width: 2, backgroundColor: 'rgba(38, 36, 31, 0.45)' },
   scale: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   scores: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  score: { flex: 1, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, paddingHorizontal: 12, paddingVertical: 10 },
+  score: { flex: 1, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, paddingHorizontal: 12, paddingVertical: 10 },
   basis: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 20, borderTopWidth: 1, borderTopColor: COLOR.border, paddingTop: 16 },
   criteria: { gap: 8, marginTop: 8 },
-  criterion: { borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSoft, padding: 12 },
+  criterion: { borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSoft, padding: 12 },
   criterionMet: { borderColor: COLOR.borderStrong, backgroundColor: COLOR.surfaceSunken },
   criterionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pill: { borderRadius: RADIUS.pill, backgroundColor: COLOR.surfaceSunken, paddingHorizontal: 8, paddingVertical: 2 },

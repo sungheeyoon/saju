@@ -107,7 +107,7 @@ export function RelationTable({ saju, coverage }: { saju: Saju; coverage: readon
 
 const styles = StyleSheet.create({
   utterances: { gap: 10 },
-  strength: { borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.control, paddingHorizontal: 6, paddingVertical: 2 },
+  strength: { borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.cell, paddingHorizontal: 6, paddingVertical: 2 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 6 },
   rule: { borderTopWidth: 1, borderTopColor: COLOR.border },
   kind: { width: 56 },

@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   scroll: { marginTop: 16 },
   column: { width: CELL, paddingHorizontal: 3 },
   head: { paddingBottom: 8 },
-  cell: { minHeight: 116, alignItems: 'center', gap: 2, borderRadius: RADIUS.control, borderWidth: 1, borderColor: 'transparent', backgroundColor: COLOR.surfaceSoft, paddingVertical: 10 },
+  cell: { minHeight: 116, alignItems: 'center', gap: 2, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: 'transparent', backgroundColor: COLOR.surfaceSoft, paddingVertical: 10 },
   cellCurrent: { borderColor: COLOR.foreground, backgroundColor: COLOR.cream },
   cellGlyph: { fontSize: TYPE.title, lineHeight: 28 },
   stage: { marginTop: 4 },
