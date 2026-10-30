@@ -7,7 +7,7 @@ import { initialOf, type PhotoFocus } from '@profile';
 import type { Element } from '@saju';
 
 import { Field, Select } from '@/ui/parts';
-import { LineIcon } from '@/ui/line-icons';
+import { Icon } from '@/ui/icons';
 import { Photo } from '@/ui/photo';
 import { ConfirmModal, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -254,7 +254,7 @@ export function ReportBlock({ userId, nickname, onPhoto = false, onBlocked }: { 
         onPress={() => setMenu(true)}
         style={[styles.more, onPhoto && styles.moreOnPhoto]}
       >
-        <LineIcon name="more" color={onPhoto ? '#ffffff' : COLOR.foreground} />
+        <Icon size={20} name="more" color={onPhoto ? '#ffffff' : COLOR.foreground} />
       </Pressable>
       <SheetModal open={menu} title="신고 · 차단" onClose={() => setMenu(false)}>
         <Pressable
@@ -265,7 +265,7 @@ export function ReportBlock({ userId, nickname, onPhoto = false, onBlocked }: { 
             setOpened('report');
           }}
         >
-          <LineIcon name="flag" size={18} />
+          <Icon name="flag" size={18} />
           <Text style={styles.menuText}>신고</Text>
         </Pressable>
         <Pressable
@@ -276,7 +276,7 @@ export function ReportBlock({ userId, nickname, onPhoto = false, onBlocked }: { 
             setOpened('block');
           }}
         >
-          <LineIcon name="block" size={18} color={COLOR.danger} />
+          <Icon name="block" size={18} color={COLOR.danger} />
           <Text style={[styles.menuText, styles.dangerText]}>차단</Text>
         </Pressable>
       </SheetModal>

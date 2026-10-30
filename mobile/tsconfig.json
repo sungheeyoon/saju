@@ -27,6 +27,9 @@
       "@saju-view": [
         "../src/lib/saju/view/index.ts"
       ],
+      "@saju-view/orbit": [
+        "../src/lib/saju/view/orbit.ts"
+      ],
       "@saju-view/notes": [
         "../src/lib/saju/view/notes.ts"
       ],

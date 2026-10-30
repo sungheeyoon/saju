@@ -6,6 +6,7 @@ import { isBlocked } from '@account/index';
 
 import { readPicker, type PickerData } from '@/compat/data';
 import { CompatPicker } from '@/compat/picker';
+import { RelationMap } from '@/compat/relation-map';
 import { CompatResultStep } from '@/compat/result-step';
 import type { Read } from '@/people/data';
 import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@/people/parts';
@@ -55,7 +56,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
     );
   }
 
-  const { state, people, compats } = read.value;
+  const { state, people, compats, map } = read.value;
   const latest = compats[0];
 
   return (
@@ -80,6 +81,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
               <Text style={styles.chevron}>›</Text>
             </Pressable>
           )}
+          {map !== null && <RelationMap model={map.model} canAdd={map.canAdd} />}
         </>
       )}
     </ScreenFrame>

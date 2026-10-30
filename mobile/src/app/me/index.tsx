@@ -1,13 +1,14 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { DEFAULT_QUERY, missingAnswer } from '@input/query';
 import { ELEMENTS } from '@saju';
 
 import { signOut } from '@/auth/sign-in';
+import { listenLive } from '@/chat/live';
 import { OtherSaju, ReceivedReadings, RunningReadings, SavedPeople } from '@/home/lists';
-import { homeUnreachable, readHome, type Home } from '@/home/read';
+import { homeUnreachable, readHome, readRunning, type Home } from '@/home/read';
 import { SelfCard } from '@/home/self-card';
 import { BirthFields, useBirthForm } from '@/people/birth-fields';
 import { openParticipation, saveFailureOf, saveSelfPerson } from '@/reading/chart-writes';
@@ -29,6 +30,26 @@ export default function HomeScreen() {
     });
   }, []);
   useFocusEffect(load);
+
+  /* 다 된 풀이는 소식으로 온다(ADR 0155) — 계정 채널이 들으면 홈을 다시 읽는다. 다른 탭에 있어도 돌아오면 어차피 다시 읽는다 */
+  useEffect(() => listenLive((signal) => {
+    if (signal.kind === 'resync' || signal.change.area === 'notifications') load();
+  }), [load]);
+
+  /* 만드는 동안은 5초마다 줄만 다시 묻는다(웹의 `RUNNING_ASK_EVERY_MS`). 줄이 사라지면 홈을 다시 읽어 결과가 선다 */
+  const watching = home?.kind === 'home' && home.running.length > 0;
+  useFocusEffect(useCallback(() => {
+    if (!watching) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState !== 'active') return;
+      void readRunning().then((lines) => {
+        if (lines === null) return;
+        if (lines.length === 0) load();
+        else setHome((now) => (now?.kind === 'home' ? { ...now, running: lines } : now));
+      });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [watching, load]));
 
   if (home === null) return <ActivityIndicator color={COLOR.secondary} style={styles.loading} />;
   return (

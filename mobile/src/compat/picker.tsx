@@ -11,7 +11,7 @@ import type { CompatSide } from '@saju';
 import { BirthFields, useBirthForm } from '@/people/birth-fields';
 import { FailureLine, styles as shared } from '@/people/parts';
 import { SameChartAsk, type SameChartQuestion } from '@/people/same-chart-ask';
-import { StemSymbol } from '@/people/stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Choices, Field, Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';

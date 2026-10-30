@@ -3,8 +3,11 @@ import { SUPPORT_EMAIL } from '@brand';
 import { userFacingDbMessage } from '@db-error';
 import type { Query } from '@input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf, type StoredInput } from '@input/stored';
+import { runningStageOf } from '@reading/running-stage';
+import { READING_KINDS, type ReadingKind } from '@reading/policy';
 import { focusOf, type PhotoFocus } from '@profile';
 import type { Saju, Stem } from '@saju';
+import { withFromMe } from '@web-home/from-me';
 import { isFirstVisit } from '@web-home/first-visit';
 
 import { supabase } from '@/auth/client';
@@ -35,12 +38,14 @@ export type HomePerson = {
 };
 
 /** 내 사진 — 꾸밈이라 못 읽으면 사진 없는 나로 선다(ADR 0078). 대표 한 장의 보일 자리까지 */
-export type SelfFace = { userId: string; hasPhoto: boolean; focus: PhotoFocus | undefined };
+export type SelfFace = { userId: string; nickname: string; intro: string | null; focuses: readonly PhotoFocus[] };
 
 export type SelfCardData =
   | { kind: 'failed'; message: string }
   | { kind: 'unreadable'; message: string; note: string }
   | { kind: 'ok'; personId: string; label: string; query: Query; saju: Saju; metaphor: string | null; hasReading: boolean; making: boolean; face: SelfFace | null };
+
+export type RunningLine = { key: string; name: string; stage: string; href: string | null };
 
 export type Home =
   | { kind: 'failed'; message: string }
@@ -52,16 +57,16 @@ export type Home =
       kind: 'home';
       self: SelfCardData;
       firstVisit: boolean;
-      running: readonly { key: string; name: string }[];
+      running: readonly RunningLine[];
       received: readonly ReadingRow[];
       people: readonly HomePerson[];
       slots: { limit: number; used: number; remaining: number } | null;
     };
 
-const faceOf = (userId: string | undefined, photos: readonly { focus_x: number; focus_y: number }[]): SelfFace | null =>
-  userId === undefined
+const faceOf = (userId: string | undefined, nickname: string | null, intro: string | null, photos: readonly { position: number; focus_x: number; focus_y: number }[]): SelfFace | null =>
+  userId === undefined || nickname === null
     ? null
-    : { userId, hasPhoto: photos.length > 0, focus: photos.length > 0 ? focusOf(photos[0].focus_x, photos[0].focus_y) : undefined };
+    : { userId, nickname, intro, focuses: [...photos].sort((x, y) => x.position - y.position).map((row) => focusOf(row.focus_x, row.focus_y)) };
 
 const called = (label: string | null) => label ?? '이름 없음';
 
@@ -81,7 +86,57 @@ function runningName(row: { kind: string; label_a: string | null; label_b: strin
   }
 }
 
-/** 읽기가 답 없이 던진 때 */
+type RunningRow = {
+  kind: string;
+  label_a?: string | null;
+  label_b?: string | null;
+  person_a?: string | null;
+  person_b?: string | null;
+  match_id?: string | null;
+  created_at: string;
+  job_status?: string | null;
+  sections_begun?: number | null;
+  body_written?: boolean | null;
+};
+
+/** 웹의 `readingHrefOf` 와 같은 갈래다 — 가는 길이 없는 줄은 눌리지 않는다 */
+function runningHref(kind: ReadingKind, row: RunningRow): string | null {
+  switch (kind) {
+    case 'self':
+      return '/me/readings/self';
+    case 'person':
+      return row.person_a ? `/me/readings/${row.person_a}` : null;
+    case 'private':
+      return row.person_a && row.person_b ? `/me/compat?a=${row.person_a}&b=${row.person_b}` : null;
+    case 'match':
+      return row.match_id ? `/me/match/${row.match_id}` : null;
+  }
+}
+
+const runningLinesOf = (rows: readonly RunningRow[]): RunningLine[] =>
+  rows.flatMap((row) => {
+    const kind = READING_KINDS.find((known) => known === row.kind);
+    const name = runningName({ kind: row.kind, label_a: row.label_a ?? null, label_b: row.label_b ?? null });
+    if (kind === undefined || name === null) return [];
+    const href = runningHref(kind, row);
+    return [
+      {
+        key: `${row.kind}:${row.created_at}`,
+        name,
+        stage: runningStageOf(kind, { jobStatus: row.job_status ?? null, sectionsBegun: row.sections_begun ?? 0, bodyWritten: row.body_written ?? false }),
+        href: href === null ? null : withFromMe(href),
+      },
+    ];
+  });
+
+/** 만드는 중인 줄만 다시 묻는다 — 홈에 머무는 동안. 못 읽으면 `null` 이고 지금 줄을 그대로 둔다 */
+export async function readRunning(): Promise<readonly RunningLine[] | null> {
+  if (supabase === null) return null;
+  const { data, error } = await supabase.rpc('my_running_readings');
+  return error === null ? runningLinesOf(data ?? []) : null;
+}
+
+/** 읽기가 답 없이 던진 때 — 계정을 못 물은 때와 같은 글자로 다시 시도를 세운다 */
 export function homeUnreachable(): Home {
   return { kind: 'failed', message: UNREACHABLE };
 }
@@ -95,7 +150,7 @@ export function homeUnreachable(): Home {
 export async function readHome(): Promise<Home> {
   if (supabase === null) return { kind: 'failed', message: NOT_READY };
 
-  const account = await supabase.from('app_user').select('status, self_person_id, nickname').maybeSingle();
+  const account = await supabase.from('app_user').select('status, self_person_id, nickname, intro').maybeSingle();
   if (account.error !== null) console.error('app_user', account.error.code);
   const suspension = account.data?.status === 'suspended' ? await supabase.rpc('my_suspension') : null;
   const found = suspension?.data?.[0];
@@ -177,7 +232,7 @@ export async function readHome(): Promise<Home> {
             metaphor: selfReading?.metaphor ?? null,
             hasReading: selfReading !== null,
             making: runningRows.some((row) => row.kind === 'self'),
-            face: faceOf(session.data.session?.user.id, photos.error === null ? (photos.data ?? []) : []),
+            face: faceOf(session.data.session?.user.id, account.data?.nickname ?? null, account.data?.intro ?? null, photos.error === null ? (photos.data ?? []) : []),
           };
 
   const people: HomePerson[] = listed.map((edge) => {
@@ -205,10 +260,7 @@ export async function readHome(): Promise<Home> {
     kind: 'home',
     self,
     firstVisit: isFirstVisit({ readings: rows, running: runningRows, people: listed.length }),
-    running: runningRows.flatMap((row) => {
-      const name = runningName({ kind: row.kind, label_a: row.label_a ?? null, label_b: row.label_b ?? null });
-      return name === null ? [] : [{ key: `${row.kind}:${row.created_at}`, name }];
-    }),
+    running: runningLinesOf(runningRows),
     received: rows.filter((row) => row.kind === 'person'),
     people,
     slots: one === undefined ? null : { limit: one.person_limit, used: one.used, remaining: one.remaining },

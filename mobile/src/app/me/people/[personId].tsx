@@ -10,7 +10,7 @@ import { Tabs } from '@/chart/parts';
 import { readPersonDetail, type MyReading, type PersonDetail, type Read } from '@/people/data';
 import { AccountNotice, DayMasterChip, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { SajuSections } from '@/people/saju-sections';
-import { StemSymbol } from '@/people/stem-symbol';
+import { StemSymbol } from '@/ui/stem-symbol';
 import { Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
