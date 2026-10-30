@@ -1,10 +1,10 @@
 import Link from 'next/link';
 
 import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
+import { SERVICE_FEATURES } from '@/src/lib/brand/features';
 import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/account/copy';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
-import { SERVICE_FEATURES } from '../service-features';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
 import { CARD, COLUMN, PAPER, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';

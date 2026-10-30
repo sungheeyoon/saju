@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 
+import { SERVICE_FEATURES } from '@/src/lib/brand/features';
+
 import { useBrowserSession } from './auth/browser-session';
-import { SERVICE_FEATURES } from './service-features';
 import { Icon, type IconName } from './ui/icons';
 import { TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
 
