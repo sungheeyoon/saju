@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { SERVICE_NAME, SERVICE_NAME_TOPIC, SERVICE_TAGLINE } from '@/src/lib/brand';
+import { ABOUT_LEAD, ABOUT_STEPS } from '@/src/lib/brand/guide';
 import { BETA_SIGNUP_CODE_NOTE } from '@/src/lib/account/copy';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../ui/buttons';
@@ -24,13 +25,6 @@ export const metadata = {
  * **정적이다** — 세션도 DB 도 안 읽는다. 사실은 PRD 「화면」 · 「자원」 절이 말하는 것만 적는다 — 수(풀이권 · 저장 자리)는
  * 운영 중에 바뀌므로 여기 적지 않고 그 수가 서는 자리를 가리킨다.
  */
-const STEPS: readonly { title: string; body: string }[] = [
-  { title: '사주 보기', body: '첫 화면에서 생년월일시를 넣고 내 사주를 봐요.' },
-  { title: '로그인 · 가입', body: '구글로 로그인하고, 테스트 코드와 닉네임으로 가입해요.' },
-  { title: '내 사주 저장', body: '내 출생 정보를 저장하면 홈에 내 사주 카드가 서요.' },
-  { title: '풀이 받기', body: '사주풀이 · 궁합 · 인연 중 마음 가는 것부터 시작해요.' },
-];
-
 export default function AboutPage() {
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-10 py-8 sm:py-12`}>
@@ -40,9 +34,9 @@ export default function AboutPage() {
         <h1 className={TYPE_TITLE}>{SERVICE_NAME_TOPIC} 이런 곳이에요</h1>
         {/* 운영자가 고른 두 문장(2026-10-09) — 넓은 화면은 문장마다 줄을 나누고, 폰은 폭대로 흐른다 */}
         <p className="text-body leading-7 text-cream-ink">
-          내 사주를 읽고, 궁금한 사람과의 궁합을 살펴보세요.{' '}
+          {ABOUT_LEAD[0]}{' '}
           <br className="max-sm:hidden" />
-          새로운 인연에게 궁합을 요청하고, 서로 동의하면 대화를 시작할 수 있어요.
+          {ABOUT_LEAD[1]}
         </p>
       </header>
 
@@ -69,7 +63,7 @@ export default function AboutPage() {
           시작하는 차례
         </h2>
         <ol className="flex flex-col gap-2">
-          {STEPS.map((step, index) => (
+          {ABOUT_STEPS.map((step, index) => (
             <li key={step.title} className="flex gap-4 rounded-card border border-border bg-surface px-4 py-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-sm font-bold text-on-accent tabular-nums">
                 {index + 1}

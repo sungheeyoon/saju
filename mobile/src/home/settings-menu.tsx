@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,8 +9,6 @@ import { GUIDE_LINKS } from '@brand/links';
 import { signOut } from '@/auth/sign-in';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
-
 const LINKS = [
   { href: '/me/profile', label: '프로필' },
   { href: '/me/settings', label: '설정' },
@@ -19,8 +16,7 @@ const LINKS = [
 ] as const;
 
 /**
- * 톱니 안 — 프로필 · 설정 · 서비스 설문 · 로그아웃은 웹의 머리글과 같다. 안내 화면은 옮기지 않고 웹을 연다(전문의 원본이 하나로 남는다).
- * 값이 없는 빌드에는 그 줄이 안 선다.
+ * 톱니 안 — 프로필 · 설정 · 서비스 설문 · 로그아웃은 웹의 머리글과 같다. 안내 다섯은 앱 안의 화면으로 간다(글의 원본은 웹과 같은 `src/lib` 다).
  */
 export function SettingsMenu({ email, open, onClose }: { email: string | null; open: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
@@ -55,15 +51,21 @@ export function SettingsMenu({ email, open, onClose }: { email: string | null; o
               <Text style={styles.label}>{link.label}</Text>
             </Pressable>
           ))}
-          {SITE_URL ? (
-            <View style={styles.group}>
-              {GUIDE_LINKS.map((link) => (
-                <Pressable key={link.href} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}${link.href}`)} style={styles.row}>
-                  <Text style={styles.guide}>{link.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+          <View style={styles.group}>
+            {GUIDE_LINKS.map((link) => (
+              <Pressable
+                key={link.href}
+                accessibilityRole="link"
+                onPress={() => {
+                  onClose();
+                  router.push(link.href as never);
+                }}
+                style={styles.row}
+              >
+                <Text style={styles.guide}>{link.label}</Text>
+              </Pressable>
+            ))}
+          </View>
           <View style={styles.group}>
             <Pressable accessibilityRole="button" accessibilityState={{ disabled: leaving }} disabled={leaving} onPress={leave} style={styles.row}>
               <Text style={styles.guide}>{leaving ? SIGN_OUT_PENDING : '로그아웃'}</Text>

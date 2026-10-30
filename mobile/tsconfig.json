@@ -45,6 +45,21 @@
       "@brand/links": [
         "../src/lib/brand/links.ts"
       ],
+      "@brand/guide": [
+        "../src/lib/brand/guide.ts"
+      ],
+      "@brand/terms": [
+        "../src/lib/brand/terms.ts"
+      ],
+      "@brand/refund": [
+        "../src/lib/brand/refund.ts"
+      ],
+      "@brand/business": [
+        "../src/lib/brand/business.ts"
+      ],
+      "@brand/legal-text": [
+        "../src/lib/brand/legal-text.ts"
+      ],
       "@reading/notes": [
         "../src/lib/reading/notes.ts"
       ]

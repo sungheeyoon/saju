@@ -4,7 +4,12 @@ import {
   NOTICE_NOT_READY,
   OPTIONAL_CONSENTS,
   OPTIONAL_CONSENT_NOTE,
+  PRIVACY_INTRO,
+  PRIVACY_OPTIONAL_TITLE,
+  PRIVACY_RIGHTS_LINES,
+  PRIVACY_RIGHTS_TITLE,
   noticeFor,
+  privacyPurgeNote,
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../auth/server-client';
@@ -14,10 +19,6 @@ import { HomeLink } from '../home-link';
 /** 조항의 한 줄 — 앞에 작은 점을 찍는다. 목록이 길어도 줄의 머리가 보인다 */
 const DOT_LINE =
   "relative pl-4 text-body leading-7 text-secondary before:absolute before:left-0.5 before:top-[0.8rem] before:size-1.5 before:rounded-full before:bg-border-strong before:content-['']";
-
-/** 자료(`noticeFor`) 밖에서 이 화면이 직접 세우는 두 조항의 제목 */
-const OPTIONAL_TITLE = '선택 항목';
-const RIGHTS_TITLE = '확인하고 고치고 지우는 방법';
 
 export const metadata = {
   title: '개인정보 처리방침',
@@ -49,7 +50,7 @@ export default async function PrivacyPage() {
   const ready = schedule.ok ? schedule.value : null;
   const sections = ready === null ? [] : noticeFor(ready.dates, ready.operator);
   /* 목차와 조항 제목이 같은 글자를 쓴다 — 한쪽만 고쳐지면 목차가 없는 조항을 가리킨다 */
-  const titles = [...sections.map((section) => section.title), OPTIONAL_TITLE, RIGHTS_TITLE];
+  const titles = [...sections.map((section) => section.title), PRIVACY_OPTIONAL_TITLE, PRIVACY_RIGHTS_TITLE];
 
   return (
     <main className={`app-shell flex w-full ${COLUMN} flex-1 flex-col gap-4 py-8 sm:py-12`}>
@@ -60,9 +61,7 @@ export default async function PrivacyPage() {
       <header className="mb-2 rounded-card bg-cream px-6 py-7 sm:px-8">
         <p className="text-small font-semibold text-cream-ink">처리방침</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>개인정보 처리방침</h1>
-        <p className="mt-2 text-body leading-7 text-secondary">
-          이 서비스는 초대받은 분만 쓰는 비공개 베타입니다.
-        </p>
+        <p className="mt-2 text-body leading-7 text-secondary">{PRIVACY_INTRO}</p>
       </header>
 
       {!schedule.ok ? (
@@ -111,7 +110,7 @@ export default async function PrivacyPage() {
           ))}
 
           <section id={`privacy-${sections.length + 1}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
-            <h2 className={TYPE_NAME}>{OPTIONAL_TITLE}</h2>
+            <h2 className={TYPE_NAME}>{PRIVACY_OPTIONAL_TITLE}</h2>
             <p className="text-body leading-7 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
@@ -125,25 +124,17 @@ export default async function PrivacyPage() {
           </section>
 
           <section id={`privacy-${sections.length + 2}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
-            <h2 className={TYPE_NAME}>{RIGHTS_TITLE}</h2>
+            <h2 className={TYPE_NAME}>{PRIVACY_RIGHTS_TITLE}</h2>
             <ul className="flex flex-col gap-2">
-              <li className={DOT_LINE}>내 출생 정보는 프로필 화면에서, 등록한 가족·친구의 출생 정보는 저장한 사람 화면에서 언제든 고칠 수 있습니다.</li>
-              <li className={DOT_LINE}>선택 동의는 설정 화면에서 켜고 끌 수 있습니다.</li>
-              <li className={DOT_LINE}>
-                계정과 저장된 정보의 삭제는 설정 화면에서 요청하실 수 있습니다. 상세
-                궁합이 열려 있던 상대가 있다면 그 결과는 양쪽 화면에서 함께 사라집니다.
-              </li>
-              <li className={DOT_LINE}>
-                문의는 이 서비스를 초대해 드린 주소로 회신해 주시면 됩니다. 운영자가 직접
-                답합니다.
-              </li>
+              {PRIVACY_RIGHTS_LINES.map((line) => (
+                <li key={line} className={DOT_LINE}>
+                  {line}
+                </li>
+              ))}
             </ul>
           </section>
 
-          <p className="px-1 text-small leading-6 text-secondary">
-            비공개 베타 기간의 정보 파기 시점은 위 종료일을 기준으로 합니다(종료 후{' '}
-            {ready.dates.purgeWithinDays}일 이내). 공개 전환 시에는 이 방침을 다시 씁니다.
-          </p>
+          <p className="px-1 text-small leading-6 text-secondary">{privacyPurgeNote(ready.dates.purgeWithinDays)}</p>
         </>
       )}
 

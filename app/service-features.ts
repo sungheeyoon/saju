@@ -1,49 +1,4 @@
-import type { IconName } from './ui/icons';
-
-/**
- * **서비스가 하는 일 넷** — 사주 · 사주풀이 · 궁합 · 인연.
- *
- * 서비스 소개(`about/page.tsx`)가 넷을, 로그인 전 첫 화면의 「할 수 있는 것」(`landing-guide.tsx`)이 사주를 뺀 셋을 카드로
- * 세운다. 첫 화면은 `note`(로그인 · 풀이권 조건)를 싣지 않는다 — 홈은 무엇을 하는지만 말한다(운영자 결정 2026-10-08).
- * 사실은 PRD 「화면」 · 「자원」 절이 말하는 것만 적는다 — 수(풀이권 몇 개 · 저장 몇 명)는 운영 중에 바뀌므로 안 적는다.
- */
-export const SERVICE_FEATURES: readonly { icon: IconName; title: string; body: string; note: string }[] = [
-  {
-    icon: 'spark',
-    title: '사주',
-    body: '생년월일시를 넣으면 여덟 글자와 오행을 바로 볼 수 있어요.',
-    note: '로그인 없이 볼 수 있어요',
-  },
-  {
-    icon: 'reading',
-    title: '사주풀이',
-    body: '내 사주와 저장한 사람의 사주를 글로 풀어 드려요.',
-    note: '로그인 · 풀이권 1장',
-  },
-  {
-    icon: 'taiji',
-    title: '궁합',
-    body: '두 사람을 골라 궁합 첫 신호를 보고, 궁합풀이를 받아요. 저장하지 않은 사람과도 볼 수 있어요.',
-    note: '첫 신호는 로그인 없이 · 궁합풀이는 로그인 · 풀이권 1장',
-  },
-  {
-    icon: 'people',
-    title: '인연',
-    body: '다른 사람에게 궁합을 요청하고, 서로 동의하면 인연 궁합이 열리고 대화를 나눌 수 있어요.',
-    note: '로그인 · 요청할 때 풀이권 1장 예약',
-  },
-];
-
-
-/**
- * **로그인 없이 되는 것** — 한 사실 한 표기(2026-10-09 화면 점검 A6). 첫 화면은 로그인 없이 한 사람의 사주와 두 사람의
- * 궁합 첫 신호(엔진 계산의 한 줄 · 가린 점수)를 연다. 궁합풀이 · 사주풀이 · 저장 · 인연은 로그인한 뒤다.
- *
- * 로그인 화면(`auth/page.tsx`)과 로그인 실패(`auth/denied/page.tsx`)가 출구 단추(`SIGNED_OUT_EXIT`) 위에 이 한 줄을 함께
- * 쓴다 — 전에는 한쪽이 「궁합 첫 신호는 지금」, 다른 쪽이 「궁합은 로그인한 뒤」라고 적어 같은 사실을 반대로 말했다.
- * 위 넷의 궁합 `note` 와 자주 묻는 질문(`help/page.tsx`)도 같은 갈래(첫 신호 = 로그인 없이, 궁합풀이 = 로그인 + 풀이권)다.
- */
-export const SIGNED_OUT_REACH = '로그인 없이도 내 사주와 궁합 첫 신호는 볼 수 있어요.';
+export { SERVICE_FEATURES, SIGNED_OUT_EXIT, SIGNED_OUT_REACH } from '@/src/lib/brand/guide';
 
 /**
  * 궁합으로 들어가는 단추 · 표지의 이름 — PRD §3.2 「다른 기능으로 진입」. 사람 목록 · 사람 상세 · 관계 지도의 사람 카드 ·
@@ -51,6 +6,3 @@ export const SIGNED_OUT_REACH = '로그인 없이도 내 사주와 궁합 첫 �
  * 속성 · 표로 넘기므로 문구 상수 파일(`src/lib/<영역>/copy.ts`, ADR 0159)이 아니라 여기 산다
  */
 export const COMPAT_ENTRY_LABEL = '궁합 보러 가기';
-
-/** 로그인하지 않고 첫 화면으로 가는 출구의 이름 — 로그인 화면 · 로그인 실패가 같이 쓴다(`e2e/auth.spec.ts` 가 잰다) */
-export const SIGNED_OUT_EXIT = '사주로 돌아가기';
