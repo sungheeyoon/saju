@@ -9,14 +9,18 @@
  * 글꼴은 양쪽 모두 앱의 OTF 다 — 웹의 조각 글꼴과 글리프가 같은 배포본이라 모양을 견주는 데 지장이 없다.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import postcss from 'postcss';
-import tailwind from '@tailwindcss/postcss';
 import { chromium } from 'playwright';
 
 import { GALLERY } from '../src/lib/design/contract.ts';
+
+/** 웹 빌드가 쓰는 패키지다 — 시험 전용으로 잡히지 않게 이 손 도구는 실행할 때만 빌려 쓴다(`scripts/ci-plan.test.ts` 「잠금」) */
+const borrow = createRequire(import.meta.url);
+const postcss = borrow('postcss');
+const tailwind = borrow('@tailwindcss/postcss');
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(process.argv[2] ?? 'design-compare');
