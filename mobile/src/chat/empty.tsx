@@ -4,13 +4,14 @@ import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@chat/copy';
 
-import { Panel, PrimaryButton } from '@/ui/parts';
+import { Paper } from '@/ui/surfaces';
+import { PrimaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
 
 /** 아직 방이 없을 때 — 갈 길은 하나다. 내 사주가 아직 없으면 그 자리에 등록이 선다(대장 matching-13) */
 export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
   return (
-    <Panel tone="cream" style={styles.panel}>
+    <Paper style={styles.panel}>
       <ChatIllustration />
       <View style={styles.words}>
         <Text style={styles.title}>{CHAT_EMPTY_TITLE}</Text>
@@ -21,7 +22,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
       ) : (
         <PrimaryButton label="내 사주 등록하기" onPress={() => router.push('/me' as never)} />
       )}
-    </Panel>
+    </Paper>
   );
 }
 
@@ -65,5 +66,5 @@ const styles = StyleSheet.create({
   art: { alignItems: 'center' },
   words: { gap: 6 },
   title: { fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
-  detail: { fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.creamInk },
+  detail: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.creamInk },
 });

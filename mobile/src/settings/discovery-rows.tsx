@@ -127,10 +127,10 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   label: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
   progress: { fontSize: TYPE.fine, fontFamily: FONT.medium, color: COLOR.muted },
-  choices: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSunken },
-  choice: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
+  choices: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSunken },
+  choice: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.cell },
   chosen: { backgroundColor: COLOR.surfaceRaised },
-  choiceText: { fontSize: TYPE.sm, fontFamily: FONT.medium, color: COLOR.secondary },
+  choiceText: { fontSize: TYPE.note, fontFamily: FONT.medium, color: COLOR.secondary },
   chosenText: { color: COLOR.foreground, fontFamily: FONT.bold },
   help: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
 });

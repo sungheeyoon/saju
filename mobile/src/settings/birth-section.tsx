@@ -8,6 +8,7 @@ import { CALENDAR_KO, GENDER_KO } from '@saju';
 
 import { readAccount, readPersonDetail } from '@/people/data';
 import { EditInputForm } from '@/people/edit-input';
+import { Card } from '@/ui/surfaces';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 type MyBirth = { kind: 'none' } | { kind: 'unreadable'; message: string } | { kind: 'ready'; personId: string; query: Query };
@@ -35,10 +36,10 @@ export function BirthSection() {
   if (birth.kind === 'none') return null;
   if (birth.kind === 'unreadable') {
     return (
-      <View style={styles.panel}>
+      <Card style={styles.panel}>
         <Text style={styles.value}>{birth.message}</Text>
         <Text style={styles.term}>{UNREADABLE_INPUT_NOTE}</Text>
-      </View>
+      </Card>
     );
   }
 
@@ -71,7 +72,7 @@ export function BirthSection() {
   ] as const;
 
   return (
-    <View style={styles.panel}>
+    <Card style={styles.panel}>
       <View style={styles.head}>
         <Text accessibilityRole="header" style={styles.title}>출생 정보</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="출생 정보 수정" onPress={() => setOpen(true)} style={styles.edit}>
@@ -84,17 +85,17 @@ export function BirthSection() {
           <Text style={styles.value}>{value}</Text>
         </View>
       ))}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 8, padding: 16, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  panel: { gap: 8 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   edit: { minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 16, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong },
-  editText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  editText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   row: { flexDirection: 'row', gap: 20 },
-  term: { width: 64, fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 22, color: COLOR.secondary },
-  value: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 22, color: COLOR.foreground },
+  term: { width: 64, fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 22, color: COLOR.secondary },
+  value: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 22, color: COLOR.foreground },
 });

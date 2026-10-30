@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLOR.border,
   },
-  score: { fontSize: TYPE.sm, fontFamily: FONT.bold },
+  score: { fontSize: TYPE.note, fontFamily: FONT.bold },
   row: { minHeight: CONTROL, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   lead: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   word: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
