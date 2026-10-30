@@ -1,33 +1,35 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CHAT_TAB_LABEL } from '@chat/index';
 import { MATCH_RESULT_CLOSED_NOTE } from '@consent/index';
-import { ELEMENT_KO, PILLAR_POSITION_KO, STEM_INFO, type ChartSnapshot } from '@saju';
+import { ELEMENT_KO, PILLAR_POSITION_KO, STEM_INFO, type ChartSnapshot, type Element } from '@saju';
 
-import { readMatchReading, readMatchResult, type MatchOutcome, type MatchReading, type Read } from '@/matching/doors';
+import { readMatchResult, readMyNickname, type MatchOutcome, type Read } from '@/matching/doors';
 import { Face, PartnerSheet, ReportBlock } from '@/matching/people';
+import type { ReadingTarget } from '@/reading/api';
+import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
 import { LineIcon } from '@/ui/line-icons';
-import { PrimaryButton } from '@/ui/parts';
+import { Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 const POSITIONS = ['hour', 'day', 'month', 'year'] as const;
 
 /**
- * 인연 궁합 — 동의가 실제로 연 것. 머리 한 줄 · 한 문장 결론 · 점수 · 두 명식 · 풀이 본문 차례다(PRD §6.3).
- * 없는 Match 와 못 보는 Match 는 같은 말로 거절한다(ADR 0007). 만드는 단추는 없다(ADR 0038) — 글이 있으면 읽기만 한다.
+ * 인연 궁합 — 동의가 실제로 연 것. 머리 한 줄 · 표지 · 두 명식 · 풀이 본문 차례다(PRD §6.3). 풀이 칸은 네 갈래 한 벌이다(`ReadingPanel`) — 만드는 중 · 실패 · 의견이 거기 있다.
+ * 없는 Match 와 못 보는 Match 는 같은 말로 거절한다(ADR 0007). 글이 있으면 만드는 단추가 없다(ADR 0038) — 글이 없을 때만 선다.
  */
 export default function MatchScreen() {
   const { matchId, from } = useLocalSearchParams<{ matchId: string; from?: string }>();
   const [outcome, setOutcome] = useState<Read<MatchOutcome> | null>(null);
-  const [reading, setReading] = useState<Read<MatchReading | null> | null>(null);
+  const [nickname, setNickname] = useState('');
   const [sheet, setSheet] = useState(false);
 
   const load = useCallback(async () => {
-    const next = await readMatchResult(matchId);
+    const [next, mine] = await Promise.all([readMatchResult(matchId), readMyNickname()]);
+    setNickname(mine);
     setOutcome(next);
-    if (next.ok && next.value.kind === 'ok') setReading(await readMatchReading(matchId, next.value.result.partnerNickname));
   }, [matchId]);
 
   useEffect(() => {
@@ -93,7 +95,6 @@ export default function MatchScreen() {
 
   const { result } = outcome.value;
   const tone = STEM_INFO[result.theirs.dayMaster].element;
-  const written = reading !== null && reading.ok ? reading.value : null;
 
   return (
     <View style={styles.screen}>
@@ -132,30 +133,51 @@ export default function MatchScreen() {
           menu={<ReportBlock userId={result.partnerUserId} nickname={result.partnerNickname} onBlocked={back} />}
         />
 
-        {reading !== null && !reading.ok && (
-          <Text style={styles.failure} accessibilityRole="alert">
-            {reading.reason}
-          </Text>
-        )}
-
-        {written !== null && written.metaphor !== null && <Text style={styles.metaphor}>{written.metaphor}</Text>}
-        {written !== null && written.score !== null && (
-          <View style={styles.score}>
-            <Text style={styles.scoreNumber}>{written.score}</Text>
-          </View>
-        )}
-
-        <View style={styles.pair}>
-          <Text style={styles.pairEyebrow}>각자의 사주</Text>
-          <Text style={styles.pairTitle}>궁합의 출발점</Text>
-          <Side name="나" chart={result.mine} who="첫 번째" />
-          <Side name={result.partnerNickname} chart={result.theirs} who="두 번째" />
-        </View>
-
-        {written !== null && <Text style={styles.body}>{written.body}</Text>}
+        <MatchReadingPanel
+          matchId={result.matchId}
+          nicknames={{ viewer: nickname, partner: result.partnerNickname }}
+          tones={[STEM_INFO[result.mine.dayMaster].element, tone]}
+          pair={
+            <View style={styles.pair}>
+              <Text style={styles.pairEyebrow}>각자의 사주</Text>
+              <Text style={styles.pairTitle}>궁합의 출발점</Text>
+              <Side name="나" chart={result.mine} who="첫 번째" />
+              <Side name={result.partnerNickname} chart={result.theirs} who="두 번째" />
+            </View>
+          }
+        />
       </ScrollView>
     </View>
   );
+}
+
+/** 풀이 칸 — 글은 문이 근거 절을 자르고 내준다(ADR 0008 · 0211). 동의가 만드는 글이라 `automatic` 이다(ADR 0038). 두 명식은 표지와 본문 사이에 선다 */
+function MatchReadingPanel({
+  matchId,
+  nicknames,
+  tones,
+  pair,
+}: {
+  matchId: string;
+  nicknames: { viewer: string; partner: string };
+  tones: readonly Element[];
+  pair: ReactNode;
+}) {
+  const target = useMemo<ReadingTarget>(() => ({ kind: 'match', matchId }), [matchId]);
+  const { answer, reload } = useReadingView(target);
+
+  if (answer === null) return <ActivityIndicator color={COLOR.secondary} />;
+  if ('refused' in answer) return <ReadFailure refused={answer.refused} onRetry={reload} />;
+  if (answer.view.view === 'blocked') {
+    return (
+      <Panel>
+        <Text style={styles.name}>{answer.view.title}</Text>
+        <Text style={styles.line}>{answer.view.detail}</Text>
+      </Panel>
+    );
+  }
+  if (answer.view.view !== 'reading') return null;
+  return <ReadingPanel target={target} view={answer.view} automatic nicknames={nicknames} tones={tones} betweenSummaryAndBody={pair} />;
 }
 
 function Back({ onPress }: { onPress: () => void }) {
@@ -212,9 +234,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 26, color: COLOR.secondary },
   closed: { padding: 20, borderRadius: RADIUS.panel, borderWidth: 1, borderStyle: 'dashed', borderColor: COLOR.borderStrong },
-  metaphor: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 30, color: COLOR.foreground },
-  score: { alignSelf: 'flex-start' },
-  scoreNumber: { fontFamily: FONT.bold, fontSize: TYPE.figure, lineHeight: 46, color: COLOR.foreground },
   pair: { gap: 12, padding: 16, borderRadius: RADIUS.panel, backgroundColor: COLOR.cream },
   pairEyebrow: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.creamInk },
   pairTitle: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground, marginTop: -8 },
@@ -222,5 +241,4 @@ const styles = StyleSheet.create({
   pillars: { flexDirection: 'row', gap: 6, marginTop: 8 },
   pillar: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 8, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
   glyph: { fontSize: 24, lineHeight: 30, color: COLOR.foreground },
-  body: { fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 28, color: COLOR.foreground },
 });
