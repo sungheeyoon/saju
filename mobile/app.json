@@ -8,12 +8,11 @@
     "scheme": "mannalmap",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.mannalmap.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#fff4e6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,24 +29,16 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#faf6ef",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
-        }
-      ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/BusanDandiMyeongjoM.otf",
-            "./assets/fonts/BusanDandiMyeongjoB.otf"
-          ]
+          "imageWidth": 200
         }
       ],
       "@react-native-google-signin/google-signin",
       [
         "expo-image-picker",
         {
+          "photosPermission": "프로필 사진을 등록할 때 이용해요.",
           "cameraPermission": false,
           "microphonePermission": false
         }
