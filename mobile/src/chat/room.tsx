@@ -43,6 +43,7 @@ import { Avatar } from './avatar';
 import { CompatChip, CompatRow } from './compat';
 import { BlockDialog, ReportDialog } from './dialogs';
 import { BackButton } from '@/ui/top-bar';
+import { CardFrame, Tile } from '@/ui/surfaces';
 
 import { ChatIcon } from './icons';
 import { AnchoredMenu, type MenuItem } from './menu';
@@ -272,10 +273,10 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
 
         <View style={styles.foot}>
           {closed ? (
-            <View accessibilityRole="text" style={styles.closed}>
+            <Tile tone={COLOR.surfaceSoft} accessibilityRole="text" style={styles.closed}>
               <ChatIcon name="lock" color={COLOR.secondary} size={16} />
               <Text style={styles.closedText}>{room.notice}</Text>
-            </View>
+            </Tile>
           ) : (
             <Composer
               matchId={room.matchId}
@@ -385,12 +386,12 @@ function StartSide({ label, stem, onOpen, openName }: { label: string; stem: Ste
   const element: Element = STEM_INFO[stem].element;
   const scale = ELEMENT_TONE[element];
   return (
-    <Pressable
+    <Tile tone={scale.soft}
       accessibilityRole={onOpen === null ? undefined : 'button'}
       accessibilityLabel={onOpen === null ? undefined : openName}
       disabled={onOpen === null}
       onPress={onOpen ?? undefined}
-      style={[styles.side, { backgroundColor: scale.soft }]}
+      style={styles.side}
     >
       <View style={styles.stemChip}>
         <ElementSymbol element={element} size={20} />
@@ -402,7 +403,7 @@ function StartSide({ label, stem, onOpen, openName }: { label: string; stem: Ste
         </Text>
         {onOpen !== null && <ChatIcon name="chevron" color={COLOR.secondary} size={16} />}
       </View>
-    </Pressable>
+    </Tile>
   );
 }
 
@@ -530,7 +531,7 @@ function Composer({ matchId, onSend, said }: { matchId: string; onSend: (body: s
 
   return (
     <View style={styles.composer}>
-      <View style={styles.pill}>
+      <CardFrame style={styles.pill}>
         <TextInput
           accessibilityLabel="메시지"
           multiline
@@ -544,7 +545,7 @@ function Composer({ matchId, onSend, said }: { matchId: string; onSend: (body: s
         <Pressable accessibilityRole="button" accessibilityLabel={CHAT_SEND_LABEL} onPress={send} style={styles.send}>
           <ChatIcon name="send" color={COLOR.onAccent} size={18} />
         </Pressable>
-      </View>
+      </CardFrame>
       {(body.length >= COUNT_FROM || failure !== null) && (
         <View style={styles.composerFoot}>
           <Text accessibilityRole={failure === null ? undefined : 'alert'} style={styles.composerFailure}>
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
   heading: { flexShrink: 1, fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
   activity: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   activityText: { fontSize: TYPE.fine, fontFamily: FONT.medium, color: COLOR.secondary },
-  dot: { width: 8, height: 8, borderRadius: 4 },
+  dot: { width: 8, height: 8, borderRadius: RADIUS.pill },
   dotNow: { backgroundColor: ELEMENT_TONE.木.ink },
   dotDay: { backgroundColor: ELEMENT_TONE.木.mid },
   dotEarlier: { borderWidth: 1, borderColor: COLOR.borderStrong },
@@ -598,10 +599,10 @@ const styles = StyleSheet.create({
   down: { transform: [{ rotate: '90deg' }] },
   freshText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
   foot: { padding: 10, borderTopWidth: 1, borderTopColor: COLOR.border },
-  closed: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.panel, backgroundColor: COLOR.surfaceSoft },
+  closed: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   closedText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   composer: { gap: 6 },
-  pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSoft },
+  pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 16, backgroundColor: COLOR.surfaceSoft },
   input: { flex: 1, minHeight: CONTROL, maxHeight: 144, paddingTop: 11, paddingBottom: 11, fontSize: TYPE.field, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.foreground },
   send: { width: CONTROL, height: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   composerFoot: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16 },
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
   speaker: { paddingHorizontal: 4, fontSize: TYPE.fine, fontFamily: FONT.medium, color: COLOR.secondary },
   line: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '80%', minWidth: 0 },
   lineMine: { flexDirection: 'row-reverse' },
-  bubble: { flexShrink: 1, paddingHorizontal: 16, paddingVertical: 10, borderRadius: RADIUS.panel },
+  bubble: { flexShrink: 1, paddingHorizontal: 16, paddingVertical: 10, borderRadius: RADIUS.card },
   cornerMine: { borderTopRightRadius: 6 },
   cornerTheirs: { borderTopLeftRadius: 6 },
   body: { fontSize: TYPE.body, lineHeight: 23, fontFamily: FONT.medium },
@@ -627,7 +628,7 @@ const styles = StyleSheet.create({
   startPlain: { alignItems: 'center', gap: 12, paddingTop: 16, paddingBottom: 8 },
   startName: { fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
   sides: { flexDirection: 'row', gap: 8, width: '100%' },
-  side: { flex: 1, minWidth: 0, gap: 8, padding: 16, borderRadius: RADIUS.panel },
+  side: { flex: 1, minWidth: 0, gap: 8, overflow: 'hidden' },
   stemChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingLeft: 4, paddingRight: 10, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 253, 249, 0.72)' },
   stemName: { fontSize: TYPE.fine, fontFamily: FONT.bold },
   sideName: { flexShrink: 1, fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },

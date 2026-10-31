@@ -9,9 +9,10 @@ import { receivedOf } from '@matching/requests';
 import { readMatchBooks, readMatches, readRequests, type MatchBook, type Read } from '@/matching/doors';
 import { PastRequestList } from '@/matching/requests';
 import { Icon } from '@/ui/icons';
-import { PrimaryButton } from '@/ui/parts';
+import { EmptyState } from '@/ui/empty-state';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
+import { CardFrame } from '@/ui/surfaces';
 
 type Loaded = { books: Read<readonly MatchBook[]>; matches: Read<readonly InboxMatch[]>; requests: Read<Requests> };
 
@@ -63,11 +64,9 @@ export default function MatchHistoryScreen() {
         )}
 
         {empty && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>아직 인연 기록이 없어요</Text>
-            <Text style={styles.line}>인연 요청을 주고받으면 여기에 기록이 남아요.</Text>
-            <PrimaryButton label="오늘의 인연 보기" onPress={() => router.navigate('/me/matching')} />
-          </View>
+          <EmptyState icon="people" title="아직 인연 기록이 없어요" action={{ label: '오늘의 인연 보기', onPress: () => router.navigate('/me/matching') }}>
+            인연 요청을 주고받으면 여기에 기록이 남아요.
+          </EmptyState>
         )}
 
         {(!whole || matchCount > 0) && (
@@ -79,20 +78,20 @@ export default function MatchHistoryScreen() {
             {books.ok ? (
               <>
                 {making.map((match) => (
-                  <Pressable key={match.matchId} accessibilityRole="link" onPress={() => router.push(`/me/match/${match.matchId}?from=history` as never)} style={styles.book}>
+                  <CardFrame key={match.matchId} accessibilityRole="link" onPress={() => router.push(`/me/match/${match.matchId}?from=history` as never)} style={styles.book}>
                     <Text style={[styles.bookName, styles.flex]} numberOfLines={1}>
                       {match.nickname}
                     </Text>
                     <Icon name="chevron" size={16} color={COLOR.muted} />
-                  </Pressable>
+                  </CardFrame>
                 ))}
                 {shelf.map((book) => (
-                  <Pressable key={book.key} accessibilityRole="link" onPress={() => router.push(book.href as never)} style={styles.book}>
+                  <CardFrame key={book.key} accessibilityRole="link" onPress={() => router.push(book.href as never)} style={styles.book}>
                     <Text style={[styles.bookName, styles.flex]} numberOfLines={1}>
                       {nameOf(book)}
                     </Text>
                     <Icon name="chevron" size={16} color={COLOR.muted} />
-                  </Pressable>
+                  </CardFrame>
                 ))}
                 {!matches.ok && <Failure onRetry={load}>만드는 중인 인연 궁합을 불러오지 못했어요.</Failure>}
               </>
@@ -139,14 +138,12 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   snack: { alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   snackText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.onAccent },
-  empty: { gap: 12, padding: 24, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
-  emptyTitle: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
   section: { gap: 16 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionTitle: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground },
   chip: { minWidth: 28, paddingHorizontal: 8, paddingVertical: 2, textAlign: 'center', borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.surfaceSunken, fontFamily: FONT.bold, fontSize: TYPE.fine, color: COLOR.secondary },
-  book: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  book: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, padding: 16 },
   bookName: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },

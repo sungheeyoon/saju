@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   tabMarkOn: { backgroundColor: ELEMENT_TONE.木.soft },
   tabLabel: { fontFamily: FONT.bold, fontSize: TYPE.fine, color: COLOR.secondary },
   tabLabelOn: { color: COLOR.foreground },
-  badge: { position: 'absolute', minWidth: 18, height: 18, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: COLOR.danger },
+  badge: { position: 'absolute', minWidth: 18, height: 18, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.danger },
   badgeText: { fontFamily: FONT.bold, fontSize: 11, color: COLOR.onAccent },
   toolBadge: { top: 4, right: 4 },
   tabBadge: { top: 0, left: '56%' },

@@ -8,8 +8,10 @@ import { when } from '@matching/requests';
 
 import { markNotificationsRead, readInbox, type Read } from '@/matching/doors';
 import { Icon, type IconName } from '@/ui/icons';
+import { EmptyState } from '@/ui/empty-state';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
+import { CardFrame } from '@/ui/surfaces';
 
 /** 사건마다 줄 머리의 그림 — 색이 아니라 모양이 갈래를 말한다. 웹의 표와 같고, 웹의 태극(`taiji`)은 앱에서 사람 둘이다 */
 const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
@@ -76,15 +78,11 @@ export default function RequestsScreen() {
               </Text>
             )}
             {inbox.value.notifications.length === 0 ? (
-              <View style={styles.empty}>
-                <View style={styles.emptyIcon}>
-                  <Icon size={20} name="bell" color={COLOR.creamInk} />
-                </View>
-                <Text style={styles.emptyTitle}>새로운 소식이 없어요</Text>
-                <Text style={styles.emptyLine}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</Text>
-              </View>
+              <EmptyState icon="bell" title="새로운 소식이 없어요">
+                새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.
+              </EmptyState>
             ) : (
-              <View style={styles.list}>
+              <CardFrame >
                 {inbox.value.notifications.map((item, index) => {
                   const warns = NOTIFICATION_WARNS.includes(item.kind);
                   const body = (
@@ -111,7 +109,7 @@ export default function RequestsScreen() {
                     </Pressable>
                   );
                 })}
-              </View>
+              </CardFrame>
             )}
           </>
         )}
@@ -127,20 +125,15 @@ const styles = StyleSheet.create({
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
-  empty: { alignItems: 'center', gap: 8, paddingVertical: 48 },
-  emptyIcon: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: COLOR.surfaceSunken },
-  emptyTitle: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
-  emptyLine: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary, textAlign: 'center' },
-  list: { borderRadius: RADIUS.panel, overflow: 'hidden', borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   rowLine: { borderTopWidth: 1, borderTopColor: COLOR.border },
   rowNew: { backgroundColor: COLOR.cream },
-  icon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  icon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },
   iconWarn: { backgroundColor: COLOR.warningWash },
   iconNew: { backgroundColor: COLOR.cream },
   iconOld: { backgroundColor: COLOR.surfaceSunken },
   text: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
   textNew: { fontFamily: FONT.bold, color: COLOR.foreground },
   meta: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
-  dot: { width: 8, height: 8, marginTop: 8, borderRadius: 4, backgroundColor: COLOR.danger },
+  dot: { width: 8, height: 8, marginTop: 8, borderRadius: RADIUS.pill, backgroundColor: COLOR.danger },
 });
