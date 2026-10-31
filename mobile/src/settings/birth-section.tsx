@@ -6,12 +6,25 @@ import { HOUR_UNKNOWN_LABEL, type Query } from '@input/query';
 import { UNREADABLE_INPUT_NOTE } from '@input/stored';
 import { CALENDAR_KO, GENDER_KO } from '@saju';
 
+import { UNREACHABLE } from '@/auth/signup';
 import { readAccount, readPersonDetail } from '@/people/data';
 import { EditInputForm } from '@/people/edit-input';
+import { settled } from '@/ui/settled';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { CardFrame } from '@/ui/surfaces';
 
-type MyBirth = { kind: 'none' } | { kind: 'unreadable'; message: string } | { kind: 'ready'; personId: string; query: Query };
+import { FailureLine } from './parts';
+
+type MyBirth = { kind: 'none' } | { kind: 'failed' } | { kind: 'unreadable'; message: string } | { kind: 'ready'; personId: string; query: Query };
+
+async function readMyBirth(): Promise<MyBirth> {
+  const { selfPersonId } = await readAccount();
+  if (selfPersonId === null) return { kind: 'none' };
+  const read = await readPersonDetail(selfPersonId);
+  const person = read.kind === 'ok' ? read.value.person : null;
+  if (person === null) return { kind: 'none' };
+  return person.chart.ok ? { kind: 'ready', personId: person.personId, query: person.chart.query } : { kind: 'unreadable', message: person.chart.message };
+}
 
 /**
  * 프로필의 **출생 정보** — 웹 `app/me/profile/birth-section.tsx`. 접어 두고 「수정」을 누르면 그 자리에 폼이 펴진다. 이름은 여기서 안 고친다 — 바로 위 닉네임 칸이 든다.
@@ -22,12 +35,7 @@ export function BirthSection() {
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const { selfPersonId } = await readAccount();
-    if (selfPersonId === null) return;
-    const read = await readPersonDetail(selfPersonId);
-    const person = read.kind === 'ok' ? read.value.person : null;
-    if (person === null) return;
-    setBirth(person.chart.ok ? { kind: 'ready', personId: person.personId, query: person.chart.query } : { kind: 'unreadable', message: person.chart.message });
+    setBirth(await settled(readMyBirth(), 'readMyBirth', () => ({ kind: 'failed' }) as const));
   }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 여는 때 읽는다 - setState 는 await 뒤라 렌더와 겹치지 않는다
@@ -35,6 +43,7 @@ export function BirthSection() {
   }, [load]);
 
   if (birth.kind === 'none') return null;
+  if (birth.kind === 'failed') return <FailureLine onRetry={() => void load()}>{UNREACHABLE}</FailureLine>;
   if (birth.kind === 'unreadable') {
     return (
       <CardFrame style={styles.panel}>

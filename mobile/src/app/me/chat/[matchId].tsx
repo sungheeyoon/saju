@@ -5,7 +5,9 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listenLive } from '@/chat/live';
+import { UNREACHABLE } from '@/auth/signup';
 import { AccountNotice, FailureLine, NoRoom } from '@/chat/notices';
+import { settled } from '@/ui/settled';
 import { noteActivity, readRoomScreen, type RoomScreen } from '@/chat/reads';
 import { ChatRoomView } from '@/chat/room';
 import { TopBar } from '@/ui/top-bar';
@@ -24,7 +26,7 @@ export default function ChatRoomScreen() {
   const live = useRef(true);
 
   const load = useCallback(async () => {
-    const next = await readRoomScreen(matchId);
+    const next = await settled(readRoomScreen(matchId), 'readRoomScreen', () => ({ kind: 'failed', message: UNREACHABLE }) as const);
     if (!live.current) return;
     if (next.kind === 'signed-out') router.replace('/');
     /* 선 화면을 다시 읽다 실패하면 가진 것을 그대로 둔다 — 다음 다시 대조가 메운다 */
