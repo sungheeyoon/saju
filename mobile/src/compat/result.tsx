@@ -28,9 +28,9 @@ import { UtteranceList } from '@/chart/relations';
 import { DayMasterChip, PillarStrip, styles as shared } from '@/people/parts';
 import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
-import { Panel } from '@/ui/parts';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, CardFrame, Paper, Tile } from '@/ui/surfaces';
 
 import type { PairOutcome } from './data';
 
@@ -65,19 +65,19 @@ export function CompatResult({ outcome, onReadingChanged }: { outcome: Ok; onRea
         </View>
       </View>
 
-      <Panel tone="cream" style={styles.board}>
+      <Paper style={styles.board}>
         <Text style={styles.boardEyebrow}>각자의 사주</Text>
         <Text style={shared.section}>궁합의 출발점</Text>
         {SIDES.map((side) => (
           <PairSide key={side} side={side} name={names[side]} saju={charts[side]} />
         ))}
-      </Panel>
+      </Paper>
 
       <Fold title="두 사주를 맞대어 본 표" note="사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.">
         <Between compat={compat} names={names} />
       </Fold>
 
-      <Panel style={styles.index}>
+      <Card style={styles.index}>
         <View style={styles.indexHead}>
           <Text style={styles.betaTag}>궁합 베타</Text>
           {preview.policy === null ? (
@@ -86,13 +86,13 @@ export function CompatResult({ outcome, onReadingChanged }: { outcome: Ok; onRea
             <Text style={styles.policyTag}>{POLICY_BADGE[preview.policy]}</Text>
           )}
         </View>
-        <View style={styles.score}>
+        <Paper style={styles.score}>
           <Text style={styles.scoreNames}>
             {names.a} × {names.b}
           </Text>
           <Text style={styles.scoreValue}>{preview.index}</Text>
           <Text style={styles.scoreNames}>100점 만점 베타 탐색 지표</Text>
-        </View>
+        </Paper>
         {preview.dimensions.map((dimension) => (
           <View key={dimension.key}>
             <View style={styles.dimensionHead}>
@@ -108,7 +108,7 @@ export function CompatResult({ outcome, onReadingChanged }: { outcome: Ok; onRea
             <Text style={[shared.meta, styles.dimensionNote]}>{dimension.description}</Text>
           </View>
         ))}
-      </Panel>
+      </Card>
 
       <Text style={shared.meta}>이 점수는 명리 자료에서 자주 다루는 기준을 조합한 베타 참고값입니다. 실제 관계의 결과를 예측하거나 두 사람의 좋고 나쁨을 판정하지 않습니다.</Text>
 
@@ -144,10 +144,10 @@ function PairReadingPanel({
   if ('refused' in answer) return <ReadFailure refused={answer.refused} onRetry={reload} />;
   if (answer.view.view === 'blocked') {
     return (
-      <Panel style={styles.reading}>
+      <CardFrame style={styles.reading}>
         <Text style={shared.noticeTitle}>{answer.view.title}</Text>
         <Text style={shared.body}>{answer.view.detail}</Text>
-      </Panel>
+      </CardFrame>
     );
   }
   if (answer.view.view !== 'reading') return null;
@@ -174,7 +174,7 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
   const stem = saju.pillars.dayMaster;
   const dayMaster = STEM_INFO[stem];
   return (
-    <View style={[styles.tile, { backgroundColor: ELEMENT_TONE[dayMaster.element].soft }]}>
+    <Tile tone={ELEMENT_TONE[dayMaster.element].soft} style={styles.tile}>
       <View style={styles.watermark}>
         <StemSymbol stem={stem} size={112} opacity={0.14} />
       </View>
@@ -188,7 +188,7 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
         </Text>
       </View>
       <PillarStrip pillars={saju.pillars} name={name} large />
-    </View>
+    </Tile>
   );
 }
 
@@ -310,27 +310,27 @@ const styles = StyleSheet.create({
   pairMark: { flexDirection: 'row' },
   circle: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 3, borderColor: COLOR.background },
   circleShifted: { marginLeft: -12 },
-  board: { padding: 16, gap: 10 },
+  board: { gap: 12, padding: 16 },
   boardEyebrow: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.creamInk },
-  tile: { gap: 10, padding: 16, borderRadius: 16, overflow: 'hidden' },
+  tile: { gap: 12, overflow: 'hidden' },
   watermark: { position: 'absolute', right: -20, top: -20 },
-  index: { padding: 16, gap: 16 },
+  index: { gap: 24 },
   indexHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   betaTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.cream, fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.creamInk },
   policyTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
-  score: { alignItems: 'center', gap: 4, paddingVertical: 20, paddingHorizontal: 16, borderRadius: 16, backgroundColor: COLOR.cream },
+  score: { alignItems: 'center', gap: 4, paddingHorizontal: 20, paddingVertical: 24 },
   scoreNames: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.creamInk, textAlign: 'center' },
-  scoreValue: { fontSize: 56, lineHeight: 62, fontFamily: FONT.bold, color: COLOR.foreground },
+  scoreValue: { fontSize: 56, lineHeight: 56, fontFamily: FONT.bold, color: COLOR.foreground },
   dimensionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
   dimensionLabel: { flex: 1, fontSize: TYPE.body, lineHeight: 22, fontFamily: FONT.bold, color: COLOR.foreground },
   dimensionValue: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   track: { height: 10, marginTop: 8, borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.track },
   bar: { height: '100%', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   dimensionNote: { marginTop: 6 },
-  reading: { padding: 16, gap: 10 },
+  reading: { gap: 12, padding: 20 },
   between: { gap: 20 },
   part: { gap: 8 },
-  dayToDay: { gap: 4, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSunken },
+  dayToDay: { gap: 4, padding: 12, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surfaceSunken },
   table: { gap: 2 },
   tableRow: { flexDirection: 'row', gap: 8, paddingVertical: 6 },
   tableLine: { borderTopWidth: 1, borderTopColor: COLOR.border },

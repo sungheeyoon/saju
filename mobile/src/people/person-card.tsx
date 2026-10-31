@@ -15,6 +15,7 @@ import { EditInputForm } from './edit-input';
 import { NoteEditor, RemoveConfirm } from './manage';
 import { DayMasterChip, PillarStrip, Sheet, SheetItem, go, styles as shared } from './parts';
 import { StemSymbol } from '@/ui/stem-symbol';
+import { Tile } from '@/ui/surfaces';
 
 type Panel = 'menu' | 'edit-input' | 'note' | 'remove';
 
@@ -49,11 +50,11 @@ export function PersonCard({
 
   return (
     <View style={styles.item}>
-      <Pressable
+      <Tile tone={tone?.soft ?? COLOR.noneSoft}
         accessibilityRole="link"
         accessibilityLabel={person.label}
         onPress={() => go(`/me/people/${person.personId}`)}
-        style={[styles.tile, { backgroundColor: tone?.soft ?? COLOR.noneSoft }]}
+        style={styles.tile}
       >
         {stem !== null && (
           <View style={styles.watermark}>
@@ -106,9 +107,9 @@ export function PersonCard({
               <Pressable
                 accessibilityRole="link"
                 onPress={() => go(`/me/readings/${person.personId}`)}
-                style={[styles.button, styles.grow, reading === null ? styles.buttonPrimary : styles.buttonPlain]}
+                style={[styles.button, styles.grow, reading === null ? styles.buttonPrimary : [styles.buttonPlain, { borderColor: `${tone?.ink ?? COLOR.none}2e` }]]}
               >
-                <Text style={[styles.buttonText, reading === null && styles.buttonPrimaryText]} numberOfLines={1}>
+                <Text style={[styles.buttonText, { color: tone?.ink ?? COLOR.none }, reading === null && styles.buttonPrimaryText]} numberOfLines={1}>
                   {reading !== null ? '사주풀이 보기' : making ? SELF_READING_MAKING : '사주풀이 받기'}
                 </Text>
               </Pressable>
@@ -116,9 +117,9 @@ export function PersonCard({
                 accessibilityRole="link"
                 accessibilityLabel={pair?.score != null ? `나와 궁합 ${pair.score}점` : '나와 궁합'}
                 onPress={() => go(pair !== null ? `/me/compat?a=${pair.personA}&b=${pair.personB}` : compatPickHref(selfPersonId, person.personId))}
-                style={[styles.button, styles.buttonPlain]}
+                style={[styles.button, styles.buttonPlain, { borderColor: `${tone?.ink ?? COLOR.none}2e` }]}
               >
-                <Text style={styles.buttonText}>{pair?.score != null ? `${pair.score}점` : '궁합'}</Text>
+                <Text style={[styles.buttonText, { color: tone?.ink ?? COLOR.none }]}>{pair?.score != null ? `${pair.score}점` : '궁합'}</Text>
               </Pressable>
             </View>
           </>
@@ -132,7 +133,7 @@ export function PersonCard({
         <Pressable accessibilityRole="button" accessibilityLabel={`${person.label} 관리`} onPress={() => setPanel('menu')} style={styles.manage}>
           <Text style={styles.manageDots}>⋯</Text>
         </Pressable>
-      </Pressable>
+      </Tile>
 
       {panel === 'edit-input' && person.chart.ok && <EditInputForm personId={person.personId} current={person.chart.query} onDone={done} onCancel={() => setPanel(null)} />}
       {panel === 'note' && <NoteEditor personId={person.personId} note={person.note ?? ''} onDone={done} onCancel={() => setPanel(null)} />}
@@ -155,20 +156,20 @@ const compatPickHref = (selfPersonId: string | null, personId: string): string =
 
 const styles = StyleSheet.create({
   item: { gap: 8 },
-  tile: { gap: 10, padding: 16, borderRadius: RADIUS.panel, overflow: 'hidden' },
+  tile: { gap: 12, overflow: 'hidden' },
   watermark: { position: 'absolute', right: -24, bottom: -24 },
   head: { minHeight: CONTROL, justifyContent: 'center', paddingRight: 52 },
   unknown: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 253, 249, 0.72)' },
-  note: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255, 253, 249, 0.6)', fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.foreground },
+  note: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.cell, backgroundColor: 'rgba(255, 253, 249, 0.6)', fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.foreground },
   noteName: { fontSize: TYPE.fine, fontFamily: FONT.bold },
-  oneLine: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.foreground },
+  oneLine: { minHeight: 40, fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.foreground },
   stale: { fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.secondary },
   buttons: { flexDirection: 'row', gap: 8, paddingTop: 4 },
   grow: { flex: 1 },
-  button: { minHeight: CONTROL, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, borderRadius: RADIUS.pill },
-  buttonPlain: { backgroundColor: COLOR.surface },
+  button: { minHeight: CONTROL, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderRadius: RADIUS.pill },
+  buttonPlain: { borderWidth: 1, backgroundColor: 'rgba(255, 253, 249, 0.78)' },
   buttonPrimary: { backgroundColor: COLOR.accent },
-  buttonText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
+  buttonText: { fontSize: TYPE.small, fontFamily: FONT.bold },
   buttonPrimaryText: { color: COLOR.onAccent },
   unreadable: { gap: 4 },
   manage: { position: 'absolute', top: 12, right: 12, width: CONTROL, height: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },

@@ -7,7 +7,8 @@ import { userFacingDbMessage } from '@db-error';
 
 import { supabase } from '@/auth/client';
 import { PrimaryButton } from '@/ui/parts';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 
 /** 웹의 `--danger-wash` */
 const DANGER_WASH = '#faeae7';
@@ -48,7 +49,7 @@ export function WarningNotice() {
 
   return (
     <View style={styles.wrap}>
-      <View accessibilityLabel={WARNING_NOTICE_TITLE} style={styles.card}>
+      <CardFrame accessibilityLabel={WARNING_NOTICE_TITLE} style={styles.card}>
         <Text accessibilityRole="header" style={styles.title}>{WARNING_NOTICE_TITLE}</Text>
         <View style={styles.lines}>
           {warningNoticeLines(notice, SUPPORT_EMAIL).map((line) => (
@@ -57,14 +58,14 @@ export function WarningNotice() {
         </View>
         <PrimaryButton label={WARNING_ACKNOWLEDGE_LABEL} onPress={() => void acknowledge()} disabled={saving} />
         {failure !== null && <Text accessibilityRole="alert" style={styles.failure}>{failure}</Text>}
-      </View>
+      </CardFrame>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-  card: { gap: 12, padding: 20, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: 'rgba(163, 71, 63, 0.4)', backgroundColor: DANGER_WASH },
+  card: { gap: 12, padding: 20, borderColor: 'rgba(163, 71, 63, 0.4)', backgroundColor: DANGER_WASH },
   title: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.danger },
   lines: { gap: 4 },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },

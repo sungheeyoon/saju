@@ -9,10 +9,11 @@ import { HOUR_UNKNOWN_LABEL } from '@input/query';
 import { BRANCH_INFO, STEM_INFO, type Branch, type Stem } from '@saju';
 import { PILLAR_COLUMNS, STEM_PICTURE } from '@saju-view';
 
-import { KeyboardDoneBar, Panel, TextButton } from '@/ui/parts';
+import { KeyboardDoneBar, TextButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { StemSymbol } from '@/ui/stem-symbol';
+import { CardFrame, SheetPanel } from '@/ui/surfaces';
 
 /** 아직 없는 경로도 그대로 잇는다 — 나란히 짓는 화면이 그 자리에 선다 */
 export const go = (path: string) => router.push(path as Href);
@@ -58,10 +59,10 @@ export function AccountNotice({ state, onRetry }: { state: AccountState; onRetry
   const text = accountNoticeOf(state, SUPPORT_EMAIL);
   if (text === null) return null;
   return (
-    <Panel style={styles.notice}>
+    <CardFrame style={styles.notice}>
       <Text style={styles.noticeTitle}>{text.title}</Text>
       <Text style={styles.noticeBody}>{text.detail}</Text>
-    </Panel>
+    </CardFrame>
   );
 }
 
@@ -128,8 +129,8 @@ export function Sheet({ onClose, label, children }: { onClose: () => void; label
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <Pressable accessibilityLabel={label} onPress={onClose} style={styles.backdrop}>
-        <Pressable onPress={() => undefined} style={styles.sheet}>
-          {children}
+        <Pressable onPress={() => undefined}>
+          <SheetPanel style={styles.sheet}>{children}</SheetPanel>
         </Pressable>
       </Pressable>
     </Modal>
@@ -187,30 +188,30 @@ const GLYPH_FONT = Platform.select({ ios: 'System', android: 'sans-serif', defau
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
-  title: { fontSize: TYPE.title, lineHeight: 34, fontFamily: FONT.bold, color: COLOR.foreground },
-  section: { fontSize: TYPE.heading, lineHeight: 28, fontFamily: FONT.bold, color: COLOR.foreground },
+  title: { fontSize: TYPE.title, lineHeight: 35, fontFamily: FONT.bold, color: COLOR.foreground },
+  section: { fontSize: TYPE.heading, lineHeight: 29, fontFamily: FONT.bold, color: COLOR.foreground },
   name: { fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
-  body: { fontSize: TYPE.body, lineHeight: 23, fontFamily: FONT.medium, color: COLOR.secondary },
+  body: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   bodyStrong: { fontFamily: FONT.bold, color: COLOR.foreground },
-  meta: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.secondary },
+  meta: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   failureBox: { gap: 2 },
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
-  notice: { gap: 4, padding: 16 },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
   noticeTitle: { fontSize: TYPE.body, lineHeight: 22, fontFamily: FONT.bold, color: COLOR.foreground },
-  noticeBody: { fontSize: TYPE.sm, lineHeight: 21, fontFamily: FONT.medium, color: COLOR.secondary },
+  noticeBody: { fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   notFound: { gap: 6, paddingVertical: 40, alignItems: 'center' },
   notFoundActions: { alignSelf: 'stretch', gap: 8, marginTop: 16 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4, paddingLeft: 4, paddingRight: 10, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 253, 249, 0.72)' },
   chipText: { fontSize: TYPE.fine, fontFamily: FONT.bold },
   strip: { flexDirection: 'row', gap: 6 },
-  pillar: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6, borderRadius: 10, backgroundColor: 'rgba(255, 253, 249, 0.78)' },
+  pillar: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6, borderRadius: RADIUS.cell, backgroundColor: 'rgba(255, 253, 249, 0.78)' },
   pillarDay: { borderWidth: 2, borderColor: 'rgba(38, 36, 31, 0.22)' },
   pillarLabel: { fontSize: 11, fontFamily: FONT.bold, color: COLOR.secondary },
   pillarRow: { flexDirection: 'row' },
   glyph: { fontSize: TYPE.lead, lineHeight: 22, fontWeight: '600', fontFamily: GLYPH_FONT, textAlign: 'center' },
   glyphLarge: { fontSize: TYPE.title, lineHeight: 32 },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(38, 36, 31, 0.4)' },
-  sheet: { gap: 10, padding: 20, paddingBottom: 32, borderTopLeftRadius: RADIUS.panel, borderTopRightRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  sheet: { gap: 10, padding: 20, paddingBottom: 32 },
   sheetItem: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 4 },
   sheetItemText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.foreground },
   dialogActions: { flexDirection: 'row', gap: 8, marginTop: 6 },

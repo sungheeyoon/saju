@@ -11,6 +11,7 @@ import { ElementSymbol } from '@/ui/element-symbol';
 import { Icon } from '@/ui/icons';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 
 import { readingDate, type HomePerson, type ReadingRow, type RunningLine } from './read';
 
@@ -58,7 +59,7 @@ function MoreList({ shown, rows, tail }: { shown: number; rows: readonly ReactNo
   const [open, setOpen] = useState(false);
   const more = rows.length > shown;
   return (
-    <View style={styles.list}>
+    <CardFrame >
       {open || !more ? rows : rows.slice(0, shown)}
       {tail}
       {more && (
@@ -66,7 +67,7 @@ function MoreList({ shown, rows, tail }: { shown: number; rows: readonly ReactNo
           <Text style={styles.moreText}>{open ? '접기' : '더보기'}</Text>
         </Pressable>
       )}
-    </View>
+    </CardFrame>
   );
 }
 
@@ -74,7 +75,7 @@ function MoreList({ shown, rows, tail }: { shown: number; rows: readonly ReactNo
 export function RunningReadings({ running }: { running: readonly RunningLine[] }) {
   if (running.length === 0) return null;
   return (
-    <View style={styles.list}>
+    <CardFrame >
       {running.map((line) => (
         <Row key={line.key} onPress={line.href === null ? undefined : () => go(line.href as string)}>
           <View style={styles.body}>
@@ -83,20 +84,20 @@ export function RunningReadings({ running }: { running: readonly RunningLine[] }
           </View>
         </Row>
       ))}
-    </View>
+    </CardFrame>
   );
 }
 
 /** 다른 사람 사주 보기 — 저장하지 않고 한 사람을 계산하는 자리. 앱에서는 입력 화면이 그 자리다 */
 export function OtherSaju() {
   return (
-    <View style={styles.list}>
+    <CardFrame >
       <Row onPress={() => go('/?another=1')}>
         <IconMark><Icon name="search" size={20} /></IconMark>
         <Text style={[styles.name, styles.body]}>다른 사람 사주 보기</Text>
         <Icon name="chevron" size={16} color={COLOR.muted} />
       </Row>
-    </View>
+    </CardFrame>
   );
 }
 
@@ -182,12 +183,12 @@ export function SavedPeople({ people, slots }: { people: readonly HomePerson[]; 
         link={people.length > 0 ? { label: '관리', name: '저장한 사람 관리', href: '/me/people' } : undefined}
       />
       {people.length === 0 ? (
-        <View style={styles.list}>
+        <CardFrame >
           <View style={styles.row}>
             <Text style={styles.empty}>가족이나 친구의 출생 정보를 저장하고 관리하세요.</Text>
           </View>
           {add}
-        </View>
+        </CardFrame>
       ) : (
         <MoreList shown={PEOPLE_SHOWN} rows={people.map((person) => <PersonRow key={person.personId} person={person} />)} tail={full ? undefined : add} />
       )}
@@ -204,10 +205,9 @@ const styles = StyleSheet.create({
   count: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
   headLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 2 },
   headLinkText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
-  list: { borderRadius: RADIUS.panel, backgroundColor: COLOR.surface, borderWidth: 1, borderColor: COLOR.border, overflow: 'hidden' },
-  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLOR.border, marginTop: -StyleSheet.hairlineWidth },
+  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLOR.border, marginTop: -1 },
   pressed: { backgroundColor: COLOR.surfaceSunken },
-  mark: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  mark: { width: 40, height: 40, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0 },
   line: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   grow: { flex: 1 },
@@ -217,8 +217,9 @@ const styles = StyleSheet.create({
   date: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted },
   value: { width: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
   valueText: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
-  more: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLOR.border },
+  more: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLOR.border },
   moreText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
   empty: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
   full: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
+  other: { paddingVertical: 4 },
 });

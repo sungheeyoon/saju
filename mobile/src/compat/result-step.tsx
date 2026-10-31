@@ -6,9 +6,10 @@ import { UNREADABLE_INPUT_NOTE } from '@input/stored';
 
 import type { Read } from '@/people/data';
 import { AccountNotice, FailureLine, NotFound, ScreenFrame, styles as shared } from '@/people/parts';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
 import { COLOR } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
 import { settled } from '@/ui/settled';
 import { UNREACHABLE } from '@/auth/signup';
 
@@ -76,7 +77,7 @@ export function CompatResultStep({ a, b, back: to }: { a: string; b: string; bac
   return (
     <ScreenFrame bar={<TopBar title="궁합" fallback="/me/compat" />}>
       <Text style={shared.title}>궁합을 볼 수 없습니다</Text>
-      <Panel style={styles.refusal}>
+      <Card style={styles.refusal}>
         {outcome.kind === 'same' ? (
           <Text style={shared.body}>같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.</Text>
         ) : (
@@ -85,7 +86,7 @@ export function CompatResultStep({ a, b, back: to }: { a: string; b: string; bac
             <Text style={shared.meta}>{UNREADABLE_INPUT_NOTE}</Text>
           </>
         )}
-      </Panel>
+      </Card>
     </ScreenFrame>
   );
 }

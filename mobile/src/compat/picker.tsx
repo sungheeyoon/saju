@@ -13,8 +13,9 @@ import { FailureLine, styles as shared } from '@/people/parts';
 import { SameChartAsk, type SameChartQuestion } from '@/people/same-chart-ask';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { ElementSymbol } from '@/ui/element-symbol';
-import { Choices, Field, Panel, PrimaryButton } from '@/ui/parts';
+import { Choices, Field, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 import { settled } from '@/ui/settled';
 
 import { openPair, readPairRelation, type Choosable, type PairAnswers, type PairSide } from './data';
@@ -133,8 +134,8 @@ export function CompatPicker({ people, pickA, pickB }: { people: readonly Choosa
   const reasonIsError = sameTwice || tried;
 
   return (
-    <Panel style={styles.frame}>
-      <Text style={shared.name}>누구와 누구를 볼까요?</Text>
+    <CardFrame >
+      <Text style={[shared.name, styles.frameTitle]}>누구와 누구를 볼까요?</Text>
       {SIDES.map((side) => (
         <View key={side} style={styles.side}>
           {side === 'b' && <Text style={styles.times}>×</Text>}
@@ -198,7 +199,7 @@ export function CompatPicker({ people, pickA, pickB }: { people: readonly Choosa
         )}
         {failure !== null && <FailureLine>{failure}</FailureLine>}
       </View>
-    </Panel>
+    </CardFrame>
   );
 }
 
@@ -261,17 +262,16 @@ function Face({ person }: { person: Choosable }) {
 }
 
 const styles = StyleSheet.create({
-  frame: { padding: 16, gap: 14 },
-  side: { gap: 8 },
+  side: { gap: 12, padding: 20 },
   times: { alignSelf: 'center', fontSize: 24, fontFamily: FONT.medium, color: COLOR.secondary },
-  relation: { gap: 10, paddingTop: 14, borderTopWidth: 1, borderTopColor: COLOR.border },
+  relation: { gap: 10, padding: 20, borderTopWidth: 1, borderTopColor: COLOR.border, backgroundColor: `${COLOR.surfaceSoft}99` },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 14, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   chipOn: { borderColor: COLOR.borderStrong, backgroundColor: COLOR.accentWash },
   chipText: { fontSize: TYPE.sm, fontFamily: FONT.medium, color: COLOR.secondary },
   chipTextOn: { fontFamily: FONT.bold, color: COLOR.foreground },
-  reason: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.secondary, textAlign: 'right' },
-  reasonError: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.bold, color: COLOR.danger, textAlign: 'right' },
+  reason: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary, textAlign: 'right' },
+  reasonError: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.bold, color: COLOR.danger, textAlign: 'right' },
   choice: { gap: 6 },
   choiceHead: { minHeight: CONTROL + 4, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   choiceOpen: { borderColor: COLOR.creamInk },
@@ -283,4 +283,5 @@ const styles = StyleSheet.create({
   menuEmpty: { padding: 14 },
   menuItem: { minHeight: CONTROL, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
   menuChosen: { backgroundColor: COLOR.accentWash },
+  frameTitle: { paddingHorizontal: 20, paddingTop: 24 },
 });
