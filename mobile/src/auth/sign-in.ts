@@ -19,16 +19,17 @@ export async function signInWithGoogle(): Promise<SignInAnswer> {
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (supabase === null || !webClientId) return notReady();
 
-  const { data: current } = await supabase.auth.getSession();
-  if (current.session === null) {
-    let google: typeof import('@react-native-google-signin/google-signin');
-    try {
-      google = require('@react-native-google-signin/google-signin');
-    } catch {
-      return notReady();
-    }
+  /* 세션 저장소 · 가입 읽기가 던져도 답이다 — 부르는 화면들이 「이동하는 중」을 이 답을 받아 내린다 */
+  try {
+    const { data: current } = await supabase.auth.getSession();
+    if (current.session === null) {
+      let google: typeof import('@react-native-google-signin/google-signin');
+      try {
+        google = require('@react-native-google-signin/google-signin');
+      } catch {
+        return notReady();
+      }
 
-    try {
       /* iOS 는 이 값이 없으면 부를 때 던진다(`GoogleService-Info.plist` 를 안 쓴다). 안드로이드는 안 읽는다 */
       google.GoogleSignin.configure({ webClientId, iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID });
       await google.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -42,13 +43,13 @@ export async function signInWithGoogle(): Promise<SignInAnswer> {
         console.error('signInWithIdToken', error.code, error.message);
         return { kind: 'failed', message: FAILED };
       }
-    } catch (thrown) {
-      console.error('google sign-in', thrown);
-      return { kind: 'failed', message: FAILED };
     }
-  }
 
-  return accountAnswer();
+    return await accountAnswer();
+  } catch (thrown) {
+    console.error('google sign-in', thrown);
+    return { kind: 'failed', message: FAILED };
+  }
 }
 
 /** 가입 화면이 끝난 사람만 지나간다 — 일정이 없거나 테스트가 끝났을 때의 말도 가입 화면이 한다 */

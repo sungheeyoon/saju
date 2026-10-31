@@ -56,6 +56,66 @@ export function unhandledThens(name: string, text: string): number[] {
   return lines;
 }
 
+/** 받아 주는 코드가 그 함수 안에 있는 부름 — 인자로 넘긴 읽기가 던져도 값으로 끝난다 */
+const SESSION_GUARDS = new Set(['settled', 'doing', 'askDoor']);
+
+/**
+ * `try` 밖에서 세션을 읽어도 되는 자리와 그 까닭 — 세션 저장소가 던지는 날 **누른 단추가 멈추지 않는** 자리만 든다.
+ * 멈추는 자리는 표에 올리지 않고 `try` 안으로 넣는다.
+ */
+const BARE_SESSION_READS: Record<string, string> = {
+  'mobile/src/auth/signup.ts': '읽기다 — 화면은 settled, 로그인은 제 try 로 받는다',
+  'mobile/src/chat/reads.ts': '여는 읽기다 — 누름이 없다',
+  'mobile/src/home/gate.ts': 'readGate 가 settled 로 받는다',
+  'mobile/src/home/read.ts': '여는 읽기다 — 누름이 없다',
+  'mobile/src/info/go-home.ts': '잡은 상태가 없다 — 단추는 다시 누를 수 있다',
+  'mobile/src/people/data.ts': '여는 읽기다 — 누름이 없다',
+  'mobile/src/reading/save-self.tsx': '여는 읽기다 — 누름이 없다',
+  'mobile/src/settings/photos.ts': '그림 읽기다 — 누른 자리도 상태를 잡기 전이다',
+  'mobile/src/settings/settings.ts': '여는 읽기다 — 누름이 없다',
+  'mobile/src/ui/photo.tsx': '부르는 자리가 settled 로 받는다',
+};
+
+/** `try` 의 본문에도, 받아 주는 부름의 인자에도 들지 않은 `.getSession(` 의 줄 */
+export function bareSessionReads(name: string, text: string): number[] {
+  const source = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, name.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const guarded = (node: ts.Node): boolean => {
+    const above = node.parent;
+    if (above === undefined) return false;
+    if (ts.isTryStatement(above) && above.tryBlock === node) return true;
+    if (ts.isCallExpression(above) && ts.isIdentifier(above.expression) && SESSION_GUARDS.has(above.expression.text)) return true;
+    return guarded(above);
+  };
+  const lines: number[] = [];
+  const visit = (node: ts.Node) => {
+    if (callNamed(node, 'getSession') && !guarded(node)) lines.push(source.getLineAndCharacterOfPosition(node.expression.name.getStart()).line + 1);
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return lines;
+}
+
+describe('앱의 세션 읽기', () => {
+  it('try 밖의 세션 읽기는 까닭을 단 자리뿐이다', () => {
+    const found = filesUnder(join(ROOT, 'mobile/src'))
+      .filter((file) => /\.tsx?$/.test(file) && bareSessionReads(file, readFileSync(file, 'utf8')).length > 0)
+      .map((file) => relative(ROOT, file));
+    expect(found.sort()).toEqual(Object.keys(BARE_SESSION_READS).sort());
+  });
+
+  it.each([
+    ['맨 부름', `const { data } = await s.auth.getSession();`, 1],
+    ['try 안', `try { await s.auth.getSession(); } catch {}`, 0],
+    ['catch 안', `try { a(); } catch { await s.auth.getSession(); }`, 1],
+    ['받아 주는 부름의 인자', `void settled(s.auth.getSession(), 'x', f);`, 0],
+    ['문의 토큰 읽기', `askDoor(async () => (await s.auth.getSession()).data, send);`, 0],
+    ['doing 안', `doing(async () => { await s.auth.getSession(); });`, 0],
+    ['다른 부름의 인자', `Promise.all([s.auth.getSession()]);`, 1],
+  ])('%s', (_name, text, count) => {
+    expect(bareSessionReads('a.ts', text)).toHaveLength(count);
+  });
+});
+
 describe('앱의 읽기', () => {
   it('mobile/src 에 거절을 안 받는 .then( 이 없다', () => {
     const found = filesUnder(join(ROOT, 'mobile/src'))
