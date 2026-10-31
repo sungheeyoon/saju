@@ -73,6 +73,6 @@ PR 의 필수는 이제 한 job 이 아니라 **독립 차선**이다 — `core`
 ## 덧 (2026-10-31) — 앱이 부르는 자리가 바뀐 PR 은 `mobile` 차선이 머지를 막는다
 
 뿌리 tsconfig 가 `mobile` 을 빼서 앱 파일의 타입을 재는 CI 가 없었고, 앱 파일에 타입 오류를 든 PR 이 머지될 뻔했다. 차선 `mobile` 을 더한다 —
-`mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo export --platform android` 다. 앱이 부르는 자리(`ci-plan.mjs` 의 `MOBILE_REACH` — `mobile/**` · `src/lib/**` ·
+`mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo lint` · `npx expo export --platform android` 다. 앱이 부르는 자리(`ci-plan.mjs` 의 `MOBILE_REACH` — `mobile/**` · `src/lib/**` ·
 `app/` 의 그 파일들, 문서와 시험은 빼고)와 CI 자체가 바뀐 PR 에서 돌고 `gate` 가 물린다. **넓히기만 한다** — 건너뛰던 것을 더 돌릴 뿐 지금 차선은 그대로다.
 번들을 넣은 까닭은 타입이 못 보는 실패(Metro 가 못 푸는 `require` · Hermes 컴파일)이고, 잰 값은 그 PR 에 있다. `scripts/mobile-closure.test.ts` 가 앱이 닿는 웹 쪽 파일이 전부 이 목록에 걸리는지 잰다.

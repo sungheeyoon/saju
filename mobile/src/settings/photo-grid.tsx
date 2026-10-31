@@ -68,6 +68,7 @@ export function PhotoGrid({
 }) {
   const paused = uploads === 'paused';
   const [order, setOrder] = useState(photos);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 끄는 동안의 차례를 들다가 새 목록이 오면 그 목록으로 돌아간다
   useEffect(() => setOrder(photos), [photos]);
   const total = order.length;
 
@@ -394,6 +395,7 @@ function Liftable({
   onDrop: (to: number) => void;
 }) {
   const live = useRef(props);
+  // eslint-disable-next-line react-hooks/refs -- 최신 콜백을 효과에 넘기는 ref - 렌더 값으로 안 쓴다
   live.current = props;
   const press = useRef({ timer: null as ReturnType<typeof setTimeout> | null, lifted: false, moved: false, over: null as number | null });
 
@@ -413,6 +415,7 @@ function Liftable({
   };
 
   const responder = useRef(
+    // eslint-disable-next-line react-hooks/refs -- PanResponder 는 한 번 만들고 핸들러 안에서만 ref 를 읽는다
     PanResponder.create({
       onStartShouldSetPanResponder: () => !live.current.busy,
       onPanResponderTerminationRequest: () => !press.current.lifted,
@@ -448,6 +451,7 @@ function Liftable({
 
   return (
     <View
+      // eslint-disable-next-line react-hooks/refs -- PanResponder 는 한 번 만들고 핸들러 안에서만 ref 를 읽는다
       {...responder.panHandlers}
       accessible
       accessibilityRole="button"

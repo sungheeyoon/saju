@@ -70,7 +70,7 @@ PR 마다 `gate` 의 최신 실행을 읽는다(`docs/ops/runbook/deploy.md` 「
 한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 `docs/ops/runbook/security.md` 「운영 의존성 취약점」. 개발 의존성은
 CI 가 안 막는다.
 
-**앱 검사 `mobile` 도 단계와 따로 켠다**(ADR 0097 덧 2026-10-31) — `mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo export --platform android` 다. 뿌리 `npm ci` 없이 돈다.
+**앱 검사 `mobile` 도 단계와 따로 켠다**(ADR 0097 덧 2026-10-31) — `mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo lint` · `npx expo export --platform android` 다. 뿌리 `npm ci` 없이 돌고, 뿌리 `node_modules` 는 앱의 것으로 잇는다.
 PR 에서는 앱이 부르는 자리(`ci-plan.mjs` 의 `reachesMobile` — `mobile/**` · `src/lib/**` · `app/db-error.ts` · `app/ui/sign-in-again.ts`, 문서와 시험은 빼고)와 CI 자체(`.github/workflows/**` · `.nvmrc`)가 바뀌었을 때만 돈다. 라벨 · 빈 diff · 일정 · 손으로 켠 실행 · 정책만이 아닌 main 푸시도 돈다.
 앱이 새 웹 파일을 들이면 `scripts/mobile-closure.test.ts` 가 목록에 더하라고 붉다.
 

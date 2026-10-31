@@ -371,8 +371,13 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
         id: install
+      # 함께 쓰는 `src/lib` 의 import 는 위로 올라가며 찾으므로 뿌리에 앱의 패키지를 잇는다 — Metro 의 `nodeModulesPaths` 와 같은 답이다.
+      # 없으면 `astronomy-engine` 을 못 찾는다. 로컬은 뿌리 `node_modules` 가 있어 이 붉음이 안 보인다.
+      - run: ln -s mobile/node_modules ../node_modules
       # **앞 검사가 붉어도 뒤 검사는 돈다** — `core` 의 주석이 까닭이다.
       - run: npx tsc --noEmit
+      - run: npx expo lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       # 타입이 못 보는 것 — 안 풀리는 import · Metro 설정 · Hermes 컴파일. 웹의 `npm run build` 자리다.
       - run: npx expo export --platform android --output-dir dist
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

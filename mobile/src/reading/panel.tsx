@@ -60,6 +60,7 @@ export function useReadingView(target: ReadingTarget) {
     });
   }, [query]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 여는 때 읽는다 - setState 는 응답을 받은 뒤라 렌더와 겹치지 않는다
   useEffect(load, [load]);
   return { answer, reload: load };
 }

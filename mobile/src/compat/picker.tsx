@@ -206,6 +206,7 @@ function TypedSlot({ onChange }: { onChange: (query: Query) => void }) {
   const form = useBirthForm();
   const key = JSON.stringify(form.query);
   const latest = useRef(onChange);
+  // eslint-disable-next-line react-hooks/refs -- 최신 콜백을 효과에 넘기는 ref - 렌더 값으로 안 쓴다
   latest.current = onChange;
   /* 칸의 값이 바뀌면 판에 알린다 — 값은 이 칸이 들고 판은 그 답만 본다 */
   useEffect(() => {

@@ -1142,7 +1142,7 @@ describe('CI 계획 — 앱 검사 (mobile 차선)', () => {
     expect(job).toContain('working-directory: mobile');
     expect(job).toContain('cache-dependency-path: mobile/package-lock.json');
     expect(job.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n')).not.toMatch(/continue-on-error/);
-    expect([...job.matchAll(/^\s+- run: (.+)$/gm)].map((one) => one[1].trim())).toEqual(['npm ci', 'npx tsc --noEmit', 'npx expo export --platform android --output-dir dist']);
+    expect([...job.matchAll(/^\s+- run: (.+)$/gm)].map((one) => one[1].trim())).toEqual(['npm ci', 'ln -s mobile/node_modules ../node_modules', 'npx tsc --noEmit', 'npx expo lint', 'npx expo export --platform android --output-dir dist']);
   });
 });
 

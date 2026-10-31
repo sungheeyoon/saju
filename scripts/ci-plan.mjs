@@ -70,7 +70,7 @@
  *
  * ## 앱 검사는 앱이 부르는 자리가 바뀔 때 켠다 (2026-10-31)
  *
- * `mobile` 차선은 `mobile/` 에서 `npm ci` · `tsc` · 안드로이드 번들을 돈다. 뿌리 tsconfig 가 `mobile` 을 빼므로 그전까지 앱 파일의 타입 오류를 재는
+ * `mobile` 차선은 `mobile/` 에서 `npm ci` · `tsc` · `expo lint` · 안드로이드 번들을 돈다. 뿌리 tsconfig 가 `mobile` 을 빼므로 그전까지 앱 파일의 타입 오류를 재는
  * CI 가 없었다. 앱은 `src/lib` 와 `app/` 의 몇 파일을 함께 쓰므로 웹 쪽 수정도 앱을 깬다 — `MOBILE_REACH` 가 그 자리이고,
  * `scripts/mobile-closure.test.ts` 가 앱에서 import 를 따라 닿는 파일이 전부 여기 걸리는지 잰다. `audit` 처럼 단계와 따로 켠다.
  *
