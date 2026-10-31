@@ -1,0 +1,21 @@
+/*
+ * 커밋 금지 — 재는 동안만 `mobile/src/app/dev-seed.tsx` 로 복사하고 끝나면 지운다.
+ * 가짜 서버의 세션을 앱에 넣는다. `device.py link '/dev-seed'` 한 번이면 다음 실행까지 로그인한 사람으로 돈다.
+ */
+import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+
+import { supabase } from '@/auth/client';
+
+export default function DevSeed() {
+  const [line, setLine] = useState('...');
+  useEffect(() => {
+    void (async () => {
+      const answer = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/__session`);
+      const session = await answer.json();
+      const { error } = await supabase!.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+      setLine(error ? error.message : `seeded ${session.user.id}`);
+    })();
+  }, []);
+  return <Text style={{ paddingTop: 80 }}>{line}</Text>;
+}
