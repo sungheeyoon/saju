@@ -36,7 +36,7 @@
 | `npx playwright test e2e/match.spec.ts` 만 붉다 | 그 spec 은 직렬이어야 한다 | `npm run test:e2e:match`(`--workers=1`) |
 | `db query` 가 `cannot insert multiple commands` | prepared statement 라 `begin; … rollback;` 을 못 받는다 | 트랜잭션이 필요하면 `docker exec -i supabase_db_<SAJU_STACK_ID> psql -U postgres -d postgres` |
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
-| 기계가 바쁠 때(빌드 · 다른 워크트리의 시험과 겹칠 때) `npm test` 의 엔진 시험이 `Test timed out in 5000ms` 로 붉다 | 로컬 `testTimeout` 은 5초다(`vitest.config.mts`, CI 는 30초) — 코드가 아니라 일꾼 수가 부하를 키운다(2026-10-22) | `npx vitest run --maxWorkers=4` 로 다시. 그래도 붉으면 그때 코드를 본다 |
+| 기계가 바쁠 때(빌드 · 다른 워크트리의 시험과 겹칠 때) `npm test` 의 엔진 시험이 `Test timed out in 5000ms` 로 붉다 | 로컬 `testTimeout` 은 5초다(`vitest.config.mts`, CI 는 30초) — 코드가 아니라 일꾼 수가 부하를 키운다(2026-10-22). CI 에서는 안 난다 — `calibration` · `seoul-date` · `lunar` 를 포함해 verify 의 실패 실행 200개(2026-09-11~10-30)에 든 붉은 `core` · `policy` job 49개에 시간 초과가 0건이라 시한을 안 고쳤다(2026-10-31, 옛 이름 `fast` 의 job 은 안 셌다) | `npx vitest run --maxWorkers=4` 로 다시. 그래도 붉으면 그때 코드를 본다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
 | `pkill -f <글자>` 를 부르자 명령이 결과 없이 죽는다 | 그 글자가 제 셸의 명령줄에도 들어 있어 셸이 저를 죽인다(2026-10-30 Expo 라운드) | 띄울 때 받은 PID 로 끈다. 글자로 찾아야 하면 첫 글자를 묶는다 — `pkill -f '[e]xpo start'`. 남이 띄운 프로세스는 끄지 않는다 |
 | 가지들을 임시로 합쳐 본 뒤, 진짜 머지의 충돌이 묻지 않고 풀린다(`Resolved '…' using previous resolution`) | 이 저장소는 `rerere.enabled=true` 이고 `rr-cache` 는 워크트리끼리 함께 쓴다 — 임시 합침에서 고른 해결을 다른 가지 · 다른 워크트리의 머지가 되풀이한다(2026-10-30 Expo 라운드) | 임시 합침은 시험하는 데만 쓰고 그 가지를 PR 에 올리지 않는다. 머지에서 그 문장이 보이면 그 파일을 읽어 보고, 틀렸으면 `git rerere forget <파일>` 뒤 `git checkout -m <파일>` 로 충돌을 되살려 다시 푼다 |
