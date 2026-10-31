@@ -1,4 +1,4 @@
-import { isAuthApiError, type SupabaseClient } from '@supabase/supabase-js';
+import { isAuthApiError, isAuthSessionMissingError, type SupabaseClient } from '@supabase/supabase-js';
 
 import { NOTICE_UNREAD, gateFor } from '@/src/lib/consent';
 import type { Database } from '@/src/lib/db';
@@ -57,8 +57,11 @@ export async function mobileSession(
 
   const { data, error } = await client.auth.getUser(token);
   if (data.user === null) {
-    /* 거절과 못 닿음을 가른다 — 관문(`proxy.ts`)과 같이 401 · 403 만 거절이다. 429 나 망 실패로 앱의 세션을 걷으면 그 사람이 로그아웃된다 */
-    const rejected = isAuthApiError(error) && (error.status === 401 || error.status === 403);
+    /*
+      거절과 못 닿음을 가른다 — 401 · 403 만 거절이다. 429 나 망 실패로 앱의 세션을 걷으면 그 사람이 로그아웃된다.
+      끊긴 세션(`session_not_found`)은 라이브러리가 `AuthApiError` 가 아니라 이 오류로 바꿔 던진다 — 빠뜨리면 다시 로그인할 길 없이 503 이 이어진다.
+    */
+    const rejected = isAuthSessionMissingError(error) || (isAuthApiError(error) && (error.status === 401 || error.status === 403));
     return rejected || error === null
       ? refuse(401, { refused: 'sign-in' })
       : refuse(503, { refused: 'unavailable', message: ACCOUNT_UNREAD_NOTE });

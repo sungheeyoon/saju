@@ -1,4 +1,4 @@
-import { AuthApiError, AuthRetryableFetchError } from '@supabase/supabase-js';
+import { AuthApiError, AuthSessionMissingError, AuthRetryableFetchError } from '@supabase/supabase-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const bearer = vi.hoisted(() => ({ supabaseAsBearer: vi.fn() }));
@@ -90,12 +90,22 @@ describe('자격', () => {
     expect(pipeline.beginReadingAs).not.toHaveBeenCalled();
   });
 
-  it('Auth 가 토큰을 거절하면 401 이다 — 끊긴 세션 · 지워진 계정', async () => {
+  it('Auth 가 토큰을 거절하면 401 이다 — 지워진 계정', async () => {
     clientAnswering({ user: null, authError: new AuthApiError('bad jwt', 403, 'bad_jwt') });
 
     const response = await press({ target: SELF, requestKey: KEY });
 
     expect(response.status).toBe(401);
+    expect(pipeline.beginReadingAs).not.toHaveBeenCalled();
+  });
+
+  it('끊긴 세션도 401 이다 — 라이브러리가 `session_not_found` 를 이 오류로 바꿔 던진다', async () => {
+    clientAnswering({ user: null, authError: new AuthSessionMissingError() });
+
+    const response = await press({ target: SELF, requestKey: KEY });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ refused: 'sign-in' });
     expect(pipeline.beginReadingAs).not.toHaveBeenCalled();
   });
 
