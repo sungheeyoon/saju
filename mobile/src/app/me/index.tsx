@@ -14,8 +14,9 @@ import { BirthFields, useBirthForm } from '@/people/birth-fields';
 import { openParticipation, saveFailureOf, saveSelfPerson } from '@/reading/chart-writes';
 import { followRefusal } from '@/reading/panel';
 import { ElementSymbol } from '@/ui/element-symbol';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { CardFrame, Paper } from '@/ui/surfaces';
 
 /** 홈 — 차례는 웹의 `app/me/(home)/page.tsx` 와 같다. 다른 화면에서 돌아올 때마다 다시 읽는다 */
 export default function HomeScreen() {
@@ -82,10 +83,10 @@ function Body({ home, retry }: { home: Home; retry: () => void }) {
       );
     case 'notice':
       return (
-        <Panel>
+        <CardFrame style={styles.notice}>
           <Text style={styles.noticeTitle}>{home.title}</Text>
           <Text style={styles.noticeDetail}>{home.detail}</Text>
-        </Panel>
+        </CardFrame>
       );
     case 'no-self':
       return <NoSelf nickname={home.nickname} onSaved={retry} />;
@@ -97,10 +98,10 @@ function Body({ home, retry }: { home: Home; retry: () => void }) {
     home.self.kind === 'ok' ? (
       <SelfCard card={home.self} />
     ) : home.self.kind === 'unreadable' ? (
-      <Panel>
+      <CardFrame style={styles.unreadable}>
         <Text style={styles.noticeDetail}>{home.self.message}</Text>
         <Text style={styles.meta}>{home.self.note}</Text>
-      </Panel>
+      </CardFrame>
     ) : (
       <View style={styles.failure}>
         <Text style={styles.failureText}>{home.self.message}</Text>
@@ -151,7 +152,7 @@ function NoSelf({ nickname, onSaved }: { nickname: string; onSaved: () => void }
   };
 
   return (
-    <Panel tone="cream" style={styles.paper}>
+    <Paper style={styles.paper}>
       <View style={styles.symbols}>
         {ELEMENTS.map((element) => (
           <ElementSymbol key={element} element={element} size={40} />
@@ -159,7 +160,7 @@ function NoSelf({ nickname, onSaved }: { nickname: string; onSaved: () => void }
       </View>
       <View style={styles.paperHead}>
         <Text accessibilityRole="header" style={styles.paperTitle}>내 사주 등록</Text>
-        <Text style={styles.noticeDetail}>
+        <Text style={styles.paperDetail}>
           <Text style={styles.strong}>{nickname}</Text> 님의 출생 정보를 입력해 주세요.
         </Text>
       </View>
@@ -167,7 +168,7 @@ function NoSelf({ nickname, onSaved }: { nickname: string; onSaved: () => void }
       <PrimaryButton label={saving ? '저장하는 중…' : '내 사주로 저장'} onPress={() => void save()} disabled={missing !== null || saving} />
       {missing !== null && <Text style={styles.meta}>{missing}</Text>}
       {failure !== null && <Text accessibilityRole="alert" style={styles.failureText}>저장하지 못했어요. {failure}</Text>}
-    </Panel>
+    </Paper>
   );
 }
 
@@ -178,11 +179,14 @@ const styles = StyleSheet.create({
   failure: { gap: 8, alignItems: 'flex-start' },
   failureText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.danger },
   noticeTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
-  noticeDetail: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 22, color: COLOR.secondary, marginTop: 4 },
-  meta: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: 4 },
-  paper: { gap: 20 },
+  noticeDetail: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 20, color: COLOR.secondary },
+  meta: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
+  paper: { gap: 24 },
   symbols: { flexDirection: 'row', gap: 8 },
-  paperHead: { gap: 2 },
+  paperHead: { gap: 8 },
   strong: { fontFamily: FONT.bold, color: COLOR.foreground },
-  paperTitle: { fontFamily: FONT.bold, fontSize: TYPE.title, color: COLOR.foreground },
+  paperTitle: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 35, color: COLOR.foreground },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
+  unreadable: { gap: 8, padding: 20 },
+  paperDetail: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
 });

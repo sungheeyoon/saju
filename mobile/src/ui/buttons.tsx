@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, type AccessibilityRole, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { BUTTON, BUTTON_OFF_OPACITY, BUTTON_PRESSED_SCALE, BUTTON_PRIMARY_OFF } from '@design';
 
@@ -31,6 +31,7 @@ export function Button({
   disabled = false,
   busy = false,
   style,
+  accessibilityRole = 'button',
 }: {
   label: string;
   onPress: () => void;
@@ -38,19 +39,21 @@ export function Button({
   disabled?: boolean;
   busy?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** 다른 화면으로 가는 단추는 `link` 다 — 웹의 `<Link className={BUTTON_*}>` */
+  accessibilityRole?: AccessibilityRole;
 }) {
   const { face, text } = split(BUTTON[BUTTON_OF[variant]]);
   const off = disabled || busy;
   const primaryOff = off && (variant === 'primary' || variant === 'primary-small');
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityState={{ disabled: off, busy }}
       disabled={off}
       onPress={onPress}
       style={({ pressed }) => [face, primaryOff ? styles.primaryOff : off && styles.off, pressed && styles.pressed, style]}
     >
-      <Text style={[styles.label, text, primaryOff && styles.primaryOffText]}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.label, text, primaryOff && styles.primaryOffText]}>{label}</Text>
     </Pressable>
   );
 }

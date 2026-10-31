@@ -6,8 +6,9 @@ import { missingAnswer } from '@input/query';
 import type { PersonSlots } from '@people';
 import { endsWithBatchim } from '@saju-text/batchim';
 
-import { FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
+import { FieldLabel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, EmptySlot } from '@/ui/surfaces';
 
 import { BirthFields, useBirthForm } from './birth-fields';
 import { addPerson, removeFromList, updateNote } from './data';
@@ -46,9 +47,9 @@ export function AddPerson({ slots, startOpen, onSaved }: { slots: PersonSlots | 
 
   if (remaining !== null && remaining <= 0) {
     return (
-      <Panel style={styles.full}>
+      <EmptySlot style={styles.full}>
         <Text style={shared.body}>저장할 수 있는 {slots?.limit}명을 다 채웠어요. 목록에서 한 명을 빼면 다시 추가할 수 있습니다.</Text>
-      </Panel>
+      </EmptySlot>
     );
   }
 
@@ -124,7 +125,7 @@ function AddForm({ remaining, onCancel, onSaved }: { remaining: number | null; o
   };
 
   return (
-    <Panel style={styles.form}>
+    <Card style={styles.form}>
       <Text style={shared.section}>사람 추가</Text>
       <Text style={shared.body}>
         부를 이름은 <Text style={shared.bodyStrong}>나만 봐요.</Text> 같은 사람도 부르는 사람마다 이름이 다를 수 있어서, 이 이름은 내 목록에만 붙어요.
@@ -142,7 +143,7 @@ function AddForm({ remaining, onCancel, onSaved }: { remaining: number | null; o
         </View>
       )}
       {failure !== null && <FailureLine>저장하지 못했어요. {failure}</FailureLine>}
-    </Panel>
+    </Card>
   );
 }
 
@@ -162,12 +163,12 @@ export function NoteEditor({ personId, note, onDone, onCancel }: { personId: str
   };
 
   return (
-    <Panel style={styles.form}>
+    <Card style={styles.noteForm}>
       <NoteField value={value} onChange={setValue} />
       <PrimaryButton label={saving ? '저장하는 중…' : '메모 저장'} onPress={save} disabled={!changed || saving} />
       <TextButton label="작성 그만두기" onPress={onCancel} disabled={saving} />
       {failure !== null && <FailureLine>{failure}</FailureLine>}
-    </Panel>
+    </Card>
   );
 }
 
@@ -200,10 +201,10 @@ export function RemoveConfirm({ personId, label, onDone, onCancel }: { personId:
 }
 
 const styles = StyleSheet.create({
-  full: { padding: 16 },
+  full: { paddingVertical: 16 },
   addRow: { gap: 8 },
   hidden: { display: 'none' },
-  form: { gap: 14 },
+  form: { gap: 20 },
   actions: { gap: 8 },
   warn: { fontSize: TYPE.sm, fontFamily: FONT.medium, color: COLOR.danger },
   note: {
@@ -219,4 +220,5 @@ const styles = StyleSheet.create({
     color: COLOR.foreground,
     textAlignVertical: 'top',
   },
+  noteForm: { gap: 12, padding: 16, borderWidth: 0 },
 });

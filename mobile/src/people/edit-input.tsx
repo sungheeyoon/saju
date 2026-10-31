@@ -7,8 +7,9 @@ import { missingAnswer, type Query } from '@input/query';
 
 import { editPersonInput, saveFailureOf } from '@/reading/chart-writes';
 import { followRefusal } from '@/reading/panel';
-import { Panel, PrimaryButton, TextButton } from '@/ui/parts';
+import { PrimaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
 
 import { BirthFields, useBirthForm } from './birth-fields';
 import { FailureLine, Sheet, styles as shared } from './parts';
@@ -73,7 +74,7 @@ export function EditInputForm({
   };
 
   return (
-    <Panel style={styles.form}>
+    <Card style={styles.form}>
       <View style={styles.head}>
         <Text style={shared.section}>수정하기</Text>
         <Text style={shared.body}>{INPUT_EDIT_REPLACED_NOTE}</Text>
@@ -114,12 +115,12 @@ export function EditInputForm({
           <TextButton label={INPUT_EDIT_CHANGE_CONFIRM.cancel} onPress={() => setConfirming(false)} />
         </Sheet>
       )}
-    </Panel>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: 14 },
+  form: { gap: 16, padding: 16 },
   head: { gap: 4 },
   actions: { gap: 8 },
   nameNote: { gap: 2, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSunken },

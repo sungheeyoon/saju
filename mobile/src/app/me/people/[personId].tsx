@@ -11,9 +11,11 @@ import { readPersonDetail, type MyReading, type PersonDetail, type Read } from '
 import { AccountNotice, DayMasterChip, FailureLine, NotFound, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { SajuSections } from '@/people/saju-sections';
 import { StemSymbol } from '@/ui/stem-symbol';
-import { Panel, PrimaryButton } from '@/ui/parts';
-import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { PrimaryButton } from '@/ui/parts';
+import { Button } from '@/ui/buttons';
+import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
+import { CardFrame, Tile } from '@/ui/surfaces';
 
 const NO_READING_YET = '아직 받은 사주풀이가 없어요.';
 const NO_COMPAT_YET = '아직 본 궁합이 없어요.';
@@ -74,10 +76,10 @@ export default function PersonScreen() {
   if (!person.chart.ok) {
     return (
       <ScreenFrame bar={bar}>
-        <Panel style={styles.unreadable}>
+        <CardFrame style={styles.unreadable}>
           <Text style={shared.noticeBody}>{person.chart.message}</Text>
           <Text style={shared.meta}>{UNREADABLE_INPUT_NOTE}</Text>
-        </Panel>
+        </CardFrame>
       </ScreenFrame>
     );
   }
@@ -101,7 +103,7 @@ export default function PersonScreen() {
 
   return (
     <ScreenFrame bar={bar}>
-      <View style={[styles.header, { backgroundColor: ELEMENT_TONE[STEM_INFO[stem].element].soft }]}>
+      <Tile tone={ELEMENT_TONE[STEM_INFO[stem].element].soft} style={styles.header}>
         <View style={styles.watermark}>
           <StemSymbol stem={stem} size={160} opacity={0.15} />
         </View>
@@ -109,15 +111,11 @@ export default function PersonScreen() {
           <DayMasterChip stem={stem} />
         </View>
         <View style={styles.headButtons}>
-          <Pressable accessibilityRole="link" onPress={() => go(readingHref)} style={[styles.headButton, own === null ? styles.primary : styles.plain]}>
-            <Text style={[styles.headButtonText, own === null && styles.primaryText]} numberOfLines={1}>{own === null ? '사주풀이 받기' : '사주풀이 보기'}</Text>
-          </Pressable>
+          <Button accessibilityRole="link" variant={own === null ? 'primary' : 'secondary'} label={own === null ? '사주풀이 받기' : '사주풀이 보기'} onPress={() => go(readingHref)} style={styles.headButton} />
           {/* 이 사람만 앉힌다 — 다른 칸은 비워 두고 사용자가 고른다(운영자 2026-10-26) */}
-          <Pressable accessibilityRole="link" onPress={() => go(`/me/compat?pickA=${person.personId}`)} style={[styles.headButton, styles.plain]}>
-            <Text style={styles.headButtonText} numberOfLines={1}>궁합 보러 가기</Text>
-          </Pressable>
+          <Button accessibilityRole="link" variant="secondary" label="궁합 보러 가기" onPress={() => go(`/me/compat?pickA=${person.personId}`)} style={styles.headButton} />
         </View>
-      </View>
+      </Tile>
 
       <Tabs
         label={`${mine ? '내 사주' : person.label}의 사주풀이와 만세력`}
@@ -133,7 +131,9 @@ export default function PersonScreen() {
                   {own === null ? (
                     <Text style={shared.body}>{NO_READING_YET}</Text>
                   ) : (
-                    <Row title={`${person.label}의 사주풀이`} sub={own.metaphor} onPress={() => go(readingHref)} />
+                    <CardFrame>
+                      <Row title={`${person.label}의 사주풀이`} sub={own.metaphor} onPress={() => go(readingHref)} />
+                    </CardFrame>
                   )}
                 </View>
                 {!mine && (
@@ -143,15 +143,19 @@ export default function PersonScreen() {
                       {pairs.length > 0 && <Text style={shared.meta}>{`  ${pairs.length}개`}</Text>}
                     </Text>
                     {pairs.length === 0 && <Text style={shared.body}>{NO_COMPAT_YET}</Text>}
-                    {pairs.map((one) => (
-                      <Row
-                        key={`${one.personA}:${one.personB}`}
-                        title={namesOf(one)}
-                        sub={one.metaphor}
-                        value={one.score === null ? null : `${one.score}점`}
-                        onPress={() => go(`/me/compat?a=${one.personA}&b=${one.personB}`)}
-                      />
-                    ))}
+                    {pairs.length > 0 && (
+                      <CardFrame>
+                        {pairs.map((one) => (
+                          <Row
+                            key={`${one.personA}:${one.personB}`}
+                            title={namesOf(one)}
+                            sub={one.metaphor}
+                            value={one.score === null ? null : `${one.score}점`}
+                            onPress={() => go(`/me/compat?a=${one.personA}&b=${one.personB}`)}
+                          />
+                        ))}
+                      </CardFrame>
+                    )}
                   </View>
                 )}
               </View>
@@ -179,19 +183,15 @@ function Row({ title, sub, value, onPress }: { title: string; sub: string | null
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  unreadable: { gap: 8 },
-  header: { padding: 20, borderRadius: RADIUS.panel, overflow: 'hidden' },
+  unreadable: { gap: 8, padding: 20 },
+  header: { padding: 20, overflow: 'hidden' },
   watermark: { position: 'absolute', right: -32, bottom: -40 },
   chip: { position: 'absolute', top: 16, right: 16 },
   headButtons: { flexDirection: 'row', gap: 8, marginTop: 32 },
-  headButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, borderRadius: RADIUS.pill },
-  plain: { backgroundColor: COLOR.surface },
-  primary: { backgroundColor: COLOR.accent },
-  headButtonText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
-  primaryText: { color: COLOR.onAccent },
+  headButton: { flex: 1, paddingHorizontal: 12 },
   gathered: { gap: 14, marginTop: 14 },
   part: { gap: 8 },
-  row: { minHeight: CONTROL + 12, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
+  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLOR.border, marginTop: -1 },
   rowBody: { flex: 1, minWidth: 0 },
   rowTitle: { fontSize: TYPE.body, lineHeight: 22, fontFamily: FONT.bold, color: COLOR.foreground },
   rowValue: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },

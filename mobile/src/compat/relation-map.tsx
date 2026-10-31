@@ -14,6 +14,7 @@ import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS as CORNER, TYPE } from '@/ui/tokens';
+import { CardFrame, Paper } from '@/ui/surfaces';
 
 /** 누른 뒤의 박자(ms) — 웹의 `BEAT` 와 같다 */
 const BEAT = { depart: 900, travel: 900 } as const;
@@ -110,7 +111,7 @@ export function RelationMap({ model, canAdd }: { model: MapModel; canAdd: boolea
   const center: Point = { x: 50, y: 50 };
 
   return (
-    <View accessibilityLabel="관계 지도" style={styles.panel}>
+    <Paper accessibilityLabel="관계 지도" style={styles.panel}>
       <View style={styles.head}>
         <Text accessibilityRole="header" style={styles.title}>관계 지도</Text>
         {!empty && (
@@ -232,7 +233,7 @@ export function RelationMap({ model, canAdd }: { model: MapModel; canAdd: boolea
       </View>
 
       {chosen !== null ? <PersonCard key={chosen.id} person={chosen} links={linksOf(model, chosen.id)} onClose={() => setSelectedId(null)} /> : <Legend empty={empty} />}
-    </View>
+    </Paper>
   );
 }
 
@@ -320,7 +321,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
   const { compat } = person;
   const tone = toneOf(person.day?.element);
   return (
-    <View accessibilityLiveRegion="polite" style={styles.card}>
+    <CardFrame accessibilityLiveRegion="polite" style={styles.card}>
       <View style={styles.cardHead}>
         <View style={[styles.cardFace, person.day === null ? styles.seatUnread : { backgroundColor: tone.soft }]}>
           {person.day !== null ? <StemSymbol stem={person.day.stem as Stem} size={24} /> : <Text style={styles.seatUnknown}>?</Text>}
@@ -376,12 +377,12 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           )}
         </>
       )}
-    </View>
+    </CardFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { borderRadius: CORNER.panel, backgroundColor: COLOR.cream, overflow: 'hidden' },
+  panel: { padding: 0, overflow: 'hidden' },
   head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingHorizontal: 20, paddingTop: 20 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground },
   count: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
   seatNameNear: { fontSize: TYPE.body, color: COLOR.foreground },
   seatScore: { fontFamily: FONT.bold, fontSize: TYPE.fine, lineHeight: 20 },
   add: { position: 'absolute', width: 44, height: 44, alignItems: 'center', overflow: 'visible' },
-  addFace: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderStyle: 'dashed', borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
+  addFace: { width: 44, height: 44, borderRadius: CORNER.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderStyle: 'dashed', borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   addLabel: { position: 'absolute', top: -24, width: 80, textAlign: 'center', fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
   legendRoom: { paddingHorizontal: 20, paddingBottom: 20, paddingTop: 4 },
   legend: { gap: 8 },
@@ -410,9 +411,9 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendText: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
   note: { fontFamily: FONT.medium, fontSize: TYPE.fine, lineHeight: 18, color: COLOR.muted },
-  card: { gap: 10, marginHorizontal: 12, marginBottom: 12, padding: 12, borderRadius: CORNER.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  card: { gap: 10, marginHorizontal: 12, marginBottom: 12, padding: 12 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardFace: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  cardFace: { width: 40, height: 40, borderRadius: CORNER.pill, alignItems: 'center', justifyContent: 'center' },
   cardWho: { flex: 1, minWidth: 0 },
   cardName: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   cardPicture: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },

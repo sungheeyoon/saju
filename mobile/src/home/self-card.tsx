@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { HOUR_UNKNOWN_LABEL } from '@input/query';
 import { ELEMENT_PICTURE_KO, ELEMENTS, STEM_INFO } from '@saju';
@@ -8,9 +8,11 @@ import { withFromMe } from '@web-home/from-me';
 import { SELF_READING_MAKING } from '@web-home/making';
 
 import { DayMasterChip } from '@/people/parts';
+import { Button } from '@/ui/buttons';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Tile } from '@/ui/surfaces';
 
 import type { SelfCardData } from './read';
 import { SelfProfile } from './self-profile';
@@ -25,7 +27,7 @@ export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바
   const counts = saju.analysis.elements.counts;
 
   return (
-    <View accessibilityLabel="내 사주" style={[styles.card, { backgroundColor: tone.soft }]}>
+    <Tile tone={tone.soft} accessibilityLabel="내 사주" style={styles.card}>
       <View pointerEvents="none" style={styles.watermark}>
         <StemSymbol stem={saju.pillars.dayMaster} size={160} opacity={0.15} />
       </View>
@@ -74,39 +76,29 @@ export function SelfCard({ card, actions }: { card: Ok; /** 단추 자리를 바
 
       {actions ?? (
         <View style={styles.actions}>
-          <Pressable accessibilityRole="link" onPress={() => router.push(withFromMe('/me/readings/self') as never)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText} numberOfLines={1}>
-              {card.hasReading ? '사주풀이 보기' : card.making ? SELF_READING_MAKING : '사주풀이 받기'}
-            </Text>
-          </Pressable>
-          <Pressable accessibilityRole="link" onPress={() => router.push(`/me/people/${card.personId}?tab=chart` as never)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-            <Text style={styles.secondaryText} numberOfLines={1}>만세력 보기</Text>
-          </Pressable>
+          <Button accessibilityRole="link" label={card.hasReading ? '사주풀이 보기' : card.making ? SELF_READING_MAKING : '사주풀이 받기'} onPress={() => router.push(withFromMe('/me/readings/self') as never)} style={styles.action} />
+          <Button accessibilityRole="link" variant="secondary" label="만세력 보기" onPress={() => router.push(`/me/people/${card.personId}?tab=chart` as never)} style={styles.action} />
         </View>
       )}
-    </View>
+    </Tile>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 12, padding: 16, borderRadius: RADIUS.panel, overflow: 'hidden' },
+  card: { gap: 12, overflow: 'hidden' },
   watermark: { position: 'absolute', right: -32, bottom: -40 },
   chip: { position: 'absolute', top: 16, right: 16, zIndex: 1 },
   nameRoom: { paddingRight: 80 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  face: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.surface },
+  face: { width: 56, height: 56, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.surface },
   who: { flex: 1, minWidth: 0 },
   name: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground },
   birth: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary, marginTop: 2 },
-  metaphor: { fontFamily: FONT.medium, fontSize: TYPE.lead, lineHeight: 26, color: COLOR.foreground, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255, 253, 249, 0.55)' },
+  metaphor: { fontFamily: FONT.medium, fontSize: TYPE.lead, lineHeight: 26, color: COLOR.foreground, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.cell, backgroundColor: 'rgba(255, 253, 249, 0.55)' },
   elements: { flexDirection: 'row' },
   element: { flex: 1, alignItems: 'center', gap: 2 },
   elementName: { fontFamily: FONT.medium, fontSize: TYPE.fine },
   elementCount: { fontFamily: FONT.bold, fontSize: TYPE.heading },
   actions: { flexDirection: 'row', gap: 8 },
-  primary: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
-  primaryText: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.onAccent },
-  secondary: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
-  secondaryText: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
-  pressed: { transform: [{ scale: 0.97 }] },
+  action: { flex: 1, paddingHorizontal: 12 },
 });

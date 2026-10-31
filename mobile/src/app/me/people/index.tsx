@@ -9,7 +9,8 @@ import { readPeopleList, type MyReading, type PeopleList, type Read } from '@/pe
 import { AddPerson } from '@/people/manage';
 import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@/people/parts';
 import { PersonCard } from '@/people/person-card';
-import { Field, Panel, SecondaryButton } from '@/ui/parts';
+import { EmptyState } from '@/ui/empty-state';
+import { Field, SecondaryButton } from '@/ui/parts';
 import { COLOR } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
 
@@ -71,10 +72,9 @@ export default function PeopleScreen() {
         <>
           <AddPerson slots={slots} startOpen={params.add !== undefined} onSaved={load} />
           {people.length === 0 ? (
-            <Panel style={styles.empty}>
-              <Text style={shared.noticeTitle}>아직 저장한 사람이 없어요</Text>
-              <Text style={shared.noticeBody}>이름과 출생 정보를 입력해 사람을 추가해 보세요.</Text>
-            </Panel>
+            <EmptyState icon="people" title="아직 저장한 사람이 없어요">
+              이름과 출생 정보를 입력해 사람을 추가해 보세요.
+            </EmptyState>
           ) : (
             <>
               {finds && (
@@ -104,6 +104,5 @@ export default function PeopleScreen() {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  empty: { gap: 4, padding: 20, alignItems: 'center' },
   find: { gap: 6 },
 });
