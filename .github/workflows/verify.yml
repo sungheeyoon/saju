@@ -52,6 +52,7 @@ jobs:
       authed_lanes: ${{ steps.plan.outputs.authed_lanes }}
       flow: ${{ steps.plan.outputs.flow }}
       audit: ${{ steps.plan.outputs.audit }}
+      mobile: ${{ steps.plan.outputs.mobile }}
       build: ${{ steps.plan.outputs.build }}
     steps:
       - uses: actions/checkout@v7
@@ -348,6 +349,35 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
 
   # ---------------------------------------------------------------------------
+  # 앱 — `mobile/` 의 타입과 번들. 앱이 부르는 자리가 바뀐 PR 에만 돈다(`ci-plan.mjs` 「앱 검사」)
+  # ---------------------------------------------------------------------------
+  #
+  # 뿌리 tsconfig 는 `mobile` 을 빼므로 앱 파일의 타입 오류는 `core` 가 모른다. 뿌리 `npm ci` 없이 돈다 — 앱은 제 잠금 파일로 선다.
+  # 라우트 타입(`.expo/types`)은 `expo start` 가 짓고 gitignore 라 여기 없다 — 라우트 주소는 글자로만 재어진다.
+  mobile:
+    needs: plan
+    if: needs.plan.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+        id: install
+      # **앞 검사가 붉어도 뒤 검사는 돈다** — `core` 의 주석이 까닭이다.
+      - run: npx tsc --noEmit
+      # 타입이 못 보는 것 — 안 풀리는 import · Metro 설정 · Hermes 컴파일. 웹의 `npm run build` 자리다.
+      - run: npx expo export --platform android --output-dir dist
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+
+  # ---------------------------------------------------------------------------
   # 필수 검사는 **이것 하나** — 건너뛴 차선은 통과, 실패·취소는 실패
   # ---------------------------------------------------------------------------
   #
@@ -355,7 +385,7 @@ jobs:
   # job 을 필수로 걸면 머지가 막힌다. 그래서 `gate` 는 항상 돌고, 위 job 전부를 물린다.
   # main 보호 규칙의 필수 검사는 `gate` 하나다 — 그래서 `gh pr merge --auto` 가 기다린다.
   gate:
-    needs: [plan, policy, core, anon, authed, flow, audit]
+    needs: [plan, policy, core, anon, authed, flow, audit, mobile]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

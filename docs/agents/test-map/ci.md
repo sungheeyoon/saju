@@ -7,8 +7,8 @@
 `scripts/ci-plan.mjs` 가 **출시 단계**(PRD §7.0 의 「(지금)」, `scripts/release-stage.mjs`)와 바뀐 파일로 계획을
 고르고, `verify.yml` 은 그 답을 읽을 뿐이다. `gate` 가 필수 검사라 `--auto` 머지는 초록까지 기다린다.
 
-**차선은 여섯이고 서로 따로 선다**(2026-10-01) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
-`ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit`.
+**차선은 일곱이고 서로 따로 선다**(2026-10-01, `mobile` 은 2026-10-31) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
+`ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit` · `mobile`(앱의 타입 · 번들).
 단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. **`core` · `policy` 안에서는 앞 검사가 붉어도 뒤 검사가 돈다**(`!cancelled()`, 설치가 섰을 때만 — ADR 0097 덧 2026-10-22) — 붉은 단계가 하나라도 있으면 job 과 `gate` 는 그대로 실패다. 옛 이름은 `fast` → `core`,
 `verify`(job) → `anon` 이다. 워크플로 이름 `verify` 와 npm 스크립트 `npm run verify` 는 그대로다.
 
@@ -69,6 +69,10 @@ PR 마다 `gate` 의 최신 실행을 읽는다(`docs/ops/runbook/deploy.md` 「
 막는다(라벨 · 빈 diff 도 켠다). 아무것도 안 바꾼 PR 이 어느 날 붉어지는 일이 없다. 새로 뜬 advisory 는 main 푸시와 하루
 한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 `docs/ops/runbook/security.md` 「운영 의존성 취약점」. 개발 의존성은
 CI 가 안 막는다.
+
+**앱 검사 `mobile` 도 단계와 따로 켠다**(ADR 0097 덧 2026-10-31) — `mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo export --platform android` 다. 뿌리 `npm ci` 없이 돈다.
+PR 에서는 앱이 부르는 자리(`ci-plan.mjs` 의 `reachesMobile` — `mobile/**` · `src/lib/**` · `app/db-error.ts` · `app/ui/sign-in-again.ts`, 문서와 시험은 빼고)와 CI 자체(`.github/workflows/**` · `.nvmrc`)가 바뀌었을 때만 돈다. 라벨 · 빈 diff · 일정 · 손으로 켠 실행 · 정책만이 아닌 main 푸시도 돈다.
+앱이 새 웹 파일을 들이면 `scripts/mobile-closure.test.ts` 가 목록에 더하라고 붉다.
 
 입구 · 공용 위험 줄은 #284(탭 뼈대 `loading.tsx` · route group 이동)와 #286(`proxy.ts` · 화면 · 서버 액션)이 PR 에서 `fast`(지금
 `core`)만 돌고 #284 는 머지 뒤 main 의 `flow` 가 붉었던 일에서 왔다 — 단위 · 타입 · 린트 · 빌드는 화면이 열리는가 · 관문이 누구를

@@ -45,7 +45,7 @@
 - 개발 빌드도 **운영 Supabase** 를 본다.
 - Expo Go 에서 가입 화면만 보려면 터널 주소 뒤에 `/--/signup` 을 붙여 연다 — 세션이 없으면 처음 가입하는 폼이 선다(`__DEV__`). 제출은 세션이 없어 거절된다.
 - PC 에서 화면을 재는 법은 `docs/agents/delegation/local-env.md` 「앱을 웹 번들로 재기」. 운영 DB 를 안 밟는다.
-- **검사는 `mobile/` 에서 `npx tsc --noEmit` · `npx expo lint`.** 뿌리의 린트 · CI 는 `mobile/` 의 린트를 안 돈다. #896 이 세울 때 오류 3 · 경고 2 가 있던 위반으로 남았다.
+- **검사는 `mobile/` 에서 `npx tsc --noEmit` · `npx expo lint`.** CI 는 `mobile` 차선이 돈다(`docs/agents/test-map/ci.md`).
 - **`.expo/types` 가 낡으면 `tsc` 가 새 라우트를 모른다** — 라우트 타입은 `expo start` 가 짓고 gitignore 다. 다시 띄우거나 `mobile/.expo/types` 를 걷고 다시 잰다.
 - **Metro 가 낡은 번들을 준다** — `EXPO_PUBLIC_*` 는 번들에 박히고, 옮긴 `src/lib` 파일 · 새 `tsconfig` 경로도 옛 것을 들고 있을 수 있다. 고친 것이 안 보이면 `npx expo start --clear` 로 다시 띄운다.
 - **가지를 임시로 합쳐 재면 rerere 가 그 해결을 기억한다** — `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」.
