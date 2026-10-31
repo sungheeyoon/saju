@@ -11,9 +11,10 @@ import { CREDITS_AVAILABLE_LABEL, CREDITS_USAGE_NOTE, CREDITS_USAGE_RATE } from 
 import { paidOrderOf, type PaidOrder } from '@reading/paid-order';
 
 import { supabase } from '@/auth/client';
-import { NOT_READY } from '@/auth/signup';
+import { NOT_READY, UNREACHABLE } from '@/auth/signup';
 import { FailureLine, LinkRow, SettingsGroup, settingsText } from '@/settings/parts';
 import { Panel, TextButton } from '@/ui/parts';
+import { settled } from '@/ui/settled';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
 
@@ -40,7 +41,7 @@ async function readOrders(): Promise<Read<readonly PaidOrder[]>> {
 export function CreditsScreen() {
   const [read, setRead] = useState<Read<number | null> | null>(null);
   const load = useCallback(() => {
-    void readAvailable().then(setRead);
+    void settled(readAvailable(), 'my_reading_credits', () => ({ ok: false, message: UNREACHABLE }) as const).then(setRead);
   }, []);
   useFocusEffect(load);
 
@@ -80,7 +81,7 @@ export function CreditsScreen() {
 export function CreditsHistoryScreen() {
   const [read, setRead] = useState<Read<readonly PaidOrder[]> | null>(null);
   const load = useCallback(() => {
-    void readOrders().then(setRead);
+    void settled(readOrders(), 'my_reading_orders', () => ({ ok: false, message: UNREACHABLE }) as const).then(setRead);
   }, []);
   useFocusEffect(load);
 

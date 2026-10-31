@@ -15,6 +15,7 @@ import { StemSymbol } from '@/ui/stem-symbol';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Choices, Field, Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 
 import { openPair, readPairRelation, type Choosable, type PairAnswers, type PairSide } from './data';
 
@@ -84,7 +85,7 @@ export function CompatPicker({ people, pickA, pickB }: { people: readonly Choosa
     if (pairKey === '') return;
     let alive = true;
     const [first, second] = pairKey.split('|');
-    void readPairRelation(first, second).then((stored) => {
+    void settled(readPairRelation(first, second), 'pair_relation_of', () => ({ ok: false }) as const).then((stored) => {
       if (!alive || !stored.ok || answered.current === pairKey) return;
       setRelation(stored.relation);
     });

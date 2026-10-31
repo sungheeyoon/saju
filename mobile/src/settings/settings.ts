@@ -59,11 +59,13 @@ export type SettingsData = {
   userId: string | null;
 };
 
+/** 못 읽은 때의 답 — 계정을 못 물은 줄과 다시 시도가 선다 */
+export function settingsUnreachable(): SettingsData {
+  return { state: accountStateOf({ ok: false, reason: 'unreachable' }), account: null, discovery: { ok: false, reason: NOT_READY }, email: undefined, userId: null };
+}
+
 export async function readSettings(): Promise<SettingsData> {
-  const unread = { ok: false as const, reason: NOT_READY };
-  if (supabase === null) {
-    return { state: accountStateOf({ ok: false, reason: 'unreachable' }), account: null, discovery: unread, email: undefined, userId: null };
-  }
+  if (supabase === null) return settingsUnreachable();
   const [{ state, row }, profile, session] = await Promise.all([
     readAccount<SettingsAccount>('status, nickname, improvement_consent, contact_consent, notice_version, notice_ack_at'),
     supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),

@@ -42,9 +42,10 @@ import {
 } from '@survey';
 
 import { supabase } from '@/auth/client';
-import { NOT_READY } from '@/auth/signup';
+import { NOT_READY, UNREACHABLE } from '@/auth/signup';
 import { CheckRow, Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 import { TopBar } from '@/ui/top-bar';
 
 import { AccountNotice, FailureLine, settingsText } from './parts';
@@ -165,7 +166,7 @@ function SurveyForm({ context, given }: { context: SurveyContext; given: MySurve
     if (next === saved.current) return;
     const timer = setTimeout(() => {
       setDraft('saving');
-      void save(withoutHidden(answers, shown), false).then((result) => {
+      void settled(save(withoutHidden(answers, shown), false), 'survey draft', () => ({ ok: false, message: UNREACHABLE }) as const).then((result) => {
         if (result.ok) {
           saved.current = next;
           setDraft('saved');

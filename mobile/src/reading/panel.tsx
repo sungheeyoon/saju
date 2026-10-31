@@ -9,6 +9,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card, Cell } from '@/ui/surfaces';
 import { PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 
 import { readReadingView, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
 import { ConfirmMake, CreditsShortage } from './dialogs';
@@ -49,7 +51,7 @@ export function useReadingView(target: ReadingTarget) {
 
   const load = useCallback(() => {
     setAnswer(null);
-    void readReadingView(JSON.parse(query) as ReadingTarget).then((read) => {
+    void settled(readReadingView(JSON.parse(query) as ReadingTarget), 'readReadingView', () => ({ ok: false, refused: { refused: 'unavailable', message: UNREACHABLE } }) as const).then((read) => {
       if (read.ok) setAnswer({ view: read.value });
       else {
         followRefusal(read.refused);

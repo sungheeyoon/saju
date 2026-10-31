@@ -11,6 +11,7 @@ import { initialOf } from '@profile';
 
 import { signOut } from '@/auth/sign-in';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 import { TopBar } from '@/ui/top-bar';
 
 import { ConsentControls } from './consent-controls';
@@ -18,7 +19,7 @@ import { ParticipationRow, PreferenceRow } from './discovery-rows';
 import { RequestDeletion } from './leaving';
 import { AccountNotice, FailureLine, LinkRow, SettingsGroup, TextRow } from './parts';
 import { myPhotos, photoSource } from './photos';
-import { readSettings, type SettingsData } from './settings';
+import { readSettings, settingsUnreachable, type SettingsData } from './settings';
 
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
 
@@ -31,12 +32,13 @@ export function SettingsScreen() {
   const [face, setFace] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    void readSettings().then(setData);
+    void settled(readSettings(), 'readSettings', settingsUnreachable).then(setData);
     /* 사진이 없거나 못 읽었으면 첫 글자가 선다 — 첫 글자는 사진이 있는 사람에게 거짓말이 아니라 자리다(웹 `Avatar`) */
-    void myPhotos().then(
-      async (photos) => setFace(photos[0] === undefined ? null : await photoSource(photos[0])),
-      () => setFace(null),
-    );
+    void settled(
+      myPhotos().then((photos) => (photos[0] === undefined ? null : photoSource(photos[0]))),
+      'myPhotos',
+      () => null,
+    ).then(setFace);
   }, []);
   useFocusEffect(load);
 

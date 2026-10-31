@@ -464,3 +464,31 @@ export function queryFromSearchParams(
       : DEFAULT_QUERY.saeunFrom,
   };
 }
+
+/**
+ * 앱이 화면 사이로 건네는 입력 한 벌(`JSON.stringify(query)`)을 다시 읽는다. 없거나 깨졌거나 칸의 값이 어긋나면 `null` — 주소로도 오는 값이라
+ * 앱을 던지게 두지 않는다. 고칠 수 있는 입력의 거절(날짜 범위 등)은 여기서 안 보고 `calculateChart` 가 말한다.
+ */
+export function queryFromJson(text: string | undefined): Query | null {
+  if (text === undefined) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const q = parsed as Record<string, unknown>;
+  const holds =
+    typeof q.name === 'string' &&
+    typeof q.date === 'string' &&
+    typeof q.time === 'string' &&
+    (q.hourKnown === null || typeof q.hourKnown === 'boolean') &&
+    (GENDERS as readonly unknown[]).includes(q.gender) &&
+    (CALENDARS as readonly unknown[]).includes(q.calendar) &&
+    (CITY_NAMES as readonly unknown[]).includes(q.city) &&
+    (LATE_NIGHT_RULES as readonly unknown[]).includes(q.rule) &&
+    (TIME_BASES as readonly unknown[]).includes(q.basis) &&
+    Number.isFinite(q.saeunFrom);
+  return holds ? (parsed as Query) : null;
+}
