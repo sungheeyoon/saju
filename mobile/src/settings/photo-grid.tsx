@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { PHOTO_ADD, PHOTO_UPLOADS_PAUSED } from '@account/copy';
 import { FOCUS_CENTER, PHOTO_MAX_COUNT, PHOTO_NOTE, PHOTO_REMOVED, PHOTO_REMOVE_CONFIRM, PHOTO_REMOVE_NOTE, PHOTO_REMOVE_TITLE, movedPhotos, type PhotoFocus, type PhotoUploadMode } from '@profile';
 
+import { Paper } from '@/ui/surfaces';
 import { ConfirmDialog } from '@/ui/confirm-dialog';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
@@ -326,7 +327,7 @@ export function PhotoGrid({
   const gridHeight = width === 0 ? 0 : slotRect(6, width).top + slotRect(6, width).height;
 
   return (
-    <View style={styles.panel}>
+    <Paper style={styles.panel}>
       <View style={styles.head}>
         <View style={styles.headRow}>
           <Text style={styles.title}>{PHOTO_SECTION_TITLE}</Text>
@@ -368,7 +369,7 @@ export function PhotoGrid({
         failure={askFailure}
         irreversible={PHOTO_REMOVE_NOTE}
       />
-    </View>
+    </Paper>
   );
 }
 
@@ -491,26 +492,26 @@ function PhotoFace({ photo, focus, userId, cover }: { photo: MyPhoto; focus: Pho
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 12, paddingHorizontal: 16, paddingVertical: 20, borderRadius: RADIUS.panel, backgroundColor: COLOR.cream },
+  panel: { gap: 12 },
   head: { gap: 4 },
   headRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
   title: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   count: { fontSize: TYPE.small, fontFamily: FONT.medium, color: COLOR.creamInk },
   line: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.creamInk },
   status: { minHeight: 20, fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.foreground },
-  slot: { position: 'absolute', overflow: 'hidden', borderRadius: 16, backgroundColor: COLOR.surface },
+  slot: { position: 'absolute', overflow: 'hidden', borderRadius: RADIUS.cell, backgroundColor: COLOR.surface },
   target: { borderWidth: 4, borderColor: COLOR.accent },
   empty: { alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderStyle: 'dashed', borderColor: COLOR.borderStrong },
   resting: { borderColor: COLOR.border },
   off: { opacity: 0.6 },
-  plus: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  plusBig: { width: 48, height: 48, borderRadius: 24 },
+  plus: { width: 32, height: 32, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center' },
+  plusBig: { width: 48, height: 48, borderRadius: RADIUS.pill },
   plusNext: { backgroundColor: COLOR.accent },
   plusRest: { backgroundColor: COLOR.surfaceSunken },
   addText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.secondary },
-  lead: { position: 'absolute', left: 8, top: 8, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: COLOR.surface, fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.foreground },
+  lead: { position: 'absolute', left: 8, top: 8, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, backgroundColor: COLOR.surface, fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.foreground },
   remove: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  removeFace: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.4)' },
+  removeFace: { width: 26, height: 26, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.4)' },
   saving: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(38, 36, 31, 0.45)' },
   savingText: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.surface },
 });

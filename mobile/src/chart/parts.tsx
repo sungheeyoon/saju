@@ -4,7 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import type { Rich as RichParts, RichPart } from '@saju-view/notes';
 
-import { Panel } from '@/ui/parts';
+import { Card as CardFace } from '@/ui/surfaces';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /** 한자 — 부산단디명조에 없어 기기 서체다(웹의 `.glyph`) */
@@ -13,7 +13,7 @@ const GLYPH_FONT = Platform.select({ ios: 'System', android: 'sans-serif', defau
 const SIZE = {
   xs: { fontSize: TYPE.fine, lineHeight: 18 },
   small: { fontSize: TYPE.small, lineHeight: 20 },
-  sm: { fontSize: TYPE.sm, lineHeight: 21 },
+  sm: { fontSize: TYPE.note, lineHeight: 21 },
   base: { fontSize: TYPE.field, lineHeight: 24 },
   lead: { fontSize: TYPE.lead, lineHeight: 24 },
   lg: { fontSize: 18, lineHeight: 26 },
@@ -81,7 +81,7 @@ export function Rich({ parts, size = 'xs', tone = 'muted', style }: { parts: Ric
 
 /** 웹 `CARD` — 흰 판 · 가는 테 */
 export function Card({ style, children }: { style?: StyleProp<ViewStyle>; children: ReactNode }) {
-  return <Panel style={[styles.card, style]}>{children}</Panel>;
+  return <CardFace style={[styles.card, style]}>{children}</CardFace>;
 }
 
 export function Chevron({ open, size = 16, closedDeg = 90 }: { open: boolean; size?: number; closedDeg?: number }) {
@@ -98,7 +98,7 @@ export function Chevron({ open, size = 16, closedDeg = 90 }: { open: boolean; si
 export function Fold({ title, meta, note, children }: { title: ReactNode; meta?: string; note?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <Panel style={[styles.card, styles.foldCard]}>
+    <CardFace style={[styles.card, styles.foldCard]}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={styles.foldHead}>
         <View style={styles.foldText}>
           <View style={styles.wrapBaseline}>
@@ -112,7 +112,7 @@ export function Fold({ title, meta, note, children }: { title: ReactNode; meta?:
         </View>
       </Pressable>
       {open && <View style={styles.foldBody}>{children}</View>}
-    </Panel>
+    </CardFace>
   );
 }
 
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   num: { fontVariant: ['tabular-nums'] },
   strong: { fontFamily: FONT.bold },
-  card: { borderWidth: 1, borderColor: COLOR.border },
+  card: { },
   foldCard: { padding: 0 },
   foldHead: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16 },
   foldText: { flex: 1, gap: 2 },
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   tabChosen: { backgroundColor: COLOR.surface },
   tabPanel: { paddingTop: 20 },
   footnote: { marginTop: 20, borderTopWidth: 1, borderTopColor: COLOR.border, paddingTop: 16 },
-  factTag: { borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.control, paddingHorizontal: 6, paddingVertical: 2 },
+  factTag: { borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.cell, paddingHorizontal: 6, paddingVertical: 2 },
   ruled: { borderTopWidth: 1, borderTopColor: COLOR.border, paddingTop: 12, marginTop: 12 },
   scrollHint: { marginTop: 8, textAlign: 'right' },
 });

@@ -4,6 +4,7 @@ import { Modal, PanResponder, Platform, Pressable, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { MenuPanel } from '@/ui/surfaces';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 
@@ -131,11 +132,11 @@ export function PhotoViewer({
           <View style={styles.scrim}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessibilityElementsHidden importantForAccessibility="no" />
             <View style={styles.sheet} accessibilityViewIsModal accessibilityLabel={PHOTO_MENU_LABEL}>
-              <View style={styles.choices}>
+              <MenuPanel>
                 {quiet.map(row)}
                 {danger.length > 0 && quiet.length > 0 && <View style={styles.rule} />}
                 {danger.map(row)}
-              </View>
+              </MenuPanel>
               <Pressable accessibilityRole="button" onPress={() => setMenu(false)} style={styles.cancel}>
                 <Text style={styles.cancelText}>취소</Text>
               </Pressable>
@@ -152,12 +153,11 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 4 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   count: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lead: { overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: '#fff', color: '#000', fontSize: TYPE.fine, fontFamily: FONT.bold },
+  lead: { overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, backgroundColor: '#fff', color: '#000', fontSize: TYPE.fine, fontFamily: FONT.bold },
   countText: { color: '#fff', fontSize: TYPE.body, fontFamily: FONT.bold },
   stage: { flex: 1 },
   scrim: { ...StyleSheet.absoluteFill, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.4)' },
-  sheet: { gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, borderTopLeftRadius: RADIUS.panel, borderTopRightRadius: RADIUS.panel, backgroundColor: COLOR.background },
-  choices: { padding: 6, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  sheet: { gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, borderTopLeftRadius: RADIUS.card, borderTopRightRadius: RADIUS.card, backgroundColor: COLOR.background },
   choice: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 16 },
   choiceText: { fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
   dangerText: { color: COLOR.danger },

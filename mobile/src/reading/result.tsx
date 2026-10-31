@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
+import { Cell } from '@/ui/surfaces';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -93,12 +94,12 @@ export function Result({
       )}
 
       {target.kind !== 'match' && !reading.fromCurrentChart && (
-        <View style={styles.stale}>
+        <Cell style={styles.stale}>
           <Text style={styles.staleText}>
             <Text style={styles.staleLabel}>{READING_STALE_LABEL} </Text>
             {READING_STALE_NOTE}
           </Text>
-        </View>
+        </Cell>
       )}
 
       {betweenSummaryAndBody}
@@ -124,7 +125,7 @@ export function Result({
 const styles = StyleSheet.create({
   result: { gap: 24 },
   grow: { flex: 1, minWidth: 0 },
-  cover: { overflow: 'hidden', paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, borderRadius: RADIUS.panel },
+  cover: { overflow: 'hidden', paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, borderRadius: RADIUS.card },
   coverAction: { position: 'absolute', top: 12, right: 12, zIndex: 1 },
   quote: { height: 40, fontFamily: FONT.bold, fontSize: 64, lineHeight: 72, color: COLOR.foreground, opacity: 0.7 },
   metaphor: { marginTop: 8, fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 36, color: COLOR.foreground },
@@ -134,8 +135,8 @@ const styles = StyleSheet.create({
   score: { alignItems: 'flex-end' },
   scoreLabel: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.secondary },
   scoreValue: { fontFamily: FONT.bold, fontSize: TYPE.figure, color: COLOR.foreground },
-  stale: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: RADIUS.panel, backgroundColor: COLOR.warningWash },
-  staleText: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.foreground },
+  stale: { backgroundColor: COLOR.warningWash },
+  staleText: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 24, color: COLOR.foreground },
   staleLabel: { fontFamily: FONT.bold, color: ELEMENT_TONE.土.ink },
   bodyHead: { marginTop: 4, fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground },
   end: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 24, opacity: 0.8 },

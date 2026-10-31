@@ -10,8 +10,9 @@ import {
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DialogPanel } from '@/ui/surfaces';
 import { PrimaryButton, TextButton } from '@/ui/parts';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
 function Dialog({
   title,
@@ -31,13 +32,15 @@ function Dialog({
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable accessibilityLabel={cancelLabel ?? confirmLabel} style={styles.back} onPress={onClose}>
-        <Pressable accessibilityViewIsModal style={styles.box} onPress={() => undefined}>
+        <Pressable accessibilityViewIsModal onPress={() => undefined}>
+          <DialogPanel style={styles.box}>
           <Text accessibilityRole="header" style={styles.title}>
             {title}
           </Text>
           <View style={styles.body}>{children}</View>
           <PrimaryButton label={confirmLabel} onPress={onConfirm} />
           {cancelLabel !== null && <TextButton label={cancelLabel} onPress={onClose} />}
+          </DialogPanel>
         </Pressable>
       </Pressable>
     </Modal>
@@ -91,7 +94,7 @@ export function CreditsShortage({ available, onClose }: { available: number; onC
 
 const styles = StyleSheet.create({
   back: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(38, 36, 31, 0.45)' },
-  box: { gap: 12, padding: 24, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  box: { gap: 12 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground },
   body: { gap: 8, marginBottom: 4 },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },

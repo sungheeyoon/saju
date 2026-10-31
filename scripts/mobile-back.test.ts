@@ -38,6 +38,7 @@ const NO_BAR: Record<string, string> = {
   'app/me/matching/index.tsx': '탭 첫 화면 — 앱 머리',
   'app/me/chat/index.tsx': '탭 첫 화면 — 앱 머리',
   'app/me/discovery.tsx': '화면 없이 설정으로 넘긴다',
+  'app/+not-found.tsx': '없는 주소의 안내 판 — 나가는 길은 판 안의 「홈으로」다',
   'app/dev-parts.tsx': '개발에서만 서는 부품 견본 — 앱 안의 길이 없다',
 };
 

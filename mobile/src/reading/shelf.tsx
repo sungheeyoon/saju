@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { EmptySlot } from '@/ui/surfaces';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -106,20 +107,20 @@ export function MakingRow({ making, kind }: { making: ShelfMaking; kind?: string
 /** 빈 자리 한 줄 — 「여기서 시작」 */
 export function BlankBook({ element, label, onPress }: { element: Element; label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="link" onPress={onPress} style={styles.blank}>
+    <EmptySlot accessibilityRole="link" onPress={onPress} style={styles.blank}>
       <ElementSymbol element={element} size={28} />
       <Text style={styles.blankLabel}>{label}</Text>
-    </Pressable>
+    </EmptySlot>
   );
 }
 
 const styles = StyleSheet.create({
-  mini: { width: 64, height: 88, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.control },
+  mini: { width: 64, height: 88, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.cell },
   miniMaking: { backgroundColor: COLOR.cream },
   miniBand: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   spine: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 6 },
   faces: { flexDirection: 'row', gap: 2 },
-  miniScore: { marginTop: 4, fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  miniScore: { marginTop: 4, fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   row: { flexDirection: 'row', gap: 16, paddingHorizontal: 4, paddingVertical: 16, borderTopWidth: 1, borderTopColor: COLOR.border },
   rowPressed: { backgroundColor: COLOR.surfaceSunken },
   rowText: { flex: 1, minWidth: 0, gap: 4 },
@@ -130,6 +131,6 @@ const styles = StyleSheet.create({
   stale: { paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden', borderRadius: RADIUS.pill, backgroundColor: COLOR.warningWash, fontFamily: FONT.bold, fontSize: TYPE.fine, color: ELEMENT_TONE.土.ink },
   kindTag: { fontFamily: FONT.bold, fontSize: TYPE.fine, color: COLOR.secondary },
   makingLine: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.creamInk },
-  blank: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8, paddingHorizontal: 20, paddingVertical: 16, borderWidth: 2, borderStyle: 'dashed', borderColor: COLOR.borderStrong, borderRadius: RADIUS.panel },
+  blank: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
   blankLabel: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
 });
