@@ -14,6 +14,8 @@ import { StemSymbol } from '@/ui/stem-symbol';
 import { PrimaryButton } from '@/ui/parts';
 import { Button } from '@/ui/buttons';
 import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 import { TopBar } from '@/ui/top-bar';
 import { CardFrame, Tile } from '@/ui/surfaces';
 
@@ -26,7 +28,7 @@ export default function PersonScreen() {
   const [read, setRead] = useState<Read<PersonDetail> | null>(null);
 
   const load = useCallback(() => {
-    void readPersonDetail(params.personId).then((next) => {
+    void settled(readPersonDetail(params.personId), 'readPersonDetail', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (next.kind === 'signed-out') router.replace('/');
       else setRead(next);
     });

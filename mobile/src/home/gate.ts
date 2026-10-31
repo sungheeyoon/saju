@@ -5,7 +5,8 @@ import { gateFor, NOTICE_UNREAD, type GateAccount, type GateNotice } from '@cons
 
 import { supabase } from '@/auth/client';
 import { readSchedule } from '@/auth/schedule';
-import { FAILED } from '@/auth/signup';
+import { UNREACHABLE } from '@/auth/signup';
+import { settled } from '@/ui/settled';
 
 export type Gate =
   | { kind: 'checking' }
@@ -17,8 +18,29 @@ export type Gate =
   | { kind: 'in'; email: string | null }
   | { kind: 'failed'; message: string };
 
-/** 세션과 가입을 본다 — 판정은 웹의 관문과 같은 `gateFor` 다. 계정을 못 읽으면 지나가지 않는다 */
-export async function readGate(): Promise<Exclude<Gate, { kind: 'checking' }>> {
+/**
+ * 답이 끝내 안 오면 이만큼 뒤에 닫는다 — 관문은 빈 화면에 머물지 않는다. 대화의 전송 시한(`SEND_DEADLINE_MS`)과 같은 값이다.
+ * 서버가 답을 안 하면 끝없이 빈 화면이었고(가짜 서버로 35초까지 잼), 끊기면 GET 을 다시 묻느라 답이 늦다(39초 안).
+ */
+const GATE_DEADLINE_MS = 15_000;
+
+type Settled = Exclude<Gate, { kind: 'checking' }>;
+
+const closedGate = (): Settled => ({ kind: 'failed', message: UNREACHABLE });
+
+/**
+ * 세션과 가입을 본다 — 판정은 웹의 관문과 같은 `gateFor` 다. 계정을 못 읽으면 지나가지 않는다.
+ * **던지지 않고, 답이 없어도 닫힌 쪽으로 끝난다** — 입구 · 소개 · 로그인 · 껍데기가 이 답 하나로 갈린다.
+ */
+export function readGate(): Promise<Settled> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<Settled>((resolve) => {
+    timer = setTimeout(() => resolve(closedGate()), GATE_DEADLINE_MS);
+  });
+  return settled(Promise.race([askGate(), deadline]), 'readGate', closedGate).finally(() => clearTimeout(timer));
+}
+
+async function askGate(): Promise<Settled> {
   if (supabase === null) return { kind: 'out' };
   const { data } = await supabase.auth.getSession();
   if (data.session === null) return { kind: 'out' };
@@ -28,7 +50,7 @@ export async function readGate(): Promise<Exclude<Gate, { kind: 'checking' }>> {
     readSchedule(),
   ]);
   if (found.error !== null) console.error('account', found.error.code);
-  if (found.error !== null || found.data === null) return { kind: 'failed', message: FAILED };
+  if (found.error !== null || found.data === null) return closedGate();
 
   const account: GateAccount = {
     signedUp: found.data.signed_up_at !== null,

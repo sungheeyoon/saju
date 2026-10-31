@@ -5,6 +5,7 @@ import { readingCreditsLabel } from '@reading/notes';
 
 import { supabase } from '@/auth/client';
 import { listenLive } from '@/chat/live';
+import { settled } from '@/ui/settled';
 
 export type Counts = { chat: number; requests: number; news: number; credits: string | null };
 
@@ -24,13 +25,16 @@ export function useCounts(pathname: string, enabled: boolean): Counts {
     const client = supabase;
     const count = () => {
       const mine = ++asked.current;
-      void Promise.all([
+      const reads = Promise.all([
         client.rpc('unread_chat_count'),
         client.rpc('my_match_requests'),
         client.rpc('my_notifications'),
         client.rpc('my_reading_credits'),
-      ]).then(([chat, requests, news, credits]) => {
-        if (mine !== asked.current) return;
+      ]);
+      /* 배지는 부속이다 — 못 읽으면 그 자리를 비운다 */
+      void settled(reads, 'counts', () => null).then((read) => {
+        if (mine !== asked.current || read === null) return;
+        const [chat, requests, news, credits] = read;
         const left = credits.data?.[0]?.available;
         setCounts({
           chat: chat.error === null ? Number(chat.data ?? 0) : 0,

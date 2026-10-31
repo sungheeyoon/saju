@@ -10,6 +10,8 @@ import { readSchedule, type ScheduleRead } from '@/auth/schedule';
 import { NoticeLine, NoticeScreen } from '@/ui/notice-screen';
 import { PrimaryButton } from '@/ui/parts';
 import { COLOR } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 
 /**
  * 테스트 종료 — 웹의 `/closed`. 끝나지 않았거나 못 읽었으면 돌려보낸다: 링크 하나로 「끝났습니다」를 아무 때나 띄우면 거짓말이다.
@@ -20,7 +22,7 @@ export default function ClosedScreen() {
 
   useEffect(() => {
     let live = true;
-    void readSchedule().then((next) => {
+    void settled(readSchedule(), 'current_beta_schedule', () => ({ ok: false, reason: UNREACHABLE }) as const).then((next) => {
       if (live) setSchedule(next);
     });
     return () => {

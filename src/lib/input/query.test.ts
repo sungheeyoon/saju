@@ -9,6 +9,7 @@ import {
   birthYearRefusal,
   missingAnswer,
   missingForCalculation,
+  queryFromJson,
   queryFromSearchParams,
   toSearchParams,
   type Query,
@@ -330,5 +331,28 @@ describe('주소창에 실은 입력', () => {
       time: '14:30',
       gender: 'male',
     });
+  });
+});
+
+describe('queryFromJson — 앱이 건네는 입력', () => {
+  const whole = { ...DEFAULT_QUERY, date: '1992-05-15', time: '09:30' };
+
+  it('한 벌이 그대로 돌아온다', () => {
+    expect(queryFromJson(JSON.stringify(whole))).toEqual(whole);
+  });
+
+  it.each([
+    ['없음', undefined],
+    ['JSON 아님', 'abc'],
+    ['빈 글자', ''],
+    ['null', 'null'],
+    ['숫자', '1'],
+    ['빈 객체', '{}'],
+    ['없는 도시', JSON.stringify({ ...whole, city: '화성' })],
+    ['프로토타입 이름의 도시', JSON.stringify({ ...whole, city: 'constructor' })],
+    ['없는 성별', JSON.stringify({ ...whole, gender: 'x' })],
+    ['세운이 글자', JSON.stringify({ ...whole, saeunFrom: '2026' })],
+  ])('%s → null', (_name, text) => {
+    expect(queryFromJson(text)).toBeNull();
   });
 });
