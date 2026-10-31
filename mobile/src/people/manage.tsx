@@ -8,11 +8,12 @@ import { endsWithBatchim } from '@saju-text/batchim';
 
 import { FieldLabel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { ConfirmDialog, DialogText } from '@/ui/confirm-dialog';
 import { Card, EmptySlot } from '@/ui/surfaces';
 
 import { BirthFields, useBirthForm } from './birth-fields';
 import { addPerson, removeFromList, updateNote } from './data';
-import { ConfirmDialog, FailureLine, go, styles as shared } from './parts';
+import { FailureLine, go, styles as shared } from './parts';
 import { SameChartAsk, type SameChartQuestion } from './same-chart-ask';
 
 /** 메모 칸 — 사주 계산에 쓰지 않는다 */
@@ -188,15 +189,18 @@ export function RemoveConfirm({ personId, label, onDone, onCancel }: { personId:
 
   return (
     <ConfirmDialog
+      open
+      danger
       title={`${label}${endsWithBatchim(label) ? '을' : '를'} 삭제할까요?`}
-      body="삭제하면 저장한 출생 정보와 이 사람의 풀이가 목록에서 사라져요."
       irreversible="삭제한 사람은 되돌릴 수 없어요."
       confirmLabel={removing ? '삭제하는 중…' : '삭제'}
       busy={removing}
       failure={failure === null ? null : `삭제하지 못했어요. ${failure}`}
       onConfirm={remove}
       onClose={onCancel}
-    />
+    >
+      <DialogText>삭제하면 저장한 출생 정보와 이 사람의 풀이가 목록에서 사라져요.</DialogText>
+    </ConfirmDialog>
   );
 }
 
@@ -206,12 +210,12 @@ const styles = StyleSheet.create({
   hidden: { display: 'none' },
   form: { gap: 20 },
   actions: { gap: 8 },
-  warn: { fontSize: TYPE.sm, fontFamily: FONT.medium, color: COLOR.danger },
+  warn: { fontSize: TYPE.note, fontFamily: FONT.medium, color: COLOR.danger },
   note: {
     minHeight: 72,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.cell,
     borderWidth: 1,
     borderColor: COLOR.borderStrong,
     backgroundColor: COLOR.surface,

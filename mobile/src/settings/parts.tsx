@@ -153,7 +153,7 @@ export const settingsText = StyleSheet.create({
   section: { fontSize: TYPE.lead, lineHeight: 26, fontFamily: FONT.bold, color: COLOR.foreground },
   body: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   bodyStrong: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
-  failure: { fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
+  failure: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
   fieldLabel: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
   notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
 });
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1, minWidth: 0, gap: 2 },
   inset: { paddingHorizontal: PAD, paddingBottom: 12 },
   failureRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12 },
-  failure: { flexShrink: 1, fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
+  failure: { flexShrink: 1, fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
   lineButton: { minHeight: CONTROL, justifyContent: 'center' },
   lineButtonText: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary, textDecorationLine: 'underline' },
   notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },

@@ -147,5 +147,5 @@ const styles = StyleSheet.create({
   bookName: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  retryText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
 });

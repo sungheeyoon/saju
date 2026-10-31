@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   section: { fontSize: TYPE.heading, lineHeight: 29, fontFamily: FONT.bold, color: COLOR.foreground },
   note: { fontSize: TYPE.body, lineHeight: 26, fontFamily: FONT.medium, color: COLOR.secondary },
   /* 두 문장이 제 줄에서 시작한다(운영자 2026-10-03) — 390px 에서 한 문장이 한 줄에 들어가는 크기다 */
-  noticeLine: { fontSize: TYPE.sm, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
+  noticeLine: { fontSize: TYPE.note, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   fine: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
   noticeRoom: { flex: 1, justifyContent: 'center', padding: 16 },

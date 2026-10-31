@@ -123,6 +123,6 @@ const styles = StyleSheet.create({
   form: { gap: 16, padding: 16 },
   head: { gap: 4 },
   actions: { gap: 8 },
-  nameNote: { gap: 2, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSunken },
-  warn: { fontSize: TYPE.sm, fontFamily: FONT.medium, color: COLOR.danger },
+  nameNote: { gap: 2, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSunken },
+  warn: { fontSize: TYPE.note, fontFamily: FONT.medium, color: COLOR.danger },
 });

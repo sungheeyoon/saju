@@ -36,6 +36,7 @@ import { readAlready, readsNow } from '@chat/room/thread';
 import { activityText, type ActivityBand } from '@presence';
 import { STEM_INFO, type Element, type Stem } from '@saju';
 
+import { Icon } from '@/ui/icons';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { ElementSymbol } from '@/ui/element-symbol';
 
@@ -45,7 +46,6 @@ import { BlockDialog, ReportDialog } from './dialogs';
 import { BackButton } from '@/ui/top-bar';
 import { CardFrame, Tile } from '@/ui/surfaces';
 
-import { ChatIcon } from './icons';
 import { AnchoredMenu, type MenuItem } from './menu';
 import { partnerSheetName, ProfileSheet } from './profile-sheet';
 import type { RoomView } from './reads';
@@ -193,7 +193,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
                 <Text accessibilityRole="header" numberOfLines={1} style={styles.heading}>
                   {room.heading}
                 </Text>
-                {partnerOpens && <ChatIcon name="chevron" color={COLOR.secondary} size={16} />}
+                {partnerOpens && <Icon name="chevron" color={COLOR.secondary} size={16} />}
               </View>
               {room.activity !== null && <Activity band={room.activity} />}
             </View>
@@ -201,7 +201,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
           {partnerOpens && <CompatChip compat={room.compat ?? { kind: 'quiet' }} matchId={room.matchId} tone={room.tones === null ? null : theirTone} />}
           {room.partnerUserId !== null && (
             <AnchoredMenu label={openMe === null ? '신고 · 차단' : '메뉴'} items={menuOf(false)}>
-              <ChatIcon name="more" color={COLOR.foreground} />
+              <Icon size={22} name="more" color={COLOR.foreground} />
             </AnchoredMenu>
           )}
         </View>
@@ -264,7 +264,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
           {fresh && (
             <Pressable accessibilityRole="button" onPress={toBottom} style={styles.fresh}>
               <View style={styles.down}>
-                <ChatIcon name="arrow" color={COLOR.foreground} size={16} />
+                <Icon name="arrow" color={COLOR.foreground} size={16} />
               </View>
               <Text style={styles.freshText}>{NEW_MESSAGES_LABEL}</Text>
             </Pressable>
@@ -274,7 +274,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
         <View style={styles.foot}>
           {closed ? (
             <Tile tone={COLOR.surfaceSoft} accessibilityRole="text" style={styles.closed}>
-              <ChatIcon name="lock" color={COLOR.secondary} size={16} />
+              <Icon name="lock" color={COLOR.secondary} size={16} />
               <Text style={styles.closedText}>{room.notice}</Text>
             </Tile>
           ) : (
@@ -300,7 +300,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
           toMatch={<CompatRow compat={room.compat ?? { kind: 'quiet' }} matchId={room.matchId} />}
           menu={
             <AnchoredMenu label="신고 · 차단" items={menuOf(true)}>
-              <ChatIcon name="more" color={COLOR.foreground} />
+              <Icon size={22} name="more" color={COLOR.foreground} />
             </AnchoredMenu>
           }
         />
@@ -401,7 +401,7 @@ function StartSide({ label, stem, onOpen, openName }: { label: string; stem: Ste
         <Text numberOfLines={1} style={styles.sideName}>
           {label}
         </Text>
-        {onOpen !== null && <ChatIcon name="chevron" color={COLOR.secondary} size={16} />}
+        {onOpen !== null && <Icon name="chevron" color={COLOR.secondary} size={16} />}
       </View>
     </Tile>
   );
@@ -498,7 +498,7 @@ function SendFailedMenu({ onRetry, onDrop }: { onRetry: (() => void) | null; onD
   ];
   return (
     <AnchoredMenu label={SEND_FAILED_LABEL} items={items} above>
-      <ChatIcon name="alert" color={COLOR.danger} />
+      <Icon size={22} name="alert" color={COLOR.danger} />
     </AnchoredMenu>
   );
 }
@@ -543,7 +543,7 @@ function Composer({ matchId, onSend, said }: { matchId: string; onSend: (body: s
           style={styles.input}
         />
         <Pressable accessibilityRole="button" accessibilityLabel={CHAT_SEND_LABEL} onPress={send} style={styles.send}>
-          <ChatIcon name="send" color={COLOR.onAccent} size={18} />
+          <Icon name="send" color={COLOR.onAccent} size={18} />
         </Pressable>
       </CardFrame>
       {(body.length >= COUNT_FROM || failure !== null) && (
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   dayRow: { alignItems: 'center', marginTop: 16, marginBottom: 8 },
   day: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.surfaceSoft, fontSize: TYPE.fine, fontFamily: FONT.medium, color: COLOR.secondary },
   older: { alignSelf: 'center', minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 16, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong },
-  olderText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
+  olderText: { fontSize: TYPE.note, fontFamily: FONT.bold, color: COLOR.foreground },
   fresh: {
     position: 'absolute',
     bottom: 12,
@@ -597,10 +597,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLOR.surfaceRaised,
   },
   down: { transform: [{ rotate: '90deg' }] },
-  freshText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
+  freshText: { fontSize: TYPE.note, fontFamily: FONT.bold, color: COLOR.foreground },
   foot: { padding: 10, borderTopWidth: 1, borderTopColor: COLOR.border },
   closed: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-  closedText: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
+  closedText: { flex: 1, fontSize: TYPE.note, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   composer: { gap: 6 },
   pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 16, backgroundColor: COLOR.surfaceSoft },
   input: { flex: 1, minHeight: CONTROL, maxHeight: 144, paddingTop: 11, paddingBottom: 11, fontSize: TYPE.field, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.foreground },
@@ -636,5 +636,5 @@ const styles = StyleSheet.create({
   helloTitle: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground, textAlign: 'center' },
   helloNote: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary, textAlign: 'center' },
   edit: { minHeight: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong },
-  editText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
+  editText: { fontSize: TYPE.note, fontFamily: FONT.bold, color: COLOR.foreground },
 });

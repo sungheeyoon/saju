@@ -145,44 +145,6 @@ export function SheetItem({ label, danger = false, onPress }: { label: string; d
   );
 }
 
-/** 되돌릴 수 없는 누름 직전에 묻는 창 — 닫는 것은 「취소」다(`app/ui/confirm-dialog.tsx`) */
-export function ConfirmDialog({
-  title,
-  body,
-  irreversible,
-  confirmLabel,
-  busy,
-  failure,
-  onConfirm,
-  onClose,
-}: {
-  title: string;
-  body: string;
-  irreversible: string;
-  confirmLabel: string;
-  busy: boolean;
-  failure: string | null;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Sheet onClose={onClose} label="취소">
-      <Text style={styles.section}>{title}</Text>
-      <Text style={styles.noticeBody}>{body}</Text>
-      <Text style={styles.noticeTitle}>{irreversible}</Text>
-      {failure !== null && <FailureLine>{failure}</FailureLine>}
-      <View style={styles.dialogActions}>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={onClose} style={[styles.dialogButton, styles.dialogCancel]}>
-          <Text style={styles.dialogCancelText}>취소</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={onConfirm} style={[styles.dialogButton, styles.dialogDanger, busy && styles.off]}>
-          <Text style={styles.dialogDangerText}>{confirmLabel}</Text>
-        </Pressable>
-      </View>
-    </Sheet>
-  );
-}
-
 const GLYPH_FONT = Platform.select({ ios: 'System', android: 'sans-serif', default: 'serif' });
 
 export const styles = StyleSheet.create({
@@ -198,7 +160,7 @@ export const styles = StyleSheet.create({
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
   notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
   noticeTitle: { fontSize: TYPE.body, lineHeight: 22, fontFamily: FONT.bold, color: COLOR.foreground },
-  noticeBody: { fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
+  noticeBody: { fontSize: TYPE.note, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   notFound: { gap: 6, paddingVertical: 40, alignItems: 'center' },
   notFoundActions: { alignSelf: 'stretch', gap: 8, marginTop: 16 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4, paddingLeft: 4, paddingRight: 10, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 253, 249, 0.72)' },
@@ -214,11 +176,4 @@ export const styles = StyleSheet.create({
   sheet: { gap: 10, padding: 20, paddingBottom: 32 },
   sheetItem: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 4 },
   sheetItemText: { fontSize: TYPE.field, fontFamily: FONT.bold, color: COLOR.foreground },
-  dialogActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  dialogButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },
-  dialogCancel: { borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
-  dialogCancelText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
-  dialogDanger: { backgroundColor: COLOR.danger },
-  dialogDangerText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.onAccent },
-  off: { opacity: 0.55 },
 });
