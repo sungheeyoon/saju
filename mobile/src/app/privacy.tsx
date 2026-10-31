@@ -9,6 +9,8 @@ import { Clause, Dot, FinePrint, InfoLine, InfoScreen, LegalHead } from '@/info/
 import { HomeButton } from '@/info/home-button';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { Card, Tile } from '@/ui/surfaces';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 
 /** 처리방침 — 웹의 `/privacy` 와 같은 자료(`noticeFor`)이고 로그인 없이 열린다. 날짜를 지어내지 않는다: 일정이 없으면 그 말만 선다 */
 export default function PrivacyScreen() {
@@ -18,7 +20,7 @@ export default function PrivacyScreen() {
 
   useEffect(() => {
     let live = true;
-    void readSchedule().then((next) => {
+    void settled(readSchedule(), 'current_beta_schedule', () => ({ ok: false, reason: UNREACHABLE }) as const).then((next) => {
       if (live) setSchedule(next);
     });
     return () => {

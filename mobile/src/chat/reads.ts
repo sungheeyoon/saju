@@ -11,6 +11,7 @@ import { STEM_INFO, storedChartSnapshot, type Element, type Stem } from '@saju';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
+import { settled } from '@/ui/settled';
 
 /**
  * 채팅의 읽기 · 쓰기 — 웹의 `app/me/chat/rooms.ts` · `messages.ts` · `tones.ts` · `room-compat.ts` · `actions.ts` 와 같은 문을 같은 뜻으로 부른다.
@@ -334,7 +335,7 @@ export async function reportMessage(messageId: string, reason: string, detail: s
  */
 export function noteActivity(): void {
   if (supabase === null) return;
-  void Promise.resolve(supabase.rpc('touch_activity')).then(({ error }) => {
-    if (error !== null) console.error('touch_activity', error.code);
+  void settled(Promise.resolve(supabase.rpc('touch_activity')), 'touch_activity', () => null).then((answer) => {
+    if (answer?.error) console.error('touch_activity', answer.error.code);
   });
 }

@@ -10,6 +10,7 @@ import { linksOf, type MapModel, type MapPerson } from '@reading/relation-map';
 
 import { ElementSymbol } from '@/ui/element-symbol';
 import { PrimaryButton } from '@/ui/parts';
+import { settled } from '@/ui/settled';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { Icon } from '@/ui/icons';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS as CORNER, TYPE } from '@/ui/tokens';
@@ -27,7 +28,7 @@ const toneOf = (element: Element | null | undefined) => (element ? ELEMENT_TONE[
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduced);
+    void settled(AccessibilityInfo.isReduceMotionEnabled(), 'isReduceMotionEnabled', () => false).then(setReduced);
     const listening = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
     return () => listening.remove();
   }, []);
