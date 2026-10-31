@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } 
 import {
   FlatList,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -407,6 +408,9 @@ function StartSide({ label, stem, onOpen, openName }: { label: string; stem: Ste
   );
 }
 
+/* 안드로이드는 줄어드는 말풍선의 너비를 잰 값보다 1px 안쪽으로 반올림해 끝 글자가 보이지 않는 둘째 줄로 밀린다 — 끝에 공백을 더해 넉넉히 잰다(공백은 줄을 안 밀어낸다) */
+const MEASURE_SLACK = Platform.OS === 'android' ? ' ' : null;
+
 function BubbleRow({
   bubble,
   room,
@@ -448,6 +452,7 @@ function BubbleRow({
               </Text>
             ),
           )}
+          {MEASURE_SLACK}
         </Text>
       </View>
       {sending === 'failed' ? (

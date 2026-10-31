@@ -73,11 +73,11 @@ export function ElementExchange({ request }: { request: InboxRequest }) {
             <View key={cell.key} style={styles.cell}>
               <Text style={styles.cellLabel}>{cell.label}</Text>
               <View style={styles.cellWay}>
-                <Text style={styles.cellWayText} numberOfLines={1}>
+                <Text style={[styles.cellWayText, cell.from === '나' && styles.cellWayMe]} numberOfLines={1}>
                   {cell.from}
                 </Text>
                 <Icon name="arrow" size={12} color={COLOR.secondary} />
-                <Text style={styles.cellWayText} numberOfLines={1}>
+                <Text style={[styles.cellWayText, cell.to === '나' && styles.cellWayMe]} numberOfLines={1}>
                   {cell.to}
                 </Text>
               </View>
@@ -415,6 +415,8 @@ const styles = StyleSheet.create({
   cell: { flex: 1, minWidth: 0, gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSunken },
   cellLabel: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
   cellWay: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: -8 },
+  /* 긴 닉네임과 나란히 줄어 「나」가 「…」이 되지 않게 — 줄어드는 쪽은 닉네임이다 */
+  cellWayMe: { flexShrink: 0 },
   cellWayText: { flexShrink: 1, fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
   cellNone: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
   marks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
