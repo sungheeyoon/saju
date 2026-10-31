@@ -1,10 +1,10 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { calculateChart } from '@input/chart';
-import { HOUR_UNKNOWN_LABEL, type Query } from '@input/query';
+import { HOUR_UNKNOWN_LABEL, queryFromJson, type Query } from '@input/query';
 import { ELEMENT_PICTURE_KO, ELEMENTS } from '@saju';
 import { TOPIC_TABLE_FOOTNOTE, asOf, said, sajuViewModelOf } from '@saju-view';
 
@@ -24,8 +24,14 @@ import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
 
 /** 사주 결과 — 절의 차례는 웹의 `app/saju/view.tsx` 와 같다. 값은 웹과 같은 `sajuViewModelOf` 다 */
 export default function ChartScreen() {
-  const params = useLocalSearchParams<{ query: string }>();
-  const query = useMemo(() => JSON.parse(params.query) as Query, [params.query]);
+  const params = useLocalSearchParams<{ query?: string }>();
+  const query = useMemo(() => queryFromJson(params.query), [params.query]);
+  /* 주소로도 오는 값이다 — 없거나 깨졌으면 볼 명식이 없으니 적는 자리로 돌려보낸다 */
+  if (query === null) return <Redirect href={{ pathname: '/', params: { another: '1' } }} />;
+  return <ChartBody query={query} />;
+}
+
+function ChartBody({ query }: { query: Query }) {
   /* 기준 시각은 화면을 연 때 하나다 — 표의 「현재」와 옆에 적은 시각이 갈리지 않는다 */
   const [viewedAt] = useState(() => Date.now());
   const result = useMemo(() => calculateChart(query), [query]);

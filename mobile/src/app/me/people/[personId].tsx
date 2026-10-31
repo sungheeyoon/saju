@@ -13,6 +13,8 @@ import { SajuSections } from '@/people/saju-sections';
 import { StemSymbol } from '@/ui/stem-symbol';
 import { Panel, PrimaryButton } from '@/ui/parts';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 import { TopBar } from '@/ui/top-bar';
 
 const NO_READING_YET = '아직 받은 사주풀이가 없어요.';
@@ -24,7 +26,7 @@ export default function PersonScreen() {
   const [read, setRead] = useState<Read<PersonDetail> | null>(null);
 
   const load = useCallback(() => {
-    void readPersonDetail(params.personId).then((next) => {
+    void settled(readPersonDetail(params.personId), 'readPersonDetail', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (next.kind === 'signed-out') router.replace('/');
       else setRead(next);
     });

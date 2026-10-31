@@ -19,10 +19,11 @@ import {
 import { NICKNAME_AVAILABLE_NOTE, NICKNAME_MAX, NICKNAME_MIN, NICKNAME_TAKEN_NOTE, missingNickname, nicknameKey } from '@profile';
 
 import { signOut } from '@/auth/sign-in';
-import { checkNickname, completeSignup, readSignup, type SignupState } from '@/auth/signup';
+import { checkNickname, completeSignup, readSignup, UNREACHABLE, type SignupState } from '@/auth/signup';
 import { Logo } from '@/ui/logo';
 import { CheckRow, Field, FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 import { goBack } from '@/ui/top-bar';
 
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
@@ -35,7 +36,7 @@ export default function SignupScreen() {
 
   useEffect(() => {
     let live = true;
-    readSignup().then((next) => {
+    void settled(readSignup(), 'readSignup', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (live) setState(next);
     });
     return () => {

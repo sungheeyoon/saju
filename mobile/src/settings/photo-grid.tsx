@@ -9,6 +9,7 @@ import { FOCUS_CENTER, PHOTO_MAX_COUNT, PHOTO_NOTE, PHOTO_REMOVED, PHOTO_REMOVE_
 import { Paper } from '@/ui/surfaces';
 import { ConfirmDialog } from '@/ui/confirm-dialog';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 
 import { FailureLine, useDoneNote } from './parts';
 import { PHOTO_FRAME_TITLE, PhotoFramer, contentPositionOf } from './photo-framer';
@@ -472,7 +473,7 @@ function PhotoFace({ photo, focus, userId, cover }: { photo: MyPhoto; focus: Pho
   const [source, setSource] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    void photoSource(photo, userId ?? undefined).then((next) => {
+    void settled(photoSource(photo, userId ?? undefined), 'photoSource', () => null).then((next) => {
       if (live) setSource(next);
     });
     return () => {

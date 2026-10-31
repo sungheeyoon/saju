@@ -6,6 +6,7 @@ import { LIVE_EVENT, liveChangeOf, userTopic, type LiveChange } from '@live/chan
 import { startRunner } from '@live/runner';
 
 import { supabase } from '@/auth/client';
+import { settled } from '@/ui/settled';
 
 /**
  * 라이브 신호 — 채널의 한 건이거나, 무엇이 바뀌었는지 모르는 다시 대조(`resync`). 화면은 이것을 듣고 읽는 문을 다시 부른다.
@@ -39,8 +40,8 @@ export function LiveChannel() {
     let stopped = false;
     let stop = () => {};
 
-    void client.auth.getSession().then(({ data }) => {
-      const userId = data.session?.user.id;
+    void settled(client.auth.getSession(), 'live session', () => null).then((answer) => {
+      const userId = answer?.data.session?.user.id;
       if (stopped || userId === undefined) return;
 
       let channel: RealtimeChannel | null = null;
