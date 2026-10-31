@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { DISCOVERY_EMPTY, DISCOVERY_TEASER } from '@discovery/copy';
 import { elementOf, supplyOf, type DeckCard } from '@matching/deck-card';
@@ -107,28 +106,14 @@ export function TodayCard({ card, onInfo, onBlocked }: { card: DeckCard; onInfo:
   );
 }
 
-/** 글 밑의 어둠막 — 흰 사진 위에서도 흰 글자가 읽히게. 멈춤은 웹의 `FACE_SCRIM` 과 같다 */
+/**
+ * 글 밑의 어둠막 — 흰 사진 위에서도 흰 글자가 읽히게. 멈춤은 웹의 `FACE_SCRIM` 과 같다.
+ * SVG 로 그리면 안드로이드에서 처음 잰 크기로 굳어 카드 일부만 덮는다 — 뷰의 그라디언트는 뷰를 따라간다.
+ */
+const FACE_SCRIM = 'linear-gradient(to top, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.78) 30%, rgba(0,0,0,0.62) 55%, rgba(0,0,0,0.38) 72%, rgba(0,0,0,0.14) 86%, rgba(0,0,0,0) 100%)';
+
 function FaceScrim() {
-  const stops = [
-    [0, 0.86],
-    [0.3, 0.78],
-    [0.55, 0.62],
-    [0.72, 0.38],
-    [0.86, 0.14],
-    [1, 0],
-  ] as const;
-  return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
-      <Defs>
-        <LinearGradient id="face" x1="0" y1="1" x2="0" y2="0">
-          {stops.map(([at, opacity]) => (
-            <Stop key={at} offset={at} stopColor="#000000" stopOpacity={opacity} />
-          ))}
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#face)" />
-    </Svg>
-  );
+  return <View style={[StyleSheet.absoluteFill, { backgroundImage: FACE_SCRIM }]} />;
 }
 
 /** 단추 줄 — 사진 아래. 「궁합 요청」이 채운 주 단추로 가장 넓다 */
