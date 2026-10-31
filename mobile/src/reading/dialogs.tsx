@@ -7,11 +7,8 @@ import {
   SALE_CLOSED_NOTE,
   SALE_CLOSED_OK,
 } from '@reading/notes';
-import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { DialogPanel } from '@/ui/surfaces';
-import { PrimaryButton, TextButton } from '@/ui/parts';
 import { ConfirmDialog } from '@/ui/confirm-dialog';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 
