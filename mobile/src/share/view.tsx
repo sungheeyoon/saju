@@ -9,10 +9,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Markdown } from '@/reading/markdown';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 import { TopBar } from '@/ui/top-bar';
+import { Card, Paper, Tile } from '@/ui/surfaces';
 
 import { Mark } from './marks';
 import { readShared, type ShareRead } from './read';
@@ -61,7 +62,7 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
         </View>
 
         {(metaphor !== null || score !== null) && (
-          <Panel tone="cream" style={styles.cover}>
+          <Paper style={styles.cover}>
             {metaphor !== null && (
               <View style={styles.metaphor}>
                 <Mark name="quote" color={COLOR.creamInk} />
@@ -70,7 +71,7 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
             )}
             {/* 궁합에서는 점수가 그 글의 일부다. 빼면 받은 사람이 다른 글을 본다 */}
             {score !== null && (
-              <View style={styles.score}>
+              <Tile tone={ELEMENT_TONE.火.soft} style={styles.score}>
                 <View style={styles.scoreLabel}>
                   <Icon name="taiji" size={16} color={ELEMENT_TONE.火.ink} />
                   <Text style={styles.scoreName}>궁합풀이 점수</Text>
@@ -79,17 +80,17 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
                   <Text style={styles.scoreValue}>{score}</Text>
                   <Text style={styles.scoreMax}>/ 100</Text>
                 </View>
-              </View>
+              </Tile>
             )}
-          </Panel>
+          </Paper>
         )}
 
-        <Panel style={styles.article}>
+        <Card style={styles.article}>
           <Markdown source={body} />
-        </Panel>
+        </Card>
 
         {/* 다 읽은 자리에서 묻는다 — 이 화면의 유일한 시작 단추다. 가입에 코드가 든다는 말이 곁에 함께 선다 */}
-        <Panel tone="cream" style={styles.invitation}>
+        <Paper style={styles.invitation}>
           <BrandCircle size={56} mark={36} />
           <Text accessibilityRole="header" style={styles.section}>
             {invitation.heading}
@@ -98,7 +99,7 @@ function OpenScreen({ shared, expect }: { shared: SharedReading; expect: ShareKi
           {failure !== null && <Text style={styles.failure}>{failure}</Text>}
           <PrimaryButton label="로그인하고 시작하기" onPress={start} disabled={going} />
           <Text style={styles.fine}>{BETA_SIGNUP_CODE_NOTE}</Text>
-        </Panel>
+        </Paper>
       </ScrollView>
     </SafeAreaView>
   );
@@ -135,7 +136,7 @@ function Notice({ title, lines, children }: { title: string; lines: readonly str
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <TopBar fallback="/" />
       <View style={styles.noticeRoom}>
-        <Panel tone="cream" style={styles.notice}>
+        <Paper style={styles.notice}>
           <BrandCircle size={64} mark={40} />
           <Text accessibilityRole="header" style={styles.title}>
             {title}
@@ -148,7 +149,7 @@ function Notice({ title, lines, children }: { title: string; lines: readonly str
             ))}
           </View>
           <View style={styles.noticeActions}>{children}</View>
-        </Panel>
+        </Paper>
       </View>
     </SafeAreaView>
   );
@@ -169,26 +170,26 @@ const styles = StyleSheet.create({
   brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   head: { gap: 6 },
   eyebrow: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.creamInk },
-  title: { fontSize: TYPE.title, lineHeight: 34, fontFamily: FONT.bold, color: COLOR.foreground },
-  cover: { gap: 16 },
-  metaphor: { flexDirection: 'row', gap: 12 },
+  title: { fontSize: TYPE.title, lineHeight: 35, fontFamily: FONT.bold, color: COLOR.foreground },
+  cover: { padding: 0, overflow: 'hidden' },
+  metaphor: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingVertical: 28 },
   metaphorText: { flex: 1, fontSize: TYPE.heading, lineHeight: 29, fontFamily: FONT.medium, color: COLOR.foreground },
-  score: { alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderRadius: RADIUS.panel, backgroundColor: ELEMENT_TONE.火.soft },
+  score: { alignItems: 'center', margin: 12, paddingHorizontal: 20, paddingVertical: 16 },
   scoreLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   scoreName: { fontSize: TYPE.small, fontFamily: FONT.bold, color: ELEMENT_TONE.火.ink },
   scoreLine: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 4 },
   scoreValue: { fontSize: TYPE.figure, fontFamily: FONT.bold, color: COLOR.foreground },
   scoreMax: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
-  article: { borderWidth: 1, borderColor: COLOR.border },
-  invitation: { gap: 12 },
+  article: { overflow: 'hidden' },
+  invitation: { gap: 12, paddingHorizontal: 20, paddingVertical: 28 },
   circle: { alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.surface },
-  section: { fontSize: TYPE.heading, lineHeight: 28, fontFamily: FONT.bold, color: COLOR.foreground },
+  section: { fontSize: TYPE.heading, lineHeight: 29, fontFamily: FONT.bold, color: COLOR.foreground },
   note: { fontSize: TYPE.body, lineHeight: 26, fontFamily: FONT.medium, color: COLOR.secondary },
   /* 두 문장이 제 줄에서 시작한다(운영자 2026-10-03) — 390px 에서 한 문장이 한 줄에 들어가는 크기다 */
   noticeLine: { fontSize: TYPE.sm, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   fine: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
   noticeRoom: { flex: 1, justifyContent: 'center', padding: 16 },
-  notice: { gap: 16, padding: 24 },
+  notice: { gap: 16 },
   noticeActions: { gap: 8, marginTop: 8 },
 });

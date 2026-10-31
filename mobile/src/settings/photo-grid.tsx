@@ -492,7 +492,7 @@ function PhotoFace({ photo, focus, userId, cover }: { photo: MyPhoto; focus: Pho
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 12 },
+  panel: { gap: 16, paddingHorizontal: 16, paddingVertical: 20 },
   head: { gap: 4 },
   headRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
   title: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },

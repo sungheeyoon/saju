@@ -43,10 +43,11 @@ import {
 
 import { supabase } from '@/auth/client';
 import { NOT_READY, UNREACHABLE } from '@/auth/signup';
-import { CheckRow, Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { CheckRow, PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 import { TopBar } from '@/ui/top-bar';
+import { CardFrame, Paper } from '@/ui/surfaces';
 
 import { AccountNotice, FailureLine, settingsText } from './parts';
 import { readAccount, setOptionalConsent } from './settings';
@@ -99,24 +100,24 @@ export function SurveyScreen() {
             <AccountNotice state={data.state} onRetry={() => void reload()} />
           ) : (
             <>
-              <Panel tone="cream" style={styles.header}>
+              <Paper style={styles.header}>
                 <Text style={styles.intro}>{SURVEY_COPY.intro}</Text>
                 <Text style={styles.editable}>{SURVEY_COPY.editable}</Text>
-              </Panel>
+              </Paper>
               {data.kind === 'failed' ? (
-                <Panel>
+                <CardFrame style={styles.failed}>
                   <FailureLine onRetry={() => void reload()}>설문을 불러오지 못했어요.</FailureLine>
-                </Panel>
+                </CardFrame>
               ) : data.context.consented ? (
                 <SurveyForm context={data.context} given={data.given} />
               ) : (
-                <Panel style={styles.section}>
+                <CardFrame style={styles.section}>
                   <View style={styles.tight}>
                     <Text style={settingsText.section}>먼저 동의가 필요합니다</Text>
                     <Text style={styles.sm}>{SURVEY_COPY.consentNeeded}</Text>
                   </View>
                   <ConsentSwitch onDone={() => void reload()} />
-                </Panel>
+                </CardFrame>
               )}
             </>
           )}
@@ -195,13 +196,13 @@ function SurveyForm({ context, given }: { context: SurveyContext; given: MySurve
 
   if (!open) {
     return (
-      <Panel style={styles.section}>
+      <CardFrame style={styles.section}>
         <View style={styles.tight}>
           <Text style={settingsText.section}>{SURVEY_COPY.thanks}</Text>
           <Text style={styles.sm}>{SURVEY_COPY.editable}</Text>
         </View>
         <SecondaryButton label="답 고치기" onPress={() => setEditing(true)} />
-      </Panel>
+      </CardFrame>
     );
   }
 
@@ -225,7 +226,7 @@ function SurveyForm({ context, given }: { context: SurveyContext; given: MySurve
       </Picks>
 
       {asked.length > 0 && (
-        <Panel style={styles.panel}>
+        <CardFrame style={styles.panel}>
           <Text style={styles.step}>{step(5)}</Text>
           <Text style={styles.ask}>{PRICE_STEM}</Text>
           <Text style={styles.small}>{PRICE_NOTE}</Text>
@@ -255,15 +256,15 @@ function SurveyForm({ context, given }: { context: SurveyContext; given: MySurve
               </View>
             );
           })}
-        </Panel>
+        </CardFrame>
       )}
 
       {asked.length > 0 && <Picks step={step(6)} question={QUESTION.priceFactors} hint={both} options={PRICE_FACTORS} label={PRICE_FACTOR_LABEL} sole={[]} picked={answers.priceFactors} onPick={(next) => pick('priceFactors', next)} />}
 
-      <Panel style={styles.panel}>
+      <CardFrame style={styles.panel}>
         <Text style={styles.step}>{step(total)}</Text>
         <Writing label={QUESTION.freeText} limit={TEXT_LIMIT.free} value={answers.freeText} onChange={(next) => pick('freeText', next)} />
-      </Panel>
+      </CardFrame>
 
       <View style={styles.send}>
         <Text style={styles.small}>{SURVEY_COPY.drafting}</Text>
@@ -322,7 +323,7 @@ function Picks<T extends string>({
       {children}
     </>
   );
-  return nested ? <View style={styles.ruled}>{body}</View> : <Panel style={styles.panel}>{body}</Panel>;
+  return nested ? <View style={styles.ruled}>{body}</View> : <CardFrame style={styles.panel}>{body}</CardFrame>;
 }
 
 function Writing({ label, limit, value, onChange, ruled = false }: { label: string; limit: number; value: string; onChange: (next: string) => void; ruled?: boolean }) {
@@ -341,14 +342,14 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   intro: { fontSize: TYPE.body, lineHeight: 26, fontFamily: FONT.medium, color: COLOR.creamInk },
   editable: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.creamInk },
-  section: { gap: 16 },
+  section: { gap: 16, padding: 20 },
   tight: { gap: 4 },
   sm: { fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.secondary },
   consent: { gap: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLOR.border },
   small: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.muted },
   meta: { paddingHorizontal: 4, fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   form: { gap: 20 },
-  panel: { gap: 12 },
+  panel: { gap: 12, padding: 20 },
   step: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.bold, color: COLOR.muted },
   ask: { fontSize: TYPE.lead, lineHeight: 26, fontFamily: FONT.bold, color: COLOR.foreground },
   nestedAsk: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
@@ -359,10 +360,11 @@ const styles = StyleSheet.create({
   writing: { gap: 8 },
   radio: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   radioOn: { borderColor: COLOR.foreground, backgroundColor: COLOR.cream },
-  dot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
+  dot: { width: 20, height: 20, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   dotOn: { borderColor: COLOR.accent },
-  dotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLOR.accent },
+  dotInner: { width: 10, height: 10, borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   area: { minHeight: 112, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface, fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 24, color: COLOR.foreground, textAlignVertical: 'top' },
   send: { gap: 12, paddingHorizontal: 4 },
   draftFailed: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.bold, color: COLOR.danger },
+  failed: { padding: 20 },
 });

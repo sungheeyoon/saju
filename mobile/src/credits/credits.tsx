@@ -13,10 +13,11 @@ import { paidOrderOf, type PaidOrder } from '@reading/paid-order';
 import { supabase } from '@/auth/client';
 import { NOT_READY, UNREACHABLE } from '@/auth/signup';
 import { FailureLine, LinkRow, SettingsGroup, settingsText } from '@/settings/parts';
-import { Panel, TextButton } from '@/ui/parts';
+import { TextButton } from '@/ui/parts';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
-import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
+import { Card, Paper } from '@/ui/surfaces';
 
 
 type Read<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -54,13 +55,13 @@ export function CreditsScreen() {
             <Text style={settingsText.meta}>{CREDITS_USAGE_NOTE}</Text>
             {read.ok ? (
               read.value !== null && (
-                <Panel tone="cream" style={styles.count}>
+                <Paper style={styles.count}>
                   <Text style={styles.number}>
                     {read.value}
                     <Text style={styles.unit}>장</Text>
                   </Text>
                   <Text style={styles.rate}>{CREDITS_USAGE_RATE}</Text>
-                </Panel>
+                </Paper>
               )
             ) : (
               <FailureLine onRetry={load}>{read.message}</FailureLine>
@@ -97,7 +98,7 @@ export function CreditsHistoryScreen() {
           ) : (
             read.value.map((order) => <OrderCard key={order.orderNumber} order={order} />)
           ))}
-        <Panel style={styles.refund}>
+        <Card style={styles.refund}>
           <Text style={styles.name} accessibilityRole="header">
             환불 신청
           </Text>
@@ -105,7 +106,7 @@ export function CreditsHistoryScreen() {
           <Text style={settingsText.body}>{refundRequestLine(businessInfoFrom({ email: SUPPORT_EMAIL }))}</Text>
           <Text style={settingsText.body}>주문 번호를 함께 알려 주세요.</Text>
           <TextButton label="환불정책 보기" onPress={() => router.push('/refund?from=credits' as never)} />
-        </Panel>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -121,7 +122,7 @@ function OrderCard({ order }: { order: PaidOrder }) {
     ['남은 풀이권', `${order.remaining}장`],
   ];
   return (
-    <Panel style={styles.order}>
+    <Card style={styles.order}>
       <View style={styles.orderHead}>
         <Text style={styles.name}>{order.product}</Text>
         <Text style={styles.tag}>{order.status}</Text>
@@ -134,23 +135,23 @@ function OrderCard({ order }: { order: PaidOrder }) {
           </Text>
         </View>
       ))}
-    </Panel>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 16, padding: 16, paddingBottom: 40 },
-  count: { gap: 8 },
+  count: { gap: 8, paddingHorizontal: 20, paddingVertical: 16 },
   number: { fontSize: TYPE.figure, lineHeight: 48, fontFamily: FONT.bold, color: COLOR.foreground },
   unit: { fontSize: TYPE.lead, fontFamily: FONT.bold },
   rate: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.creamInk },
   bleed: { marginHorizontal: -16 },
   refund: { gap: 8 },
-  order: { gap: 8 },
+  order: { gap: 12 },
   orderHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  name: { fontSize: TYPE.lead, lineHeight: 26, fontFamily: FONT.bold, color: COLOR.foreground },
-  tag: { overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: COLOR.cream, fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.creamInk },
+  name: { fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
+  tag: { overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, backgroundColor: COLOR.cream, fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.creamInk },
   orderRow: { flexDirection: 'row', gap: 16 },
   orderLabel: { width: 84, flexShrink: 0, fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   orderValue: { flex: 1, minWidth: 0, fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.foreground },
