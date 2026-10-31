@@ -26,5 +26,5 @@
 | `docs/agents/delegation/unattended.md` | 「무인 라운드」 | 운영자가 자는 동안 — 권한 봉투 · 자동으로 고쳐도 되는 경계 · 아침 보고 |
 | `docs/agents/delegation/permissions.md` | 「권한 등급」 · 「훅」 | 등급 0~4 표(`.claude/settings.json` 과 같은 목록) · 공식 운영에 들어가면 켜는 잠금 · 운영 개인정보 · main 은 PR 로만 · 마이그레이션 PR 의 예외 · 메인 체크아웃에서 이르는 훅 |
 | `docs/agents/delegation/done.md` | 「끝났다는 것」 · 「읽기량 예상치는 보고다」 | PR 틀의 칸 여섯 · 전후 그림 · 커밋과 PR 제목 · 읽기량에 걸린 붉음 둘 |
-| `docs/agents/delegation/local-env.md` | 「로컬 환경의 함정」 · 「앱을 웹 번들로 재기」 · 「워크트리에서 전후 그림 찍기」 | 증상 · 원인 · 하는 일 표 · 앱을 기기 없이 재는 차례 · 에이전트 워크트리에서 화면 전후 그림을 찍는 차례 |
+| `docs/agents/delegation/local-env.md` | 「로컬 환경의 함정」 · 「앱을 웹 번들로 재기」 · 「앱을 네이티브로 재기」 · 「워크트리에서 전후 그림 찍기」 | 증상 · 원인 · 하는 일 표 · 앱을 기기 없이 재는 차례 · 에뮬레이터와 가짜 서버로 앱을 전수로 재는 차례 · 에이전트 워크트리에서 화면 전후 그림을 찍는 차례 |
 | `docs/agents/delegation/notes.md` | 「세션 기록」 · 「경로가 옮겨지면」 | `docs/notes/` 에 무엇을 적고 무엇은 번호로만 가리키나 · 경로가 옮겨지면 고칠 문서와 그날의 기록으로 둘 것 |

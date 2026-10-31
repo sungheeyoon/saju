@@ -61,6 +61,32 @@
    데이터가 찬 화면은 `localStorage` 에 가짜 세션(`sb-<주소의 첫 토막>-auth-token`)을 넣는다. 가짜 값의 함정 — `late_night_rule` 은 `jo` · `ya`, `time_basis` 는 `record` 등 진짜 값이어야 명식이 선다. 관문은 `current_beta_schedule` 을 못 읽으면 가입을 마친 사람을 들여보낸다(500 을 주면 빠르다). `EXPO_PUBLIC_SITE_URL` 쪽 앱용 문도 가로챈다.
 5. **이것은 네이티브가 아니다** — 구글 로그인 창 · 사진 고르기와 굽기 · 딥 링크 · 키보드는 안 돈다. PR 의 「안 돌린 것」에 적는다.
 
+## 앱을 네이티브로 재기
+
+안드로이드 에뮬레이터의 Expo Go 에 가짜 서버를 물려 라우트를 전수로 잰다 — 운영을 안 밟고 데이터가 찬 채로다(2026-10-31, #927 이 이 길로 웹 번들에 안 보이던 셋을 찾았다). 도구는 `mobile/scripts/measure/` 다. **실제 DB · 구글 로그인 · iOS 는 재지 않는다** — PR 의 「안 돌린 것」에 적는다. 그림은 저장소 밖(`MEASURE_DIR`)에 둔다.
+
+1. 에뮬레이터를 띄우고 Expo Go(SDK 와 맞는 판)를 깐다 — `adb.exe install -r -g <Windows 경로의 apk>`. API 37 은 권한도 준다 — `adb shell pm grant host.exp.exponent android.permission.ACCESS_LOCAL_NETWORK`.
+2. 포트를 잇는다 — `adb reverse tcp:8081 tcp:8081` · `adb reverse tcp:18999 tcp:18999`.
+3. `mobile/.env.local` 을 가짜로 둔다 — `EXPO_PUBLIC_SUPABASE_URL` · `EXPO_PUBLIC_SITE_URL` 은 `http://localhost:18999`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` 는 아무 글자. **운영 값을 넣지 않는다.**
+4. `node mobile/scripts/measure/fake-server.mjs` — 상태는 `curl 'localhost:18999/__set?m=<상태>'`(`reset` · `empty` · `unsigned` · `closed` · `suspended` · `warning` · `no-credits` · `no-self`).
+5. `mobile/` 에서 `REACT_EDITOR=none EXPO_NO_TELEMETRY=1 npx expo start --clear --port 8081 --go > "$MEASURE_DIR/metro.log" 2>&1`.
+6. `mobile/scripts/measure/dev-seed.tsx.txt` 를 `mobile/src/app/dev-seed.tsx` 로 잠시 복사하고 `python3 mobile/scripts/measure/device.py link /dev-seed` 로 세션을 넣는다. **이 복사본과 `.env.local` 은 끝나면 지운다 — 커밋하지 않는다.**
+7. 라우트를 쓴다 — `python3 mobile/scripts/measure/sweep.py me=/me chat=/me/chat …` 가 그림 · 글자 · 새 로그를 모은다. 누르는 흐름은 `device.py` 의 `tap` · `input` · `type` · `key` 로 스크립트 파일에 적는다.
+
+환경값은 `ADB`(WSL 은 Windows SDK 의 `adb.exe` 전체 경로) · `MEASURE_DIR`(기본은 임시 폴더의 `saju-measure`) · `FAKE_PORT` 다. 앱이 새 DB 함수를 부르면 가짜 서버 기록에 `!! 없는 rpc` 가 찍힌다 — 그 답을 `fake-server.mjs` 에 더한다.
+
+| 증상 | 원인 | 하는 일 |
+| --- | --- | --- |
+| API 37 에서 Expo Go 가 Metro 에 못 붙는다 | 로컬 네트워크 권한(`ACCESS_LOCAL_NETWORK`)이 없다 | 1 의 `pm grant` |
+| 딥 링크가 앱으로 안 간다 | `am start` 에 패키지 인자를 붙였다 | `am start -a android.intent.action.VIEW -d 'exp://127.0.0.1:8081/--/<경로>'` 까지만(`device.py link`) |
+| 붉은 화면의 스택 줄을 누르자 PC 에 VS Code 가 뜬다 | Metro 가 편집기를 연다 | `REACT_EDITOR=none` 으로 띄운다 |
+| 누른 자리가 엉뚱하다 | 좌표는 Expo 도구 단추 · 판 크기로 어긋난다 | 좌표를 쓰지 않는다 — `uiautomator` 덤프의 글자로 찾아 누른다(`device.py tap`) |
+| `input text` 를 보냈는데 메뉴가 뜨거나 앱이 다시 읽힌다 | 입력칸에 초점이 없으면 글자가 RN 단축키(`r` · `d` …)로 먹는다 | `device.py input` 으로 초점을 준 뒤 `type`. 한글은 못 넣는다 |
+| 눌렀는데 앞 화면 글자가 읽힌다 | 글자가 화면 전환보다 늦게 바뀐다 | 전환 뒤 몇 초 기다리고 읽는다 — 안 나왔다고 바로 판정하지 않는다 |
+| `adb` 가 결과 없이 멈춘다 | Windows 쪽 `adb.exe` 프로세스가 쌓여 데몬이 멈춘다 | `adb.exe kill-server` 로 내리고 다시 부른다. 부를 때 `timeout` 을 두고 나란히 부르지 않는다 |
+| 뿌리 `node_modules` 가 없다 | `mobile/` 의 `npm ci` 만으로 Metro · `tsc` 가 도는 것은 `.claude/worktrees/` 가 메인의 `node_modules` 밑에 있어서다(2026-10-31 에 쟀다). `scripts/` 시험은 그래도 못 돌고, 저장소 밖 복사본은 `src/lib` 의 `astronomy-engine` 을 못 찾는다 | 뿌리에 `npm ci`, 또는 CI 처럼 `node_modules` 를 잇는다 |
+| `git` · `github` · `timeout` 글자가 든 복합 명령이 거절된다 | 워크트리 격리가 복합 명령을 못 잰다(위 표의 격리 줄) | 스크립트 파일에 적고 파일을 부른다 |
+
 ## 워크트리에서 전후 그림 찍기
 
 화면 PR 의 전후 그림(`docs/agents/delegation/done.md` 「끝났다는 것」)을 에이전트 워크트리에서 찍는 차례다. 도구와 그 사정은
