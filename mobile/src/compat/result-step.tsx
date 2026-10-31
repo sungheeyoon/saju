@@ -10,6 +10,8 @@ import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
 import { COLOR } from '@/ui/tokens';
 import { Card } from '@/ui/surfaces';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 
 import { readPair, type PairOutcome } from './data';
 import { CompatResult } from './result';
@@ -27,7 +29,7 @@ export function CompatResultStep({ a, b, back: to }: { a: string; b: string; bac
   const [read, setRead] = useState<Read<PairOutcome> | null>(null);
 
   const load = useCallback(() => {
-    void readPair(a, b).then((next) => {
+    void settled(readPair(a, b), 'readPair', () => ({ kind: 'failed', message: UNREACHABLE }) as const).then((next) => {
       if (next.kind === 'signed-out') router.replace('/');
       else setRead(next);
     });

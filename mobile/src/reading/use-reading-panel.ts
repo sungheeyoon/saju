@@ -17,6 +17,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { improvementConsented, markReadingRead, newRequestKey, readReadingRun, readReadingView, startReading, type DoorRefusal, type ReadingTarget, type ReadingView } from './api';
+import { settled } from '@/ui/settled';
 
 export type ShownView = Extract<ReadingView, { view: 'reading' }>;
 
@@ -61,7 +62,7 @@ export function useReadingPanel({
   const [consented, setConsented] = useState(false);
   useEffect(() => {
     let live = true;
-    void improvementConsented().then((yes) => {
+    void settled(improvementConsented(), 'improvementConsented', () => false).then((yes) => {
       if (live) setConsented(yes);
     });
     return () => {

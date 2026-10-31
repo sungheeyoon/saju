@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native';
 
 import { supabase } from '@/auth/client';
+import { settled } from './settled';
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
@@ -54,7 +55,7 @@ export function Photo({
 
   useEffect(() => {
     let live = true;
-    void readToken().then((next) => {
+    void settled(readToken(), 'readToken', () => null).then((next) => {
       if (live) hold(next);
     });
     const listening = supabase?.auth.onAuthStateChange((_event, session) => {
