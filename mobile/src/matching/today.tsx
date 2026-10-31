@@ -14,7 +14,8 @@ import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
-import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
+import { ConfirmDialog, DialogStrong, DialogText } from '@/ui/confirm-dialog';
+import { DetailSheet } from '@/ui/sheet';
 import { ELEVATION } from '@design';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { Card, CardFrame, Paper, RowCard, Tile } from '@/ui/surfaces';
@@ -207,7 +208,7 @@ export function CardDetails({ card, explorationNote }: { card: DeckCard; explora
 }
 
 /** 폰의 ⓘ 시트 — 사진 위에 못 둔 것 전부와 참고 점수 고지 */
-export function DetailSheet({
+export function CardSheet({
   card,
   open,
   onClose,
@@ -223,18 +224,18 @@ export function DetailSheet({
   onBlocked: () => void;
 }) {
   return (
-    <SheetModal open={open} title={card.nickname} onClose={onClose} menu={<ReportBlock userId={card.candidateUserId} nickname={card.nickname} onBlocked={onBlocked} />}>
+    <DetailSheet open={open} title={card.nickname} onClose={onClose} menu={<ReportBlock userId={card.candidateUserId} nickname={card.nickname} onBlocked={onBlocked} />}>
       <CardDetails card={card} explorationNote={explorationNote} />
       <Text style={styles.fine}>{DISCOVERY_TEASER}</Text>
       {notice !== null && <Text style={styles.meta}>{notice}</Text>}
-    </SheetModal>
+    </DetailSheet>
   );
 }
 
 /** 요청 확인 창 — 풀이권 문단과 「상대가 수락하면」 목록을 누르기 전에 읽는다(ADR 0038 · 대장 matching-12) */
 export function RequestConfirm({ card, open, onClose, onConfirm, busy }: { card: DeckCard; open: boolean; onClose: () => void; onConfirm: () => void; busy: boolean }) {
   return (
-    <ConfirmModal
+    <ConfirmDialog
       open={open}
       onClose={onClose}
       title={`${card.nickname} 님에게 상세 궁합을 요청할까요?`}
@@ -256,7 +257,7 @@ export function RequestConfirm({ card, open, onClose, onConfirm, busy }: { card:
         요청하면 <DialogStrong>풀이권 1장</DialogStrong>이 임시로 차감되고, 상대가 수락하면 확정돼요. {REQUEST_RESERVES_NOTE}
       </DialogText>
       <MatchAcceptNotice side="sent" />
-    </ConfirmModal>
+    </ConfirmDialog>
   );
 }
 
@@ -268,7 +269,7 @@ export function useCreditsNotice() {
   const offer = () => setShown(true);
   const close = () => setShown(false);
   const notice = (
-    <ConfirmModal open={shown} onClose={close} title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} cancelLabel={null} onConfirm={close}>
+    <ConfirmDialog open={shown} onClose={close} title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} cancelLabel={null} onConfirm={close}>
       <View style={styles.creditRow}>
         <DialogText>{CREDITS_AVAILABLE_LABEL}</DialogText>
         <DialogStrong>0장</DialogStrong>
@@ -278,7 +279,7 @@ export function useCreditsNotice() {
         <DialogStrong>1장</DialogStrong>
       </View>
       <DialogText>{SALE_CLOSED_NOTE}</DialogText>
-    </ConfirmModal>
+    </ConfirmDialog>
   );
   return { offer, notice };
 }
@@ -421,7 +422,7 @@ export function PassedConnections({
       <Text style={styles.fine}>최근 {PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.</Text>
 
       {looking !== null && (
-        <SheetModal open title={looking.nickname} onClose={() => setLooking(null)}>
+        <DetailSheet open title={looking.nickname} onClose={() => setLooking(null)}>
           <CardDetails card={looking} explorationNote={explorationNote} />
           {failure !== null && (
             <Text style={styles.failure} accessibilityRole="alert">
@@ -440,7 +441,7 @@ export function PassedConnections({
               else setFailure(message);
             }}
           />
-        </SheetModal>
+        </DetailSheet>
       )}
     </View>
   );
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   dot: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 2, borderColor: COLOR.surface },
   supplyHead: { fontFamily: FONT.bold, fontSize: TYPE.fine, lineHeight: 16, color: 'rgba(255, 255, 255, 0.75)' },
   supplyNames: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 28, color: '#ffffff' },
-  introLine: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 20, color: 'rgba(255, 255, 255, 0.85)' },
+  introLine: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 20, color: 'rgba(255, 255, 255, 0.85)' },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   undo: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   pass: { flex: 1, flexDirection: 'row', minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
@@ -496,7 +497,7 @@ const styles = StyleSheet.create({
   failureBox: { gap: 4 },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   textLink: { minHeight: 44, justifyContent: 'center' },
-  textLinkText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  textLinkText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   flashBox: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   flash: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.foreground },
   quiet: { gap: 24 },

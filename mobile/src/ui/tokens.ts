@@ -24,10 +24,8 @@ export const ELEMENT_TONE: Record<Element, { ink: string; soft: string; mid: str
 
 export const FONT = { medium: 'BusanDandiMyeongjoM', bold: 'BusanDandiMyeongjoB' } as const;
 
-/** `sm` 은 `TEXT.note` 의 옛 이름이다 — 화면 쓸기가 끝나면 걷는다 */
-export const TYPE = { ...TEXT, sm: TEXT.note } as const;
+export const TYPE = TEXT;
 
 export const CONTROL = 44;
 
-/** `control` · `panel` 은 `cell` · `card` 의 옛 이름이다 — 화면 쓸기가 끝나면 걷는다 */
-export const RADIUS = { ...DESIGN_RADIUS, control: DESIGN_RADIUS.cell, panel: DESIGN_RADIUS.card } as const;
+export const RADIUS = DESIGN_RADIUS;

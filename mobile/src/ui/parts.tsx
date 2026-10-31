@@ -9,8 +9,6 @@ import {
   Text,
   TextInput,
   View,
-  type StyleProp,
-  type ViewStyle,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -19,11 +17,6 @@ import { digitOutOfRange } from '@input/entry';
 
 import { Button } from './buttons';
 import { COLOR, FONT, CONTROL, RADIUS, TYPE } from './tokens';
-
-/** 흰 판 · 크림 판 — 웹의 `CARD` · `PAPER_FACE` */
-export function Panel({ tone = 'surface', style, children }: { tone?: 'surface' | 'cream'; style?: StyleProp<ViewStyle>; children: ReactNode }) {
-  return <View style={[styles.panel, tone === 'cream' && styles.cream, style]}>{children}</View>;
-}
 
 export function FieldLabel({ children }: { children: ReactNode }) {
   return <Text style={styles.label}>{children}</Text>;
@@ -259,8 +252,6 @@ export function PrimaryButton({ label, onPress, disabled = false }: { label: str
 }
 
 const styles = StyleSheet.create({
-  panel: { padding: 20, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
-  cream: { backgroundColor: COLOR.cream },
   label: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary, marginBottom: 2 },
   control: { ...FIELD, fontFamily: FONT.medium, color: COLOR.foreground },
   wrong: { borderColor: COLOR.danger, borderWidth: 2 },
@@ -276,7 +267,7 @@ const styles = StyleSheet.create({
     minHeight: CONTROL,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.cell,
     borderWidth: 1,
     borderColor: 'transparent',
     backgroundColor: COLOR.surfaceSunken,
@@ -291,11 +282,11 @@ const styles = StyleSheet.create({
   off: { opacity: 0.55 },
   selectText: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.foreground },
   chevron: { fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.secondary },
-  menu: { marginTop: 6, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.borderStrong, overflow: 'hidden', backgroundColor: COLOR.surface },
+  menu: { marginTop: 6, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.borderStrong, overflow: 'hidden', backgroundColor: COLOR.surface },
   menuItem: { minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8 },
   menuChosen: { backgroundColor: COLOR.accentWash },
   hint: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: 2 },
-  check: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  check: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   checkOn: { borderColor: COLOR.foreground, backgroundColor: COLOR.cream },
   checkBox: { width: 20, height: 20, marginTop: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   checkBoxOn: { borderColor: COLOR.accent, backgroundColor: COLOR.accent },

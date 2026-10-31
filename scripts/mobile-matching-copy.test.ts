@@ -54,7 +54,7 @@ const APP_ONLY = new Set([
   '뒤로',
 ]);
 
-const screens = [...sourcesIn('mobile/src/matching', /\.tsx?$/), ...['mobile/src/app/me/matching/index.tsx', 'mobile/src/app/me/matching/history.tsx', 'mobile/src/app/me/requests.tsx', 'mobile/src/app/me/discovery.tsx', 'mobile/src/app/me/match/[matchId].tsx', 'mobile/src/ui/sheet-modal.tsx'].map((file) => ({ name: file, text: read(file) }))];
+const screens = [...sourcesIn('mobile/src/matching', /\.tsx?$/), ...['mobile/src/app/me/matching/index.tsx', 'mobile/src/app/me/matching/history.tsx', 'mobile/src/app/me/requests.tsx', 'mobile/src/app/me/discovery.tsx', 'mobile/src/app/me/match/[matchId].tsx', 'mobile/src/ui/sheet.tsx'].map((file) => ({ name: file, text: read(file) }))];
 
 describe('앱 인연 화면의 글자', () => {
   for (const { name, text } of screens) {

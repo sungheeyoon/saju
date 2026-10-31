@@ -4,9 +4,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { compatChipName, compatRowParts, type RoomCompat } from '@chat/room/compat';
 import type { Element } from '@saju';
 
+import { Icon } from '@/ui/icons';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { ChatIcon, TaijiIcon } from './icons';
 
 const toMatch = (matchId: string) => router.push(`/me/match/${matchId}?from=chat` as never);
 
@@ -21,7 +21,7 @@ export function CompatChip({ compat, matchId, tone }: { compat: RoomCompat; matc
       onPress={() => toMatch(matchId)}
       style={[styles.chip, { backgroundColor: scale?.soft ?? COLOR.surface }]}
     >
-      {compat.kind === 'failed' ? <ChatIcon name="alert" color={COLOR.danger} size={18} /> : <TaijiIcon color={ink} />}
+      {compat.kind === 'failed' ? <Icon name="alert" color={COLOR.danger} size={18} /> : <Icon size={18} name="taiji" color={ink} />}
       {compat.kind === 'ready' && <Text style={[styles.score, { color: ink }]}>{compat.score}점</Text>}
       {compat.kind === 'making' && <ActivityIndicator size="small" color={ink} />}
     </Pressable>
@@ -34,7 +34,7 @@ export function CompatRow({ compat, matchId }: { compat: RoomCompat; matchId: st
   return (
     <Pressable accessibilityRole="link" accessibilityLabel={name} onPress={() => toMatch(matchId)} style={styles.row}>
       <View style={styles.lead}>
-        {compat.kind === 'failed' ? <ChatIcon name="alert" color={COLOR.danger} size={18} /> : <TaijiIcon color={COLOR.foreground} />}
+        {compat.kind === 'failed' ? <Icon name="alert" color={COLOR.danger} size={18} /> : <Icon size={18} name="taiji" color={COLOR.foreground} />}
         {lead.map((word, at) => (
           <Text key={word} style={at > 0 && compat.kind === 'making' ? styles.making : styles.word}>
             {word}
@@ -43,7 +43,7 @@ export function CompatRow({ compat, matchId }: { compat: RoomCompat; matchId: st
       </View>
       <View style={styles.tail}>
         {tail !== null && <Text style={styles.tailText}>{tail}</Text>}
-        <ChatIcon name="chevron" color={COLOR.secondary} size={16} />
+        <Icon name="chevron" color={COLOR.secondary} size={16} />
       </View>
     </Pressable>
   );

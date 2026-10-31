@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   failure: { gap: 8, alignItems: 'flex-start' },
   failureText: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.danger },
   noticeTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
-  noticeDetail: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 20, color: COLOR.secondary },
+  noticeDetail: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 20, color: COLOR.secondary },
   meta: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   paper: { gap: 24 },
   symbols: { flexDirection: 'row', gap: 8 },

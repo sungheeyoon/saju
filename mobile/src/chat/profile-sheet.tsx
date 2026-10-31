@@ -6,10 +6,10 @@ import { initialOf, type PhotoFocus } from '@profile';
 import type { Element } from '@saju';
 
 import { Photo } from '@/ui/photo';
+import { Icon } from '@/ui/icons';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { SheetPanel, Tile } from '@/ui/surfaces';
 
-import { ChatIcon } from './icons';
 
 /** 시트 · 머리 단추의 보조기기 이름 — 웹의 `partnerSheetName` 과 같다 */
 export const partnerSheetName = (nickname: string): string => `${nickname} 님 자세히`;
@@ -55,7 +55,7 @@ export function ProfileSheet({
             </Text>
             {menu}
             <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={styles.close}>
-              <ChatIcon name="close" color={COLOR.foreground} size={20} />
+              <Icon name="close" color={COLOR.foreground} size={20} />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.body}>

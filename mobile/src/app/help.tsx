@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   head: { gap: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
-  chipText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  chipText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   group: { gap: 12 },
   groupTitle: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 28, color: COLOR.foreground },
   panel: { paddingVertical: 4 },

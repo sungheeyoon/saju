@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   chips: { gap: 8 },
   chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.pill, backgroundColor: COLOR.surface },
   chipOn: { borderColor: COLOR.foreground, backgroundColor: COLOR.foreground },
-  chipLabel: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.secondary },
+  chipLabel: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.secondary },
   chipLabelOn: { color: COLOR.background },
   find: { height: 44, paddingHorizontal: 16, borderWidth: 1, borderColor: COLOR.border, borderRadius: RADIUS.pill, backgroundColor: COLOR.surface, fontFamily: FONT.medium, fontSize: TYPE.field, color: COLOR.foreground },
   found: { marginTop: 6, paddingHorizontal: 8, fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },

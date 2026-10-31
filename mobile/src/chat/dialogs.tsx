@@ -5,9 +5,11 @@ import { REPORT_DETAIL_MAX, REPORT_DONE, REPORT_NOTE, REPORT_REASONS, type Repor
 import { BLOCK_FINAL_NOTE, BLOCK_KEEPS_NOTE, BLOCK_NOTE } from '@consent/index';
 
 import { FieldLabel, PrimaryButton, Select, TextButton } from '@/ui/parts';
+import { Icon } from '@/ui/icons';
+import { ConfirmDialog, DialogText } from '@/ui/confirm-dialog';
+import { DialogPanel } from '@/ui/surfaces';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { ChatIcon } from './icons';
 import { blockUser, reportMessage, reportUser, type SaveAnswer } from './reads';
 
 function Dialog({ onOutside, children }: { onOutside: (() => void) | null; children: ReactNode }) {
@@ -15,7 +17,7 @@ function Dialog({ onOutside, children }: { onOutside: (() => void) | null; child
     <Modal transparent visible animationType="fade" onRequestClose={onOutside ?? undefined}>
       <KeyboardAvoidingView behavior="padding" style={styles.back}>
         <Pressable style={styles.outside} onPress={onOutside ?? undefined} />
-        <View style={styles.dialog}>{children}</View>
+        <DialogPanel style={styles.dialog}>{children}</DialogPanel>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -40,25 +42,20 @@ export function BlockDialog({ userId, nickname, onClose, onBlocked }: { userId: 
   };
 
   return (
-    <Dialog onOutside={working ? null : onClose}>
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text accessibilityRole="header" style={styles.title}>
-          {nickname} 님을 차단할까요?
-        </Text>
-        <Text style={styles.line}>{BLOCK_NOTE}</Text>
-        <Text style={styles.line}>{BLOCK_KEEPS_NOTE}</Text>
-        <Text style={styles.final}>{BLOCK_FINAL_NOTE}</Text>
-        {failure !== null && <Text style={styles.failure}>{failure}</Text>}
-        <View style={styles.actions}>
-          <Pressable accessibilityRole="button" disabled={working} onPress={onClose} style={[styles.half, styles.cancel, working && styles.off]}>
-            <Text style={styles.cancelText}>취소</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" disabled={working} onPress={block} style={[styles.half, styles.dangerButton, working && styles.off]}>
-            <Text style={styles.dangerText}>{working ? '차단하는 중…' : '차단하기'}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </Dialog>
+    <ConfirmDialog
+      open
+      danger
+      title={`${nickname} 님을 차단할까요?`}
+      irreversible={BLOCK_FINAL_NOTE}
+      confirmLabel={working ? '차단하는 중…' : '차단하기'}
+      busy={working}
+      failure={failure}
+      onConfirm={() => void block()}
+      onClose={onClose}
+    >
+      <DialogText>{BLOCK_NOTE}</DialogText>
+      <DialogText>{BLOCK_KEEPS_NOTE}</DialogText>
+    </ConfirmDialog>
   );
 }
 
@@ -103,12 +100,12 @@ export function ReportDialog({
     <Dialog onOutside={dirty || working ? null : onClose}>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <View style={styles.head}>
-          <ChatIcon name="flag" color={COLOR.danger} size={18} />
+          <Icon name="flag" color={COLOR.danger} size={18} />
           <Text accessibilityRole="header" style={styles.headTitle}>
             {nickname} 님 신고
           </Text>
           <Pressable accessibilityRole="button" accessibilityLabel={reported ? '닫기' : '작성 그만두기'} onPress={onClose} style={styles.close}>
-            <ChatIcon name="close" color={COLOR.foreground} size={18} />
+            <Icon name="close" color={COLOR.foreground} size={18} />
           </Pressable>
         </View>
         {reported ? (
@@ -140,7 +137,7 @@ export function ReportDialog({
                           </Text>
                           <Text style={styles.pickTime}>{message.time}</Text>
                         </View>
-                        <ChatIcon name="flag" color={COLOR.danger} size={16} />
+                        <Icon name="flag" color={COLOR.danger} size={16} />
                       </Pressable>
                     );
                   })}
@@ -183,20 +180,11 @@ function BlockLink({ onBlock, disabled = false }: { onBlock: () => void; disable
 const styles = StyleSheet.create({
   back: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(38, 36, 31, 0.45)' },
   outside: { ...StyleSheet.absoluteFill },
-  dialog: { maxHeight: '85%', borderRadius: RADIUS.card, backgroundColor: COLOR.background },
-  body: { gap: 12, padding: 20 },
-  title: { fontSize: TYPE.lead, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
+  dialog: { maxHeight: '85%', padding: 0, backgroundColor: COLOR.background },
+  body: { gap: 12, padding: 24 },
   line: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.secondary },
-  final: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.bold, color: COLOR.foreground },
   note: { fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  half: { flex: 1, minHeight: CONTROL, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.cell },
-  cancel: { backgroundColor: COLOR.surfaceSunken },
-  cancelText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
-  dangerButton: { backgroundColor: COLOR.danger },
-  dangerText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.onAccent },
-  off: { opacity: 0.55 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headTitle: { flex: 1, fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   close: { minHeight: CONTROL, minWidth: CONTROL, alignItems: 'center', justifyContent: 'center' },

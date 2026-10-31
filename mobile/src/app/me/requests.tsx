@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0, gap: 2 },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  retryText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   rowLine: { borderTopWidth: 1, borderTopColor: COLOR.border },
   rowNew: { backgroundColor: COLOR.cream },

@@ -82,9 +82,9 @@ const styles = StyleSheet.create({
   steps: { gap: 8 },
   step: { flexDirection: 'row', gap: 16, padding: 16 },
   stepNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
-  stepNumberText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.onAccent },
+  stepNumberText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.onAccent },
   stepBody: { flex: 1, gap: 2 },
   stepTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
-  stepText: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.secondary },
+  stepText: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 24, color: COLOR.secondary },
   actions: { gap: 8 },
 });

@@ -9,7 +9,8 @@ import type { Element } from '@saju';
 import { Field, Select } from '@/ui/parts';
 import { Icon } from '@/ui/icons';
 import { Photo } from '@/ui/photo';
-import { ConfirmModal, DialogText, SheetModal } from '@/ui/sheet-modal';
+import { ConfirmDialog, DialogText } from '@/ui/confirm-dialog';
+import { DetailSheet } from '@/ui/sheet';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { Tile } from '@/ui/surfaces';
 
@@ -85,7 +86,7 @@ export function PartnerSheet({ partner, open, onClose, menu }: { partner: Partne
   const [at, setAt] = useState(0);
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
   return (
-    <SheetModal open={open} title={`${partner.nickname} 님 자세히`} onClose={onClose} menu={menu}>
+    <DetailSheet open={open} title={`${partner.nickname} 님 자세히`} onClose={onClose} menu={menu}>
       <Tile tone={COLOR.surfaceSunken} style={styles.photoFrame}>
         <PersonPhoto
           userId={partner.userId}
@@ -104,7 +105,7 @@ export function PartnerSheet({ partner, open, onClose, menu }: { partner: Partne
           <Text style={styles.introBody}>{intro}</Text>
         </View>
       )}
-    </SheetModal>
+    </DetailSheet>
   );
 }
 
@@ -149,7 +150,7 @@ export function BlockDialog({ userId, nickname, open, onClose, onBlocked }: { us
     onBlocked?.();
   };
   return (
-    <ConfirmModal
+    <ConfirmDialog
       open={open}
       onClose={() => {
         setFailure(null);
@@ -165,7 +166,7 @@ export function BlockDialog({ userId, nickname, open, onClose, onBlocked }: { us
     >
       <DialogText>{BLOCK_NOTE}</DialogText>
       <DialogText>{BLOCK_KEEPS_NOTE}</DialogText>
-    </ConfirmModal>
+    </ConfirmDialog>
   );
 }
 
@@ -194,7 +195,7 @@ export function ReportDialog({ userId, nickname, open, onClose, onBlock }: { use
   };
 
   return (
-    <SheetModal open={open} title={`${nickname} 님 신고`} onClose={close}>
+    <DetailSheet open={open} title={`${nickname} 님 신고`} onClose={close}>
       {reported ? (
         <Text style={styles.body} accessibilityRole="alert">
           {REPORT_DONE}
@@ -239,7 +240,7 @@ export function ReportDialog({ userId, nickname, open, onClose, onBlock }: { use
           </Pressable>
         )}
       </View>
-    </SheetModal>
+    </DetailSheet>
   );
 }
 
@@ -257,7 +258,7 @@ export function ReportBlock({ userId, nickname, onPhoto = false, onBlocked }: { 
       >
         <Icon size={20} name="more" color={onPhoto ? '#ffffff' : COLOR.foreground} />
       </Pressable>
-      <SheetModal open={menu} title="신고 · 차단" onClose={() => setMenu(false)}>
+      <DetailSheet open={menu} title="신고 · 차단" onClose={() => setMenu(false)}>
         <Pressable
           accessibilityRole="button"
           style={styles.menuRow}
@@ -280,7 +281,7 @@ export function ReportBlock({ userId, nickname, onPhoto = false, onBlocked }: { 
           <Icon name="block" size={18} color={COLOR.danger} />
           <Text style={[styles.menuText, styles.dangerText]}>차단</Text>
         </Pressable>
-      </SheetModal>
+      </DetailSheet>
       <ReportDialog
         userId={userId}
         nickname={nickname}
@@ -313,16 +314,16 @@ const styles = StyleSheet.create({
   barHit: { flex: 1, height: 24, paddingTop: 4 },
   bar: { height: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 255, 255, 0.4)' },
   barOn: { backgroundColor: '#ffffff' },
-  body: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.secondary },
+  body: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 24, color: COLOR.secondary },
   small: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   label: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.secondary },
   reasonBox: { flexDirection: 'row' },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   reportActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16 },
   reportMain: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
-  reportMainText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.onAccent },
+  reportMainText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.onAccent },
   reportQuiet: { minHeight: 44, justifyContent: 'center' },
-  reportQuietText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.danger },
+  reportQuietText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.danger },
   off: { opacity: 0.55 },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },
   moreOnPhoto: { backgroundColor: 'rgba(0, 0, 0, 0.42)' },

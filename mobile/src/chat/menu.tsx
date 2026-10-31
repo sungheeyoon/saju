@@ -2,11 +2,11 @@ import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Dimensions, Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { MenuPanel } from '@/ui/surfaces';
+import { Icon, type IconName } from '@/ui/icons';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
-import { ChatIcon, type ChatIconName } from './icons';
 
-export type MenuItem = { readonly label: string; readonly icon: ChatIconName; readonly danger?: boolean; readonly onPress: () => void };
+export type MenuItem = { readonly label: string; readonly icon: IconName; readonly danger?: boolean; readonly onPress: () => void };
 
 /** 「⋯」 같은 작은 판 — 누른 자리 곁에 서고, 바깥을 누르면 닫힌다. 고르면 먼저 닫고 그 일을 한다 */
 export function AnchoredMenu({ label, items, above = false, children }: { label: string; items: readonly MenuItem[]; above?: boolean; children: ReactNode }) {
@@ -40,7 +40,7 @@ export function AnchoredMenu({ label, items, above = false, children }: { label:
                   item.onPress();
                 }}
               >
-                <ChatIcon name={item.icon} color={item.danger === true ? COLOR.danger : COLOR.foreground} size={18} />
+                <Icon name={item.icon} color={item.danger === true ? COLOR.danger : COLOR.foreground} size={18} />
                 <Text style={[styles.itemText, item.danger === true && styles.danger]}>{item.label}</Text>
               </Pressable>
             ))}

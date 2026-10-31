@@ -8,11 +8,10 @@ import { ELEMENTS, type Element, type Stem } from '@saju';
 import { curve, curveAway, ELEMENT_ANGLE, phaseOf, pointAt, RADIUS, seatAngles, SIZE, stepsAlong, type Point } from '@saju-view/orbit';
 import { linksOf, type MapModel, type MapPerson } from '@reading/relation-map';
 
-import { ChatIcon } from '@/chat/icons';
 import { ElementSymbol } from '@/ui/element-symbol';
-import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
 import { StemSymbol } from '@/ui/stem-symbol';
+import { Icon } from '@/ui/icons';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS as CORNER, TYPE } from '@/ui/tokens';
 import { CardFrame, Paper } from '@/ui/surfaces';
 
@@ -340,7 +339,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           </View>
         )}
         <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={styles.cardClose}>
-          <ChatIcon name="close" color={COLOR.secondary} size={20} />
+          <Icon name="close" color={COLOR.secondary} size={20} />
         </Pressable>
       </View>
 
