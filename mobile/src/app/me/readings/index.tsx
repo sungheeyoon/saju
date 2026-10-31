@@ -9,6 +9,8 @@ import { followRefusal, ReadFailure } from '@/reading/panel';
 import { BlankBook, BookRow, MakingRow, SHELF_CHIPS, SHELF_TITLE, type ShelfChip } from '@/reading/shelf';
 import { EmptyState } from '@/ui/empty-state';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
+import { UNREACHABLE } from '@/auth/signup';
 import { TopBar } from '@/ui/top-bar';
 import { Card } from '@/ui/surfaces';
 
@@ -25,7 +27,7 @@ export default function ReadingsScreen() {
   const [typed, setTyped] = useState('');
 
   const load = useCallback(() => {
-    void readShelf().then((read) => {
+    void settled(readShelf(), 'readShelf', () => ({ ok: false, refused: { refused: 'unavailable', message: UNREACHABLE } }) as const).then((read) => {
       if (read.ok) setAnswer({ view: read.value });
       else {
         followRefusal(read.refused);
