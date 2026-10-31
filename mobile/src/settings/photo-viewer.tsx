@@ -4,7 +4,7 @@ import { Modal, PanResponder, Platform, Pressable, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { MenuPanel } from '@/ui/surfaces';
+import { MenuPanel, SheetPanel } from '@/ui/surfaces';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 import { photoSource, type MyPhoto } from './photos';
@@ -130,7 +130,7 @@ export function PhotoViewer({
         {menu && (
           <View style={styles.scrim}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessibilityElementsHidden importantForAccessibility="no" />
-            <View style={styles.sheet} accessibilityViewIsModal accessibilityLabel={PHOTO_MENU_LABEL}>
+            <SheetPanel style={styles.sheet} accessibilityViewIsModal accessibilityLabel={PHOTO_MENU_LABEL}>
               <MenuPanel>
                 {quiet.map(row)}
                 {danger.length > 0 && quiet.length > 0 && <View style={styles.rule} />}
@@ -139,7 +139,7 @@ export function PhotoViewer({
               <Pressable accessibilityRole="button" onPress={() => setMenu(false)} style={styles.cancel}>
                 <Text style={styles.cancelText}>취소</Text>
               </Pressable>
-            </View>
+            </SheetPanel>
           </View>
         )}
       </SafeAreaView>
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   countText: { color: '#fff', fontSize: TYPE.body, fontFamily: FONT.bold },
   stage: { flex: 1 },
   scrim: { ...StyleSheet.absoluteFill, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.4)' },
-  sheet: { gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, borderTopLeftRadius: RADIUS.card, borderTopRightRadius: RADIUS.card, backgroundColor: COLOR.background },
+  sheet: { gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
   choice: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 16 },
   choiceText: { fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
   dangerText: { color: COLOR.danger },

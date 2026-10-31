@@ -8,8 +8,8 @@ import { CALENDAR_KO, GENDER_KO } from '@saju';
 
 import { readAccount, readPersonDetail } from '@/people/data';
 import { EditInputForm } from '@/people/edit-input';
-import { Card } from '@/ui/surfaces';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 
 type MyBirth = { kind: 'none' } | { kind: 'unreadable'; message: string } | { kind: 'ready'; personId: string; query: Query };
 
@@ -36,10 +36,10 @@ export function BirthSection() {
   if (birth.kind === 'none') return null;
   if (birth.kind === 'unreadable') {
     return (
-      <Card style={styles.panel}>
+      <CardFrame style={styles.panel}>
         <Text style={styles.value}>{birth.message}</Text>
         <Text style={styles.term}>{UNREADABLE_INPUT_NOTE}</Text>
-      </Card>
+      </CardFrame>
     );
   }
 
@@ -72,7 +72,7 @@ export function BirthSection() {
   ] as const;
 
   return (
-    <Card style={styles.panel}>
+    <CardFrame style={styles.panel}>
       <View style={styles.head}>
         <Text accessibilityRole="header" style={styles.title}>출생 정보</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="출생 정보 수정" onPress={() => setOpen(true)} style={styles.edit}>
@@ -85,12 +85,12 @@ export function BirthSection() {
           <Text style={styles.value}>{value}</Text>
         </View>
       ))}
-    </Card>
+    </CardFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 8 },
+  panel: { gap: 16, padding: 20 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   edit: { minHeight: CONTROL, justifyContent: 'center', paddingHorizontal: 16, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong },

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type AccessibilityRole, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { CELL, SHEET, SURFACE } from '@design';
 
@@ -8,33 +8,28 @@ import { CELL, SHEET, SURFACE } from '@design';
  * 화면은 면을 손으로 쓰지 않고 이 부품을 부른다. 여백 · 테 색처럼 자리마다 바꾸는 것만 `style` 로 덧붙인다(웹의 `*_FACE` 자리).
  * `onPress` 를 주면 면 전체가 누를 자리가 된다.
  */
-type FaceProps = {
+type FaceProps = Pick<ViewProps, 'accessibilityLabel' | 'accessibilityRole' | 'accessibilityLiveRegion' | 'accessibilityViewIsModal' | 'onLayout'> & {
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
   onPress?: () => void;
   disabled?: boolean;
-  accessibilityLabel?: string;
-  accessibilityRole?: AccessibilityRole;
-  accessibilityLiveRegion?: ViewProps['accessibilityLiveRegion'];
-  onLayout?: ViewProps['onLayout'];
 };
 
-function Face({ face, style, children, onPress, disabled, accessibilityLabel, accessibilityRole, accessibilityLiveRegion, onLayout }: FaceProps & { face: ViewStyle }) {
+function Face({ face, style, children, onPress, disabled, ...view }: FaceProps & { face: ViewStyle }) {
   if (onPress === undefined) {
     return (
-      <View style={[face, style]} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityLiveRegion={accessibilityLiveRegion} onLayout={onLayout}>
+      <View style={[face, style]} {...view}>
         {children}
       </View>
     );
   }
   return (
     <Pressable
-      accessibilityRole={accessibilityRole ?? 'button'}
-      accessibilityLabel={accessibilityLabel}
+      {...view}
+      accessibilityRole={view.accessibilityRole ?? 'button'}
       accessibilityState={{ disabled: disabled === true }}
       disabled={disabled}
       onPress={onPress}
-      onLayout={onLayout}
       style={({ pressed }) => [face, pressed && styles.pressed, style]}
     >
       {children}

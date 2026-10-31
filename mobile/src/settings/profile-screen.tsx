@@ -8,9 +8,10 @@ import { INTRO_MAX, NICKNAME_AVAILABLE_NOTE, NICKNAME_MAX, NICKNAME_MIN, NICKNAM
 
 import { supabase } from '@/auth/client';
 import { NOT_READY, checkNickname } from '@/auth/signup';
-import { Field, Panel, PrimaryButton } from '@/ui/parts';
+import { Field, PrimaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { TopBar } from '@/ui/top-bar';
+import { CardFrame } from '@/ui/surfaces';
 
 import { AccountNotice, FailureLine, settingsText, useDoneNote } from './parts';
 import { PhotoGrid } from './photo-grid';
@@ -168,7 +169,7 @@ function ProfileForm({ current, onSaved }: { current: ProfileInput; onSaved: (sa
     tried && missing !== null ? missing : answer !== null ? (answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE) : checking && nicknameChanged ? '확인하는 중…' : '';
 
   return (
-    <Panel style={styles.form}>
+    <CardFrame style={styles.form}>
       <View style={styles.group}>
         <Text style={settingsText.fieldLabel}>닉네임</Text>
         <Field
@@ -210,14 +211,14 @@ function ProfileForm({ current, onSaved }: { current: ProfileInput; onSaved: (sa
         </Text>
         {failure !== null && <FailureLine>{failure}</FailureLine>}
       </View>
-    </Panel>
+    </CardFrame>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, gap: 20, padding: 16, paddingBottom: 40 },
-  form: { gap: 20 },
+  form: { gap: 20, padding: 20 },
   group: { gap: 6 },
   note: { minHeight: 20, fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   wrong: { color: COLOR.danger },
