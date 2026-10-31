@@ -1118,7 +1118,7 @@ describe('CI 계획 — 앱 검사 (mobile 차선)', () => {
   const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
 
   it('앱이 부르는 자리가 바뀐 PR 만 돈다 — 어느 단계든', () => {
-    for (const file of ['mobile/src/app/index.tsx', 'mobile/package-lock.json', 'mobile/app.json', 'src/lib/saju/index.ts', 'src/lib/design/tokens.json', 'app/db-error.ts', 'app/ui/sign-in-again.ts', '.github/workflows/verify.yml', '.nvmrc']) {
+    for (const file of ['mobile/src/app/index.tsx', 'mobile/src/a.test.ts', 'mobile/package-lock.json', 'mobile/app.json', 'src/lib/saju/index.ts', 'src/lib/design/tokens.json', 'app/db-error.ts', 'app/ui/sign-in-again.ts', '.github/workflows/verify.yml', '.nvmrc']) {
       expect(beta([file]).lanes.mobile, file).toBe(true);
       expect(beta(['docs/prd.md', file]).lanes.mobile, file).toBe(true);
     }
@@ -1137,8 +1137,36 @@ describe('CI 계획 — 앱 검사 (mobile 차선)', () => {
     expect(planFor({ files: ['docs/prd.md'], event: 'push', pushed }).lanes.mobile).toBe(false);
   });
 
+  it('앱 파일만 바꾼 PR 은 core 와 mobile 만 돌고 e2e · 흐름은 안 돈다 — 정책이 섞여도 같다', () => {
+    const appOnly = { ...CORE_ONLY, mobile: true };
+    for (const files of [['mobile/src/app/index.tsx'], ['mobile/package-lock.json'], ['mobile/src/a.test.ts'], ['mobile/src/app/index.tsx', 'docs/prd.md', 'scripts/mobile-closure.test.ts']]) {
+      const plan = beta(files);
+      expect(plan.lanes, files[0]).toEqual(appOnly);
+      expect(plan.authedLanes, files[0]).toEqual([]);
+    }
+  });
+
+  it('앱 파일에 웹 파일 하나가 섞이면 전부다 — 공개 출시 · 라벨도 전부다', () => {
+    for (const web of ['src/lib/saju/strength/index.ts', 'src/lib/saju/strength/index.test.ts', 'app/db-error.ts', 'app/me/matching/deck-state.ts', '.github/workflows/verify.yml', 'package.json']) {
+      const plan = beta(['mobile/src/app/index.tsx', web]);
+      expect(plan.tier, web).toBe('full');
+      expect(plan.authedLanes, web).toEqual(AUTHED_LANES);
+      expect(plan.lanes.mobile, web).toBe(true);
+    }
+    expect(pr(['mobile/src/app/index.tsx']).tier).toBe('full');
+    expect(beta(['mobile/src/app/index.tsx'], [FULL_LABEL]).tier).toBe('full');
+  });
+
+  it('main 푸시는 앱만 바뀌어도 전부다', () => {
+    const pushed = { before: 'a'.repeat(40), forced: false, beforeGreen: true };
+    expect(planFor({ files: ['mobile/src/app/index.tsx'], event: 'push', pushed }).tier).toBe('full');
+  });
+
   it('verify.yml 의 mobile job 은 mobile/ 에서 돌고, 앞이 붉어도 뒤가 돌며, 붉음을 삼키지 않는다', () => {
     const job = /\n {2}mobile:\n([\s\S]*?)\n {2}[a-z]+:\n/.exec(yml)?.[1] ?? '';
+    for (const run of ['npx expo lint', 'npx expo export --platform android --output-dir dist']) {
+      expect(job, run).toContain(`- run: ${run}\n        if: \${{ !cancelled() && steps.install.outcome == 'success' }}`);
+    }
     expect(job).toContain('working-directory: mobile');
     expect(job).toContain('cache-dependency-path: mobile/package-lock.json');
     expect(job.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n')).not.toMatch(/continue-on-error/);
@@ -2252,6 +2280,8 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
     ]);
     expect(plan.tier).toBe('core');
     expect(plan.lanes).toEqual({ ...CORE_ONLY, mobile: true });
+    // 앱 파일이 섞이면 문구 판정으로 좁히지 않는다 — 웹 문구 파일이 빠지면 앱만 바뀐 PR 로 읽혀 웹 차선이 사라진다
+    expect(planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['mobile/src/app/index.tsx']).tier).toBe('full');
   });
 
   it('입구 page 의 문구 — 말하는 시험 없음은 core, 지금 규칙 안의 차선이면 그것, 넓으면 지금 규칙, 동작이 섞이면 지금 규칙', () => {

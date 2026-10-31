@@ -73,6 +73,7 @@
  * `mobile` 차선은 `mobile/` 에서 `npm ci` · `tsc` · `expo lint` · 안드로이드 번들을 돈다. 뿌리 tsconfig 가 `mobile` 을 빼므로 그전까지 앱 파일의 타입 오류를 재는
  * CI 가 없었다. 앱은 `src/lib` 와 `app/` 의 몇 파일을 함께 쓰므로 웹 쪽 수정도 앱을 깬다 — `MOBILE_REACH` 가 그 자리이고,
  * `scripts/mobile-closure.test.ts` 가 앱에서 import 를 따라 닿는 파일이 전부 여기 걸리는지 잰다. `audit` 처럼 단계와 따로 켠다.
+ * 공개 출시 전에 `mobile/**` 만 바꾼 PR 은 `core` + `mobile` 이고 웹 e2e · 흐름을 건너뛴다(운영자 2026-10-31). 앱 밖 코드가 섞이면 전부다.
  *
  * ## 관문 · 화면 · 인증 · 그것을 재는 시험은 베타에서도 머지 전에 전부다 (2026-09-27, ADR 0119)
  *
@@ -330,8 +331,8 @@ const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
 export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
 /** 앱이 부르는 자리와 CI 자체 — 위 「앱 검사」. `app/` 은 파일로 적는다 — 앱이 닿는 것이 그 파일들뿐이고, 시험이 닫힘과 견준다 */
 const MOBILE_REACH = [/^mobile\//, /^src\/lib\//, /^app\/db-error\.ts$/, /^app\/ui\/sign-in-again\.ts$/, /^\.github\/workflows\//, /^\.nvmrc$/];
-/** 문서와 시험은 앱 번들에 안 실린다 */
-export const reachesMobile = (file) => matches(MOBILE_REACH, file) && !/\.md$/.test(file) && !/\.test\.tsx?$/.test(file);
+/** 문서는 앱을 안 바꾼다. 웹 쪽 시험은 앱에 안 닿지만 `mobile/` 의 시험은 앱의 `tsc` 가 함께 읽는다 */
+export const reachesMobile = (file) => matches(MOBILE_REACH, file) && !/\.md$/.test(file) && (file.startsWith('mobile/') || !/\.test\.tsx?$/.test(file));
 /** 관문 · 인증 · 화면의 입구 · 서버 액션 · 그것을 재는 시험 — 베타에서도 주소를 재거나 전부를 돈다(위 「관문 · 화면 · 인증」) */
 const SURFACE = [
   /^proxy\.ts$/,
@@ -411,6 +412,7 @@ export const AUTHED_LANES = [
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 
 const isPolicy = (file) => matches(POLICY, file);
+const isMobile = (file) => file.startsWith('mobile/') && !isPolicy(file);
 const isTestFile = (file) => /\.test\.tsx?$/.test(file);
 const isSpec = (file) => /^e2e\/[^/]+\.spec\.ts$/.test(file);
 const isFlowCheck = (file) => /^scripts\/check-[^/]+\.mjs$/.test(file);
@@ -2060,7 +2062,8 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   // 문구만 바뀐 파일은 좁힐 수 있을 때만 core + 바뀐 글자를 찾는 시험의 차선으로 센다(위 「문구만 바뀐 파일」)
   const tests = () => mentions ?? mentionSources();
   const { copy: copyOnly } = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts, mentions: tests });
-  const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
+  // 앱 파일이 섞이면 문구 판정으로 좁히지 않는다 — 웹 문구 파일이 빠지면 앱만 바뀐 PR 로 읽힌다(ADR 0097 덧 2026-10-31)
+  const narrowed = rest.some(isMobile) ? new Map() : narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
   const judged = rest.filter((file) => !narrowed.has(file));
   const decided = notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
   // 코드가 문구만 바뀐 PR 은 빌드를 건너뛴다(위 「문구만 바뀐 PR 은 빌드를 건너뛴다」, ADR 0178). 메타데이터 파일(`icon` ·
@@ -2330,6 +2333,13 @@ function decideBeta(changed, stage, sourceOf) {
     if (risk) return full(risk[0], `${stage} — \`${file}\` 은 공용 위험(${risk[0]})이라 머지 전에 전부 잰다`);
   }
   if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다`, pick: { policy: true } };
+  // 앱만 바뀌면 웹 e2e · 흐름이 재는 것이 그대로다(운영자 2026-10-31, ADR 0097 덧). `core` 는 남긴다 — `scripts` 잠금이 `mobile/` 글자를 읽는다
+  const app = changed.find(isMobile);
+  if (app) {
+    const web = changed.find((file) => !isMobile(file) && !isPolicy(file));
+    if (web) return full('미분류', `${stage} — \`${app}\` 에 앱 밖의 \`${web}\` 이 섞였다`);
+    return { tier: 'core', reason: `${stage} — 앱만 바뀌어 \`core\` 와 \`mobile\` 이 머지를 막는다`, pick: { core: true } };
+  }
 
   const pick = { core: true, anon: false, authedLanes: [], flow: false };
   const why = [];

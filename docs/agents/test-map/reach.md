@@ -59,7 +59,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 ## 어디를 봐야 하나
 
 - `scripts/ci-plan.mjs` — 공용 위험 · 주소 대응 · 알려진 `core` 자리, 공개 출시 뒤의 세 단계. 규칙의 원본
-- `.github/workflows/verify.yml` — 차선 여섯(`policy` · `core` · `anon` · `authed` · `flow` · `audit`)과 `gate`
+- `.github/workflows/verify.yml` — 차선 일곱(`policy` · `core` · `anon` · `authed` · `flow` · `audit` · `mobile`)과 `gate`
 - `playwright.config.ts` — 프로젝트 다섯(`desktop-chromium` · `mobile-chromium` · `authed-desktop` · `authed-mobile` · `notice-gate`), 서버 띄우기
 - `scripts/run-checks.mjs` — 흐름 열세 벌(`SCRIPTS`)을 **전부** 돌리고 끝에 한 번 답한다(사슬이면 첫 실패가 나머지를 삼킨다)
 - `e2e/session.ts` — 로컬 스택에 초대된 계정을 만든다
