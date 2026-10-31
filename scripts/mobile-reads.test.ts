@@ -56,6 +56,81 @@ export function unhandledThens(name: string, text: string): number[] {
   return lines;
 }
 
+/** 받아 주는 코드가 그 함수 안에 있는 부름 — 인자로 넘긴 읽기가 던져도 값으로 끝난다 */
+const SESSION_GUARDS = new Set(['settled', 'doing', 'askDoor']);
+
+/**
+ * `try` 밖에서 세션을 읽어도 되는 함수와 그 까닭 — 전부 **부르는 쪽이 받는** 읽기다. 키는 `파일#함수` 라 같은 파일의 새 함수는 걸린다.
+ * 받는 쪽이 없는 자리는 표에 올리지 않고 그 자리에서 받는다.
+ */
+const BARE_SESSION_READS: Record<string, string> = {
+  'mobile/src/auth/signup.ts#readSignup': '화면은 settled, 로그인은 제 try 로 받는다',
+  'mobile/src/chat/reads.ts#currentUserId': '목록 · 방의 읽기를 화면이 settled 로 받는다',
+  'mobile/src/home/gate.ts#askGate': 'readGate 가 settled 로 받는다',
+  'mobile/src/home/read.ts#readHome': '홈이 settled 로 받는다',
+  'mobile/src/people/data.ts#signedIn': '사람 · 궁합의 읽기를 화면이 settled 로 받는다',
+  'mobile/src/settings/photos.ts#photoSource': '부르는 자리가 settled 로 받는다',
+  'mobile/src/settings/settings.ts#readSettings': '설정이 settled 로 받는다',
+  'mobile/src/ui/photo.tsx#readToken': '부르는 자리가 settled 로 받는다',
+};
+
+/** 그 줄을 품은 가장 가까운 이름 있는 함수 */
+function enclosingFunction(node: ts.Node): string {
+  for (let at: ts.Node | undefined = node; at !== undefined; at = at.parent) {
+    if (ts.isFunctionDeclaration(at) && at.name !== undefined) return at.name.text;
+    if (ts.isVariableDeclaration(at) && ts.isIdentifier(at.name) && at.initializer !== undefined) {
+      /* `const f = async () => …` · `const f = useCallback(async () => …)` */
+      const made = ts.isCallExpression(at.initializer) ? at.initializer.arguments[0] : at.initializer;
+      if (made !== undefined && ts.isFunctionLike(made)) return at.name.text;
+    }
+  }
+  return '(맨 위)';
+}
+
+/** `try` 의 본문에도, 받아 주는 부름의 인자에도 들지 않은 `.getSession(` 을 품은 함수 — 한 함수에 둘이면 두 번 든다 */
+export function bareSessionReads(name: string, text: string): string[] {
+  const source = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, name.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const guarded = (node: ts.Node): boolean => {
+    const above = node.parent;
+    if (above === undefined) return false;
+    if (ts.isTryStatement(above) && above.tryBlock === node) return true;
+    if (ts.isCallExpression(above) && ts.isIdentifier(above.expression) && SESSION_GUARDS.has(above.expression.text)) return true;
+    return guarded(above);
+  };
+  const found: string[] = [];
+  const visit = (node: ts.Node) => {
+    if (callNamed(node, 'getSession') && !guarded(node)) found.push(enclosingFunction(node));
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+describe('앱의 세션 읽기', () => {
+  it('try 밖의 세션 읽기는 까닭을 단 자리뿐이다', () => {
+    const found = filesUnder(join(ROOT, 'mobile/src'))
+      .filter((file) => /\.tsx?$/.test(file))
+      .flatMap((file) => bareSessionReads(file, readFileSync(file, 'utf8')).map((where) => `${relative(ROOT, file)}#${where}`));
+    expect(found.sort()).toEqual(Object.keys(BARE_SESSION_READS).sort());
+  });
+
+  it.each([
+    ['맨 부름', `const { data } = await s.auth.getSession();`, 1],
+    ['try 안', `try { await s.auth.getSession(); } catch {}`, 0],
+    ['catch 안', `try { a(); } catch { await s.auth.getSession(); }`, 1],
+    ['받아 주는 부름의 인자', `void settled(s.auth.getSession(), 'x', f);`, 0],
+    ['문의 토큰 읽기', `askDoor(async () => (await s.auth.getSession()).data, send);`, 0],
+    ['doing 안', `doing(async () => { await s.auth.getSession(); });`, 0],
+    ['다른 부름의 인자', `Promise.all([s.auth.getSession()]);`, 1],
+  ])('%s', (_name, text, count) => {
+    expect(bareSessionReads('a.ts', text)).toHaveLength(count);
+  });
+
+  it('함수 이름을 댄다', () => {
+    expect(bareSessionReads('a.ts', `async function f() { await s.auth.getSession(); }\nconst g = async () => s.auth.getSession();`)).toEqual(['f', 'g']);
+  });
+});
+
 describe('앱의 읽기', () => {
   it('mobile/src 에 거절을 안 받는 .then( 이 없다', () => {
     const found = filesUnder(join(ROOT, 'mobile/src'))

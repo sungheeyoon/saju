@@ -409,7 +409,7 @@ function StartSide({ label, stem, onOpen, openName }: { label: string; stem: Ste
   );
 }
 
-/* 안드로이드는 줄어드는 말풍선의 너비를 잰 값보다 1px 안쪽으로 반올림해 끝 글자가 보이지 않는 둘째 줄로 밀린다 — 끝에 공백을 더해 넉넉히 잰다(공백은 줄을 안 밀어낸다) */
+/* 안드로이드에서 줄어드는 말풍선의 끝 글자가 보이지 않는 둘째 줄로 밀렸다 — 끝에 공백을 더하면 안 밀린다(공백은 줄을 안 밀어낸다). 까닭은 확인 전이다, 너비 반올림으로 추정한다 */
 const MEASURE_SLACK = Platform.OS === 'android' ? ' ' : null;
 
 function BubbleRow({

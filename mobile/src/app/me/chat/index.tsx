@@ -9,7 +9,9 @@ import type { Element } from '@saju';
 import { Avatar } from '@/chat/avatar';
 import { EmptyChat } from '@/chat/empty';
 import { listenLive } from '@/chat/live';
+import { UNREACHABLE } from '@/auth/signup';
 import { AccountNotice, FailureLine } from '@/chat/notices';
+import { settled } from '@/ui/settled';
 import { noteActivity, readRoomListScreen, type ChatRoom, type RoomListScreen } from '@/chat/reads';
 import { Icon } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -23,7 +25,7 @@ export default function ChatRoomsScreen() {
   const live = useRef(true);
 
   const load = useCallback(async () => {
-    const next = await readRoomListScreen();
+    const next = await settled(readRoomListScreen(), 'readRoomListScreen', () => ({ kind: 'failed', message: UNREACHABLE }) as const);
     if (!live.current) return;
     if (next.kind === 'signed-out') router.replace('/');
     /* 선 화면을 다시 읽다 실패하면 가진 것을 그대로 둔다 — 다음 다시 대조가 메운다 */

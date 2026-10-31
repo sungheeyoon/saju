@@ -10,6 +10,7 @@ import { supabase } from '@/auth/client';
 import { SelfCard } from '@/home/self-card';
 import { addPerson, readSlots } from '@/people/data';
 import { SameChartAsk, type SameChartQuestion } from '@/people/same-chart-ask';
+import { settled } from '@/ui/settled';
 import { Card } from '@/ui/surfaces';
 import { PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
@@ -30,16 +31,22 @@ function useSaveContext(): SaveContext | null {
 
   useEffect(() => {
     let live = true;
-    void (async () => {
-      if (supabase === null) return;
-      /* 세션이 없으면 안 선다 — 정책이 빈 답을 내 「내 사주가 없다」로 읽히지 않게 */
-      const { data: session } = await supabase.auth.getSession();
-      if (session.session === null) return;
-      const [account, slots] = await Promise.all([supabase.from('app_user').select('self_person_id, nickname').maybeSingle(), readSlots()]);
-      if (!live) return;
-      const self = account.error !== null ? null : { saved: account.data !== null && account.data.self_person_id !== null, nickname: account.data?.nickname ?? null };
-      setContext({ self, slots });
-    })();
+    /* 세션을 못 읽었으면 묻지 않고 막지 않는다 — 저장 카드가 서고 저장이 제 실패 줄을 말한다 */
+    void settled(
+      (async (): Promise<SaveContext | null> => {
+        if (supabase === null) return null;
+        /* 세션이 없으면 안 선다 — 정책이 빈 답을 내 「내 사주가 없다」로 읽히지 않게 */
+        const { data: session } = await supabase.auth.getSession();
+        if (session.session === null) return null;
+        const [account, slots] = await Promise.all([supabase.from('app_user').select('self_person_id, nickname').maybeSingle(), readSlots()]);
+        const self = account.error !== null ? null : { saved: account.data !== null && account.data.self_person_id !== null, nickname: account.data?.nickname ?? null };
+        return { self, slots };
+      })(),
+      'useSaveContext',
+      () => ({ self: null, slots: null }),
+    ).then((next) => {
+      if (live) setContext(next);
+    });
     return () => {
       live = false;
     };

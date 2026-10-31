@@ -9,6 +9,7 @@ import { FOCUS_CENTER, PHOTO_MAX_COUNT, PHOTO_NOTE, PHOTO_REMOVED, PHOTO_REMOVE_
 import { Paper } from '@/ui/surfaces';
 import { ConfirmDialog } from '@/ui/confirm-dialog';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { UNREACHABLE } from '@/auth/signup';
 import { settled } from '@/ui/settled';
 
 import { FailureLine, useDoneNote } from './parts';
@@ -187,8 +188,11 @@ export function PhotoGrid({
   const adjust = async (photo: MyPhoto) => {
     if (busy) return;
     begin();
-    const source = await photoSource(photo, userId ?? undefined);
-    if (source === null) return;
+    const source = await settled(photoSource(photo, userId ?? undefined), 'photoSource', () => null);
+    if (source === null) {
+      setFailure(UNREACHABLE);
+      return;
+    }
     const chosen = await frame(source, focusOfPhoto(photo));
     if (chosen === null) return;
     setPlaced((was) => new Map(was).set(photo.version, chosen));

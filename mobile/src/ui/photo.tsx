@@ -69,7 +69,7 @@ export function Photo({
   }, [uri, readToken, hold]);
 
   const failed = async () => {
-    const next = await readToken();
+    const next = await settled(readToken(), 'readToken', () => null);
     if (next !== null && next !== tokenNow.current) hold(next);
     else setFailedFor(uri);
   };
