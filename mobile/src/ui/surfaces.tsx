@@ -16,12 +16,13 @@ type FaceProps = {
   accessibilityLabel?: string;
   accessibilityRole?: AccessibilityRole;
   accessibilityLiveRegion?: ViewProps['accessibilityLiveRegion'];
+  onLayout?: ViewProps['onLayout'];
 };
 
-function Face({ face, style, children, onPress, disabled, accessibilityLabel, accessibilityRole, accessibilityLiveRegion }: FaceProps & { face: ViewStyle }) {
+function Face({ face, style, children, onPress, disabled, accessibilityLabel, accessibilityRole, accessibilityLiveRegion, onLayout }: FaceProps & { face: ViewStyle }) {
   if (onPress === undefined) {
     return (
-      <View style={[face, style]} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityLiveRegion={accessibilityLiveRegion}>
+      <View style={[face, style]} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole} accessibilityLiveRegion={accessibilityLiveRegion} onLayout={onLayout}>
         {children}
       </View>
     );
@@ -33,6 +34,7 @@ function Face({ face, style, children, onPress, disabled, accessibilityLabel, ac
       accessibilityState={{ disabled: disabled === true }}
       disabled={disabled}
       onPress={onPress}
+      onLayout={onLayout}
       style={({ pressed }) => [face, pressed && styles.pressed, style]}
     >
       {children}

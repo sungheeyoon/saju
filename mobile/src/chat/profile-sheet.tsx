@@ -7,6 +7,7 @@ import type { Element } from '@saju';
 
 import { Photo } from '@/ui/photo';
 import { COLOR, CONTROL, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { SheetPanel, Tile } from '@/ui/surfaces';
 
 import { ChatIcon } from './icons';
 
@@ -46,7 +47,8 @@ export function ProfileSheet({
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.back}>
         <Pressable style={styles.outside} onPress={onClose} />
-        <SafeAreaView edges={['bottom']} style={styles.sheet} accessibilityLabel={partnerSheetName(nickname)}>
+        <SheetPanel style={styles.sheet} accessibilityLabel={partnerSheetName(nickname)}>
+        <SafeAreaView edges={['bottom']} style={styles.sheetSafe}>
           <View style={styles.head}>
             <Text accessibilityRole="header" numberOfLines={1} style={styles.name}>
               {nickname}
@@ -68,6 +70,7 @@ export function ProfileSheet({
             {footer}
           </ScrollView>
         </SafeAreaView>
+        </SheetPanel>
       </View>
     </Modal>
   );
@@ -93,7 +96,7 @@ function PhotoFrame({
   const face = <Text style={[styles.initial, { color: ink }]}>{initialOf(nickname)}</Text>;
 
   return (
-    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[styles.photo, { backgroundColor: soft }]}>
+    <Tile tone={soft} onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={styles.photo}>
       {focuses.length === 0 && empty}
       {photos === null || focuses.length === 0 || width === 0 ? (
         face
@@ -118,19 +121,19 @@ function PhotoFrame({
           ))}
         </View>
       )}
-    </View>
+    </Tile>
   );
 }
 
 const styles = StyleSheet.create({
   back: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(38, 36, 31, 0.45)' },
   outside: { ...StyleSheet.absoluteFill },
-  sheet: { maxHeight: '90%', borderTopLeftRadius: RADIUS.panel, borderTopRightRadius: RADIUS.panel, backgroundColor: COLOR.background },
+  sheet: { maxHeight: '90%' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 20, paddingRight: 8, paddingTop: 8 },
   name: { flex: 1, fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
   close: { minHeight: CONTROL, minWidth: CONTROL, alignItems: 'center', justifyContent: 'center' },
   body: { gap: 20, padding: 20, paddingTop: 8 },
-  photo: { width: '100%', maxWidth: 340, aspectRatio: 4 / 5, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: RADIUS.panel },
+  photo: { width: '100%', maxWidth: 340, aspectRatio: 4 / 5, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', padding: 0, overflow: 'hidden' },
   page: { height: '100%', alignItems: 'center', justifyContent: 'center' },
   bars: { position: 'absolute', top: 8, left: 8, right: 8, flexDirection: 'row', gap: 4 },
   bar: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 253, 249, 0.45)' },
@@ -139,4 +142,5 @@ const styles = StyleSheet.create({
   intro: { gap: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLOR.border },
   introHead: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
   introBody: { fontSize: TYPE.body, lineHeight: 26, fontFamily: FONT.medium, color: COLOR.foreground },
+  sheetSafe: { flexShrink: 1 },
 });

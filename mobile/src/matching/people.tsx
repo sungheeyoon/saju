@@ -11,6 +11,7 @@ import { Icon } from '@/ui/icons';
 import { Photo } from '@/ui/photo';
 import { ConfirmModal, DialogText, SheetModal } from '@/ui/sheet-modal';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Tile } from '@/ui/surfaces';
 
 import { blockUser, reportUser } from './doors';
 
@@ -85,7 +86,7 @@ export function PartnerSheet({ partner, open, onClose, menu }: { partner: Partne
   const intro = partner.intro !== null && partner.intro.trim() !== '' ? partner.intro : null;
   return (
     <SheetModal open={open} title={`${partner.nickname} 님 자세히`} onClose={onClose} menu={menu}>
-      <View style={styles.photoFrame}>
+      <Tile tone={COLOR.surfaceSunken} style={styles.photoFrame}>
         <PersonPhoto
           userId={partner.userId}
           nickname={partner.nickname}
@@ -96,7 +97,7 @@ export function PartnerSheet({ partner, open, onClose, menu }: { partner: Partne
           initialSize={72}
         />
         {partner.photoCount > 1 && <PhotoBars count={partner.photoCount} at={at} onPick={setAt} />}
-      </View>
+      </Tile>
       {intro !== null && (
         <View style={styles.intro}>
           <Text style={styles.introHead}>소개</Text>
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   initialBox: { alignItems: 'center', justifyContent: 'center' },
   initialAbove: { paddingBottom: '55%' },
   initial: { fontFamily: FONT.bold },
-  photoFrame: { width: '100%', aspectRatio: 4 / 5, borderRadius: RADIUS.panel, overflow: 'hidden', backgroundColor: COLOR.surfaceSunken },
+  photoFrame: { width: '100%', aspectRatio: 4 / 5, padding: 0, overflow: 'hidden' },
   intro: { gap: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLOR.border },
   introHead: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
   introBody: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 26, color: COLOR.foreground },
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   halfRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' },
   bars: { position: 'absolute', left: 12, right: 12, top: 6, flexDirection: 'row', gap: 4 },
   barHit: { flex: 1, height: 24, paddingTop: 4 },
-  bar: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.4)' },
+  bar: { height: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255, 255, 255, 0.4)' },
   barOn: { backgroundColor: '#ffffff' },
   body: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.secondary },
   small: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
   reportQuiet: { minHeight: 44, justifyContent: 'center' },
   reportQuietText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.danger },
   off: { opacity: 0.55 },
-  more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
+  more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill },
   moreOnPhoto: { backgroundColor: 'rgba(0, 0, 0, 0.42)' },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   menuText: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
