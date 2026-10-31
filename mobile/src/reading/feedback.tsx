@@ -23,7 +23,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { supabase } from '@/auth/client';
 import { NOT_READY } from '@/auth/signup';
-import { CardFrame, Cell, Paper } from '@/ui/surfaces';
+import { Card, Paper, Tile } from '@/ui/surfaces';
 import { PrimaryButton, TextButton } from '@/ui/parts';
 import { COLOR, CONTROL, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
@@ -110,7 +110,7 @@ export function ReadingFeedback({ target, runId, given }: { target: ReadingTarge
   );
 
   return (
-    <CardFrame>
+    <Card style={styles.frame}>
       {foldable ? (
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: shown }} onPress={() => setUnfolded(!shown)} style={styles.head}>
           {head}
@@ -178,14 +178,14 @@ export function ReadingFeedback({ target, runId, given }: { target: ReadingTarge
           <PrimaryButton label={saving ? '보내는 중…' : '의견 보내기'} onPress={() => void send()} disabled={saving} />
         </View>
       )}
-    </CardFrame>
+    </Card>
   );
 }
 
 /** 1~5 눈금 — 양 끝의 말이 함께 선다. 숫자만 읽어 주면 무엇을 매기는지 안 들려 양 끝은 이름으로 읽힌다 */
 function Scale({ question, value, onChange }: { question: FeedbackQuestion; value: FeedbackScore | null; onChange: (next: FeedbackScore) => void }) {
   return (
-    <Cell style={styles.scale}>
+    <Tile tone={COLOR.surfaceSoft} style={styles.scale}>
       <Text style={styles.legend}>{question.label}</Text>
       <View accessibilityRole="radiogroup" style={styles.chips}>
         {FEEDBACK_SCALE.map((score) => (
@@ -205,7 +205,7 @@ function Scale({ question, value, onChange }: { question: FeedbackQuestion; valu
         <Text style={styles.end}>{question.low}</Text>
         <Text style={styles.end}>{question.high}</Text>
       </View>
-    </Cell>
+    </Tile>
   );
 }
 
@@ -238,7 +238,7 @@ function Chip({
 }
 
 const styles = StyleSheet.create({
-  thanks: { gap: 4 },
+  thanks: { gap: 4, paddingHorizontal: 20, paddingVertical: 12 },
   thanksText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.creamInk },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16 },
   headWords: { flex: 1, minWidth: 0, gap: 4 },
@@ -261,4 +261,5 @@ const styles = StyleSheet.create({
   comment: { minHeight: 88, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface, fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 24, color: COLOR.foreground, textAlignVertical: 'top' },
   count: { textAlign: 'right', fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
   warn: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.danger },
+  frame: { padding: 0, overflow: 'hidden' },
 });

@@ -7,11 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { readShelf, type DoorRefusal, type ShelfView } from '@/reading/api';
 import { followRefusal, ReadFailure } from '@/reading/panel';
 import { BlankBook, BookRow, MakingRow, SHELF_CHIPS, SHELF_TITLE, type ShelfChip } from '@/reading/shelf';
-import { Panel, PrimaryButton } from '@/ui/parts';
+import { EmptyState } from '@/ui/empty-state';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 import { UNREACHABLE } from '@/auth/signup';
 import { TopBar } from '@/ui/top-bar';
+import { Card } from '@/ui/surfaces';
 
 type Shelf = Extract<ShelfView, { view: 'shelf' }>;
 
@@ -44,10 +45,10 @@ export default function ReadingsScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {answer !== null && 'refused' in answer && <ReadFailure refused={answer.refused} onRetry={load} />}
         {answer !== null && 'view' in answer && answer.view.view === 'blocked' && (
-          <Panel>
+          <Card>
             <Text style={styles.noticeTitle}>{answer.view.title}</Text>
             <Text style={styles.line}>{answer.view.detail}</Text>
-          </Panel>
+          </Card>
         )}
         {answer !== null && 'view' in answer && answer.view.view === 'shelf' && (
           <ShelfBody shelf={answer.view} chip={chip} setChip={setChip} typed={typed} setTyped={setTyped} />
@@ -74,18 +75,13 @@ function ShelfBody({
 
   if (books.length === 0 && making.length === 0) {
     return (
-      <Panel style={styles.nothing}>
-        <Text style={styles.noticeTitle}>아직 만든 풀이가 없어요</Text>
-        <Text style={styles.line}>
-          내 사주와 저장한 사람의 풀이는 홈 탭에서,{' '}
-          두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
-        </Text>
-        {hasSelf ? (
-          <PrimaryButton label="사주풀이 받기" onPress={() => router.push('/me/readings/self' as never)} />
-        ) : (
-          <PrimaryButton label="내 사주 등록하기" onPress={() => router.push('/me' as never)} />
-        )}
-      </Panel>
+      <EmptyState
+        icon="reading"
+        title="아직 만든 풀이가 없어요"
+        action={hasSelf ? { label: '사주풀이 받기', onPress: () => router.push('/me/readings/self' as never) } : { label: '내 사주 등록하기', onPress: () => router.push('/me' as never) }}
+      >
+        내 사주와 저장한 사람의 풀이는 홈 탭에서,{'\n'}두 사람의 궁합은 궁합 탭에서 시작할 수 있어요.
+      </EmptyState>
     );
   }
 
@@ -222,7 +218,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { gap: 16, padding: 16, paddingBottom: 48 },
   body: { gap: 24 },
-  nothing: { gap: 12 },
   noticeTitle: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
   chips: { gap: 8 },

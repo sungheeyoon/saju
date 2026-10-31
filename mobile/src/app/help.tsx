@@ -6,8 +6,9 @@ import { HELP_GROUPS } from '@brand/guide';
 
 import { InfoScreen } from '@/info/frame';
 import { Icon } from '@/ui/icons';
-import { Panel, SecondaryButton } from '@/ui/parts';
+import { SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
 
 /** 앱은 로그인 뒤에야 결과를 보여 준다 — 「로그인하지 않고 무엇을 볼 수 있나요?」는 앱에서 사실이 아니라 물음째 뺀다 */
 const SIGNED_OUT_QUESTION = 'without-sign-in';
@@ -76,7 +77,7 @@ export default function HelpScreen() {
         <View key={group.title} style={styles.group} onLayout={(event) => place(`group:${group.title}`, event.nativeEvent.layout.y)}>
           <Text style={styles.groupTitle}>{group.title}</Text>
           <View onLayout={(event) => place(`panel:${group.title}`, event.nativeEvent.layout.y)}>
-            <Panel style={styles.panel}>
+            <Card style={styles.panel}>
               {group.items.filter((item) => item.id !== SIGNED_OUT_QUESTION).map((item, index) => {
                 const isOpen = opened.has(item.id);
                 return (
@@ -120,7 +121,7 @@ export default function HelpScreen() {
                   </View>
                 );
               })}
-            </Panel>
+            </Card>
           </View>
         </View>
       ))}
