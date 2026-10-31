@@ -41,6 +41,7 @@ import {
   mainRedOf,
   onlyCommentsChanged,
   planFor,
+  reachesMobile,
   regexShape,
   regexTurnsOn,
   regexUsesIn,
@@ -73,8 +74,8 @@ const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, 
 const beta = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '운영 베타' });
 
 /** 전부 — 단위 · 타입 · 린트 · 빌드(`core`) · 익명 e2e · 로그인 일곱 · 흐름 */
-const FULL = { policy: false, core: true, anon: true, authed: true, flow: true, audit: false };
-const CORE_ONLY = { policy: false, core: true, anon: false, authed: false, flow: false, audit: false };
+const FULL = { policy: false, core: true, anon: true, authed: true, flow: true, audit: false, mobile: false };
+const CORE_ONLY = { policy: false, core: true, anon: false, authed: false, flow: false, audit: false, mobile: false };
 
 describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
   it('입구가 아닌 코드 PR 은 core 하나만 탄다 — 전체는 main 에서 돈다(화면 컴포넌트 · CI 자체는 아래)', () => {
@@ -88,7 +89,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     ]) {
       const plan = beta(files);
       expect(plan.tier, files[0]).toBe('core');
-      expect(plan.lanes, files[0]).toEqual(CORE_ONLY);
+      expect(plan.lanes, files[0]).toEqual({ ...CORE_ONLY, mobile: files.some(reachesMobile) });
       expect(plan.authedLanes, files[0]).toEqual([]);
     }
   });
@@ -240,7 +241,7 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
       ...SERVER_ACTIONS_ELSEWHERE,
       ...HARNESS,
     ]) {
-      expect(beta([file]).lanes, file).toEqual(FULL);
+      expect(beta([file]).lanes, file).toEqual({ ...FULL, mobile: reachesMobile(file) });
       expect(beta(['docs/prd.md', file]).tier, file).toBe('full');
     }
   });
@@ -359,7 +360,7 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
       'scripts/beta-dates.mjs',
       'scripts/some-new-helper.mjs',
     ]) {
-      expect(beta([file]).lanes, file).toEqual(FULL);
+      expect(beta([file]).lanes, file).toEqual({ ...FULL, mobile: reachesMobile(file) });
     }
     for (const file of ['scripts/ci-plan.mjs', 'scripts/release-stage.mjs', 'scripts/merge-sim.mjs', 'scripts/read-budget.mjs', 'scripts/fake-clock.mjs', 'scripts/ui-shots.mjs', 'scripts/generate-lunar-table.mjs']) {
       expect(isSurface(file), file).toBe(false);
@@ -965,7 +966,7 @@ describe('CI 계획 — CI 자체 · 시험 실행 의존성은 전부다', () =
 
   it('워크플로 · Node 판(.nvmrc)은 CI 자체라 전부다 — 워크플로 밖의 .github 는 아니다', () => {
     for (const file of ['.github/workflows/verify.yml', '.github/workflows/main-red.yml', '.nvmrc']) {
-      expect(beta([file]).lanes, file).toEqual(FULL);
+      expect(beta([file]).lanes, file).toEqual({ ...FULL, mobile: true });
       expect(beta([file]).cause, file).toBe('CI 자체');
     }
     expect(beta(['.github/ISSUE_TEMPLATE/x.yml']).lanes).toEqual(CORE_ONLY);
@@ -1113,12 +1114,72 @@ describe('CI 계획 — 운영 의존성 감사 (G-23 ①, ADR 0104)', () => {
   });
 });
 
+describe('CI 계획 — 앱 검사 (mobile 차선)', () => {
+  const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+
+  it('앱이 부르는 자리가 바뀐 PR 만 돈다 — 어느 단계든', () => {
+    for (const file of ['mobile/src/app/index.tsx', 'mobile/src/a.test.ts', 'mobile/package-lock.json', 'mobile/app.json', 'src/lib/saju/index.ts', 'src/lib/design/tokens.json', 'app/db-error.ts', 'app/ui/sign-in-again.ts', '.github/workflows/verify.yml', '.nvmrc']) {
+      expect(beta([file]).lanes.mobile, file).toBe(true);
+      expect(beta(['docs/prd.md', file]).lanes.mobile, file).toBe(true);
+    }
+    expect(pr(['mobile/src/app/index.tsx']).lanes.mobile).toBe(true);
+    for (const file of ['app/page.tsx', 'app/ui/icons.tsx', 'docs/prd.md', 'mobile/AGENTS.md', 'src/lib/saju/index.test.ts', 'scripts/ci-plan.test.ts', 'package-lock.json', 'supabase/migrations/1_x.sql']) {
+      expect(beta([file]).lanes.mobile, file).toBe(false);
+    }
+  });
+
+  it('라벨 · 빈 diff · 계획 밖 이벤트 · 코드가 든 main 푸시는 돌고, 정책만인 main 푸시는 안 돈다', () => {
+    expect(beta(['app/page.tsx'], [FULL_LABEL]).lanes.mobile).toBe(true);
+    expect(beta([]).lanes.mobile).toBe(true);
+    for (const event of ['schedule', 'workflow_dispatch']) expect(planFor({ files: [], event }).lanes.mobile, event).toBe(true);
+    const pushed = { before: 'a'.repeat(40), forced: false, beforeGreen: true };
+    expect(planFor({ files: ['app/page.tsx'], event: 'push', pushed }).lanes.mobile).toBe(true);
+    expect(planFor({ files: ['docs/prd.md'], event: 'push', pushed }).lanes.mobile).toBe(false);
+  });
+
+  it('앱 파일만 바꾼 PR 은 core 와 mobile 만 돌고 e2e · 흐름은 안 돈다 — 정책이 섞여도 같다', () => {
+    const appOnly = { ...CORE_ONLY, mobile: true };
+    for (const files of [['mobile/src/app/index.tsx'], ['mobile/package-lock.json'], ['mobile/src/a.test.ts'], ['mobile/src/app/index.tsx', 'docs/prd.md', 'scripts/mobile-closure.test.ts']]) {
+      const plan = beta(files);
+      expect(plan.lanes, files[0]).toEqual(appOnly);
+      expect(plan.authedLanes, files[0]).toEqual([]);
+    }
+  });
+
+  it('앱 파일에 웹 파일 하나가 섞이면 전부다 — 공개 출시 · 라벨도 전부다', () => {
+    for (const web of ['src/lib/saju/strength/index.ts', 'src/lib/saju/strength/index.test.ts', 'app/db-error.ts', 'app/me/matching/deck-state.ts', '.github/workflows/verify.yml', 'package.json']) {
+      const plan = beta(['mobile/src/app/index.tsx', web]);
+      expect(plan.tier, web).toBe('full');
+      expect(plan.authedLanes, web).toEqual(AUTHED_LANES);
+      expect(plan.lanes.mobile, web).toBe(true);
+    }
+    expect(pr(['mobile/src/app/index.tsx']).tier).toBe('full');
+    expect(beta(['mobile/src/app/index.tsx'], [FULL_LABEL]).tier).toBe('full');
+  });
+
+  it('main 푸시는 앱만 바뀌어도 전부다', () => {
+    const pushed = { before: 'a'.repeat(40), forced: false, beforeGreen: true };
+    expect(planFor({ files: ['mobile/src/app/index.tsx'], event: 'push', pushed }).tier).toBe('full');
+  });
+
+  it('verify.yml 의 mobile job 은 mobile/ 에서 돌고, 앞이 붉어도 뒤가 돌며, 붉음을 삼키지 않는다', () => {
+    const job = /\n {2}mobile:\n([\s\S]*?)\n {2}[a-z]+:\n/.exec(yml)?.[1] ?? '';
+    for (const run of ['npx expo lint', 'npx expo export --platform android --output-dir dist']) {
+      expect(job, run).toContain(`- run: ${run}\n        if: \${{ !cancelled() && steps.install.outcome == 'success' }}`);
+    }
+    expect(job).toContain('working-directory: mobile');
+    expect(job).toContain('cache-dependency-path: mobile/package-lock.json');
+    expect(job.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n')).not.toMatch(/continue-on-error/);
+    expect([...job.matchAll(/^\s+- run: (.+)$/gm)].map((one) => one[1].trim())).toEqual(['npm ci', 'ln -s mobile/node_modules ../node_modules', 'npx tsc --noEmit', 'npx expo lint', 'npx expo export --platform android --output-dir dist']);
+  });
+});
+
 describe('CI 계획 — 공개 출시', () => {
   it('정책만 바뀌면 policy 차선만 돈다 — 문서도 scripts 시험이 읽으므로 아무것도 안 도는 단계는 없다', () => {
     const plan = pr(['docs/adr/0082-x.md', 'GLOSSARY.md', 'docs/prd.md']);
 
     expect(plan.tier).toBe('policy');
-    expect(plan.lanes).toEqual({ policy: true, core: false, anon: false, authed: false, flow: false, audit: false });
+    expect(plan.lanes).toEqual({ policy: true, core: false, anon: false, authed: false, flow: false, audit: false, mobile: false });
   });
 
   it('도구 설정 · 이슈와 PR 틀 · scripts 의 시험 파일도 정책이다 (#141 은 설정 하나로 전부를 돌았다)', () => {
@@ -1149,7 +1210,7 @@ describe('CI 계획 — 공개 출시', () => {
     const plan = pr(['src/lib/saju/strength/index.ts', 'app/saju/fortune.tsx', 'docs/prd.md']);
 
     expect(plan.tier).toBe('engine');
-    expect(plan.lanes).toEqual({ policy: false, core: true, anon: true, authed: false, flow: false, audit: false });
+    expect(plan.lanes).toEqual({ policy: false, core: true, anon: true, authed: false, flow: false, audit: false, mobile: true });
   });
 
   it('모르는 파일이 하나라도 섞이면 전부 돈다', () => {
@@ -1165,7 +1226,7 @@ describe('CI 계획 — 공개 출시', () => {
       const plan = pr(['src/lib/saju/strength/index.ts', stranger]);
 
       expect(plan.tier, stranger).toBe('full');
-      expect(plan.lanes, stranger).toEqual({ ...FULL, audit: stranger === 'package.json' });
+      expect(plan.lanes, stranger).toEqual({ ...FULL, mobile: true, audit: stranger === 'package.json' });
       expect(plan.authedLanes, stranger).toEqual(AUTHED_LANES);
     }
   });
@@ -1175,7 +1236,7 @@ describe('CI 계획 — 공개 출시', () => {
     for (const file of ENGINE_DB_FACING) expect(pr([file]).tier, file).toBe('full');
     // 운영 베타에서도 전부다 — 머리말 · 시험 지도의 「전부」와 같다(운영자 2026-10-22 「코드를 전부로」). 엔진의 다른 파일은 core 그대로
     for (const file of ENGINE_DB_FACING) expect(beta([file]).cause, file).toBe('엔진의 DB 쪽');
-    expect(beta(['src/lib/saju/strength/index.ts']).lanes).toEqual(CORE_ONLY);
+    expect(beta(['src/lib/saju/strength/index.ts']).lanes).toEqual({ ...CORE_ONLY, mobile: true });
     // 이름으로 견주는 목록이다 — 파일을 옮기면 옛 이름은 아무것도 안 걸러 새 자리가 엔진 단계로 조용히 빠진다
     const root = resolve(__dirname, '..');
     expect([...ENGINE_DB_FACING, ...DEPENDENCY_LISTS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
@@ -1251,7 +1312,7 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
   });
 
   it('전부일 때 core · anon · authed 일곱 · flow 가 모두 선다 — 라벨 · push · 일정 · 손으로 켠 실행', () => {
-    const everything = { lanes: { ...FULL, audit: true }, authedLanes: AUTHED_LANES };
+    const everything = { lanes: { ...FULL, audit: true, mobile: true }, authedLanes: AUTHED_LANES };
     const labelled = beta(['app/me/(shelf)/readings/compat/page.tsx'], [FULL_LABEL]);
     expect({ lanes: labelled.lanes, authedLanes: labelled.authedLanes }).toEqual(everything);
     for (const event of ['push', 'schedule', 'workflow_dispatch']) {
@@ -1287,7 +1348,7 @@ describe('CI 계획 — 그 주소에 실제로 닿는 차선만 (2026-10-01)', 
     for (const [branch, files] of Object.entries(RISK_SAMPLES)) {
       for (const file of files) {
         const plan = beta([file]);
-        expect(plan.lanes, file).toEqual(FULL);
+        expect(plan.lanes, file).toEqual({ ...FULL, mobile: reachesMobile(file) });
         expect(plan.cause, file).toBe(branch);
         // 좁혀질 화면과 섞여도 공용 위험이 먼저다
         expect(beta(['app/me/(shelf)/readings/compat/page.tsx', file]).cause, file).toBe(branch);
@@ -1622,7 +1683,7 @@ describe('CI 계획 — 문서만 바뀐 main 푸시는 policy 만 (ADR 0154)', 
       const plan = push(['docs/prd.md', code]);
       expect(plan.tier, code).toBe('full');
       expect(plan.cause, code).toBe('main 푸시');
-      expect(plan.lanes, code).toEqual({ ...FULL, audit: true });
+      expect(plan.lanes, code).toEqual({ ...FULL, audit: true, mobile: true });
       expect(plan.authedLanes, code).toEqual(AUTHED_LANES);
     }
     expect(push(['docs/prd.md', 'supabase/migrations/20261008000000_x.sql']).cause).toBe('DB');
@@ -2218,7 +2279,9 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       [share, readFileSync(resolve(ROOT, share), 'utf8')],
     ]);
     expect(plan.tier).toBe('core');
-    expect(plan.lanes).toEqual(CORE_ONLY);
+    expect(plan.lanes).toEqual({ ...CORE_ONLY, mobile: true });
+    // 앱 파일이 섞이면 문구 판정으로 좁히지 않는다 — 웹 문구 파일이 빠지면 앱만 바뀐 PR 로 읽혀 웹 차선이 사라진다
+    expect(planOf(file, before, before.replace('테스트 코드가 필요해요', '테스트 코드가 있어야 해요'), ['mobile/src/app/index.tsx']).tier).toBe('full');
   });
 
   it('입구 page 의 문구 — 말하는 시험 없음은 core, 지금 규칙 안의 차선이면 그것, 넓으면 지금 규칙, 동작이 섞이면 지금 규칙', () => {
@@ -2378,7 +2441,7 @@ describe('CI 계획 — 문구만 바뀐 파일은 core 에 옛 글자를 찾는
       sourceOf: (one) => (one === note ? noteBefore.replace("'보낸 요청을 취소할까요?'", "'보낸 요청도 취소할까요?'") : disk(one)),
       baseSourceOf: (one) => (one === note ? noteBefore : disk(one)),
     });
-    expect(notePlan.lanes).toEqual(CORE_ONLY);
+    expect(notePlan.lanes).toEqual({ ...CORE_ONLY, mobile: true });
     // 입구가 아닌 컴포넌트의 JSX 글자 한 줄 — 그 글자(「오늘의 인연」)를 match.spec 이 글자 그대로 찾아 문구만이 아니다. 지금 규칙은
     // 그 컴포넌트를 쓰는 입구의 차선이다(입구가 아닌 화면 컴포넌트)
     const screen = 'app/me/matching/matching-experience.tsx';

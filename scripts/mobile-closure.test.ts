@@ -6,11 +6,13 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { reachesMobile } from './ci-plan.mjs';
+
 /**
  * **앱이 닿는 코드는 앱 번들에서 풀린다.**
  *
  * `mobile/src` 는 tsconfig 의 paths 로 웹의 `src/lib` · `app` 을 들인다. 그 파일이 웹 별칭(`@/src/lib/…`)이나 `next` · `node:` 를 들이면
- * 웹의 시험 · 타입 검사 · 빌드는 초록인데 앱 번들만 깨진다 — 웹 CI 는 `mobile/` 을 안 돌린다. 그래서 `mobile/src` 에서 import 를 따라가
+ * 웹의 시험 · 타입 검사 · 빌드는 초록인데 앱 번들만 깨진다 — `core` 는 `mobile/` 을 안 돌리고 `mobile` 차선은 앱을 깐 뒤에 돈다. 그래서 `mobile/src` 에서 import 를 따라가
  * 닿는 파일 전부를 여기서 잰다. 설치를 안 하는 CI 에서도 돌도록 `mobile/node_modules` 가 아니라 `mobile/package.json` 과 견준다.
  */
 const ROOT = join(import.meta.dirname, '..');
@@ -131,6 +133,11 @@ describe('앱이 닿는 코드의 닫힘', () => {
     expect(shared).toContain('app/db-error.ts');
     expect(shared).toContain('src/lib/saju/index.ts');
     expect(shared.length).toBeGreaterThan(100);
+  });
+
+  /* 웹 쪽 파일이 여기 안 걸리면 그 파일을 고친 PR 이 CI 의 `mobile` 차선을 안 돌아, 앱이 깨진 채 머지된다 */
+  it('앱이 닿는 웹 쪽 파일은 전부 CI 의 mobile 차선을 켠다', () => {
+    expect(shared.filter((file) => !reachesMobile(file.split(sep).join('/')))).toEqual([]);
   });
 });
 

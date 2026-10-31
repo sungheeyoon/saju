@@ -69,3 +69,13 @@ PR 의 필수는 이제 한 job 이 아니라 **독립 차선**이다 — `core`
 든다. **아무것도 느슨해지지 않는다** — `continue-on-error` 는 없어서 붉은 단계가 하나라도 있으면 job 은 실패이고, `gate` 는 그
 실패로 선다. 바뀐 것은 건너뛰던 단계가 도는 것 하나다. `authed` · `flow` 는 그대로 둔다 — 스택(`db:start`)이 서지 않으면 뒤 단계가
 뜻이 없다. `scripts/ci-plan.test.ts` 「core · policy 의 검사는 앞 검사가 붉어도 돌고」가 잰다.
+
+## 덧 (2026-10-31) — 앱이 부르는 자리가 바뀐 PR 은 `mobile` 차선이 머지를 막는다
+
+뿌리 tsconfig 가 `mobile` 을 빼서 앱 파일의 타입을 재는 CI 가 없었고, 앱 파일에 타입 오류를 든 PR 이 머지될 뻔했다. 차선 `mobile` 을 더한다 —
+`mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo lint` · `npx expo export --platform android` 다. 앱이 부르는 자리(`ci-plan.mjs` 의 `MOBILE_REACH` — `mobile/**` · `src/lib/**` ·
+`app/` 의 그 파일들, 문서와 시험은 빼고)와 CI 자체가 바뀐 PR 에서 돌고 `gate` 가 물린다. **넓히기만 한다** — 건너뛰던 것을 더 돌릴 뿐 지금 차선은 그대로다.
+번들을 넣은 까닭은 타입이 못 보는 실패(Metro 가 못 푸는 `require` · Hermes 컴파일)이고, 잰 값은 그 PR 에 있다. `scripts/mobile-closure.test.ts` 가 앱이 닿는 웹 쪽 파일이 전부 이 목록에 걸리는지 잰다.
+
+운영자 답(2026-10-31): 이 차선을 「넣는다」, `mobile/**` 만 바꾼 PR 은 웹 e2e 를 「건너뛴다」. 그래서 공개 출시 전에 `mobile/**` 와 정책 파일만 바꾼 PR 은 `core` + `mobile` 이다 — `core` 는 `scripts` 잠금이 `mobile/` 글자를 읽어 남긴다. `src/lib` · `app` · 워크플로가 섞이면 전부이고, main 푸시의 전체는 그대로다.
+**앱이 main 에서 붉어도 전체 초록(`lastFullGreen`)이 멈춰 웹 배포 근거가 멈춘다, 의도다.**

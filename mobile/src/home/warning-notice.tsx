@@ -31,6 +31,7 @@ export function WarningNotice() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 여는 때 읽는다 - setState 는 await 뒤라 렌더와 겹치지 않는다
     void read();
   }, [read]);
 

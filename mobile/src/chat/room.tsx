@@ -220,6 +220,7 @@ export function ChatRoomView({ room, onChanged }: { room: RoomView; onChanged: (
             scrollEventThrottle={100}
             maintainVisibleContentPosition={{ minIndexForVisible: 1, autoscrollToTopThreshold: NEAR_BOTTOM_PX }}
             viewabilityConfig={SEEN_CONFIG}
+            // eslint-disable-next-line react-hooks/refs -- FlatList 는 이 콜백이 바뀌면 던진다 - 한 번 만든 것을 준다
             onViewableItemsChanged={onViewable.current}
             renderItem={({ item }) => {
               switch (item.kind) {

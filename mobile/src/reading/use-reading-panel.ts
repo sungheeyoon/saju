@@ -98,6 +98,7 @@ export function useReadingPanel({
     return answer.value;
   };
   const rereadRef = useRef(reread);
+  // eslint-disable-next-line react-hooks/refs -- 최신 콜백을 효과에 넘기는 ref - 렌더 값으로 안 쓴다
   rereadRef.current = reread;
 
   useEffect(() => {

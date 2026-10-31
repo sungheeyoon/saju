@@ -38,6 +38,7 @@ function useReducedMotion(): boolean {
 /** 그림의 숨 — 아주 작고 느리고, 박자가 흩어져 한꺼번에 움직이지 않는다. 웹은 그림의 부분마다 움직이고 앱은 그림 하나가 숨 쉰다 */
 function Breathing({ stem, size, phase, hushed }: { stem: Stem; size: number; phase: number; hushed: boolean }) {
   const reduced = useReducedMotion();
+  // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
   const breath = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (reduced || hushed) return;
@@ -51,6 +52,7 @@ function Breathing({ stem, size, phase, hushed }: { stem: Stem; size: number; ph
     loop.start();
     return () => loop.stop();
   }, [breath, phase, reduced, hushed]);
+  // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
   const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
@@ -61,6 +63,7 @@ function Breathing({ stem, size, phase, hushed }: { stem: Stem; size: number; ph
 
 /** 만남 — 두 그림에서 작은 것이 하나씩 떠나 같은 선을 타고 엇갈려 건너간다. 어느 짝이든 같은 박자 · 같은 크기다 */
 function Token({ element, steps, width }: { element: Element; steps: readonly Point[]; width: number }) {
+  // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
   const at = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const run = Animated.sequence([
@@ -80,9 +83,12 @@ function Token({ element, steps, width }: { element: Element; steps: readonly Po
         left: 0,
         top: 0,
         zIndex: 6,
+        // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
         opacity: at.interpolate({ inputRange: [0, 0.02, 0.98, 1], outputRange: [0, 1, 1, 0] }),
         transform: [
+          // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
           { translateX: at.interpolate({ inputRange, outputRange: steps.map((step) => px(step.x)) }) },
+          // eslint-disable-next-line react-hooks/refs -- Animated.Value 는 한 번 만들어 들고 가는 값이다 - 렌더 값이 아니다
           { translateY: at.interpolate({ inputRange, outputRange: steps.map((step) => px(step.y)) }) },
         ],
       }}

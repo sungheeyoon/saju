@@ -49,9 +49,15 @@ export function useReadingView(target: ReadingTarget) {
   const [answer, setAnswer] = useState<{ view: ReadingView } | { refused: DoorRefusal } | null>(null);
   const query = JSON.stringify(target);
 
+  /* 가장 최근의 읽기 표 — 늦은 응답이 새 대상의 칸에 서면 궁합은 다른 두 사람의 풀이가 보인다. 「다시 시도하기」의 읽기도 같은 표로 잰다 */
+  const latest = useRef(0);
+
   const load = useCallback(() => {
+    latest.current += 1;
+    const mine = latest.current;
     setAnswer(null);
     void settled(readReadingView(JSON.parse(query) as ReadingTarget), 'readReadingView', () => ({ ok: false, refused: { refused: 'unavailable', message: UNREACHABLE } }) as const).then((read) => {
+      if (mine !== latest.current) return;
       if (read.ok) setAnswer({ view: read.value });
       else {
         followRefusal(read.refused);
@@ -60,7 +66,13 @@ export function useReadingView(target: ReadingTarget) {
     });
   }, [query]);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load 는 효과 안에서 동기로 칸을 비운다 - 대상이 바뀌면 옛 풀이가 한 번도 안 그려지게 하는 일이다
+    load();
+    return () => {
+      latest.current += 1;
+    };
+  }, [load]);
   return { answer, reload: load };
 }
 

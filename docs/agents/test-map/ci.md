@@ -7,8 +7,8 @@
 `scripts/ci-plan.mjs` 가 **출시 단계**(PRD §7.0 의 「(지금)」, `scripts/release-stage.mjs`)와 바뀐 파일로 계획을
 고르고, `verify.yml` 은 그 답을 읽을 뿐이다. `gate` 가 필수 검사라 `--auto` 머지는 초록까지 기다린다.
 
-**차선은 여섯이고 서로 따로 선다**(2026-10-01) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
-`ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit`.
+**차선은 일곱이고 서로 따로 선다**(2026-10-01, `mobile` 은 2026-10-31) — `policy`(scripts 시험 · 타입 · 린트) · `core`(단위 · 타입 · 린트 · 빌드, 명령은
+`ci-plan.mjs` 의 `CORE_STEPS`) · `anon`(익명 e2e 만) · `authed`(로그인 차선 중 계획이 고른 것 — 차선 목록은 `ci-plan.mjs` 의 `AUTHED_LANES`, 고른 것은 `authed_lanes`) · `flow` · `audit` · `mobile`(앱의 타입 · 번들).
 단위 · 타입 · 린트 · 빌드를 도는 것은 `core` 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다. **`core` · `policy` 안에서는 앞 검사가 붉어도 뒤 검사가 돈다**(`!cancelled()`, 설치가 섰을 때만 — ADR 0097 덧 2026-10-22) — 붉은 단계가 하나라도 있으면 job 과 `gate` 는 그대로 실패다. 옛 이름은 `fast` → `core`,
 `verify`(job) → `anon` 이다. 워크플로 이름 `verify` 와 npm 스크립트 `npm run verify` 는 그대로다.
 
@@ -24,6 +24,7 @@
 | 문구만 바뀐 파일 — 화면 문구 자리(JSX 글자 · JSX 자식 식이 그대로 세우는 문자열과 템플릿의 글자 조각 · HTML 요소의 `aria-label` 글자 · `COPY_FILES` 의 상수와 표의 값)의 글자만 base 와 다르고 나무는 같다(ADR 0159 · 덧 G-90, 판정은 `ci-plan.mjs` 「문구만 바뀐 파일」, 운영 베타의 PR 에서만). 그 밖의 속성 · 조건 · 핸들러 · 구조 · 템플릿의 식 · 목록 밖 문자열이 섞이거나 판별이 불확실하면 지금 규칙. **바뀐 글자를 `e2e/**` · `scripts/check-*.mjs` 가 글자 그대로(통째 · 따옴표 조각 · 그 글자를 찾는 글자 있는 정규식) 찾으면 문구만이 아니다**(운영자 2026-10-10 — 배포도 기다린다). 문구 상수는 시험이 이름으로 읽는다. e2e 를 고친 PR 은 문구만이 아니다 | `core` + **바뀐 자리의 옛 글자나 새 글자를 말하는 시험**과 **바뀐 문구 파일을 들이는 시험**(`e2e/**` · `scripts/check-*.mjs`, 정규식은 파서로 읽고 쓰임 자리로 가른다)의 차선이 **그 파일의 지금 규칙 차선의 부분집합일 때만** 그것으로 센다 — 아니면(검색이 전부 · 지금 규칙에 없는 차선이 섞임) 아래 줄의 지금 규칙 그대로. 문구 판정은 좁히기만 한다(운영자 2026-10-09). 여러 파일이면 파일마다 정한 계획의 합. 동적으로 조합한 selector 는 머지 뒤 main 의 전체가 잡는다 |
 | **공용 위험**이 하나라도(`ci-plan.mjs` 의 `SHARED_RISK`) — 관문(`proxy.ts` · `src/lib/consent/**`) · 인증(`app/auth/**`) · `app/**/layout.tsx` · `app/**/route.ts` · 서버 액션(`actions.ts` · `SERVER_ACTIONS_ELSEWHERE`) · spec 이 아닌 `e2e/**` · 시험 도구(`HARNESS` · CI · 개발 도구가 아닌 `scripts/*.mjs`) · Next 공용 경계(`app/` 뿌리의 `global-error.tsx` · `global-not-found.tsx`, `app/**/forbidden.tsx` · `app/**/unauthorized.tsx` · 뿌리의 `instrumentation.ts` · `instrumentation-client.ts` · `middleware.ts`) · 엔진의 DB 쪽(`ENGINE_DB_FACING` — `src/lib/saju/version.ts` · `pillars/index.ts`) · CI 자체(`.github/workflows/**` · `.nvmrc`, ADR 0195). `*.test.ts` 는 빼고 | 전부 — 까닭에 갈래 이름이 실린다 |
 | 정책만(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy` |
+| `mobile/**` 와 정책뿐(운영자 2026-10-31, ADR 0097 덧). 앱 밖 코드가 하나라도 섞이면 전부(까닭 `미분류`) | `core` + `mobile` — 웹 e2e · 흐름은 안 돈다 |
 | `e2e/*.spec.ts` | `core` + 그 spec 을 부르는 차선(`package.json` 의 `test:e2e:<차선>`). 로그인 무늬(`AUTHED` · `NOTICE`)인데 부르는 차선이 없으면 전부, 그 밖 spec 은 `anon` |
 | `scripts/check-*.mjs` | `core` + `flow` |
 | 화면의 입구(`app/**/{page,loading,error,not-found,template,default}.tsx`) | `core` + **그 주소를 요청하는 시험**의 차선. 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `page` 밖은 그 아래 전부), 시험의 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서 뽑는다. 닿는 시험이 0 이면 — 시험 · 그 도우미가 템플릿 · 이어 붙임 · 정규식으로 그 주소를 요청할 수도 있거나(`looseAddressesOf`), 그 코드나 바로 들이는 파일에 입구의 경로가 글자로 들었거나(`mentionOf` — glob · 정규식 문자열 · 경로 상수), 그 입구를 들이는 파일이 있거나(다시 내보내는 page), 다른 화면이 그 입구를 가리키고(링크든 경로 상수 · `router.push` · `redirect` 든) 그 화면을 여는 시험이 있으면(`linkReach` — 무엇을 누르는지는 가르지 않는다, ADR 0195 덧) 전부, 그것도 없으면 그 파일은 `core` 이고 까닭에 시험 공백(간극 대장 G-116 — 그 기록과 계획의 `untestedEntries()` · `linkedOnlyEntries()` 를 시험이 견준다)이 실린다. 다른 파일이 켠 차선은 그대로다(운영자 2026-10-22, ADR 0195) |
@@ -69,6 +70,10 @@ PR 마다 `gate` 의 최신 실행을 읽는다(`docs/ops/runbook/deploy.md` 「
 막는다(라벨 · 빈 diff 도 켠다). 아무것도 안 바꾼 PR 이 어느 날 붉어지는 일이 없다. 새로 뜬 advisory 는 main 푸시와 하루
 한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 `docs/ops/runbook/security.md` 「운영 의존성 취약점」. 개발 의존성은
 CI 가 안 막는다.
+
+**앱 검사 `mobile` 도 단계와 따로 켠다**(ADR 0097 덧 2026-10-31) — `mobile/` 에서 `npm ci` · `npx tsc --noEmit` · `npx expo lint` · `npx expo export --platform android` 다. 뿌리 `npm ci` 없이 돌고, 뿌리 `node_modules` 는 앱의 것으로 잇는다.
+PR 에서는 앱이 부르는 자리(`ci-plan.mjs` 의 `reachesMobile` — `mobile/**` · `src/lib/**` · `app/db-error.ts` · `app/ui/sign-in-again.ts`, 문서와 시험은 빼고)와 CI 자체(`.github/workflows/**` · `.nvmrc`)가 바뀌었을 때만 돈다. 라벨 · 빈 diff · 일정 · 손으로 켠 실행 · 정책만이 아닌 main 푸시도 돈다.
+앱이 새 웹 파일을 들이면 `scripts/mobile-closure.test.ts` 가 목록에 더하라고 붉다.
 
 입구 · 공용 위험 줄은 #284(탭 뼈대 `loading.tsx` · route group 이동)와 #286(`proxy.ts` · 화면 · 서버 액션)이 PR 에서 `fast`(지금
 `core`)만 돌고 #284 는 머지 뒤 main 의 `flow` 가 붉었던 일에서 왔다 — 단위 · 타입 · 린트 · 빌드는 화면이 열리는가 · 관문이 누구를

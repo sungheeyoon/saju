@@ -68,6 +68,13 @@
  * 머지를 막고, 새로 뜬 advisory 는 main 푸시 · 하루 한 번의 일정이 잡아 `ci-main-red` 이슈로 알린다.
  * 라벨 · 빈 diff · 계획 밖 이벤트는 「전부」와 같이 켠다.
  *
+ * ## 앱 검사는 앱이 부르는 자리가 바뀔 때 켠다 (2026-10-31)
+ *
+ * `mobile` 차선은 `mobile/` 에서 `npm ci` · `tsc` · `expo lint` · 안드로이드 번들을 돈다. 뿌리 tsconfig 가 `mobile` 을 빼므로 그전까지 앱 파일의 타입 오류를 재는
+ * CI 가 없었다. 앱은 `src/lib` 와 `app/` 의 몇 파일을 함께 쓰므로 웹 쪽 수정도 앱을 깬다 — `MOBILE_REACH` 가 그 자리이고,
+ * `scripts/mobile-closure.test.ts` 가 앱에서 import 를 따라 닿는 파일이 전부 여기 걸리는지 잰다. `audit` 처럼 단계와 따로 켠다.
+ * 공개 출시 전에 `mobile/**` 만 바꾼 PR 은 `core` + `mobile` 이고 웹 e2e · 흐름을 건너뛴다(운영자 2026-10-31). 앱 밖 코드가 섞이면 전부다.
+ *
  * ## 관문 · 화면 · 인증 · 그것을 재는 시험은 베타에서도 머지 전에 전부다 (2026-09-27, ADR 0119)
  *
  * 베타의 `fast` 는 「그 밖 전부」를 받았다. 그래서 #284(탭 넷의 `loading.tsx` · route group 이동)와 #286(`proxy.ts` 와
@@ -322,6 +329,10 @@ const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/]
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
 /** 의존성 목록 — 이것을 바꾼 PR 만 `audit` 이 머지를 막는다 */
 export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
+/** 앱이 부르는 자리와 CI 자체 — 위 「앱 검사」. `app/` 은 파일로 적는다 — 앱이 닿는 것이 그 파일들뿐이고, 시험이 닫힘과 견준다 */
+const MOBILE_REACH = [/^mobile\//, /^src\/lib\//, /^app\/db-error\.ts$/, /^app\/ui\/sign-in-again\.ts$/, /^\.github\/workflows\//, /^\.nvmrc$/];
+/** 문서는 앱을 안 바꾼다. 웹 쪽 시험은 앱에 안 닿지만 `mobile/` 의 시험은 앱의 `tsc` 가 함께 읽는다 */
+export const reachesMobile = (file) => matches(MOBILE_REACH, file) && !/\.md$/.test(file) && (file.startsWith('mobile/') || !/\.test\.tsx?$/.test(file));
 /** 관문 · 인증 · 화면의 입구 · 서버 액션 · 그것을 재는 시험 — 베타에서도 주소를 재거나 전부를 돈다(위 「관문 · 화면 · 인증」) */
 const SURFACE = [
   /^proxy\.ts$/,
@@ -401,6 +412,7 @@ export const AUTHED_LANES = [
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 
 const isPolicy = (file) => matches(POLICY, file);
+const isMobile = (file) => file.startsWith('mobile/') && !isPolicy(file);
 const isTestFile = (file) => /\.test\.tsx?$/.test(file);
 const isSpec = (file) => /^e2e\/[^/]+\.spec\.ts$/.test(file);
 const isFlowCheck = (file) => /^scripts\/check-[^/]+\.mjs$/.test(file);
@@ -1951,7 +1963,7 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
  * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null, mentions?: readonly (readonly [string, string])[] | null }} input
- * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[], build: boolean }}
+ * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean, mobile: boolean }, authedLanes: string[], build: boolean }}
  */
 export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null, mentions = null }) {
   const decided =
@@ -1961,7 +1973,7 @@ export function planFor({ files, labels = [], event = 'pull_request', stage = nu
     tier: decided.tier,
     reason: decided.reason,
     cause: decided.cause ?? null,
-    lanes: { ...lanes, audit: audits({ files, labels, event, tier: decided.tier }) },
+    lanes: { ...lanes, audit: audits({ files, labels, event, tier: decided.tier }), mobile: mobiles({ files, labels, event, tier: decided.tier }) },
     authedLanes,
     build: lanes.core && decided.skipBuild !== true,
   };
@@ -1973,6 +1985,14 @@ function audits({ files, labels, event, tier }) {
   if (!PLANNED_EVENTS.has(event) || labels.includes(FULL_LABEL)) return true;
   const changed = files.map((one) => one.trim()).filter((one) => one !== '');
   return changed.length === 0 || changed.some((one) => DEPENDENCY_LISTS.includes(one));
+}
+
+/** 단계와 상관없다 — 위 「앱 검사」. 계획 밖 · 라벨 · 빈 diff · main 푸시는 `audit` 과 같다 */
+function mobiles({ files, labels, event, tier }) {
+  if (event === 'push') return tier !== 'policy';
+  if (!PLANNED_EVENTS.has(event) || labels.includes(FULL_LABEL)) return true;
+  const changed = files.map((one) => one.trim()).filter((one) => one !== '');
+  return changed.length === 0 || changed.some(reachesMobile);
 }
 
 const full = (cause, reason) => ({ tier: 'full', cause, reason });
@@ -2042,7 +2062,8 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts, menti
   // 문구만 바뀐 파일은 좁힐 수 있을 때만 core + 바뀐 글자를 찾는 시험의 차선으로 센다(위 「문구만 바뀐 파일」)
   const tests = () => mentions ?? mentionSources();
   const { copy: copyOnly } = copyOnlyOf(rest, { sourceOf, baseSourceOf, ts, mentions: tests });
-  const narrowed = narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
+  // 앱 파일이 섞이면 문구 판정으로 좁히지 않는다 — 웹 문구 파일이 빠지면 앱만 바뀐 PR 로 읽힌다(ADR 0097 덧 2026-10-31)
+  const narrowed = rest.some(isMobile) ? new Map() : narrowedCopyOf(copyOnly, { stage, sourceOf, ts, mentions: tests() });
   const judged = rest.filter((file) => !narrowed.has(file));
   const decided = notingComments(withCopy(decideBeta(judged, stage, sourceOf), narrowed, stage), commentOnly);
   // 코드가 문구만 바뀐 PR 은 빌드를 건너뛴다(위 「문구만 바뀐 PR 은 빌드를 건너뛴다」, ADR 0178). 메타데이터 파일(`icon` ·
@@ -2312,6 +2333,13 @@ function decideBeta(changed, stage, sourceOf) {
     if (risk) return full(risk[0], `${stage} — \`${file}\` 은 공용 위험(${risk[0]})이라 머지 전에 전부 잰다`);
   }
   if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다`, pick: { policy: true } };
+  // 앱만 바뀌면 웹 e2e · 흐름이 재는 것이 그대로다(운영자 2026-10-31, ADR 0097 덧). `core` 는 남긴다 — `scripts` 잠금이 `mobile/` 글자를 읽는다
+  const app = changed.find(isMobile);
+  if (app) {
+    const web = changed.find((file) => !isMobile(file) && !isPolicy(file));
+    if (web) return full('미분류', `${stage} — \`${app}\` 에 앱 밖의 \`${web}\` 이 섞였다`);
+    return { tier: 'core', reason: `${stage} — 앱만 바뀌어 \`core\` 와 \`mobile\` 이 머지를 막는다`, pick: { core: true } };
+  }
 
   const pick = { core: true, anon: false, authedLanes: [], flow: false };
   const why = [];
