@@ -23,8 +23,10 @@ import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
-import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
+import { ConfirmDialog, DialogStrong, DialogText } from '@/ui/confirm-dialog';
+import { DetailSheet } from '@/ui/sheet';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, RowCard, Tile } from '@/ui/surfaces';
 
 import { cancelRequest, respondToRequest } from './doors';
 import { BlockDialog, Face, PartnerSheet, ReportDialog } from './people';
@@ -175,7 +177,7 @@ function RespondButtons({ requestId, nickname, onChanged }: { requestId: string;
           답하지 못했어요. {failure}
         </Text>
       )}
-      <ConfirmModal
+      <ConfirmDialog
         open={asking}
         onClose={() => {
           setAsking(false);
@@ -189,7 +191,7 @@ function RespondButtons({ requestId, nickname, onChanged }: { requestId: string;
         failure={failure === null ? null : `답하지 못했어요. ${failure}`}
       >
         <DialogText>{REJECTION_IS_FINAL_NOTE}</DialogText>
-      </ConfirmModal>
+      </ConfirmDialog>
     </View>
   );
 }
@@ -243,7 +245,7 @@ function CancelButton({ requestId, onCancelled }: { requestId: string; onCancell
     <>
       <QuietButton label={CANCEL_REQUEST_LABEL} onPress={() => setAsking(true)} disabled={working} />
       {failure !== null && !asking && <Text style={styles.failure}>{failure}</Text>}
-      <ConfirmModal
+      <ConfirmDialog
         open={asking}
         onClose={() => {
           setAsking(false);
@@ -261,7 +263,7 @@ function CancelButton({ requestId, onCancelled }: { requestId: string; onCancell
         <DialogText>
           임시로 차감된 <DialogStrong>풀이권 1장</DialogStrong>은 바로 돌려드려요.
         </DialogText>
-      </ConfirmModal>
+      </ConfirmDialog>
     </>
   );
 }
@@ -270,7 +272,7 @@ function CancelButton({ requestId, onCancelled }: { requestId: string; onCancell
 export function ConsentGuide() {
   const [open, setOpen] = useState(false);
   return (
-    <View style={styles.fold}>
+    <RowCard style={styles.fold}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={styles.foldHead}>
         <Text style={styles.foldTitle}>궁합 요청은 어떻게 진행되나요?</Text>
         <View style={open && styles.turned}>
@@ -293,7 +295,7 @@ export function ConsentGuide() {
           <Text style={styles.caveat}>{CONSENT_FLOW_CAVEAT}</Text>
         </View>
       )}
-    </View>
+    </RowCard>
   );
 }
 
@@ -303,7 +305,7 @@ export function RequestsBand({ received, onChanged }: { received: readonly Inbox
   if (received.length === 0) return null;
   return (
     <>
-      <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={styles.band}>
+      <Tile tone={COLOR.accent} accessibilityRole="button" onPress={() => setOpen(true)} style={styles.band}>
         <View style={styles.flex}>
           <Text style={styles.bandTitle}>받은 요청 {received.length}</Text>
           <Text style={styles.bandLine} numberOfLines={1}>
@@ -311,10 +313,10 @@ export function RequestsBand({ received, onChanged }: { received: readonly Inbox
           </Text>
         </View>
         <Icon name="chevron" size={16} color={COLOR.onAccent} />
-      </Pressable>
-      <SheetModal open={open} title="받은 요청" onClose={() => setOpen(false)}>
+      </Tile>
+      <DetailSheet open={open} title="받은 요청" onClose={() => setOpen(false)}>
         {received.map((request) => (
-          <View key={request.requestId} style={styles.card}>
+          <Card key={request.requestId} style={styles.card}>
             <RequestHead request={request} large />
             <MatchAcceptNotice side="received" />
             <RespondButtons requestId={request.requestId} nickname={request.nickname} onChanged={onChanged} />
@@ -322,10 +324,10 @@ export function RequestsBand({ received, onChanged }: { received: readonly Inbox
               <BlockButton userId={request.counterpartUserId} nickname={request.nickname} onChanged={onChanged} />
               <ReportButton userId={request.counterpartUserId} nickname={request.nickname} />
             </View>
-          </View>
+          </Card>
         ))}
         <ConsentGuide />
-      </SheetModal>
+      </DetailSheet>
     </>
   );
 }
@@ -354,7 +356,7 @@ export function PastRequestList({ past, guide, onChanged, onNote }: { past: Past
         <View style={styles.pastGroup}>
           <Text style={styles.pastHead}>보낸 요청</Text>
           {sent.map((request) => (
-            <View key={request.requestId} style={styles.row}>
+            <RowCard key={request.requestId} style={styles.row}>
               <RequestHead request={request} />
               <Text style={styles.small}>{REQUEST_STATUS_TEXT.pending.sent}</Text>
               <View style={styles.quietRow}>
@@ -367,7 +369,7 @@ export function PastRequestList({ past, guide, onChanged, onNote }: { past: Past
                 />
                 <BlockButton userId={request.counterpartUserId} nickname={request.nickname} onChanged={onChanged} />
               </View>
-            </View>
+            </RowCard>
           ))}
         </View>
       )}
@@ -400,23 +402,23 @@ const styles = StyleSheet.create({
   off: { opacity: 0.55 },
   small: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
-  notice: { gap: 2, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.control, backgroundColor: COLOR.cream },
-  noticeHead: { fontFamily: FONT.bold, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.creamInk },
+  notice: { gap: 2, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.cell, backgroundColor: COLOR.cream },
+  noticeHead: { fontFamily: FONT.bold, fontSize: TYPE.note, lineHeight: 24, color: COLOR.creamInk },
   noticeRow: { flexDirection: 'row', gap: 8 },
-  noticeText: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 24, color: COLOR.creamInk },
+  noticeText: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 24, color: COLOR.creamInk },
   noticeHidden: { marginTop: 4, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.creamInk },
   mark: { alignItems: 'center' },
-  markFace: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, borderWidth: 1, borderColor: COLOR.border },
+  markFace: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border },
   markName: { fontFamily: FONT.bold, fontSize: TYPE.fine, lineHeight: 16 },
   exchange: { gap: 8 },
   pair: { flexDirection: 'row', gap: 8 },
-  cell: { flex: 1, minWidth: 0, gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSunken },
+  cell: { flex: 1, minWidth: 0, gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSunken },
   cellLabel: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
   cellWay: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: -8 },
   cellWayText: { flexShrink: 1, fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.secondary },
   cellNone: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
   marks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  swap: { position: 'absolute', left: '50%', top: '50%', width: 28, height: 28, marginLeft: -14, marginTop: -14, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  swap: { position: 'absolute', left: '50%', top: '50%', width: 28, height: 28, marginLeft: -14, marginTop: -14, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   balance: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   balanceTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, overflow: 'hidden', backgroundColor: COLOR.surfaceSunken, fontFamily: FONT.bold, fontSize: TYPE.fine, color: COLOR.secondary },
   head: { gap: 12 },
@@ -429,21 +431,21 @@ const styles = StyleSheet.create({
   secondary: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   secondaryText: { fontFamily: FONT.bold, fontSize: TYPE.field, color: COLOR.foreground },
   quiet: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  quietText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.secondary },
+  quietText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.secondary },
   quietRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 16, paddingTop: 4, borderTopWidth: 1, borderTopColor: COLOR.border },
-  card: { gap: 16, padding: 20, borderRadius: RADIUS.panel, backgroundColor: COLOR.surface },
-  row: { gap: 8, padding: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
-  fold: { paddingHorizontal: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  card: { gap: 16 },
+  row: { gap: 8 },
+  fold: { paddingVertical: 0 },
   foldHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 48 },
-  foldTitle: { flexShrink: 1, fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  foldTitle: { flexShrink: 1, fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   turned: { transform: [{ rotate: '90deg' }] },
   foldBody: { gap: 16, paddingVertical: 16, borderTopWidth: 1, borderTopColor: COLOR.border },
   step: { flexDirection: 'row', gap: 12 },
-  stepNo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: COLOR.cream },
+  stepNo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.cream },
   stepNoText: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.creamInk },
-  stepTitle: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground, marginBottom: 4 },
+  stepTitle: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground, marginBottom: 4 },
   caveat: { paddingTop: 16, borderTopWidth: 1, borderTopColor: COLOR.border, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.muted },
-  band: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.panel, backgroundColor: COLOR.accent },
+  band: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 8 },
   bandTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, lineHeight: 20, color: COLOR.onAccent },
   bandLine: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 18, color: COLOR.onAccent, opacity: 0.9 },
   past: { gap: 20 },

@@ -57,13 +57,13 @@ export const PARTS: readonly PartContract[] = [
     name: 'ConfirmDialog',
     web: { file: 'app/ui/confirm-dialog.tsx', symbols: ['ConfirmDialog'] },
     app: { file: 'mobile/src/ui/confirm-dialog.tsx', symbol: 'ConfirmDialog' },
-    props: ['title', 'confirmLabel', 'danger', 'busy', 'failure', 'irreversible'],
+    props: ['title', 'confirmLabel', 'danger', 'busy', 'failure', 'irreversible', 'lead', 'cancelLabel'],
   },
   {
     name: 'DetailSheet',
     web: { file: 'app/ui/sheet.tsx', symbols: ['DetailSheet'] },
-    app: { file: 'mobile/src/ui/sheet-modal.tsx', symbol: 'DetailSheet' },
-    pending: '앱은 아직 `SheetModal` 이다 — #901 이 든 뒤 이름을 옮긴다',
+    app: { file: 'mobile/src/ui/sheet.tsx', symbol: 'DetailSheet' },
+    props: ['menu', 'onClose', 'children'],
   },
   {
     name: 'TopBar',
@@ -78,6 +78,7 @@ export const PARTS: readonly PartContract[] = [
     web: { file: 'app/ui/stem-symbol.tsx', symbols: ['StemSymbol'] },
     app: { file: 'mobile/src/ui/stem-symbol.tsx', symbol: 'StemSymbol' },
   },
+  { name: 'EmptyState', web: { file: 'app/ui/empty-state.tsx', symbols: ['EmptyState'] }, app: { file: 'mobile/src/ui/empty-state.tsx', symbol: 'EmptyState' }, props: ['icon', 'art', 'title', 'action'] },
   { name: 'Logo', web: { file: 'app/ui/logo.tsx', symbols: ['Logo'] }, app: { file: 'mobile/src/ui/logo.tsx', symbol: 'Logo' } },
 ];
 
@@ -101,4 +102,15 @@ export const GALLERY: readonly { web: string; app: string; text: string }[] = [
   { web: 'BUTTON_PRIMARY_SMALL', app: 'primary-small', text: '작은 주' },
   { web: 'BUTTON_SECONDARY_SMALL', app: 'secondary-small', text: '작은 보조' },
   { web: 'FIELD', app: 'Field', text: '글 칸' },
+];
+
+/**
+ * **앱 화면이 면을 손으로 쓰는 예외**(`scripts/mobile-surfaces.test.ts`) — 면 부품으로 못 세우는 자리만, 사유와 함께. 웹도 그 자리에서 상수를 안 쓴다.
+ */
+export const SURFACE_EXCEPTIONS: readonly { file: string; found: string; why: string }[] = [
+  { file: 'mobile/src/matching/today.tsx', found: 'boxShadow:', why: '오늘의 인연 사진 카드 — 웹 `today-card.tsx` 가 `TILE` 에 없는 `shadow-float` 를 그 자리에서 입힌다' },
+  { file: 'mobile/src/chat/room.tsx', found: 'RADIUS.card', why: '말풍선 — 면이 아니라 글자의 모양이고 위 한 귀만 다르다(웹 `bubble-row.tsx` 의 `rounded-card rounded-t*-md`)' },
+  { file: 'mobile/src/chat/room.tsx', found: 'borderTopRightRadius: 6', why: '내 말 묶음의 첫 말 — 웹 `rounded-tr-md`' },
+  { file: 'mobile/src/chat/room.tsx', found: 'borderTopLeftRadius: 6', why: '상대 말 묶음의 첫 말 — 웹 `rounded-tl-md`' },
+  { file: 'mobile/src/app/me/chat/index.tsx', found: 'RADIUS.card', why: '대화방 줄 — 면 없는 줄의 눌림 모양이다(웹 `room-list.tsx` 의 `rounded-card`)' },
 ];

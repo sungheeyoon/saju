@@ -4,9 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { accountFailureOf, accountNoticeOf, type AccountState } from '@account/index';
 import { SUPPORT_EMAIL } from '@brand';
 
-import { Card } from '@/ui/surfaces';
 import { PrimaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 
 /** 화면 안의 실패 줄 — 웹의 `FailureLine` 처럼 붉은 글자와 「다시 시도하기」 */
 export function FailureLine({ children, onRetry }: { children: string; onRetry: () => void }) {
@@ -33,28 +33,28 @@ export function AccountNotice({ state, onRetry }: { state: AccountState; onRetry
   const text = accountNoticeOf(state, SUPPORT_EMAIL);
   if (text === null) return null;
   return (
-    <Card style={styles.notice}>
+    <CardFrame style={styles.notice}>
       <Text style={styles.title}>{text.title}</Text>
       <Text style={styles.detail}>{text.detail}</Text>
-    </Card>
+    </CardFrame>
   );
 }
 
 /** 없는 방 · 내가 볼 수 없는 방 — 있는지를 가르지 않는다(ADR 0091) */
 export function NoRoom() {
   return (
-    <Card style={styles.notice}>
+    <CardFrame style={styles.notice}>
       <Text style={styles.title}>페이지를 찾을 수 없어요</Text>
       <Text style={styles.detail}>주소가 잘못되었거나 페이지가 이동되었을 수 있어요.</Text>
       <PrimaryButton label="홈으로" onPress={() => router.replace('/me' as never)} />
-    </Card>
+    </CardFrame>
   );
 }
 
 const styles = StyleSheet.create({
   failure: { gap: 4, alignItems: 'flex-start' },
   failureText: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
-  notice: { gap: 8 },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
   title: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   detail: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.secondary },
 });

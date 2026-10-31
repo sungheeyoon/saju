@@ -20,6 +20,9 @@ export const SURFACE = {
   DIALOG: { borderRadius: RADIUS.card, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface, padding: 24, boxShadow: ELEVATION.float },
 } as const;
 
+/** 아래에서 올라오는 판 — 웹은 상수 없이 `rounded-t-card bg-background` 다(`app/ui/sheet.tsx` · `action-sheet.tsx`) */
+export const SHEET = { borderTopLeftRadius: RADIUS.card, borderTopRightRadius: RADIUS.card, backgroundColor: COLOR.background } as const;
+
 /** 칸 — 웹은 상수 없이 `rounded-cell` 에 그 자리의 면을 붙인다. 가장 많이 쓰는 면(`rounded-cell bg-surface-soft p-3`)이 기본이다 */
 export const CELL = { borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSoft, padding: 12 } as const;
 

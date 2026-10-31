@@ -10,10 +10,11 @@ import { receivedOf } from '@matching/requests';
 
 import { readAccountState, readDeck, readMatches, readRequests, type DeckPlace, type Read } from '@/matching/doors';
 import { RequestsBand } from '@/matching/requests';
-import { DeckButtons, DetailSheet, EmptyDeck, Feedback, PassedConnections, QuietPlace, RequestConfirm, TodayCard, useCreditsNotice } from '@/matching/today';
+import { CardSheet, DeckButtons, EmptyDeck, Feedback, PassedConnections, QuietPlace, RequestConfirm, TodayCard, useCreditsNotice } from '@/matching/today';
 import { useDeck } from '@/matching/use-deck';
 import { Icon } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame, RowCard } from '@/ui/surfaces';
 
 type Loaded = { account: AccountState; deck: Read<DeckPlace>; requests: Read<Requests>; matches: Read<readonly InboxMatch[]> };
 
@@ -164,7 +165,7 @@ function Deck({ place, lead, tail }: { place: Extract<DeckPlace, { kind: 'deck' 
             onPass={() => void deck.pass()}
             onRequest={() => void deck.askToRequest()}
           />
-          <DetailSheet
+          <CardSheet
             card={profile}
             open={info}
             onClose={() => setInfo(false)}
@@ -231,10 +232,10 @@ function Blocked({ state, onRetry }: { state: AccountState; onRetry: () => void 
       {failure !== null ? (
         <FailureLine onRetry={onRetry}>{failure.line}</FailureLine>
       ) : text !== null ? (
-        <View style={styles.notice}>
+        <CardFrame style={styles.notice}>
           <Text style={styles.noticeTitle}>{text.title}</Text>
           <Text style={styles.noticeBody}>{text.detail}</Text>
-        </View>
+        </CardFrame>
       ) : null}
     </Frame>
   );
@@ -244,7 +245,7 @@ function Blocked({ state, onRetry }: { state: AccountState; onRetry: () => void 
 function HistoryRow({ summary }: { summary: HistorySummary | null }) {
   if (summary === null) return null;
   return (
-    <Pressable accessibilityRole="link" onPress={() => router.push('/me/matching/history')} style={styles.history}>
+    <RowCard accessibilityRole="link" onPress={() => router.push('/me/matching/history')} style={styles.history}>
       <View style={styles.flex}>
         <View style={styles.historyHead}>
           <Text style={styles.historyTitle}>인연 기록</Text>
@@ -255,7 +256,7 @@ function HistoryRow({ summary }: { summary: HistorySummary | null }) {
         </Text>
       </View>
       <Icon name="chevron" size={16} color={COLOR.muted} />
-    </Pressable>
+    </RowCard>
   );
 }
 
@@ -273,11 +274,11 @@ const styles = StyleSheet.create({
   failureBox: { gap: 2 },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
-  notice: { gap: 4, padding: 20, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  retryText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
   noticeTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
-  noticeBody: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 22, color: COLOR.secondary },
-  history: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  noticeBody: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 20, color: COLOR.secondary },
+  history: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingVertical: 8 },
   historyHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   historyTitle: { fontFamily: FONT.bold, fontSize: TYPE.body, lineHeight: 20, color: COLOR.foreground },
   historyHint: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 18, color: COLOR.secondary },

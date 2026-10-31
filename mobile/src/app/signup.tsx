@@ -21,10 +21,11 @@ import { NICKNAME_AVAILABLE_NOTE, NICKNAME_MAX, NICKNAME_MIN, NICKNAME_TAKEN_NOT
 import { signOut } from '@/auth/sign-in';
 import { checkNickname, completeSignup, readSignup, UNREACHABLE, type SignupState } from '@/auth/signup';
 import { Logo } from '@/ui/logo';
-import { CheckRow, Field, FieldLabel, Panel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
+import { CheckRow, Field, FieldLabel, PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 import { goBack } from '@/ui/top-bar';
+import { Card, CardFrame, Paper, Tile } from '@/ui/surfaces';
 
 const SIGN_OUT_FAILED = '로그아웃하지 못했어요. 다시 시도해 주세요.';
 
@@ -59,19 +60,19 @@ export default function SignupScreen() {
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-          <Panel tone="cream" style={styles.head}>
+          <Paper style={styles.head}>
             <Logo size={44} />
             <Text style={styles.eyebrow}>{head.eyebrow}</Text>
             <Text style={styles.title}>{head.title}</Text>
             <Text style={styles.headNote}>{head.note}</Text>
-          </Panel>
+          </Paper>
 
           {state.kind === 'form' ? (
             <SignupForm form={state} onDone={finish} />
           ) : (
-            <Panel>
+            <Card>
               <Text style={styles.line}>{state.message}</Text>
-            </Panel>
+            </Card>
           )}
 
           <LeaveLink />
@@ -146,7 +147,7 @@ function SignupForm({ form, onDone }: { form: Extract<SignupState, { kind: 'form
   };
 
   return (
-    <Panel style={styles.form}>
+    <CardFrame style={styles.form}>
       {needsCode && (
         <View style={styles.group}>
           <FieldLabel>{SIGNUP_LABEL.code}</FieldLabel>
@@ -200,7 +201,7 @@ function SignupForm({ form, onDone }: { form: Extract<SignupState, { kind: 'form
         </View>
       )}
 
-      <View style={styles.notice}>
+      <Tile tone={COLOR.surfaceSunken} style={styles.notice}>
         <View style={styles.noticeHead}>
           <Text style={styles.noticeTitle}>{SIGNUP_LABEL.noticeHead}</Text>
           <TextButton label={SIGNUP_LABEL.privacy} onPress={() => router.push('/privacy')} />
@@ -214,7 +215,7 @@ function SignupForm({ form, onDone }: { form: Extract<SignupState, { kind: 'form
           {dates.parts[2]}
         </NoticeLine>
         <NoticeLine>{SIGNUP_NOTICE_DISCOVERY}</NoticeLine>
-      </View>
+      </Tile>
 
       <CheckRow checked={acknowledged} onToggle={setAcknowledged} refused={shownGap?.field === 'ack'}>
         <Text style={styles.checkLabel}>{NOTICE_ACK_LABEL}</Text>
@@ -246,7 +247,7 @@ function SignupForm({ form, onDone }: { form: Extract<SignupState, { kind: 'form
           disabled={working}
         />
       </View>
-    </Panel>
+    </CardFrame>
   );
 }
 
@@ -285,26 +286,26 @@ function LeaveLink() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, padding: 16, gap: 16 },
-  head: { gap: 10 },
+  head: { gap: 12 },
   eyebrow: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.creamInk },
-  title: { fontSize: TYPE.heading, lineHeight: 28, fontFamily: FONT.bold, color: COLOR.foreground },
+  title: { fontSize: TYPE.title, lineHeight: 35, fontFamily: FONT.bold, color: COLOR.foreground },
   headNote: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.creamInk },
-  line: { fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.foreground },
-  form: { gap: 20 },
+  line: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.foreground },
+  form: { gap: 20, padding: 20 },
   group: { gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nameField: { flex: 1 },
   fine: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.muted },
-  note: { fontSize: TYPE.sm, lineHeight: 21, fontFamily: FONT.medium, color: COLOR.secondary },
+  note: { fontSize: TYPE.note, lineHeight: 21, fontFamily: FONT.medium, color: COLOR.secondary },
   failure: { fontSize: TYPE.small, lineHeight: 19, fontFamily: FONT.medium, color: COLOR.danger },
-  notice: { gap: 6, padding: 16, borderRadius: 20, backgroundColor: COLOR.surfaceSunken },
+  notice: { gap: 6 },
   noticeHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12 },
   noticeTitle: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   noticeRow: { flexDirection: 'row', gap: 8 },
-  bullet: { fontSize: TYPE.sm, lineHeight: 22, color: COLOR.muted },
-  noticeText: { flex: 1, fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.secondary },
+  bullet: { fontSize: TYPE.note, lineHeight: 22, color: COLOR.muted },
+  noticeText: { flex: 1, fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.secondary },
   strong: { fontFamily: FONT.bold, color: COLOR.foreground },
-  checkLabel: { fontSize: TYPE.sm, lineHeight: 21, fontFamily: FONT.bold, color: COLOR.foreground },
+  checkLabel: { fontSize: TYPE.note, lineHeight: 21, fontFamily: FONT.bold, color: COLOR.foreground },
   action: { gap: 10, paddingTop: 20, borderTopWidth: 1, borderTopColor: COLOR.border },
   leave: { alignItems: 'center' },
 });

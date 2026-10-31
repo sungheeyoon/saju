@@ -3,7 +3,7 @@ import type { OutlineRow } from '@reading/outline';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
-import { Paper } from '@/ui/surfaces';
+import { Paper, Tile } from '@/ui/surfaces';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /**
@@ -22,10 +22,10 @@ export function LoadingState({ rows, waitNote }: { rows: readonly OutlineRow[]; 
       <FlowBand />
       <View accessibilityLabel="풀이 목차" style={styles.rows}>
         {rows.map((row, at) => (
-          <View key={`${at}-${row.label}`} style={styles.row}>
+          <Tile tone={COLOR.surface} key={`${at}-${row.label}`} style={styles.row}>
             <Text style={[styles.rowLabel, row.state === 'waiting' && styles.rowWaiting]}>{row.label}</Text>
             <Mark state={row.state} />
-          </View>
+          </Tile>
         ))}
       </View>
     </Paper>
@@ -61,13 +61,13 @@ export function FlowBand() {
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 12 },
+  panel: { gap: 12, padding: 20 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   note: { marginTop: 2, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.creamInk },
   band: { height: 8, borderRadius: RADIUS.pill, backgroundColor: COLOR.track, overflow: 'hidden' },
   bandFlow: { position: 'absolute', top: 0, bottom: 0, width: '40%', borderRadius: RADIUS.pill, backgroundColor: COLOR.creamInk },
   rows: { gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.cell, backgroundColor: COLOR.surface },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   rowLabel: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.note, color: COLOR.foreground },
   rowWaiting: { color: COLOR.secondary },
   done: { paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden', borderRadius: RADIUS.pill, backgroundColor: ELEMENT_TONE.木.soft, fontFamily: FONT.bold, fontSize: TYPE.fine, color: ELEMENT_TONE.木.ink },

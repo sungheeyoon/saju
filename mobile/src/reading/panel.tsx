@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Cell } from '@/ui/surfaces';
+import { Card, CardFrame, Tile } from '@/ui/surfaces';
 import { PrimaryButton, SecondaryButton, TextButton } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
@@ -37,10 +37,10 @@ export function ReadFailure({ refused, onRetry }: { refused: DoorRefusal; onRetr
   }
   if (refused.refused !== 'unavailable') return null;
   return (
-    <Cell accessibilityRole="alert" style={styles.alert}>
+    <Tile tone={COLOR.dangerWash} accessibilityRole="alert" style={styles.alert}>
       <Text style={styles.alertText}>{refused.message}</Text>
       <TextButton label="다시 시도하기" onPress={onRetry} />
-    </Cell>
+    </Tile>
   );
 }
 
@@ -131,7 +131,7 @@ export function ReadingPanel({
       )}
 
       {!chrome.hideMake && !chrome.makeInHeader && (
-        <Card style={styles.group}>
+        <CardFrame style={styles.group}>
           {ask}
           {reading === null && (
             <View>
@@ -141,14 +141,14 @@ export function ReadingPanel({
           )}
           {makeButton('primary')}
           {note}
-        </Card>
+        </CardFrame>
       )}
 
       {failure !== null && (
-        <Cell accessibilityRole={phase === 'error' ? 'alert' : undefined} style={phase === 'error' ? styles.alert : styles.notice}>
+        <Tile tone={phase === 'error' ? COLOR.dangerWash : COLOR.warningWash} accessibilityRole={phase === 'error' ? 'alert' : undefined} style={phase === 'error' ? styles.alert : styles.notice}>
           <Text style={phase === 'error' ? styles.alertText : styles.noticeText}>{failure}</Text>
           {phase === 'error' && <TextButton label="다시 시도하기" onPress={panel.generate} />}
-        </Cell>
+        </Tile>
       )}
 
       {phase === 'loading' ? (
@@ -204,14 +204,14 @@ export function ReadingPanel({
 
 const styles = StyleSheet.create({
   panel: { gap: 24 },
-  group: { gap: 12 },
+  group: { gap: 12, padding: 20 },
   halves: { flexDirection: 'row', gap: 8 },
   half: { flex: 1, minWidth: 0 },
   lead: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   small: { marginTop: 2, fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
-  alert: {},
+  alert: { paddingHorizontal: 16, paddingVertical: 14 },
   alertText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.danger },
-  notice: { backgroundColor: COLOR.warningWash },
+  notice: { paddingHorizontal: 16, paddingVertical: 14 },
   noticeText: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
 });

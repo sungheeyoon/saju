@@ -1,8 +1,8 @@
 import type { LegalBlock, LegalDocument, LegalSection, LegalTable } from '@brand/legal-text';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Panel } from '@/ui/parts';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
 
 import { Clause, Dot, InfoLine } from './frame';
 
@@ -16,12 +16,12 @@ export function LegalBody({ document }: { document: LegalDocument }) {
         </Clause>
       ))
     ) : (
-      <Panel key={part.title || index} style={styles.part}>
+      <Card key={part.title || index} style={styles.part}>
         <Text style={styles.partTitle}>{part.title}</Text>
         {part.sections.map((section) => (
           <SubClause key={section.title || 'body'} section={section} />
         ))}
-      </Panel>
+      </Card>
     ),
   );
 }

@@ -11,9 +11,10 @@ import { Face, PartnerSheet, ReportBlock } from '@/matching/people';
 import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
 import { Icon } from '@/ui/icons';
-import { Panel, PrimaryButton } from '@/ui/parts';
+import { PrimaryButton } from '@/ui/parts';
 import { TopBar, goBack } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame, EmptySlot, Paper, Tile } from '@/ui/surfaces';
 
 const POSITIONS = ['hour', 'day', 'month', 'year'] as const;
 
@@ -88,9 +89,9 @@ export default function MatchScreen() {
       <View style={styles.screen}>
         <TopBar title="궁합 결과" fallback={fallback} />
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.closed}>
+          <EmptySlot >
             <Text style={styles.line}>{MATCH_RESULT_CLOSED_NOTE}</Text>
-          </View>
+          </EmptySlot>
         </ScrollView>
       </View>
     );
@@ -145,12 +146,12 @@ export default function MatchScreen() {
           nicknames={{ viewer: nickname, partner: result.partnerNickname }}
           tones={[STEM_INFO[result.mine.dayMaster].element, tone]}
           pair={
-            <View style={styles.pair}>
+            <Paper style={styles.pair}>
               <Text style={styles.pairEyebrow}>각자의 사주</Text>
               <Text style={styles.pairTitle}>궁합의 출발점</Text>
               <Side name="나" chart={result.mine} who="첫 번째" />
               <Side name={result.partnerNickname} chart={result.theirs} who="두 번째" />
-            </View>
+            </Paper>
           }
         />
       </ScrollView>
@@ -177,10 +178,10 @@ function MatchReadingPanel({
   if ('refused' in answer) return <ReadFailure refused={answer.refused} onRetry={reload} />;
   if (answer.view.view === 'blocked') {
     return (
-      <Panel>
+      <CardFrame style={styles.blocked}>
         <Text style={styles.name}>{answer.view.title}</Text>
         <Text style={styles.line}>{answer.view.detail}</Text>
-      </Panel>
+      </CardFrame>
     );
   }
   if (answer.view.view !== 'reading') return null;
@@ -191,7 +192,7 @@ function MatchReadingPanel({
 function Side({ name, chart, who }: { name: string; chart: ChartSnapshot; who: string }) {
   const dayMaster = STEM_INFO[chart.dayMaster];
   return (
-    <View style={[styles.side, { backgroundColor: ELEMENT_TONE[dayMaster.element].soft }]}>
+    <Tile tone={ELEMENT_TONE[dayMaster.element].soft} style={styles.side}>
       <Text style={styles.meta}>{who} 사람</Text>
       <Text style={styles.name} numberOfLines={1}>
         {name}
@@ -212,7 +213,7 @@ function Side({ name, chart, who }: { name: string; chart: ChartSnapshot; who: s
           );
         })}
       </View>
-    </View>
+    </Tile>
   );
 }
 
@@ -223,19 +224,19 @@ const styles = StyleSheet.create({
   name: { fontFamily: FONT.bold, fontSize: TYPE.lead, color: COLOR.foreground },
   meta: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted },
   chat: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 12, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
-  chatText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  chatText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  retryText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  retryText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   notFound: { flex: 1, justifyContent: 'center', gap: 16, padding: 24 },
   title: { fontFamily: FONT.bold, fontSize: TYPE.title, lineHeight: 34, color: COLOR.foreground },
   line: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 26, color: COLOR.secondary },
-  closed: { padding: 20, borderRadius: RADIUS.panel, borderWidth: 1, borderStyle: 'dashed', borderColor: COLOR.borderStrong },
-  pair: { gap: 12, padding: 16, borderRadius: RADIUS.panel, backgroundColor: COLOR.cream },
+  pair: { gap: 12, padding: 16 },
   pairEyebrow: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.creamInk },
   pairTitle: { fontFamily: FONT.bold, fontSize: TYPE.heading, color: COLOR.foreground, marginTop: -8 },
-  side: { gap: 4, padding: 16, borderRadius: RADIUS.panel },
+  side: { gap: 4 },
   pillars: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  pillar: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 8, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
+  pillar: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 8, borderRadius: RADIUS.cell, backgroundColor: COLOR.surface },
   glyph: { fontSize: 24, lineHeight: 30, color: COLOR.foreground },
+  blocked: { gap: 12, padding: 20 },
 });

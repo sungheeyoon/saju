@@ -12,9 +12,10 @@ import { CALENDARS, CALENDAR_KO, CITY_LONGITUDES, GENDERS, GENDER_KO, SUPPORTED_
 
 import { signInWithGoogle } from '@/auth/sign-in';
 import { readGate } from '@/home/gate';
-import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, Panel, PrimaryButton, Select } from '@/ui/parts';
+import { Choices, DigitField, Field, FieldLabel, KeyboardDoneBar, PrimaryButton, Select } from '@/ui/parts';
 import { Logo } from '@/ui/logo';
-import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame, Paper } from '@/ui/surfaces';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 const HOUR_CHOICES = [
@@ -137,10 +138,10 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
               </Pressable>
             )}
           </View>
-          <Panel tone="cream" style={styles.paper}>
+          <Paper style={styles.paper}>
             <Text style={styles.title}>출생 정보를 입력해 주세요</Text>
 
-            <Panel style={styles.form}>
+            <CardFrame style={styles.form}>
               <View style={styles.pair}>
                 <View style={styles.half}>
                   <FieldLabel>이름</FieldLabel>
@@ -189,7 +190,7 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
                 <Text style={styles.railLabel}>출생지</Text>
                 <Select value={city} onPick={setCity} options={CITIES.map((one) => ({ value: one, label: one }))} />
               </View>
-            </Panel>
+            </CardFrame>
 
             <Pressable
               accessibilityRole="button"
@@ -202,7 +203,7 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
             </Pressable>
 
             {advanced && (
-              <Panel style={styles.form}>
+              <CardFrame style={styles.form}>
                 <View style={styles.rail}>
                   <Text style={styles.railLabel}>자시</Text>
                   <Select value={rule} onPick={setRule} options={RULES} disabled={hourChoice === 'unknown'} />
@@ -219,7 +220,7 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
                   <Text style={styles.railLabel}>세운 연도</Text>
                   <DigitField value={saeunFrom} onChange={setSaeunFrom} unit="년" placeholder="2026" digits={4} min={SUPPORTED_YEAR_RANGE.min} max={SUPPORTED_YEAR_RANGE.max} />
                 </View>
-              </Panel>
+              </CardFrame>
             )}
 
             {/* 폼이 짧은 화면에서도 단추는 엄지가 닿는 맨 아래에 선다 */}
@@ -227,7 +228,7 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
               {failure !== null && <Text style={styles.failure}>{failure}</Text>}
               <PrimaryButton label="사주 보기" onPress={submit} disabled={going} />
             </View>
-          </Panel>
+          </Paper>
 
           <View accessibilityLabel="안내" style={styles.links}>
             {ENTRY_LINKS.map((link) => (
@@ -246,7 +247,7 @@ function BirthScreen({ signedOut }: { signedOut: boolean }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.background },
   content: { flexGrow: 1, padding: 16 },
-  paper: { flexGrow: 1, padding: 14, gap: 12 },
+  paper: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20, paddingBottom: 20, gap: 12 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4, marginBottom: 12 },
   brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   signIn: { minHeight: 44, justifyContent: 'center', marginLeft: 'auto', paddingLeft: 12 },
@@ -254,8 +255,8 @@ const styles = StyleSheet.create({
   links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 12, marginHorizontal: 4 },
   link: { minHeight: 44, justifyContent: 'center' },
   linkText: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
-  title: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 6, marginTop: 6, marginBottom: 2 },
-  form: { padding: 16, gap: 18 },
+  title: { fontSize: TYPE.title, lineHeight: 35, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 4 },
+  form: { padding: 16, gap: 18, borderWidth: 0 },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   group: { gap: 6 },
@@ -265,17 +266,7 @@ const styles = StyleSheet.create({
   railLabel: { width: 64, minHeight: 44, lineHeight: 44, fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
   railNote: { fontFamily: FONT.medium, fontSize: TYPE.fine, color: COLOR.muted, marginTop: -14 },
   railBody: { flex: 1, flexDirection: 'row', gap: 6 },
-  disclosure: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLOR.borderStrong,
-    backgroundColor: COLOR.surface,
-  },
+  disclosure: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderRadius: RADIUS.cell, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   disclosureLabel: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   disclosureSummary: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.secondary },
   action: { marginTop: 'auto', paddingTop: 12, gap: 10 },

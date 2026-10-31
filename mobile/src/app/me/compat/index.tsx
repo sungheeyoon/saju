@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { isBlocked } from '@account/index';
 
@@ -10,7 +10,8 @@ import { RelationMap } from '@/compat/relation-map';
 import { CompatResultStep } from '@/compat/result-step';
 import type { Read } from '@/people/data';
 import { AccountNotice, FailureLine, ScreenFrame, go, styles as shared } from '@/people/parts';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { RowLine } from '@/ui/surfaces';
 import { settled } from '@/ui/settled';
 import { UNREACHABLE } from '@/auth/signup';
 
@@ -71,7 +72,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
             직접 입력한 사람은 <Text style={shared.bodyStrong}>저장한 사람에 추가되지 않아요.</Text>
           </Text>
           {latest !== undefined && (
-            <Pressable accessibilityRole="link" onPress={() => go('/me/readings?kind=compat&from=compat')} style={styles.summary}>
+            <RowLine accessibilityRole="link" onPress={() => go('/me/readings?kind=compat&from=compat')} style={styles.summary}>
               <View style={styles.summaryBody}>
                 <Text style={styles.summaryTitle}>
                   궁합풀이 <Text style={shared.meta}>{compats.length}</Text>
@@ -79,7 +80,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
                 <Text style={shared.meta} numberOfLines={1}>최근 {`${latest.labelA ?? ''} × ${latest.labelB ?? ''}`}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
-            </Pressable>
+            </RowLine>
           )}
           {map !== null && <RelationMap model={map.model} canAdd={map.canAdd} />}
         </>
@@ -90,7 +91,7 @@ function PickStep({ pickA, pickB }: { pickA?: string; pickB?: string }) {
 
 const styles = StyleSheet.create({
   loading: { marginTop: 48 },
-  summary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   summaryBody: { flex: 1, minWidth: 0 },
   summaryTitle: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   chevron: { fontSize: TYPE.lead, color: COLOR.muted },

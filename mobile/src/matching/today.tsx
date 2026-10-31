@@ -14,8 +14,11 @@ import { ELEMENT_PICTURE_KO, type Element } from '@saju';
 import { ElementSymbol } from '@/ui/element-symbol';
 import { Icon } from '@/ui/icons';
 import { PrimaryButton } from '@/ui/parts';
-import { ConfirmModal, DialogStrong, DialogText, SheetModal } from '@/ui/sheet-modal';
+import { ConfirmDialog, DialogStrong, DialogText } from '@/ui/confirm-dialog';
+import { DetailSheet } from '@/ui/sheet';
+import { ELEVATION } from '@design';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, CardFrame, Paper, RowCard, Tile } from '@/ui/surfaces';
 
 import { PersonPhoto, PhotoBars, ReportBlock } from './people';
 import { MatchAcceptNotice } from './requests';
@@ -33,7 +36,7 @@ export function TodayCard({ card, onInfo, onBlocked }: { card: DeckCard; onInfo:
   const top = count > 1 ? 32 : 12;
 
   return (
-    <View key={card.candidateUserId} style={[styles.card, { backgroundColor: tileOf(supplyOf(card)) }]}>
+    <Tile tone={tileOf(supplyOf(card))} key={card.candidateUserId} style={styles.card}>
       <PersonPhoto
         userId={card.candidateUserId}
         nickname={card.nickname}
@@ -100,7 +103,7 @@ export function TodayCard({ card, onInfo, onBlocked }: { card: DeckCard; onInfo:
           </Text>
         )}
       </View>
-    </View>
+    </Tile>
   );
 }
 
@@ -167,7 +170,7 @@ export function CardDetails({ card, explorationNote }: { card: DeckCard; explora
         <Text style={styles.detailVerdict}>{card.verdict}</Text>
         <Text style={styles.body}>{card.reason}</Text>
       </View>
-      <View style={styles.supplyBox}>
+      <CardFrame style={styles.supplyBox}>
         <Text style={styles.supplyTitle}>이 사람이 채워 주는 기운</Text>
         {card.highlights.length > 0 ? (
           card.highlights.map((highlight) => {
@@ -189,8 +192,8 @@ export function CardDetails({ card, explorationNote }: { card: DeckCard; explora
         )}
         <Text style={styles.small}>{card.balanceLabel}</Text>
         {card.exploration && explorationNote !== null && <Text style={styles.note}>{explorationNote}</Text>}
-      </View>
-      <View style={styles.letter}>
+      </CardFrame>
+      <CardFrame style={styles.letter}>
         {card.intro !== null ? (
           <>
             <Text style={styles.letterText}>{card.intro}</Text>
@@ -199,13 +202,13 @@ export function CardDetails({ card, explorationNote }: { card: DeckCard; explora
         ) : (
           <Text style={styles.small}>자기소개 없음</Text>
         )}
-      </View>
+      </CardFrame>
     </>
   );
 }
 
 /** 폰의 ⓘ 시트 — 사진 위에 못 둔 것 전부와 참고 점수 고지 */
-export function DetailSheet({
+export function CardSheet({
   card,
   open,
   onClose,
@@ -221,18 +224,18 @@ export function DetailSheet({
   onBlocked: () => void;
 }) {
   return (
-    <SheetModal open={open} title={card.nickname} onClose={onClose} menu={<ReportBlock userId={card.candidateUserId} nickname={card.nickname} onBlocked={onBlocked} />}>
+    <DetailSheet open={open} title={card.nickname} onClose={onClose} menu={<ReportBlock userId={card.candidateUserId} nickname={card.nickname} onBlocked={onBlocked} />}>
       <CardDetails card={card} explorationNote={explorationNote} />
       <Text style={styles.fine}>{DISCOVERY_TEASER}</Text>
       {notice !== null && <Text style={styles.meta}>{notice}</Text>}
-    </SheetModal>
+    </DetailSheet>
   );
 }
 
 /** 요청 확인 창 — 풀이권 문단과 「상대가 수락하면」 목록을 누르기 전에 읽는다(ADR 0038 · 대장 matching-12) */
 export function RequestConfirm({ card, open, onClose, onConfirm, busy }: { card: DeckCard; open: boolean; onClose: () => void; onConfirm: () => void; busy: boolean }) {
   return (
-    <ConfirmModal
+    <ConfirmDialog
       open={open}
       onClose={onClose}
       title={`${card.nickname} 님에게 상세 궁합을 요청할까요?`}
@@ -254,7 +257,7 @@ export function RequestConfirm({ card, open, onClose, onConfirm, busy }: { card:
         요청하면 <DialogStrong>풀이권 1장</DialogStrong>이 임시로 차감되고, 상대가 수락하면 확정돼요. {REQUEST_RESERVES_NOTE}
       </DialogText>
       <MatchAcceptNotice side="sent" />
-    </ConfirmModal>
+    </ConfirmDialog>
   );
 }
 
@@ -266,7 +269,7 @@ export function useCreditsNotice() {
   const offer = () => setShown(true);
   const close = () => setShown(false);
   const notice = (
-    <ConfirmModal open={shown} onClose={close} title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} cancelLabel={null} onConfirm={close}>
+    <ConfirmDialog open={shown} onClose={close} title={CREDITS_SHORTAGE_TITLE} confirmLabel={SALE_CLOSED_OK} cancelLabel={null} onConfirm={close}>
       <View style={styles.creditRow}>
         <DialogText>{CREDITS_AVAILABLE_LABEL}</DialogText>
         <DialogStrong>0장</DialogStrong>
@@ -276,7 +279,7 @@ export function useCreditsNotice() {
         <DialogStrong>1장</DialogStrong>
       </View>
       <DialogText>{SALE_CLOSED_NOTE}</DialogText>
-    </ConfirmModal>
+    </ConfirmDialog>
   );
   return { offer, notice };
 }
@@ -286,7 +289,7 @@ export function Feedback({ failure, flash }: { failure: string | null; flash: st
   return (
     <>
       {failure !== null && (
-        <View style={styles.failureBox}>
+        <RowCard style={styles.failureBox}>
           <Text style={styles.failure} accessibilityRole="alert">
             {failure}
           </Text>
@@ -295,7 +298,7 @@ export function Feedback({ failure, flash }: { failure: string | null; flash: st
               <Text style={styles.textLinkText}>인연 기록 보기</Text>
             </Pressable>
           )}
-        </View>
+        </RowCard>
       )}
       {flash !== '' && (
         <View style={styles.flashBox} accessibilityLiveRegion="polite">
@@ -313,27 +316,27 @@ export function EmptyDeck() {
     { href: '/me/compat', label: '궁합 보러 가기' },
   ];
   return (
-    <View style={styles.quiet}>
+    <Paper style={styles.quiet}>
       <Text style={styles.quietTitle}>{DISCOVERY_EMPTY.title}</Text>
       <Text style={styles.body}>{DISCOVERY_EMPTY.line}</Text>
       {links.map((link) => (
-        <Pressable key={link.href} accessibilityRole="link" onPress={() => router.push(link.href as never)} style={styles.quietLink}>
+        <CardFrame key={link.href} accessibilityRole="link" onPress={() => router.push(link.href as never)} style={styles.quietLink}>
           <Text style={[styles.quietLinkText, styles.flex]}>{link.label}</Text>
           <Icon name="arrow" size={16} color={COLOR.secondary} />
-        </Pressable>
+        </CardFrame>
       ))}
-    </View>
+    </Paper>
   );
 }
 
 /** 덱이 서지 않는 자리 — 이유 한 줄과 갈 길 하나 */
 export function QuietPlace({ title, line, href, action }: { title: string; line: string; href: string; action: string }) {
   return (
-    <View style={styles.quiet}>
+    <Paper style={styles.quiet}>
       <Text style={styles.quietTitle}>{title}</Text>
       <Text style={styles.body}>{line}</Text>
       <PrimaryButton label={action} onPress={() => router.push(href as never)} />
-    </View>
+    </Paper>
   );
 }
 
@@ -384,7 +387,7 @@ export function PassedConnections({
       ) : (
         <View style={styles.tiles}>
           {cards.map((card) => (
-            <Pressable
+            <Card
               key={card.candidateUserId}
               accessibilityRole="button"
               onPress={() => {
@@ -408,7 +411,7 @@ export function PassedConnections({
                   {card.highlights[0]?.text ?? card.reason}
                 </Text>
               </View>
-            </Pressable>
+            </Card>
           ))}
         </View>
       )}
@@ -419,7 +422,7 @@ export function PassedConnections({
       <Text style={styles.fine}>최근 {PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.</Text>
 
       {looking !== null && (
-        <SheetModal open title={looking.nickname} onClose={() => setLooking(null)}>
+        <DetailSheet open title={looking.nickname} onClose={() => setLooking(null)}>
           <CardDetails card={looking} explorationNote={explorationNote} />
           {failure !== null && (
             <Text style={styles.failure} accessibilityRole="alert">
@@ -438,7 +441,7 @@ export function PassedConnections({
               else setFailure(message);
             }}
           />
-        </SheetModal>
+        </DetailSheet>
       )}
     </View>
   );
@@ -447,11 +450,11 @@ export function PassedConnections({
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   off: { opacity: 0.55 },
-  card: { flex: 1, minHeight: 320, borderRadius: RADIUS.panel, overflow: 'hidden' },
+  card: { flex: 1, minHeight: 320, padding: 0, overflow: 'hidden', boxShadow: ELEVATION.float },
   exploration: { position: 'absolute', left: 16, flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: RADIUS.pill, backgroundColor: COLOR.surface },
   explorationText: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
   onPhoto: { position: 'absolute', right: 12, flexDirection: 'row', gap: 8 },
-  info: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0, 0, 0, 0.42)' },
+  info: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: 'rgba(0, 0, 0, 0.42)' },
   infoText: { fontFamily: FONT.bold, fontStyle: 'italic', fontSize: TYPE.heading, color: '#ffffff' },
   face: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: 10, paddingHorizontal: 20, paddingTop: 96, paddingBottom: 20 },
   faceHead: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
@@ -463,12 +466,12 @@ const styles = StyleSheet.create({
   verdict: { fontFamily: FONT.medium, fontSize: TYPE.lead, lineHeight: 24, color: 'rgba(255, 255, 255, 0.95)' },
   supply: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dots: { flexDirection: 'row', paddingLeft: 4 },
-  dot: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, borderWidth: 2, borderColor: COLOR.surface },
+  dot: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 2, borderColor: COLOR.surface },
   supplyHead: { fontFamily: FONT.bold, fontSize: TYPE.fine, lineHeight: 16, color: 'rgba(255, 255, 255, 0.75)' },
   supplyNames: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 28, color: '#ffffff' },
-  introLine: { fontFamily: FONT.medium, fontSize: TYPE.sm, lineHeight: 20, color: 'rgba(255, 255, 255, 0.85)' },
+  introLine: { fontFamily: FONT.medium, fontSize: TYPE.note, lineHeight: 20, color: 'rgba(255, 255, 255, 0.85)' },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  undo: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: 28, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  undo: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   pass: { flex: 1, flexDirection: 'row', minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.borderStrong, backgroundColor: COLOR.surface },
   passText: { fontFamily: FONT.bold, fontSize: TYPE.field, color: COLOR.foreground },
   request: { flex: 1.3, minHeight: 56, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
@@ -476,41 +479,41 @@ const styles = StyleSheet.create({
   reasonBox: { gap: 4 },
   detailVerdict: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 28, color: COLOR.foreground },
   body: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
-  supplyBox: { gap: 10, padding: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  supplyBox: { gap: 8, padding: 16 },
   supplyTitle: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
   supplyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  supplyDot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1, borderColor: COLOR.border },
+  supplyDot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border },
   supplyName: { fontFamily: FONT.bold, fontSize: TYPE.lead, lineHeight: 22 },
   small: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.secondary },
   note: { paddingTop: 12, borderTopWidth: 1, borderTopColor: COLOR.border, fontFamily: FONT.medium, fontSize: TYPE.fine, lineHeight: 20, color: COLOR.secondary },
-  letter: { gap: 8, paddingHorizontal: 20, paddingVertical: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  letter: { gap: 8, paddingHorizontal: 20, paddingVertical: 16 },
   letterText: { fontFamily: FONT.medium, fontSize: TYPE.field, lineHeight: 28, color: COLOR.foreground },
   signature: { alignSelf: 'flex-end', fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.creamInk },
   fine: { fontFamily: FONT.medium, fontSize: TYPE.fine, lineHeight: 20, color: COLOR.secondary },
   meta: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 20, color: COLOR.muted },
   confirmLead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  confirmFace: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden' },
+  confirmFace: { width: 56, height: 56, borderRadius: RADIUS.pill, overflow: 'hidden' },
   creditRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  failureBox: { gap: 4, padding: 12, borderRadius: RADIUS.control, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  failureBox: { gap: 4 },
   failure: { fontFamily: FONT.medium, fontSize: TYPE.small, lineHeight: 19, color: COLOR.danger },
   textLink: { minHeight: 44, justifyContent: 'center' },
-  textLinkText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.foreground },
+  textLinkText: { fontFamily: FONT.bold, fontSize: TYPE.note, color: COLOR.foreground },
   flashBox: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
   flash: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.foreground },
-  quiet: { gap: 16, padding: 24, borderRadius: RADIUS.panel, backgroundColor: COLOR.cream },
+  quiet: { gap: 24 },
   quietTitle: { fontFamily: FONT.bold, fontSize: TYPE.heading, lineHeight: 28, color: COLOR.foreground },
-  quietLink: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  quietLink: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, paddingVertical: 12 },
   quietLinkText: { fontFamily: FONT.bold, fontSize: TYPE.body, color: COLOR.foreground },
   passed: { gap: 20 },
   passedHead: { gap: 4 },
   count: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.secondary },
   passedEmpty: { flexDirection: 'row', gap: 12 },
-  passedEmptyIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: COLOR.surfaceSunken },
+  passedEmptyIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.surfaceSunken },
   name: { fontFamily: FONT.bold, fontSize: TYPE.field, color: COLOR.foreground },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { width: '47.5%', borderRadius: RADIUS.panel, overflow: 'hidden', borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  tile: { width: '47.5%', padding: 0, overflow: 'hidden' },
   tilePhoto: { aspectRatio: 1 },
-  tileDot: { position: 'absolute', left: 8, bottom: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 2, borderColor: COLOR.surface },
+  tileDot: { position: 'absolute', left: 8, bottom: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, borderWidth: 2, borderColor: COLOR.surface },
   tileBody: { gap: 4, padding: 12 },
   tileScore: { fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.foreground },
 });

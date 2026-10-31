@@ -9,6 +9,7 @@ import { SIGN_IN_AGAIN_NOTE } from '@sign-in-again';
 
 import { Switch } from '@/ui/switch';
 import { COLOR, CONTROL, FONT, TYPE } from '@/ui/tokens';
+import { CardFrame } from '@/ui/surfaces';
 
 /** 줄 이름 · 아래 한 줄 · 그 아래 작은 줄 — 웹 `app/me/settings/card.tsx` 의 `ROW_LABEL` · `ROW_HELP` · `ROW_NOTE` */
 const PAD = 24;
@@ -64,10 +65,10 @@ export function AccountNotice({ state, onRetry }: { state: AccountState; onRetry
   const text = accountNoticeOf(state, SUPPORT_EMAIL);
   if (text === null) return null;
   return (
-    <View style={styles.notice}>
+    <CardFrame style={styles.notice}>
       <Text style={styles.noticeTitle}>{text.title}</Text>
       <Text style={styles.help}>{text.detail}</Text>
-    </View>
+    </CardFrame>
   );
 }
 
@@ -152,18 +153,19 @@ export const settingsText = StyleSheet.create({
   section: { fontSize: TYPE.lead, lineHeight: 26, fontFamily: FONT.bold, color: COLOR.foreground },
   body: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.medium, color: COLOR.secondary },
   bodyStrong: { fontSize: TYPE.body, lineHeight: 24, fontFamily: FONT.bold, color: COLOR.foreground },
-  failure: { fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
+  failure: { fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
   fieldLabel: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
 });
 
 const styles = StyleSheet.create({
   fill: { flex: 1, minWidth: 0, gap: 2 },
   inset: { paddingHorizontal: PAD, paddingBottom: 12 },
   failureRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12 },
-  failure: { flexShrink: 1, fontSize: TYPE.sm, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
+  failure: { flexShrink: 1, fontSize: TYPE.note, lineHeight: 22, fontFamily: FONT.medium, color: COLOR.danger },
   lineButton: { minHeight: CONTROL, justifyContent: 'center' },
   lineButtonText: { fontSize: TYPE.small, fontFamily: FONT.bold, color: COLOR.secondary, textDecorationLine: 'underline' },
-  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 20, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  notice: { gap: 4, paddingHorizontal: 20, paddingVertical: 16 },
   noticeTitle: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   group: { paddingVertical: 8, backgroundColor: COLOR.surfaceRaised },
   groupHead: { gap: 2, paddingHorizontal: PAD, paddingTop: 12, paddingBottom: 4 },

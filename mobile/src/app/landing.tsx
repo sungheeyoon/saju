@@ -10,9 +10,9 @@ import { Mark, SunMark } from '@/share/marks';
 import { useStart } from '@/share/start';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
-import { Panel } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { CardFrame, Paper } from '@/ui/surfaces';
 
 /**
  * 첫 화면의 소개 — 웹 `/` 의 머리와 「할 수 있는 것」이다(`app/home-hero.tsx` · `app/landing-guide.tsx`). **앱의 입구는 입력 화면이고**
@@ -49,7 +49,7 @@ export default function LandingScreen() {
         <Text style={styles.brand}>{SERVICE_NAME}</Text>
       </TopBar>
       <ScrollView contentContainerStyle={styles.content}>
-        <Panel tone="cream" style={styles.paper}>
+        <Paper style={styles.paper}>
           <Text accessibilityRole="header" style={styles.title}>
             나는 어떤 사람일까?
           </Text>
@@ -62,7 +62,7 @@ export default function LandingScreen() {
             </Entry>
           </View>
           {failure !== null && <Text style={styles.failure}>{failure}</Text>}
-        </Panel>
+        </Paper>
 
         <View style={styles.guide}>
           <View style={styles.guideHead}>
@@ -75,13 +75,13 @@ export default function LandingScreen() {
             </Pressable>
           </View>
           {SERVICE_FEATURES.filter((feature) => feature.title !== '사주').map((feature) => (
-            <Panel key={feature.title} style={styles.card}>
+            <CardFrame key={feature.title} style={styles.card}>
               <FeatureMark icon={feature.icon} />
               <View style={styles.cardBody}>
                 <Text style={styles.cardTitle}>{feature.title}</Text>
                 <Text style={styles.cardText}>{feature.body}</Text>
               </View>
-            </Panel>
+            </CardFrame>
           ))}
         </View>
       </ScrollView>
@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 4, marginBottom: -20 },
   brand: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   paper: { gap: 16, padding: 16 },
-  title: { fontSize: TYPE.title, lineHeight: 34, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 4 },
-  entries: { flexDirection: 'row', gap: 2, padding: 2, borderRadius: RADIUS.control, backgroundColor: COLOR.surfaceSunken },
-  entry: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, borderRadius: RADIUS.control, backgroundColor: COLOR.surface },
+  title: { fontSize: TYPE.title, lineHeight: 35, fontFamily: FONT.bold, color: COLOR.foreground, marginHorizontal: 4 },
+  entries: { flexDirection: 'row', gap: 2, padding: 2, borderRadius: RADIUS.cell, backgroundColor: COLOR.surfaceSunken },
+  entry: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, borderRadius: RADIUS.cell, backgroundColor: COLOR.surface },
   entryText: { fontSize: TYPE.body, fontFamily: FONT.bold, color: COLOR.foreground },
   pressed: { transform: [{ scale: 0.98 }] },
   off: { opacity: 0.55 },
@@ -133,10 +133,10 @@ const styles = StyleSheet.create({
   guideHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12 },
   section: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.foreground },
   aboutLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  aboutText: { fontSize: TYPE.sm, fontFamily: FONT.bold, color: COLOR.foreground },
-  card: { flexDirection: 'row', gap: 16, borderWidth: 1, borderColor: COLOR.border },
-  mark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.control },
+  aboutText: { fontSize: TYPE.note, fontFamily: FONT.bold, color: COLOR.foreground },
+  card: { flexDirection: 'row', gap: 16, padding: 20 },
+  mark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.cell },
   cardBody: { flex: 1, minWidth: 0 },
   cardTitle: { fontSize: TYPE.lead, fontFamily: FONT.bold, color: COLOR.foreground },
-  cardText: { marginTop: 4, fontSize: TYPE.body, lineHeight: 26, fontFamily: FONT.medium, color: COLOR.secondary },
+  cardText: { marginTop: 4, fontSize: TYPE.body, lineHeight: 28, fontFamily: FONT.medium, color: COLOR.secondary },
 });

@@ -1,34 +1,32 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type AccessibilityRole, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
-import { CELL, SURFACE } from '@design';
+import { CELL, SHEET, SURFACE } from '@design';
 
 /**
  * **앱의 면 한 벌** — 웹 `app/ui/surfaces.ts` 와 같은 이름 · 같은 값이다(값 `src/lib/design/parts.ts`, ADR 0109 추기 2026-10-31).
  * 화면은 면을 손으로 쓰지 않고 이 부품을 부른다. 여백 · 테 색처럼 자리마다 바꾸는 것만 `style` 로 덧붙인다(웹의 `*_FACE` 자리).
  * `onPress` 를 주면 면 전체가 누를 자리가 된다.
  */
-type FaceProps = {
+type FaceProps = Pick<ViewProps, 'accessibilityLabel' | 'accessibilityRole' | 'accessibilityLiveRegion' | 'accessibilityViewIsModal' | 'onLayout'> & {
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
   onPress?: () => void;
   disabled?: boolean;
-  accessibilityLabel?: string;
-  accessibilityRole?: AccessibilityRole;
 };
 
-function Face({ face, style, children, onPress, disabled, accessibilityLabel, accessibilityRole }: FaceProps & { face: ViewStyle }) {
+function Face({ face, style, children, onPress, disabled, ...view }: FaceProps & { face: ViewStyle }) {
   if (onPress === undefined) {
     return (
-      <View style={[face, style]} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole}>
+      <View style={[face, style]} {...view}>
         {children}
       </View>
     );
   }
   return (
     <Pressable
-      accessibilityRole={accessibilityRole ?? 'button'}
-      accessibilityLabel={accessibilityLabel}
+      {...view}
+      accessibilityRole={view.accessibilityRole ?? 'button'}
       accessibilityState={{ disabled: disabled === true }}
       disabled={disabled}
       onPress={onPress}
@@ -69,6 +67,9 @@ export const EmptySlot = (props: FaceProps) => <Face face={styles.slot} {...prop
 /** 확인 창의 판 */
 export const DialogPanel = (props: FaceProps) => <Face face={styles.dialog} {...props} />;
 
+/** 아래에서 올라오는 판 — 위 모서리만 둥글다. 웹 `DetailSheet` · `ActionSheet` 의 `rounded-t-card bg-background` */
+export const SheetPanel = (props: FaceProps) => <Face face={styles.sheet} {...props} />;
+
 const styles = StyleSheet.create({
   card: SURFACE.CARD,
   frame: SURFACE.CARD_FRAME,
@@ -80,5 +81,6 @@ const styles = StyleSheet.create({
   line: SURFACE.ROW_LINE,
   slot: SURFACE.EMPTY_SLOT,
   dialog: SURFACE.DIALOG,
+  sheet: SHEET,
   pressed: { opacity: 0.85 },
 });

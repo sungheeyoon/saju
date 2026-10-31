@@ -5,7 +5,7 @@ import { appBusinessInfo } from '@/info/business';
 import { InfoLine, InfoScreen, LegalHead } from '@/info/frame';
 import { HomeButton } from '@/info/home-button';
 import { LegalBody } from '@/info/legal-body';
-import { Panel } from '@/ui/parts';
+import { Card } from '@/ui/surfaces';
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
 
@@ -16,9 +16,9 @@ export default function TermsScreen() {
     <InfoScreen title="이용약관" fallback="/">
       <LegalHead title={`${SERVICE_NAME} 이용약관`} note={terms?.effectiveDate ? '시행일 ' + terms.effectiveDate : null} />
       {terms === null ? (
-        <Panel>
+        <Card>
           <InfoLine>화면을 불러오지 못했어요</InfoLine>
-        </Panel>
+        </Card>
       ) : (
         <LegalBody document={terms} />
       )}

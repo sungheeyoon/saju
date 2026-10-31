@@ -7,7 +7,8 @@ import { SIGN_OUT_PENDING } from '@account/copy';
 import { GUIDE_LINKS } from '@brand/links';
 
 import { signOut } from '@/auth/sign-in';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { SheetPanel } from '@/ui/surfaces';
 
 const LINKS = [
   { href: '/me/profile', label: '프로필' },
@@ -35,7 +36,7 @@ export function SettingsMenu({ email, open, onClose }: { email: string | null; o
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable accessibilityRole="button" accessibilityLabel="닫기" style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
+      <SheetPanel style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
         <ScrollView>
           {email !== null && <Text style={styles.email}>{email}</Text>}
           {LINKS.map((link) => (
@@ -73,14 +74,14 @@ export function SettingsMenu({ email, open, onClose }: { email: string | null; o
           </View>
           {failure !== null && <Text style={styles.failure}>{failure}</Text>}
         </ScrollView>
-      </View>
+      </SheetPanel>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(38, 36, 31, 0.35)' },
-  sheet: { maxHeight: '80%', paddingHorizontal: 16, paddingTop: 16, borderTopLeftRadius: RADIUS.panel, borderTopRightRadius: RADIUS.panel, backgroundColor: COLOR.surface },
+  sheet: { maxHeight: '80%', paddingHorizontal: 16, paddingTop: 16, backgroundColor: COLOR.surface },
   email: { fontFamily: FONT.medium, fontSize: TYPE.small, color: COLOR.muted, paddingHorizontal: 4, paddingBottom: 8 },
   group: { marginTop: 4, borderTopWidth: 1, borderTopColor: COLOR.border },
   row: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },

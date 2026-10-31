@@ -10,7 +10,7 @@ import { asKoreanDay, noticeAckHolds } from '@consent/index';
 import { initialOf } from '@profile';
 
 import { signOut } from '@/auth/sign-in';
-import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 import { settled } from '@/ui/settled';
 import { TopBar } from '@/ui/top-bar';
 
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLOR.surfaceSunken },
   content: { gap: 16, paddingTop: 12, paddingBottom: 40 },
   notice: { paddingHorizontal: 16 },
-  face: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.cream },
+  face: { width: 56, height: 56, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: COLOR.cream },
   initial: { fontSize: TYPE.heading, fontFamily: FONT.bold, color: COLOR.creamInk },
   email: { paddingHorizontal: 24, paddingVertical: 12, fontSize: TYPE.small, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
 });

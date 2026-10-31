@@ -8,10 +8,10 @@ import type { Element } from '@saju';
 
 import { Avatar } from '@/chat/avatar';
 import { EmptyChat } from '@/chat/empty';
-import { ChatIcon } from '@/chat/icons';
 import { listenLive } from '@/chat/live';
 import { AccountNotice, FailureLine } from '@/chat/notices';
 import { noteActivity, readRoomListScreen, type ChatRoom, type RoomListScreen } from '@/chat/reads';
+import { Icon } from '@/ui/icons';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
 
 /** 한 물결의 변경을 묶어 다시 읽는 간격 — 웹의 `REDRAW_AFTER_MS` 와 같다 */
@@ -112,7 +112,7 @@ function RoomRow({ room, tone }: { room: ChatRoom; tone: Element | null }) {
           <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{messageTimeLabel(room.lastMessageAt ?? room.openedAt)}</Text>
         </View>
         <View style={styles.rowBottom}>
-          {closed && <ChatIcon name="lock" color={COLOR.secondary} size={14} />}
+          {closed && <Icon name="lock" color={COLOR.secondary} size={14} />}
           <Text numberOfLines={1} style={[styles.preview, unread > 0 && !closed && styles.previewUnread]}>
             {notice ?? room.lastMessageBody ?? ROOM_NO_MESSAGES_YET}
           </Text>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   title: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, fontSize: TYPE.title, fontFamily: FONT.bold, color: COLOR.foreground },
   pad: { paddingHorizontal: 16 },
   list: { paddingHorizontal: 8, paddingBottom: 16, gap: 2 },
-  row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8, paddingVertical: 10, borderRadius: RADIUS.panel },
+  row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8, paddingVertical: 10, borderRadius: RADIUS.card },
   pressed: { backgroundColor: COLOR.surfaceSoft },
   rowBody: { flex: 1, gap: 2 },
   rowTop: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   time: { fontSize: TYPE.fine, fontFamily: FONT.medium, color: COLOR.secondary },
   timeUnread: { fontFamily: FONT.bold, color: COLOR.foreground },
   rowBottom: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  preview: { flex: 1, fontSize: TYPE.sm, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
+  preview: { flex: 1, fontSize: TYPE.note, lineHeight: 20, fontFamily: FONT.medium, color: COLOR.secondary },
   previewUnread: { fontFamily: FONT.bold, color: COLOR.foreground },
   badge: { minWidth: 20, height: 20, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.danger },
   badgeText: { fontSize: TYPE.fine, fontFamily: FONT.bold, color: COLOR.onAccent },
