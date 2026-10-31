@@ -18,9 +18,9 @@ import { StrengthMeter } from '@/chart/strength';
 import { YongsinCard } from '@/chart/yongsin';
 import { SavePersonForReading } from '@/reading/save-self';
 import { ElementSymbol } from '@/ui/element-symbol';
-import { Panel } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
 import { COLOR, ELEMENT_TONE, FONT, TYPE } from '@/ui/tokens';
+import { Paper } from '@/ui/surfaces';
 
 /** 사주 결과 — 절의 차례는 웹의 `app/saju/view.tsx` 와 같다. 값은 웹과 같은 `sajuViewModelOf` 다 */
 export default function ChartScreen() {
@@ -39,7 +39,7 @@ export default function ChartScreen() {
           <Text style={styles.failure}>{result.ok ? '' : result.message}</Text>
         ) : (
           <>
-            <Panel tone="cream">
+            <Paper>
               {query.name !== '' && <Text style={styles.name}>{query.name}</Text>}
               <Text style={styles.summary}>
                 {query.date} {query.hourKnown === false ? HOUR_UNKNOWN_LABEL : query.time} · {query.city}
@@ -58,7 +58,7 @@ export default function ChartScreen() {
                   );
                 })}
               </View>
-            </Panel>
+            </Paper>
 
             <SavePersonForReading query={query} />
 

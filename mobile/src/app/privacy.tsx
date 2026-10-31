@@ -7,8 +7,8 @@ import { PRIVACY_INTRO, PRIVACY_OPTIONAL_TITLE, PRIVACY_RIGHTS_LINES, PRIVACY_RI
 import { readSchedule, type ScheduleRead } from '@/auth/schedule';
 import { Clause, Dot, FinePrint, InfoLine, InfoScreen, LegalHead } from '@/info/frame';
 import { HomeButton } from '@/info/home-button';
-import { Panel } from '@/ui/parts';
-import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { Card, Tile } from '@/ui/surfaces';
 
 /** 처리방침 — 웹의 `/privacy` 와 같은 자료(`noticeFor`)이고 로그인 없이 열린다. 날짜를 지어내지 않는다: 일정이 없으면 그 말만 선다 */
 export default function PrivacyScreen() {
@@ -42,16 +42,16 @@ export default function PrivacyScreen() {
       <LegalHead title="개인정보 처리방침" note={PRIVACY_INTRO} />
 
       {schedule === null ? null : !schedule.ok ? (
-        <Panel>
+        <Card>
           <InfoLine>{schedule.reason}</InfoLine>
-        </Panel>
+        </Card>
       ) : ready === null ? (
-        <Panel>
+        <Card>
           <InfoLine>{NOTICE_NOT_READY}</InfoLine>
-        </Panel>
+        </Card>
       ) : (
         <>
-          <Panel style={styles.toc}>
+          <Card style={styles.toc}>
             <Text style={styles.tocHead}>목차</Text>
             <View>
               {titles.map((title, index) => (
@@ -66,7 +66,7 @@ export default function PrivacyScreen() {
                 </Pressable>
               ))}
             </View>
-          </Panel>
+          </Card>
 
           {sections.map((section, index) => (
             <Clause key={section.title} title={section.title} {...anchor(index)}>
@@ -81,11 +81,11 @@ export default function PrivacyScreen() {
           <Clause title={PRIVACY_OPTIONAL_TITLE} {...anchor(sections.length)}>
             <InfoLine>{OPTIONAL_CONSENT_NOTE}</InfoLine>
             {OPTIONAL_CONSENTS.map((one) => (
-              <View key={one.key} style={styles.optional}>
+              <Tile tone={COLOR.surfaceSoft} key={one.key} style={styles.optional}>
                 <Text style={styles.optionalLabel}>{one.label}</Text>
                 <InfoLine>{one.detail}</InfoLine>
                 <InfoLine>{one.erasure}</InfoLine>
-              </View>
+              </Tile>
             ))}
           </Clause>
 
@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
   tocNumber: { width: 20, textAlign: 'right', fontFamily: FONT.bold, fontSize: TYPE.small, color: COLOR.muted },
   tocTitle: { flex: 1, fontFamily: FONT.medium, fontSize: TYPE.body, color: COLOR.foreground },
   lines: { gap: 8 },
-  optional: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: RADIUS.panel, backgroundColor: COLOR.surfaceSoft },
+  optional: { paddingHorizontal: 16, paddingVertical: 12 },
   optionalLabel: { fontFamily: FONT.bold, fontSize: TYPE.body, lineHeight: 24, color: COLOR.foreground },
 });

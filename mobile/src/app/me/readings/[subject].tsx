@@ -7,9 +7,9 @@ import type { Element } from '@saju';
 
 import type { ReadingTarget } from '@/reading/api';
 import { ReadFailure, ReadingPanel, useReadingView } from '@/reading/panel';
-import { Panel } from '@/ui/parts';
 import { TopBar } from '@/ui/top-bar';
 import { COLOR, FONT, TYPE } from '@/ui/tokens';
+import { Card } from '@/ui/surfaces';
 
 /**
  * **한 사람의 사주풀이** — 웹의 `/me/readings/[subject]`. 주소의 `self` 가 내 사주이고, 저장한 사람은 Person id 다.
@@ -36,10 +36,10 @@ export default function ReadingScreen() {
         {answer !== null && 'refused' in answer && <ReadFailure refused={answer.refused} onRetry={reload} />}
 
         {view?.view === 'blocked' && (
-          <Panel>
+          <Card>
             <Text style={styles.noticeTitle}>{view.title}</Text>
             <Text style={styles.line}>{view.detail}</Text>
-          </Panel>
+          </Card>
         )}
 
         {view?.view === 'reading' && (

@@ -10,8 +10,9 @@ import { InfoScreen } from '@/info/frame';
 import { goHome } from '@/info/go-home';
 import { Icon } from '@/ui/icons';
 import { Logo } from '@/ui/logo';
-import { Panel, PrimaryButton, SecondaryButton } from '@/ui/parts';
+import { PrimaryButton, SecondaryButton } from '@/ui/parts';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { Card, CardFrame, Paper } from '@/ui/surfaces';
 
 /** 앱은 로그인 뒤에야 결과를 보여 준다 — 로그인 없이 된다는 조건 줄은 앱에서 사실이 아니라 세우지 않는다 */
 const SIGNED_OUT_ONLY = '로그인 없이';
@@ -20,24 +21,24 @@ const SIGNED_OUT_ONLY = '로그인 없이';
 export default function AboutScreen() {
   return (
     <InfoScreen gap={40} title="서비스 소개" fallback="/">
-      <Panel tone="cream" style={styles.head}>
+      <Paper style={styles.head}>
         <Logo size={44} />
         <Text style={styles.meta}>{SERVICE_TAGLINE}</Text>
         <Text style={styles.title}>{SERVICE_NAME_TOPIC} 이런 곳이에요</Text>
         <Text style={styles.lead}>{ABOUT_LEAD.join(' ')}</Text>
-      </Panel>
+      </Paper>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>할 수 있는 것</Text>
         {SERVICE_FEATURES.map((feature) => (
-          <Panel key={feature.title} style={styles.feature}>
+          <Card key={feature.title} style={styles.feature}>
             <View style={styles.iconBadge}>
               <Icon name={feature.icon} />
             </View>
             <Text style={styles.name}>{feature.title}</Text>
             <Text style={styles.body}>{feature.body}</Text>
             {!feature.note.includes(SIGNED_OUT_ONLY) && <Text style={styles.meta}>{feature.note}</Text>}
-          </Panel>
+          </Card>
         ))}
       </View>
 
@@ -45,7 +46,7 @@ export default function AboutScreen() {
         <Text style={styles.sectionTitle}>시작하는 차례</Text>
         <View style={styles.steps}>
           {ABOUT_STEPS.map((step, index) => (
-            <View key={step.title} style={styles.step}>
+            <CardFrame key={step.title} style={styles.step}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{index + 1}</Text>
               </View>
@@ -53,7 +54,7 @@ export default function AboutScreen() {
                 <Text style={styles.stepTitle}>{step.title}</Text>
                 <Text style={styles.stepText}>{step.body}</Text>
               </View>
-            </View>
+            </CardFrame>
           ))}
         </View>
         <Text style={styles.stepText}>{BETA_SIGNUP_CODE_NOTE}</Text>
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: FONT.bold, fontSize: TYPE.lead, lineHeight: 24, color: COLOR.foreground },
   body: { fontFamily: FONT.medium, fontSize: TYPE.body, lineHeight: 24, color: COLOR.secondary },
   steps: { gap: 8 },
-  step: { flexDirection: 'row', gap: 16, padding: 16, borderRadius: RADIUS.panel, borderWidth: 1, borderColor: COLOR.border, backgroundColor: COLOR.surface },
+  step: { flexDirection: 'row', gap: 16, padding: 16 },
   stepNumber: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.pill, backgroundColor: COLOR.accent },
   stepNumberText: { fontFamily: FONT.bold, fontSize: TYPE.sm, color: COLOR.onAccent },
   stepBody: { flex: 1, gap: 2 },
