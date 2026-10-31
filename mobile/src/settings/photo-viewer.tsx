@@ -6,6 +6,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { MenuPanel } from '@/ui/surfaces';
 import { COLOR, FONT, RADIUS, TYPE } from '@/ui/tokens';
+import { settled } from '@/ui/settled';
 
 import { photoSource, type MyPhoto } from './photos';
 
@@ -45,7 +46,7 @@ export function PhotoViewer({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 사진이 바뀌면 앞 사진을 먼저 걷는다. 새 주소가 올 때까지 앞 사진을 새 번호로 보이지 않는다
     setSource(null);
     if (photo !== undefined) {
-      void photoSource(photo, userId ?? undefined).then((next) => {
+      void settled(photoSource(photo, userId ?? undefined), 'photoSource', () => null).then((next) => {
         if (live) setSource(next);
       });
     }
